@@ -45,6 +45,11 @@ type Visual struct {
 	ptr *C.Visual
 }
 
+// Ptr returns the underlying C Visual pointer for use in other cgo calls.
+func (v *Visual) Ptr() unsafe.Pointer {
+	return unsafe.Pointer(v.ptr)
+}
+
 // XColor wraps an X11 XColor struct.
 type XColor struct {
 	Pixel uint64

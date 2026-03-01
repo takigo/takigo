@@ -1,5 +1,5 @@
-// Phase 1 demo: Opens a window, draws colored rectangles, responds to
-// keyboard/mouse events, closable with 'q' key or window close button.
+// Phase 2 demo: Demonstrates text with named fonts, colored rectangles with
+// 3D relief borders, and the functional options framework.
 package main
 
 import (
@@ -7,13 +7,17 @@ import (
 	"os"
 
 	"github.com/msorc/takigo"
+	"github.com/msorc/takigo/color"
+	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/event"
+	"github.com/msorc/takigo/font"
 	"github.com/msorc/takigo/internal/xlib"
+	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/window"
 )
 
 func main() {
-	app, err := takigo.NewApp(takigo.Title("Takigo Phase 1 Demo"), takigo.Size(600, 400))
+	app, err := takigo.NewApp(takigo.Title("Takigo Phase 2 Demo"), takigo.Size(700, 500))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
@@ -23,89 +27,173 @@ func main() {
 	root := app.Root()
 	d := app.Display()
 
-	// Colors (pixel values for TrueColor displays).
-	red := uint64(0xCC0000)
-	green := uint64(0x00AA00)
-	blue := uint64(0x3366CC)
-	yellow := uint64(0xFFCC00)
+	// Create color cache and parse some colors.
+	colors := color.NewCache(d.XDisplay, d.Screen, d.Colormap)
+	bgColor, _ := colors.Get("#d9d9d9")  // Tk default background
+	red, _ := colors.Get("firebrick")
+	blue, _ := colors.Get("steel blue")
+	green, _ := colors.Get("forest green")
+	gold, _ := colors.Get("gold")
 
-	// Draw handler — called on Expose events.
+	// Set window background to Tk-like gray.
+	if bgColor != nil {
+		root.BackgroundPixel = bgColor.Pixel
+	}
+
+	// Create borders for 3D relief.
+	bgBorder := draw.NewBorderFromPixel(bgColor.Pixel)
+	redBorder := draw.NewBorder(red.Red, red.Green, red.Blue)
+	blueBorder := draw.NewBorder(blue.Red, blue.Green, blue.Blue)
+
+	// Create font registry and open fonts.
+	fontReg := font.NewRegistry(d.XDisplay, d.Screen, d.Visual, d.Colormap)
+	defer fontReg.Close()
+
+	defaultFont, err := fontReg.Get(font.TkDefaultFont)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Font error: %v\n", err)
+		os.Exit(1)
+	}
+
+	headingFont, err := fontReg.Get(font.TkHeadingFont)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Font error: %v\n", err)
+		os.Exit(1)
+	}
+
+	fixedFont, err := fontReg.Get(font.TkFixedFont)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Font error: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Draw handler.
 	app.Dispatcher().Bind(root.XWindow, event.ExposureMask, func(ev *event.Event) {
 		if ev.ExposeCount > 0 {
-			return // wait for last expose in sequence
+			return
 		}
-		drawScene(d, root, red, green, blue, yellow)
+		drawScene(d, root, bgColor, bgBorder, redBorder, blueBorder,
+			red, blue, green, gold,
+			defaultFont.(*font.XftFont), headingFont.(*font.XftFont), fixedFont.(*font.XftFont))
 	})
 
-	// Key handler — 'q' or Escape to quit.
+	// Key handler.
 	app.Dispatcher().Bind(root.XWindow, event.KeyPressMask, func(ev *event.Event) {
 		if ev.KeySym == xlib.XK_q || ev.KeySym == xlib.XK_Escape {
 			app.Quit()
-			return
 		}
-		fmt.Printf("Key press: sym=0x%x str=%q\n", ev.KeySym, ev.Str)
 	})
 
-	// Mouse button handler.
-	app.Dispatcher().Bind(root.XWindow, event.ButtonPressMask, func(ev *event.Event) {
-		fmt.Printf("Button %d at (%d, %d)\n", ev.Button, ev.X, ev.Y)
-	})
-
-	// Enter/Leave handlers.
-	app.Dispatcher().Bind(root.XWindow, event.EnterMask, func(ev *event.Event) {
-		fmt.Println("Mouse entered window")
-	})
-	app.Dispatcher().Bind(root.XWindow, event.LeaveMask, func(ev *event.Event) {
-		fmt.Println("Mouse left window")
-	})
-
-	fmt.Println("Takigo Phase 1 Demo")
-	fmt.Println("Press 'q' or Escape to quit. Click to see coordinates.")
+	fmt.Println("Takigo Phase 2 Demo — Colors, Fonts, 3D Relief")
+	fmt.Println("Press 'q' or Escape to quit.")
 	app.MainLoop()
 	fmt.Println("Goodbye!")
 }
 
-// drawScene draws colored rectangles on the window.
-func drawScene(d *window.Display, root *window.Window, red, green, blue, yellow uint64) {
+func drawScene(d *window.Display, root *window.Window,
+	bgColor *color.Color, bgBorder, redBorder, blueBorder *draw.Border,
+	red, blue, green, gold *color.Color,
+	defaultFont, headingFont, fixedFont *font.XftFont) {
+
 	xd := d.XDisplay
 	gc := root.GC
 	drawable := root.Drawable()
 	w := root.Width
 	h := root.Height
 
-	// Background.
-	xd.SetForeground(gc, d.WhitePixel)
+	// Fill background.
+	xd.SetForeground(gc, bgColor.Pixel)
 	xd.FillRectangle(drawable, gc, 0, 0, uint(w), uint(h))
 
-	// Red rectangle.
-	xd.SetForeground(gc, red)
-	xd.FillRectangle(drawable, gc, 20, 20, 150, 100)
+	// Title text with heading font.
+	headingFont.DrawString(drawable, 20, 35, "Takigo Phase 2: Colors, Fonts & 3D Relief",
+		d.BlackPixel, 0, 0, 0)
 
-	// Green rectangle.
-	xd.SetForeground(gc, green)
-	xd.FillRectangle(drawable, gc, 200, 20, 150, 100)
+	// 3D Relief demo — show all relief types.
+	reliefs := []struct {
+		name   string
+		relief option.Relief
+	}{
+		{"Raised", option.ReliefRaised},
+		{"Sunken", option.ReliefSunken},
+		{"Groove", option.ReliefGroove},
+		{"Ridge", option.ReliefRidge},
+		{"Solid", option.ReliefSolid},
+		{"Flat", option.ReliefFlat},
+	}
 
-	// Blue rectangle.
-	xd.SetForeground(gc, blue)
-	xd.FillRectangle(drawable, gc, 20, 150, 150, 100)
+	y := 60
+	for i, r := range reliefs {
+		x := 20 + i*110
+		draw.Fill3DRectangle(xd, drawable, gc, bgBorder, x, y, 100, 60, 3, r.relief)
+		// Label with default font.
+		defaultFont.DrawString(drawable, x+10, y+35, r.name,
+			d.BlackPixel, 0, 0, 0)
+	}
 
-	// Yellow rectangle.
-	xd.SetForeground(gc, yellow)
-	xd.FillRectangle(drawable, gc, 200, 150, 150, 100)
+	// Colored rectangles with 3D relief.
+	draw.Fill3DRectangle(xd, drawable, gc, redBorder, 20, 150, 200, 80, 3, option.ReliefRaised)
+	defaultFont.DrawString(drawable, 40, 195, "Red Raised",
+		0xFFFFFF, 0xFFFF, 0xFFFF, 0xFFFF)
 
-	// Draw outlines in black.
-	xd.SetForeground(gc, d.BlackPixel)
-	xd.DrawRectangle(drawable, gc, 20, 20, 150, 100)
-	xd.DrawRectangle(drawable, gc, 200, 20, 150, 100)
-	xd.DrawRectangle(drawable, gc, 20, 150, 150, 100)
-	xd.DrawRectangle(drawable, gc, 200, 150, 150, 100)
+	draw.Fill3DRectangle(xd, drawable, gc, blueBorder, 240, 150, 200, 80, 3, option.ReliefSunken)
+	defaultFont.DrawString(drawable, 260, 195, "Blue Sunken",
+		0xFFFFFF, 0xFFFF, 0xFFFF, 0xFFFF)
 
-	// Draw diagonal lines.
-	xd.DrawLine(drawable, gc, 400, 20, 560, 260)
-	xd.DrawLine(drawable, gc, 560, 20, 400, 260)
+	draw.Fill3DRectangle(xd, drawable, gc, bgBorder, 460, 150, 200, 80, 4, option.ReliefRidge)
+	defaultFont.DrawString(drawable, 480, 195, "Gray Ridge",
+		d.BlackPixel, 0, 0, 0)
 
-	// Draw some text.
-	xd.DrawString(drawable, gc, 420, 300, "Takigo Phase 1")
+	// Named colors demo.
+	namedColors := []struct {
+		name string
+		col  *color.Color
+	}{
+		{"firebrick", red},
+		{"steel blue", blue},
+		{"forest green", green},
+		{"gold", gold},
+	}
+
+	y = 260
+	for i, nc := range namedColors {
+		x := 20 + i*170
+		xd.SetForeground(gc, nc.col.Pixel)
+		xd.FillRectangle(drawable, gc, x, y, 150, 40)
+		xd.SetForeground(gc, d.BlackPixel)
+		xd.DrawRectangle(drawable, gc, x, y, 150, 40)
+		defaultFont.DrawString(drawable, x+5, y+25, nc.name,
+			d.BlackPixel, 0, 0, 0)
+	}
+
+	// Font demo.
+	y = 330
+	headingFont.DrawString(drawable, 20, y, "Heading Font (TkHeadingFont — sans-serif bold 12)",
+		d.BlackPixel, 0, 0, 0)
+
+	y += 30
+	defaultFont.DrawString(drawable, 20, y, "Default Font (TkDefaultFont — sans-serif 10)",
+		d.BlackPixel, 0, 0, 0)
+
+	y += 25
+	fixedFont.DrawString(drawable, 20, y, "Fixed Font (TkFixedFont — monospace 10)",
+		d.BlackPixel, 0, 0, 0)
+
+	// Font metrics display.
+	y += 30
+	m := headingFont.Metrics()
+	metricsStr := fmt.Sprintf("Heading metrics: ascent=%d descent=%d maxWidth=%d fixed=%v",
+		m.Ascent, m.Descent, m.MaxWidth, m.Fixed)
+	fixedFont.DrawString(drawable, 20, y, metricsStr,
+		d.BlackPixel, 0, 0, 0)
+
+	// Text measurement demo.
+	y += 25
+	testStr := "Hello, Takigo!"
+	textWidth := headingFont.MeasureString(testStr)
+	measureStr := fmt.Sprintf("MeasureString(%q) = %d pixels", testStr, textWidth)
+	fixedFont.DrawString(drawable, 20, y, measureStr,
+		d.BlackPixel, 0, 0, 0)
 
 	xd.Flush()
 }
