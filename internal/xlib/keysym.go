@@ -28,6 +28,8 @@ const (
 	XK_Home      = KeySym(C.XK_Home)
 	XK_End       = KeySym(C.XK_End)
 	XK_Delete    = KeySym(C.XK_Delete)
+	XK_Prior     = KeySym(0xff55) // PageUp
+	XK_Next      = KeySym(0xff56) // PageDown
 )
 
 // Modifier masks.

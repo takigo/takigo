@@ -84,6 +84,9 @@ func New(parent *window.Window, name string, app widget.AppContext, opts ...Fram
 			w.Width = ev.ConfigWidth
 			w.Height = ev.ConfigHeight
 			f.Display()
+			if w.ConfigureCallback != nil {
+				w.ConfigureCallback()
+			}
 		}
 	})
 

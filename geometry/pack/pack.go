@@ -131,6 +131,13 @@ func Pack(child *window.Window, opts ...PackOption) {
 	if !ok {
 		p = &packer{container: parent}
 		packers[parent] = p
+		// Register configure callback so container re-layouts
+		// when resized by external forces (e.g. PanedWindow).
+		parent.ConfigureCallback = func() {
+			if pp, ok2 := packers[parent]; ok2 {
+				pp.arrange()
+			}
+		}
 	}
 
 	// Update or add entry.

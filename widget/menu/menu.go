@@ -1,0 +1,519 @@
+// Package menu implements a popup menu widget.
+// It ports the simplified core of tk/generic/tkMenu.c.
+package menu
+
+import (
+	"github.com/msorc/takigo/draw"
+	"github.com/msorc/takigo/font"
+	"github.com/msorc/takigo/internal/xlib"
+	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/widget"
+	"github.com/msorc/takigo/window"
+)
+
+// EntryType is the type of a menu entry.
+type EntryType int
+
+const (
+	Command     EntryType = iota
+	Separator
+	Cascade
+	Checkbutton
+	Radiobutton
+)
+
+// MenuEntry represents a single entry in a menu.
+type MenuEntry struct {
+	Type     EntryType
+	Label    string
+	Command  func()
+	SubMenu  *Menu
+	Checked  bool
+	State    widget.State
+	AccelStr string // accelerator text for display
+}
+
+// Menu is a popup menu with a list of entries.
+type Menu struct {
+	widget.Base
+
+	entries       []MenuEntry
+	activeIndex   int // -1 = none
+	postedCascade *Menu
+
+	// Layout.
+	entryHeight int
+	sepHeight   int
+	menuWidth   int
+
+	// Colors.
+	ActiveBg *colorRef
+	ActiveFg *colorRef
+
+	// State.
+	posted  bool
+	grabbed bool
+
+	app widget.AppContext
+}
+
+type colorRef struct {
+	Pixel uint64
+	Red   uint16
+	Green uint16
+	Blue  uint16
+}
+
+// MenuOption configures a Menu.
+type MenuOption func(*Menu)
+
+func Background(name string) MenuOption {
+	return func(m *Menu) {
+		col, err := m.App.ColorCache().Get(name)
+		if err == nil {
+			m.Background = col
+			m.UpdateBorder()
+		}
+	}
+}
+
+// New creates a new Menu. The menu is an override-redirect window,
+// initially unmapped, created as a child of the root X window.
+func New(parent *window.Window, name string, app widget.AppContext, opts ...MenuOption) *Menu {
+	d := parent.Display
+
+	// Create override-redirect toplevel window.
+	attrs := &xlib.WindowAttributes{
+		BackgroundPixel:  d.WhitePixel,
+		BorderPixel:      d.BlackPixel,
+		OverrideRedirect: true,
+		EventMask: int64(
+			xlib.KeyPressMask |
+				xlib.KeyReleaseMask |
+				xlib.ButtonPressMask |
+				xlib.ButtonReleaseMask |
+				xlib.PointerMotionMask |
+				xlib.EnterWindowMask |
+				xlib.LeaveWindowMask |
+				xlib.ExposureMask |
+				xlib.StructureNotifyMask),
+	}
+
+	xwin := d.XDisplay.CreateWindow(
+		d.RootXWindow,
+		0, 0, 1, 1, 1,
+		d.Depth, xlib.InputOutput, d.Visual,
+		xlib.CWBackPixel|xlib.CWBorderPixel|xlib.CWOverrideRedirect|xlib.CWEventMask,
+		attrs,
+	)
+
+	w := &window.Window{
+		XWindow:         xwin,
+		Display:         d,
+		Parent:          parent,
+		Name:            name,
+		PathName:        window.BuildPathName(parent, name),
+		Width:           1,
+		Height:          1,
+		ReqWidth:        1,
+		ReqHeight:       1,
+		Depth:           d.Depth,
+		Visual:          d.Visual,
+		Colormap:        d.Colormap,
+		BackgroundPixel: d.WhitePixel,
+	}
+
+	w.GC = d.XDisplay.CreateGC(w.Drawable(), xlib.GCForeground|xlib.GCBackground, &xlib.GCValues{
+		Foreground: d.BlackPixel,
+		Background: d.WhitePixel,
+	})
+
+	d.RegisterWindow(xwin, w)
+	parent.AddChild(w)
+
+	m := &Menu{
+		activeIndex: -1,
+		entryHeight: 24,
+		sepHeight:   6,
+		app:         app,
+	}
+	widget.InitBase(&m.Base, w, app)
+	m.BorderWidth = 1
+	m.Relief = option.ReliefRaised
+
+	// Default active colors.
+	if abg, err := app.ColorCache().Get("#3399ff"); err == nil {
+		m.ActiveBg = &colorRef{abg.Pixel, abg.Red, abg.Green, abg.Blue}
+	}
+	if afg, err := app.ColorCache().Get("#ffffff"); err == nil {
+		m.ActiveFg = &colorRef{afg.Pixel, afg.Red, afg.Green, afg.Blue}
+	}
+
+	for _, opt := range opts {
+		opt(m)
+	}
+
+	if m.Background != nil {
+		w.BackgroundPixel = m.Background.Pixel
+	}
+
+	bindMenu(m, app)
+	return m
+}
+
+// AddCommand adds a command entry to the menu.
+func (m *Menu) AddCommand(label string, command func()) {
+	m.entries = append(m.entries, MenuEntry{
+		Type:    Command,
+		Label:   label,
+		Command: command,
+	})
+}
+
+// AddSeparator adds a separator entry.
+func (m *Menu) AddSeparator() {
+	m.entries = append(m.entries, MenuEntry{Type: Separator})
+}
+
+// AddCascade adds a cascade entry with a submenu.
+func (m *Menu) AddCascade(label string, subMenu *Menu) {
+	m.entries = append(m.entries, MenuEntry{
+		Type:    Cascade,
+		Label:   label,
+		SubMenu: subMenu,
+	})
+}
+
+// AddCheckbutton adds a checkbutton entry.
+func (m *Menu) AddCheckbutton(label string, checked bool, command func()) {
+	m.entries = append(m.entries, MenuEntry{
+		Type:    Checkbutton,
+		Label:   label,
+		Checked: checked,
+		Command: command,
+	})
+}
+
+// Entries returns the menu entries.
+func (m *Menu) Entries() []MenuEntry {
+	return m.entries
+}
+
+// Post maps the menu at screen coordinates (x, y).
+func (m *Menu) Post(x, y int) {
+	m.computeGeometry()
+	w := m.Win
+	d := w.Display.XDisplay
+
+	d.MoveResizeWindow(w.XWindow, x, y, uint(w.Width), uint(w.Height))
+	d.MapRaised(w.XWindow)
+	m.posted = true
+	m.activeIndex = -1
+
+	// Grab pointer and keyboard.
+	d.GrabPointer(w.XWindow, true,
+		uint(xlib.ButtonPressMask|xlib.ButtonReleaseMask|xlib.PointerMotionMask|xlib.EnterWindowMask|xlib.LeaveWindowMask),
+		xlib.GrabModeAsync, xlib.GrabModeAsync,
+		xlib.Window(0), xlib.Cursor(0), xlib.CurrentTime)
+	d.GrabKeyboard(w.XWindow, true, xlib.GrabModeAsync, xlib.GrabModeAsync, xlib.CurrentTime)
+	m.grabbed = true
+
+	m.Display()
+}
+
+// Unpost unmaps the menu and releases grabs.
+func (m *Menu) Unpost() {
+	if !m.posted {
+		return
+	}
+
+	// Unpost any cascade submenu.
+	if m.postedCascade != nil {
+		m.postedCascade.Unpost()
+		m.postedCascade = nil
+	}
+
+	w := m.Win
+	d := w.Display.XDisplay
+
+	if m.grabbed {
+		d.UngrabPointer(xlib.CurrentTime)
+		d.UngrabKeyboard(xlib.CurrentTime)
+		m.grabbed = false
+	}
+
+	d.UnmapWindow(w.XWindow)
+	m.posted = false
+	m.activeIndex = -1
+}
+
+// IsPosted returns whether the menu is currently posted.
+func (m *Menu) IsPosted() bool {
+	return m.posted
+}
+
+func (m *Menu) computeGeometry() {
+	if m.Font == nil {
+		return
+	}
+
+	fm := m.Font.Metrics()
+	m.entryHeight = fm.Linespace() + 6
+	m.sepHeight = 6
+
+	maxWidth := 0
+	totalHeight := 2 * m.BorderWidth
+
+	for _, e := range m.entries {
+		if e.Type == Separator {
+			totalHeight += m.sepHeight
+		} else {
+			totalHeight += m.entryHeight
+			w := m.Font.MeasureString(e.Label)
+			// Add space for check indicator and cascade arrow.
+			w += 40
+			if e.AccelStr != "" {
+				w += m.Font.MeasureString(e.AccelStr) + 20
+			}
+			if w > maxWidth {
+				maxWidth = w
+			}
+		}
+	}
+
+	m.menuWidth = maxWidth + 2*m.BorderWidth
+	if m.menuWidth < 60 {
+		m.menuWidth = 60
+	}
+
+	w := m.Win
+	w.Width = m.menuWidth
+	w.Height = totalHeight
+	w.ReqWidth = m.menuWidth
+	w.ReqHeight = totalHeight
+}
+
+// entryAtY returns the entry index at pixel y, or -1.
+func (m *Menu) entryAtY(y int) int {
+	offset := m.BorderWidth
+	for i, e := range m.entries {
+		var h int
+		if e.Type == Separator {
+			h = m.sepHeight
+		} else {
+			h = m.entryHeight
+		}
+		if y >= offset && y < offset+h {
+			if e.Type == Separator {
+				return -1
+			}
+			return i
+		}
+		offset += h
+	}
+	return -1
+}
+
+// entryY returns the top y coordinate of entry i.
+func (m *Menu) entryY(i int) int {
+	y := m.BorderWidth
+	for j := 0; j < i; j++ {
+		if m.entries[j].Type == Separator {
+			y += m.sepHeight
+		} else {
+			y += m.entryHeight
+		}
+	}
+	return y
+}
+
+// Display draws the menu.
+func (m *Menu) Display() {
+	if m.Destroyed || !m.posted {
+		return
+	}
+	w := m.Win
+	if w.XWindow == xlib.Window(0) {
+		return
+	}
+
+	d := w.Display.XDisplay
+	gc := w.GC
+
+	// Background.
+	if m.Background != nil {
+		d.SetForeground(gc, m.Background.Pixel)
+	}
+	d.FillRectangle(w.Drawable(), gc, 0, 0, uint(w.Width), uint(w.Height))
+
+	// Outer border.
+	if m.Border != nil && m.BorderWidth > 0 {
+		draw.Draw3DRectangle(d, w.Drawable(), gc, m.Border,
+			0, 0, w.Width, w.Height, m.BorderWidth, option.ReliefRaised)
+	}
+
+	xftFont, isXft := m.Font.(*font.XftFont)
+	if !isXft {
+		d.Flush()
+		return
+	}
+
+	fm := m.Font.Metrics()
+	yPos := m.BorderWidth
+
+	for i, e := range m.entries {
+		if e.Type == Separator {
+			// Draw separator line.
+			sepY := yPos + m.sepHeight/2
+			if m.Border != nil {
+				draw.Draw3DRectangle(d, w.Drawable(), gc, m.Border,
+					m.BorderWidth+2, sepY-1, w.Width-2*m.BorderWidth-4, 2,
+					1, option.ReliefSunken)
+			}
+			yPos += m.sepHeight
+			continue
+		}
+
+		isActive := i == m.activeIndex && e.State != widget.StateDisabled
+
+		// Active highlight.
+		if isActive && m.ActiveBg != nil {
+			d.SetForeground(gc, m.ActiveBg.Pixel)
+			d.FillRectangle(w.Drawable(), gc, m.BorderWidth, yPos,
+				uint(w.Width-2*m.BorderWidth), uint(m.entryHeight))
+		}
+
+		// Text.
+		textX := m.BorderWidth + 20
+		textY := yPos + (m.entryHeight-fm.Linespace())/2 + fm.Ascent
+
+		var fgCol *colorRef
+		if e.State == widget.StateDisabled {
+			if dfg, err := m.App.ColorCache().Get(widget.DefDisabledForeground); err == nil {
+				fgCol = &colorRef{dfg.Pixel, dfg.Red, dfg.Green, dfg.Blue}
+			}
+		} else if isActive && m.ActiveFg != nil {
+			fgCol = m.ActiveFg
+		} else if m.Foreground != nil {
+			fgCol = &colorRef{m.Foreground.Pixel, m.Foreground.Red, m.Foreground.Green, m.Foreground.Blue}
+		}
+
+		if fgCol != nil {
+			// Check indicator.
+			if e.Type == Checkbutton && e.Checked {
+				xftFont.DrawString(w.Drawable(), m.BorderWidth+4, textY, "\u2713",
+					fgCol.Pixel, fgCol.Red, fgCol.Green, fgCol.Blue)
+			}
+
+			// Label.
+			xftFont.DrawString(w.Drawable(), textX, textY, e.Label,
+				fgCol.Pixel, fgCol.Red, fgCol.Green, fgCol.Blue)
+
+			// Accelerator text.
+			if e.AccelStr != "" {
+				accelW := m.Font.MeasureString(e.AccelStr)
+				accelX := w.Width - m.BorderWidth - accelW - 8
+				xftFont.DrawString(w.Drawable(), accelX, textY, e.AccelStr,
+					fgCol.Pixel, fgCol.Red, fgCol.Green, fgCol.Blue)
+			}
+
+			// Cascade arrow.
+			if e.Type == Cascade {
+				arrowX := w.Width - m.BorderWidth - 14
+				xftFont.DrawString(w.Drawable(), arrowX, textY, "\u25b6",
+					fgCol.Pixel, fgCol.Red, fgCol.Green, fgCol.Blue)
+			}
+		}
+
+		yPos += m.entryHeight
+	}
+
+	d.Flush()
+}
+
+// activate sets the active entry and redraws.
+func (m *Menu) activate(index int) {
+	if index == m.activeIndex {
+		return
+	}
+	m.activeIndex = index
+	m.Display()
+}
+
+// invoke invokes the active entry.
+func (m *Menu) invoke(index int) {
+	if index < 0 || index >= len(m.entries) {
+		return
+	}
+	e := &m.entries[index]
+	if e.State == widget.StateDisabled {
+		return
+	}
+
+	switch e.Type {
+	case Command:
+		m.Unpost()
+		if e.Command != nil {
+			e.Command()
+		}
+	case Checkbutton:
+		e.Checked = !e.Checked
+		m.Unpost()
+		if e.Command != nil {
+			e.Command()
+		}
+	case Cascade:
+		if e.SubMenu != nil {
+			m.postCascade(index)
+		}
+	}
+}
+
+func (m *Menu) postCascade(index int) {
+	e := &m.entries[index]
+	if e.SubMenu == nil {
+		return
+	}
+
+	// Unpost old cascade.
+	if m.postedCascade != nil && m.postedCascade != e.SubMenu {
+		m.postedCascade.Unpost()
+	}
+
+	// Position submenu to the right of this entry.
+	w := m.Win
+	entryY := m.entryY(index)
+	subX := w.X + w.Width
+	subY := w.Y + entryY
+
+	// Transfer grab temporarily.
+	d := w.Display.XDisplay
+	if m.grabbed {
+		d.UngrabPointer(xlib.CurrentTime)
+		d.UngrabKeyboard(xlib.CurrentTime)
+		m.grabbed = false
+	}
+
+	e.SubMenu.Post(subX, subY)
+	m.postedCascade = e.SubMenu
+}
+
+// Configure applies options.
+func (m *Menu) Configure(opts ...option.Option) {
+	option.Apply(m, opts)
+	m.UpdateBorder()
+	if m.Background != nil {
+		m.Win.BackgroundPixel = m.Background.Pixel
+	}
+	m.Display()
+}
+
+// Destroy cleans up.
+func (m *Menu) Destroy() {
+	if m.Destroyed {
+		return
+	}
+	m.Unpost()
+	m.Destroyed = true
+	window.DestroyWindow(m.Win)
+}

@@ -63,6 +63,10 @@ type Window struct {
 
 	// Graphics context for basic drawing.
 	GC xlib.GC
+
+	// ConfigureCallback is called when the window is resized.
+	// Set by geometry managers (e.g. pack) to re-layout children.
+	ConfigureCallback func()
 }
 
 // IsTopLevel returns true if this is a top-level window.
