@@ -1,5 +1,4 @@
-// Phase 5 demo: Demonstrates toplevel windows, focus traversal,
-// and modal dialog via grab.
+// Phase 6 demo: Entry widget, scrollbar, and text editing.
 package main
 
 import (
@@ -10,18 +9,17 @@ import (
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/focus"
 	"github.com/msorc/takigo/geometry/pack"
-	"github.com/msorc/takigo/grab"
 	"github.com/msorc/takigo/internal/xlib"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/widget/button"
+	"github.com/msorc/takigo/widget/entry"
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
-	"github.com/msorc/takigo/widget/toplevel"
-	"github.com/msorc/takigo/wm"
+	"github.com/msorc/takigo/widget/scrollbar"
 )
 
 func main() {
-	app, err := takigo.NewApp(takigo.Title("Takigo Phase 5 — WM, Focus, Grab"), takigo.Size(500, 400))
+	app, err := takigo.NewApp(takigo.Title("Takigo Phase 6 — Entry & Scrollbar"), takigo.Size(550, 400))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
@@ -29,16 +27,6 @@ func main() {
 	defer app.Destroy()
 
 	root := app.Root()
-
-	// Initialize WM for root window.
-	rootWm := wm.Init(root)
-	rootWm.SetTitle("Takigo Phase 5 — WM, Focus, Grab")
-	rootWm.SetMinSize(300, 200)
-	rootWm.OnDeleteWindow(func() {
-		app.Quit()
-	})
-
-	// Set root background.
 	bgColor, _ := app.ColorCache().Get("#d9d9d9")
 	root.BackgroundPixel = bgColor.Pixel
 
@@ -46,137 +34,149 @@ func main() {
 	focusMgr := focus.NewManager(app.Dispatcher(), app.DisplayPtr())
 	focusMgr.BindTraversal(root)
 
-	// Grab manager.
-	grabMgr := grab.NewManager(app.DisplayPtr(), app.Dispatcher())
-
-	// Title label.
+	// Title.
 	titleLabel := label.New(root, "title", app,
-		label.Text("Phase 5: Window Manager, Focus, Grab"),
+		label.Text("Phase 6: Entry Widget & Scrollbar"),
 		label.PadX(10),
 		label.PadY(5),
 	)
 	pack.Pack(titleLabel.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(5))
 
-	// Info label.
-	infoLabel := label.New(root, "info", app,
-		label.Text("Tab to traverse focus. Click buttons to open windows."),
-		label.PadX(5),
-		label.PadY(2),
+	// --- Entry fields ---
+
+	// Name entry.
+	nameFrame := frame.New(root, "nameFrame", app)
+	pack.Pack(nameFrame.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadX(10), pack.PadY(5))
+
+	nameLabel := label.New(nameFrame.Window(), "nameLabel", app,
+		label.Text("Name:"),
+		label.Anchor(option.AnchorW),
 	)
-	pack.Pack(infoLabel.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
+	pack.Pack(nameLabel.Window(), pack.SideOpt(pack.Left), pack.PadX(5))
 
-	// Button frame.
-	btnFrame := frame.New(root, "buttons", app)
-	pack.Pack(btnFrame.Window(), pack.SideOpt(pack.Top), pack.PadY(10))
+	nameEntry := entry.New(nameFrame.Window(), "nameEntry", app,
+		entry.Width(30),
+		entry.Placeholder("Enter your name"),
+	)
+	pack.Pack(nameEntry.Window(), pack.SideOpt(pack.Left), pack.FillOpt(pack.FillX), pack.Expand(true), pack.PadX(5))
 
-	// Counter for new windows.
-	windowCount := 0
+	// Password entry.
+	passFrame := frame.New(root, "passFrame", app)
+	pack.Pack(passFrame.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadX(10), pack.PadY(5))
 
-	// "New Window" button.
-	newWinBtn := button.New(btnFrame.Window(), "newwin", app,
-		button.Text("New Window"),
-		button.PadX(10),
-		button.PadY(3),
-		button.Command(func() {
-			windowCount++
-			name := fmt.Sprintf("win%d", windowCount)
-			title := fmt.Sprintf("Window #%d", windowCount)
+	passLabel := label.New(passFrame.Window(), "passLabel", app,
+		label.Text("Password:"),
+		label.Anchor(option.AnchorW),
+	)
+	pack.Pack(passLabel.Window(), pack.SideOpt(pack.Left), pack.PadX(5))
 
-			tl := toplevel.New(root, name, app,
-				toplevel.Title(title),
-				toplevel.Geometry(fmt.Sprintf("300x200+%d+%d", 100+windowCount*30, 100+windowCount*30)),
-			)
+	passEntry := entry.New(passFrame.Window(), "passEntry", app,
+		entry.Width(30),
+		entry.Show('*'),
+	)
+	pack.Pack(passEntry.Window(), pack.SideOpt(pack.Left), pack.FillOpt(pack.FillX), pack.Expand(true), pack.PadX(5))
 
-			// Add content.
-			lbl := label.New(tl.Window(), "lbl", app,
-				label.Text(fmt.Sprintf("This is %s", title)),
-				label.PadX(10),
-				label.PadY(10),
-			)
-			pack.Pack(lbl.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(10))
+	// Long text entry with scrollbar.
+	scrollFrame := frame.New(root, "scrollFrame", app)
+	pack.Pack(scrollFrame.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadX(10), pack.PadY(5))
 
-			closeBtn := button.New(tl.Window(), "close", app,
-				button.Text("Close"),
-				button.PadX(10),
-				button.PadY(3),
-			)
-			closeBtn.Command = func() {
-				tl.Destroy()
+	scrollLabel := label.New(scrollFrame.Window(), "scrollLabel", app,
+		label.Text("Long text:"),
+		label.Anchor(option.AnchorW),
+	)
+	pack.Pack(scrollLabel.Window(), pack.SideOpt(pack.Left), pack.PadX(5))
+
+	longEntry := entry.New(scrollFrame.Window(), "longEntry", app,
+		entry.Width(25),
+		entry.Text("This is a long text entry that can be scrolled horizontally with the scrollbar below."),
+	)
+	pack.Pack(longEntry.Window(), pack.SideOpt(pack.Left), pack.FillOpt(pack.FillX), pack.Expand(true), pack.PadX(5))
+
+	// Horizontal scrollbar connected to the long entry.
+	hScrollFrame := frame.New(root, "hScrollFrame", app)
+	pack.Pack(hScrollFrame.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadX(10))
+
+	hScroll := scrollbar.New(hScrollFrame.Window(), "hscroll", app,
+		scrollbar.OrientOpt(scrollbar.Horizontal),
+		scrollbar.WidthOpt(12),
+		scrollbar.CommandOpt(func(args ...interface{}) {
+			if len(args) < 1 {
+				return
 			}
-			pack.Pack(closeBtn.Window(), pack.SideOpt(pack.Bottom), pack.PadY(10))
-
-			tl.OnClose(func() {
-				tl.Destroy()
-			})
-
-			tl.Show()
-			fmt.Printf("Opened %s\n", title)
-		}),
-	)
-	pack.Pack(newWinBtn.Window(), pack.SideOpt(pack.Left), pack.PadX(5))
-
-	// "Modal Dialog" button — demonstrates grab.
-	modalBtn := button.New(btnFrame.Window(), "modal", app,
-		button.Text("Modal Dialog"),
-		button.PadX(10),
-		button.PadY(3),
-		button.Command(func() {
-			// Create a dialog toplevel.
-			dlg := toplevel.New(root, "dialog", app,
-				toplevel.Title("Modal Dialog"),
-				toplevel.Geometry("300x150+200+200"),
-				toplevel.TransientFor(root),
-				toplevel.Resizable(false, false),
-			)
-
-			dlgLabel := label.New(dlg.Window(), "msg", app,
-				label.Text("This is a modal dialog."),
-				label.PadX(10),
-				label.PadY(10),
-			)
-			pack.Pack(dlgLabel.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(15))
-
-			okBtn := button.New(dlg.Window(), "ok", app,
-				button.Text("OK"),
-				button.PadX(20),
-				button.PadY(3),
-			)
-			okBtn.Command = func() {
-				grabMgr.Release()
-				dlg.Destroy()
-				fmt.Println("Dialog closed")
+			switch args[0] {
+			case "moveto":
+				if len(args) >= 2 {
+					if f, ok := args[1].(float64); ok {
+						longEntry.XViewMoveTo(f)
+					}
+				}
+			case "scroll":
+				if len(args) >= 3 {
+					n, _ := args[1].(int)
+					unit, _ := args[2].(string)
+					longEntry.XViewScroll(n, unit == "pages")
+				}
 			}
-			pack.Pack(okBtn.Window(), pack.SideOpt(pack.Bottom), pack.PadY(10))
-
-			dlg.OnClose(func() {
-				grabMgr.Release()
-				dlg.Destroy()
-			})
-
-			dlg.Show()
-
-			// Set local grab for modal behavior.
-			grabMgr.Set(dlg.Window(), false)
-			fmt.Println("Modal dialog opened (local grab active)")
 		}),
 	)
-	pack.Pack(modalBtn.Window(), pack.SideOpt(pack.Left), pack.PadX(5))
+	pack.Pack(hScroll.Window(), pack.SideOpt(pack.Left), pack.FillOpt(pack.FillX), pack.Expand(true), pack.PadX(80))
 
-	// "Iconify" button.
-	iconBtn := button.New(btnFrame.Window(), "iconify", app,
-		button.Text("Iconify"),
+	// Connect entry scroll notification to scrollbar.
+	longEntry.ScrollCmd = func(first, last float64) {
+		hScroll.Set(first, last)
+	}
+
+	// Initialize scrollbar position.
+	first, last := longEntry.VisibleRange()
+	hScroll.Set(first, last)
+
+	// --- Buttons ---
+
+	btnFrame := frame.New(root, "btnFrame", app)
+	pack.Pack(btnFrame.Window(), pack.SideOpt(pack.Top), pack.PadY(15))
+
+	getBtn := button.New(btnFrame.Window(), "get", app,
+		button.Text("Get Values"),
 		button.PadX(10),
 		button.PadY(3),
 		button.Command(func() {
-			rootWm.Iconify()
-			fmt.Println("Window iconified")
+			fmt.Printf("Name: %q\n", nameEntry.GetText())
+			fmt.Printf("Password: %q\n", passEntry.GetText())
+			fmt.Printf("Long text: %q\n", longEntry.GetText())
+			if sel := nameEntry.SelectedText(); sel != "" {
+				fmt.Printf("Name selection: %q\n", sel)
+			}
 		}),
 	)
-	pack.Pack(iconBtn.Window(), pack.SideOpt(pack.Left), pack.PadX(5))
+	pack.Pack(getBtn.Window(), pack.SideOpt(pack.Left), pack.PadX(5))
 
-	// Status label.
+	clearBtn := button.New(btnFrame.Window(), "clear", app,
+		button.Text("Clear All"),
+		button.PadX(10),
+		button.PadY(3),
+		button.Command(func() {
+			nameEntry.SetText("")
+			passEntry.SetText("")
+			longEntry.SetText("")
+			fmt.Println("All entries cleared")
+		}),
+	)
+	pack.Pack(clearBtn.Window(), pack.SideOpt(pack.Left), pack.PadX(5))
+
+	selectAllBtn := button.New(btnFrame.Window(), "selall", app,
+		button.Text("Select All Name"),
+		button.PadX(10),
+		button.PadY(3),
+		button.Command(func() {
+			nameEntry.SelectAll()
+			nameEntry.Display()
+		}),
+	)
+	pack.Pack(selectAllBtn.Window(), pack.SideOpt(pack.Left), pack.PadX(5))
+
+	// Status.
 	statusLabel := label.New(root, "status", app,
-		label.Text("Ready. Press 'q' to quit."),
+		label.Text("Type in entries. Tab to switch focus. Esc to quit."),
 		label.Background("#e8e8e8"),
 		label.Anchor(option.AnchorW),
 		label.PadX(5),
@@ -184,7 +184,7 @@ func main() {
 	)
 	pack.Pack(statusLabel.Window(), pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
-	// Handle root resize.
+	// Root event handlers.
 	app.Dispatcher().Bind(root.XWindow, event.StructureNotifyMask, func(ev *event.Event) {
 		if ev.Type == event.ConfigureType {
 			root.Width = ev.ConfigWidth
@@ -193,7 +193,6 @@ func main() {
 		}
 	})
 
-	// Root expose.
 	app.Dispatcher().Bind(root.XWindow, event.ExposureMask, func(ev *event.Event) {
 		if ev.ExposeCount > 0 {
 			return
@@ -205,25 +204,25 @@ func main() {
 		d.Flush()
 	})
 
-	// Key handler.
-	app.Dispatcher().Bind(root.XWindow, event.KeyPressMask, func(ev *event.Event) {
-		if ev.KeySym == xlib.XK_q || ev.KeySym == xlib.XK_Escape {
+	// Global key handler — works regardless of which widget has focus.
+	app.Dispatcher().BindGlobal(event.KeyPressMask, func(ev *event.Event) {
+		if ev.KeySym == xlib.XK_Escape {
 			app.Quit()
 		}
 	})
 
 	// Set initial focus.
-	focusMgr.SetFocus(newWinBtn.Window())
+	focusMgr.SetFocus(nameEntry.Window())
 
-	fmt.Println("Takigo Phase 5 Demo — WM, Focus, Grab")
-	fmt.Println("Tab to traverse focus. Click buttons. Press 'q' to quit.")
+	fmt.Println("Takigo Phase 6 Demo — Entry & Scrollbar")
+	fmt.Println("Type in entry fields. Tab to navigate. Esc to quit.")
 	app.MainLoop()
 	fmt.Println("Goodbye!")
 
-	// Prevent unused warnings.
 	_ = titleLabel
-	_ = infoLabel
+	_ = nameLabel
+	_ = passLabel
+	_ = scrollLabel
 	_ = statusLabel
 	_ = focusMgr
-	_ = grabMgr
 }

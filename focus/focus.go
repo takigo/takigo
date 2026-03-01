@@ -36,8 +36,7 @@ func NewManager(dispatcher *event.Dispatcher, display *xlib.Display) *Manager {
 		display:       display,
 		toplevelFocus: make(map[*window.Window]*window.Window),
 		IsFocusable: func(w *window.Window) bool {
-			// Default: all mapped non-toplevel windows are focusable.
-			return w.IsMapped() || w.XWindow != xlib.Window(0)
+			return w.Flags&window.FlagFocusable != 0 && w.XWindow != xlib.Window(0)
 		},
 	}
 	return m
@@ -84,11 +83,11 @@ func (m *Manager) SetFocus(w *window.Window) {
 		Window: w.XWindow,
 	})
 
-	// Tell X to direct keyboard input to this window's toplevel.
-	// Only if the window is already mapped — X11 requires the target
+	// Tell X to direct keyboard input to this widget's window.
+	// Only if the toplevel is mapped — X11 requires the target
 	// to be viewable, otherwise SetInputFocus returns BadMatch.
-	if tl != nil && tl.XWindow != xlib.Window(0) && tl.IsMapped() {
-		m.display.SetInputFocus(tl.XWindow, xlib.RevertToParent, xlib.CurrentTime)
+	if tl != nil && tl.IsMapped() && w.XWindow != xlib.Window(0) {
+		m.display.SetInputFocus(w.XWindow, xlib.RevertToParent, xlib.CurrentTime)
 	}
 }
 
@@ -232,15 +231,14 @@ func (m *Manager) HandleDestroyWindow(w *window.Window) {
 	}
 }
 
-// BindTraversal binds Tab and Shift-Tab on a window for focus traversal.
+// BindTraversal binds Tab and Shift-Tab globally for focus traversal.
+// Uses a global binding so it works regardless of which widget has focus.
 func (m *Manager) BindTraversal(w *window.Window) {
-	m.dispatcher.Bind(w.XWindow, event.KeyPressMask, func(ev *event.Event) {
+	m.dispatcher.BindGlobal(event.KeyPressMask, func(ev *event.Event) {
 		if ev.KeySym == xlib.XK_Tab {
-			if ev.State&xlib.ShiftMask != 0 {
-				m.FocusPrev()
-			} else {
-				m.FocusNext()
-			}
+			m.FocusNext()
+		} else if ev.KeySym == xlib.XK_ISO_Left_Tab {
+			m.FocusPrev()
 		}
 	})
 }

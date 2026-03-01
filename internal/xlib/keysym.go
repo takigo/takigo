@@ -8,11 +8,18 @@ import "C"
 
 // Common key symbols.
 const (
-	XK_q         = KeySym(C.XK_q)
+	XK_a         = KeySym(0x0061)
+	XK_c         = KeySym(0x0063)
+	XK_d         = KeySym(0x0064)
+	XK_k         = KeySym(0x006b)
+	XK_q         = KeySym(0x0071)
+	XK_v         = KeySym(0x0076)
+	XK_x         = KeySym(0x0078)
 	XK_Escape    = KeySym(C.XK_Escape)
 	XK_Return    = KeySym(C.XK_Return)
 	XK_BackSpace = KeySym(C.XK_BackSpace)
-	XK_Tab       = KeySym(C.XK_Tab)
+	XK_Tab          = KeySym(C.XK_Tab)
+	XK_ISO_Left_Tab = KeySym(0xfe20)
 	XK_space     = KeySym(C.XK_space)
 	XK_Left      = KeySym(C.XK_Left)
 	XK_Right     = KeySym(C.XK_Right)
@@ -25,12 +32,15 @@ const (
 
 // Modifier masks.
 const (
-	ShiftMask   = C.ShiftMask
-	LockMask    = C.LockMask
-	ControlMask = C.ControlMask
-	Mod1Mask    = C.Mod1Mask // typically Alt
-	Mod2Mask    = C.Mod2Mask
-	Mod3Mask    = C.Mod3Mask
-	Mod4Mask    = C.Mod4Mask // typically Super/Win
-	Mod5Mask    = C.Mod5Mask
+	ShiftMask   = uint(C.ShiftMask)
+	LockMask    = uint(C.LockMask)
+	ControlMask = uint(C.ControlMask)
+	Mod1Mask    = uint(C.Mod1Mask) // typically Alt
+	Mod2Mask    = uint(C.Mod2Mask)
+	Mod3Mask    = uint(C.Mod3Mask)
+	Mod4Mask    = uint(C.Mod4Mask) // typically Super/Win
+	Mod5Mask    = uint(C.Mod5Mask)
+	Button1Mask = uint(1 << 8)
+	Button2Mask = uint(1 << 9)
+	Button3Mask = uint(1 << 10)
 )
