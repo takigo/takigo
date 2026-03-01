@@ -51,7 +51,6 @@ import (
 type XftFont struct {
 	display  *xlib.Display
 	font     *C.XftFont
-	draw     *C.XftDraw
 	attrs    Attributes
 	metrics  Metrics
 	screen   C.int
@@ -181,28 +180,26 @@ func (f *XftFont) DrawString(drawable xlib.Drawable, x, y int, s string, pixel u
 
 	dpy := (*C.Display)(f.display.Ptr())
 
-	// Create or reuse XftDraw.
-	if f.draw == nil {
-		f.draw = C.XftDrawCreate(dpy, C.Drawable(drawable), f.visual, f.colormap)
-	} else {
-		C.XftDrawChange(f.draw, C.Drawable(drawable))
+	// Create a fresh XftDraw per call. Caching across drawables causes
+	// RenderBadPicture errors when a window is destroyed — the XftDraw
+	// holds a stale RENDER Picture reference to the old drawable.
+	draw := C.XftDrawCreate(dpy, C.Drawable(drawable), f.visual, f.colormap)
+	if draw == nil {
+		return
 	}
+	defer C.XftDrawDestroy(draw)
 
 	cs := C.CString(s)
 	defer C.free(unsafe.Pointer(cs))
 
 	color := C.make_xft_color(C.ulong(pixel), C.ushort(r), C.ushort(g), C.ushort(b))
-	C.XftDrawStringUtf8(f.draw, &color, f.font, C.int(x), C.int(y),
+	C.XftDrawStringUtf8(draw, &color, f.font, C.int(x), C.int(y),
 		(*C.FcChar8)(unsafe.Pointer(cs)), C.int(len(s)))
 }
 
 // Close releases font resources.
 func (f *XftFont) Close() {
 	dpy := (*C.Display)(f.display.Ptr())
-	if f.draw != nil {
-		C.XftDrawDestroy(f.draw)
-		f.draw = nil
-	}
 	if f.font != nil {
 		C.XftFontClose(dpy, f.font)
 		f.font = nil
