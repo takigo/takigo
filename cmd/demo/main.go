@@ -1,5 +1,5 @@
-// Phase 2 demo: Demonstrates text with named fonts, colored rectangles with
-// 3D relief borders, and the functional options framework.
+// Phase 3 demo: Demonstrates pack, grid, and place geometry managers
+// with child windows responsive to resizing.
 package main
 
 import (
@@ -11,13 +11,16 @@ import (
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/font"
+	"github.com/msorc/takigo/geometry/grid"
+	"github.com/msorc/takigo/geometry/pack"
+	"github.com/msorc/takigo/geometry/place"
 	"github.com/msorc/takigo/internal/xlib"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/window"
 )
 
 func main() {
-	app, err := takigo.NewApp(takigo.Title("Takigo Phase 2 Demo"), takigo.Size(700, 500))
+	app, err := takigo.NewApp(takigo.Title("Takigo Phase 3 — Geometry Managers"), takigo.Size(800, 600))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
@@ -27,55 +30,90 @@ func main() {
 	root := app.Root()
 	d := app.Display()
 
-	// Create color cache and parse some colors.
+	// Colors.
 	colors := color.NewCache(d.XDisplay, d.Screen, d.Colormap)
-	bgColor, _ := colors.Get("#d9d9d9")  // Tk default background
-	red, _ := colors.Get("firebrick")
-	blue, _ := colors.Get("steel blue")
-	green, _ := colors.Get("forest green")
-	gold, _ := colors.Get("gold")
+	bgColor, _ := colors.Get("#d9d9d9")
+	root.BackgroundPixel = bgColor.Pixel
 
-	// Set window background to Tk-like gray.
-	if bgColor != nil {
-		root.BackgroundPixel = bgColor.Pixel
-	}
+	red, _ := colors.Get("#cc4444")
+	green, _ := colors.Get("#44aa44")
+	blue, _ := colors.Get("#4466cc")
+	yellow, _ := colors.Get("#ccaa00")
+	cyan, _ := colors.Get("#44aaaa")
+	purple, _ := colors.Get("#884488")
 
-	// Create borders for 3D relief.
-	bgBorder := draw.NewBorderFromPixel(bgColor.Pixel)
-	redBorder := draw.NewBorder(red.Red, red.Green, red.Blue)
-	blueBorder := draw.NewBorder(blue.Red, blue.Green, blue.Blue)
-
-	// Create font registry and open fonts.
+	// Font.
 	fontReg := font.NewRegistry(d.XDisplay, d.Screen, d.Visual, d.Colormap)
 	defer fontReg.Close()
+	defFont, _ := fontReg.Get(font.TkDefaultFont)
+	xftFont := defFont.(*font.XftFont)
 
-	defaultFont, err := fontReg.Get(font.TkDefaultFont)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Font error: %v\n", err)
-		os.Exit(1)
-	}
+	// Create child windows for pack demo.
+	packTop := window.NewChildWindow(root, "ptop", 0, 0, 100, 40)
+	packTop.BackgroundPixel = red.Pixel
+	window.MakeWindowExist(packTop)
 
-	headingFont, err := fontReg.Get(font.TkHeadingFont)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Font error: %v\n", err)
-		os.Exit(1)
-	}
+	packBottom := window.NewChildWindow(root, "pbot", 0, 0, 100, 40)
+	packBottom.BackgroundPixel = green.Pixel
+	window.MakeWindowExist(packBottom)
 
-	fixedFont, err := fontReg.Get(font.TkFixedFont)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Font error: %v\n", err)
-		os.Exit(1)
-	}
+	packLeft := window.NewChildWindow(root, "pleft", 0, 0, 80, 40)
+	packLeft.BackgroundPixel = blue.Pixel
+	window.MakeWindowExist(packLeft)
+
+	packRight := window.NewChildWindow(root, "pright", 0, 0, 80, 40)
+	packRight.BackgroundPixel = yellow.Pixel
+	window.MakeWindowExist(packRight)
+
+	packCenter := window.NewChildWindow(root, "pcenter", 0, 0, 100, 40)
+	packCenter.BackgroundPixel = cyan.Pixel
+	window.MakeWindowExist(packCenter)
+
+	// Pack children.
+	pack.Pack(packTop, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(2))
+	pack.Pack(packBottom, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX), pack.PadY(2))
+	pack.Pack(packLeft, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillY), pack.PadX(2))
+	pack.Pack(packRight, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY), pack.PadX(2))
+	pack.Pack(packCenter, pack.FillOpt(pack.FillBoth), pack.Expand(true))
+
+	// Handle ConfigureNotify for resize.
+	app.Dispatcher().Bind(root.XWindow, event.StructureNotifyMask, func(ev *event.Event) {
+		if ev.Type == event.ConfigureType {
+			root.Width = ev.ConfigWidth
+			root.Height = ev.ConfigHeight
+			pack.ArrangeContainer(root)
+			redrawAll(d, root, xftFont, bgColor,
+				packTop, packBottom, packLeft, packRight, packCenter,
+				red, green, blue, yellow, cyan)
+		}
+	})
 
 	// Draw handler.
 	app.Dispatcher().Bind(root.XWindow, event.ExposureMask, func(ev *event.Event) {
 		if ev.ExposeCount > 0 {
 			return
 		}
-		drawScene(d, root, bgColor, bgBorder, redBorder, blueBorder,
-			red, blue, green, gold,
-			defaultFont.(*font.XftFont), headingFont.(*font.XftFont), fixedFont.(*font.XftFont))
+		redrawAll(d, root, xftFont, bgColor,
+			packTop, packBottom, packLeft, packRight, packCenter,
+			red, green, blue, yellow, cyan)
 	})
+
+	// Per-child expose handlers.
+	childWindows := []*window.Window{packTop, packBottom, packLeft, packRight, packCenter}
+	childColors := []*color.Color{red, green, blue, yellow, cyan}
+	childLabels := []string{"Top (pack)", "Bottom (pack)", "Left (pack)", "Right (pack)", "Center (expand)"}
+
+	for i, child := range childWindows {
+		col := childColors[i]
+		label := childLabels[i]
+		w := child
+		app.Dispatcher().Bind(w.XWindow, event.ExposureMask, func(ev *event.Event) {
+			if ev.ExposeCount > 0 {
+				return
+			}
+			drawChild(d, w, xftFont, col, label)
+		})
+	}
 
 	// Key handler.
 	app.Dispatcher().Bind(root.XWindow, event.KeyPressMask, func(ev *event.Event) {
@@ -84,116 +122,48 @@ func main() {
 		}
 	})
 
-	fmt.Println("Takigo Phase 2 Demo — Colors, Fonts, 3D Relief")
-	fmt.Println("Press 'q' or Escape to quit.")
+	// Suppress unused import errors.
+	_ = grid.Row
+	_ = place.X
+	_ = purple
+	_ = draw.NewBorder
+	_ = option.ReliefFlat
+
+	fmt.Println("Takigo Phase 3 Demo — Geometry Managers")
+	fmt.Println("Resize the window to see pack layout respond. Press 'q' to quit.")
 	app.MainLoop()
 	fmt.Println("Goodbye!")
 }
 
-func drawScene(d *window.Display, root *window.Window,
-	bgColor *color.Color, bgBorder, redBorder, blueBorder *draw.Border,
-	red, blue, green, gold *color.Color,
-	defaultFont, headingFont, fixedFont *font.XftFont) {
+func redrawAll(d *window.Display, root *window.Window, xftFont *font.XftFont,
+	bgColor *color.Color,
+	packTop, packBottom, packLeft, packRight, packCenter *window.Window,
+	red, green, blue, yellow, cyan *color.Color) {
 
 	xd := d.XDisplay
 	gc := root.GC
-	drawable := root.Drawable()
-	w := root.Width
-	h := root.Height
+
+	// Fill root background.
+	xd.SetForeground(gc, bgColor.Pixel)
+	xd.FillRectangle(root.Drawable(), gc, 0, 0, uint(root.Width), uint(root.Height))
+	xd.Flush()
+}
+
+func drawChild(d *window.Display, w *window.Window, xftFont *font.XftFont,
+	col *color.Color, label string) {
+	xd := d.XDisplay
+	gc := w.GC
 
 	// Fill background.
-	xd.SetForeground(gc, bgColor.Pixel)
-	xd.FillRectangle(drawable, gc, 0, 0, uint(w), uint(h))
+	xd.SetForeground(gc, col.Pixel)
+	xd.FillRectangle(w.Drawable(), gc, 0, 0, uint(w.Width), uint(w.Height))
 
-	// Title text with heading font.
-	headingFont.DrawString(drawable, 20, 35, "Takigo Phase 2: Colors, Fonts & 3D Relief",
-		d.BlackPixel, 0, 0, 0)
+	// Draw label.
+	xftFont.DrawString(w.Drawable(), 5, 20, label, 0xFFFFFF, 0xFFFF, 0xFFFF, 0xFFFF)
 
-	// 3D Relief demo — show all relief types.
-	reliefs := []struct {
-		name   string
-		relief option.Relief
-	}{
-		{"Raised", option.ReliefRaised},
-		{"Sunken", option.ReliefSunken},
-		{"Groove", option.ReliefGroove},
-		{"Ridge", option.ReliefRidge},
-		{"Solid", option.ReliefSolid},
-		{"Flat", option.ReliefFlat},
-	}
-
-	y := 60
-	for i, r := range reliefs {
-		x := 20 + i*110
-		draw.Fill3DRectangle(xd, drawable, gc, bgBorder, x, y, 100, 60, 3, r.relief)
-		// Label with default font.
-		defaultFont.DrawString(drawable, x+10, y+35, r.name,
-			d.BlackPixel, 0, 0, 0)
-	}
-
-	// Colored rectangles with 3D relief.
-	draw.Fill3DRectangle(xd, drawable, gc, redBorder, 20, 150, 200, 80, 3, option.ReliefRaised)
-	defaultFont.DrawString(drawable, 40, 195, "Red Raised",
-		0xFFFFFF, 0xFFFF, 0xFFFF, 0xFFFF)
-
-	draw.Fill3DRectangle(xd, drawable, gc, blueBorder, 240, 150, 200, 80, 3, option.ReliefSunken)
-	defaultFont.DrawString(drawable, 260, 195, "Blue Sunken",
-		0xFFFFFF, 0xFFFF, 0xFFFF, 0xFFFF)
-
-	draw.Fill3DRectangle(xd, drawable, gc, bgBorder, 460, 150, 200, 80, 4, option.ReliefRidge)
-	defaultFont.DrawString(drawable, 480, 195, "Gray Ridge",
-		d.BlackPixel, 0, 0, 0)
-
-	// Named colors demo.
-	namedColors := []struct {
-		name string
-		col  *color.Color
-	}{
-		{"firebrick", red},
-		{"steel blue", blue},
-		{"forest green", green},
-		{"gold", gold},
-	}
-
-	y = 260
-	for i, nc := range namedColors {
-		x := 20 + i*170
-		xd.SetForeground(gc, nc.col.Pixel)
-		xd.FillRectangle(drawable, gc, x, y, 150, 40)
-		xd.SetForeground(gc, d.BlackPixel)
-		xd.DrawRectangle(drawable, gc, x, y, 150, 40)
-		defaultFont.DrawString(drawable, x+5, y+25, nc.name,
-			d.BlackPixel, 0, 0, 0)
-	}
-
-	// Font demo.
-	y = 330
-	headingFont.DrawString(drawable, 20, y, "Heading Font (TkHeadingFont — sans-serif bold 12)",
-		d.BlackPixel, 0, 0, 0)
-
-	y += 30
-	defaultFont.DrawString(drawable, 20, y, "Default Font (TkDefaultFont — sans-serif 10)",
-		d.BlackPixel, 0, 0, 0)
-
-	y += 25
-	fixedFont.DrawString(drawable, 20, y, "Fixed Font (TkFixedFont — monospace 10)",
-		d.BlackPixel, 0, 0, 0)
-
-	// Font metrics display.
-	y += 30
-	m := headingFont.Metrics()
-	metricsStr := fmt.Sprintf("Heading metrics: ascent=%d descent=%d maxWidth=%d fixed=%v",
-		m.Ascent, m.Descent, m.MaxWidth, m.Fixed)
-	fixedFont.DrawString(drawable, 20, y, metricsStr,
-		d.BlackPixel, 0, 0, 0)
-
-	// Text measurement demo.
-	y += 25
-	testStr := "Hello, Takigo!"
-	textWidth := headingFont.MeasureString(testStr)
-	measureStr := fmt.Sprintf("MeasureString(%q) = %d pixels", testStr, textWidth)
-	fixedFont.DrawString(drawable, 20, y, measureStr,
-		d.BlackPixel, 0, 0, 0)
+	// Draw size info.
+	sizeStr := fmt.Sprintf("%dx%d", w.Width, w.Height)
+	xftFont.DrawString(w.Drawable(), 5, 35, sizeStr, 0xFFFFFF, 0xFFFF, 0xFFFF, 0xFFFF)
 
 	xd.Flush()
 }

@@ -11,6 +11,14 @@ const (
 	FlagAlreadyDead            // destruction in progress
 )
 
+// GeomManager is the interface for geometry managers, defined here
+// to avoid circular imports between window and geometry packages.
+type GeomManager interface {
+	Name() string
+	RequestProc(content *Window)
+	LostContentProc(content *Window)
+}
+
 // Window represents a single window in the takigo hierarchy.
 // Ports TkWindow from tk/generic/tkInt.h.
 type Window struct {
@@ -30,6 +38,16 @@ type Window struct {
 	BorderWidth   int
 	ReqWidth      int // requested width
 	ReqHeight     int // requested height
+
+	// Internal borders (area where children cannot be placed).
+	InternalBorderLeft   int
+	InternalBorderRight  int
+	InternalBorderTop    int
+	InternalBorderBottom int
+
+	// Geometry manager currently managing this window.
+	GeomManager GeomManager
+	GeomData    any // manager-specific data for this window
 
 	// Visual.
 	Depth    int
