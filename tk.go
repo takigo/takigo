@@ -92,6 +92,7 @@ func (a *App) Dispatcher() *event.Dispatcher {
 // It blocks until Quit is called.
 func (a *App) MainLoop() {
 	a.display.XDisplay.MapWindow(a.root.XWindow)
+	a.root.Flags |= window.FlagMapped
 	a.display.XDisplay.Flush()
 	a.loop.Run()
 }

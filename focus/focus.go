@@ -85,7 +85,9 @@ func (m *Manager) SetFocus(w *window.Window) {
 	})
 
 	// Tell X to direct keyboard input to this window's toplevel.
-	if tl != nil && tl.XWindow != xlib.Window(0) {
+	// Only if the window is already mapped — X11 requires the target
+	// to be viewable, otherwise SetInputFocus returns BadMatch.
+	if tl != nil && tl.XWindow != xlib.Window(0) && tl.IsMapped() {
 		m.display.SetInputFocus(tl.XWindow, xlib.RevertToParent, xlib.CurrentTime)
 	}
 }
