@@ -54,15 +54,22 @@ func (l *Loop) Run() {
 			if ev.Type != 0 {
 				l.dispatcher.Dispatch(&ev)
 			}
+			// Flush after dispatching so any X requests issued by
+			// event handlers (e.g. MapWindow, IconifyWindow) are
+			// sent to the server immediately, not deferred until
+			// the next XNextEvent call in the reader goroutine.
+			l.display.Flush()
 
 		case fn := <-l.idleCh:
 			l.idleQueue = append(l.idleQueue, fn)
 
 		case fn := <-l.timerCh:
 			fn()
+			l.display.Flush()
 
 		case fn := <-l.mainCh:
 			fn()
+			l.display.Flush()
 		}
 	}
 }
@@ -125,6 +132,7 @@ drain:
 	for _, fn := range queue {
 		fn()
 	}
+	l.display.Flush()
 }
 
 // readEvents runs in a separate goroutine, blocking on XNextEvent
