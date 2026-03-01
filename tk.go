@@ -7,18 +7,22 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/event"
+	"github.com/msorc/takigo/font"
 	"github.com/msorc/takigo/internal/xlib"
 	"github.com/msorc/takigo/window"
 )
 
 // App is the top-level application, managing the display connection,
-// event loop, and root window.
+// event loop, and root window. It implements widget.AppContext.
 type App struct {
 	display    *window.Display
 	root       *window.Window
 	dispatcher *event.Dispatcher
 	loop       *event.Loop
+	colorCache *color.Cache
+	fontReg    *font.Registry
 }
 
 // NewApp creates a new takigo application. It opens the X11 display,
@@ -45,11 +49,16 @@ func NewApp(opts ...AppOption) (*App, error) {
 	dispatcher := event.NewDispatcher()
 	loop := event.NewLoop(d.XDisplay, dispatcher)
 
+	colors := color.NewCache(d.XDisplay, d.Screen, d.Colormap)
+	fontReg := font.NewRegistry(d.XDisplay, d.Screen, d.Visual, d.Colormap)
+
 	app := &App{
 		display:    d,
 		root:       root,
 		dispatcher: dispatcher,
 		loop:       loop,
+		colorCache: colors,
+		fontReg:    fontReg,
 	}
 
 	// Handle WM_DELETE_WINDOW (window close button).
@@ -94,8 +103,26 @@ func (a *App) Quit() {
 
 // Destroy cleans up all resources. Call after MainLoop returns.
 func (a *App) Destroy() {
+	if a.fontReg != nil {
+		a.fontReg.Close()
+	}
 	window.DestroyWindow(a.root)
 	a.display.Close()
+}
+
+// ColorCache returns the application's color cache.
+func (a *App) ColorCache() *color.Cache {
+	return a.colorCache
+}
+
+// FontRegistry returns the application's font registry.
+func (a *App) FontRegistry() *font.Registry {
+	return a.fontReg
+}
+
+// DisplayPtr returns the underlying xlib.Display pointer.
+func (a *App) DisplayPtr() *xlib.Display {
+	return a.display.XDisplay
 }
 
 // DoWhenIdle schedules a function to run during the next idle phase.

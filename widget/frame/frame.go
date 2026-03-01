@@ -1,0 +1,142 @@
+// Package frame implements the frame widget, a simple container for
+// grouping other widgets. It ports tk/generic/tkFrame.c.
+package frame
+
+import (
+	"github.com/msorc/takigo/event"
+	"github.com/msorc/takigo/internal/xlib"
+	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/widget"
+	"github.com/msorc/takigo/window"
+)
+
+// Frame is a container widget that provides a background and optional
+// border for grouping child widgets.
+type Frame struct {
+	widget.Base
+}
+
+// FrameOption configures a Frame.
+type FrameOption func(*Frame)
+
+// Background sets the background color by name.
+func Background(name string) FrameOption {
+	return func(f *Frame) {
+		col, err := f.App.ColorCache().Get(name)
+		if err == nil {
+			f.Background = col
+			f.UpdateBorder()
+		}
+	}
+}
+
+// BorderWidth sets the border width in pixels.
+func BorderWidth(w int) FrameOption {
+	return func(f *Frame) { f.BorderWidth = w }
+}
+
+// Relief sets the border relief.
+func Relief(r option.Relief) FrameOption {
+	return func(f *Frame) { f.Relief = r }
+}
+
+// Width sets the requested width.
+func Width(w int) FrameOption {
+	return func(f *Frame) { f.Win.ReqWidth = w }
+}
+
+// Height sets the requested height.
+func Height(h int) FrameOption {
+	return func(f *Frame) { f.Win.ReqHeight = h }
+}
+
+// New creates a new Frame widget as a child of parent.
+func New(parent *window.Window, name string, app widget.AppContext, opts ...FrameOption) *Frame {
+	w := window.NewChildWindow(parent, name, 0, 0, 200, 200)
+	window.MakeWindowExist(w)
+
+	f := &Frame{}
+	widget.InitBase(&f.Base, w, app)
+
+	// Frame-specific defaults.
+	f.BorderWidth = 0
+	f.Relief = option.ReliefFlat
+
+	for _, opt := range opts {
+		opt(f)
+	}
+
+	// Update X window background.
+	if f.Background != nil {
+		w.BackgroundPixel = f.Background.Pixel
+	}
+
+	// Bind events.
+	app.Dispatcher().Bind(w.XWindow, event.ExposureMask, func(ev *event.Event) {
+		if ev.ExposeCount > 0 {
+			return
+		}
+		f.Display()
+	})
+
+	app.Dispatcher().Bind(w.XWindow, event.StructureNotifyMask, func(ev *event.Event) {
+		if ev.Type == event.ConfigureType {
+			w.Width = ev.ConfigWidth
+			w.Height = ev.ConfigHeight
+			f.Display()
+		}
+	})
+
+	return f
+}
+
+// Display draws the frame.
+func (f *Frame) Display() {
+	if f.Destroyed {
+		return
+	}
+	f.DrawBackground()
+}
+
+// Configure applies options to the frame.
+func (f *Frame) Configure(opts ...option.Option) {
+	option.Apply(f, opts)
+	f.UpdateBorder()
+	if f.Background != nil {
+		f.Win.BackgroundPixel = f.Background.Pixel
+	}
+	f.Display()
+}
+
+// Destroy cleans up the frame.
+func (f *Frame) Destroy() {
+	if f.Destroyed {
+		return
+	}
+	f.Destroyed = true
+	window.DestroyWindow(f.Win)
+}
+
+// Window returns the underlying window.
+func (f *Frame) Window() *window.Window {
+	return f.Win
+}
+
+// SetInternalBorder sets the internal border for child layout.
+func (f *Frame) SetInternalBorder(left, right, top, bottom int) {
+	w := f.Win
+	w.InternalBorderLeft = left
+	w.InternalBorderRight = right
+	w.InternalBorderTop = top
+	w.InternalBorderBottom = bottom
+}
+
+// DrawBackground fills the frame background and draws the border.
+func (f *Frame) DrawBackground() {
+	w := f.Win
+	if w.XWindow == xlib.Window(0) {
+		return
+	}
+	f.Base.DrawBackground()
+	w.Display.XDisplay.Flush()
+}
