@@ -13,8 +13,7 @@ import (
 )
 
 func main() {
-	d := demohelper.Setup("Labelframe Demonstration", 500, 450, "Labelframes are used to group related widgets together.\nThe label can be positioned at different locations.")
-	app := d.App
+	app := demohelper.Setup("Labelframe Demonstration", 500, 450, "Labelframes are used to group related widgets together.\nThe label can be positioned at different locations.")
 
 	// Gender labelframe with radiobuttons.
 	genderFrame := labelframe.New(app, "gender",
@@ -79,5 +78,5 @@ func main() {
 	_ = cb1
 	_ = cb2
 	_ = cb3
-	d.Run()
+	app.Run()
 }

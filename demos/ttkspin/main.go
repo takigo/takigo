@@ -11,9 +11,8 @@ import (
 )
 
 func main() {
-	d := demohelper.Setup("Spinbox Demonstration", 400, 350,
+	app := demohelper.Setup("Spinbox Demonstration", 400, 350,
 		"Three spinboxes are shown below. The first uses\nan integer range, the second uses float values,\nand the third uses a list of string values.")
-	app := d.App
 
 	// Integer spinbox (0-100).
 	intLabel := label.New(app, "intlabel",
@@ -71,5 +70,5 @@ func main() {
 	_ = floatSpin
 	_ = valLabel
 	_ = valSpin
-	d.Run()
+	app.Run()
 }

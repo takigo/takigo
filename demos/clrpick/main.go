@@ -13,9 +13,8 @@ import (
 )
 
 func main() {
-	d := demohelper.Setup("Color Picker", 400, 250,
+	app := demohelper.Setup("Color Picker", 400, 250,
 		"Click the button to open the color chooser.\nThe chosen color is displayed below.")
-	app := d.App
 
 	// Color display label.
 	colorLabel := label.New(app, "colorlabel",
@@ -49,5 +48,5 @@ func main() {
 
 	_ = colorLabel
 	_ = chooseBtn
-	d.Run()
+	app.Run()
 }

@@ -12,9 +12,8 @@ import (
 )
 
 func main() {
-	d := demohelper.Setup("Canvas Items", 700, 550,
+	app := demohelper.Setup("Canvas Items", 700, 550,
 		"A showcase of all canvas item types: rectangles, ovals,\nlines, polygons, arcs, and text.")
-	app := d.App
 
 	// Canvas.
 	c := canvas.New(app, "items",
@@ -127,5 +126,5 @@ func main() {
 	c.CreateOval(380, 305, 600, 375,
 		canvas.FillColor("#eaf2f8"), canvas.OutlineColor("#2980b9"), canvas.OutlineWidth(2))
 
-	d.Run()
+	app.Run()
 }

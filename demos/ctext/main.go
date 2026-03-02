@@ -10,9 +10,8 @@ import (
 )
 
 func main() {
-	d := demohelper.Setup("Canvas Text Demo", 550, 400,
+	app := demohelper.Setup("Canvas Text Demo", 550, 400,
 		"Canvas text items rendered at various positions\nwith different anchors, fonts, and colors.")
-	app := d.App
 
 	// Canvas.
 	c := canvas.New(app, "canvas",
@@ -63,5 +62,5 @@ func main() {
 		canvas.AnchorOpt(option.AnchorCenter),
 	)
 
-	d.Run()
+	app.Run()
 }

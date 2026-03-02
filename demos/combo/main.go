@@ -13,9 +13,8 @@ import (
 )
 
 func main() {
-	d := demohelper.Setup("Combobox Demonstration", 450, 400,
+	app := demohelper.Setup("Combobox Demonstration", 450, 400,
 		"Three comboboxes are shown below: editable,\nreadonly, and disabled. Click the arrow to see the\ndropdown list.")
-	app := d.App
 
 	ttk.SetCurrentTheme("clam")
 
@@ -91,5 +90,5 @@ func main() {
 	_ = roCombo
 	_ = disLabel
 	_ = disCombo
-	d.Run()
+	app.Run()
 }

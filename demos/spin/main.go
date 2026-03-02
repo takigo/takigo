@@ -14,9 +14,9 @@ import (
 )
 
 func main() {
-	d := demohelper.Setup("Spinbox Demonstration", 400, 300,
+	app := demohelper.Setup("Spinbox Demonstration", 400, 300,
 		"Three spinboxes are shown: an integer range,\na float range, and a list of city names.")
-	root, app := d.Root, d.App
+	root := app.Window()
 
 	focusMgr := focus.NewManager(app.Dispatcher(), app.DisplayPtr())
 	focusMgr.BindTraversal(root)
@@ -104,5 +104,5 @@ func main() {
 	_ = spin1
 	_ = spin2
 	_ = spin3
-	d.Run()
+	app.Run()
 }

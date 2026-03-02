@@ -48,6 +48,12 @@ func bindText(t *TextWidget, app widget.AppContext) {
 		case 1:
 			app.DisplayPtr().SetInputFocus(w.XWindow, xlib.RevertToParent, xlib.CurrentTime)
 			idx := t.indexFromPixel(ev.X, ev.Y)
+			// Fire tag Button-1 bindings before modifying selection.
+			if len(t.tagBindings) > 0 {
+				for tag := range t.tagsAtIndex(idx) {
+					t.fireTagHandlers(tag, "<Button-1>")
+				}
+			}
 			t.clearSelection()
 			t.doc.MarkSet("insert", idx)
 			t.selAnchor = idx
@@ -65,11 +71,22 @@ func bindText(t *TextWidget, app widget.AppContext) {
 
 	// Mouse: drag to select.
 	app.Dispatcher().Bind(w.XWindow, event.MotionMask, func(ev *event.Event) {
+		if len(t.tagBindings) > 0 {
+			idx := t.indexFromPixel(ev.X, ev.Y)
+			t.updateTagHover(t.tagsAtIndex(idx))
+		}
 		if ev.State&xlib.Button1Mask != 0 {
 			idx := t.indexFromPixel(ev.X, ev.Y)
 			t.updateSelection(idx)
 			t.doc.MarkSet("insert", idx)
 			t.Display()
+		}
+	})
+
+	// Leave: clear tag hover state.
+	app.Dispatcher().Bind(w.XWindow, event.LeaveMask, func(ev *event.Event) {
+		if len(t.tagBindings) > 0 {
+			t.updateTagHover(make(map[string]bool))
 		}
 	})
 

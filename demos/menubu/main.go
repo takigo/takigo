@@ -13,9 +13,8 @@ import (
 )
 
 func main() {
-	d := demohelper.Setup("Menubutton Directions", 500, 350,
+	app := demohelper.Setup("Menubutton Directions", 500, 350,
 		"Four menu buttons showing menus in different directions.\nClick each to see the menu position.")
-	app := d.App
 
 	statusLabel := label.New(app, "status",
 		label.Text("Status: Ready"),
@@ -62,5 +61,5 @@ func main() {
 	}
 
 	_ = statusLabel
-	d.Run()
+	app.Run()
 }

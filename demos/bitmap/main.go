@@ -15,9 +15,8 @@ import (
 )
 
 func main() {
-	d := demohelper.Setup("Bitmap Demonstration", 600, 350,
+	app := demohelper.Setup("Bitmap Demonstration", 600, 350,
 		"Tk defines several built-in bitmap patterns. Below are\nrepresentations of the 10 standard bitmaps as images.")
-	app := d.App
 
 	fg := color.RGBA{R: 0, G: 0, B: 0, A: 255}
 	bg := color.RGBA{R: 255, G: 255, B: 255, A: 255}
@@ -125,5 +124,5 @@ func main() {
 		_ = nl
 	}
 
-	d.Run()
+	app.Run()
 }

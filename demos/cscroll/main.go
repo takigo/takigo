@@ -15,9 +15,8 @@ import (
 )
 
 func main() {
-	d := demohelper.Setup("Scrollable Canvas", 550, 450,
+	app := demohelper.Setup("Scrollable Canvas", 550, 450,
 		"A scrollable canvas with a grid of rectangles.\nUse scrollbars to navigate the large canvas.")
-	app := d.App
 
 	// Grid frame for canvas + scrollbars.
 	gridFrame := frame.New(app, "gridframe")
@@ -121,5 +120,5 @@ func main() {
 		}
 	}
 
-	d.Run()
+	app.Run()
 }

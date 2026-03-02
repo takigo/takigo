@@ -11,9 +11,8 @@ import (
 )
 
 func main() {
-	d := demohelper.Setup("Sayings", 500, 350,
+	app := demohelper.Setup("Sayings", 500, 350,
 		"A listbox with well-known sayings.\nScroll vertically to see them all.")
-	app := d.App
 
 	// Sayings data.
 	sayings := []string{
@@ -83,5 +82,5 @@ func main() {
 	first, last := lb.YVisibleRange()
 	yscroll.Set(first, last)
 
-	d.Run()
+	app.Run()
 }

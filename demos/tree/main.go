@@ -19,9 +19,8 @@ import (
 )
 
 func main() {
-	d := demohelper.Setup("Directory Browser", 500, 400,
+	app := demohelper.Setup("Directory Browser", 500, 400,
 		"A directory browser. Click the arrows\nto expand directories.")
-	app := d.App
 
 	ttk.SetCurrentTheme("clam")
 
@@ -137,7 +136,7 @@ func main() {
 	first, last := tv.YVisibleRange()
 	yscroll.Set(first, last)
 
-	d.Run()
+	app.Run()
 }
 
 func formatSize(bytes int64) string {

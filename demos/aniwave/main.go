@@ -13,8 +13,7 @@ import (
 )
 
 func main() {
-	d := demohelper.Setup("Animated Waveform", 550, 350, "An animated sine wave on a canvas.")
-	app := d.App
+	app := demohelper.Setup("Animated Waveform", 550, 350, "An animated sine wave on a canvas.")
 
 	c := canvas.New(app, "wave",
 		canvas.Background("black"),
@@ -56,5 +55,5 @@ func main() {
 	}
 	app.After(33*time.Millisecond, animate)
 
-	d.Run()
+	app.Run()
 }

@@ -12,9 +12,8 @@ import (
 )
 
 func main() {
-	d := demohelper.Setup("Arrow Shapes", 550, 400,
+	app := demohelper.Setup("Arrow Shapes", 550, 400,
 		"Various arrow shapes on canvas lines.\nArrows can appear at first, last, or both ends.")
-	app := d.App
 
 	// Canvas.
 	c := canvas.New(app, "arrows",
@@ -65,5 +64,5 @@ func main() {
 		canvas.Arrow(canvas.ArrowBoth), canvas.ArrowShape(10, 14, 5),
 		canvas.Smooth(true))
 
-	d.Run()
+	app.Run()
 }

@@ -11,9 +11,9 @@ import (
 )
 
 func main() {
-	d := demohelper.Setup("Button Demonstration", 400, 350,
+	app := demohelper.Setup("Button Demonstration", 400, 350,
 		"Click any button to change the background color.\nThe color resets after 1.5 seconds.")
-	root, app := d.Root, d.App
+	root := app.Window()
 
 	defaultBg, _ := app.ColorCache().Get("#d9d9d9")
 
@@ -64,5 +64,5 @@ func main() {
 			pack.Expand(true), pack.PadX(20), pack.PadY(5))
 	}
 
-	d.Run()
+	app.Run()
 }

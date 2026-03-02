@@ -13,9 +13,8 @@ import (
 )
 
 func main() {
-	d := demohelper.Setup("2D Plot", 550, 450,
+	app := demohelper.Setup("2D Plot", 550, 450,
 		"A 2D data plot. Drag the data points with the mouse\nto see them move along the line.")
-	app := d.App
 
 	// Canvas.
 	c := canvas.New(app, "plot",
@@ -116,5 +115,5 @@ func main() {
 	c.CreateLine(sineCoords,
 		canvas.OutlineColor("#27ae60"), canvas.OutlineWidth(1), canvas.Smooth(true))
 
-	d.Run()
+	app.Run()
 }

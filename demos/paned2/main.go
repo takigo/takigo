@@ -12,9 +12,8 @@ import (
 )
 
 func main() {
-	d := demohelper.Setup("Vertical Panes", 500, 450,
+	app := demohelper.Setup("Vertical Panes", 500, 450,
 		"A vertical paned window with a listbox and text widget.\nDrag the sash between them to resize.")
-	app := d.App
 
 	// Vertical paned window.
 	pw := panedwindow.New(app, "vpanes",
@@ -48,5 +47,5 @@ func main() {
 	pw.Add(bottomFrame.Window(), 100)
 
 	_ = lb
-	d.Run()
+	app.Run()
 }

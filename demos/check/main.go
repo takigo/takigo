@@ -12,8 +12,7 @@ import (
 )
 
 func main() {
-	d := demohelper.Setup("Checkbutton Demonstration", 400, 350, "Three checkbuttons are displayed below. Click on a\nbutton to toggle its state. The current state of each\nbutton is displayed at the bottom.")
-	app := d.App
+	app := demohelper.Setup("Checkbutton Demonstration", 400, 350, "Three checkbuttons are displayed below. Click on a\nbutton to toggle its state. The current state of each\nbutton is displayed at the bottom.")
 
 	// Status label.
 	statusLabel := label.New(app, "status",
@@ -72,5 +71,5 @@ func main() {
 	_ = cb1
 	_ = cb2
 	_ = cb3
-	d.Run()
+	app.Run()
 }

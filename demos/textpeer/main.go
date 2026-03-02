@@ -14,9 +14,8 @@ import (
 )
 
 func main() {
-	d := demohelper.Setup("Text Peer Demonstration", 700, 500,
+	app := demohelper.Setup("Text Peer Demonstration", 700, 500,
 		"Two text widgets are shown side by side. Use the\nbuttons to copy content between them.")
-	app := d.App
 
 	noteLabel := label.New(app, "note",
 		label.Text("Note: Tk text peering (shared document) is not implemented. Using copy buttons instead."),
@@ -145,5 +144,5 @@ Click "<-- Copy" to replace this with the content from Text A, or edit freely an
 	_ = rightLabel
 	_ = copyRight
 	_ = copyLeft
-	d.Run()
+	app.Run()
 }

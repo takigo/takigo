@@ -15,9 +15,8 @@ import (
 )
 
 func main() {
-	d := demohelper.Setup("TTK Widgets", 400, 350,
+	app := demohelper.Setup("TTK Widgets", 400, 350,
 		"TTK themed widgets: labels, buttons, separators.\nThey use the clam theme for modern appearance.")
-	app := d.App
 
 	ttk.SetCurrentTheme("clam")
 
@@ -69,5 +68,5 @@ func main() {
 	_ = statusLabel
 	_ = ttkLabel
 	_ = sep
-	d.Run()
+	app.Run()
 }

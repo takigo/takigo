@@ -11,9 +11,8 @@ import (
 )
 
 func main() {
-	d := demohelper.Setup("Horizontal Panes", 500, 300,
+	app := demohelper.Setup("Horizontal Panes", 500, 300,
 		"A horizontal paned window. Drag the sash to resize panes.")
-	app := d.App
 
 	// Paned window.
 	pw := panedwindow.New(app, "panes",
@@ -44,5 +43,5 @@ func main() {
 		_ = l
 	}
 
-	d.Run()
+	app.Run()
 }

@@ -16,9 +16,8 @@ import (
 )
 
 func main() {
-	d := demohelper.Setup("15-Puzzle", 340, 400,
+	app := demohelper.Setup("15-Puzzle", 340, 400,
 		"A 15-puzzle. Click on a piece next to the\nempty space to slide it into the space.")
-	app := d.App
 
 	// Puzzle frame.
 	puzzleFrame := frame.New(app, "puzzle",
@@ -92,5 +91,5 @@ func main() {
 	}
 
 	_ = buttons
-	d.Run()
+	app.Run()
 }

@@ -35,9 +35,13 @@ func TagForeground(name string) TagOption {
 	}
 }
 
-// TagBackground sets the tag's background color.
+// TagBackground sets the tag's background color. Pass "" to clear.
 func TagBackground(name string) TagOption {
 	return func(cache *color.Cache, reg *font.Registry, tag *Tag) {
+		if name == "" {
+			tag.Background = nil
+			return
+		}
 		if col, err := cache.Get(name); err == nil {
 			tag.Background = col
 		}

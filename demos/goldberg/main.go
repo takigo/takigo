@@ -14,8 +14,7 @@ import (
 )
 
 func main() {
-	d := demohelper.Setup("Goldberg Machine", 600, 500, "A simplified Rube Goldberg machine.\nClick Start to begin the chain reaction.")
-	app := d.App
+	app := demohelper.Setup("Goldberg Machine", 600, 500, "A simplified Rube Goldberg machine.\nClick Start to begin the chain reaction.")
 
 	c := canvas.New(app, "goldberg",
 		canvas.Background("#2c3e50"),
@@ -136,5 +135,5 @@ func main() {
 	pack.Pack(startBtn, pack.SideOpt(pack.Top), pack.PadX(10), pack.PadY(5))
 
 	_ = startBtn
-	d.Run()
+	app.Run()
 }

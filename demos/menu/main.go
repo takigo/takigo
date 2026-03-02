@@ -13,9 +13,8 @@ import (
 )
 
 func main() {
-	d := demohelper.Setup("Menu Demo", 500, 350,
+	app := demohelper.Setup("Menu Demo", 500, 350,
 		"Click the menu buttons below to open menus.\nMenus support commands, separators, and cascaded submenus.")
-	app := d.App
 
 	// Status label.
 	statusLabel := label.New(app, "status",
@@ -83,5 +82,5 @@ func main() {
 	_ = fileMb
 	_ = editMb
 	_ = helpMb
-	d.Run()
+	app.Run()
 }

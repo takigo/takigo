@@ -19,9 +19,9 @@ import (
 )
 
 func main() {
-	d := demohelper.Setup("Text Search Demo", 600, 500,
+	app := demohelper.Setup("Text Search Demo", 600, 500,
 		"Type a search string below and click Highlight\nto find and highlight all matches in the text.")
-	root, app := d.Root, d.App
+	root := app.Window()
 
 	focusMgr := focus.NewManager(app.Dispatcher(), app.DisplayPtr())
 	focusMgr.BindTraversal(root)
@@ -165,5 +165,5 @@ Go has built-in concurrency and a robust standard library.
 	_ = statusLabel
 	_ = highlightBtn
 	_ = focusMgr
-	d.Run()
+	app.Run()
 }

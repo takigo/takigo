@@ -4,27 +4,23 @@ package demohelper
 import (
 	"fmt"
 	"os"
+	"path/filepath"
+	"runtime"
 
 	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/internal/xlib"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/button"
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
-	"github.com/msorc/takigo/window"
 )
-
-// Demo holds the app and root window for a demo.
-type Demo struct {
-	App  *takigo.App
-	Root *window.Window
-}
 
 // Setup creates a standard demo window with a description label and dismiss
 // button. Calls os.Exit(1) on failure.
-func Setup(title string, width, height int, description string) *Demo {
+func Setup(title string, width, height int, description string) *takigo.App {
 	app, err := takigo.NewApp(takigo.Title(title), takigo.Size(width, height))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
@@ -84,10 +80,23 @@ func Setup(title string, width, height int, description string) *Demo {
 		}
 	})
 
-	return &Demo{App: app, Root: root}
+	return app
 }
 
-// Run starts the event loop and cleans up when done. Call at the end of main().
-func (d *Demo) Run() {
-	d.App.Run()
+// NewFrame creates a plain frame as a child of the given parent.
+func NewFrame(parent widget.Caregiver, name string) *frame.Frame {
+	return frame.New(parent, name)
+}
+
+// DemoDir returns the absolute path to a demo directory by name,
+// relative to the demos/ root found via the caller's source file location.
+func DemoDir(name string) string {
+	_, file, _, ok := runtime.Caller(1)
+	if !ok {
+		return name
+	}
+	// Walk up from callers' source file to find the demos/ root.
+	// demos/demohelper/demohelper.go → demos/ is one level up.
+	demosRoot := filepath.Dir(filepath.Dir(file))
+	return filepath.Join(demosRoot, name)
 }

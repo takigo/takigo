@@ -14,9 +14,8 @@ import (
 )
 
 func main() {
-	d := demohelper.Setup("Message Boxes", 400, 350,
+	app := demohelper.Setup("Message Boxes", 400, 350,
 		"Click any button to show a message dialog\nwith different types and button combinations.")
-	app := d.App
 
 	statusLabel := label.New(app, "status",
 		label.Text("Result: —"),
@@ -67,5 +66,5 @@ func main() {
 	}
 
 	_ = statusLabel
-	d.Run()
+	app.Run()
 }

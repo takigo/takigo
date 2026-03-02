@@ -11,9 +11,8 @@ import (
 )
 
 func main() {
-	d := demohelper.Setup("Text Display Styles", 550, 500,
+	app := demohelper.Setup("Text Display Styles", 550, 500,
 		"This demo shows text tags that control display styles.\nDifferent fonts, colors, underline, and overstrike.")
-	app := d.App
 
 	// Text widget with scrollbar.
 	txtFrame := frame.New(app, "txtframe")
@@ -130,5 +129,5 @@ func main() {
 	tw.TagAdd("blue", "24.0", "24.29")
 	tw.TagAdd("underline", "24.0", "24.29")
 
-	d.Run()
+	app.Run()
 }

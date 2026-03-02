@@ -13,9 +13,8 @@ import (
 )
 
 func main() {
-	d := demohelper.Setup("Scale with Label", 400, 250,
+	app := demohelper.Setup("Scale with Label", 400, 250,
 		"Drag the scale to update the label value.")
-	app := d.App
 
 	// Value display.
 	valueLabel := label.New(app, "value",
@@ -41,5 +40,5 @@ func main() {
 
 	_ = valueLabel
 	_ = sc
-	d.Run()
+	app.Run()
 }

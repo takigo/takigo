@@ -14,9 +14,8 @@ import (
 )
 
 func main() {
-	d := demohelper.Setup("Vertical Scale", 400, 400,
+	app := demohelper.Setup("Vertical Scale", 400, 400,
 		"Drag the vertical scale to change the bar height.")
-	app := d.App
 
 	// Middle frame: scale on left, canvas on right.
 	midFrame := frame.New(app, "midframe")
@@ -60,5 +59,5 @@ func main() {
 	pack.Pack(c, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	_ = sc
-	d.Run()
+	app.Run()
 }

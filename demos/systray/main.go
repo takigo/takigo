@@ -15,9 +15,8 @@ import (
 )
 
 func main() {
-	d := demohelper.Setup("System Tray Demo", 400, 200,
+	app := demohelper.Setup("System Tray Demo", 400, 200,
 		"Click the button to add a system tray icon.\nThe icon will be removed after 10 seconds.")
-	app := d.App
 
 	statusLabel := label.New(app, "status",
 		label.Text("Status: Ready"),
@@ -57,5 +56,5 @@ func main() {
 
 	_ = statusLabel
 	_ = trayBtn
-	d.Run()
+	app.Run()
 }

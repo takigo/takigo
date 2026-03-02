@@ -14,9 +14,8 @@ import (
 )
 
 func main() {
-	d := demohelper.Setup("File Dialogs", 400, 250,
+	app := demohelper.Setup("File Dialogs", 400, 250,
 		"Click a button to open a file dialog.\nThe selected path is shown in the status bar.")
-	app := d.App
 
 	statusLabel := label.New(app, "status",
 		label.Text("Selected: —"),
@@ -76,5 +75,5 @@ func main() {
 	_ = statusLabel
 	_ = openBtn
 	_ = saveBtn
-	d.Run()
+	app.Run()
 }

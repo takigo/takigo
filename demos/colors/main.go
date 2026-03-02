@@ -12,9 +12,9 @@ import (
 )
 
 func main() {
-	d := demohelper.Setup("Listbox of Colors", 350, 450,
+	app := demohelper.Setup("Listbox of Colors", 350, 450,
 		"A list of X color names. Double-click a color\nto change the application background.")
-	root, app := d.Root, d.App
+	root := app.Window()
 
 	// Color names (grouped by family).
 	colors := []string{
@@ -160,5 +160,5 @@ func main() {
 		return true
 	})
 
-	d.Run()
+	app.Run()
 }

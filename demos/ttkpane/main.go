@@ -15,9 +15,8 @@ import (
 )
 
 func main() {
-	d := demohelper.Setup("TTK + Paned Windows", 500, 350,
+	app := demohelper.Setup("TTK + Paned Windows", 500, 350,
 		"TTK frames inside a paned window.\nDrag the sash to resize.")
-	app := d.App
 
 	ttk.SetCurrentTheme("clam")
 
@@ -58,5 +57,5 @@ func main() {
 	_ = leftLabel
 	_ = rightLabel
 	_ = ttkBtn
-	d.Run()
+	app.Run()
 }

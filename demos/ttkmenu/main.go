@@ -14,9 +14,8 @@ import (
 )
 
 func main() {
-	d := demohelper.Setup("TTK Menubutton Demonstration", 400, 350,
+	app := demohelper.Setup("TTK Menubutton Demonstration", 400, 350,
 		"Below are themed menubuttons. Click each to\nopen a dropdown menu.")
-	app := d.App
 
 	ttk.SetCurrentTheme("clam")
 
@@ -74,5 +73,5 @@ func main() {
 	_ = fileMB
 	_ = editMB
 	_ = helpMB
-	d.Run()
+	app.Run()
 }

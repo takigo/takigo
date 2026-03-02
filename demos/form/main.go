@@ -16,9 +16,9 @@ import (
 )
 
 func main() {
-	d := demohelper.Setup("Form Entry", 450, 280,
+	app := demohelper.Setup("Form Entry", 450, 280,
 		"A simple form with five fields. Use Tab\nto move between fields.")
-	root, app := d.Root, d.App
+	root := app.Window()
 
 	focusMgr := focus.NewManager(app.Dispatcher(), app.DisplayPtr())
 	focusMgr.BindTraversal(root)
@@ -49,5 +49,5 @@ func main() {
 
 	_ = focusMgr
 	_ = entries
-	d.Run()
+	app.Run()
 }

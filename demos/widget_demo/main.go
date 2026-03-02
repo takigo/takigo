@@ -56,7 +56,7 @@ var categories = []category{
 	{"Text Widget", []demoEntry{
 		{"text", "Basic text editing"},
 		{"style", "Text display styles (tags)"},
-		{"bind_text", "Hypertext-like tag display"},
+		{"bind", "Hypertext-like tag bindings"},
 		{"search", "Text search and highlight"},
 		{"textpeer", "Two text widgets with copy"},
 		{"twind", "Text tags, styles, and undo"},
@@ -88,7 +88,8 @@ var categories = []category{
 		{"filebox", "File open/save dialogs"},
 		{"clrpick", "Color picker dialog"},
 		{"fontchoose", "Font chooser dialog"},
-		{"dialog_modal", "Modal dialog examples"},
+		{"dialog1", "Modal dialog with local grab"},
+		{"dialog2", "Modal dialog with global grab"},
 	}},
 	{"Images", []demoEntry{
 		{"image1", "Generated gradient/checkerboard"},

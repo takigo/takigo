@@ -55,6 +55,10 @@ type TextWidget struct {
 	undoEnabled bool
 	undoStack   *UndoStack
 
+	// Tag event bindings: tagName → eventName → handlers.
+	tagBindings map[string]map[string][]func()
+	hoverTags   map[string]bool
+
 	// Offscreen pixmap.
 	pixmap           xlib.Pixmap
 	pixmapW, pixmapH int
@@ -440,6 +444,59 @@ func (t *TextWidget) XViewScroll(count int, pages bool) {
 		count *= t.Font.MeasureString("0")
 	}
 	t.XView(t.xOffset + count)
+}
+
+// TagBind binds an event handler to a text tag. Supported events:
+// "<Enter>", "<Leave>", "<Button-1>".
+func (t *TextWidget) TagBind(tagName, eventName string, handler func()) {
+	if t.tagBindings == nil {
+		t.tagBindings = make(map[string]map[string][]func())
+	}
+	if t.tagBindings[tagName] == nil {
+		t.tagBindings[tagName] = make(map[string][]func())
+	}
+	t.tagBindings[tagName][eventName] = append(t.tagBindings[tagName][eventName], handler)
+}
+
+// tagsAtIndex returns the set of tag names that cover the given index.
+func (t *TextWidget) tagsAtIndex(idx Index) map[string]bool {
+	result := make(map[string]bool)
+	for _, tr := range t.doc.TagRanges {
+		if Compare(idx, tr.Start) >= 0 && Compare(idx, tr.End) < 0 {
+			result[tr.TagName] = true
+		}
+	}
+	return result
+}
+
+// fireTagHandlers fires all handlers for (tagName, eventName).
+func (t *TextWidget) fireTagHandlers(tagName, eventName string) {
+	if t.tagBindings == nil {
+		return
+	}
+	if handlers, ok := t.tagBindings[tagName]; ok {
+		for _, h := range handlers[eventName] {
+			h()
+		}
+	}
+}
+
+// updateTagHover computes Enter/Leave events as the mouse moves over tags.
+func (t *TextWidget) updateTagHover(newTags map[string]bool) {
+	if t.hoverTags == nil {
+		t.hoverTags = make(map[string]bool)
+	}
+	for tag := range t.hoverTags {
+		if !newTags[tag] {
+			t.fireTagHandlers(tag, "<Leave>")
+		}
+	}
+	for tag := range newTags {
+		if !t.hoverTags[tag] {
+			t.fireTagHandlers(tag, "<Enter>")
+		}
+	}
+	t.hoverTags = newTags
 }
 
 // Configure applies options.

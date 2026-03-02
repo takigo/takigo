@@ -16,8 +16,7 @@ import (
 )
 
 func main() {
-	d := demohelper.Setup("Progressbar Demonstration", 400, 350, "Below are two progressbars: one determinate (showing\nprogress percentage) and one indeterminate (bouncing).")
-	app := d.App
+	app := demohelper.Setup("Progressbar Demonstration", 400, 350, "Below are two progressbars: one determinate (showing\nprogress percentage) and one indeterminate (bouncing).")
 
 	ttk.SetCurrentTheme("clam")
 
@@ -114,5 +113,5 @@ func main() {
 	_ = indLabel
 	_ = indBtn
 	_ = sep
-	d.Run()
+	app.Run()
 }

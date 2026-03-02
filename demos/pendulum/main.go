@@ -12,8 +12,7 @@ import (
 )
 
 func main() {
-	d := demohelper.Setup("Pendulum", 400, 450, "A simple pendulum physics simulation.")
-	app := d.App
+	app := demohelper.Setup("Pendulum", 400, 450, "A simple pendulum physics simulation.")
 
 	c := canvas.New(app, "pendulum",
 		canvas.Background("#1a1a2e"),
@@ -78,5 +77,5 @@ func main() {
 	}
 	app.After(20*time.Millisecond, animate)
 
-	d.Run()
+	app.Run()
 }

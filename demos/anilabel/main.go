@@ -12,9 +12,8 @@ import (
 )
 
 func main() {
-	d := demohelper.Setup("Animated Label", 400, 200,
+	app := demohelper.Setup("Animated Label", 400, 200,
 		"A label with scrolling text animation.")
-	app := d.App
 
 	// Animated label.
 	scrollText := "    Welcome to Takigo — a pure Go port of the Tk toolkit!    "
@@ -44,5 +43,5 @@ func main() {
 	app.After(100*time.Millisecond, animate)
 
 	_ = aniLabel
-	d.Run()
+	app.Run()
 }

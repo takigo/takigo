@@ -10,9 +10,8 @@ import (
 )
 
 func main() {
-	d := demohelper.Setup("Label Demonstration", 450, 350,
+	app := demohelper.Setup("Label Demonstration", 450, 350,
 		"Five labels are displayed below. They are all the same except\nfor their relief and border width settings.")
-	app := d.App
 
 	// Labels with different relief styles.
 	reliefs := []struct {
@@ -40,5 +39,5 @@ func main() {
 		_ = l
 	}
 
-	d.Run()
+	app.Run()
 }

@@ -12,9 +12,8 @@ import (
 )
 
 func main() {
-	d := demohelper.Setup("Ruler Demo", 600, 250,
+	app := demohelper.Setup("Ruler Demo", 600, 250,
 		"A ruler with tick marks and tab stops.\nThe tab stops are represented by small triangles.")
-	app := d.App
 
 	// Canvas.
 	c := canvas.New(app, "ruler",
@@ -68,5 +67,5 @@ func main() {
 			canvas.Tags("tab"))
 	}
 
-	d.Run()
+	app.Run()
 }

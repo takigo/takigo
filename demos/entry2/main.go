@@ -12,9 +12,9 @@ import (
 )
 
 func main() {
-	d := demohelper.Setup("Entry Demonstration (with scrollbars)", 450, 320,
+	app := demohelper.Setup("Entry Demonstration (with scrollbars)", 450, 320,
 		"Three entry widgets with scrollbars are displayed below.\nYou can add characters by pointing, clicking and typing.")
-	root, app := d.Root, d.App
+	root := app.Window()
 
 	focusMgr := focus.NewManager(app.Dispatcher(), app.DisplayPtr())
 	focusMgr.BindTraversal(root)
@@ -74,5 +74,5 @@ func main() {
 	_ = e1
 	_ = e2
 	_ = e3
-	d.Run()
+	app.Run()
 }

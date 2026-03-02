@@ -10,9 +10,8 @@ import (
 )
 
 func main() {
-	d := demohelper.Setup("Floor Plan", 650, 500,
+	app := demohelper.Setup("Floor Plan", 650, 500,
 		"A simplified building floor plan drawn with canvas lines\nand polygons. Rooms are labeled with text items.")
-	app := d.App
 
 	// Canvas.
 	c := canvas.New(app, "floor",
@@ -99,5 +98,5 @@ func main() {
 		canvas.TextColor("#333333"),
 		canvas.AnchorOpt(option.AnchorS))
 
-	d.Run()
+	app.Run()
 }

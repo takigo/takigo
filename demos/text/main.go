@@ -11,9 +11,8 @@ import (
 )
 
 func main() {
-	d := demohelper.Setup("Text Widget Demo", 550, 450,
+	app := demohelper.Setup("Text Widget Demo", 550, 450,
 		"A text widget with scrollbar. Click to position\ncursor. Select by dragging. Ctrl+Z to undo.")
-	app := d.App
 
 	// Text widget with scrollbar.
 	txtFrame := frame.New(app, "txtframe")
@@ -75,5 +74,5 @@ Try typing some text, selecting it, and using undo/redo to see the editing capab
 `
 	tw.Insert("1.0", sampleText)
 
-	d.Run()
+	app.Run()
 }

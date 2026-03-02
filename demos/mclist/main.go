@@ -40,9 +40,8 @@ var countries = []countryData{
 }
 
 func main() {
-	d := demohelper.Setup("Multi-Column List", 500, 400,
+	app := demohelper.Setup("Multi-Column List", 500, 400,
 		"A sortable multi-column list.\nClick column headings to sort.")
-	app := d.App
 
 	ttk.SetCurrentTheme("clam")
 
@@ -142,5 +141,5 @@ func main() {
 	first, last := tv.YVisibleRange()
 	yscroll.Set(first, last)
 
-	d.Run()
+	app.Run()
 }

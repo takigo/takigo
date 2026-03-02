@@ -12,9 +12,8 @@ import (
 )
 
 func main() {
-	d := demohelper.Setup("Unicode Text", 450, 400,
+	app := demohelper.Setup("Unicode Text", 450, 400,
 		"Unicode text samples from various scripts.\nAll rendered via Xft/fontconfig.")
-	app := d.App
 
 	// Unicode samples.
 	samples := []struct {
@@ -43,5 +42,5 @@ func main() {
 		_ = l
 	}
 
-	d.Run()
+	app.Run()
 }

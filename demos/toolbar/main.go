@@ -14,9 +14,8 @@ import (
 )
 
 func main() {
-	d := demohelper.Setup("Toolbar Demonstration", 500, 300,
+	app := demohelper.Setup("Toolbar Demonstration", 500, 300,
 		"A toolbar with TTK buttons, a separator, and\na menubutton. This shows how themed widgets can\ncreate a modern toolbar appearance.")
-	app := d.App
 
 	ttk.SetCurrentTheme("clam")
 
@@ -102,5 +101,5 @@ func main() {
 	_ = redoBtn
 	_ = sep2
 	_ = formatMB
-	d.Run()
+	app.Run()
 }

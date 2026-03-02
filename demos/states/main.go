@@ -11,9 +11,8 @@ import (
 )
 
 func main() {
-	d := demohelper.Setup("US States", 300, 400,
+	app := demohelper.Setup("US States", 300, 400,
 		"A listbox containing the 50 US states.\nSelect a state and press Dismiss to exit.")
-	app := d.App
 
 	// Listbox frame.
 	lbFrame := frame.New(app, "lbframe")
@@ -70,5 +69,5 @@ func main() {
 	first, last := lb.YVisibleRange()
 	yscroll.Set(first, last)
 
-	d.Run()
+	app.Run()
 }

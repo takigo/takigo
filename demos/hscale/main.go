@@ -14,9 +14,8 @@ import (
 )
 
 func main() {
-	d := demohelper.Setup("Horizontal Scale", 500, 350,
+	app := demohelper.Setup("Horizontal Scale", 500, 350,
 		"Drag the scale to change the arrow angle on the canvas.")
-	app := d.App
 
 	// Canvas for arrow display.
 	c := canvas.New(app, "canvas",
@@ -61,5 +60,5 @@ func main() {
 		pack.PadX(30), pack.PadY(10))
 
 	_ = sc
-	d.Run()
+	app.Run()
 }

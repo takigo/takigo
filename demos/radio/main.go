@@ -15,8 +15,7 @@ import (
 )
 
 func main() {
-	d := demohelper.Setup("Radiobutton Demonstration", 500, 400, "Two groups of radiobuttons are displayed below. Click on\na button to select it. The current selection is shown at\nthe bottom.")
-	app := d.App
+	app := demohelper.Setup("Radiobutton Demonstration", 500, 400, "Two groups of radiobuttons are displayed below. Click on\na button to select it. The current selection is shown at\nthe bottom.")
 
 	// Status label.
 	statusLabel := label.New(app, "status",
@@ -91,5 +90,5 @@ func main() {
 	_ = statusLabel
 	_ = sizeTitle
 	_ = colorTitle
-	d.Run()
+	app.Run()
 }

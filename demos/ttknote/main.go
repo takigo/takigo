@@ -16,8 +16,7 @@ import (
 )
 
 func main() {
-	d := demohelper.Setup("Notebook Demonstration", 500, 350, "A notebook widget with three tabs. Click each tab\nto switch between pages.")
-	app := d.App
+	app := demohelper.Setup("Notebook Demonstration", 500, 350, "A notebook widget with three tabs. Click each tab\nto switch between pages.")
 
 	ttk.SetCurrentTheme("clam")
 
@@ -73,5 +72,5 @@ func main() {
 
 	_ = descLabel
 	_ = statusLabel
-	d.Run()
+	app.Run()
 }

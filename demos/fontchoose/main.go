@@ -14,9 +14,8 @@ import (
 )
 
 func main() {
-	d := demohelper.Setup("Font Chooser", 450, 250,
+	app := demohelper.Setup("Font Chooser", 450, 250,
 		"Click the button to open the font chooser.\nThe selected font description is shown below.")
-	app := d.App
 
 	// Font display label.
 	fontLabel := label.New(app, "fontlabel",
@@ -53,5 +52,5 @@ func main() {
 	_ = fontLabel
 	_ = previewLabel
 	_ = chooseBtn
-	d.Run()
+	app.Run()
 }

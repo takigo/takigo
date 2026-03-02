@@ -13,9 +13,8 @@ import (
 )
 
 func main() {
-	d := demohelper.Setup("Canvas & Text Print Demo", 700, 500,
+	app := demohelper.Setup("Canvas & Text Print Demo", 700, 500,
 		"This demo shows a canvas with shapes and a text widget\nwith sample content, as used in the Tk print demo.")
-	app := d.App
 
 	infoLabel := label.New(app, "info",
 		label.Text("Note: Printing is not available on this platform."),
@@ -70,5 +69,5 @@ Features shown:
 - Side-by-side layout with pack geometry`)
 
 	_ = infoLabel
-	d.Run()
+	app.Run()
 }

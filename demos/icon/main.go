@@ -64,9 +64,8 @@ func makeFlagImage(name string, up bool) *tkimage.Photo {
 }
 
 func main() {
-	d := demohelper.Setup("Iconic Button Demonstration", 450, 400,
+	app := demohelper.Setup("Iconic Button Demonstration", 450, 400,
 		"This demo shows checkbuttons and radiobuttons with\ncolored icon images instead of text labels.")
-	app := d.App
 
 	statusLabel := label.New(app, "status",
 		label.Text("Flag: down, Color: red"),
@@ -163,5 +162,5 @@ func main() {
 	_ = flagLabel
 	_ = cb
 	_ = colorTitle
-	d.Run()
+	app.Run()
 }

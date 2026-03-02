@@ -14,9 +14,8 @@ import (
 )
 
 func main() {
-	d := demohelper.Setup("Text Widget Features", 650, 550,
+	app := demohelper.Setup("Text Widget Features", 650, 550,
 		"This demo shows text tags, colors, fonts, and undo/redo.\nThe original Tk demo also embeds windows and images.")
-	app := d.App
 
 	// Side control buttons.
 	ctrlFrame := frame.New(app, "ctrl")
@@ -184,5 +183,5 @@ func main() {
 	_ = underBtn
 	_ = redBtn
 	_ = blueBtn
-	d.Run()
+	app.Run()
 }

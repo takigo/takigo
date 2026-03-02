@@ -20,9 +20,8 @@ import (
 )
 
 func main() {
-	d := demohelper.Setup("Image Viewer", 550, 400,
+	app := demohelper.Setup("Image Viewer", 550, 400,
 		"Select an image from the list to preview it.")
-	app := d.App
 
 	// Generate several images.
 	type imgEntry struct {
@@ -154,5 +153,5 @@ func main() {
 	})
 
 	_ = previewLabel
-	d.Run()
+	app.Run()
 }

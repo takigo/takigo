@@ -17,8 +17,7 @@ import (
 const boardSize = 6 // 6x6 for faster computation.
 
 func main() {
-	d := demohelper.Setup("Knight's Tour", 450, 500, fmt.Sprintf("Knight's tour on a %dx%d board.\nClick Start to begin the animation.", boardSize, boardSize))
-	app := d.App
+	app := demohelper.Setup("Knight's Tour", 450, 500, fmt.Sprintf("Knight's tour on a %dx%d board.\nClick Start to begin the animation.", boardSize, boardSize))
 
 	statusLabel := label.New(app, "status",
 		label.Text("Move: 0"),
@@ -163,5 +162,5 @@ func main() {
 
 	_ = statusLabel
 	_ = startBtn
-	d.Run()
+	app.Run()
 }
