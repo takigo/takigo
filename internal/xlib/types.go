@@ -140,6 +140,41 @@ const (
 	GXcopy = C.GXcopy
 )
 
+// Line style constants (from X11/X.h).
+const (
+	LineSolid      = 0
+	LineOnOffDash  = 1
+	LineDoubleDash = 2
+)
+
+// Cap style constants (from X11/X.h).
+const (
+	CapNotLast    = 0
+	CapButt       = 1
+	CapRound      = 2
+	CapProjecting = 3
+)
+
+// Join style constants (from X11/X.h).
+const (
+	JoinMiter = 0
+	JoinRound = 1
+	JoinBevel = 2
+)
+
+// Polygon shape constants for XFillPolygon (from X11/X.h).
+const (
+	PolygonComplex   = 0
+	PolygonNonconvex = 1
+	PolygonConvex    = 2
+)
+
+// Coordinate mode constants (from X11/X.h).
+const (
+	CoordModeOrigin   = 0
+	CoordModePrevious = 1
+)
+
 // Atom predefined constants.
 var (
 	XA_WM_NAME          = Atom(C.XA_WM_NAME)

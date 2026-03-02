@@ -1,0 +1,214 @@
+package canvas
+
+import (
+	"math"
+
+	"github.com/msorc/takigo/internal/xlib"
+)
+
+// ArcItem implements an arc/chord/pieslice canvas item.
+type ArcItem struct {
+	ItemBase
+	coords       [4]float64 // bounding box of the ellipse
+	start        float64    // start angle in degrees
+	extent       float64    // angular extent in degrees
+	style        ArcStyle
+	fill         *colorRef
+	outline      *colorRef
+	outlineWidth int
+	dash         []byte
+}
+
+func newArcItem(x1, y1, x2, y2 float64, c *Canvas) *ArcItem {
+	item := &ArcItem{
+		coords:       [4]float64{x1, y1, x2, y2},
+		start:        0,
+		extent:       90,
+		style:        ArcStylePieslice,
+		outlineWidth: 1,
+	}
+	item.outline = &colorRef{Pixel: 0x000000}
+	item.ItemBase.canvas = c
+	item.updateBBox()
+	return item
+}
+
+func (a *ArcItem) base() *ItemBase { return &a.ItemBase }
+func (a *ArcItem) Type() string    { return "arc" }
+
+func (a *ArcItem) BBox() (x1, y1, x2, y2 int) {
+	return a.X1, a.Y1, a.X2, a.Y2
+}
+
+func (a *ArcItem) Coords() []float64 {
+	return a.coords[:]
+}
+
+func (a *ArcItem) SetCoords(coords []float64) error {
+	if len(coords) >= 4 {
+		copy(a.coords[:], coords[:4])
+		a.updateBBox()
+	}
+	return nil
+}
+
+func (a *ArcItem) Configure(opts []ItemOption) error {
+	c := a.canvas
+	for _, opt := range opts {
+		if err := opt(c, a); err != nil {
+			return err
+		}
+	}
+	a.updateBBox()
+	return nil
+}
+
+func (a *ArcItem) updateBBox() {
+	hw := float64(a.outlineWidth)/2.0 + 1
+	x1, y1, x2, y2 := a.coords[0], a.coords[1], a.coords[2], a.coords[3]
+	if x1 > x2 {
+		x1, x2 = x2, x1
+	}
+	if y1 > y2 {
+		y1, y2 = y2, y1
+	}
+	a.X1 = int(math.Floor(x1 - hw))
+	a.Y1 = int(math.Floor(y1 - hw))
+	a.X2 = int(math.Ceil(x2 + hw))
+	a.Y2 = int(math.Ceil(y2 + hw))
+}
+
+func (a *ArcItem) Display(d *xlib.Display, drawable xlib.Drawable, gc xlib.GC,
+	clipX, clipY, clipW, clipH, originX, originY int) {
+
+	x1 := int(a.coords[0]) - originX
+	y1 := int(a.coords[1]) - originY
+	x2 := int(a.coords[2]) - originX
+	y2 := int(a.coords[3]) - originY
+	if x1 > x2 {
+		x1, x2 = x2, x1
+	}
+	if y1 > y2 {
+		y1, y2 = y2, y1
+	}
+	w := x2 - x1
+	h := y2 - y1
+	if w <= 0 || h <= 0 {
+		return
+	}
+
+	// X11 angles are in 64ths of a degree.
+	angle1 := int(a.start * 64)
+	angle2 := int(a.extent * 64)
+
+	cx := float64(x1) + float64(w)/2
+	cy := float64(y1) + float64(h)/2
+	rx := float64(w) / 2
+	ry := float64(h) / 2
+
+	switch a.style {
+	case ArcStylePieslice:
+		if a.fill != nil {
+			d.SetForeground(gc, a.fill.Pixel)
+			d.FillArc(drawable, gc, x1, y1, uint(w), uint(h), angle1, angle2)
+		}
+		if a.outline != nil && a.outlineWidth > 0 {
+			d.SetForeground(gc, a.outline.Pixel)
+			a.setLineAttrs(d, gc)
+			d.DrawArc(drawable, gc, x1, y1, uint(w), uint(h), angle1, angle2)
+			// Draw radii lines for pieslice.
+			startRad := a.start * math.Pi / 180
+			endRad := (a.start + a.extent) * math.Pi / 180
+			sx := int(cx + rx*math.Cos(startRad))
+			sy := int(cy - ry*math.Sin(startRad))
+			ex := int(cx + rx*math.Cos(endRad))
+			ey := int(cy - ry*math.Sin(endRad))
+			cxi := int(cx)
+			cyi := int(cy)
+			d.DrawLine(drawable, gc, cxi, cyi, sx, sy)
+			d.DrawLine(drawable, gc, cxi, cyi, ex, ey)
+			a.resetLineAttrs(d, gc)
+		}
+
+	case ArcStyleChord:
+		if a.fill != nil {
+			d.SetForeground(gc, a.fill.Pixel)
+			d.FillArc(drawable, gc, x1, y1, uint(w), uint(h), angle1, angle2)
+		}
+		if a.outline != nil && a.outlineWidth > 0 {
+			d.SetForeground(gc, a.outline.Pixel)
+			a.setLineAttrs(d, gc)
+			d.DrawArc(drawable, gc, x1, y1, uint(w), uint(h), angle1, angle2)
+			// Draw chord line.
+			startRad := a.start * math.Pi / 180
+			endRad := (a.start + a.extent) * math.Pi / 180
+			sx := int(cx + rx*math.Cos(startRad))
+			sy := int(cy - ry*math.Sin(startRad))
+			ex := int(cx + rx*math.Cos(endRad))
+			ey := int(cy - ry*math.Sin(endRad))
+			d.DrawLine(drawable, gc, sx, sy, ex, ey)
+			a.resetLineAttrs(d, gc)
+		}
+
+	case ArcStyleArc:
+		if a.outline != nil && a.outlineWidth > 0 {
+			d.SetForeground(gc, a.outline.Pixel)
+			a.setLineAttrs(d, gc)
+			d.DrawArc(drawable, gc, x1, y1, uint(w), uint(h), angle1, angle2)
+			a.resetLineAttrs(d, gc)
+		}
+	}
+}
+
+func (a *ArcItem) setLineAttrs(d *xlib.Display, gc xlib.GC) {
+	lineStyle := xlib.LineSolid
+	if len(a.dash) > 0 {
+		lineStyle = xlib.LineOnOffDash
+		d.SetDashes(gc, 0, a.dash)
+	}
+	d.SetLineAttributes(gc, uint(a.outlineWidth), lineStyle, xlib.CapButt, xlib.JoinMiter)
+}
+
+func (a *ArcItem) resetLineAttrs(d *xlib.Display, gc xlib.GC) {
+	d.SetLineAttributes(gc, 1, xlib.LineSolid, xlib.CapButt, xlib.JoinMiter)
+}
+
+func (a *ArcItem) PointDistance(x, y float64) float64 {
+	// Approximate: use distance to bounding box.
+	return rectPointDistance(x, y, a.coords[0], a.coords[1], a.coords[2], a.coords[3])
+}
+
+func (a *ArcItem) AreaOverlap(ax1, ay1, ax2, ay2 float64) int {
+	x1, y1, x2, y2 := a.coords[0], a.coords[1], a.coords[2], a.coords[3]
+	if x1 > x2 {
+		x1, x2 = x2, x1
+	}
+	if y1 > y2 {
+		y1, y2 = y2, y1
+	}
+	if ax2 < x1 || ax1 > x2 || ay2 < y1 || ay1 > y2 {
+		return -1
+	}
+	if ax1 <= x1 && ax2 >= x2 && ay1 <= y1 && ay2 >= y2 {
+		return 1
+	}
+	return 0
+}
+
+func (a *ArcItem) Scale(ox, oy, sx, sy float64) {
+	for i := 0; i < 4; i += 2 {
+		a.coords[i] = ox + (a.coords[i]-ox)*sx
+		a.coords[i+1] = oy + (a.coords[i+1]-oy)*sy
+	}
+	a.updateBBox()
+}
+
+func (a *ArcItem) Translate(dx, dy float64) {
+	a.coords[0] += dx
+	a.coords[1] += dy
+	a.coords[2] += dx
+	a.coords[3] += dy
+	a.updateBBox()
+}
+
+func (a *ArcItem) Delete(d *xlib.Display) {}

@@ -32,21 +32,28 @@ func Line(d *xlib.Display, drawable xlib.Drawable, gc xlib.GC, p1, p2 Point) {
 	d.DrawLine(drawable, gc, p1.X, p1.Y, p2.X, p2.Y)
 }
 
-// FillPolygon fills a polygon defined by points.
-// Uses a series of filled triangles (fan from first point).
+// FillPolygon fills a polygon defined by points using XFillPolygon.
 func FillPolygon(d *xlib.Display, drawable xlib.Drawable, gc xlib.GC, points []Point) {
 	if len(points) < 3 {
 		return
 	}
-	// Simple approach: fill as series of triangles from first point.
-	// For convex polygons this works; for complex polygons we'd need
-	// XFillPolygon, which we can add to xlib bindings later.
-	for i := 1; i < len(points)-1; i++ {
-		// Draw triangle as three lines (filled via GC fill style).
-		d.DrawLine(drawable, gc, points[0].X, points[0].Y, points[i].X, points[i].Y)
-		d.DrawLine(drawable, gc, points[i].X, points[i].Y, points[i+1].X, points[i+1].Y)
-		d.DrawLine(drawable, gc, points[i+1].X, points[i+1].Y, points[0].X, points[0].Y)
+	xpoints := make([]xlib.XPoint, len(points))
+	for i, p := range points {
+		xpoints[i] = xlib.XPoint{X: int16(p.X), Y: int16(p.Y)}
 	}
+	d.FillPolygon(drawable, gc, xpoints, xlib.PolygonComplex, xlib.CoordModeOrigin)
+}
+
+// DrawLines draws connected line segments.
+func DrawLines(d *xlib.Display, drawable xlib.Drawable, gc xlib.GC, points []Point) {
+	if len(points) < 2 {
+		return
+	}
+	xpoints := make([]xlib.XPoint, len(points))
+	for i, p := range points {
+		xpoints[i] = xlib.XPoint{X: int16(p.X), Y: int16(p.Y)}
+	}
+	d.DrawLines(drawable, gc, xpoints, xlib.CoordModeOrigin)
 }
 
 // Border holds the three colors needed for 3D relief drawing:

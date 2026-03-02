@@ -1,0 +1,581 @@
+package canvas
+
+import (
+	"github.com/msorc/takigo/color"
+	"github.com/msorc/takigo/draw"
+	"github.com/msorc/takigo/font"
+	"github.com/msorc/takigo/internal/xlib"
+	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/widget"
+	"github.com/msorc/takigo/window"
+)
+
+// Canvas is a 2D drawing surface that supports arbitrary graphical items.
+type Canvas struct {
+	widget.Base
+
+	items   []*itemEntry
+	idMap   map[int64]*itemEntry
+	nextID  int64
+
+	// Scroll state.
+	xOrigin, yOrigin int
+	scrollRegion     [4]int
+	hasScrollRegion  bool
+
+	// Display.
+	redrawPending    bool
+	pixmap           xlib.Pixmap
+	pixmapW, pixmapH int
+
+	// Item pick / events.
+	currentItem  *itemEntry
+	itemBindings map[string][]itemHandler
+	closeEnough  float64 // hit-test tolerance (default 1.0)
+
+	// Scrollbar callbacks.
+	XScrollCmd func(first, last float64)
+	YScrollCmd func(first, last float64)
+
+	// Computed inset (borderWidth + highlightWidth).
+	inset int
+
+	// displayFunc is stored so ScheduleRedraw can call it.
+	displayFunc func()
+}
+
+// CanvasOption configures a Canvas.
+type CanvasOption func(*Canvas)
+
+func Width(w int) CanvasOption {
+	return func(c *Canvas) { c.Win.ReqWidth = w }
+}
+
+func Height(h int) CanvasOption {
+	return func(c *Canvas) { c.Win.ReqHeight = h }
+}
+
+func Background(name string) CanvasOption {
+	return func(c *Canvas) {
+		col, err := c.App.ColorCache().Get(name)
+		if err == nil {
+			c.Base.Background = col
+			c.UpdateBorder()
+		}
+	}
+}
+
+func BorderWidthOpt(w int) CanvasOption {
+	return func(c *Canvas) {
+		c.BorderWidth = w
+		c.inset = w + c.HighlightWidth
+	}
+}
+
+func ReliefOpt(r option.Relief) CanvasOption {
+	return func(c *Canvas) { c.Relief = r }
+}
+
+func HighlightWidthOpt(w int) CanvasOption {
+	return func(c *Canvas) {
+		c.HighlightWidth = w
+		c.inset = c.BorderWidth + w
+	}
+}
+
+func CloseEnough(d float64) CanvasOption {
+	return func(c *Canvas) { c.closeEnough = d }
+}
+
+func XScrollCommand(fn func(first, last float64)) CanvasOption {
+	return func(c *Canvas) { c.XScrollCmd = fn }
+}
+
+func YScrollCommand(fn func(first, last float64)) CanvasOption {
+	return func(c *Canvas) { c.YScrollCmd = fn }
+}
+
+func ScrollRegion(x1, y1, x2, y2 int) CanvasOption {
+	return func(c *Canvas) {
+		c.scrollRegion = [4]int{x1, y1, x2, y2}
+		c.hasScrollRegion = true
+	}
+}
+
+// New creates a new Canvas widget.
+func New(parent *window.Window, name string, app widget.AppContext, opts ...CanvasOption) *Canvas {
+	w := window.NewChildWindow(parent, name, 0, 0, 1, 1)
+	window.MakeWindowExist(w)
+
+	c := &Canvas{
+		idMap:        make(map[int64]*itemEntry),
+		nextID:       1,
+		itemBindings: make(map[string][]itemHandler),
+		closeEnough:  1.0,
+	}
+	widget.InitBase(&c.Base, w, app)
+
+	// Canvas defaults.
+	c.Base.Background, _ = app.ColorCache().Get("white")
+	c.UpdateBorder()
+	c.Win.ReqWidth = 300
+	c.Win.ReqHeight = 200
+
+	// Apply options.
+	for _, opt := range opts {
+		opt(c)
+	}
+
+	c.inset = c.BorderWidth + c.HighlightWidth
+
+	// Store display function reference for idle callback.
+	c.displayFunc = c.Display
+
+	// Set window size from requested dimensions.
+	d := app.DisplayPtr()
+	d.ResizeWindow(w.XWindow, uint(w.ReqWidth), uint(w.ReqHeight))
+	w.Width = w.ReqWidth
+	w.Height = w.ReqHeight
+
+	// Set window background pixel for child window creation.
+	if c.Base.Background != nil {
+		w.BackgroundPixel = c.Base.Background.Pixel
+	}
+
+	// Set up event handlers.
+	bindCanvas(c)
+
+	return c
+}
+
+// Display draws the canvas and all its items.
+func (c *Canvas) Display() {
+	if c.Destroyed {
+		return
+	}
+	w := c.Win
+	if w.XWindow == xlib.Window(0) || !w.IsMapped() {
+		return
+	}
+
+	d := w.Display.XDisplay
+
+	// Compute visible canvas rectangle.
+	winW := w.Width - 2*c.inset
+	winH := w.Height - 2*c.inset
+	if winW <= 0 || winH <= 0 {
+		return
+	}
+
+	// Overdraw padding (30px like Tk).
+	const overdraw = 30
+	pixW := winW + 2*overdraw
+	pixH := winH + 2*overdraw
+
+	// Allocate or resize pixmap.
+	if c.pixmap == xlib.Pixmap(0) || c.pixmapW != pixW || c.pixmapH != pixH {
+		if c.pixmap != xlib.Pixmap(0) {
+			d.FreePixmap(c.pixmap)
+		}
+		c.pixmap = d.CreatePixmap(w.Drawable(), uint(pixW), uint(pixH), uint(w.Depth))
+		c.pixmapW = pixW
+		c.pixmapH = pixH
+	}
+
+	pxDrawable := xlib.PixmapDrawable(c.pixmap)
+	gc := w.GC
+
+	// Clear pixmap to background color.
+	bgPixel := uint64(0xFFFFFF)
+	if c.Base.Background != nil {
+		bgPixel = c.Base.Background.Pixel
+	}
+	d.SetForeground(gc, bgPixel)
+	d.FillRectangle(pxDrawable, gc, 0, 0, uint(pixW), uint(pixH))
+
+	// The origin in canvas coordinates that maps to the pixmap origin.
+	pixOriginX := c.xOrigin - overdraw
+	pixOriginY := c.yOrigin - overdraw
+
+	// Clip rectangle in canvas coordinates.
+	clipX := pixOriginX
+	clipY := pixOriginY
+	clipW := pixW
+	clipH := pixH
+
+	// Draw items bottom to top.
+	for _, entry := range c.items {
+		item := entry.item
+		if base := itemBase(item); base != nil && base.State == ItemStateHidden {
+			continue
+		}
+
+		// Cull by bounding box.
+		ix1, iy1, ix2, iy2 := item.BBox()
+		if ix2 < clipX || ix1 > clipX+clipW || iy2 < clipY || iy1 > clipY+clipH {
+			continue
+		}
+
+		item.Display(d, pxDrawable, gc, clipX, clipY, clipW, clipH, pixOriginX, pixOriginY)
+	}
+
+	// Copy pixmap to window (accounting for overdraw offset and inset).
+	d.CopyArea(pxDrawable, w.Drawable(), gc,
+		overdraw, overdraw, uint(winW), uint(winH),
+		c.inset, c.inset)
+
+	// Draw 3D border if configured.
+	if c.Border != nil && c.BorderWidth > 0 && c.Relief != option.ReliefFlat {
+		draw.Draw3DRectangle(d, w.Drawable(), gc, c.Border,
+			0, 0, w.Width, w.Height, c.BorderWidth, c.Relief)
+	}
+
+	d.Flush()
+	c.redrawPending = false
+	c.NeedRedraw = false
+}
+
+// scheduleRedraw schedules a redraw via the idle loop.
+func (c *Canvas) scheduleRedraw() {
+	if c.redrawPending || c.Destroyed {
+		return
+	}
+	c.redrawPending = true
+	c.App.DoWhenIdle(func() {
+		if !c.Destroyed {
+			c.Display()
+		}
+	})
+}
+
+// Destroy cleans up the canvas and all its items.
+func (c *Canvas) Destroy() {
+	if c.Destroyed {
+		return
+	}
+	c.Destroyed = true
+
+	d := c.Win.Display.XDisplay
+
+	// Free all items.
+	for _, entry := range c.items {
+		entry.item.Delete(d)
+	}
+	c.items = nil
+	c.idMap = nil
+
+	// Free pixmap.
+	if c.pixmap != xlib.Pixmap(0) {
+		d.FreePixmap(c.pixmap)
+		c.pixmap = xlib.Pixmap(0)
+	}
+}
+
+// Configure sets canvas options.
+func (c *Canvas) Configure(opts ...CanvasOption) {
+	for _, opt := range opts {
+		opt(c)
+	}
+	c.scheduleRedraw()
+}
+
+// --- Item creation ---
+
+func (c *Canvas) addItem(item Item) int64 {
+	base := itemBase(item)
+	id := c.nextID
+	c.nextID++
+	base.ID = id
+	base.canvas = c
+
+	entry := &itemEntry{id: id, item: item}
+	c.items = append(c.items, entry)
+	c.idMap[id] = entry
+
+	c.scheduleRedraw()
+	return id
+}
+
+// CreateRectangle creates a rectangle item.
+func (c *Canvas) CreateRectangle(x1, y1, x2, y2 float64, opts ...ItemOption) int64 {
+	item := newRectOvalItem("rectangle", x1, y1, x2, y2, c)
+	item.Configure(opts)
+	return c.addItem(item)
+}
+
+// CreateOval creates an oval item.
+func (c *Canvas) CreateOval(x1, y1, x2, y2 float64, opts ...ItemOption) int64 {
+	item := newRectOvalItem("oval", x1, y1, x2, y2, c)
+	item.Configure(opts)
+	return c.addItem(item)
+}
+
+// CreateLine creates a line item.
+func (c *Canvas) CreateLine(coords []float64, opts ...ItemOption) int64 {
+	item := newLineItem(coords, c)
+	item.Configure(opts)
+	return c.addItem(item)
+}
+
+// CreatePolygon creates a polygon item.
+func (c *Canvas) CreatePolygon(coords []float64, opts ...ItemOption) int64 {
+	item := newPolygonItem(coords, c)
+	item.Configure(opts)
+	return c.addItem(item)
+}
+
+// CreateArc creates an arc item.
+func (c *Canvas) CreateArc(x1, y1, x2, y2 float64, opts ...ItemOption) int64 {
+	item := newArcItem(x1, y1, x2, y2, c)
+	item.Configure(opts)
+	return c.addItem(item)
+}
+
+// CreateText creates a text item.
+func (c *Canvas) CreateText(x, y float64, opts ...ItemOption) int64 {
+	item := newTextItem(x, y, c)
+	item.Configure(opts)
+	return c.addItem(item)
+}
+
+// CreateImage creates an image item.
+func (c *Canvas) CreateImage(x, y float64, opts ...ItemOption) int64 {
+	item := newImageItem(x, y, c)
+	item.Configure(opts)
+	return c.addItem(item)
+}
+
+// --- Item manipulation ---
+
+// Delete removes all items matching tagOrID.
+func (c *Canvas) Delete(tagOrID string) {
+	entries := c.resolve(tagOrID)
+	if len(entries) == 0 {
+		return
+	}
+
+	d := c.Win.Display.XDisplay
+	deleteSet := make(map[int64]bool, len(entries))
+	for _, e := range entries {
+		deleteSet[e.id] = true
+		e.item.Delete(d)
+		delete(c.idMap, e.id)
+	}
+
+	// Remove from display list.
+	filtered := c.items[:0]
+	for _, e := range c.items {
+		if !deleteSet[e.id] {
+			filtered = append(filtered, e)
+		}
+	}
+	c.items = filtered
+
+	// Clear current item if deleted.
+	if c.currentItem != nil && deleteSet[c.currentItem.id] {
+		c.currentItem = nil
+	}
+
+	c.scheduleRedraw()
+}
+
+// Move translates all items matching tagOrID by (dx, dy).
+func (c *Canvas) Move(tagOrID string, dx, dy float64) {
+	for _, entry := range c.resolve(tagOrID) {
+		entry.item.Translate(dx, dy)
+	}
+	c.scheduleRedraw()
+}
+
+// Scale scales all items matching tagOrID about (ox, oy).
+func (c *Canvas) Scale(tagOrID string, ox, oy, sx, sy float64) {
+	for _, entry := range c.resolve(tagOrID) {
+		entry.item.Scale(ox, oy, sx, sy)
+	}
+	c.scheduleRedraw()
+}
+
+// Raise moves items matching tagOrID to the top of the display list.
+func (c *Canvas) Raise(tagOrID string) {
+	entries := c.resolve(tagOrID)
+	if len(entries) == 0 {
+		return
+	}
+	moveSet := make(map[int64]bool, len(entries))
+	for _, e := range entries {
+		moveSet[e.id] = true
+	}
+
+	var kept, moved []*itemEntry
+	for _, e := range c.items {
+		if moveSet[e.id] {
+			moved = append(moved, e)
+		} else {
+			kept = append(kept, e)
+		}
+	}
+	c.items = append(kept, moved...)
+	c.scheduleRedraw()
+}
+
+// Lower moves items matching tagOrID to the bottom of the display list.
+func (c *Canvas) Lower(tagOrID string) {
+	entries := c.resolve(tagOrID)
+	if len(entries) == 0 {
+		return
+	}
+	moveSet := make(map[int64]bool, len(entries))
+	for _, e := range entries {
+		moveSet[e.id] = true
+	}
+
+	var kept, moved []*itemEntry
+	for _, e := range c.items {
+		if moveSet[e.id] {
+			moved = append(moved, e)
+		} else {
+			kept = append(kept, e)
+		}
+	}
+	c.items = append(moved, kept...)
+	c.scheduleRedraw()
+}
+
+// AddTag adds a tag to all items matching tagOrID.
+func (c *Canvas) AddTag(newTag, tagOrID string) {
+	for _, entry := range c.resolve(tagOrID) {
+		if base := itemBase(entry.item); base != nil {
+			base.AddTag(newTag)
+		}
+	}
+}
+
+// DeleteTag removes a tag from all items matching tagOrID.
+func (c *Canvas) DeleteTag(tag, tagOrID string) {
+	for _, entry := range c.resolve(tagOrID) {
+		if base := itemBase(entry.item); base != nil {
+			base.RemoveTag(tag)
+		}
+	}
+}
+
+// ItemConfigure configures items matching tagOrID.
+func (c *Canvas) ItemConfigure(tagOrID string, opts ...ItemOption) error {
+	for _, entry := range c.resolve(tagOrID) {
+		if err := entry.item.Configure(opts); err != nil {
+			return err
+		}
+	}
+	c.scheduleRedraw()
+	return nil
+}
+
+// ItemCoords returns coordinates of the first item matching tagOrID.
+func (c *Canvas) ItemCoords(tagOrID string) []float64 {
+	entries := c.resolve(tagOrID)
+	if len(entries) == 0 {
+		return nil
+	}
+	return entries[0].item.Coords()
+}
+
+// SetItemCoords sets coordinates on the first item matching tagOrID.
+func (c *Canvas) SetItemCoords(tagOrID string, coords []float64) error {
+	entries := c.resolve(tagOrID)
+	if len(entries) == 0 {
+		return nil
+	}
+	err := entries[0].item.SetCoords(coords)
+	if err == nil {
+		c.scheduleRedraw()
+	}
+	return err
+}
+
+// Find returns item IDs that satisfy the given search mode.
+// Supported modes: "all", "closest" (args: x, y), "enclosed" (args: x1,y1,x2,y2),
+// "overlapping" (args: x1,y1,x2,y2).
+func (c *Canvas) Find(mode string, args ...float64) []int64 {
+	switch mode {
+	case "all":
+		ids := make([]int64, len(c.items))
+		for i, e := range c.items {
+			ids[i] = e.id
+		}
+		return ids
+	case "closest":
+		if len(args) < 2 {
+			return nil
+		}
+		halo := c.closeEnough
+		if len(args) >= 3 {
+			halo = args[2]
+		}
+		entry := c.findClosest(args[0], args[1], halo)
+		if entry != nil {
+			return []int64{entry.id}
+		}
+		return nil
+	case "enclosed":
+		if len(args) < 4 {
+			return nil
+		}
+		var ids []int64
+		for _, e := range c.items {
+			if e.item.AreaOverlap(args[0], args[1], args[2], args[3]) == 1 {
+				ids = append(ids, e.id)
+			}
+		}
+		return ids
+	case "overlapping":
+		if len(args) < 4 {
+			return nil
+		}
+		var ids []int64
+		for _, e := range c.items {
+			if e.item.AreaOverlap(args[0], args[1], args[2], args[3]) >= 0 {
+				ids = append(ids, e.id)
+			}
+		}
+		return ids
+	}
+	return nil
+}
+
+// BBox returns the bounding box of the first item matching tagOrID.
+func (c *Canvas) BBox(tagOrID string) (x1, y1, x2, y2 int) {
+	entries := c.resolve(tagOrID)
+	if len(entries) == 0 {
+		return 0, 0, 0, 0
+	}
+	return entries[0].item.BBox()
+}
+
+// GetTags returns the tags of the first item matching tagOrID.
+func (c *Canvas) GetTags(tagOrID string) []string {
+	entries := c.resolve(tagOrID)
+	if len(entries) == 0 {
+		return nil
+	}
+	if base := itemBase(entries[0].item); base != nil {
+		tags := make([]string, len(base.Tags))
+		copy(tags, base.Tags)
+		return tags
+	}
+	return nil
+}
+
+// ColorCache returns the application's color cache (for item option resolution).
+func (c *Canvas) ColorCache() *color.Cache {
+	return c.App.ColorCache()
+}
+
+// FontRegistry returns the application's font registry (for text items).
+func (c *Canvas) FontRegistry() *font.Registry {
+	return c.App.FontRegistry()
+}
+
+// DisplayPtr returns the X11 display (for items needing display access).
+func (c *Canvas) DisplayPtr() *xlib.Display {
+	return c.App.DisplayPtr()
+}

@@ -1,0 +1,181 @@
+package canvas
+
+import (
+	"math"
+
+	"github.com/msorc/takigo/font"
+	"github.com/msorc/takigo/internal/xlib"
+	"github.com/msorc/takigo/option"
+)
+
+// TextItem implements a positioned text canvas item.
+type TextItem struct {
+	ItemBase
+	x, y       float64
+	text       string
+	font       font.Font
+	color      *colorRef
+	anchor     option.Anchor
+	justify    option.Justify
+	wrapLength int // 0 = no wrapping
+}
+
+func newTextItem(x, y float64, c *Canvas) *TextItem {
+	item := &TextItem{
+		x:      x,
+		y:      y,
+		anchor: option.AnchorCenter,
+	}
+	item.color = &colorRef{Pixel: 0x000000}
+	item.ItemBase.canvas = c
+
+	// Use default font.
+	if f, err := c.FontRegistry().Get(font.TkDefaultFont); err == nil {
+		item.font = f
+	}
+
+	item.updateBBox()
+	return item
+}
+
+func (t *TextItem) base() *ItemBase { return &t.ItemBase }
+func (t *TextItem) Type() string    { return "text" }
+
+func (t *TextItem) BBox() (x1, y1, x2, y2 int) {
+	return t.X1, t.Y1, t.X2, t.Y2
+}
+
+func (t *TextItem) Coords() []float64 {
+	return []float64{t.x, t.y}
+}
+
+func (t *TextItem) SetCoords(coords []float64) error {
+	if len(coords) >= 2 {
+		t.x = coords[0]
+		t.y = coords[1]
+		t.updateBBox()
+	}
+	return nil
+}
+
+func (t *TextItem) Configure(opts []ItemOption) error {
+	c := t.canvas
+	for _, opt := range opts {
+		if err := opt(c, t); err != nil {
+			return err
+		}
+	}
+	t.updateBBox()
+	return nil
+}
+
+func (t *TextItem) updateBBox() {
+	if t.font == nil || len(t.text) == 0 {
+		t.X1 = int(t.x)
+		t.Y1 = int(t.y)
+		t.X2 = int(t.x)
+		t.Y2 = int(t.y)
+		return
+	}
+
+	textW := t.font.MeasureString(t.text)
+	m := t.font.Metrics()
+	textH := m.Linespace()
+
+	// Anchor offset.
+	ax, ay := anchorOffset(t.anchor, textW, textH)
+	t.X1 = int(t.x) + ax
+	t.Y1 = int(t.y) + ay
+	t.X2 = t.X1 + textW
+	t.Y2 = t.Y1 + textH
+}
+
+func (t *TextItem) Display(d *xlib.Display, drawable xlib.Drawable, gc xlib.GC,
+	clipX, clipY, clipW, clipH, originX, originY int) {
+
+	if t.font == nil || len(t.text) == 0 || t.color == nil {
+		return
+	}
+
+	m := t.font.Metrics()
+	textW := t.font.MeasureString(t.text)
+	textH := m.Linespace()
+
+	ax, ay := anchorOffset(t.anchor, textW, textH)
+	drawX := int(t.x) + ax - originX
+	drawY := int(t.y) + ay - originY
+
+	// Use Xft for text rendering if available.
+	if xftFont, ok := t.font.(*font.XftFont); ok {
+		xftFont.DrawString(drawable,
+			drawX, drawY+m.Ascent,
+			t.text, t.color.Pixel, t.color.Red, t.color.Green, t.color.Blue)
+	} else {
+		// Fallback to core X11 text (less pretty).
+		d.SetForeground(gc, t.color.Pixel)
+		d.DrawString(drawable, gc, drawX, drawY+m.Ascent, t.text)
+	}
+}
+
+func (t *TextItem) PointDistance(x, y float64) float64 {
+	return rectPointDistance(x, y, float64(t.X1), float64(t.Y1), float64(t.X2), float64(t.Y2))
+}
+
+func (t *TextItem) AreaOverlap(ax1, ay1, ax2, ay2 float64) int {
+	x1, y1, x2, y2 := float64(t.X1), float64(t.Y1), float64(t.X2), float64(t.Y2)
+	if ax2 < x1 || ax1 > x2 || ay2 < y1 || ay1 > y2 {
+		return -1
+	}
+	if ax1 <= x1 && ax2 >= x2 && ay1 <= y1 && ay2 >= y2 {
+		return 1
+	}
+	return 0
+}
+
+func (t *TextItem) Scale(ox, oy, sx, sy float64) {
+	t.x = ox + (t.x-ox)*sx
+	t.y = oy + (t.y-oy)*sy
+	t.updateBBox()
+}
+
+func (t *TextItem) Translate(dx, dy float64) {
+	t.x += dx
+	t.y += dy
+	t.updateBBox()
+}
+
+func (t *TextItem) Delete(d *xlib.Display) {}
+
+// anchorOffset computes the top-left offset from the anchor point
+// for a region of size (w, h).
+func anchorOffset(a option.Anchor, w, h int) (int, int) {
+	var dx, dy int
+	switch a {
+	case option.AnchorN:
+		dx = -w / 2
+	case option.AnchorNE:
+		dx = -w
+	case option.AnchorE:
+		dx = -w
+		dy = -h / 2
+	case option.AnchorSE:
+		dx = -w
+		dy = -h
+	case option.AnchorS:
+		dx = -w / 2
+		dy = -h
+	case option.AnchorSW:
+		dy = -h
+	case option.AnchorW:
+		dy = -h / 2
+	case option.AnchorNW:
+		// top-left: no offset
+	case option.AnchorCenter:
+		dx = -w / 2
+		dy = -h / 2
+	}
+	return dx, dy
+}
+
+// Unused import guard.
+var _ = math.MaxFloat64
