@@ -1,0 +1,228 @@
+// Demo: Text search and highlight.
+// Ported from Tk's search.tcl demo (simplified — manual search loop).
+package main
+
+import (
+	"fmt"
+	"os"
+	"strings"
+
+	"github.com/msorc/takigo"
+	"github.com/msorc/takigo/event"
+	"github.com/msorc/takigo/focus"
+	"github.com/msorc/takigo/geometry/pack"
+	"github.com/msorc/takigo/internal/xlib"
+	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/widget/button"
+	"github.com/msorc/takigo/widget/entry"
+	"github.com/msorc/takigo/widget/frame"
+	"github.com/msorc/takigo/widget/label"
+	"github.com/msorc/takigo/widget/scrollbar"
+	"github.com/msorc/takigo/widget/text"
+)
+
+func main() {
+	app, err := takigo.NewApp(takigo.Title("Text Search Demo"), takigo.Size(600, 500))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+	defer app.Destroy()
+
+	root := app.Root()
+	bgColor, _ := app.ColorCache().Get("#d9d9d9")
+	root.BackgroundPixel = bgColor.Pixel
+
+	focusMgr := focus.NewManager(app.Dispatcher(), app.DisplayPtr())
+	focusMgr.BindTraversal(root)
+
+	// Description.
+	msg := label.New(root, "msg", app,
+		label.Text("Type a search string below and click Highlight\nto find and highlight all matches in the text."),
+		label.Anchor(option.AnchorW),
+		label.PadX(10),
+		label.PadY(5),
+	)
+	pack.Pack(msg.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
+
+	// Dismiss button.
+	btnFrame := frame.New(root, "btnframe", app)
+	pack.Pack(btnFrame.Window(), pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX), pack.PadY(5))
+
+	dismissBtn := button.New(btnFrame.Window(), "dismiss", app,
+		button.Text("Dismiss"),
+		button.Command(func() { app.Quit() }),
+		button.PadX(10),
+		button.PadY(4),
+	)
+	pack.Pack(dismissBtn.Window(), pack.SideOpt(pack.Left), pack.PadX(10))
+
+	// Search bar.
+	searchFrame := frame.New(root, "searchframe", app)
+	pack.Pack(searchFrame.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
+		pack.PadX(10), pack.PadY(5))
+
+	searchLabel := label.New(searchFrame.Window(), "slabel", app,
+		label.Text("Search:"),
+	)
+	pack.Pack(searchLabel.Window(), pack.SideOpt(pack.Left), pack.PadX(5))
+
+	searchEntry := entry.New(searchFrame.Window(), "sentry", app,
+		entry.Width(20),
+	)
+	pack.Pack(searchEntry.Window(), pack.SideOpt(pack.Left), pack.FillOpt(pack.FillX),
+		pack.Expand(true), pack.PadX(5))
+
+	// Status label.
+	statusLabel := label.New(root, "status", app,
+		label.Text("0 matches"),
+		label.Anchor(option.AnchorW),
+		label.Background("#e8e8e8"),
+		label.PadX(5),
+	)
+	pack.Pack(statusLabel.Window(), pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
+
+	// Text widget with scrollbar.
+	txtFrame := frame.New(root, "txtframe", app)
+	pack.Pack(txtFrame.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
+		pack.Expand(true), pack.PadX(10), pack.PadY(5))
+
+	tw := text.New(txtFrame.Window(), "searchtext", app,
+		text.Width(60),
+		text.Height(20),
+		text.WrapModeOpt(text.WrapWord),
+	)
+
+	yscroll := scrollbar.New(txtFrame.Window(), "yscroll", app,
+		scrollbar.OrientOpt(scrollbar.Vertical),
+		scrollbar.CommandOpt(func(args ...any) {
+			if len(args) < 1 {
+				return
+			}
+			switch args[0] {
+			case "moveto":
+				if len(args) >= 2 {
+					if f, ok := args[1].(float64); ok {
+						tw.YViewMoveTo(f)
+					}
+				}
+			case "scroll":
+				if len(args) >= 3 {
+					n, _ := args[1].(int)
+					unit, _ := args[2].(string)
+					tw.YViewScroll(n, unit == "pages")
+				}
+			}
+		}),
+	)
+	tw.YScrollCmd = func(first, last float64) {
+		yscroll.Set(first, last)
+	}
+
+	pack.Pack(yscroll.Window(), pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
+	pack.Pack(tw.Window(), pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+
+	// Configure search highlight tag.
+	tw.TagConfigure("search", text.TagForeground("white"), text.TagBackground("#cc0000"))
+
+	// Insert sample text.
+	sampleText := `The quick brown fox jumps over the lazy dog.
+Pack my box with five dozen liquor jugs.
+How vexingly quick daft zebras jump.
+The five boxing wizards jump quickly.
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.
+Duis aute irure dolor in reprehenderit in voluptate velit esse.
+Excepteur sint occaecat cupidatat non proident, sunt in culpa.
+
+Go is an open-source programming language that makes it easy
+to build simple, reliable, and efficient software.
+The Go programming language was designed at Google.
+Go has built-in concurrency and a robust standard library.
+`
+	tw.Insert("1.0", sampleText)
+
+	// Search and highlight function.
+	doSearch := func() {
+		query := searchEntry.GetText()
+		tw.TagRemove("search", "1.0", "end")
+
+		if query == "" {
+			statusLabel.Text = "0 matches"
+			statusLabel.Display()
+			return
+		}
+
+		// Get all text and find matches manually.
+		allText := tw.Get("1.0", "end")
+		lines := strings.Split(allText, "\n")
+		count := 0
+		qLower := strings.ToLower(query)
+
+		for lineNum, line := range lines {
+			lineLower := strings.ToLower(line)
+			pos := 0
+			for {
+				idx := strings.Index(lineLower[pos:], qLower)
+				if idx < 0 {
+					break
+				}
+				charStart := pos + idx
+				charEnd := charStart + len(query)
+				tw.TagAdd("search",
+					fmt.Sprintf("%d.%d", lineNum+1, charStart),
+					fmt.Sprintf("%d.%d", lineNum+1, charEnd))
+				count++
+				pos = charEnd
+			}
+		}
+
+		statusLabel.Text = fmt.Sprintf("%d match(es)", count)
+		statusLabel.Display()
+	}
+
+	// Highlight button.
+	highlightBtn := button.New(searchFrame.Window(), "highlight", app,
+		button.Text("Highlight"),
+		button.Command(doSearch),
+		button.PadX(8),
+		button.PadY(2),
+	)
+	pack.Pack(highlightBtn.Window(), pack.SideOpt(pack.Left), pack.PadX(5))
+
+	// Root event handlers.
+	app.Dispatcher().Bind(root.XWindow, event.StructureNotifyMask, func(ev *event.Event) {
+		if ev.Type == event.ConfigureType {
+			root.Width = ev.ConfigWidth
+			root.Height = ev.ConfigHeight
+			pack.ArrangeContainer(root)
+		}
+	})
+
+	app.Dispatcher().Bind(root.XWindow, event.ExposureMask, func(ev *event.Event) {
+		if ev.ExposeCount > 0 {
+			return
+		}
+		d := root.Display.XDisplay
+		gc := root.GC
+		d.SetForeground(gc, bgColor.Pixel)
+		d.FillRectangle(root.Drawable(), gc, 0, 0, uint(root.Width), uint(root.Height))
+		d.Flush()
+	})
+
+	app.Dispatcher().BindGlobal(event.KeyPressMask, func(ev *event.Event) {
+		if ev.KeySym == xlib.XK_Escape {
+			app.Quit()
+		}
+	})
+
+	_ = msg
+	_ = dismissBtn
+	_ = searchLabel
+	_ = statusLabel
+	_ = highlightBtn
+	_ = focusMgr
+	app.MainLoop()
+}

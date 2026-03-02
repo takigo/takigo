@@ -2,13 +2,13 @@
 
 ## Overview
 
-Port all 66+ Tcl demo scripts from `tk/library/demos/` to Go using the takigo toolkit. Each demo becomes a standalone `demos/<name>/main.go` program. A launcher program (`demos/widget_demo/`) provides a GUI index of all demos.
+Port all 66+ Tcl demo scripts from `tk/library/demos/` to Go using the takigo toolkit. Each demo becomes a standalone `demos/<name>/main.go` program. A launcher program (`demos/widget_demos/`) provides a GUI index of all demos.
 
 ---
 
 ## Approach
 
-- Each demo → `demos/<demo_name>/main.go`
+- Each demo → `demos/<name>/main.go`
 - Demos grouped into phases by widget category (matching Tk demo categories)
 - Prioritize demos that exercise already-implemented features
 - Skip/defer demos requiring unimplemented features (noted below)
@@ -53,7 +53,7 @@ Port all 66+ Tcl demo scripts from `tk/library/demos/` to Go using the takigo to
 
 ### Phase A: Demo Launcher (1 demo)
 
-**`demo/widget_demo/`** — Main demo launcher with clickable list of all demos.
+**`demos/widget_demos/`** — Main demo launcher with clickable list of all demos.
 - Text widget with styled category headings and clickable demo names
 - Each click launches a demo subprocess (`exec.Command`)
 - "See Code" button opens source in text widget
@@ -65,12 +65,12 @@ Port all 66+ Tcl demo scripts from `tk/library/demos/` to Go using the takigo to
 
 | Demo | Tcl Source | Description | Notes |
 |------|-----------|-------------|-------|
-| `demo/demo_label/` | label.tcl | Text labels with various options | Straightforward |
-| `demo/demo_button/` | button.tcl | Buttons that change background color | Uses `App.After()` for delayed reset |
-| `demo/demo_puzzle/` | puzzle.tcl | 15-puzzle game with buttons | Grid layout + button commands |
-| `demo/demo_icon/` | icon.tcl | Buttons with images | Needs PNG images (skip XBM) |
-| `demo/demo_entry1/` | entry1.tcl | Basic entry widgets | Entry + pack layout |
-| `demo/demo_entry2/` | entry2.tcl | Entries with scrollbars | Entry + Scrollbar integration |
+| `demos/label/` | label.tcl | Text labels with various options | Straightforward |
+| `demos/button/` | button.tcl | Buttons that change background color | Uses `App.After()` for delayed reset |
+| `demos/puzzle/` | puzzle.tcl | 15-puzzle game with buttons | Grid layout + button commands |
+| `demos/icon/` | icon.tcl | Buttons with images | Needs PNG images (skip XBM) |
+| `demos/entry1/` | entry1.tcl | Basic entry widgets | Entry + pack layout |
+| `demos/entry2/` | entry2.tcl | Entries with scrollbars | Entry + Scrollbar integration |
 
 **Skipped:** check.tcl (no Checkbutton), radio.tcl (no Radiobutton), bitmap.tcl (no XBM), labelframe.tcl (no Labelframe)
 
@@ -80,9 +80,9 @@ Port all 66+ Tcl demo scripts from `tk/library/demos/` to Go using the takigo to
 
 | Demo | Tcl Source | Description | Notes |
 |------|-----------|-------------|-------|
-| `demo/demo_states/` | states.tcl | US states listbox | Listbox + Scrollbar |
-| `demo/demo_colors/` | colors.tcl | Color names listbox | Listbox + color display |
-| `demo/demo_sayings/` | sayings.tcl | Scrollable sayings | Listbox + X/Y scrollbars |
+| `demos/states/` | states.tcl | US states listbox | Listbox + Scrollbar |
+| `demos/colors/` | colors.tcl | Color names listbox | Listbox + color display |
+| `demos/sayings/` | sayings.tcl | Scrollable sayings | Listbox + X/Y scrollbars |
 
 **Skipped:** mclist.tcl (no Treeview), tree.tcl (no Treeview)
 
@@ -92,9 +92,9 @@ Port all 66+ Tcl demo scripts from `tk/library/demos/` to Go using the takigo to
 
 | Demo | Tcl Source | Description | Notes |
 |------|-----------|-------------|-------|
-| `demo/demo_entry3/` | entry3.tcl | Validated entries & password | Entry with Show(rune) |
-| `demo/demo_spin/` | spin.tcl | Spinbox widgets | Spinbox range + values |
-| `demo/demo_form/` | form.tcl | Simple form layout | Multiple entries + grid |
+| `demos/entry3/` | entry3.tcl | Validated entries & password | Entry with Show(rune) |
+| `demos/spin/` | spin.tcl | Spinbox widgets | Spinbox range + values |
+| `demos/form/` | form.tcl | Simple form layout | Multiple entries + grid |
 
 **Skipped:** combo.tcl (no Combobox)
 
@@ -104,11 +104,11 @@ Port all 66+ Tcl demo scripts from `tk/library/demos/` to Go using the takigo to
 
 | Demo | Tcl Source | Description | Notes |
 |------|-----------|-------------|-------|
-| `demo/demo_text/` | text.tcl | Basic text editing | Text + Scrollbar + undo |
-| `demo/demo_style/` | style.tcl | Text display styles | Tags: bold, italic, colors |
-| `demo/demo_bind_text/` | bind.tcl | Hypertext-like tag bindings | Tag bindings for hover/click |
-| `demo/demo_search/` | search.tcl | Text search tool | Entry + Text + search logic |
-| `demo/demo_ctext/` | ctext.tcl | Canvas text editing | Canvas text item + key bindings |
+| `demos/text/` | text.tcl | Basic text editing | Text + Scrollbar + undo |
+| `demos/style/` | style.tcl | Text display styles | Tags: bold, italic, colors |
+| `demos/bind_text/` | bind.tcl | Hypertext-like tag bindings | Tag bindings for hover/click |
+| `demos/search/` | search.tcl | Text search tool | Entry + Text + search logic |
+| `demos/ctext/` | ctext.tcl | Canvas text editing | Canvas text item + key bindings |
 
 **Skipped:** twind.tcl (embedded windows), textpeer.tcl (text peering)
 
@@ -118,12 +118,12 @@ Port all 66+ Tcl demo scripts from `tk/library/demos/` to Go using the takigo to
 
 | Demo | Tcl Source | Description | Notes |
 |------|-----------|-------------|-------|
-| `demo/demo_items/` | items.tcl | All canvas item types | Comprehensive canvas showcase |
-| `demo/demo_plot/` | plot.tcl | 2D plot with draggable points | Canvas + mouse bindings |
-| `demo/demo_arrow/` | arrow.tcl | Editable arrowheads | Canvas lines + arrow shapes |
-| `demo/demo_ruler/` | ruler.tcl | Ruler with tab stops | Canvas polygons + drag |
-| `demo/demo_cscroll/` | cscroll.tcl | Scrollable canvas grid | Canvas + 2D scrollbars |
-| `demo/demo_floor/` | floor.tcl | Building floorplan | Large canvas drawing (complex) |
+| `demos/items/` | items.tcl | All canvas item types | Comprehensive canvas showcase |
+| `demos/plot/` | plot.tcl | 2D plot with draggable points | Canvas + mouse bindings |
+| `demos/arrow/` | arrow.tcl | Editable arrowheads | Canvas lines + arrow shapes |
+| `demos/ruler/` | ruler.tcl | Ruler with tab stops | Canvas polygons + drag |
+| `demos/cscroll/` | cscroll.tcl | Scrollable canvas grid | Canvas + 2D scrollbars |
+| `demos/floor/` | floor.tcl | Building floorplan | Large canvas drawing (complex) |
 
 ---
 
@@ -131,8 +131,8 @@ Port all 66+ Tcl demo scripts from `tk/library/demos/` to Go using the takigo to
 
 | Demo | Tcl Source | Description | Notes |
 |------|-----------|-------------|-------|
-| `demo/demo_hscale/` | hscale.tcl | Horizontal scale → canvas arrow | Scale + Canvas drawing |
-| `demo/demo_vscale/` | vscale.tcl | Vertical scale → canvas arrow | Scale + Canvas drawing |
+| `demos/hscale/` | hscale.tcl | Horizontal scale → canvas arrow | Scale + Canvas drawing |
+| `demos/vscale/` | vscale.tcl | Vertical scale → canvas arrow | Scale + Canvas drawing |
 
 ---
 
@@ -140,8 +140,8 @@ Port all 66+ Tcl demo scripts from `tk/library/demos/` to Go using the takigo to
 
 | Demo | Tcl Source | Description | Notes |
 |------|-----------|-------------|-------|
-| `demo/demo_paned1/` | paned1.tcl | Horizontal panes with colors | PanedWindow horizontal |
-| `demo/demo_paned2/` | paned2.tcl | Vertical panes with content | PanedWindow vertical + text/listbox |
+| `demos/paned1/` | paned1.tcl | Horizontal panes with colors | PanedWindow horizontal |
+| `demos/paned2/` | paned2.tcl | Vertical panes with content | PanedWindow vertical + text/listbox |
 
 ---
 
@@ -149,8 +149,8 @@ Port all 66+ Tcl demo scripts from `tk/library/demos/` to Go using the takigo to
 
 | Demo | Tcl Source | Description | Notes |
 |------|-----------|-------------|-------|
-| `demo/demo_menu/` | menu.tcl | Menu bar with cascades | Menu + keyboard shortcuts |
-| `demo/demo_menubu/` | menubu.tcl | Menu buttons (4 directions) | Menubutton directional |
+| `demos/menu/` | menu.tcl | Menu bar with cascades | Menu + keyboard shortcuts |
+| `demos/menubu/` | menubu.tcl | Menu buttons (4 directions) | Menubutton directional |
 
 **Skipped:** ttkmenu.tcl (TTK menubutton not implemented)
 
@@ -160,10 +160,10 @@ Port all 66+ Tcl demo scripts from `tk/library/demos/` to Go using the takigo to
 
 | Demo | Tcl Source | Description | Notes |
 |------|-----------|-------------|-------|
-| `demo/demo_msgbox/` | msgbox.tcl | Message box varieties | dialog.ShowMessage |
-| `demo/demo_filebox/` | filebox.tcl | File open/save dialogs | dialog.OpenFile/SaveFile |
-| `demo/demo_clrpick/` | clrpick.tcl | Color picker | dialog.ChooseColor |
-| `demo/demo_fontchoose/` | fontchoose.tcl | Font chooser | dialog.ChooseFont |
+| `demos/msgbox/` | msgbox.tcl | Message box varieties | dialog.ShowMessage |
+| `demos/filebox/` | filebox.tcl | File open/save dialogs | dialog.OpenFile/SaveFile |
+| `demos/clrpick/` | clrpick.tcl | Color picker | dialog.ChooseColor |
+| `demos/fontchoose/` | fontchoose.tcl | Font chooser | dialog.ChooseFont |
 
 ---
 
@@ -171,8 +171,8 @@ Port all 66+ Tcl demo scripts from `tk/library/demos/` to Go using the takigo to
 
 | Demo | Tcl Source | Description | Notes |
 |------|-----------|-------------|-------|
-| `demo/demo_image1/` | image1.tcl | Photo images in labels | Load PNG/GIF files |
-| `demo/demo_image2/` | image2.tcl | Image directory viewer | Image loading + selection |
+| `demos/image1/` | image1.tcl | Photo images in labels | Load PNG/GIF files |
+| `demos/image2/` | image2.tcl | Image directory viewer | Image loading + selection |
 
 ---
 
@@ -180,9 +180,9 @@ Port all 66+ Tcl demo scripts from `tk/library/demos/` to Go using the takigo to
 
 | Demo | Tcl Source | Description | Notes |
 |------|-----------|-------------|-------|
-| `demo/demo_ttkbut/` | ttkbut.tcl | TTK buttons/labels | TTK Button/Label/Separator |
-| `demo/demo_ttkpane/` | ttkpane.tcl | TTK paned windows | TTK + PanedWindow |
-| `demo/demo_ttkscale/` | ttkscale.tcl | TTK scale + label | Scale feedback display |
+| `demos/ttkbut/` | ttkbut.tcl | TTK buttons/labels | TTK Button/Label/Separator |
+| `demos/ttkpane/` | ttkpane.tcl | TTK paned windows | TTK + PanedWindow |
+| `demos/ttkscale/` | ttkscale.tcl | TTK scale + label | Scale feedback display |
 
 **Skipped:** ttkprogress.tcl (no Progressbar), ttknote.tcl (no Notebook), ttkspin.tcl (same as spin.tcl)
 
@@ -192,9 +192,9 @@ Port all 66+ Tcl demo scripts from `tk/library/demos/` to Go using the takigo to
 
 | Demo | Tcl Source | Description | Notes |
 |------|-----------|-------------|-------|
-| `demo/demo_systray/` | systray.tcl | System tray icon | systray package |
-| `demo/demo_unicodeout/` | unicodeout.tcl | Unicode text display | Label/Text with Unicode |
-| `demo/demo_dialog_modal/` | dialog1.tcl + dialog2.tcl | Modal dialog examples | grab local/global |
+| `demos/systray/` | systray.tcl | System tray icon | systray package |
+| `demos/unicodeout/` | unicodeout.tcl | Unicode text display | Label/Text with Unicode |
+| `demos/dialog_modal/` | dialog1.tcl + dialog2.tcl | Modal dialog examples | grab local/global |
 
 ---
 
@@ -202,10 +202,10 @@ Port all 66+ Tcl demo scripts from `tk/library/demos/` to Go using the takigo to
 
 | Demo | Tcl Source | Description | Notes |
 |------|-----------|-------------|-------|
-| `demo/demo_anilabel/` | anilabel.tcl | Animated scrolling label | App.After() timer loop |
-| `demo/demo_aniwave/` | aniwave.tcl | Animated canvas waveform | Canvas line coords + timer |
-| `demo/demo_pendulum/` | pendulum.tcl | Pendulum physics simulation | Canvas + math + timer |
-| `demo/demo_knightstour/` | knightstour.tcl | Knight's tour visualization | Canvas + algorithm + timer |
+| `demos/anilabel/` | anilabel.tcl | Animated scrolling label | App.After() timer loop |
+| `demos/aniwave/` | aniwave.tcl | Animated canvas waveform | Canvas line coords + timer |
+| `demos/pendulum/` | pendulum.tcl | Pendulum physics simulation | Canvas + math + timer |
+| `demos/knightstour/` | knightstour.tcl | Knight's tour visualization | Canvas + algorithm + timer |
 
 ---
 
@@ -213,7 +213,7 @@ Port all 66+ Tcl demo scripts from `tk/library/demos/` to Go using the takigo to
 
 | Demo | Tcl Source | Description | Notes |
 |------|-----------|-------------|-------|
-| `demo/demo_goldberg/` | goldberg.tcl | Rube Goldberg machine | Very complex canvas animation |
+| `demos/goldberg/` | goldberg.tcl | Rube Goldberg machine | Very complex canvas animation |
 
 ---
 
@@ -245,7 +245,7 @@ Port all 66+ Tcl demo scripts from `tk/library/demos/` to Go using the takigo to
 ## Implementation Notes
 
 ### Naming Convention
-- Demo directories: `demo/demo_<name>/main.go`
+- Demo directories: `demos/<name>/main.go`
 
 ### Common Patterns
 ```go
