@@ -12,7 +12,7 @@ import (
 	"github.com/msorc/takigo/window"
 )
 
-// Label displays a text string with optional border.
+// Label displays a text string, image, or both with optional border.
 type Label struct {
 	widget.Base
 
@@ -21,6 +21,10 @@ type Label struct {
 	Justify   option.Justify
 	WrapLen   int // wrap length in pixels (0 = no wrap)
 	Underline int // index of character to underline (-1 = none)
+
+	// Image support.
+	Img      widget.WidgetImage
+	Compound widget.Compound
 
 	textWidth  int
 	textHeight int
@@ -90,6 +94,16 @@ func PadY(p int) LabelOption {
 	return func(l *Label) { l.PadY = p }
 }
 
+// ImageOpt sets the image to display.
+func ImageOpt(img widget.WidgetImage) LabelOption {
+	return func(l *Label) { l.Img = img }
+}
+
+// CompoundOpt sets how text and image are combined.
+func CompoundOpt(c widget.Compound) LabelOption {
+	return func(l *Label) { l.Compound = c }
+}
+
 // Width sets the requested width (in characters, approximately).
 func Width(w int) LabelOption {
 	return func(l *Label) { l.Win.ReqWidth = w }
@@ -149,19 +163,24 @@ func New(parent *window.Window, name string, app widget.AppContext, opts ...Labe
 	return l
 }
 
-// computeGeometry computes the text size and sets the requested window size.
+// computeGeometry computes the text/image size and sets the requested window size.
 func (l *Label) computeGeometry() {
-	if l.Font == nil {
-		return
+	// Measure text.
+	if l.Font != nil && l.Text != "" {
+		l.textWidth = l.Font.MeasureString(l.Text)
+		m := l.Font.Metrics()
+		l.textHeight = m.Linespace()
+	} else {
+		l.textWidth = 0
+		l.textHeight = 0
 	}
-	l.textWidth = l.Font.MeasureString(l.Text)
-	m := l.Font.Metrics()
-	l.textHeight = m.Linespace()
+
+	contentW, contentH := compoundSize(l.Compound, l.Img, l.textWidth, l.textHeight)
 
 	inset := l.BorderWidth + l.HighlightWidth
 	w := l.Win
-	w.ReqWidth = l.textWidth + 2*l.PadX + 2*inset
-	w.ReqHeight = l.textHeight + 2*l.PadY + 2*inset
+	w.ReqWidth = contentW + 2*l.PadX + 2*inset
+	w.ReqHeight = contentH + 2*l.PadY + 2*inset
 }
 
 // Display draws the label.
@@ -189,22 +208,36 @@ func (l *Label) Display() {
 			0, 0, w.Width, w.Height, l.BorderWidth, l.Relief)
 	}
 
-	// Draw text.
-	if l.Font != nil && l.Text != "" && l.Foreground != nil {
-		inset := l.BorderWidth + l.HighlightWidth
-		availW := w.Width - 2*inset - 2*l.PadX
-		availH := w.Height - 2*inset - 2*l.PadY
+	// Draw content (image and/or text).
+	inset := l.BorderWidth + l.HighlightWidth
+	availW := w.Width - 2*inset - 2*l.PadX
+	availH := w.Height - 2*inset - 2*l.PadY
+	frameX := inset + l.PadX
+	frameY := inset + l.PadY
 
-		// Compute text position based on anchor.
-		textX, textY := anchorText(l.Anchor,
-			inset+l.PadX, inset+l.PadY,
-			availW, availH,
-			l.textWidth, l.textHeight)
+	hasImg := l.Img != nil
+	hasText := l.Font != nil && l.Text != "" && l.Foreground != nil
 
-		// Baseline is textY + ascent.
+	bgPixel := uint64(0)
+	if l.Background != nil {
+		bgPixel = l.Background.Pixel
+	}
+
+	if hasImg && hasText && l.Compound != widget.CompoundNone {
+		drawCompound(l, d, w, frameX, frameY, availW, availH, bgPixel)
+	} else if hasImg {
+		// Image only.
+		imgW := l.Img.Width()
+		imgH := l.Img.Height()
+		ix, iy := anchorText(l.Anchor, frameX, frameY, availW, availH, imgW, imgH)
+		l.Img.Draw(w.Display.XDisplay, w.Drawable(), gc,
+			w.Visual, w.Depth, 0, 0, imgW, imgH, ix, iy, bgPixel)
+	} else if hasText {
+		// Text only.
+		textX, textY := anchorText(l.Anchor, frameX, frameY,
+			availW, availH, l.textWidth, l.textHeight)
 		m := l.Font.Metrics()
 		baseline := textY + m.Ascent
-
 		if xftFont, ok := l.Font.(*font.XftFont); ok {
 			xftFont.DrawString(w.Drawable(), textX, baseline, l.Text,
 				l.Foreground.Pixel, l.Foreground.Red, l.Foreground.Green, l.Foreground.Blue)
@@ -238,6 +271,86 @@ func anchorText(a option.Anchor, frameX, frameY, frameW, frameH, textW, textH in
 		x, y = frameX+frameW-textW, frameY+frameH-textH
 	}
 	return x, y
+}
+
+// compoundSize computes the total content size for a compound image+text layout.
+func compoundSize(c widget.Compound, img widget.WidgetImage, textW, textH int) (int, int) {
+	if img == nil {
+		return textW, textH
+	}
+	imgW := img.Width()
+	imgH := img.Height()
+
+	if textW == 0 && textH == 0 {
+		return imgW, imgH
+	}
+
+	switch c {
+	case widget.CompoundLeft, widget.CompoundRight:
+		w := imgW + 4 + textW // 4px gap
+		return w, max(imgH, textH)
+	case widget.CompoundTop, widget.CompoundBottom:
+		return max(imgW, textW), imgH + 4 + textH
+	case widget.CompoundCenter:
+		return max(imgW, textW), max(imgH, textH)
+	default: // CompoundNone — show image only when both present
+		return imgW, imgH
+	}
+}
+
+// drawCompound draws image and text in compound mode.
+func drawCompound(l *Label, _ *xlib.Display, w *window.Window,
+	frameX, frameY, availW, availH int, bgPixel uint64) {
+
+	imgW := l.Img.Width()
+	imgH := l.Img.Height()
+	contentW, contentH := compoundSize(l.Compound, l.Img, l.textWidth, l.textHeight)
+
+	// Anchor the content block.
+	cx, cy := anchorText(l.Anchor, frameX, frameY, availW, availH, contentW, contentH)
+
+	var imgX, imgY, textX, textY int
+	switch l.Compound {
+	case widget.CompoundLeft:
+		imgX = cx
+		imgY = cy + (contentH-imgH)/2
+		textX = cx + imgW + 4
+		textY = cy + (contentH-l.textHeight)/2
+	case widget.CompoundRight:
+		textX = cx
+		textY = cy + (contentH-l.textHeight)/2
+		imgX = cx + l.textWidth + 4
+		imgY = cy + (contentH-imgH)/2
+	case widget.CompoundTop:
+		imgX = cx + (contentW-imgW)/2
+		imgY = cy
+		textX = cx + (contentW-l.textWidth)/2
+		textY = cy + imgH + 4
+	case widget.CompoundBottom:
+		textX = cx + (contentW-l.textWidth)/2
+		textY = cy
+		imgX = cx + (contentW-imgW)/2
+		imgY = cy + l.textHeight + 4
+	case widget.CompoundCenter:
+		imgX = cx + (contentW-imgW)/2
+		imgY = cy + (contentH-imgH)/2
+		textX = cx + (contentW-l.textWidth)/2
+		textY = cy + (contentH-l.textHeight)/2
+	}
+
+	// Draw image.
+	l.Img.Draw(w.Display.XDisplay, w.Drawable(), w.GC,
+		w.Visual, w.Depth, 0, 0, imgW, imgH, imgX, imgY, bgPixel)
+
+	// Draw text.
+	if l.Font != nil && l.Foreground != nil {
+		m := l.Font.Metrics()
+		baseline := textY + m.Ascent
+		if xftFont, ok := l.Font.(*font.XftFont); ok {
+			xftFont.DrawString(w.Drawable(), textX, baseline, l.Text,
+				l.Foreground.Pixel, l.Foreground.Red, l.Foreground.Green, l.Foreground.Blue)
+		}
+	}
 }
 
 // Configure applies options to the label.

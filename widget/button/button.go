@@ -22,6 +22,10 @@ type Button struct {
 	Justify   option.Justify
 	Underline int // index of char to underline (-1 = none)
 
+	// Image support.
+	Img      widget.WidgetImage
+	Compound widget.Compound
+
 	// State.
 	State     widget.State
 	OverRelief option.Relief // relief when mouse is over button
@@ -86,6 +90,16 @@ func FontOpt(name string) ButtonOption {
 			b.Font = f
 		}
 	}
+}
+
+// ImageOpt sets the image to display.
+func ImageOpt(img widget.WidgetImage) ButtonOption {
+	return func(b *Button) { b.Img = img }
+}
+
+// CompoundOpt sets how text and image are combined.
+func CompoundOpt(c widget.Compound) ButtonOption {
+	return func(b *Button) { b.Compound = c }
 }
 
 // BorderWidth sets the border width.
@@ -160,19 +174,23 @@ func New(parent *window.Window, name string, app widget.AppContext, opts ...Butt
 	return b
 }
 
-// computeGeometry computes text size and sets requested window size.
+// computeGeometry computes text/image size and sets requested window size.
 func (b *Button) computeGeometry() {
-	if b.Font == nil {
-		return
+	if b.Font != nil && b.Text != "" {
+		b.textWidth = b.Font.MeasureString(b.Text)
+		m := b.Font.Metrics()
+		b.textHeight = m.Linespace()
+	} else {
+		b.textWidth = 0
+		b.textHeight = 0
 	}
-	b.textWidth = b.Font.MeasureString(b.Text)
-	m := b.Font.Metrics()
-	b.textHeight = m.Linespace()
+
+	contentW, contentH := compoundSize(b.Compound, b.Img, b.textWidth, b.textHeight)
 
 	inset := b.BorderWidth + b.HighlightWidth
 	w := b.Win
-	w.ReqWidth = b.textWidth + 2*b.PadX + 2*inset
-	w.ReqHeight = b.textHeight + 2*b.PadY + 2*inset
+	w.ReqWidth = contentW + 2*b.PadX + 2*inset
+	w.ReqHeight = contentH + 2*b.PadY + 2*inset
 }
 
 // Display draws the button.
@@ -228,26 +246,37 @@ func (b *Button) Display() {
 			0, 0, w.Width, w.Height, b.BorderWidth, relief)
 	}
 
-	// Draw text.
-	if b.Font != nil && b.Text != "" && fgCol != nil {
-		inset := b.BorderWidth + b.HighlightWidth
-		availW := w.Width - 2*inset - 2*b.PadX
-		availH := w.Height - 2*inset - 2*b.PadY
+	// Draw content (image and/or text).
+	inset := b.BorderWidth + b.HighlightWidth
+	availW := w.Width - 2*inset - 2*b.PadX
+	availH := w.Height - 2*inset - 2*b.PadY
+	frameX := inset + b.PadX
+	frameY := inset + b.PadY
 
-		textX, textY := anchorText(b.Anchor,
-			inset+b.PadX, inset+b.PadY,
-			availW, availH,
-			b.textWidth, b.textHeight)
+	// Shift content 1px down-right when pressed (Tk behavior).
+	pressOff := 0
+	if b.pressed {
+		pressOff = 1
+	}
 
-		// Shift text 1px down-right when pressed (Tk behavior).
-		if b.pressed {
-			textX++
-			textY++
-		}
+	hasImg := b.Img != nil
+	hasText := b.Font != nil && b.Text != "" && fgCol != nil
 
+	if hasImg && hasText && b.Compound != widget.CompoundNone {
+		drawCompoundButton(b, w, frameX, frameY, availW, availH, bgPixel, fgCol, pressOff)
+	} else if hasImg {
+		imgW := b.Img.Width()
+		imgH := b.Img.Height()
+		ix, iy := anchorText(b.Anchor, frameX, frameY, availW, availH, imgW, imgH)
+		b.Img.Draw(w.Display.XDisplay, w.Drawable(), gc,
+			w.Visual, w.Depth, 0, 0, imgW, imgH, ix+pressOff, iy+pressOff, bgPixel)
+	} else if hasText {
+		textX, textY := anchorText(b.Anchor, frameX, frameY,
+			availW, availH, b.textWidth, b.textHeight)
+		textX += pressOff
+		textY += pressOff
 		m := b.Font.Metrics()
 		baseline := textY + m.Ascent
-
 		if xftFont, ok := b.Font.(*font.XftFont); ok {
 			xftFont.DrawString(w.Drawable(), textX, baseline, b.Text,
 				fgCol.Pixel, fgCol.Red, fgCol.Green, fgCol.Blue)
@@ -281,6 +310,87 @@ func anchorText(a option.Anchor, frameX, frameY, frameW, frameH, textW, textH in
 		x, y = frameX+frameW-textW, frameY+frameH-textH
 	}
 	return x, y
+}
+
+// compoundSize computes the total content size for a compound image+text layout.
+func compoundSize(c widget.Compound, img widget.WidgetImage, textW, textH int) (int, int) {
+	if img == nil {
+		return textW, textH
+	}
+	imgW := img.Width()
+	imgH := img.Height()
+
+	if textW == 0 && textH == 0 {
+		return imgW, imgH
+	}
+
+	switch c {
+	case widget.CompoundLeft, widget.CompoundRight:
+		return imgW + 4 + textW, max(imgH, textH)
+	case widget.CompoundTop, widget.CompoundBottom:
+		return max(imgW, textW), imgH + 4 + textH
+	case widget.CompoundCenter:
+		return max(imgW, textW), max(imgH, textH)
+	default:
+		return imgW, imgH
+	}
+}
+
+// drawCompoundButton draws image and text in compound mode for a button.
+func drawCompoundButton(b *Button, w *window.Window,
+	frameX, frameY, availW, availH int, bgPixel uint64,
+	fgCol *colorRef, pressOff int) {
+
+	imgW := b.Img.Width()
+	imgH := b.Img.Height()
+	contentW, contentH := compoundSize(b.Compound, b.Img, b.textWidth, b.textHeight)
+
+	cx, cy := anchorText(b.Anchor, frameX, frameY, availW, availH, contentW, contentH)
+	cx += pressOff
+	cy += pressOff
+
+	var imgX, imgY, textX, textY int
+	switch b.Compound {
+	case widget.CompoundLeft:
+		imgX = cx
+		imgY = cy + (contentH-imgH)/2
+		textX = cx + imgW + 4
+		textY = cy + (contentH-b.textHeight)/2
+	case widget.CompoundRight:
+		textX = cx
+		textY = cy + (contentH-b.textHeight)/2
+		imgX = cx + b.textWidth + 4
+		imgY = cy + (contentH-imgH)/2
+	case widget.CompoundTop:
+		imgX = cx + (contentW-imgW)/2
+		imgY = cy
+		textX = cx + (contentW-b.textWidth)/2
+		textY = cy + imgH + 4
+	case widget.CompoundBottom:
+		textX = cx + (contentW-b.textWidth)/2
+		textY = cy
+		imgX = cx + (contentW-imgW)/2
+		imgY = cy + b.textHeight + 4
+	case widget.CompoundCenter:
+		imgX = cx + (contentW-imgW)/2
+		imgY = cy + (contentH-imgH)/2
+		textX = cx + (contentW-b.textWidth)/2
+		textY = cy + (contentH-b.textHeight)/2
+	}
+
+	// Draw image.
+	b.Img.Draw(w.Display.XDisplay, w.Drawable(), w.GC,
+		w.Visual, w.Depth, 0, 0, imgW, imgH, imgX, imgY, bgPixel)
+
+	// Draw text.
+	if b.Font != nil && fgCol != nil {
+		m := b.Font.Metrics()
+		baseline := textY + m.Ascent
+		if xftFont, ok := b.Font.(*font.XftFont); ok {
+			xftFont.DrawString(w.Drawable(), textX, baseline, b.Text,
+				fgCol.Pixel, fgCol.Red, fgCol.Green, fgCol.Blue)
+		}
+	}
 }
 
 // Invoke executes the button's command.

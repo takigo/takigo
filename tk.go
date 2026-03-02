@@ -10,6 +10,7 @@ import (
 	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/font"
+	"github.com/msorc/takigo/image"
 	"github.com/msorc/takigo/internal/xlib"
 	"github.com/msorc/takigo/window"
 )
@@ -23,6 +24,7 @@ type App struct {
 	loop       *event.Loop
 	colorCache *color.Cache
 	fontReg    *font.Registry
+	imageReg   *image.Registry
 }
 
 // NewApp creates a new takigo application. It opens the X11 display,
@@ -59,6 +61,7 @@ func NewApp(opts ...AppOption) (*App, error) {
 		loop:       loop,
 		colorCache: colors,
 		fontReg:    fontReg,
+		imageReg:   image.NewRegistry(),
 	}
 
 	// Handle WM_DELETE_WINDOW (window close button).
@@ -104,6 +107,9 @@ func (a *App) Quit() {
 
 // Destroy cleans up all resources. Call after MainLoop returns.
 func (a *App) Destroy() {
+	if a.imageReg != nil {
+		a.imageReg.DestroyAll()
+	}
 	if a.fontReg != nil {
 		a.fontReg.Close()
 	}
@@ -119,6 +125,11 @@ func (a *App) ColorCache() *color.Cache {
 // FontRegistry returns the application's font registry.
 func (a *App) FontRegistry() *font.Registry {
 	return a.fontReg
+}
+
+// ImageRegistry returns the application's image registry.
+func (a *App) ImageRegistry() *image.Registry {
+	return a.imageReg
 }
 
 // DisplayPtr returns the underlying xlib.Display pointer.

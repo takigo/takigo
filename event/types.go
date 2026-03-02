@@ -39,6 +39,7 @@ const (
 	ExposureMask
 	StructureNotifyMask
 	PropertyChangeMask
+	ClientMessageMask
 
 	AllEventsMask Mask = (1 << iota) - 1
 )
@@ -68,6 +69,8 @@ func TypeToMask(t Type) Mask {
 		return StructureNotifyMask
 	case PropertyType:
 		return PropertyChangeMask
+	case ClientMessageType:
+		return ClientMessageMask
 	default:
 		return 0
 	}

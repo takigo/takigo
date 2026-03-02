@@ -13,6 +13,29 @@ import (
 	"github.com/msorc/takigo/window"
 )
 
+// WidgetImage is the interface for images that can be displayed in widgets.
+// It avoids widgets importing the image package directly.
+type WidgetImage interface {
+	Width() int
+	Height() int
+	Draw(d *xlib.Display, drawable xlib.Drawable, gc xlib.GC,
+		visual *xlib.Visual, depth int,
+		imgX, imgY, w, h, dstX, dstY int,
+		bgPixel uint64)
+}
+
+// Compound specifies how text and image are combined in a widget.
+type Compound int
+
+const (
+	CompoundNone   Compound = iota // show image if set, else text
+	CompoundLeft                   // image left of text
+	CompoundRight                  // image right of text
+	CompoundTop                    // image above text
+	CompoundBottom                 // image below text
+	CompoundCenter                 // image behind text
+)
+
 // Widget is the interface implemented by all takigo widgets.
 type Widget interface {
 	// Window returns the widget's underlying window.

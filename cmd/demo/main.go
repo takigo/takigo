@@ -1,29 +1,54 @@
-// Phase 7 demo: Scale, Listbox, PanedWindow, Menu, Menubutton.
+// Phase 8 demo: Image system — Photo images in Label and Button widgets.
 package main
 
 import (
 	"fmt"
+	goimage "image"
+	"image/color"
 	"os"
 
 	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/focus"
 	"github.com/msorc/takigo/geometry/pack"
+	tkimage "github.com/msorc/takigo/image"
 	"github.com/msorc/takigo/internal/xlib"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/button"
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
 	"github.com/msorc/takigo/widget/listbox"
-	"github.com/msorc/takigo/widget/menu"
-	"github.com/msorc/takigo/widget/menubutton"
-	"github.com/msorc/takigo/widget/panedwindow"
 	"github.com/msorc/takigo/widget/scale"
 	"github.com/msorc/takigo/widget/scrollbar"
 )
 
+// generateTestImage creates a 64x64 RGBA image with colored quadrants.
+func generateTestImage() *goimage.RGBA {
+	img := goimage.NewRGBA(goimage.Rect(0, 0, 64, 64))
+	colors := [4]color.RGBA{
+		{R: 220, G: 50, B: 50, A: 255},  // top-left: red
+		{R: 50, G: 150, B: 220, A: 255},  // top-right: blue
+		{R: 50, G: 180, B: 80, A: 255},   // bottom-left: green
+		{R: 220, G: 180, B: 50, A: 255},  // bottom-right: yellow
+	}
+	for y := 0; y < 64; y++ {
+		for x := 0; x < 64; x++ {
+			qi := 0
+			if x >= 32 {
+				qi++
+			}
+			if y >= 32 {
+				qi += 2
+			}
+			img.SetRGBA(x, y, colors[qi])
+		}
+	}
+	return img
+}
+
 func main() {
-	app, err := takigo.NewApp(takigo.Title("Takigo Phase 7 — Complete Classic Widgets"), takigo.Size(700, 500))
+	app, err := takigo.NewApp(takigo.Title("Takigo Phase 8 — Image System"), takigo.Size(600, 450))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
@@ -40,86 +65,121 @@ func main() {
 
 	// Title.
 	titleLabel := label.New(root, "title", app,
-		label.Text("Phase 7: Scale, Listbox, PanedWindow, Menu"),
+		label.Text("Phase 8: Image System"),
 		label.PadX(10),
 		label.PadY(5),
 	)
 	pack.Pack(titleLabel.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(5))
 
-	// --- Status label (at bottom) ---
-	statusLabel := label.New(root, "status", app,
-		label.Text("Drag sliders, select items, resize panes. Right-click for menu. Esc to quit."),
-		label.Background("#e8e8e8"),
+	// --- Image section ---
+	imgFrame := frame.New(root, "imgFrame", app)
+	pack.Pack(imgFrame.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadX(10), pack.PadY(5))
+
+	// Generate a test image at runtime.
+	testRGBA := generateTestImage()
+	testPhoto := tkimage.NewPhoto("test", testRGBA)
+	app.ImageRegistry().Register(testPhoto)
+
+	// Label with image only.
+	imgLabel := label.New(imgFrame.Window(), "imgLabel", app,
+		label.ImageOpt(testPhoto),
+		label.BorderWidth(2),
+		label.Relief(option.ReliefGroove),
+		label.PadX(4),
+		label.PadY(4),
+	)
+	pack.Pack(imgLabel.Window(), pack.SideOpt(pack.Left), pack.PadX(5))
+
+	// Label with image + text (compound left).
+	compLabel := label.New(imgFrame.Window(), "compLabel", app,
+		label.Text("Image + Text"),
+		label.ImageOpt(testPhoto),
+		label.CompoundOpt(widget.CompoundLeft),
+		label.BorderWidth(2),
+		label.Relief(option.ReliefGroove),
+		label.PadX(8),
+		label.PadY(4),
+	)
+	pack.Pack(compLabel.Window(), pack.SideOpt(pack.Left), pack.PadX(5))
+
+	// Button with image + text (compound left).
+	imgBtn := button.New(imgFrame.Window(), "imgBtn", app,
+		button.Text("Click Me"),
+		button.ImageOpt(testPhoto),
+		button.CompoundOpt(widget.CompoundLeft),
+		button.PadX(8),
+		button.PadY(4),
+		button.Command(func() {
+			fmt.Println("Image button clicked!")
+		}),
+	)
+	pack.Pack(imgBtn.Window(), pack.SideOpt(pack.Left), pack.PadX(5))
+
+	// Optionally load a PNG from file if provided as argument.
+	// Skip any "--" separator from "go run ./cmd/demo -- file.png".
+	var imgPath string
+	for _, arg := range os.Args[1:] {
+		if arg != "--" {
+			imgPath = arg
+			break
+		}
+	}
+	if imgPath != "" {
+		filePhoto, err := tkimage.NewPhotoFromFile("file", imgPath)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: could not load %s: %v\n", imgPath, err)
+		} else {
+			app.ImageRegistry().Register(filePhoto)
+			fileLabel := label.New(imgFrame.Window(), "fileLabel", app,
+				label.ImageOpt(filePhoto),
+				label.BorderWidth(2),
+				label.Relief(option.ReliefSunken),
+				label.PadX(4),
+				label.PadY(4),
+			)
+			pack.Pack(fileLabel.Window(), pack.SideOpt(pack.Left), pack.PadX(5))
+		}
+	}
+
+	// --- Keep some Phase 7 widgets to show coexistence ---
+	midFrame := frame.New(root, "midFrame", app)
+	pack.Pack(midFrame.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadX(10), pack.PadY(5))
+
+	// Scale.
+	scaleLabel := label.New(midFrame.Window(), "scaleLabel", app,
+		label.Text("Scale: 50"),
 		label.Anchor(option.AnchorW),
-		label.PadX(5),
-		label.PadY(2),
 	)
-	pack.Pack(statusLabel.Window(), pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
-
-	// --- Top row: Menu button + Scale ---
-	topFrame := frame.New(root, "topFrame", app)
-	pack.Pack(topFrame.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadX(10), pack.PadY(5))
-
-	// Create popup menu.
-	popupMenu := menu.New(root, "popup", app)
-	popupMenu.AddCommand("New", func() { fmt.Println("Menu: New") })
-	popupMenu.AddCommand("Open", func() { fmt.Println("Menu: Open") })
-	popupMenu.AddSeparator()
-	popupMenu.AddCheckbutton("Auto-save", true, func() { fmt.Println("Menu: Auto-save toggled") })
-	popupMenu.AddSeparator()
-	popupMenu.AddCommand("Quit", func() { app.Quit() })
-
-	// Menubutton.
-	mb := menubutton.New(topFrame.Window(), "filemenu", app,
-		menubutton.Text("File"),
-		menubutton.MenuOpt(popupMenu),
-		menubutton.PadX(8),
-		menubutton.PadY(2),
-	)
-	pack.Pack(mb.Window(), pack.SideOpt(pack.Left), pack.PadX(5))
-
-	// Scale (horizontal).
-	scaleLabel := label.New(topFrame.Window(), "scaleLabel", app,
-		label.Text("Value: 0"),
-		label.Anchor(option.AnchorW),
-	)
-
-	sc := scale.New(topFrame.Window(), "scale1", app,
+	sc := scale.New(midFrame.Window(), "scale1", app,
 		scale.OrientOpt(scale.Horizontal),
 		scale.FromOpt(0),
 		scale.ToOpt(100),
 		scale.ValueOpt(50),
 		scale.ShowValueOpt(true),
 		scale.CommandOpt(func(v float64) {
-			scaleLabel.Text = fmt.Sprintf("Value: %.0f", v)
+			scaleLabel.Text = fmt.Sprintf("Scale: %.0f", v)
 			scaleLabel.Display()
 		}),
 	)
 	pack.Pack(sc.Window(), pack.SideOpt(pack.Left), pack.FillOpt(pack.FillX), pack.Expand(true), pack.PadX(5))
 	pack.Pack(scaleLabel.Window(), pack.SideOpt(pack.Left), pack.PadX(5))
 
-	// --- PanedWindow with Listbox + Info label ---
-	pw := panedwindow.New(root, "paned", app,
-		panedwindow.OrientOpt(panedwindow.Horizontal),
-	)
-	pack.Pack(pw.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true), pack.PadX(10), pack.PadY(5))
+	// Listbox with scrollbar.
+	lbFrame := frame.New(root, "lbFrame", app)
+	pack.Pack(lbFrame.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true), pack.PadX(10), pack.PadY(5))
 
-	// Left pane: frame with listbox + scrollbar.
-	leftFrame := frame.New(pw.Window(), "leftFrame", app)
-
-	items := make([]string, 30)
+	items := make([]string, 20)
 	for i := range items {
-		items[i] = fmt.Sprintf("Item %d — example list entry", i+1)
+		items[i] = fmt.Sprintf("Item %d", i+1)
 	}
 
-	lb := listbox.New(leftFrame.Window(), "listbox", app,
+	lb := listbox.New(lbFrame.Window(), "listbox", app,
 		listbox.Items(items...),
-		listbox.Height(10),
-		listbox.Width(25),
-		listbox.SelectModeOpt(listbox.SelectExtended),
+		listbox.Height(8),
+		listbox.Width(30),
 	)
 
-	yscroll := scrollbar.New(leftFrame.Window(), "yscroll", app,
+	yscroll := scrollbar.New(lbFrame.Window(), "yscroll", app,
 		scrollbar.OrientOpt(scrollbar.Vertical),
 		scrollbar.WidthOpt(14),
 		scrollbar.CommandOpt(func(args ...interface{}) {
@@ -142,64 +202,24 @@ func main() {
 			}
 		}),
 	)
-
-	// Connect listbox to scrollbar.
 	lb.YScrollCmd = func(first, last float64) {
 		yscroll.Set(first, last)
 	}
-
 	pack.Pack(yscroll.Window(), pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
 	pack.Pack(lb.Window(), pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
-	// Right pane: info label.
-	rightFrame := frame.New(pw.Window(), "rightFrame", app)
-	infoLabel := label.New(rightFrame.Window(), "info", app,
-		label.Text("Select items in the listbox.\nDrag the sash to resize panes."),
-		label.Anchor(option.AnchorNW),
-		label.PadX(10),
-		label.PadY(10),
-	)
-	pack.Pack(infoLabel.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
-
-	// Add panes.
-	pw.Add(leftFrame.Window(), 100)
-	pw.Add(rightFrame.Window(), 100)
-
-	// Initialize scrollbar.
 	first, last := lb.YVisibleRange()
 	yscroll.Set(first, last)
 
-	// --- Button row ---
-	btnFrame := frame.New(root, "btnFrame", app)
-	pack.Pack(btnFrame.Window(), pack.SideOpt(pack.Top), pack.PadY(5))
-
-	getSelBtn := button.New(btnFrame.Window(), "getSel", app,
-		button.Text("Get Selection"),
-		button.PadX(10),
-		button.PadY(3),
-		button.Command(func() {
-			sel := lb.Selection()
-			fmt.Printf("Selected indices: %v\n", sel)
-			for _, i := range sel {
-				items := lb.GetItems()
-				if i < len(items) {
-					fmt.Printf("  %s\n", items[i])
-				}
-			}
-		}),
+	// Status label.
+	statusLabel := label.New(root, "status", app,
+		label.Text("Phase 8: Images in Label & Button. Pass a PNG path as arg. Esc to quit."),
+		label.Background("#e8e8e8"),
+		label.Anchor(option.AnchorW),
+		label.PadX(5),
+		label.PadY(2),
 	)
-	pack.Pack(getSelBtn.Window(), pack.SideOpt(pack.Left), pack.PadX(5))
-
-	addBtn := button.New(btnFrame.Window(), "addItem", app,
-		button.Text("Add Item"),
-		button.PadX(10),
-		button.PadY(3),
-		button.Command(func() {
-			n := lb.ItemCount() + 1
-			lb.Insert(lb.ItemCount(), fmt.Sprintf("New item %d", n))
-		}),
-	)
-	pack.Pack(addBtn.Window(), pack.SideOpt(pack.Left), pack.PadX(5))
+	pack.Pack(statusLabel.Window(), pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	// --- Root event handlers ---
 	app.Dispatcher().Bind(root.XWindow, event.StructureNotifyMask, func(ev *event.Event) {
@@ -221,30 +241,22 @@ func main() {
 		d.Flush()
 	})
 
-	// Right-click popup menu.
-	app.Dispatcher().Bind(root.XWindow, event.ButtonPressMask, func(ev *event.Event) {
-		if ev.Button == 3 {
-			popupMenu.Post(ev.RootX, ev.RootY)
-		}
-	})
-
-	// Global key handler.
 	app.Dispatcher().BindGlobal(event.KeyPressMask, func(ev *event.Event) {
 		if ev.KeySym == xlib.XK_Escape {
 			app.Quit()
 		}
 	})
 
-	focusMgr.SetFocus(lb.Window())
-
-	fmt.Println("Takigo Phase 7 Demo — Complete Classic Widgets")
-	fmt.Println("Right-click for popup menu. Esc to quit.")
+	fmt.Println("Takigo Phase 8 Demo — Image System")
+	fmt.Println("Esc to quit.")
 	app.MainLoop()
 	fmt.Println("Goodbye!")
 
 	_ = titleLabel
 	_ = statusLabel
 	_ = focusMgr
-	_ = infoLabel
+	_ = imgLabel
+	_ = compLabel
+	_ = imgBtn
 	_ = scaleLabel
 }
