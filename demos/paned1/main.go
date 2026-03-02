@@ -13,7 +13,6 @@ import (
 func main() {
 	d := demohelper.Setup("Horizontal Panes", 500, 300,
 		"A horizontal paned window. Drag the sash to resize panes.")
-	defer d.App.Destroy()
 	root, app := d.Root, d.App
 
 	// Paned window.

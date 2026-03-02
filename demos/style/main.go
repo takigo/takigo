@@ -13,7 +13,6 @@ import (
 func main() {
 	d := demohelper.Setup("Text Display Styles", 550, 500,
 		"This demo shows text tags that control display styles.\nDifferent fonts, colors, underline, and overstrike.")
-	defer d.App.Destroy()
 	root, app := d.Root, d.App
 
 	// Text widget with scrollbar.

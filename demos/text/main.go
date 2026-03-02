@@ -13,7 +13,6 @@ import (
 func main() {
 	d := demohelper.Setup("Text Widget Demo", 550, 450,
 		"A text widget with scrollbar. Click to position\ncursor. Select by dragging. Ctrl+Z to undo.")
-	defer d.App.Destroy()
 	root, app := d.Root, d.App
 
 	// Text widget with scrollbar.

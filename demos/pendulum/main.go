@@ -13,7 +13,6 @@ import (
 
 func main() {
 	d := demohelper.Setup("Pendulum", 400, 450, "A simple pendulum physics simulation.")
-	defer d.App.Destroy()
 	root, app := d.Root, d.App
 
 	c := canvas.New(root, "pendulum", app,

@@ -17,7 +17,6 @@ import (
 func main() {
 	d := demohelper.Setup("System Tray Demo", 400, 200,
 		"Click the button to add a system tray icon.\nThe icon will be removed after 10 seconds.")
-	defer d.App.Destroy()
 	root, app := d.Root, d.App
 
 	statusLabel := label.New(root, "status", app,

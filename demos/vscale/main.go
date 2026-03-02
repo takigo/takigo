@@ -16,7 +16,6 @@ import (
 func main() {
 	d := demohelper.Setup("Vertical Scale", 400, 400,
 		"Drag the vertical scale to change the bar height.")
-	defer d.App.Destroy()
 	root, app := d.Root, d.App
 
 	// Middle frame: scale on left, canvas on right.

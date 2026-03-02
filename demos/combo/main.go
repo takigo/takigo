@@ -15,7 +15,6 @@ import (
 func main() {
 	d := demohelper.Setup("Combobox Demonstration", 450, 400,
 		"Three comboboxes are shown below: editable,\nreadonly, and disabled. Click the arrow to see the\ndropdown list.")
-	defer d.App.Destroy()
 	root, app := d.Root, d.App
 
 	ttk.SetCurrentTheme("clam")

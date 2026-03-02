@@ -23,8 +23,7 @@ type Demo struct {
 }
 
 // Setup creates a standard demo window with a description label and dismiss
-// button. Calls os.Exit(1) on failure. The caller must add defer d.App.Destroy()
-// in main().
+// button. Calls os.Exit(1) on failure.
 func Setup(title string, width, height int, description string) *Demo {
 	app, err := takigo.NewApp(takigo.Title(title), takigo.Size(width, height))
 	if err != nil {
@@ -85,13 +84,10 @@ func Setup(title string, width, height int, description string) *Demo {
 		}
 	})
 
-	_ = msg
-	_ = dismissBtn
-
 	return &Demo{App: app, Root: root}
 }
 
-// Run starts the event loop. Call at the end of main().
+// Run starts the event loop and cleans up when done. Call at the end of main().
 func (d *Demo) Run() {
-	d.App.MainLoop()
+	d.App.Run()
 }

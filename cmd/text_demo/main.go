@@ -22,7 +22,6 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
-	defer app.Destroy()
 
 	root := app.Root()
 	bgColor, _ := app.ColorCache().Get("#d9d9d9")
@@ -154,7 +153,7 @@ Type here to test editing...`
 
 	fmt.Println("Takigo Phase 11 Demo — Text Widget")
 	fmt.Println("Edit text, use arrow keys, mouse, Ctrl+A/Z/Y. Esc to quit.")
-	app.MainLoop()
+	app.Run()
 	fmt.Println("Goodbye!")
 
 	// Keep references alive.

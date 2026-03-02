@@ -14,7 +14,6 @@ import (
 func main() {
 	d := demohelper.Setup("Unicode Text", 450, 400,
 		"Unicode text samples from various scripts.\nAll rendered via Xft/fontconfig.")
-	defer d.App.Destroy()
 	root, app := d.Root, d.App
 
 	// Unicode samples.

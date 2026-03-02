@@ -16,7 +16,6 @@ import (
 func main() {
 	d := demohelper.Setup("Font Chooser", 450, 250,
 		"Click the button to open the font chooser.\nThe selected font description is shown below.")
-	defer d.App.Destroy()
 	root, app := d.Root, d.App
 
 	// Font display label.

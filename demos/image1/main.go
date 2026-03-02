@@ -17,7 +17,6 @@ import (
 func main() {
 	d := demohelper.Setup("Image Demo", 500, 400,
 		"Photo images displayed in labels.\nImages are generated at runtime.")
-	defer d.App.Destroy()
 	root, app := d.Root, d.App
 
 	// Generate test images.

@@ -16,7 +16,6 @@ import (
 func main() {
 	d := demohelper.Setup("TTK Menubutton Demonstration", 400, 350,
 		"Below are themed menubuttons. Click each to\nopen a dropdown menu.")
-	defer d.App.Destroy()
 	root, app := d.Root, d.App
 
 	ttk.SetCurrentTheme("clam")

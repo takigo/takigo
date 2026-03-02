@@ -17,7 +17,6 @@ import (
 
 func main() {
 	d := demohelper.Setup("Progressbar Demonstration", 400, 350, "Below are two progressbars: one determinate (showing\nprogress percentage) and one indeterminate (bouncing).")
-	defer d.App.Destroy()
 	root, app := d.Root, d.App
 
 	ttk.SetCurrentTheme("clam")

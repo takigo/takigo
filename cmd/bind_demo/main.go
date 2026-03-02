@@ -24,7 +24,6 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
-	defer app.Destroy()
 
 	root := app.Root()
 	eng := app.BindEng()
@@ -127,5 +126,5 @@ func main() {
 	eng.RegisterWindow(infoLabel.Window(), "Label")
 
 	fmt.Println("Bind demo running. Press 'q' or Escape to quit.")
-	app.MainLoop()
+	app.Run()
 }

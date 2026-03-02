@@ -14,7 +14,6 @@ import (
 func main() {
 	d := demohelper.Setup("Canvas Items", 700, 550,
 		"A showcase of all canvas item types: rectangles, ovals,\nlines, polygons, arcs, and text.")
-	defer d.App.Destroy()
 	root, app := d.Root, d.App
 
 	// Canvas.

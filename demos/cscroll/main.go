@@ -17,7 +17,6 @@ import (
 func main() {
 	d := demohelper.Setup("Scrollable Canvas", 550, 450,
 		"A scrollable canvas with a grid of rectangles.\nUse scrollbars to navigate the large canvas.")
-	defer d.App.Destroy()
 	root, app := d.Root, d.App
 
 	// Grid frame for canvas + scrollbars.

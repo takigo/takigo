@@ -18,7 +18,6 @@ import (
 func main() {
 	d := demohelper.Setup("Form Entry", 450, 280,
 		"A simple form with five fields. Use Tab\nto move between fields.")
-	defer d.App.Destroy()
 	root, app := d.Root, d.App
 
 	focusMgr := focus.NewManager(app.Dispatcher(), app.DisplayPtr())

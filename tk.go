@@ -118,6 +118,13 @@ func (a *App) Dispatcher() *event.Dispatcher {
 	return a.dispatcher
 }
 
+// Run maps the root window, runs the event loop, and cleans up resources
+// when done. It blocks until Quit is called.
+func (a *App) Run() {
+	a.MainLoop()
+	a.Destroy()
+}
+
 // MainLoop maps the root window and runs the event loop.
 // It blocks until Quit is called.
 func (a *App) MainLoop() {

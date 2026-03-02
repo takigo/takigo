@@ -14,7 +14,6 @@ import (
 func main() {
 	d := demohelper.Setup("Arrow Shapes", 550, 400,
 		"Various arrow shapes on canvas lines.\nArrows can appear at first, last, or both ends.")
-	defer d.App.Destroy()
 	root, app := d.Root, d.App
 
 	// Canvas.

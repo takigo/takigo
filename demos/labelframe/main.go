@@ -14,7 +14,6 @@ import (
 
 func main() {
 	d := demohelper.Setup("Labelframe Demonstration", 500, 450, "Labelframes are used to group related widgets together.\nThe label can be positioned at different locations.")
-	defer d.App.Destroy()
 	root, app := d.Root, d.App
 
 	// Gender labelframe with radiobuttons.

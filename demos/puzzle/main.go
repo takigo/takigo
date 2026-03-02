@@ -18,7 +18,6 @@ import (
 func main() {
 	d := demohelper.Setup("15-Puzzle", 340, 400,
 		"A 15-puzzle. Click on a piece next to the\nempty space to slide it into the space.")
-	defer d.App.Destroy()
 	root, app := d.Root, d.App
 
 	// Puzzle frame.

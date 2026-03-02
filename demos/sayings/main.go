@@ -13,7 +13,6 @@ import (
 func main() {
 	d := demohelper.Setup("Sayings", 500, 350,
 		"A listbox with well-known sayings.\nScroll vertically to see them all.")
-	defer d.App.Destroy()
 	root, app := d.Root, d.App
 
 	// Sayings data.

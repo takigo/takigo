@@ -17,7 +17,6 @@ import (
 func main() {
 	d := demohelper.Setup("Bitmap Demonstration", 600, 350,
 		"Tk defines several built-in bitmap patterns. Below are\nrepresentations of the 10 standard bitmaps as images.")
-	defer d.App.Destroy()
 	root, app := d.Root, d.App
 
 	fg := color.RGBA{R: 0, G: 0, B: 0, A: 255}

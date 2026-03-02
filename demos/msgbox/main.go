@@ -16,7 +16,6 @@ import (
 func main() {
 	d := demohelper.Setup("Message Boxes", 400, 350,
 		"Click any button to show a message dialog\nwith different types and button combinations.")
-	defer d.App.Destroy()
 	root, app := d.Root, d.App
 
 	statusLabel := label.New(root, "status", app,

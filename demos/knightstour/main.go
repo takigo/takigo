@@ -18,7 +18,6 @@ const boardSize = 6 // 6x6 for faster computation.
 
 func main() {
 	d := demohelper.Setup("Knight's Tour", 450, 500, fmt.Sprintf("Knight's tour on a %dx%d board.\nClick Start to begin the animation.", boardSize, boardSize))
-	defer d.App.Destroy()
 	root, app := d.Root, d.App
 
 	statusLabel := label.New(root, "status", app,

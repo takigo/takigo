@@ -15,7 +15,6 @@ import (
 func main() {
 	d := demohelper.Setup("Menubutton Directions", 500, 350,
 		"Four menu buttons showing menus in different directions.\nClick each to see the menu position.")
-	defer d.App.Destroy()
 	root, app := d.Root, d.App
 
 	statusLabel := label.New(root, "status", app,

@@ -36,7 +36,6 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
-	defer app.Destroy()
 
 	// Open dialogs after a short delay.
 	app.After(500*time.Millisecond, func() {
@@ -67,5 +66,5 @@ func main() {
 		fmt.Printf("Color result: %q ok=%v\n", color, ok)
 	})
 
-	app.MainLoop()
+	app.Run()
 }

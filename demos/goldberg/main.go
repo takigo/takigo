@@ -15,7 +15,6 @@ import (
 
 func main() {
 	d := demohelper.Setup("Goldberg Machine", 600, 500, "A simplified Rube Goldberg machine.\nClick Start to begin the chain reaction.")
-	defer d.App.Destroy()
 	root, app := d.Root, d.App
 
 	c := canvas.New(root, "goldberg", app,

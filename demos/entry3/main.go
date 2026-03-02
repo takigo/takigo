@@ -16,7 +16,6 @@ import (
 func main() {
 	d := demohelper.Setup("Validated Entries", 500, 300,
 		"Four different entries are shown, each with\ndifferent constraints. Use Tab to move between them.")
-	defer d.App.Destroy()
 	root, app := d.Root, d.App
 
 	focusMgr := focus.NewManager(app.Dispatcher(), app.DisplayPtr())

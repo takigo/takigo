@@ -13,7 +13,6 @@ import (
 func main() {
 	d := demohelper.Setup("Window Icon Demonstration", 400, 200,
 		"This demo sets the window icon using the _NET_WM_ICON\nX11 property. The icon should be visible in the window\nmanager's title bar and taskbar.")
-	defer d.App.Destroy()
 	root := d.Root
 
 	// Set window icon via _NET_WM_ICON.

@@ -15,7 +15,6 @@ import (
 func main() {
 	d := demohelper.Setup("2D Plot", 550, 450,
 		"A 2D data plot. Drag the data points with the mouse\nto see them move along the line.")
-	defer d.App.Destroy()
 	root, app := d.Root, d.App
 
 	// Canvas.

@@ -28,7 +28,6 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
-	defer app.Destroy()
 
 	root := app.Root()
 
@@ -245,5 +244,5 @@ func main() {
 	_ = testScale
 
 	fmt.Println("Phase 13 demo running. Close the window to exit.")
-	app.MainLoop()
+	app.Run()
 }

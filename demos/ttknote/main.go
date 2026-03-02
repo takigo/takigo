@@ -17,7 +17,6 @@ import (
 
 func main() {
 	d := demohelper.Setup("Notebook Demonstration", 500, 350, "A notebook widget with three tabs. Click each tab\nto switch between pages.")
-	defer d.App.Destroy()
 	root, app := d.Root, d.App
 
 	ttk.SetCurrentTheme("clam")

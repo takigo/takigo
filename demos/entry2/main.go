@@ -14,7 +14,6 @@ import (
 func main() {
 	d := demohelper.Setup("Entry Demonstration (with scrollbars)", 450, 320,
 		"Three entry widgets with scrollbars are displayed below.\nYou can add characters by pointing, clicking and typing.")
-	defer d.App.Destroy()
 	root, app := d.Root, d.App
 
 	focusMgr := focus.NewManager(app.Dispatcher(), app.DisplayPtr())

@@ -13,7 +13,6 @@ import (
 func main() {
 	d := demohelper.Setup("US States", 300, 400,
 		"A listbox containing the 50 US states.\nSelect a state and press Dismiss to exit.")
-	defer d.App.Destroy()
 	root, app := d.Root, d.App
 
 	// Listbox frame.

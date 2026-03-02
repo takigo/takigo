@@ -12,7 +12,6 @@ import (
 func main() {
 	d := demohelper.Setup("Floor Plan", 650, 500,
 		"A simplified building floor plan drawn with canvas lines\nand polygons. Rooms are labeled with text items.")
-	defer d.App.Destroy()
 	root, app := d.Root, d.App
 
 	// Canvas.

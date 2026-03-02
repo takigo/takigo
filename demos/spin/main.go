@@ -16,7 +16,6 @@ import (
 func main() {
 	d := demohelper.Setup("Spinbox Demonstration", 400, 300,
 		"Three spinboxes are shown: an integer range,\na float range, and a list of city names.")
-	defer d.App.Destroy()
 	root, app := d.Root, d.App
 
 	focusMgr := focus.NewManager(app.Dispatcher(), app.DisplayPtr())

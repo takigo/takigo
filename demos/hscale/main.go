@@ -16,7 +16,6 @@ import (
 func main() {
 	d := demohelper.Setup("Horizontal Scale", 500, 350,
 		"Drag the scale to change the arrow angle on the canvas.")
-	defer d.App.Destroy()
 	root, app := d.Root, d.App
 
 	// Canvas for arrow display.

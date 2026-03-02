@@ -15,7 +15,6 @@ import (
 func main() {
 	d := demohelper.Setup("Color Picker", 400, 250,
 		"Click the button to open the color chooser.\nThe chosen color is displayed below.")
-	defer d.App.Destroy()
 	root, app := d.Root, d.App
 
 	// Color display label.

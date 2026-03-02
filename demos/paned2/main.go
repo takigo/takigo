@@ -14,7 +14,6 @@ import (
 func main() {
 	d := demohelper.Setup("Vertical Panes", 500, 450,
 		"A vertical paned window with a listbox and text widget.\nDrag the sash between them to resize.")
-	defer d.App.Destroy()
 	root, app := d.Root, d.App
 
 	// Vertical paned window.

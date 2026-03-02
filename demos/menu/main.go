@@ -15,7 +15,6 @@ import (
 func main() {
 	d := demohelper.Setup("Menu Demo", 500, 350,
 		"Click the menu buttons below to open menus.\nMenus support commands, separators, and cascaded submenus.")
-	defer d.App.Destroy()
 	root, app := d.Root, d.App
 
 	// Status label.

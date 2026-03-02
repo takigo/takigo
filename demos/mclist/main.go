@@ -42,7 +42,6 @@ var countries = []countryData{
 func main() {
 	d := demohelper.Setup("Multi-Column List", 500, 400,
 		"A sortable multi-column list.\nClick column headings to sort.")
-	defer d.App.Destroy()
 	root, app := d.Root, d.App
 
 	ttk.SetCurrentTheme("clam")

@@ -17,7 +17,6 @@ import (
 func main() {
 	d := demohelper.Setup("TTK Widgets", 400, 350,
 		"TTK themed widgets: labels, buttons, separators.\nThey use the clam theme for modern appearance.")
-	defer d.App.Destroy()
 	root, app := d.Root, d.App
 
 	ttk.SetCurrentTheme("clam")

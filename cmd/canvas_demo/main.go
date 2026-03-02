@@ -39,7 +39,6 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
-	defer app.Destroy()
 
 	root := app.Root()
 	bgColor, _ := app.ColorCache().Get("#d9d9d9")
@@ -312,7 +311,7 @@ func main() {
 
 	fmt.Println("Takigo Phase 10 Demo — Canvas Widget")
 	fmt.Println("Click the star to move it. Scroll with scrollbars. Esc to quit.")
-	app.MainLoop()
+	app.Run()
 	fmt.Println("Goodbye!")
 
 	// Keep references alive.

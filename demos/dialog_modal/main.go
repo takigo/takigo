@@ -15,7 +15,6 @@ import (
 
 func main() {
 	d := demohelper.Setup("Modal Dialogs", 400, 250, "Modal dialog examples. Each dialog blocks\ninteraction with the main window until dismissed.")
-	defer d.App.Destroy()
 	root, app := d.Root, d.App
 
 	statusLabel := label.New(root, "status", app,

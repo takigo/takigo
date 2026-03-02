@@ -129,7 +129,6 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
-	defer app.Destroy()
 
 	root := app.Root()
 	bgColor, _ := app.ColorCache().Get("#d9d9d9")
@@ -395,7 +394,7 @@ func main() {
 	_ = statusLabel
 	_ = runBtn
 	_ = codeBtn
-	app.MainLoop()
+	app.Run()
 }
 
 func countDemos() int {

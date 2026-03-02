@@ -16,7 +16,6 @@ import (
 func main() {
 	d := demohelper.Setup("Text Peer Demonstration", 700, 500,
 		"Two text widgets are shown side by side. Use the\nbuttons to copy content between them.")
-	defer d.App.Destroy()
 	root, app := d.Root, d.App
 
 	noteLabel := label.New(root, "note", app,

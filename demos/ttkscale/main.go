@@ -15,7 +15,6 @@ import (
 func main() {
 	d := demohelper.Setup("Scale with Label", 400, 250,
 		"Drag the scale to update the label value.")
-	defer d.App.Destroy()
 	root, app := d.Root, d.App
 
 	// Value display.

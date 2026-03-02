@@ -14,7 +14,6 @@ import (
 func main() {
 	d := demohelper.Setup("Listbox of Colors", 350, 450,
 		"A list of X color names. Double-click a color\nto change the application background.")
-	defer d.App.Destroy()
 	root, app := d.Root, d.App
 
 	// Color names (grouped by family).

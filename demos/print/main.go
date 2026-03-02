@@ -15,7 +15,6 @@ import (
 func main() {
 	d := demohelper.Setup("Canvas & Text Print Demo", 700, 500,
 		"This demo shows a canvas with shapes and a text widget\nwith sample content, as used in the Tk print demo.")
-	defer d.App.Destroy()
 	root, app := d.Root, d.App
 
 	infoLabel := label.New(root, "info", app,

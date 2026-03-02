@@ -12,7 +12,6 @@ import (
 func main() {
 	d := demohelper.Setup("Canvas Text Demo", 550, 400,
 		"Canvas text items rendered at various positions\nwith different anchors, fonts, and colors.")
-	defer d.App.Destroy()
 	root, app := d.Root, d.App
 
 	// Canvas.

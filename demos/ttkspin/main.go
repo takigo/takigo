@@ -13,7 +13,6 @@ import (
 func main() {
 	d := demohelper.Setup("Spinbox Demonstration", 400, 350,
 		"Three spinboxes are shown below. The first uses\nan integer range, the second uses float values,\nand the third uses a list of string values.")
-	defer d.App.Destroy()
 	root, app := d.Root, d.App
 
 	// Integer spinbox (0-100).

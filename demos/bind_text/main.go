@@ -17,7 +17,6 @@ import (
 func main() {
 	d := demohelper.Setup("Text Tag Bindings", 550, 450,
 		"This demo shows hypertext-like tag bindings.\nColored text acts as links — visual feedback on hover.")
-	defer d.App.Destroy()
 	root, app := d.Root, d.App
 
 	// Status label.

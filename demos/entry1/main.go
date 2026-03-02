@@ -12,7 +12,6 @@ import (
 func main() {
 	d := demohelper.Setup("Entry Demonstration (no scrollbars)", 450, 250,
 		"Three entry widgets are displayed below. You can click in\nan entry and type text. Use Tab to move between entries.")
-	defer d.App.Destroy()
 	root, app := d.Root, d.App
 
 	focusMgr := focus.NewManager(app.Dispatcher(), app.DisplayPtr())

@@ -22,7 +22,6 @@ import (
 func main() {
 	d := demohelper.Setup("Image Viewer", 550, 400,
 		"Select an image from the list to preview it.")
-	defer d.App.Destroy()
 	root, app := d.Root, d.App
 
 	// Generate several images.

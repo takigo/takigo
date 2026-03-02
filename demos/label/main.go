@@ -12,7 +12,6 @@ import (
 func main() {
 	d := demohelper.Setup("Label Demonstration", 450, 350,
 		"Five labels are displayed below. They are all the same except\nfor their relief and border width settings.")
-	defer d.App.Destroy()
 	root, app := d.Root, d.App
 
 	// Labels with different relief styles.

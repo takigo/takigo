@@ -16,7 +16,6 @@ import (
 func main() {
 	d := demohelper.Setup("File Dialogs", 400, 250,
 		"Click a button to open a file dialog.\nThe selected path is shown in the status bar.")
-	defer d.App.Destroy()
 	root, app := d.Root, d.App
 
 	statusLabel := label.New(root, "status", app,

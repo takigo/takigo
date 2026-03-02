@@ -16,7 +16,6 @@ import (
 
 func main() {
 	d := demohelper.Setup("Radiobutton Demonstration", 500, 400, "Two groups of radiobuttons are displayed below. Click on\na button to select it. The current selection is shown at\nthe bottom.")
-	defer d.App.Destroy()
 	root, app := d.Root, d.App
 
 	// Status label.

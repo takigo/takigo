@@ -14,7 +14,6 @@ import (
 func main() {
 	d := demohelper.Setup("Ruler Demo", 600, 250,
 		"A ruler with tick marks and tab stops.\nThe tab stops are represented by small triangles.")
-	defer d.App.Destroy()
 	root, app := d.Root, d.App
 
 	// Canvas.

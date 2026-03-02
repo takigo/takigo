@@ -14,7 +14,6 @@ import (
 func main() {
 	d := demohelper.Setup("Animated Label", 400, 200,
 		"A label with scrolling text animation.")
-	defer d.App.Destroy()
 	root, app := d.Root, d.App
 
 	// Animated label.

@@ -56,7 +56,6 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
-	defer app.Destroy()
 
 	// Set clam theme as default.
 	ttk.SetCurrentTheme("clam")
@@ -266,7 +265,7 @@ func main() {
 
 	fmt.Println("Takigo Phase 9 Demo — TTK Themed Widgets")
 	fmt.Println("Esc to quit.")
-	app.MainLoop()
+	app.Run()
 	fmt.Println("Goodbye!")
 
 	_ = titleLabel

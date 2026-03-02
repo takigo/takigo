@@ -21,7 +21,6 @@ import (
 func main() {
 	d := demohelper.Setup("Directory Browser", 500, 400,
 		"A directory browser. Click the arrows\nto expand directories.")
-	defer d.App.Destroy()
 	root, app := d.Root, d.App
 
 	ttk.SetCurrentTheme("clam")

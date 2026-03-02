@@ -16,7 +16,6 @@ import (
 func main() {
 	d := demohelper.Setup("Text Widget Features", 650, 550,
 		"This demo shows text tags, colors, fonts, and undo/redo.\nThe original Tk demo also embeds windows and images.")
-	defer d.App.Destroy()
 	root, app := d.Root, d.App
 
 	// Side control buttons.

@@ -16,7 +16,6 @@ import (
 func main() {
 	d := demohelper.Setup("Toolbar Demonstration", 500, 300,
 		"A toolbar with TTK buttons, a separator, and\na menubutton. This shows how themed widgets can\ncreate a modern toolbar appearance.")
-	defer d.App.Destroy()
 	root, app := d.Root, d.App
 
 	ttk.SetCurrentTheme("clam")

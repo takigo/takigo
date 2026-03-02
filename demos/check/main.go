@@ -13,7 +13,6 @@ import (
 
 func main() {
 	d := demohelper.Setup("Checkbutton Demonstration", 400, 350, "Three checkbuttons are displayed below. Click on a\nbutton to toggle its state. The current state of each\nbutton is displayed at the bottom.")
-	defer d.App.Destroy()
 	root, app := d.Root, d.App
 
 	// Status label.

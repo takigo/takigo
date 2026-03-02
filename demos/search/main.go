@@ -21,7 +21,6 @@ import (
 func main() {
 	d := demohelper.Setup("Text Search Demo", 600, 500,
 		"Type a search string below and click Highlight\nto find and highlight all matches in the text.")
-	defer d.App.Destroy()
 	root, app := d.Root, d.App
 
 	focusMgr := focus.NewManager(app.Dispatcher(), app.DisplayPtr())
