@@ -44,6 +44,9 @@ var categories = []category{
 		{"entry3", "Validated entry fields"},
 		{"form", "Form with grid layout"},
 		{"spin", "Spinbox widgets"},
+		{"check", "Checkbutton toggles"},
+		{"radio", "Radiobutton groups"},
+		{"labelframe", "Labelframe with border label"},
 	}},
 	{"Listboxes", []demoEntry{
 		{"states", "US states listbox"},
@@ -55,6 +58,8 @@ var categories = []category{
 		{"style", "Text display styles (tags)"},
 		{"bind_text", "Hypertext-like tag display"},
 		{"search", "Text search and highlight"},
+		{"textpeer", "Two text widgets with copy"},
+		{"twind", "Text tags, styles, and undo"},
 	}},
 	{"Canvas", []demoEntry{
 		{"items", "All canvas item types"},
@@ -76,6 +81,7 @@ var categories = []category{
 	{"Menus", []demoEntry{
 		{"menu", "Menu bar (File/Edit/Help)"},
 		{"menubu", "Menu buttons (4 directions)"},
+		{"toolbar", "Toolbar with TTK menubutton"},
 	}},
 	{"Dialogs", []demoEntry{
 		{"msgbox", "Message box varieties"},
@@ -87,15 +93,26 @@ var categories = []category{
 	{"Images", []demoEntry{
 		{"image1", "Generated gradient/checkerboard"},
 		{"image2", "Image viewer with listbox"},
+		{"bitmap", "Built-in bitmap patterns"},
+		{"icon", "Iconic buttons with images"},
 	}},
 	{"TTK Themed Widgets", []demoEntry{
 		{"ttkbut", "TTK buttons and labels"},
 		{"ttkpane", "TTK frames in paned window"},
 		{"ttkscale", "Scale with label feedback"},
+		{"ttknote", "TTK notebook (tabs)"},
+		{"ttkprogress", "TTK progressbar"},
+		{"combo", "TTK combobox"},
+		{"ttkmenu", "TTK menubutton"},
+		{"ttkspin", "TTK spinbox"},
+		{"mclist", "Multi-column sortable list"},
+		{"tree", "Directory tree browser"},
+		{"windowicons", "Window icon setting"},
 	}},
 	{"Special Features", []demoEntry{
 		{"systray", "System tray icon"},
 		{"unicodeout", "Unicode text display"},
+		{"print", "Canvas & text display"},
 	}},
 	{"Animation", []demoEntry{
 		{"anilabel", "Animated scrolling label"},
