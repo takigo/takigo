@@ -27,7 +27,7 @@ func main() {
 		label.Anchor(option.AnchorW),
 		label.PadX(10),
 	)
-	pack.Pack(statusLabel.Window(), pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
+	pack.Pack(statusLabel, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	setStatus := func(msg string) {
 		statusLabel.Text = msg
@@ -40,7 +40,7 @@ func main() {
 		label.Anchor(option.AnchorW),
 		label.PadX(20),
 	)
-	pack.Pack(spin1Label.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(2))
+	pack.Pack(spin1Label, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(2))
 
 	spin1 := spinbox.New(root, "spin1", app,
 		spinbox.FromOpt(1),
@@ -51,7 +51,7 @@ func main() {
 			setStatus(fmt.Sprintf("Integer: %s", v))
 		}),
 	)
-	pack.Pack(spin1.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
+	pack.Pack(spin1, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
 		pack.PadX(20), pack.PadY(5))
 
 	// Spinbox 2: Float range 0-3, increment 0.5.
@@ -60,7 +60,7 @@ func main() {
 		label.Anchor(option.AnchorW),
 		label.PadX(20),
 	)
-	pack.Pack(spin2Label.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(2))
+	pack.Pack(spin2Label, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(2))
 
 	spin2 := spinbox.New(root, "spin2", app,
 		spinbox.FromOpt(0),
@@ -71,7 +71,7 @@ func main() {
 			setStatus(fmt.Sprintf("Float: %s", v))
 		}),
 	)
-	pack.Pack(spin2.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
+	pack.Pack(spin2, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
 		pack.PadX(20), pack.PadY(5))
 
 	// Spinbox 3: Australian cities.
@@ -80,7 +80,7 @@ func main() {
 		label.Anchor(option.AnchorW),
 		label.PadX(20),
 	)
-	pack.Pack(spin3Label.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(2))
+	pack.Pack(spin3Label, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(2))
 
 	cities := []string{
 		"Canberra", "Sydney", "Melbourne", "Perth",
@@ -93,7 +93,7 @@ func main() {
 			setStatus(fmt.Sprintf("City: %s", v))
 		}),
 	)
-	pack.Pack(spin3.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
+	pack.Pack(spin3, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
 		pack.PadX(20), pack.PadY(5))
 
 	_ = focusMgr

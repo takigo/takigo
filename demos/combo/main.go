@@ -25,7 +25,7 @@ func main() {
 		label.Anchor(option.AnchorW),
 		label.PadX(10),
 	)
-	pack.Pack(statusLabel.Window(), pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX), pack.PadY(5))
+	pack.Pack(statusLabel, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX), pack.PadY(5))
 
 	countries := []string{
 		"Australia", "Canada", "France", "Germany",
@@ -38,7 +38,7 @@ func main() {
 		label.Anchor(option.AnchorW),
 		label.PadX(20),
 	)
-	pack.Pack(editLabel.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(5))
+	pack.Pack(editLabel, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(5))
 
 	editCombo := ttk.NewCombobox(root, "editcombo", app,
 		ttk.ComboboxValues(countries),
@@ -48,7 +48,7 @@ func main() {
 			statusLabel.Display()
 		}),
 	)
-	pack.Pack(editCombo.Window(), pack.SideOpt(pack.Top), pack.PadX(20), pack.PadY(5))
+	pack.Pack(editCombo, pack.SideOpt(pack.Top), pack.PadX(20), pack.PadY(5))
 
 	// Readonly combobox.
 	roLabel := label.New(root, "rolabel", app,
@@ -56,7 +56,7 @@ func main() {
 		label.Anchor(option.AnchorW),
 		label.PadX(20),
 	)
-	pack.Pack(roLabel.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(5))
+	pack.Pack(roLabel, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(5))
 
 	roCombo := ttk.NewCombobox(root, "rocombo", app,
 		ttk.ComboboxValues(countries),
@@ -67,7 +67,7 @@ func main() {
 			statusLabel.Display()
 		}),
 	)
-	pack.Pack(roCombo.Window(), pack.SideOpt(pack.Top), pack.PadX(20), pack.PadY(5))
+	pack.Pack(roCombo, pack.SideOpt(pack.Top), pack.PadX(20), pack.PadY(5))
 
 	// Disabled combobox.
 	disLabel := label.New(root, "dislabel", app,
@@ -75,14 +75,14 @@ func main() {
 		label.Anchor(option.AnchorW),
 		label.PadX(20),
 	)
-	pack.Pack(disLabel.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(5))
+	pack.Pack(disLabel, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(5))
 
 	disCombo := ttk.NewCombobox(root, "discombo", app,
 		ttk.ComboboxValues(countries),
 		ttk.ComboboxText("France"),
 		ttk.ComboboxCbState(ttk.ComboDisabled),
 	)
-	pack.Pack(disCombo.Window(), pack.SideOpt(pack.Top), pack.PadX(20), pack.PadY(5))
+	pack.Pack(disCombo, pack.SideOpt(pack.Top), pack.PadX(20), pack.PadY(5))
 
 	_ = statusLabel
 	_ = editLabel

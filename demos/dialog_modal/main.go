@@ -23,7 +23,7 @@ func main() {
 		label.Background("#e8e8e8"),
 		label.PadX(5), label.PadY(2),
 	)
-	pack.Pack(statusLabel.Window(), pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
+	pack.Pack(statusLabel, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	setStatus := func(s string) {
 		statusLabel.Text = s
@@ -45,7 +45,7 @@ func main() {
 		}),
 		button.PadX(10), button.PadY(6),
 	)
-	pack.Pack(btn1.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
+	pack.Pack(btn1, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
 		pack.PadX(30), pack.PadY(5))
 
 	// Dialog 2: Yes/No/Cancel question.
@@ -67,7 +67,7 @@ func main() {
 		}),
 		button.PadX(10), button.PadY(6),
 	)
-	pack.Pack(btn2.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
+	pack.Pack(btn2, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
 		pack.PadX(30), pack.PadY(5))
 
 	_ = statusLabel

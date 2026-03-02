@@ -68,13 +68,13 @@ func ChooseColor(app widget.AppContext, opts ...ColorOption) (string, bool) {
 
 	// Sliders frame.
 	slidersFrame := newFrame(d.Content.Window(), "sliders", app)
-	pack.Pack(slidersFrame.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(5))
+	pack.Pack(slidersFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(5))
 
 	// R slider.
 	rFrame := newFrame(slidersFrame.Window(), "rframe", app)
-	pack.Pack(rFrame.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
+	pack.Pack(rFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
 	rLabel := label.New(rFrame.Window(), "rlabel", app, label.Text("R:"))
-	pack.Pack(rLabel.Window(), pack.SideOpt(pack.Left), pack.PadX(5))
+	pack.Pack(rLabel, pack.SideOpt(pack.Left), pack.PadX(5))
 	rScale = scale.New(rFrame.Window(), "rscale", app,
 		scale.OrientOpt(scale.Horizontal),
 		scale.FromOpt(0), scale.ToOpt(255),
@@ -83,13 +83,13 @@ func ChooseColor(app widget.AppContext, opts ...ColorOption) (string, bool) {
 		scale.ShowValueOpt(true),
 		scale.CommandOpt(func(v float64) { updatePreview() }),
 	)
-	pack.Pack(rScale.Window(), pack.SideOpt(pack.Left), pack.FillOpt(pack.FillX), pack.Expand(true))
+	pack.Pack(rScale, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillX), pack.Expand(true))
 
 	// G slider.
 	gFrame := newFrame(slidersFrame.Window(), "gframe", app)
-	pack.Pack(gFrame.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
+	pack.Pack(gFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
 	gLabel := label.New(gFrame.Window(), "glabel", app, label.Text("G:"))
-	pack.Pack(gLabel.Window(), pack.SideOpt(pack.Left), pack.PadX(5))
+	pack.Pack(gLabel, pack.SideOpt(pack.Left), pack.PadX(5))
 	gScale = scale.New(gFrame.Window(), "gscale", app,
 		scale.OrientOpt(scale.Horizontal),
 		scale.FromOpt(0), scale.ToOpt(255),
@@ -98,13 +98,13 @@ func ChooseColor(app widget.AppContext, opts ...ColorOption) (string, bool) {
 		scale.ShowValueOpt(true),
 		scale.CommandOpt(func(v float64) { updatePreview() }),
 	)
-	pack.Pack(gScale.Window(), pack.SideOpt(pack.Left), pack.FillOpt(pack.FillX), pack.Expand(true))
+	pack.Pack(gScale, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillX), pack.Expand(true))
 
 	// B slider.
 	bFrame := newFrame(slidersFrame.Window(), "bframe", app)
-	pack.Pack(bFrame.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
+	pack.Pack(bFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
 	bLabel := label.New(bFrame.Window(), "blabel", app, label.Text("B:"))
-	pack.Pack(bLabel.Window(), pack.SideOpt(pack.Left), pack.PadX(5))
+	pack.Pack(bLabel, pack.SideOpt(pack.Left), pack.PadX(5))
 	bScale = scale.New(bFrame.Window(), "bscale", app,
 		scale.OrientOpt(scale.Horizontal),
 		scale.FromOpt(0), scale.ToOpt(255),
@@ -113,27 +113,27 @@ func ChooseColor(app widget.AppContext, opts ...ColorOption) (string, bool) {
 		scale.ShowValueOpt(true),
 		scale.CommandOpt(func(v float64) { updatePreview() }),
 	)
-	pack.Pack(bScale.Window(), pack.SideOpt(pack.Left), pack.FillOpt(pack.FillX), pack.Expand(true))
+	pack.Pack(bScale, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillX), pack.Expand(true))
 
 	// Preview + hex entry frame.
 	bottomFrame := newFrame(d.Content.Window(), "bottom", app)
-	pack.Pack(bottomFrame.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(5))
+	pack.Pack(bottomFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(5))
 
 	// Color preview.
 	previewFrame = frame.New(bottomFrame.Window(), "preview", app,
 		frame.Width(60), frame.Height(40),
 		frame.BorderWidth(2), frame.Relief(1), // ReliefSunken
 	)
-	pack.Pack(previewFrame.Window(), pack.SideOpt(pack.Left), pack.PadX(10))
+	pack.Pack(previewFrame, pack.SideOpt(pack.Left), pack.PadX(10))
 
 	// Hex entry.
 	hexLabel := label.New(bottomFrame.Window(), "hexlabel", app, label.Text("Hex:"))
-	pack.Pack(hexLabel.Window(), pack.SideOpt(pack.Left), pack.PadX(5))
+	pack.Pack(hexLabel, pack.SideOpt(pack.Left), pack.PadX(5))
 	hexEntry = entry.New(bottomFrame.Window(), "hexentry", app,
 		entry.Width(10),
 		entry.Text(cfg.initialColor),
 	)
-	pack.Pack(hexEntry.Window(), pack.SideOpt(pack.Left), pack.PadX(5))
+	pack.Pack(hexEntry, pack.SideOpt(pack.Left), pack.PadX(5))
 
 	// Suppress unused variable warnings.
 	_ = rLabel

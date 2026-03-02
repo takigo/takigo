@@ -35,7 +35,7 @@ func main() {
 		label.PadX(5),
 		label.PadY(2),
 	)
-	pack.Pack(statusLabel.Window(), pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
+	pack.Pack(statusLabel, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	// Create text widget.
 	txt := text.New(root, "text", app,
@@ -75,8 +75,8 @@ func main() {
 	}
 
 	// Pack scrollbar and text widget.
-	pack.Pack(yscroll.Window(), pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
-	pack.Pack(txt.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+	pack.Pack(yscroll, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
+	pack.Pack(txt, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	// Insert sample text.
 	sampleText := `Welcome to the Takigo Text Widget!

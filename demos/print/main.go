@@ -22,11 +22,11 @@ func main() {
 		label.Anchor(option.AnchorW),
 		label.PadX(10), label.Foreground("#666666"),
 	)
-	pack.Pack(infoLabel.Window(), pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX), pack.PadY(3))
+	pack.Pack(infoLabel, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX), pack.PadY(3))
 
 	// Content area: canvas left, text right.
 	contentFrame := frame.New(root, "content", app)
-	pack.Pack(contentFrame.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
+	pack.Pack(contentFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true), pack.PadX(5), pack.PadY(5))
 
 	// Canvas with shapes.
@@ -35,7 +35,7 @@ func main() {
 		canvas.Width(300), canvas.Height(350),
 		canvas.BorderWidthOpt(2), canvas.ReliefOpt(option.ReliefSunken),
 	)
-	pack.Pack(c.Window(), pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth),
+	pack.Pack(c, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true), pack.PadX(5))
 
 	// Draw shapes on canvas.
@@ -51,7 +51,7 @@ func main() {
 		text.WrapModeOpt(text.WrapWord),
 		text.BorderWidthOpt(2),
 	)
-	pack.Pack(tw.Window(), pack.SideOpt(pack.Right), pack.FillOpt(pack.FillBoth),
+	pack.Pack(tw, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true), pack.PadX(5))
 
 	tw.Insert("1.0", `This is a sample text widget that would normally be printed alongside the canvas in Tk's print demo.

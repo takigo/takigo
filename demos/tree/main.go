@@ -27,7 +27,7 @@ func main() {
 
 	// Treeview frame with scrollbar.
 	tvFrame := frame.New(root, "tvframe", app)
-	pack.Pack(tvFrame.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
+	pack.Pack(tvFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true), pack.PadX(10), pack.PadY(5))
 
 	tv := ttk.NewTreeview(tvFrame.Window(), "tree", app,
@@ -131,8 +131,8 @@ func main() {
 		yscroll.Set(first, last)
 	}
 
-	pack.Pack(yscroll.Window(), pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
-	pack.Pack(tv.Window(), pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+	pack.Pack(yscroll, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
+	pack.Pack(tv, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	first, last := tv.YVisibleRange()
 	yscroll.Set(first, last)

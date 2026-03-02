@@ -20,11 +20,11 @@ func main() {
 
 	// Side control buttons.
 	ctrlFrame := frame.New(root, "ctrl", app)
-	pack.Pack(ctrlFrame.Window(), pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY), pack.PadX(5), pack.PadY(5))
+	pack.Pack(ctrlFrame, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY), pack.PadX(5), pack.PadY(5))
 
 	// Text widget with scrollbar.
 	txtFrame := frame.New(root, "txtframe", app)
-	pack.Pack(txtFrame.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
+	pack.Pack(txtFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true), pack.PadX(5), pack.PadY(5))
 
 	tw := text.New(txtFrame.Window(), "tw", app,
@@ -53,8 +53,8 @@ func main() {
 			}
 		}
 	}
-	pack.Pack(yscroll.Window(), pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
-	pack.Pack(tw.Window(), pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+	pack.Pack(yscroll, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
+	pack.Pack(tw, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	// Configure tags.
 	tw.TagConfigure("bold", text.TagFont("Sans Bold 11"))
@@ -109,21 +109,21 @@ func main() {
 	// Control buttons.
 	ctrlLabel := label.New(ctrlFrame.Window(), "ctrllabel", app,
 		label.Text("Actions:"), label.Anchor(option.AnchorW))
-	pack.Pack(ctrlLabel.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(5))
+	pack.Pack(ctrlLabel, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(5))
 
 	undoBtn := button.New(ctrlFrame.Window(), "undo", app,
 		button.Text("Undo"),
 		button.Command(func() { tw.Edit("undo") }),
 		button.PadX(8), button.PadY(3),
 	)
-	pack.Pack(undoBtn.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(3))
+	pack.Pack(undoBtn, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(3))
 
 	redoBtn := button.New(ctrlFrame.Window(), "redo", app,
 		button.Text("Redo"),
 		button.Command(func() { tw.Edit("redo") }),
 		button.PadX(8), button.PadY(3),
 	)
-	pack.Pack(redoBtn.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(3))
+	pack.Pack(redoBtn, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(3))
 
 	boldBtn := button.New(ctrlFrame.Window(), "boldbtn", app,
 		button.Text("Bold Sel"),
@@ -136,7 +136,7 @@ func main() {
 		}),
 		button.PadX(8), button.PadY(3),
 	)
-	pack.Pack(boldBtn.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(3))
+	pack.Pack(boldBtn, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(3))
 
 	underBtn := button.New(ctrlFrame.Window(), "underbtn", app,
 		button.Text("Underline Sel"),
@@ -149,7 +149,7 @@ func main() {
 		}),
 		button.PadX(8), button.PadY(3),
 	)
-	pack.Pack(underBtn.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(3))
+	pack.Pack(underBtn, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(3))
 
 	redBtn := button.New(ctrlFrame.Window(), "redbtn", app,
 		button.Text("Red Sel"),
@@ -162,7 +162,7 @@ func main() {
 		}),
 		button.PadX(8), button.PadY(3),
 	)
-	pack.Pack(redBtn.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(3))
+	pack.Pack(redBtn, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(3))
 
 	blueBtn := button.New(ctrlFrame.Window(), "bluebtn", app,
 		button.Text("Blue Sel"),
@@ -175,7 +175,7 @@ func main() {
 		}),
 		button.PadX(8), button.PadY(3),
 	)
-	pack.Pack(blueBtn.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(3))
+	pack.Pack(blueBtn, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(3))
 
 	_ = ctrlLabel
 	_ = undoBtn

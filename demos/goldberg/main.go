@@ -22,7 +22,7 @@ func main() {
 		canvas.Width(560),
 		canvas.Height(380),
 	)
-	pack.Pack(c.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
+	pack.Pack(c, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true), pack.PadX(10), pack.PadY(5))
 
 	// Draw static elements.
@@ -133,7 +133,7 @@ func main() {
 		}),
 		button.PadX(10), button.PadY(4),
 	)
-	pack.Pack(startBtn.Window(), pack.SideOpt(pack.Top), pack.PadX(10), pack.PadY(5))
+	pack.Pack(startBtn, pack.SideOpt(pack.Top), pack.PadX(10), pack.PadY(5))
 
 	_ = startBtn
 	d.Run()

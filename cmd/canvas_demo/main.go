@@ -52,7 +52,7 @@ func main() {
 		label.PadX(5),
 		label.PadY(2),
 	)
-	pack.Pack(statusLabel.Window(), pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
+	pack.Pack(statusLabel, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	// Create canvas with scrollbars.
 	cv := canvas.New(root, "canvas", app,
@@ -121,9 +121,9 @@ func main() {
 	}
 
 	// Pack scrollbars and canvas.
-	pack.Pack(xscroll.Window(), pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
-	pack.Pack(yscroll.Window(), pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
-	pack.Pack(cv.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+	pack.Pack(xscroll, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
+	pack.Pack(yscroll, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
+	pack.Pack(cv, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	// Initialize scrollbar positions.
 	xf, xl := cv.XVisibleRange()

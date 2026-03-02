@@ -24,7 +24,7 @@ func main() {
 		label.Anchor(option.AnchorW),
 		label.PadX(10),
 	)
-	pack.Pack(statusLabel.Window(), pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX), pack.PadY(5))
+	pack.Pack(statusLabel, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX), pack.PadY(5))
 
 	// Variables.
 	sizeVar := widget.NewVariable("10")
@@ -37,19 +37,19 @@ func main() {
 
 	// Container for two groups side by side.
 	groupFrame := frame.New(root, "groups", app)
-	pack.Pack(groupFrame.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
+	pack.Pack(groupFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true), pack.PadX(10), pack.PadY(5))
 
 	// Point size group.
 	sizeFrame := frame.New(groupFrame.Window(), "sizes", app,
 		frame.BorderWidth(2), frame.Relief(option.ReliefGroove))
-	pack.Pack(sizeFrame.Window(), pack.SideOpt(pack.Left), pack.PadX(10), pack.PadY(5))
+	pack.Pack(sizeFrame, pack.SideOpt(pack.Left), pack.PadX(10), pack.PadY(5))
 
 	sizeTitle := label.New(sizeFrame.Window(), "sizetitle", app,
 		label.Text("Point Size"),
 		label.PadX(5),
 	)
-	pack.Pack(sizeTitle.Window(), pack.SideOpt(pack.Top), pack.PadY(5))
+	pack.Pack(sizeTitle, pack.SideOpt(pack.Top), pack.PadY(5))
 
 	sizes := []string{"10", "12", "14", "18", "24"}
 	for _, s := range sizes {
@@ -59,20 +59,20 @@ func main() {
 			radiobutton.Var(sizeVar),
 			radiobutton.Command(updateStatus),
 		)
-		pack.Pack(rb.Window(), pack.SideOpt(pack.Top), pack.PadY(2), pack.Anchor(option.AnchorW), pack.PadX(10))
+		pack.Pack(rb, pack.SideOpt(pack.Top), pack.PadY(2), pack.Anchor(option.AnchorW), pack.PadX(10))
 		_ = rb
 	}
 
 	// Color group.
 	colorFrame := frame.New(groupFrame.Window(), "colors", app,
 		frame.BorderWidth(2), frame.Relief(option.ReliefGroove))
-	pack.Pack(colorFrame.Window(), pack.SideOpt(pack.Left), pack.PadX(10), pack.PadY(5))
+	pack.Pack(colorFrame, pack.SideOpt(pack.Left), pack.PadX(10), pack.PadY(5))
 
 	colorTitle := label.New(colorFrame.Window(), "colortitle", app,
 		label.Text("Color"),
 		label.PadX(5),
 	)
-	pack.Pack(colorTitle.Window(), pack.SideOpt(pack.Top), pack.PadY(5))
+	pack.Pack(colorTitle, pack.SideOpt(pack.Top), pack.PadY(5))
 
 	colors := []string{"Red", "Orange", "Yellow", "Green", "Blue"}
 	for _, c := range colors {
@@ -83,7 +83,7 @@ func main() {
 			radiobutton.Var(colorVar),
 			radiobutton.Command(updateStatus),
 		)
-		pack.Pack(rb.Window(), pack.SideOpt(pack.Top), pack.PadY(2), pack.Anchor(option.AnchorW), pack.PadX(10))
+		pack.Pack(rb, pack.SideOpt(pack.Top), pack.PadY(2), pack.Anchor(option.AnchorW), pack.PadX(10))
 		_ = rb
 		_ = val
 	}

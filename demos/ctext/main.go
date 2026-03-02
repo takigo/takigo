@@ -20,7 +20,7 @@ func main() {
 		canvas.Width(500),
 		canvas.Height(300),
 	)
-	pack.Pack(c.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
+	pack.Pack(c, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true), pack.PadX(10), pack.PadY(5))
 
 	// Title text.

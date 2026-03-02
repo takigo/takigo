@@ -89,38 +89,38 @@ func main() {
 
 	// Row 1: first 5 bitmaps.
 	row1 := frame.New(root, "row1", app)
-	pack.Pack(row1.Window(), pack.SideOpt(pack.Top), pack.PadX(10), pack.PadY(10))
+	pack.Pack(row1, pack.SideOpt(pack.Top), pack.PadX(10), pack.PadY(10))
 
 	for _, b := range bitmaps[:5] {
 		col := frame.New(row1.Window(), "col_"+b.name, app)
-		pack.Pack(col.Window(), pack.SideOpt(pack.Left), pack.PadX(10))
+		pack.Pack(col, pack.SideOpt(pack.Left), pack.PadX(10))
 		il := label.New(col.Window(), "img_"+b.name, app,
 			label.ImageOpt(b.photo),
 			label.BorderWidth(2), label.Relief(option.ReliefGroove),
 			label.PadX(4), label.PadY(4),
 		)
-		pack.Pack(il.Window(), pack.SideOpt(pack.Top))
+		pack.Pack(il, pack.SideOpt(pack.Top))
 		nl := label.New(col.Window(), "name_"+b.name, app, label.Text(b.name))
-		pack.Pack(nl.Window(), pack.SideOpt(pack.Top), pack.PadY(2))
+		pack.Pack(nl, pack.SideOpt(pack.Top), pack.PadY(2))
 		_ = il
 		_ = nl
 	}
 
 	// Row 2: last 5 bitmaps.
 	row2 := frame.New(root, "row2", app)
-	pack.Pack(row2.Window(), pack.SideOpt(pack.Top), pack.PadX(10), pack.PadY(10))
+	pack.Pack(row2, pack.SideOpt(pack.Top), pack.PadX(10), pack.PadY(10))
 
 	for _, b := range bitmaps[5:] {
 		col := frame.New(row2.Window(), "col_"+b.name, app)
-		pack.Pack(col.Window(), pack.SideOpt(pack.Left), pack.PadX(10))
+		pack.Pack(col, pack.SideOpt(pack.Left), pack.PadX(10))
 		il := label.New(col.Window(), "img_"+b.name, app,
 			label.ImageOpt(b.photo),
 			label.BorderWidth(2), label.Relief(option.ReliefGroove),
 			label.PadX(4), label.PadY(4),
 		)
-		pack.Pack(il.Window(), pack.SideOpt(pack.Top))
+		pack.Pack(il, pack.SideOpt(pack.Top))
 		nl := label.New(col.Window(), "name_"+b.name, app, label.Text(b.name))
-		pack.Pack(nl.Window(), pack.SideOpt(pack.Top), pack.PadY(2))
+		pack.Pack(nl, pack.SideOpt(pack.Top), pack.PadY(2))
 		_ = il
 		_ = nl
 	}

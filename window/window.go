@@ -20,6 +20,14 @@ type GeomManager interface {
 	LostContentProc(content *Window)
 }
 
+// Windower is implemented by anything that wraps a Window (widgets, bare windows).
+type Windower interface {
+	Window() *Window
+}
+
+// Window returns the Window itself, satisfying the Windower interface.
+func (w *Window) Window() *Window { return w }
+
 // Window represents a single window in the takigo hierarchy.
 // Ports TkWindow from tk/generic/tkInt.h.
 type Window struct {

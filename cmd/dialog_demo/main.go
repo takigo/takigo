@@ -35,7 +35,7 @@ func main() {
 	statusLabel := label.New(root, "status", app,
 		label.Text("Status: Ready"),
 	)
-	pack.Pack(statusLabel.Window(), pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX), pack.PadY(5))
+	pack.Pack(statusLabel, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX), pack.PadY(5))
 
 	setStatus := func(msg string) {
 		statusLabel.Text = msg
@@ -44,10 +44,10 @@ func main() {
 
 	// --- Dialog Buttons ---
 	dlgFrame := frame.New(root, "dlgframe", app)
-	pack.Pack(dlgFrame.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(5))
+	pack.Pack(dlgFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(5))
 
 	dlgLabel := label.New(dlgFrame.Window(), "dlglabel", app, label.Text("Dialogs:"))
-	pack.Pack(dlgLabel.Window(), pack.SideOpt(pack.Left), pack.PadX(5))
+	pack.Pack(dlgLabel, pack.SideOpt(pack.Left), pack.PadX(5))
 
 	// Message box buttons.
 	msgInfoBtn := button.New(dlgFrame.Window(), "msginfo", app,
@@ -64,7 +64,7 @@ func main() {
 			setStatus(fmt.Sprintf("Message box result: %d", result))
 		}),
 	)
-	pack.Pack(msgInfoBtn.Window(), pack.SideOpt(pack.Left), pack.PadX(3))
+	pack.Pack(msgInfoBtn, pack.SideOpt(pack.Left), pack.PadX(3))
 
 	msgQBtn := button.New(dlgFrame.Window(), "msgq", app,
 		button.Text("Question"),
@@ -79,7 +79,7 @@ func main() {
 			setStatus(fmt.Sprintf("Question result: %d", result))
 		}),
 	)
-	pack.Pack(msgQBtn.Window(), pack.SideOpt(pack.Left), pack.PadX(3))
+	pack.Pack(msgQBtn, pack.SideOpt(pack.Left), pack.PadX(3))
 
 	// Color chooser button.
 	colorBtn := button.New(dlgFrame.Window(), "colorbtn", app,
@@ -96,7 +96,7 @@ func main() {
 			}
 		}),
 	)
-	pack.Pack(colorBtn.Window(), pack.SideOpt(pack.Left), pack.PadX(3))
+	pack.Pack(colorBtn, pack.SideOpt(pack.Left), pack.PadX(3))
 
 	// Font chooser button.
 	fontBtn := button.New(dlgFrame.Window(), "fontbtn", app,
@@ -112,7 +112,7 @@ func main() {
 			}
 		}),
 	)
-	pack.Pack(fontBtn.Window(), pack.SideOpt(pack.Left), pack.PadX(3))
+	pack.Pack(fontBtn, pack.SideOpt(pack.Left), pack.PadX(3))
 
 	// File dialog button.
 	fileBtn := button.New(dlgFrame.Window(), "filebtn", app,
@@ -133,14 +133,14 @@ func main() {
 			}
 		}),
 	)
-	pack.Pack(fileBtn.Window(), pack.SideOpt(pack.Left), pack.PadX(3))
+	pack.Pack(fileBtn, pack.SideOpt(pack.Left), pack.PadX(3))
 
 	// --- Spinbox ---
 	spinFrame := frame.New(root, "spinframe", app)
-	pack.Pack(spinFrame.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(10))
+	pack.Pack(spinFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(10))
 
 	spinLabel := label.New(spinFrame.Window(), "spinlabel", app, label.Text("Spinbox (0-100):"))
-	pack.Pack(spinLabel.Window(), pack.SideOpt(pack.Left), pack.PadX(5))
+	pack.Pack(spinLabel, pack.SideOpt(pack.Left), pack.PadX(5))
 
 	spin := spinbox.New(spinFrame.Window(), "spin1", app,
 		spinbox.FromOpt(0),
@@ -151,11 +151,11 @@ func main() {
 			setStatus(fmt.Sprintf("Spinbox value: %s", v))
 		}),
 	)
-	pack.Pack(spin.Window(), pack.SideOpt(pack.Left), pack.PadX(5))
+	pack.Pack(spin, pack.SideOpt(pack.Left), pack.PadX(5))
 
 	// Values-mode spinbox.
 	valSpinLabel := label.New(spinFrame.Window(), "valspinlabel", app, label.Text("Values:"))
-	pack.Pack(valSpinLabel.Window(), pack.SideOpt(pack.Left), pack.PadX(5))
+	pack.Pack(valSpinLabel, pack.SideOpt(pack.Left), pack.PadX(5))
 
 	valSpin := spinbox.New(spinFrame.Window(), "spin2", app,
 		spinbox.ValuesOpt([]string{"Apple", "Banana", "Cherry", "Date", "Elderberry"}),
@@ -164,15 +164,15 @@ func main() {
 			setStatus(fmt.Sprintf("Values spinbox: %s", v))
 		}),
 	)
-	pack.Pack(valSpin.Window(), pack.SideOpt(pack.Left), pack.PadX(5))
+	pack.Pack(valSpin, pack.SideOpt(pack.Left), pack.PadX(5))
 
 	// --- Mouse wheel test: Scale + Scrollbar ---
 	wheelFrame := frame.New(root, "wheelframe", app)
-	pack.Pack(wheelFrame.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(10))
+	pack.Pack(wheelFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(10))
 
 	wheelLabel := label.New(wheelFrame.Window(), "wheellabel", app,
 		label.Text("Mouse wheel test (hover + scroll):"))
-	pack.Pack(wheelLabel.Window(), pack.SideOpt(pack.Left), pack.PadX(5))
+	pack.Pack(wheelLabel, pack.SideOpt(pack.Left), pack.PadX(5))
 
 	testScale := scale.New(wheelFrame.Window(), "testscale", app,
 		scale.OrientOpt(scale.Horizontal),
@@ -182,7 +182,7 @@ func main() {
 			setStatus(fmt.Sprintf("Scale value: %.0f", v))
 		}),
 	)
-	pack.Pack(testScale.Window(), pack.SideOpt(pack.Left), pack.FillOpt(pack.FillX), pack.Expand(true))
+	pack.Pack(testScale, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillX), pack.Expand(true))
 
 	testScrollbar := scrollbar.New(wheelFrame.Window(), "testscroll", app,
 		scrollbar.OrientOpt(scrollbar.Vertical),
@@ -191,11 +191,11 @@ func main() {
 		}),
 	)
 	testScrollbar.Set(0.3, 0.6)
-	pack.Pack(testScrollbar.Window(), pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
+	pack.Pack(testScrollbar, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
 
 	// --- Busy window ---
 	busyFrame := frame.New(root, "busyframe", app)
-	pack.Pack(busyFrame.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(5))
+	pack.Pack(busyFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(5))
 
 	busyBtn := button.New(busyFrame.Window(), "busybtn", app,
 		button.Text("Busy 2s"),
@@ -208,7 +208,7 @@ func main() {
 			})
 		}),
 	)
-	pack.Pack(busyBtn.Window(), pack.SideOpt(pack.Left), pack.PadX(5))
+	pack.Pack(busyBtn, pack.SideOpt(pack.Left), pack.PadX(5))
 
 	// --- System tray ---
 	trayBtn := button.New(busyFrame.Window(), "traybtn", app,
@@ -232,7 +232,7 @@ func main() {
 			}
 		}),
 	)
-	pack.Pack(trayBtn.Window(), pack.SideOpt(pack.Left), pack.PadX(5))
+	pack.Pack(trayBtn, pack.SideOpt(pack.Left), pack.PadX(5))
 
 	// Suppress unused variable warnings.
 	_ = dlgLabel

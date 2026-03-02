@@ -60,9 +60,8 @@ func main() {
 			button.PadX(10),
 			button.PadY(6),
 		)
-		pack.Pack(btn.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
+		pack.Pack(btn, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
 			pack.Expand(true), pack.PadX(20), pack.PadY(5))
-		_ = btn
 	}
 
 	d.Run()

@@ -20,7 +20,7 @@ func main() {
 	pw := panedwindow.New(root, "vpanes", app,
 		panedwindow.OrientOpt(panedwindow.Vertical),
 	)
-	pack.Pack(pw.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
+	pack.Pack(pw, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true), pack.PadX(10), pack.PadY(5))
 
 	// Top pane: listbox.
@@ -33,7 +33,7 @@ func main() {
 		),
 		listbox.Height(6),
 	)
-	pack.Pack(lb.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+	pack.Pack(lb, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 	pw.Add(topFrame.Window(), 100)
 
 	// Bottom pane: text widget.
@@ -44,7 +44,7 @@ func main() {
 		text.WrapModeOpt(text.WrapWord),
 	)
 	tw.Insert("1.0", "Select a file from the list above to preview its contents.\n\nThis is a vertical paned window demo showing a listbox\nin the top pane and a text widget in the bottom pane.\n\nDrag the horizontal sash to resize the panes.")
-	pack.Pack(tw.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+	pack.Pack(tw, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 	pw.Add(bottomFrame.Window(), 100)
 
 	_ = lb

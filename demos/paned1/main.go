@@ -19,7 +19,7 @@ func main() {
 	pw := panedwindow.New(root, "panes", app,
 		panedwindow.OrientOpt(panedwindow.Horizontal),
 	)
-	pack.Pack(pw.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
+	pack.Pack(pw, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true), pack.PadX(10), pack.PadY(5))
 
 	// Three colored panes.
@@ -38,7 +38,7 @@ func main() {
 			label.Background(c.color),
 			label.Foreground("white"),
 		)
-		pack.Pack(l.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
+		pack.Pack(l, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
 			pack.Expand(true), pack.PadX(10), pack.PadY(10))
 		pw.Add(f.Window(), 80)
 		_ = l

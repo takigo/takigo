@@ -68,13 +68,13 @@ func showFileDialog(app widget.AppContext, cfg fileConfig) (string, bool) {
 
 	// Current directory label + Up button.
 	navFrame := newFrame(d.Content.Window(), "nav", app)
-	pack.Pack(navFrame.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(2))
+	pack.Pack(navFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(2))
 
 	dirLabel := label.New(navFrame.Window(), "dirlabel", app,
 		label.Text(currentDir),
 		label.Anchor(3), // AnchorW
 	)
-	pack.Pack(dirLabel.Window(), pack.SideOpt(pack.Left), pack.FillOpt(pack.FillX),
+	pack.Pack(dirLabel, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillX),
 		pack.Expand(true), pack.PadX(5))
 
 	// File listbox.
@@ -82,18 +82,18 @@ func showFileDialog(app widget.AppContext, cfg fileConfig) (string, bool) {
 		listbox.Width(50),
 		listbox.Height(15),
 	)
-	pack.Pack(fileList.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
+	pack.Pack(fileList, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true), pack.PadX(5), pack.PadY(2))
 
 	// Filename entry.
 	entryFrame := newFrame(d.Content.Window(), "entryframe", app)
-	pack.Pack(entryFrame.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(2))
+	pack.Pack(entryFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(2))
 
 	fnLabel := label.New(entryFrame.Window(), "fnlabel", app, label.Text("File:"))
-	pack.Pack(fnLabel.Window(), pack.SideOpt(pack.Left), pack.PadX(5))
+	pack.Pack(fnLabel, pack.SideOpt(pack.Left), pack.PadX(5))
 
 	fnEntry := entry.New(entryFrame.Window(), "fnentry", app, entry.Width(40))
-	pack.Pack(fnEntry.Window(), pack.SideOpt(pack.Left), pack.FillOpt(pack.FillX),
+	pack.Pack(fnEntry, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillX),
 		pack.Expand(true), pack.PadX(5))
 
 	_ = fnLabel

@@ -28,7 +28,7 @@ func main() {
 		frame.Relief(option.ReliefSunken),
 		frame.Background("#4a6984"),
 	)
-	pack.Pack(puzzleFrame.Window(), pack.SideOpt(pack.Top), pack.PadX(20), pack.PadY(10))
+	pack.Pack(puzzleFrame, pack.SideOpt(pack.Top), pack.PadX(20), pack.PadY(10))
 
 	// Initial tile order (scrambled).
 	order := []int{3, 1, 6, 2, 5, 7, 15, 13, 4, 11, 8, 9, 14, 10, 12}

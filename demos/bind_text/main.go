@@ -27,7 +27,7 @@ func main() {
 		label.PadX(5),
 		label.PadY(2),
 	)
-	pack.Pack(statusLabel.Window(), pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
+	pack.Pack(statusLabel, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	setStatus := func(s string) {
 		statusLabel.Text = s
@@ -36,7 +36,7 @@ func main() {
 
 	// Text widget.
 	txtFrame := frame.New(root, "txtframe", app)
-	pack.Pack(txtFrame.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
+	pack.Pack(txtFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true), pack.PadX(10), pack.PadY(5))
 
 	tw := text.New(txtFrame.Window(), "hypertext", app,
@@ -71,8 +71,8 @@ func main() {
 		yscroll.Set(first, last)
 	}
 
-	pack.Pack(yscroll.Window(), pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
-	pack.Pack(tw.Window(), pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+	pack.Pack(yscroll, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
+	pack.Pack(tw, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	// Configure link-like tags.
 	tw.TagConfigure("link", text.TagForeground("blue"), text.TagUnderline(true))

@@ -30,11 +30,11 @@ func main() {
 
 	// Status label to show binding events.
 	statusFrame := frame.New(root, "statusframe", app)
-	pack.Pack(statusFrame.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
+	pack.Pack(statusFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
 
 	statusLabel := label.New(statusFrame.Window(), "status", app,
 		label.Text("Status: Ready"))
-	pack.Pack(statusLabel.Window(), pack.SideOpt(pack.Left), pack.FillOpt(pack.FillX), pack.Expand(true))
+	pack.Pack(statusLabel, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillX), pack.Expand(true))
 
 	setStatus := func(msg string) {
 		statusLabel.Text = msg
@@ -43,17 +43,17 @@ func main() {
 
 	// Two buttons to demonstrate per-widget bindings.
 	btnFrame := frame.New(root, "btnframe", app)
-	pack.Pack(btnFrame.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(10))
+	pack.Pack(btnFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(10))
 
 	btn1 := button.New(btnFrame.Window(), "btn1", app,
 		button.Text("Button 1 (click me)"),
 		button.Command(func() { setStatus("Button 1 command") }))
-	pack.Pack(btn1.Window(), pack.SideOpt(pack.Left), pack.PadX(10))
+	pack.Pack(btn1, pack.SideOpt(pack.Left), pack.PadX(10))
 
 	btn2 := button.New(btnFrame.Window(), "btn2", app,
 		button.Text("Button 2 (click me)"),
 		button.Command(func() { setStatus("Button 2 command") }))
-	pack.Pack(btn2.Window(), pack.SideOpt(pack.Left), pack.PadX(10))
+	pack.Pack(btn2, pack.SideOpt(pack.Left), pack.PadX(10))
 
 	// Register windows with the bind engine.
 	eng.RegisterWindow(root, "Toplevel")
@@ -122,7 +122,7 @@ func main() {
 	// Info label.
 	infoLabel := label.New(root, "info", app,
 		label.Text("Try: hover buttons, right-click, double-click, Ctrl+C/V/A, press 'q' or Esc"))
-	pack.Pack(infoLabel.Window(), pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX), pack.PadY(10))
+	pack.Pack(infoLabel, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX), pack.PadY(10))
 	eng.RegisterWindow(infoLabel.Window(), "Label")
 
 	fmt.Println("Bind demo running. Press 'q' or Escape to quit.")

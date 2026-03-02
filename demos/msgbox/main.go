@@ -24,7 +24,7 @@ func main() {
 		label.Background("#e8e8e8"),
 		label.PadX(5), label.PadY(2),
 	)
-	pack.Pack(statusLabel.Window(), pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
+	pack.Pack(statusLabel, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	setStatus := func(s string) {
 		statusLabel.Text = s
@@ -62,7 +62,7 @@ func main() {
 			}),
 			button.PadX(10), button.PadY(4),
 		)
-		pack.Pack(btn.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
+		pack.Pack(btn, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
 			pack.PadX(20), pack.PadY(5))
 		_ = btn
 	}

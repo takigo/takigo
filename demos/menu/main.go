@@ -24,7 +24,7 @@ func main() {
 		label.Background("#e8e8e8"),
 		label.PadX(5), label.PadY(2),
 	)
-	pack.Pack(statusLabel.Window(), pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
+	pack.Pack(statusLabel, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	setStatus := func(s string) {
 		statusLabel.Text = s
@@ -36,7 +36,7 @@ func main() {
 		frame.Relief(option.ReliefRaised),
 		frame.BorderWidth(1),
 	)
-	pack.Pack(menuBar.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
+	pack.Pack(menuBar, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
 
 	// File menu.
 	fileMenu := menu.New(root, "filemenu", app)
@@ -51,7 +51,7 @@ func main() {
 		menubutton.Text("File"),
 		menubutton.MenuOpt(fileMenu),
 	)
-	pack.Pack(fileMb.Window(), pack.SideOpt(pack.Left))
+	pack.Pack(fileMb, pack.SideOpt(pack.Left))
 
 	// Edit menu with cascade.
 	editMenu := menu.New(root, "editmenu", app)
@@ -66,7 +66,7 @@ func main() {
 		menubutton.Text("Edit"),
 		menubutton.MenuOpt(editMenu),
 	)
-	pack.Pack(editMb.Window(), pack.SideOpt(pack.Left))
+	pack.Pack(editMb, pack.SideOpt(pack.Left))
 
 	// Help menu.
 	helpMenu := menu.New(root, "helpmenu", app)
@@ -77,7 +77,7 @@ func main() {
 		menubutton.Text("Help"),
 		menubutton.MenuOpt(helpMenu),
 	)
-	pack.Pack(helpMb.Window(), pack.SideOpt(pack.Left))
+	pack.Pack(helpMb, pack.SideOpt(pack.Left))
 
 	_ = statusLabel
 	_ = fileMb

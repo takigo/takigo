@@ -21,7 +21,7 @@ func main() {
 		label.Anchor(option.AnchorW),
 		label.PadX(20),
 	)
-	pack.Pack(intLabel.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(5))
+	pack.Pack(intLabel, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(5))
 
 	intSpin := spinbox.New(root, "intspin", app,
 		spinbox.FromOpt(0),
@@ -29,7 +29,7 @@ func main() {
 		spinbox.IncrementOpt(1),
 	)
 	intSpin.SetText("0")
-	pack.Pack(intSpin.Window(), pack.SideOpt(pack.Top), pack.PadX(20), pack.PadY(5))
+	pack.Pack(intSpin, pack.SideOpt(pack.Top), pack.PadX(20), pack.PadY(5))
 
 	// Float spinbox (0-10 step 0.5).
 	floatLabel := label.New(root, "floatlabel", app,
@@ -37,7 +37,7 @@ func main() {
 		label.Anchor(option.AnchorW),
 		label.PadX(20),
 	)
-	pack.Pack(floatLabel.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(5))
+	pack.Pack(floatLabel, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(5))
 
 	floatSpin := spinbox.New(root, "floatspin", app,
 		spinbox.FromOpt(0),
@@ -46,7 +46,7 @@ func main() {
 		spinbox.FormatOpt("%.1f"),
 	)
 	floatSpin.SetText("0.0")
-	pack.Pack(floatSpin.Window(), pack.SideOpt(pack.Top), pack.PadX(20), pack.PadY(5))
+	pack.Pack(floatSpin, pack.SideOpt(pack.Top), pack.PadX(20), pack.PadY(5))
 
 	// Values spinbox (days of week).
 	valLabel := label.New(root, "vallabel", app,
@@ -54,7 +54,7 @@ func main() {
 		label.Anchor(option.AnchorW),
 		label.PadX(20),
 	)
-	pack.Pack(valLabel.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(5))
+	pack.Pack(valLabel, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(5))
 
 	valSpin := spinbox.New(root, "valspin", app,
 		spinbox.ValuesOpt([]string{
@@ -63,7 +63,7 @@ func main() {
 		}),
 	)
 	valSpin.SetText("Sunday")
-	pack.Pack(valSpin.Window(), pack.SideOpt(pack.Top), pack.PadX(20), pack.PadY(5))
+	pack.Pack(valSpin, pack.SideOpt(pack.Top), pack.PadX(20), pack.PadY(5))
 
 	_ = intLabel
 	_ = intSpin

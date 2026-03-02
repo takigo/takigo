@@ -36,7 +36,7 @@ func main() {
 			label.PadX(10),
 			label.PadY(5),
 		)
-		pack.Pack(l.Window(), pack.SideOpt(pack.Top), pack.PadY(5), pack.PadX(10))
+		pack.Pack(l, pack.SideOpt(pack.Top), pack.PadY(5), pack.PadX(10))
 		_ = l
 	}
 

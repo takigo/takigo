@@ -69,59 +69,59 @@ func ChooseFont(app widget.AppContext, opts ...FontOption) (string, bool) {
 
 	// Top area: family list + size list.
 	listsFrame := newFrame(d.Content.Window(), "lists", app)
-	pack.Pack(listsFrame.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+	pack.Pack(listsFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	// Family listbox with label.
 	familyFrame := newFrame(listsFrame.Window(), "famframe", app)
-	pack.Pack(familyFrame.Window(), pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.Expand(true), pack.PadX(5))
+	pack.Pack(familyFrame, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.Expand(true), pack.PadX(5))
 
 	familyLabel := label.New(familyFrame.Window(), "famlabel", app, label.Text("Family:"))
-	pack.Pack(familyLabel.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
+	pack.Pack(familyLabel, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
 
 	familyList := listbox.New(familyFrame.Window(), "famlist", app,
 		listbox.Items(families...),
 		listbox.Width(25),
 		listbox.Height(10),
 	)
-	pack.Pack(familyList.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+	pack.Pack(familyList, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	// Size listbox with label.
 	sizeFrame := newFrame(listsFrame.Window(), "sizeframe", app)
-	pack.Pack(sizeFrame.Window(), pack.SideOpt(pack.Left), pack.FillOpt(pack.FillY), pack.PadX(5))
+	pack.Pack(sizeFrame, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillY), pack.PadX(5))
 
 	sizeLabel := label.New(sizeFrame.Window(), "sizelabel", app, label.Text("Size:"))
-	pack.Pack(sizeLabel.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
+	pack.Pack(sizeLabel, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
 
 	sizeList := listbox.New(sizeFrame.Window(), "sizelist", app,
 		listbox.Items(sizes...),
 		listbox.Width(6),
 		listbox.Height(10),
 	)
-	pack.Pack(sizeList.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+	pack.Pack(sizeList, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	// Style labels (toggle bold/italic by clicking).
 	styleFrame := newFrame(d.Content.Window(), "styleframe", app)
-	pack.Pack(styleFrame.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(5))
+	pack.Pack(styleFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(5))
 
 	boldLabel := label.New(styleFrame.Window(), "bold", app,
 		label.Text("Bold"), label.PadX(10))
-	pack.Pack(boldLabel.Window(), pack.SideOpt(pack.Left), pack.PadX(5))
+	pack.Pack(boldLabel, pack.SideOpt(pack.Left), pack.PadX(5))
 
 	italicLabel := label.New(styleFrame.Window(), "italic", app,
 		label.Text("Italic"), label.PadX(10))
-	pack.Pack(italicLabel.Window(), pack.SideOpt(pack.Left), pack.PadX(5))
+	pack.Pack(italicLabel, pack.SideOpt(pack.Left), pack.PadX(5))
 
 	// Preview label.
 	previewFrame := newFrame(d.Content.Window(), "previewframe", app,
 		frame.BorderWidth(1), frame.Relief(1), // sunken
 	)
-	pack.Pack(previewFrame.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadX(5), pack.PadY(5))
+	pack.Pack(previewFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadX(5), pack.PadY(5))
 
 	previewLabel := label.New(previewFrame.Window(), "preview", app,
 		label.Text("AaBbCcDd 123"),
 		label.PadX(5), label.PadY(10),
 	)
-	pack.Pack(previewLabel.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
+	pack.Pack(previewLabel, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
 
 	// Select initial family in list.
 	for i, f := range families {

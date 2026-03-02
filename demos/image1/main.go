@@ -65,7 +65,7 @@ func main() {
 
 	// Display images in labels.
 	imgFrame := frame.New(root, "imgframe", app)
-	pack.Pack(imgFrame.Window(), pack.SideOpt(pack.Top), pack.PadX(10), pack.PadY(10))
+	pack.Pack(imgFrame, pack.SideOpt(pack.Top), pack.PadX(10), pack.PadY(10))
 
 	l1 := label.New(imgFrame.Window(), "img1", app,
 		label.ImageOpt(gradient1),
@@ -73,7 +73,7 @@ func main() {
 		label.Relief(option.ReliefGroove),
 		label.PadX(4), label.PadY(4),
 	)
-	pack.Pack(l1.Window(), pack.SideOpt(pack.Left), pack.PadX(10))
+	pack.Pack(l1, pack.SideOpt(pack.Left), pack.PadX(10))
 
 	l2 := label.New(imgFrame.Window(), "img2", app,
 		label.ImageOpt(gradient2),
@@ -81,7 +81,7 @@ func main() {
 		label.Relief(option.ReliefGroove),
 		label.PadX(4), label.PadY(4),
 	)
-	pack.Pack(l2.Window(), pack.SideOpt(pack.Left), pack.PadX(10))
+	pack.Pack(l2, pack.SideOpt(pack.Left), pack.PadX(10))
 
 	l3 := label.New(imgFrame.Window(), "img3", app,
 		label.ImageOpt(checker),
@@ -89,17 +89,17 @@ func main() {
 		label.Relief(option.ReliefGroove),
 		label.PadX(4), label.PadY(4),
 	)
-	pack.Pack(l3.Window(), pack.SideOpt(pack.Left), pack.PadX(10))
+	pack.Pack(l3, pack.SideOpt(pack.Left), pack.PadX(10))
 
 	// Labels.
 	labFrame := frame.New(root, "labframe", app)
-	pack.Pack(labFrame.Window(), pack.SideOpt(pack.Top), pack.PadX(10), pack.PadY(5))
+	pack.Pack(labFrame, pack.SideOpt(pack.Top), pack.PadX(10), pack.PadY(5))
 
 	for _, name := range []string{"Red→Blue Gradient", "Green→Yellow Gradient", "Checkerboard"} {
 		ll := label.New(labFrame.Window(), "lab_"+name, app,
 			label.Text(name),
 		)
-		pack.Pack(ll.Window(), pack.SideOpt(pack.Left), pack.PadX(20))
+		pack.Pack(ll, pack.SideOpt(pack.Left), pack.PadX(20))
 		_ = ll
 	}
 

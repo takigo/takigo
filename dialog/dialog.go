@@ -69,11 +69,11 @@ func New(app widget.AppContext, parent *window.Window, title string, minWidth, m
 
 	// Button frame at bottom — pack first so it claims space before content.
 	d.BtnFrame = newFrame(d.Toplevel.Window(), "buttons", app)
-	pack.Pack(d.BtnFrame.Window(), pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX), pack.PadY(5))
+	pack.Pack(d.BtnFrame, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX), pack.PadY(5))
 
 	// Content frame fills the remaining area.
 	d.Content = newFrame(d.Toplevel.Window(), "content", app)
-	pack.Pack(d.Content.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+	pack.Pack(d.Content, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	// Register close handler for WM_DELETE_WINDOW routing.
 	closeFn := func() {
@@ -222,7 +222,7 @@ func addButtons(d *Dialog, buttons []dialogButton) {
 				d.Close(res)
 			}),
 		)
-		pack.Pack(btn.Window(), pack.SideOpt(pack.Left), pack.PadX(5))
+		pack.Pack(btn, pack.SideOpt(pack.Left), pack.PadX(5))
 
 		if b.isDefault && !d.returnBound {
 			d.returnBound = true

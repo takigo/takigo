@@ -114,8 +114,9 @@ func (m *gridManager) LostContentProc(content *window.Window) {
 }
 
 // Grid adds a child to its parent's grid layout.
-func Grid(child *window.Window, opts ...GridOption) {
-	parent := child.Parent
+func Grid(child window.Windower, opts ...GridOption) {
+	w := child.Window()
+	parent := w.Parent
 	if parent == nil {
 		return
 	}
@@ -134,7 +135,7 @@ func Grid(child *window.Window, opts ...GridOption) {
 		cfg.columnSpan = 1
 	}
 
-	geometry.ManageGeometry(child, mgr)
+	geometry.ManageGeometry(w, mgr)
 
 	g, ok := gridders[parent]
 	if !ok {
@@ -153,27 +154,28 @@ func Grid(child *window.Window, opts ...GridOption) {
 
 	// Update or add entry.
 	for _, e := range g.entries {
-		if e.window == child {
+		if e.window == w {
 			e.config = cfg
 			g.arrange()
 			return
 		}
 	}
 
-	g.entries = append(g.entries, &gridEntry{window: child, config: cfg})
+	g.entries = append(g.entries, &gridEntry{window: w, config: cfg})
 	g.arrange()
 }
 
 // Forget removes a child from grid management.
-func Forget(child *window.Window) {
-	parent := child.Parent
+func Forget(child window.Windower) {
+	w := child.Window()
+	parent := w.Parent
 	if parent == nil {
 		return
 	}
 	if g, ok := gridders[parent]; ok {
-		g.remove(child)
+		g.remove(w)
 	}
-	child.GeomManager = nil
+	w.GeomManager = nil
 }
 
 // RowConfigure sets configuration for a row.

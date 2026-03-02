@@ -23,20 +23,20 @@ func main() {
 		label.Anchor(option.AnchorW),
 		label.PadX(10), label.Foreground("#666666"),
 	)
-	pack.Pack(noteLabel.Window(), pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX), pack.PadY(3))
+	pack.Pack(noteLabel, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX), pack.PadY(3))
 
 	// Main content area.
 	contentFrame := frame.New(root, "content", app)
-	pack.Pack(contentFrame.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
+	pack.Pack(contentFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true), pack.PadX(5), pack.PadY(5))
 
 	// Left text + scrollbar.
 	leftFrame := frame.New(contentFrame.Window(), "left", app)
-	pack.Pack(leftFrame.Window(), pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+	pack.Pack(leftFrame, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	leftLabel := label.New(leftFrame.Window(), "llabel", app,
 		label.Text("Text A"), label.Anchor(option.AnchorW), label.PadX(5))
-	pack.Pack(leftLabel.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
+	pack.Pack(leftLabel, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
 
 	leftSb := scrollbar.New(leftFrame.Window(), "lsb", app)
 	leftText := text.New(leftFrame.Window(), "lefttxt", app,
@@ -61,20 +61,20 @@ func main() {
 			}
 		}
 	}
-	pack.Pack(leftSb.Window(), pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
-	pack.Pack(leftText.Window(), pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+	pack.Pack(leftSb, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
+	pack.Pack(leftText, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	// Center buttons.
 	centerFrame := frame.New(contentFrame.Window(), "center", app)
-	pack.Pack(centerFrame.Window(), pack.SideOpt(pack.Left), pack.PadX(5), pack.PadY(20))
+	pack.Pack(centerFrame, pack.SideOpt(pack.Left), pack.PadX(5), pack.PadY(20))
 
 	// Right text + scrollbar.
 	rightFrame := frame.New(contentFrame.Window(), "right", app)
-	pack.Pack(rightFrame.Window(), pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+	pack.Pack(rightFrame, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	rightLabel := label.New(rightFrame.Window(), "rlabel", app,
 		label.Text("Text B"), label.Anchor(option.AnchorW), label.PadX(5))
-	pack.Pack(rightLabel.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
+	pack.Pack(rightLabel, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
 
 	rightSb := scrollbar.New(rightFrame.Window(), "rsb", app)
 	rightText := text.New(rightFrame.Window(), "righttxt", app,
@@ -99,8 +99,8 @@ func main() {
 			}
 		}
 	}
-	pack.Pack(rightSb.Window(), pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
-	pack.Pack(rightText.Window(), pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+	pack.Pack(rightSb, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
+	pack.Pack(rightText, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	// Copy buttons.
 	copyRight := button.New(centerFrame.Window(), "copyright", app,
@@ -112,7 +112,7 @@ func main() {
 		}),
 		button.PadX(8), button.PadY(4),
 	)
-	pack.Pack(copyRight.Window(), pack.SideOpt(pack.Top), pack.PadY(10))
+	pack.Pack(copyRight, pack.SideOpt(pack.Top), pack.PadY(10))
 
 	copyLeft := button.New(centerFrame.Window(), "copyleft", app,
 		button.Text("<-- Copy"),
@@ -123,7 +123,7 @@ func main() {
 		}),
 		button.PadX(8), button.PadY(4),
 	)
-	pack.Pack(copyLeft.Window(), pack.SideOpt(pack.Top), pack.PadY(10))
+	pack.Pack(copyLeft, pack.SideOpt(pack.Top), pack.PadY(10))
 
 	// Initial content.
 	leftText.Insert("1.0", `This is Text A.

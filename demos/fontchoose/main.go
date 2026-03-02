@@ -25,7 +25,7 @@ func main() {
 		label.Background("#e8e8e8"),
 		label.PadX(10), label.PadY(10),
 	)
-	pack.Pack(fontLabel.Window(), pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX),
+	pack.Pack(fontLabel, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX),
 		pack.PadX(20), pack.PadY(10))
 
 	// Preview label.
@@ -33,7 +33,7 @@ func main() {
 		label.Text("The quick brown fox jumps over the lazy dog."),
 		label.PadX(10), label.PadY(10),
 	)
-	pack.Pack(previewLabel.Window(), pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX),
+	pack.Pack(previewLabel, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX),
 		pack.PadX(20), pack.PadY(5))
 
 	chooseBtn := button.New(root, "choose", app,
@@ -49,7 +49,7 @@ func main() {
 		}),
 		button.PadX(15), button.PadY(8),
 	)
-	pack.Pack(chooseBtn.Window(), pack.SideOpt(pack.Top), pack.PadX(30), pack.PadY(20))
+	pack.Pack(chooseBtn, pack.SideOpt(pack.Top), pack.PadX(30), pack.PadY(20))
 
 	_ = fontLabel
 	_ = previewLabel

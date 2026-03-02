@@ -110,8 +110,9 @@ func (m *packManager) LostContentProc(content *window.Window) {
 }
 
 // Pack adds a child to its parent's pack layout.
-func Pack(child *window.Window, opts ...PackOption) {
-	parent := child.Parent
+func Pack(child window.Windower, opts ...PackOption) {
+	w := child.Window()
+	parent := w.Parent
 	if parent == nil {
 		return
 	}
@@ -125,7 +126,7 @@ func Pack(child *window.Window, opts ...PackOption) {
 		opt(&cfg)
 	}
 
-	geometry.ManageGeometry(child, mgr)
+	geometry.ManageGeometry(w, mgr)
 
 	p, ok := packers[parent]
 	if !ok {
@@ -142,27 +143,28 @@ func Pack(child *window.Window, opts ...PackOption) {
 
 	// Update or add entry.
 	for _, e := range p.entries {
-		if e.window == child {
+		if e.window == w {
 			e.config = cfg
 			p.arrange()
 			return
 		}
 	}
 
-	p.entries = append(p.entries, &packEntry{window: child, config: cfg})
+	p.entries = append(p.entries, &packEntry{window: w, config: cfg})
 	p.arrange()
 }
 
 // Forget removes a child from pack management.
-func Forget(child *window.Window) {
-	parent := child.Parent
+func Forget(child window.Windower) {
+	w := child.Window()
+	parent := w.Parent
 	if parent == nil {
 		return
 	}
 	if p, ok := packers[parent]; ok {
-		p.remove(child)
+		p.remove(w)
 	}
-	child.GeomManager = nil
+	w.GeomManager = nil
 }
 
 // remove removes a child from the packer's entry list.

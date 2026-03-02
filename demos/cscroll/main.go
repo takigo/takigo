@@ -21,7 +21,7 @@ func main() {
 
 	// Grid frame for canvas + scrollbars.
 	gridFrame := frame.New(root, "gridframe", app)
-	pack.Pack(gridFrame.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
+	pack.Pack(gridFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true), pack.PadX(10), pack.PadY(5))
 
 	c := canvas.New(gridFrame.Window(), "cscroll", app,
@@ -86,9 +86,9 @@ func main() {
 		}),
 	)
 
-	grid.Grid(c.Window(), grid.Row(0), grid.Column(0), grid.Sticky(grid.NSEW))
-	grid.Grid(yscroll.Window(), grid.Row(0), grid.Column(1), grid.Sticky(grid.NS))
-	grid.Grid(xscroll.Window(), grid.Row(1), grid.Column(0), grid.Sticky(grid.EW))
+	grid.Grid(c, grid.Row(0), grid.Column(0), grid.Sticky(grid.NSEW))
+	grid.Grid(yscroll, grid.Row(0), grid.Column(1), grid.Sticky(grid.NS))
+	grid.Grid(xscroll, grid.Row(1), grid.Column(0), grid.Sticky(grid.EW))
 
 	grid.RowConfigure(gridFrame.Window(), 0, grid.SlotConfig{Weight: 1})
 	grid.ColumnConfigure(gridFrame.Window(), 0, grid.SlotConfig{Weight: 1})

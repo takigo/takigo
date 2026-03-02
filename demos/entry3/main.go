@@ -23,7 +23,7 @@ func main() {
 
 	// Form grid.
 	formFrame := frame.New(root, "form", app)
-	pack.Pack(formFrame.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
+	pack.Pack(formFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
 		pack.PadX(20), pack.PadY(10))
 
 	// Row 0: Integer entry.
@@ -35,8 +35,8 @@ func main() {
 		entry.Text("12345"),
 		entry.Width(20),
 	)
-	grid.Grid(l1.Window(), grid.Row(0), grid.Column(0), grid.Sticky(grid.StickE), grid.PadX(5), grid.PadY(5))
-	grid.Grid(e1.Window(), grid.Row(0), grid.Column(1), grid.Sticky(grid.EW), grid.PadX(5), grid.PadY(5))
+	grid.Grid(l1, grid.Row(0), grid.Column(0), grid.Sticky(grid.StickE), grid.PadX(5), grid.PadY(5))
+	grid.Grid(e1, grid.Row(0), grid.Column(1), grid.Sticky(grid.EW), grid.PadX(5), grid.PadY(5))
 
 	// Row 1: Short entry (max ~10 chars concept).
 	l2 := label.New(formFrame.Window(), "l2", app,
@@ -47,8 +47,8 @@ func main() {
 		entry.Width(10),
 		entry.Placeholder("Max 10 chars"),
 	)
-	grid.Grid(l2.Window(), grid.Row(1), grid.Column(0), grid.Sticky(grid.StickE), grid.PadX(5), grid.PadY(5))
-	grid.Grid(e2.Window(), grid.Row(1), grid.Column(1), grid.Sticky(grid.EW), grid.PadX(5), grid.PadY(5))
+	grid.Grid(l2, grid.Row(1), grid.Column(0), grid.Sticky(grid.StickE), grid.PadX(5), grid.PadY(5))
+	grid.Grid(e2, grid.Row(1), grid.Column(1), grid.Sticky(grid.EW), grid.PadX(5), grid.PadY(5))
 
 	// Row 2: Phone number.
 	l3 := label.New(formFrame.Window(), "l3", app,
@@ -59,8 +59,8 @@ func main() {
 		entry.Text("1-(555)-123-4567"),
 		entry.Width(20),
 	)
-	grid.Grid(l3.Window(), grid.Row(2), grid.Column(0), grid.Sticky(grid.StickE), grid.PadX(5), grid.PadY(5))
-	grid.Grid(e3.Window(), grid.Row(2), grid.Column(1), grid.Sticky(grid.EW), grid.PadX(5), grid.PadY(5))
+	grid.Grid(l3, grid.Row(2), grid.Column(0), grid.Sticky(grid.StickE), grid.PadX(5), grid.PadY(5))
+	grid.Grid(e3, grid.Row(2), grid.Column(1), grid.Sticky(grid.EW), grid.PadX(5), grid.PadY(5))
 
 	// Row 3: Password entry.
 	l4 := label.New(formFrame.Window(), "l4", app,
@@ -72,8 +72,8 @@ func main() {
 		entry.Width(20),
 		entry.Placeholder("Enter password"),
 	)
-	grid.Grid(l4.Window(), grid.Row(3), grid.Column(0), grid.Sticky(grid.StickE), grid.PadX(5), grid.PadY(5))
-	grid.Grid(e4.Window(), grid.Row(3), grid.Column(1), grid.Sticky(grid.EW), grid.PadX(5), grid.PadY(5))
+	grid.Grid(l4, grid.Row(3), grid.Column(0), grid.Sticky(grid.StickE), grid.PadX(5), grid.PadY(5))
+	grid.Grid(e4, grid.Row(3), grid.Column(1), grid.Sticky(grid.EW), grid.PadX(5), grid.PadY(5))
 
 	grid.ColumnConfigure(formFrame.Window(), 1, grid.SlotConfig{Weight: 1})
 

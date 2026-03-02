@@ -24,7 +24,7 @@ func main() {
 	pw := panedwindow.New(root, "pw", app,
 		panedwindow.OrientOpt(panedwindow.Horizontal),
 	)
-	pack.Pack(pw.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
+	pack.Pack(pw, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true), pack.PadX(10), pack.PadY(5))
 
 	// Left pane: TTK frame with label.
@@ -35,7 +35,7 @@ func main() {
 	leftLabel := ttk.NewLabel(leftFrame.Window(), "leftlbl", app,
 		ttk.LabelText("TTK Frame (Left Pane)"),
 	)
-	pack.Pack(leftLabel.Window(), pack.SideOpt(pack.Top), pack.PadX(10), pack.PadY(10))
+	pack.Pack(leftLabel, pack.SideOpt(pack.Top), pack.PadX(10), pack.PadY(10))
 	pw.Add(leftFrame.Window(), 150)
 
 	// Right pane: TTK frame with button.
@@ -46,13 +46,13 @@ func main() {
 	rightLabel := ttk.NewLabel(rightFrame.Window(), "rightlbl", app,
 		ttk.LabelText("TTK Frame (Right Pane)"),
 	)
-	pack.Pack(rightLabel.Window(), pack.SideOpt(pack.Top), pack.PadX(10), pack.PadY(10))
+	pack.Pack(rightLabel, pack.SideOpt(pack.Top), pack.PadX(10), pack.PadY(10))
 
 	ttkBtn := ttk.NewButton(rightFrame.Window(), "ttkbtn", app,
 		ttk.ButtonText("TTK Button"),
 		ttk.ButtonCommand(func() { fmt.Println("TTK button clicked!") }),
 	)
-	pack.Pack(ttkBtn.Window(), pack.SideOpt(pack.Top), pack.PadX(10), pack.PadY(5))
+	pack.Pack(ttkBtn, pack.SideOpt(pack.Top), pack.PadX(10), pack.PadY(5))
 	pw.Add(rightFrame.Window(), 150)
 
 	_ = leftLabel

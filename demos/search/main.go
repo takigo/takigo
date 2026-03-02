@@ -28,18 +28,18 @@ func main() {
 
 	// Search bar.
 	searchFrame := frame.New(root, "searchframe", app)
-	pack.Pack(searchFrame.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
+	pack.Pack(searchFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
 		pack.PadX(10), pack.PadY(5))
 
 	searchLabel := label.New(searchFrame.Window(), "slabel", app,
 		label.Text("Search:"),
 	)
-	pack.Pack(searchLabel.Window(), pack.SideOpt(pack.Left), pack.PadX(5))
+	pack.Pack(searchLabel, pack.SideOpt(pack.Left), pack.PadX(5))
 
 	searchEntry := entry.New(searchFrame.Window(), "sentry", app,
 		entry.Width(20),
 	)
-	pack.Pack(searchEntry.Window(), pack.SideOpt(pack.Left), pack.FillOpt(pack.FillX),
+	pack.Pack(searchEntry, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillX),
 		pack.Expand(true), pack.PadX(5))
 
 	// Status label.
@@ -49,11 +49,11 @@ func main() {
 		label.Background("#e8e8e8"),
 		label.PadX(5),
 	)
-	pack.Pack(statusLabel.Window(), pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
+	pack.Pack(statusLabel, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	// Text widget with scrollbar.
 	txtFrame := frame.New(root, "txtframe", app)
-	pack.Pack(txtFrame.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
+	pack.Pack(txtFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true), pack.PadX(10), pack.PadY(5))
 
 	tw := text.New(txtFrame.Window(), "searchtext", app,
@@ -88,8 +88,8 @@ func main() {
 		yscroll.Set(first, last)
 	}
 
-	pack.Pack(yscroll.Window(), pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
-	pack.Pack(tw.Window(), pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+	pack.Pack(yscroll, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
+	pack.Pack(tw, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	// Configure search highlight tag.
 	tw.TagConfigure("search", text.TagForeground("white"), text.TagBackground("#cc0000"))
@@ -159,7 +159,7 @@ Go has built-in concurrency and a robust standard library.
 		button.PadX(8),
 		button.PadY(2),
 	)
-	pack.Pack(highlightBtn.Window(), pack.SideOpt(pack.Left), pack.PadX(5))
+	pack.Pack(highlightBtn, pack.SideOpt(pack.Left), pack.PadX(5))
 
 	_ = searchLabel
 	_ = statusLabel

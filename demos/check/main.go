@@ -21,7 +21,7 @@ func main() {
 		label.Anchor(option.AnchorW),
 		label.PadX(10),
 	)
-	pack.Pack(statusLabel.Window(), pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX), pack.PadY(5))
+	pack.Pack(statusLabel, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX), pack.PadY(5))
 
 	// Variables.
 	wipers := widget.NewVariable(false)
@@ -52,21 +52,21 @@ func main() {
 		checkbutton.Var(wipers),
 		checkbutton.Command(updateStatus),
 	)
-	pack.Pack(cb1.Window(), pack.SideOpt(pack.Top), pack.PadY(4), pack.Anchor(option.AnchorW), pack.PadX(20))
+	pack.Pack(cb1, pack.SideOpt(pack.Top), pack.PadY(4), pack.Anchor(option.AnchorW), pack.PadX(20))
 
 	cb2 := checkbutton.New(root, "brakes", app,
 		checkbutton.Text("Safety Check: Brakes OK"),
 		checkbutton.Var(brakes),
 		checkbutton.Command(updateStatus),
 	)
-	pack.Pack(cb2.Window(), pack.SideOpt(pack.Top), pack.PadY(4), pack.Anchor(option.AnchorW), pack.PadX(20))
+	pack.Pack(cb2, pack.SideOpt(pack.Top), pack.PadY(4), pack.Anchor(option.AnchorW), pack.PadX(20))
 
 	cb3 := checkbutton.New(root, "sober", app,
 		checkbutton.Text("Safety Check: Driver Sober"),
 		checkbutton.Var(sober),
 		checkbutton.Command(updateStatus),
 	)
-	pack.Pack(cb3.Window(), pack.SideOpt(pack.Top), pack.PadY(4), pack.Anchor(option.AnchorW), pack.PadX(20))
+	pack.Pack(cb3, pack.SideOpt(pack.Top), pack.PadY(4), pack.Anchor(option.AnchorW), pack.PadX(20))
 
 	_ = statusLabel
 	_ = cb1

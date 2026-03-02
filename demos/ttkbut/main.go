@@ -27,7 +27,7 @@ func main() {
 		label.Background("#e8e8e8"),
 		label.PadX(5), label.PadY(2),
 	)
-	pack.Pack(statusLabel.Window(), pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
+	pack.Pack(statusLabel, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	setStatus := func(s string) {
 		statusLabel.Text = s
@@ -39,18 +39,18 @@ func main() {
 		ttk.FrameBorderWidth(2),
 		ttk.FrameRelief(option.ReliefGroove),
 	)
-	pack.Pack(ttkFrame.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
+	pack.Pack(ttkFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
 		pack.PadX(15), pack.PadY(10))
 
 	// TTK Label.
 	ttkLabel := ttk.NewLabel(ttkFrame.Window(), "ttklabel", app,
 		ttk.LabelText("This is a TTK Label"),
 	)
-	pack.Pack(ttkLabel.Window(), pack.SideOpt(pack.Top), pack.PadX(10), pack.PadY(8))
+	pack.Pack(ttkLabel, pack.SideOpt(pack.Top), pack.PadX(10), pack.PadY(8))
 
 	// Separator.
 	sep := ttk.NewSeparator(ttkFrame.Window(), "sep", app)
-	pack.Pack(sep.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadX(5))
+	pack.Pack(sep, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadX(5))
 
 	// TTK Buttons.
 	for i, text := range []string{"TTK Button 1", "TTK Button 2", "TTK Button 3"} {
@@ -62,7 +62,7 @@ func main() {
 				setStatus(fmt.Sprintf("Clicked: %s", btnText))
 			}),
 		)
-		pack.Pack(btn.Window(), pack.SideOpt(pack.Top), pack.PadX(10), pack.PadY(5))
+		pack.Pack(btn, pack.SideOpt(pack.Top), pack.PadX(10), pack.PadY(5))
 		_ = btn
 	}
 

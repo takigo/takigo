@@ -84,7 +84,7 @@ func ShowMessage(app widget.AppContext, opts ...MessageOption) DialogResult {
 		label.Text(iconText),
 		label.FontOpt("TkDefaultFont"),
 	)
-	pack.Pack(iconLabel.Window(), pack.SideOpt(pack.Left), pack.PadX(10), pack.PadY(10))
+	pack.Pack(iconLabel, pack.SideOpt(pack.Left), pack.PadX(10), pack.PadY(10))
 
 	// Message text.
 	msgText := cfg.message
@@ -95,7 +95,7 @@ func ShowMessage(app widget.AppContext, opts ...MessageOption) DialogResult {
 		label.Text(msgText),
 		label.Anchor(0), // AnchorNW
 	)
-	pack.Pack(msgLabel.Window(), pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth),
+	pack.Pack(msgLabel, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true), pack.PadX(5), pack.PadY(10))
 
 	// Buttons.

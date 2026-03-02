@@ -87,12 +87,12 @@ func main() {
 
 	// Layout: listbox on left, preview on right.
 	mainFrame := frame.New(root, "mainframe", app)
-	pack.Pack(mainFrame.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
+	pack.Pack(mainFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true), pack.PadX(10), pack.PadY(5))
 
 	// Listbox.
 	lbFrame := frame.New(mainFrame.Window(), "lbframe", app)
-	pack.Pack(lbFrame.Window(), pack.SideOpt(pack.Left), pack.FillOpt(pack.FillY), pack.PadX(5))
+	pack.Pack(lbFrame, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillY), pack.PadX(5))
 
 	names := make([]string, len(images))
 	for i, e := range images {
@@ -127,8 +127,8 @@ func main() {
 		}),
 	)
 	lb.YScrollCmd = func(first, last float64) { yscroll.Set(first, last) }
-	pack.Pack(yscroll.Window(), pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
-	pack.Pack(lb.Window(), pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+	pack.Pack(yscroll, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
+	pack.Pack(lb, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	// Preview label.
 	previewLabel := label.New(mainFrame.Window(), "preview", app,
@@ -137,7 +137,7 @@ func main() {
 		label.Relief(option.ReliefSunken),
 		label.PadX(10), label.PadY(10),
 	)
-	pack.Pack(previewLabel.Window(), pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth),
+	pack.Pack(previewLabel, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true), pack.PadX(10))
 
 	// Selection handler — use bind engine for button click.

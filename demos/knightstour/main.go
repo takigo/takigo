@@ -26,14 +26,14 @@ func main() {
 		label.Background("#e8e8e8"),
 		label.PadX(5), label.PadY(2),
 	)
-	pack.Pack(statusLabel.Window(), pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
+	pack.Pack(statusLabel, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	c := canvas.New(root, "board", app,
 		canvas.Background("white"),
 		canvas.Width(400),
 		canvas.Height(400),
 	)
-	pack.Pack(c.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
+	pack.Pack(c, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true), pack.PadX(10), pack.PadY(5))
 
 	cellSize := 400.0 / float64(boardSize)
@@ -159,7 +159,7 @@ func main() {
 		app.After(300*time.Millisecond, animateFunc)
 	}
 
-	pack.Pack(startBtn.Window(), pack.SideOpt(pack.Top), pack.PadX(10), pack.PadY(5))
+	pack.Pack(startBtn, pack.SideOpt(pack.Top), pack.PadX(10), pack.PadY(5))
 
 	_ = statusLabel
 	_ = startBtn

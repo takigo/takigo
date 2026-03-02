@@ -96,8 +96,9 @@ func (m *placeManager) LostContentProc(content *window.Window) {
 }
 
 // Place positions a child within its parent using absolute/relative coords.
-func Place(child *window.Window, opts ...PlaceOption) {
-	parent := child.Parent
+func Place(child window.Windower, opts ...PlaceOption) {
+	w := child.Window()
+	parent := w.Parent
 	if parent == nil {
 		return
 	}
@@ -113,7 +114,7 @@ func Place(child *window.Window, opts ...PlaceOption) {
 		opt(&cfg)
 	}
 
-	child.GeomManager = mgr
+	w.GeomManager = mgr
 
 	p, ok := placers[parent]
 	if !ok {
@@ -123,27 +124,28 @@ func Place(child *window.Window, opts ...PlaceOption) {
 
 	// Update or add entry.
 	for _, e := range p.entries {
-		if e.window == child {
+		if e.window == w {
 			e.config = cfg
 			p.arrange()
 			return
 		}
 	}
 
-	p.entries = append(p.entries, &placeEntry{window: child, config: cfg})
+	p.entries = append(p.entries, &placeEntry{window: w, config: cfg})
 	p.arrange()
 }
 
 // Forget removes a child from place management.
-func Forget(child *window.Window) {
-	parent := child.Parent
+func Forget(child window.Windower) {
+	w := child.Window()
+	parent := w.Parent
 	if parent == nil {
 		return
 	}
 	if p, ok := placers[parent]; ok {
-		p.remove(child)
+		p.remove(w)
 	}
-	child.GeomManager = nil
+	w.GeomManager = nil
 }
 
 func (p *placer) remove(child *window.Window) {

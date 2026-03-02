@@ -20,7 +20,7 @@ func main() {
 
 	// Middle frame: scale on left, canvas on right.
 	midFrame := frame.New(root, "midframe", app)
-	pack.Pack(midFrame.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
+	pack.Pack(midFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true), pack.PadX(10), pack.PadY(5))
 
 	// Canvas.
@@ -56,8 +56,8 @@ func main() {
 		scale.CommandOpt(func(v float64) { drawBar(v) }),
 	)
 
-	pack.Pack(sc.Window(), pack.SideOpt(pack.Left), pack.FillOpt(pack.FillY), pack.PadX(10))
-	pack.Pack(c.Window(), pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+	pack.Pack(sc, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillY), pack.PadX(10))
+	pack.Pack(c, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	_ = sc
 	d.Run()

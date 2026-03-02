@@ -17,7 +17,7 @@ func main() {
 
 	// Text widget with scrollbar.
 	txtFrame := frame.New(root, "txtframe", app)
-	pack.Pack(txtFrame.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
+	pack.Pack(txtFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true), pack.PadX(10), pack.PadY(5))
 
 	tw := text.New(txtFrame.Window(), "text1", app,
@@ -53,8 +53,8 @@ func main() {
 		yscroll.Set(first, last)
 	}
 
-	pack.Pack(yscroll.Window(), pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
-	pack.Pack(tw.Window(), pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+	pack.Pack(yscroll, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
+	pack.Pack(tw, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	// Insert sample text.
 	sampleText := `This window is a text widget. It displays one or more lines of text and allows you to edit the text.

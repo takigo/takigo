@@ -26,7 +26,7 @@ func main() {
 		label.Anchor(option.AnchorW),
 		label.PadX(20), label.PadY(20),
 	)
-	pack.Pack(aniLabel.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
+	pack.Pack(aniLabel, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
 		pack.PadX(20), pack.PadY(20))
 
 	// Animation loop.

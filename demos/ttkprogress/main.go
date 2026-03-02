@@ -27,13 +27,13 @@ func main() {
 		label.Anchor(option.AnchorW),
 		label.PadX(20),
 	)
-	pack.Pack(detLabel.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(5))
+	pack.Pack(detLabel, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(5))
 
 	detPbar := ttk.NewProgressbar(root, "detpbar", app,
 		ttk.ProgressbarMode(ttk.ProgressDeterminate),
 		ttk.ProgressbarLength(300),
 	)
-	pack.Pack(detPbar.Window(), pack.SideOpt(pack.Top), pack.PadX(20), pack.PadY(5))
+	pack.Pack(detPbar, pack.SideOpt(pack.Top), pack.PadX(20), pack.PadY(5))
 
 	// Progress simulation button.
 	var simulating bool
@@ -68,11 +68,11 @@ func main() {
 			step()
 		}
 	}
-	pack.Pack(simBtn.Window(), pack.SideOpt(pack.Top), pack.PadY(5))
+	pack.Pack(simBtn, pack.SideOpt(pack.Top), pack.PadY(5))
 
 	// Separator.
 	sep := ttk.NewSeparator(root, "sep", app)
-	pack.Pack(sep.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadX(10), pack.PadY(10))
+	pack.Pack(sep, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadX(10), pack.PadY(10))
 
 	// Indeterminate progressbar.
 	indLabel := label.New(root, "indlabel", app,
@@ -80,13 +80,13 @@ func main() {
 		label.Anchor(option.AnchorW),
 		label.PadX(20),
 	)
-	pack.Pack(indLabel.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(5))
+	pack.Pack(indLabel, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(5))
 
 	indPbar := ttk.NewProgressbar(root, "indpbar", app,
 		ttk.ProgressbarMode(ttk.ProgressIndeterminate),
 		ttk.ProgressbarLength(300),
 	)
-	pack.Pack(indPbar.Window(), pack.SideOpt(pack.Top), pack.PadX(20), pack.PadY(5))
+	pack.Pack(indPbar, pack.SideOpt(pack.Top), pack.PadX(20), pack.PadY(5))
 
 	// Start/Stop button for indeterminate.
 	indBtn := button.New(root, "indbtn", app,
@@ -107,7 +107,7 @@ func main() {
 			indBtn.Display()
 		}
 	}
-	pack.Pack(indBtn.Window(), pack.SideOpt(pack.Top), pack.PadY(5))
+	pack.Pack(indBtn, pack.SideOpt(pack.Top), pack.PadY(5))
 
 	_ = detLabel
 	_ = simBtn

@@ -17,7 +17,7 @@ func main() {
 
 	// Listbox frame.
 	lbFrame := frame.New(root, "lbframe", app)
-	pack.Pack(lbFrame.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
+	pack.Pack(lbFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true), pack.PadX(10), pack.PadY(5))
 
 	states := []string{
@@ -64,8 +64,8 @@ func main() {
 		yscroll.Set(first, last)
 	}
 
-	pack.Pack(yscroll.Window(), pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
-	pack.Pack(lb.Window(), pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+	pack.Pack(yscroll, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
+	pack.Pack(lb, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	first, last := lb.YVisibleRange()
 	yscroll.Set(first, last)

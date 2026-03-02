@@ -23,7 +23,7 @@ func main() {
 		label.Background("#e8e8e8"),
 		label.PadX(5), label.PadY(2),
 	)
-	pack.Pack(statusLabel.Window(), pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
+	pack.Pack(statusLabel, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	setStatus := func(s string) {
 		statusLabel.Text = s
@@ -32,7 +32,7 @@ func main() {
 
 	// Create menu buttons with different directions.
 	mbFrame := frame.New(root, "mbframe", app)
-	pack.Pack(mbFrame.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
+	pack.Pack(mbFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
 		pack.PadX(20), pack.PadY(20))
 
 	directions := []struct {
@@ -57,7 +57,7 @@ func main() {
 			menubutton.MenuOpt(m),
 			menubutton.DirectionOpt(d.dir),
 		)
-		pack.Pack(mb.Window(), pack.SideOpt(pack.Left), pack.PadX(10), pack.PadY(10))
+		pack.Pack(mb, pack.SideOpt(pack.Left), pack.PadX(10), pack.PadY(10))
 		_ = mb
 	}
 

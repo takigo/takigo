@@ -74,19 +74,19 @@ func main() {
 		label.PadX(10),
 		label.PadY(5),
 	)
-	pack.Pack(titleLabel.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(5))
+	pack.Pack(titleLabel, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(5))
 
 	// --- TTK section ---
 	ttkFrame := ttk.NewFrame(root, "ttkFrame", app,
 		ttk.FrameBorderWidth(2),
 		ttk.FrameRelief(option.ReliefGroove),
 	)
-	pack.Pack(ttkFrame.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadX(10), pack.PadY(5))
+	pack.Pack(ttkFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadX(10), pack.PadY(5))
 
 	ttkLabel := ttk.NewLabel(ttkFrame.Window(), "ttkLabel", app,
 		ttk.LabelText("TTK Label (clam theme)"),
 	)
-	pack.Pack(ttkLabel.Window(), pack.SideOpt(pack.Left), pack.PadX(8), pack.PadY(4))
+	pack.Pack(ttkLabel, pack.SideOpt(pack.Left), pack.PadX(8), pack.PadY(4))
 
 	ttkBtn := ttk.NewButton(ttkFrame.Window(), "ttkBtn", app,
 		ttk.ButtonText("TTK Button"),
@@ -94,15 +94,15 @@ func main() {
 			fmt.Println("TTK button clicked!")
 		}),
 	)
-	pack.Pack(ttkBtn.Window(), pack.SideOpt(pack.Left), pack.PadX(8), pack.PadY(4))
+	pack.Pack(ttkBtn, pack.SideOpt(pack.Left), pack.PadX(8), pack.PadY(4))
 
 	// Separator.
 	ttkSep := ttk.NewSeparator(root, "ttkSep", app)
-	pack.Pack(ttkSep.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadX(10), pack.PadY(2))
+	pack.Pack(ttkSep, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadX(10), pack.PadY(2))
 
 	// --- Image section (from Phase 8) ---
 	imgFrame := frame.New(root, "imgFrame", app)
-	pack.Pack(imgFrame.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadX(10), pack.PadY(5))
+	pack.Pack(imgFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadX(10), pack.PadY(5))
 
 	// Generate a test image at runtime.
 	testRGBA := generateTestImage()
@@ -117,7 +117,7 @@ func main() {
 		label.PadX(4),
 		label.PadY(4),
 	)
-	pack.Pack(imgLabel.Window(), pack.SideOpt(pack.Left), pack.PadX(5))
+	pack.Pack(imgLabel, pack.SideOpt(pack.Left), pack.PadX(5))
 
 	// Button with image + text (compound left).
 	imgBtn := button.New(imgFrame.Window(), "imgBtn", app,
@@ -130,7 +130,7 @@ func main() {
 			fmt.Println("Image button clicked!")
 		}),
 	)
-	pack.Pack(imgBtn.Window(), pack.SideOpt(pack.Left), pack.PadX(5))
+	pack.Pack(imgBtn, pack.SideOpt(pack.Left), pack.PadX(5))
 
 	// Optionally load a PNG from file if provided as argument.
 	var imgPath string
@@ -153,13 +153,13 @@ func main() {
 				label.PadX(4),
 				label.PadY(4),
 			)
-			pack.Pack(fileLabel.Window(), pack.SideOpt(pack.Left), pack.PadX(5))
+			pack.Pack(fileLabel, pack.SideOpt(pack.Left), pack.PadX(5))
 		}
 	}
 
 	// --- Classic widgets to show coexistence ---
 	midFrame := frame.New(root, "midFrame", app)
-	pack.Pack(midFrame.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadX(10), pack.PadY(5))
+	pack.Pack(midFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadX(10), pack.PadY(5))
 
 	// Scale.
 	scaleLabel := label.New(midFrame.Window(), "scaleLabel", app,
@@ -177,12 +177,12 @@ func main() {
 			scaleLabel.Display()
 		}),
 	)
-	pack.Pack(sc.Window(), pack.SideOpt(pack.Left), pack.FillOpt(pack.FillX), pack.Expand(true), pack.PadX(5))
-	pack.Pack(scaleLabel.Window(), pack.SideOpt(pack.Left), pack.PadX(5))
+	pack.Pack(sc, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillX), pack.Expand(true), pack.PadX(5))
+	pack.Pack(scaleLabel, pack.SideOpt(pack.Left), pack.PadX(5))
 
 	// Listbox with scrollbar.
 	lbFrame := frame.New(root, "lbFrame", app)
-	pack.Pack(lbFrame.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true), pack.PadX(10), pack.PadY(5))
+	pack.Pack(lbFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true), pack.PadX(10), pack.PadY(5))
 
 	items := make([]string, 20)
 	for i := range items {
@@ -221,8 +221,8 @@ func main() {
 	lb.YScrollCmd = func(first, last float64) {
 		yscroll.Set(first, last)
 	}
-	pack.Pack(yscroll.Window(), pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
-	pack.Pack(lb.Window(), pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+	pack.Pack(yscroll, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
+	pack.Pack(lb, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	first, last := lb.YVisibleRange()
 	yscroll.Set(first, last)
@@ -235,7 +235,7 @@ func main() {
 		label.PadX(5),
 		label.PadY(2),
 	)
-	pack.Pack(statusLabel.Window(), pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
+	pack.Pack(statusLabel, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	// --- Root event handlers ---
 	app.Dispatcher().Bind(root.XWindow, event.StructureNotifyMask, func(ev *event.Event) {

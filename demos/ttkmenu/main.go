@@ -26,7 +26,7 @@ func main() {
 		label.Anchor(option.AnchorW),
 		label.PadX(10),
 	)
-	pack.Pack(statusLabel.Window(), pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX), pack.PadY(5))
+	pack.Pack(statusLabel, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX), pack.PadY(5))
 
 	setStatus := func(s string) {
 		statusLabel.Text = "Selected: " + s
@@ -45,7 +45,7 @@ func main() {
 		ttk.MenubuttonText("File"),
 		ttk.MenubuttonMenu(fileMenu),
 	)
-	pack.Pack(fileMB.Window(), pack.SideOpt(pack.Top), pack.PadX(20), pack.PadY(10))
+	pack.Pack(fileMB, pack.SideOpt(pack.Top), pack.PadX(20), pack.PadY(10))
 
 	// Edit menubutton.
 	editMenu := menu.New(root, "editmenu", app)
@@ -57,7 +57,7 @@ func main() {
 		ttk.MenubuttonText("Edit"),
 		ttk.MenubuttonMenu(editMenu),
 	)
-	pack.Pack(editMB.Window(), pack.SideOpt(pack.Top), pack.PadX(20), pack.PadY(10))
+	pack.Pack(editMB, pack.SideOpt(pack.Top), pack.PadX(20), pack.PadY(10))
 
 	// Help menubutton.
 	helpMenu := menu.New(root, "helpmenu", app)
@@ -68,7 +68,7 @@ func main() {
 		ttk.MenubuttonText("Help"),
 		ttk.MenubuttonMenu(helpMenu),
 	)
-	pack.Pack(helpMB.Window(), pack.SideOpt(pack.Top), pack.PadX(20), pack.PadY(10))
+	pack.Pack(helpMB, pack.SideOpt(pack.Top), pack.PadX(20), pack.PadY(10))
 
 	_ = statusLabel
 	_ = fileMB

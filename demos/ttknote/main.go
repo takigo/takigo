@@ -23,7 +23,7 @@ func main() {
 
 	// Notebook.
 	nb := ttk.NewNotebook(root, "nb", app)
-	pack.Pack(nb.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
+	pack.Pack(nb, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true), pack.PadX(15), pack.PadY(10))
 
 	// Tab 1: Description.
@@ -33,7 +33,7 @@ func main() {
 		label.Anchor(option.AnchorNW),
 		label.PadX(10), label.PadY(10),
 	)
-	pack.Pack(descLabel.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+	pack.Pack(descLabel, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 	nb.Add(page1.Window(), "Description")
 
 	// Tab 2: Buttons.
@@ -44,7 +44,7 @@ func main() {
 		label.Anchor(option.AnchorW),
 		label.PadX(10),
 	)
-	pack.Pack(statusLabel.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(5))
+	pack.Pack(statusLabel, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(5))
 
 	for i, text := range []string{"Button A", "Button B", "Button C"} {
 		btnText := text
@@ -55,7 +55,7 @@ func main() {
 				statusLabel.Display()
 			}),
 		)
-		pack.Pack(btn.Window(), pack.SideOpt(pack.Top), pack.PadX(10), pack.PadY(3))
+		pack.Pack(btn, pack.SideOpt(pack.Top), pack.PadX(10), pack.PadY(3))
 		_ = btn
 	}
 	nb.Add(page2.Window(), "Buttons")
@@ -66,7 +66,7 @@ func main() {
 		l := ttk.NewLabel(page3.Window(), "l_"+text, app,
 			ttk.LabelText(text),
 		)
-		pack.Pack(l.Window(), pack.SideOpt(pack.Top), pack.PadX(10), pack.PadY(5))
+		pack.Pack(l, pack.SideOpt(pack.Top), pack.PadX(10), pack.PadY(5))
 		_ = l
 	}
 	nb.Add(page3.Window(), "Labels")

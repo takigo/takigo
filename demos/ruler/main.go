@@ -22,7 +22,7 @@ func main() {
 		canvas.Width(560),
 		canvas.Height(100),
 	)
-	pack.Pack(c.Window(), pack.SideOpt(pack.Top), pack.PadX(10), pack.PadY(10))
+	pack.Pack(c, pack.SideOpt(pack.Top), pack.PadX(10), pack.PadY(10))
 
 	// Ruler background.
 	c.CreateRectangle(20, 20, 540, 60,

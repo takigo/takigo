@@ -42,11 +42,11 @@ func Setup(title string, width, height int, description string) *Demo {
 		label.PadX(10),
 		label.PadY(5),
 	)
-	pack.Pack(msg.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
+	pack.Pack(msg, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
 
 	// Dismiss button at bottom.
 	btnFrame := frame.New(root, "btnframe", app)
-	pack.Pack(btnFrame.Window(), pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX), pack.PadY(5))
+	pack.Pack(btnFrame, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX), pack.PadY(5))
 
 	dismissBtn := button.New(btnFrame.Window(), "dismiss", app,
 		button.Text("Dismiss"),
@@ -54,7 +54,7 @@ func Setup(title string, width, height int, description string) *Demo {
 		button.PadX(10),
 		button.PadY(4),
 	)
-	pack.Pack(dismissBtn.Window(), pack.SideOpt(pack.Left), pack.PadX(10))
+	pack.Pack(dismissBtn, pack.SideOpt(pack.Left), pack.PadX(10))
 
 	// Configure handler.
 	app.Dispatcher().Bind(root.XWindow, event.StructureNotifyMask, func(ev *event.Event) {

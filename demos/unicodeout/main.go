@@ -39,7 +39,7 @@ func main() {
 			label.Anchor(option.AnchorW),
 			label.PadX(10), label.PadY(2),
 		)
-		pack.Pack(l.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
+		pack.Pack(l, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
 		_ = l
 	}
 

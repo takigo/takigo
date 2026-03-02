@@ -144,17 +144,17 @@ func main() {
 		label.Anchor(option.AnchorCenter),
 		label.PadX(10), label.PadY(8),
 	)
-	pack.Pack(header.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
+	pack.Pack(header, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
 
 	// Bottom button frame.
 	btnFrame := frame.New(root, "btnframe", app)
-	pack.Pack(btnFrame.Window(), pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX), pack.PadY(5))
+	pack.Pack(btnFrame, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX), pack.PadY(5))
 
 	dismissBtn := button.New(btnFrame.Window(), "dismiss", app,
 		button.Text("Quit"), button.Command(func() { app.Quit() }),
 		button.PadX(10), button.PadY(4),
 	)
-	pack.Pack(dismissBtn.Window(), pack.SideOpt(pack.Right), pack.PadX(10))
+	pack.Pack(dismissBtn, pack.SideOpt(pack.Right), pack.PadX(10))
 
 	// Status bar.
 	statusLabel := label.New(root, "status", app,
@@ -163,21 +163,21 @@ func main() {
 		label.Background("#e8e8e8"),
 		label.PadX(5), label.PadY(2),
 	)
-	pack.Pack(statusLabel.Window(), pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
+	pack.Pack(statusLabel, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	// Main content: left listbox + right source viewer.
 	contentFrame := frame.New(root, "content", app)
-	pack.Pack(contentFrame.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
+	pack.Pack(contentFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true), pack.PadX(5), pack.PadY(2))
 
 	// Left panel: listbox of demos.
 	leftFrame := frame.New(contentFrame.Window(), "left", app)
-	pack.Pack(leftFrame.Window(), pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth),
+	pack.Pack(leftFrame, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth),
 		pack.Expand(false))
 
 	// Action buttons (pack bottom FIRST so listbox doesn't consume all space).
 	actionFrame := frame.New(leftFrame.Window(), "actions", app)
-	pack.Pack(actionFrame.Window(), pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX), pack.PadY(3))
+	pack.Pack(actionFrame, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX), pack.PadY(3))
 
 	sb := scrollbar.New(leftFrame.Window(), "sb", app)
 	lb := listbox.New(leftFrame.Window(), "demos", app,
@@ -206,8 +206,8 @@ func main() {
 			}
 		}
 	}
-	pack.Pack(sb.Window(), pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
-	pack.Pack(lb.Window(), pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+	pack.Pack(sb, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
+	pack.Pack(lb, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	// Populate listbox with categories and demos.
 	type listItem struct {
@@ -228,7 +228,7 @@ func main() {
 
 	// Right panel: source viewer.
 	rightFrame := frame.New(contentFrame.Window(), "right", app)
-	pack.Pack(rightFrame.Window(), pack.SideOpt(pack.Right), pack.FillOpt(pack.FillBoth),
+	pack.Pack(rightFrame, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true))
 
 	rightLabel := label.New(rightFrame.Window(), "srclabel", app,
@@ -236,7 +236,7 @@ func main() {
 		label.Anchor(option.AnchorW),
 		label.PadX(5),
 	)
-	pack.Pack(rightLabel.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
+	pack.Pack(rightLabel, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
 
 	srcSb := scrollbar.New(rightFrame.Window(), "srcsb", app)
 	srcText := text.New(rightFrame.Window(), "source", app,
@@ -265,8 +265,8 @@ func main() {
 			}
 		}
 	}
-	pack.Pack(srcSb.Window(), pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
-	pack.Pack(srcText.Window(), pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth),
+	pack.Pack(srcSb, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
+	pack.Pack(srcText, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true))
 
 	getSelectedDemo := func() (string, string, bool) {
@@ -306,7 +306,7 @@ func main() {
 		}),
 		button.PadX(8), button.PadY(3),
 	)
-	pack.Pack(runBtn.Window(), pack.SideOpt(pack.Left), pack.PadX(3))
+	pack.Pack(runBtn, pack.SideOpt(pack.Left), pack.PadX(3))
 
 	codeBtn := button.New(actionFrame.Window(), "code", app,
 		button.Text("See Code"),
@@ -333,7 +333,7 @@ func main() {
 		}),
 		button.PadX(8), button.PadY(3),
 	)
-	pack.Pack(codeBtn.Window(), pack.SideOpt(pack.Left), pack.PadX(3))
+	pack.Pack(codeBtn, pack.SideOpt(pack.Left), pack.PadX(3))
 
 	// Show source on selection change via double-click.
 	eng := app.BindEng()

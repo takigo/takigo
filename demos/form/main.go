@@ -25,7 +25,7 @@ func main() {
 
 	// Form grid.
 	formFrame := frame.New(root, "form", app)
-	pack.Pack(formFrame.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
+	pack.Pack(formFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
 		pack.PadX(20), pack.PadY(10))
 
 	fields := []string{"Name:", "Address:", "City:", "State:", "Phone:"}
@@ -39,8 +39,8 @@ func main() {
 		e := entry.New(formFrame.Window(), fmt.Sprintf("e%d", i), app,
 			entry.Width(30),
 		)
-		grid.Grid(l.Window(), grid.Row(i), grid.Column(0), grid.Sticky(grid.StickE), grid.PadX(5), grid.PadY(4))
-		grid.Grid(e.Window(), grid.Row(i), grid.Column(1), grid.Sticky(grid.EW), grid.PadX(5), grid.PadY(4))
+		grid.Grid(l, grid.Row(i), grid.Column(0), grid.Sticky(grid.StickE), grid.PadX(5), grid.PadY(4))
+		grid.Grid(e, grid.Row(i), grid.Column(1), grid.Sticky(grid.EW), grid.PadX(5), grid.PadY(4))
 		entries[i] = e
 		_ = l
 	}

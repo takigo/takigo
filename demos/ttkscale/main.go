@@ -23,7 +23,7 @@ func main() {
 		label.Anchor(option.AnchorCenter),
 		label.PadX(10), label.PadY(10),
 	)
-	pack.Pack(valueLabel.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(10))
+	pack.Pack(valueLabel, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(10))
 
 	sc := scale.New(root, "ttkscale", app,
 		scale.OrientOpt(scale.Horizontal),
@@ -36,7 +36,7 @@ func main() {
 			valueLabel.Display()
 		}),
 	)
-	pack.Pack(sc.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
+	pack.Pack(sc, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
 		pack.PadX(30), pack.PadY(10))
 
 	_ = valueLabel

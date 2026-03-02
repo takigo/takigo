@@ -24,7 +24,7 @@ func main() {
 		canvas.Width(300),
 		canvas.Height(200),
 	)
-	pack.Pack(c.Window(), pack.SideOpt(pack.Top), pack.PadX(10), pack.PadY(5))
+	pack.Pack(c, pack.SideOpt(pack.Top), pack.PadX(10), pack.PadY(5))
 
 	// Draw initial arrow.
 	cx, cy := 150.0, 100.0
@@ -57,7 +57,7 @@ func main() {
 			drawArrow(v)
 		}),
 	)
-	pack.Pack(sc.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
+	pack.Pack(sc, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
 		pack.PadX(30), pack.PadY(10))
 
 	_ = sc

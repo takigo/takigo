@@ -24,7 +24,7 @@ func main() {
 		label.Foreground("white"),
 		label.PadX(20), label.PadY(20),
 	)
-	pack.Pack(colorLabel.Window(), pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX),
+	pack.Pack(colorLabel, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX),
 		pack.PadX(20), pack.PadY(10))
 
 	chooseBtn := button.New(root, "choose", app,
@@ -46,7 +46,7 @@ func main() {
 		}),
 		button.PadX(15), button.PadY(8),
 	)
-	pack.Pack(chooseBtn.Window(), pack.SideOpt(pack.Top), pack.PadX(30), pack.PadY(20))
+	pack.Pack(chooseBtn, pack.SideOpt(pack.Top), pack.PadX(30), pack.PadY(20))
 
 	_ = colorLabel
 	_ = chooseBtn

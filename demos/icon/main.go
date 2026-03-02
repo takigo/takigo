@@ -73,7 +73,7 @@ func main() {
 		label.Anchor(option.AnchorW),
 		label.PadX(10),
 	)
-	pack.Pack(statusLabel.Window(), pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX), pack.PadY(5))
+	pack.Pack(statusLabel, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX), pack.PadY(5))
 
 	// Create images.
 	flagUp := makeFlagImage("flag_up", true)
@@ -100,7 +100,7 @@ func main() {
 		label.BorderWidth(2), label.Relief(option.ReliefSunken),
 		label.PadX(4), label.PadY(4),
 	)
-	pack.Pack(flagLabel.Window(), pack.SideOpt(pack.Top), pack.PadY(10))
+	pack.Pack(flagLabel, pack.SideOpt(pack.Top), pack.PadY(10))
 
 	updateStatus := func() {
 		state := "down"
@@ -125,16 +125,16 @@ func main() {
 			updateStatus()
 		}),
 	)
-	pack.Pack(cb.Window(), pack.SideOpt(pack.Top), pack.PadY(5))
+	pack.Pack(cb, pack.SideOpt(pack.Top), pack.PadY(5))
 
 	// Radiobutton group for colors.
 	colorFrame := frame.New(root, "colors", app,
 		frame.BorderWidth(2), frame.Relief(option.ReliefGroove),
 	)
-	pack.Pack(colorFrame.Window(), pack.SideOpt(pack.Top), pack.PadX(20), pack.PadY(10))
+	pack.Pack(colorFrame, pack.SideOpt(pack.Top), pack.PadX(20), pack.PadY(10))
 
 	colorTitle := label.New(colorFrame.Window(), "ctitle", app, label.Text("Select Color"))
-	pack.Pack(colorTitle.Window(), pack.SideOpt(pack.Top), pack.PadY(5))
+	pack.Pack(colorTitle, pack.SideOpt(pack.Top), pack.PadY(5))
 
 	type colorDef struct {
 		name  string
@@ -154,7 +154,7 @@ func main() {
 			radiobutton.Var(colorVar),
 			radiobutton.Command(updateStatus),
 		)
-		pack.Pack(rb.Window(), pack.SideOpt(pack.Top), pack.PadY(2),
+		pack.Pack(rb, pack.SideOpt(pack.Top), pack.PadY(2),
 			pack.Anchor(option.AnchorW), pack.PadX(10))
 		_ = rb
 	}

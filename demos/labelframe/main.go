@@ -22,7 +22,7 @@ func main() {
 		labelframe.Width(200),
 		labelframe.Height(130),
 	)
-	pack.Pack(genderFrame.Window(), pack.SideOpt(pack.Top), pack.PadX(20), pack.PadY(10),
+	pack.Pack(genderFrame, pack.SideOpt(pack.Top), pack.PadX(20), pack.PadY(10),
 		pack.FillOpt(pack.FillX))
 
 	genderVar := widget.NewVariable("male")
@@ -37,7 +37,7 @@ func main() {
 			radiobutton.Value(g.value),
 			radiobutton.Var(genderVar),
 		)
-		pack.Pack(rb.Window(), pack.SideOpt(pack.Top), pack.PadY(2),
+		pack.Pack(rb, pack.SideOpt(pack.Top), pack.PadY(2),
 			pack.Anchor(option.AnchorW), pack.PadX(10))
 		_ = rb
 	}
@@ -48,7 +48,7 @@ func main() {
 		labelframe.Width(200),
 		labelframe.Height(130),
 	)
-	pack.Pack(optFrame.Window(), pack.SideOpt(pack.Top), pack.PadX(20), pack.PadY(10),
+	pack.Pack(optFrame, pack.SideOpt(pack.Top), pack.PadX(20), pack.PadY(10),
 		pack.FillOpt(pack.FillX))
 
 	bold := widget.NewVariable(false)
@@ -59,21 +59,21 @@ func main() {
 		checkbutton.Text("Bold"),
 		checkbutton.Var(bold),
 	)
-	pack.Pack(cb1.Window(), pack.SideOpt(pack.Top), pack.PadY(2),
+	pack.Pack(cb1, pack.SideOpt(pack.Top), pack.PadY(2),
 		pack.Anchor(option.AnchorW), pack.PadX(10))
 
 	cb2 := checkbutton.New(optFrame.Window(), "italic", app,
 		checkbutton.Text("Italic"),
 		checkbutton.Var(italic),
 	)
-	pack.Pack(cb2.Window(), pack.SideOpt(pack.Top), pack.PadY(2),
+	pack.Pack(cb2, pack.SideOpt(pack.Top), pack.PadY(2),
 		pack.Anchor(option.AnchorW), pack.PadX(10))
 
 	cb3 := checkbutton.New(optFrame.Window(), "underline", app,
 		checkbutton.Text("Underline"),
 		checkbutton.Var(underline),
 	)
-	pack.Pack(cb3.Window(), pack.SideOpt(pack.Top), pack.PadY(2),
+	pack.Pack(cb3, pack.SideOpt(pack.Top), pack.PadY(2),
 		pack.Anchor(option.AnchorW), pack.PadX(10))
 
 	_ = cb1
