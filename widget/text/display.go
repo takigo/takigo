@@ -1,10 +1,37 @@
 package text
 
 import (
+	"strings"
+
 	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/font"
 	"github.com/msorc/takigo/internal/xlib"
 )
+
+// tabWidth is the number of spaces per tab stop.
+const tabWidth = 4
+
+// expandTabs replaces tab characters with spaces to align to tabWidth stops.
+func expandTabs(s string) string {
+	if !strings.ContainsRune(s, '\t') {
+		return s
+	}
+	var buf strings.Builder
+	col := 0
+	for _, r := range s {
+		if r == '\t' {
+			spaces := tabWidth - (col % tabWidth)
+			for i := 0; i < spaces; i++ {
+				buf.WriteByte(' ')
+			}
+			col += spaces
+		} else {
+			buf.WriteRune(r)
+			col++
+		}
+	}
+	return buf.String()
+}
 
 // displayLine represents one visual line (possibly a fragment of a logical line).
 type displayLine struct {

@@ -214,14 +214,15 @@ func (t *TextWidget) scheduleRedraw() {
 // --- Public API ---
 
 // Insert inserts text at the given index string.
-func (t *TextWidget) Insert(index, text string) {
+func (t *TextWidget) Insert(index, txt string) {
 	idx, ok := ParseIndex(t.doc, index)
 	if !ok {
 		return
 	}
-	endIdx := t.doc.Insert(idx, text)
+	txt = expandTabs(txt)
+	endIdx := t.doc.Insert(idx, txt)
 	if t.undoEnabled {
-		t.undoStack.RecordInsert(idx, endIdx, text)
+		t.undoStack.RecordInsert(idx, endIdx, txt)
 	}
 	t.seeInsert()
 	t.notifyYScrollbar()

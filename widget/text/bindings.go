@@ -1,6 +1,8 @@
 package text
 
 import (
+	"strings"
+
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/internal/xlib"
 	"github.com/msorc/takigo/widget"
@@ -203,7 +205,8 @@ func bindText(t *TextWidget, app widget.AppContext) {
 		case xlib.XK_Tab:
 			t.deleteSelection()
 			insertAt := t.doc.Marks["insert"].Pos
-			tabStr := "\t"
+			spaces := tabWidth - (insertAt.Char % tabWidth)
+			tabStr := strings.Repeat(" ", spaces)
 			endIdx := t.doc.Insert(insertAt, tabStr)
 			if t.undoEnabled {
 				t.undoStack.RecordInsert(insertAt, endIdx, tabStr)

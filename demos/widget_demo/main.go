@@ -124,7 +124,7 @@ var categories = []category{
 }
 
 func main() {
-	app, err := takigo.NewApp(takigo.Title("Takigo Widget Demos"), takigo.Size(700, 550))
+	app, err := takigo.NewApp(takigo.Title("Takigo Widget Demos"), takigo.Size(1024, 600))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
@@ -218,7 +218,7 @@ func main() {
 	var items []listItem
 
 	for _, cat := range categories {
-		lb.Insert(lb.ItemCount(), fmt.Sprintf("── %s ──", cat.title))
+		lb.Insert(lb.ItemCount(), fmt.Sprintf("-- %s --", cat.title))
 		items = append(items, listItem{isCategory: true})
 		for _, d := range cat.demos {
 			lb.Insert(lb.ItemCount(), fmt.Sprintf("  %s", d.desc))
