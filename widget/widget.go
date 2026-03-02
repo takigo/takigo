@@ -101,22 +101,6 @@ func (b *Base) Window() *window.Window {
 	return b.Win
 }
 
-// ScheduleRedraw marks the widget as needing a redraw and schedules it
-// for the next idle phase, coalescing multiple redraw requests.
-func (b *Base) ScheduleRedraw() {
-	if b.NeedRedraw || b.Destroyed {
-		return
-	}
-	b.NeedRedraw = true
-	b.App.DoWhenIdle(func() {
-		if !b.Destroyed {
-			b.NeedRedraw = false
-			// The concrete widget's Display method should be called.
-			// We store a reference to it.
-		}
-	})
-}
-
 // UpdateBorder recomputes the 3D border from the background color.
 func (b *Base) UpdateBorder() {
 	if b.Background != nil {
