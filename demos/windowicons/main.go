@@ -1,0 +1,112 @@
+// Demo: Setting a window icon via the _NET_WM_ICON X11 property.
+// Ported from Tk's windowicons.tcl demo (simplified to EWMH icon).
+package main
+
+import (
+	"encoding/binary"
+	"fmt"
+	"os"
+
+	"github.com/msorc/takigo"
+	"github.com/msorc/takigo/event"
+	"github.com/msorc/takigo/geometry/pack"
+	"github.com/msorc/takigo/internal/xlib"
+	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/widget/button"
+	"github.com/msorc/takigo/widget/frame"
+	"github.com/msorc/takigo/widget/label"
+	"github.com/msorc/takigo/window"
+)
+
+func main() {
+	app, err := takigo.NewApp(takigo.Title("Window Icon Demonstration"), takigo.Size(400, 200))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+	defer app.Destroy()
+
+	root := app.Root()
+	bgColor, _ := app.ColorCache().Get("#d9d9d9")
+	root.BackgroundPixel = bgColor.Pixel
+
+	// Set window icon via _NET_WM_ICON.
+	setWindowIcon(root)
+
+	// Description.
+	msg := label.New(root, "msg", app,
+		label.Text("This demo sets the window icon using the _NET_WM_ICON\nX11 property. The icon should be visible in the window\nmanager's title bar and taskbar."),
+		label.Anchor(option.AnchorW),
+		label.PadX(10), label.PadY(10),
+	)
+	pack.Pack(msg.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
+
+	// Dismiss button.
+	btnFrame := frame.New(root, "btnframe", app)
+	pack.Pack(btnFrame.Window(), pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX), pack.PadY(5))
+	dismissBtn := button.New(btnFrame.Window(), "dismiss", app,
+		button.Text("Dismiss"), button.Command(func() { app.Quit() }),
+		button.PadX(10), button.PadY(4),
+	)
+	pack.Pack(dismissBtn.Window(), pack.SideOpt(pack.Left), pack.PadX(10))
+
+	// Root events.
+	app.Dispatcher().Bind(root.XWindow, event.StructureNotifyMask, func(ev *event.Event) {
+		if ev.Type == event.ConfigureType {
+			root.Width = ev.ConfigWidth
+			root.Height = ev.ConfigHeight
+			pack.ArrangeContainer(root)
+		}
+	})
+	app.Dispatcher().Bind(root.XWindow, event.ExposureMask, func(ev *event.Event) {
+		if ev.ExposeCount > 0 {
+			return
+		}
+		d := root.Display.XDisplay
+		d.SetForeground(root.GC, bgColor.Pixel)
+		d.FillRectangle(root.Drawable(), root.GC, 0, 0, uint(root.Width), uint(root.Height))
+		d.Flush()
+	})
+	app.Dispatcher().BindGlobal(event.KeyPressMask, func(ev *event.Event) {
+		if ev.KeySym == xlib.XK_Escape {
+			app.Quit()
+		}
+	})
+
+	_ = msg
+	_ = dismissBtn
+	app.MainLoop()
+}
+
+// setWindowIcon sets a 16x16 icon on the window via _NET_WM_ICON.
+// The format is: [width, height, ARGB pixels...] as 32-bit values.
+func setWindowIcon(win *window.Window) {
+	d := win.Display.XDisplay
+	const size = 16
+
+	// Generate a simple icon: blue square with white "T" letter.
+	data := make([]byte, (2+size*size)*4)
+
+	binary.LittleEndian.PutUint32(data[0:4], size)
+	binary.LittleEndian.PutUint32(data[4:8], size)
+
+	for y := 0; y < size; y++ {
+		for x := 0; x < size; x++ {
+			offset := (2 + y*size + x) * 4
+			a, r, g, b := uint8(0xFF), uint8(0x4a), uint8(0x69), uint8(0x84)
+
+			// Draw "T" in white.
+			topBar := y >= 3 && y <= 4 && x >= 3 && x <= 12
+			stem := y >= 4 && y <= 12 && x >= 7 && x <= 8
+			if topBar || stem {
+				r, g, b = 0xFF, 0xFF, 0xFF
+			}
+
+			binary.LittleEndian.PutUint32(data[offset:offset+4],
+				uint32(a)<<24|uint32(r)<<16|uint32(g)<<8|uint32(b))
+		}
+	}
+
+	netWmIcon := d.InternAtom("_NET_WM_ICON", false)
+	d.ChangeProperty(win.XWindow, netWmIcon, xlib.XA_CARDINAL, 32, xlib.PropModeReplace, data, 2+size*size)
+}

@@ -4,6 +4,8 @@
 package widget
 
 import (
+	"time"
+
 	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/event"
@@ -94,6 +96,8 @@ type AppContext interface {
 	RegisterCloseHandler(w xlib.Window, fn func())
 	// UnregisterCloseHandler removes a WM_DELETE_WINDOW handler.
 	UnregisterCloseHandler(w xlib.Window)
+	// After schedules a function to run after a delay.
+	After(d time.Duration, fn func())
 }
 
 // Window returns the widget's underlying window.

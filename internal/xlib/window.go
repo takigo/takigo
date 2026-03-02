@@ -147,3 +147,11 @@ func (d *Display) SetWMProtocols(w Window, protocols []Atom) int {
 	}
 	return int(C.XSetWMProtocols(d.ptr, C.Window(w), (*C.Atom)(&protocols[0]), C.int(len(protocols))))
 }
+
+// TranslateCoordinates translates coordinates from src to dst window.
+func (d *Display) TranslateCoordinates(src, dst Window, srcX, srcY int) (dstX, dstY int) {
+	var dx, dy C.int
+	var child C.Window
+	C.XTranslateCoordinates(d.ptr, C.Window(src), C.Window(dst), C.int(srcX), C.int(srcY), &dx, &dy, &child)
+	return int(dx), int(dy)
+}

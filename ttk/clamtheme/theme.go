@@ -66,6 +66,15 @@ func init() {
 	tsepV := theme.GetStyle("TSeparator.Vertical")
 	tsepV.Defaults["-relief"] = option.ReliefFlat
 
+	// Progressbar styles.
+	hProgress := theme.GetStyle("Horizontal.TProgressbar")
+	hProgress.Defaults["-troughcolor"] = uint64(0xc3c3c3)
+	hProgress.Defaults["-barcolor"] = uint64(0x4a6984)
+
+	vProgress := theme.GetStyle("Vertical.TProgressbar")
+	vProgress.Defaults["-troughcolor"] = uint64(0xc3c3c3)
+	vProgress.Defaults["-barcolor"] = uint64(0x4a6984)
+
 	ttk.RegisterTheme(theme)
 }
 
