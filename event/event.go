@@ -38,13 +38,24 @@ type Event struct {
 
 // FromRawEvent converts an xlib.RawEvent to a typed Event.
 func FromRawEvent(raw *xlib.RawEvent) Event {
+	return FromRawEventIM(raw, nil)
+}
+
+// FromRawEventIM converts an xlib.RawEvent to a typed Event, using XIM for
+// key events when display is non-nil and has XIM initialized.
+func FromRawEventIM(raw *xlib.RawEvent, display *xlib.Display) Event {
 	ev := Event{
 		Window: raw.Window(),
 	}
 
 	switch raw.Type() {
 	case xlib.KeyPress, xlib.KeyRelease:
-		k := raw.ParseKeyEvent()
+		var k xlib.KeyEvent
+		if display != nil && display.HasIM() {
+			k = display.ParseKeyEventIM(raw)
+		} else {
+			k = raw.ParseKeyEvent()
+		}
 		if raw.Type() == xlib.KeyPress {
 			ev.Type = KeyPressType
 		} else {

@@ -1,0 +1,165 @@
+// Phase 11 demo: Multi-line text widget with scrollbar, tags, and editing.
+package main
+
+import (
+	"fmt"
+	"os"
+
+	"github.com/msorc/takigo"
+	"github.com/msorc/takigo/event"
+	"github.com/msorc/takigo/geometry/pack"
+	"github.com/msorc/takigo/internal/xlib"
+	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/widget"
+	"github.com/msorc/takigo/widget/label"
+	"github.com/msorc/takigo/widget/scrollbar"
+	"github.com/msorc/takigo/widget/text"
+)
+
+func main() {
+	app, err := takigo.NewApp(takigo.Title("Takigo Phase 11 — Text Widget"), takigo.Size(800, 600))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+	defer app.Destroy()
+
+	root := app.Root()
+	bgColor, _ := app.ColorCache().Get("#d9d9d9")
+	root.BackgroundPixel = bgColor.Pixel
+
+	// Status label at bottom.
+	statusLabel := label.New(root, "status", app,
+		label.Text("Phase 11: Text Widget. Edit text, Ctrl+A select all, Ctrl+Z undo, Ctrl+Y redo. Esc to quit."),
+		label.Background("#e8e8e8"),
+		label.Anchor(option.AnchorW),
+		label.PadX(5),
+		label.PadY(2),
+	)
+	pack.Pack(statusLabel.Window(), pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
+
+	// Create text widget.
+	txt := text.New(root, "text", app,
+		text.Width(80),
+		text.Height(24),
+		text.Background("white"),
+		text.BorderWidthOpt(2),
+		text.UndoOpt(true),
+	)
+
+	// Vertical scrollbar.
+	yscroll := scrollbar.New(root, "yscroll", app,
+		scrollbar.OrientOpt(scrollbar.Vertical),
+		scrollbar.WidthOpt(14),
+		scrollbar.CommandOpt(func(args ...interface{}) {
+			if len(args) < 1 {
+				return
+			}
+			switch args[0] {
+			case "moveto":
+				if len(args) >= 2 {
+					if f, ok := args[1].(float64); ok {
+						txt.YViewMoveTo(f)
+					}
+				}
+			case "scroll":
+				if len(args) >= 3 {
+					n, _ := args[1].(int)
+					unit, _ := args[2].(string)
+					txt.YViewScroll(n, unit == "pages")
+				}
+			}
+		}),
+	)
+	txt.YScrollCmd = func(first, last float64) {
+		yscroll.Set(first, last)
+	}
+
+	// Pack scrollbar and text widget.
+	pack.Pack(yscroll.Window(), pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
+	pack.Pack(txt.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+
+	// Insert sample text.
+	sampleText := `Welcome to the Takigo Text Widget!
+This is a multi-line text editor.
+
+Features:
+  - Arrow keys navigate (with Shift for selection)
+  - Ctrl+Left/Right for word movement
+  - Home/End for line start/end
+  - Ctrl+Home/End for document start/end
+  - PageUp/PageDown for page scrolling
+  - Mouse click to position cursor
+  - Mouse drag to select text
+  - Ctrl+A to select all
+  - Ctrl+Z to undo, Ctrl+Y to redo
+  - Backspace/Delete to remove text
+  - Mouse wheel to scroll
+  - Scrollbar integration
+
+Tags Demo:
+The words below have colored tags applied:
+  - This line has a keyword highlighted.
+  - This line has a comment style.
+  - This line has an error style.
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.
+Nisi ut aliquip ex ea commodo consequat.
+
+Type here to test editing...`
+
+	txt.Insert("1.0", sampleText)
+
+	// Configure tags with colors.
+	txt.TagConfigure("keyword", text.TagForeground("#0000cc"), text.TagBackground("#e8e8ff"))
+	txt.TagConfigure("comment", text.TagForeground("#008000"))
+	txt.TagConfigure("error", text.TagForeground("#cc0000"), text.TagUnderline(true))
+
+	// Apply tags to specific ranges.
+	txt.TagAdd("keyword", "20.34", "20.41") // "keyword"
+	txt.TagAdd("comment", "21.34", "21.41") // "comment"
+	txt.TagAdd("error", "22.30", "22.35")   // "error"
+
+	// Move cursor to beginning.
+	txt.SetInsertPos("1.0")
+	txt.See("1.0")
+
+	// Root event handlers.
+	app.Dispatcher().Bind(root.XWindow, event.StructureNotifyMask, func(ev *event.Event) {
+		if ev.Type == event.ConfigureType {
+			root.Width = ev.ConfigWidth
+			root.Height = ev.ConfigHeight
+			pack.ArrangeContainer(root)
+		}
+	})
+
+	app.Dispatcher().Bind(root.XWindow, event.ExposureMask, func(ev *event.Event) {
+		if ev.ExposeCount > 0 {
+			return
+		}
+		d := root.Display.XDisplay
+		gc := root.GC
+		d.SetForeground(gc, bgColor.Pixel)
+		d.FillRectangle(root.Drawable(), gc, 0, 0, uint(root.Width), uint(root.Height))
+		d.Flush()
+	})
+
+	app.Dispatcher().BindGlobal(event.KeyPressMask, func(ev *event.Event) {
+		if ev.KeySym == xlib.XK_Escape {
+			app.Quit()
+		}
+	})
+
+	fmt.Println("Takigo Phase 11 Demo — Text Widget")
+	fmt.Println("Edit text, use arrow keys, mouse, Ctrl+A/Z/Y. Esc to quit.")
+	app.MainLoop()
+	fmt.Println("Goodbye!")
+
+	// Keep references alive.
+	_ = statusLabel
+	_ = txt
+	_ = yscroll
+	_ = widget.CompoundNone
+}

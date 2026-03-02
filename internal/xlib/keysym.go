@@ -15,6 +15,8 @@ const (
 	XK_q         = KeySym(0x0071)
 	XK_v         = KeySym(0x0076)
 	XK_x         = KeySym(0x0078)
+	XK_y         = KeySym(0x0079)
+	XK_z         = KeySym(0x007a)
 	XK_Escape    = KeySym(C.XK_Escape)
 	XK_Return    = KeySym(C.XK_Return)
 	XK_BackSpace = KeySym(C.XK_BackSpace)

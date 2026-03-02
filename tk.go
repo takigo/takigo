@@ -48,6 +48,9 @@ func NewApp(opts ...AppOption) (*App, error) {
 	root := window.CreateMainWindow(d, 0, 0, cfg.width, cfg.height)
 	d.XDisplay.StoreName(root.XWindow, cfg.title)
 
+	// Initialize X Input Method for proper non-Latin keyboard handling.
+	d.XDisplay.InitIM(root.XWindow)
+
 	dispatcher := event.NewDispatcher()
 	loop := event.NewLoop(d.XDisplay, dispatcher)
 

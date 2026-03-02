@@ -50,7 +50,10 @@ func (l *Loop) Run() {
 			return
 
 		case raw := <-l.eventCh:
-			ev := FromRawEvent(raw)
+			if raw.FilterEvent() {
+				continue
+			}
+			ev := FromRawEventIM(raw, l.display)
 			if ev.Type != 0 {
 				l.dispatcher.Dispatch(&ev)
 			}

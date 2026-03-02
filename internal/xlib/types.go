@@ -28,6 +28,8 @@ type (
 // Display wraps an X11 Display connection.
 type Display struct {
 	ptr *C.Display
+	xim C.XIM // input method (may be nil)
+	xic C.XIC // default input context (may be nil)
 }
 
 // Ptr returns the underlying C Display pointer for use in other cgo calls.

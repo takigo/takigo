@@ -4,6 +4,7 @@ package xlib
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <string.h>
+#include <locale.h>
 
 // Helper to get event type from XEvent union.
 static int xevent_type(XEvent *ev) { return ev->type; }
@@ -87,6 +88,38 @@ static Window xevent_any_window(XEvent *ev) { return ev->xany.window; }
 static int lookup_string(XEvent *ev, char *buf, int buflen, KeySym *ks) {
     return XLookupString(&ev->xkey, buf, buflen, ks, NULL);
 }
+
+// Xutf8LookupString wrapper.
+static int utf8_lookup_string(XIC ic, XEvent *ev, char *buf, int buflen, KeySym *ks, int *status_out) {
+    Status status;
+    int n = Xutf8LookupString(ic, &ev->xkey, buf, buflen, ks, &status);
+    *status_out = (int)status;
+    return n;
+}
+
+// XOpenIM wrapper. Sets locale first (required for Xutf8LookupString).
+static XIM open_im(Display *dpy) {
+    setlocale(LC_ALL, "");
+    if (!XSupportsLocale()) {
+        return NULL;
+    }
+    XSetLocaleModifiers("");
+    return XOpenIM(dpy, NULL, NULL, NULL);
+}
+
+// XCreateIC wrapper.
+static XIC create_ic(XIM im, Window w) {
+    return XCreateIC(im,
+        XNInputStyle, XIMPreeditNothing | XIMStatusNothing,
+        XNClientWindow, w,
+        XNFocusWindow, w,
+        NULL);
+}
+
+// XFilterEvent wrapper.
+static int filter_event(XEvent *ev) {
+    return XFilterEvent(ev, None);
+}
 */
 import "C"
 
@@ -104,6 +137,25 @@ func (e *RawEvent) Type() int {
 // Window returns the window associated with the event.
 func (e *RawEvent) Window() Window {
 	return Window(C.xevent_any_window(&e.ev))
+}
+
+// InitIM initializes the X Input Method for the display. Call after OpenDisplay.
+// It's safe to call even if XIM is not available (silently fails).
+func (d *Display) InitIM(root Window) {
+	d.xim = C.open_im(d.ptr)
+	if d.xim != nil {
+		d.xic = C.create_ic(d.xim, C.Window(root))
+	}
+}
+
+// HasIM returns true if XIM/XIC was successfully initialized.
+func (d *Display) HasIM() bool {
+	return d.xic != nil
+}
+
+// FilterEvent returns true if the event was consumed by the input method.
+func (e *RawEvent) FilterEvent() bool {
+	return C.filter_event(&e.ev) != 0
 }
 
 // NextEvent blocks until the next event and returns it.
@@ -133,11 +185,39 @@ type KeyEvent struct {
 	Time        Time
 }
 
-// ParseKeyEvent extracts key event data.
+// ParseKeyEvent extracts key event data using XLookupString (legacy fallback).
 func (e *RawEvent) ParseKeyEvent() KeyEvent {
-	var buf [32]C.char
+	var buf [64]C.char
 	var ks C.KeySym
-	n := C.lookup_string(&e.ev, &buf[0], 32, &ks)
+	n := C.lookup_string(&e.ev, &buf[0], 64, &ks)
+
+	str := ""
+	if n > 0 {
+		str = C.GoStringN(&buf[0], n)
+	}
+
+	return KeyEvent{
+		EventWindow: Window(C.xevent_key_window(&e.ev)),
+		RootWindow:  Window(C.xevent_key_root(&e.ev)),
+		X:           int(C.xevent_key_x(&e.ev)),
+		Y:           int(C.xevent_key_y(&e.ev)),
+		RootX:       int(C.xevent_key_x_root(&e.ev)),
+		RootY:       int(C.xevent_key_y_root(&e.ev)),
+		State:       uint(C.xevent_key_state(&e.ev)),
+		KeyCode:     uint(C.xevent_key_keycode(&e.ev)),
+		KeySym:      KeySym(ks),
+		Str:         str,
+		Time:        Time(C.xevent_key_time(&e.ev)),
+	}
+}
+
+// ParseKeyEventIM extracts key event data using Xutf8LookupString via XIM.
+// This correctly handles non-Latin scripts (Cyrillic, etc.) with Caps Lock.
+func (d *Display) ParseKeyEventIM(e *RawEvent) KeyEvent {
+	var buf [64]C.char
+	var ks C.KeySym
+	var status C.int
+	n := C.utf8_lookup_string(d.xic, &e.ev, &buf[0], 64, &ks, &status)
 
 	str := ""
 	if n > 0 {
