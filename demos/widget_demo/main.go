@@ -139,7 +139,7 @@ func main() {
 	demoBase := filepath.Dir(filepath.Dir(thisFile))
 
 	// Header.
-	header := label.New(root, "header", app,
+	header := label.New(app, "header",
 		label.Text("Takigo Widget Demonstrations"),
 		label.Anchor(option.AnchorCenter),
 		label.PadX(10), label.PadY(8),
@@ -147,17 +147,17 @@ func main() {
 	pack.Pack(header, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
 
 	// Bottom button frame.
-	btnFrame := frame.New(root, "btnframe", app)
+	btnFrame := frame.New(app, "btnframe")
 	pack.Pack(btnFrame, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX), pack.PadY(5))
 
-	dismissBtn := button.New(btnFrame.Window(), "dismiss", app,
+	dismissBtn := button.New(btnFrame, "dismiss",
 		button.Text("Quit"), button.Command(func() { app.Quit() }),
 		button.PadX(10), button.PadY(4),
 	)
 	pack.Pack(dismissBtn, pack.SideOpt(pack.Right), pack.PadX(10))
 
 	// Status bar.
-	statusLabel := label.New(root, "status", app,
+	statusLabel := label.New(app, "status",
 		label.Text("Select a demo and click Run."),
 		label.Anchor(option.AnchorW),
 		label.Background("#e8e8e8"),
@@ -166,21 +166,21 @@ func main() {
 	pack.Pack(statusLabel, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	// Main content: left listbox + right source viewer.
-	contentFrame := frame.New(root, "content", app)
+	contentFrame := frame.New(app, "content")
 	pack.Pack(contentFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true), pack.PadX(5), pack.PadY(2))
 
 	// Left panel: listbox of demos.
-	leftFrame := frame.New(contentFrame.Window(), "left", app)
+	leftFrame := frame.New(contentFrame, "left")
 	pack.Pack(leftFrame, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth),
 		pack.Expand(false))
 
 	// Action buttons (pack bottom FIRST so listbox doesn't consume all space).
-	actionFrame := frame.New(leftFrame.Window(), "actions", app)
+	actionFrame := frame.New(leftFrame, "actions")
 	pack.Pack(actionFrame, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX), pack.PadY(3))
 
-	sb := scrollbar.New(leftFrame.Window(), "sb", app)
-	lb := listbox.New(leftFrame.Window(), "demos", app,
+	sb := scrollbar.New(leftFrame, "sb")
+	lb := listbox.New(leftFrame, "demos",
 		listbox.Height(20), listbox.Width(35),
 	)
 	lb.YScrollCmd = func(first, last float64) { sb.Set(first, last) }
@@ -227,19 +227,19 @@ func main() {
 	}
 
 	// Right panel: source viewer.
-	rightFrame := frame.New(contentFrame.Window(), "right", app)
+	rightFrame := frame.New(contentFrame, "right")
 	pack.Pack(rightFrame, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true))
 
-	rightLabel := label.New(rightFrame.Window(), "srclabel", app,
+	rightLabel := label.New(rightFrame, "srclabel",
 		label.Text("Source Code:"),
 		label.Anchor(option.AnchorW),
 		label.PadX(5),
 	)
 	pack.Pack(rightLabel, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
 
-	srcSb := scrollbar.New(rightFrame.Window(), "srcsb", app)
-	srcText := text.New(rightFrame.Window(), "source", app,
+	srcSb := scrollbar.New(rightFrame, "srcsb")
+	srcText := text.New(rightFrame, "source",
 		text.WrapModeOpt(text.WrapNone),
 	)
 	srcText.YScrollCmd = func(first, last float64) { srcSb.Set(first, last) }
@@ -281,7 +281,7 @@ func main() {
 		return items[idx].demoDir, items[idx].demoDesc, true
 	}
 
-	runBtn := button.New(actionFrame.Window(), "run", app,
+	runBtn := button.New(actionFrame, "run",
 		button.Text("Run Demo"),
 		button.Command(func() {
 			dir, desc, ok := getSelectedDemo()
@@ -308,7 +308,7 @@ func main() {
 	)
 	pack.Pack(runBtn, pack.SideOpt(pack.Left), pack.PadX(3))
 
-	codeBtn := button.New(actionFrame.Window(), "code", app,
+	codeBtn := button.New(actionFrame, "code",
 		button.Text("See Code"),
 		button.Command(func() {
 			dir, desc, ok := getSelectedDemo()

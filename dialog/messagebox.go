@@ -4,7 +4,6 @@ import (
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/label"
-	"github.com/msorc/takigo/window"
 )
 
 // MessageType identifies the kind of message.
@@ -30,7 +29,6 @@ const (
 
 // messageConfig holds ShowMessage options.
 type messageConfig struct {
-	parent  *window.Window
 	title   string
 	message string
 	detail  string
@@ -41,15 +39,14 @@ type messageConfig struct {
 // MessageOption configures ShowMessage.
 type MessageOption func(*messageConfig)
 
-func MsgParent(w *window.Window) MessageOption { return func(c *messageConfig) { c.parent = w } }
-func MsgTitle(s string) MessageOption          { return func(c *messageConfig) { c.title = s } }
-func MsgMessage(s string) MessageOption        { return func(c *messageConfig) { c.message = s } }
-func MsgDetail(s string) MessageOption         { return func(c *messageConfig) { c.detail = s } }
-func MsgType(t MessageType) MessageOption      { return func(c *messageConfig) { c.msgType = t } }
-func MsgButtons(b ButtonSet) MessageOption     { return func(c *messageConfig) { c.buttons = b } }
+func MsgTitle(s string) MessageOption     { return func(c *messageConfig) { c.title = s } }
+func MsgMessage(s string) MessageOption   { return func(c *messageConfig) { c.message = s } }
+func MsgDetail(s string) MessageOption    { return func(c *messageConfig) { c.detail = s } }
+func MsgType(t MessageType) MessageOption { return func(c *messageConfig) { c.msgType = t } }
+func MsgButtons(b ButtonSet) MessageOption { return func(c *messageConfig) { c.buttons = b } }
 
 // ShowMessage displays a modal message box and returns the user's choice.
-func ShowMessage(app widget.AppContext, opts ...MessageOption) DialogResult {
+func ShowMessage(parent widget.Caregiver, opts ...MessageOption) DialogResult {
 	cfg := messageConfig{
 		title:   "Message",
 		message: "",
@@ -72,15 +69,14 @@ func ShowMessage(app widget.AppContext, opts ...MessageOption) DialogResult {
 		}
 	}
 
-	parent := cfg.parent
-	d := New(app, parent, cfg.title, 350, 150)
+	d := New(parent, cfg.title, 350, 150)
 
 	// Layout: icon on left, message+detail on right.
 	bodyFrame := d.Content
 
 	// Icon label (unicode).
 	iconText := msgIcon(cfg.msgType)
-	iconLabel := label.New(bodyFrame.Window(), "icon", app,
+	iconLabel := label.New(bodyFrame, "icon",
 		label.Text(iconText),
 		label.FontOpt("TkDefaultFont"),
 	)
@@ -91,7 +87,7 @@ func ShowMessage(app widget.AppContext, opts ...MessageOption) DialogResult {
 	if cfg.detail != "" {
 		msgText += "\n" + cfg.detail
 	}
-	msgLabel := label.New(bodyFrame.Window(), "msg", app,
+	msgLabel := label.New(bodyFrame, "msg",
 		label.Text(msgText),
 		label.Anchor(0), // AnchorNW
 	)

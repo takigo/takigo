@@ -45,7 +45,6 @@ func main() {
 			dumpWindow(app.Root(), 0)
 		})
 		result := dialog.ShowMessage(app,
-			dialog.MsgParent(app.Root()),
 			dialog.MsgTitle("Test"),
 			dialog.MsgMessage("Hello World"),
 			dialog.MsgDetail("Some detail text"),
@@ -60,7 +59,6 @@ func main() {
 			dumpWindow(app.Root(), 0)
 		})
 		color, ok := dialog.ChooseColor(app,
-			dialog.ColorParent(app.Root()),
 			dialog.ColorInitial("#3399ff"),
 		)
 		fmt.Printf("Color result: %q ok=%v\n", color, ok)

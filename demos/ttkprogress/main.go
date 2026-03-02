@@ -17,19 +17,19 @@ import (
 
 func main() {
 	d := demohelper.Setup("Progressbar Demonstration", 400, 350, "Below are two progressbars: one determinate (showing\nprogress percentage) and one indeterminate (bouncing).")
-	root, app := d.Root, d.App
+	app := d.App
 
 	ttk.SetCurrentTheme("clam")
 
 	// Determinate progressbar.
-	detLabel := label.New(root, "detlabel", app,
+	detLabel := label.New(app, "detlabel",
 		label.Text("Determinate:"),
 		label.Anchor(option.AnchorW),
 		label.PadX(20),
 	)
 	pack.Pack(detLabel, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(5))
 
-	detPbar := ttk.NewProgressbar(root, "detpbar", app,
+	detPbar := ttk.NewProgressbar(app, "detpbar",
 		ttk.ProgressbarMode(ttk.ProgressDeterminate),
 		ttk.ProgressbarLength(300),
 	)
@@ -37,7 +37,7 @@ func main() {
 
 	// Progress simulation button.
 	var simulating bool
-	simBtn := button.New(root, "simbtn", app,
+	simBtn := button.New(app, "simbtn",
 		button.Text("Start Progress"),
 		button.PadX(10), button.PadY(4),
 	)
@@ -71,25 +71,25 @@ func main() {
 	pack.Pack(simBtn, pack.SideOpt(pack.Top), pack.PadY(5))
 
 	// Separator.
-	sep := ttk.NewSeparator(root, "sep", app)
+	sep := ttk.NewSeparator(app, "sep")
 	pack.Pack(sep, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadX(10), pack.PadY(10))
 
 	// Indeterminate progressbar.
-	indLabel := label.New(root, "indlabel", app,
+	indLabel := label.New(app, "indlabel",
 		label.Text("Indeterminate:"),
 		label.Anchor(option.AnchorW),
 		label.PadX(20),
 	)
 	pack.Pack(indLabel, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(5))
 
-	indPbar := ttk.NewProgressbar(root, "indpbar", app,
+	indPbar := ttk.NewProgressbar(app, "indpbar",
 		ttk.ProgressbarMode(ttk.ProgressIndeterminate),
 		ttk.ProgressbarLength(300),
 	)
 	pack.Pack(indPbar, pack.SideOpt(pack.Top), pack.PadX(20), pack.PadY(5))
 
 	// Start/Stop button for indeterminate.
-	indBtn := button.New(root, "indbtn", app,
+	indBtn := button.New(app, "indbtn",
 		button.Text("Start Bouncing"),
 		button.PadX(10), button.PadY(4),
 	)

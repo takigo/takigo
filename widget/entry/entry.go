@@ -133,8 +133,9 @@ func ScrollCommand(fn func(first, last float64)) EntryOption {
 }
 
 // New creates a new Entry widget.
-func New(parent *window.Window, name string, app widget.AppContext, opts ...EntryOption) *Entry {
-	w := window.NewChildWindow(parent, name, 0, 0, 1, 1)
+func New(parent widget.Caregiver, name string, opts ...EntryOption) *Entry {
+	app := parent.AppContext()
+	w := window.NewChildWindow(parent.Window(), name, 0, 0, 1, 1)
 	window.MakeWindowExist(w)
 
 	e := &Entry{

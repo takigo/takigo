@@ -71,8 +71,9 @@ func MenubuttonCompound(c widget.Compound) MenubuttonOption {
 }
 
 // NewMenubutton creates a themed menubutton widget.
-func NewMenubutton(parent *window.Window, name string, app widget.AppContext, opts ...MenubuttonOption) *Menubutton {
-	win := window.NewChildWindow(parent, name, 0, 0, 1, 1)
+func NewMenubutton(parent widget.Caregiver, name string, opts ...MenubuttonOption) *Menubutton {
+	app := parent.AppContext()
+	win := window.NewChildWindow(parent.Window(), name, 0, 0, 1, 1)
 	window.MakeWindowExist(win)
 
 	mb := &Menubutton{

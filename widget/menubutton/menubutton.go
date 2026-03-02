@@ -80,8 +80,9 @@ func Foreground(name string) MenubuttonOption {
 }
 
 // New creates a new Menubutton widget.
-func New(parent *window.Window, name string, app widget.AppContext, opts ...MenubuttonOption) *Menubutton {
-	w := window.NewChildWindow(parent, name, 0, 0, 1, 1)
+func New(parent widget.Caregiver, name string, opts ...MenubuttonOption) *Menubutton {
+	app := parent.AppContext()
+	w := window.NewChildWindow(parent.Window(), name, 0, 0, 1, 1)
 	window.MakeWindowExist(w)
 
 	mb := &Menubutton{

@@ -16,15 +16,15 @@ import (
 func main() {
 	d := demohelper.Setup("Vertical Scale", 400, 400,
 		"Drag the vertical scale to change the bar height.")
-	root, app := d.Root, d.App
+	app := d.App
 
 	// Middle frame: scale on left, canvas on right.
-	midFrame := frame.New(root, "midframe", app)
+	midFrame := frame.New(app, "midframe")
 	pack.Pack(midFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true), pack.PadX(10), pack.PadY(5))
 
 	// Canvas.
-	c := canvas.New(midFrame.Window(), "canvas", app,
+	c := canvas.New(midFrame, "canvas",
 		canvas.Background("white"),
 		canvas.Width(250),
 		canvas.Height(250),
@@ -47,7 +47,7 @@ func main() {
 	drawBar(50)
 
 	// Vertical scale.
-	sc := scale.New(midFrame.Window(), "vscale", app,
+	sc := scale.New(midFrame, "vscale",
 		scale.OrientOpt(scale.Vertical),
 		scale.FromOpt(100),
 		scale.ToOpt(0),

@@ -13,20 +13,20 @@ import (
 func main() {
 	d := demohelper.Setup("Text Display Styles", 550, 500,
 		"This demo shows text tags that control display styles.\nDifferent fonts, colors, underline, and overstrike.")
-	root, app := d.Root, d.App
+	app := d.App
 
 	// Text widget with scrollbar.
-	txtFrame := frame.New(root, "txtframe", app)
+	txtFrame := frame.New(app, "txtframe")
 	pack.Pack(txtFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true), pack.PadX(10), pack.PadY(5))
 
-	tw := text.New(txtFrame.Window(), "styled", app,
+	tw := text.New(txtFrame, "styled",
 		text.Width(60),
 		text.Height(24),
 		text.WrapModeOpt(text.WrapWord),
 	)
 
-	yscroll := scrollbar.New(txtFrame.Window(), "yscroll", app,
+	yscroll := scrollbar.New(txtFrame, "yscroll",
 		scrollbar.OrientOpt(scrollbar.Vertical),
 		scrollbar.CommandOpt(func(args ...any) {
 			if len(args) < 1 {

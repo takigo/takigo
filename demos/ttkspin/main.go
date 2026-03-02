@@ -13,17 +13,17 @@ import (
 func main() {
 	d := demohelper.Setup("Spinbox Demonstration", 400, 350,
 		"Three spinboxes are shown below. The first uses\nan integer range, the second uses float values,\nand the third uses a list of string values.")
-	root, app := d.Root, d.App
+	app := d.App
 
 	// Integer spinbox (0-100).
-	intLabel := label.New(root, "intlabel", app,
+	intLabel := label.New(app, "intlabel",
 		label.Text("Integer (0 to 100):"),
 		label.Anchor(option.AnchorW),
 		label.PadX(20),
 	)
 	pack.Pack(intLabel, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(5))
 
-	intSpin := spinbox.New(root, "intspin", app,
+	intSpin := spinbox.New(app, "intspin",
 		spinbox.FromOpt(0),
 		spinbox.ToOpt(100),
 		spinbox.IncrementOpt(1),
@@ -32,14 +32,14 @@ func main() {
 	pack.Pack(intSpin, pack.SideOpt(pack.Top), pack.PadX(20), pack.PadY(5))
 
 	// Float spinbox (0-10 step 0.5).
-	floatLabel := label.New(root, "floatlabel", app,
+	floatLabel := label.New(app, "floatlabel",
 		label.Text("Float (0.0 to 10.0, step 0.5):"),
 		label.Anchor(option.AnchorW),
 		label.PadX(20),
 	)
 	pack.Pack(floatLabel, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(5))
 
-	floatSpin := spinbox.New(root, "floatspin", app,
+	floatSpin := spinbox.New(app, "floatspin",
 		spinbox.FromOpt(0),
 		spinbox.ToOpt(10),
 		spinbox.IncrementOpt(0.5),
@@ -49,14 +49,14 @@ func main() {
 	pack.Pack(floatSpin, pack.SideOpt(pack.Top), pack.PadX(20), pack.PadY(5))
 
 	// Values spinbox (days of week).
-	valLabel := label.New(root, "vallabel", app,
+	valLabel := label.New(app, "vallabel",
 		label.Text("Day of week:"),
 		label.Anchor(option.AnchorW),
 		label.PadX(20),
 	)
 	pack.Pack(valLabel, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(5))
 
-	valSpin := spinbox.New(root, "valspin", app,
+	valSpin := spinbox.New(app, "valspin",
 		spinbox.ValuesOpt([]string{
 			"Sunday", "Monday", "Tuesday", "Wednesday",
 			"Thursday", "Friday", "Saturday",

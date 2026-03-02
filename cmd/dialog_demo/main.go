@@ -32,7 +32,7 @@ func main() {
 	root := app.Root()
 
 	// Status label.
-	statusLabel := label.New(root, "status", app,
+	statusLabel := label.New(app, "status",
 		label.Text("Status: Ready"),
 	)
 	pack.Pack(statusLabel, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX), pack.PadY(5))
@@ -43,18 +43,17 @@ func main() {
 	}
 
 	// --- Dialog Buttons ---
-	dlgFrame := frame.New(root, "dlgframe", app)
+	dlgFrame := frame.New(app, "dlgframe")
 	pack.Pack(dlgFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(5))
 
-	dlgLabel := label.New(dlgFrame.Window(), "dlglabel", app, label.Text("Dialogs:"))
+	dlgLabel := label.New(dlgFrame, "dlglabel", label.Text("Dialogs:"))
 	pack.Pack(dlgLabel, pack.SideOpt(pack.Left), pack.PadX(5))
 
 	// Message box buttons.
-	msgInfoBtn := button.New(dlgFrame.Window(), "msginfo", app,
+	msgInfoBtn := button.New(dlgFrame, "msginfo",
 		button.Text("Info"),
 		button.Command(func() {
 			result := dialog.ShowMessage(app,
-				dialog.MsgParent(root),
 				dialog.MsgTitle("Information"),
 				dialog.MsgMessage("This is an informational message."),
 				dialog.MsgDetail("Phase 13 is working!"),
@@ -66,11 +65,10 @@ func main() {
 	)
 	pack.Pack(msgInfoBtn, pack.SideOpt(pack.Left), pack.PadX(3))
 
-	msgQBtn := button.New(dlgFrame.Window(), "msgq", app,
+	msgQBtn := button.New(dlgFrame, "msgq",
 		button.Text("Question"),
 		button.Command(func() {
 			result := dialog.ShowMessage(app,
-				dialog.MsgParent(root),
 				dialog.MsgTitle("Question"),
 				dialog.MsgMessage("Do you want to continue?"),
 				dialog.MsgType(dialog.MsgQuestion),
@@ -82,11 +80,10 @@ func main() {
 	pack.Pack(msgQBtn, pack.SideOpt(pack.Left), pack.PadX(3))
 
 	// Color chooser button.
-	colorBtn := button.New(dlgFrame.Window(), "colorbtn", app,
+	colorBtn := button.New(dlgFrame, "colorbtn",
 		button.Text("Color..."),
 		button.Command(func() {
 			color, ok := dialog.ChooseColor(app,
-				dialog.ColorParent(root),
 				dialog.ColorInitial("#3399ff"),
 			)
 			if ok {
@@ -99,11 +96,10 @@ func main() {
 	pack.Pack(colorBtn, pack.SideOpt(pack.Left), pack.PadX(3))
 
 	// Font chooser button.
-	fontBtn := button.New(dlgFrame.Window(), "fontbtn", app,
+	fontBtn := button.New(dlgFrame, "fontbtn",
 		button.Text("Font..."),
 		button.Command(func() {
 			fontDesc, ok := dialog.ChooseFont(app,
-				dialog.FontParent(root),
 			)
 			if ok {
 				setStatus(fmt.Sprintf("Chosen font: %s", fontDesc))
@@ -115,11 +111,10 @@ func main() {
 	pack.Pack(fontBtn, pack.SideOpt(pack.Left), pack.PadX(3))
 
 	// File dialog button.
-	fileBtn := button.New(dlgFrame.Window(), "filebtn", app,
+	fileBtn := button.New(dlgFrame, "filebtn",
 		button.Text("Open File..."),
 		button.Command(func() {
 			path, ok := dialog.OpenFile(app,
-				dialog.FileParent(root),
 				dialog.FileTitle("Select a file"),
 				dialog.FileTypes(
 					dialog.FileType{Name: "Go files", Pattern: "*.go"},
@@ -136,13 +131,13 @@ func main() {
 	pack.Pack(fileBtn, pack.SideOpt(pack.Left), pack.PadX(3))
 
 	// --- Spinbox ---
-	spinFrame := frame.New(root, "spinframe", app)
+	spinFrame := frame.New(app, "spinframe")
 	pack.Pack(spinFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(10))
 
-	spinLabel := label.New(spinFrame.Window(), "spinlabel", app, label.Text("Spinbox (0-100):"))
+	spinLabel := label.New(spinFrame, "spinlabel", label.Text("Spinbox (0-100):"))
 	pack.Pack(spinLabel, pack.SideOpt(pack.Left), pack.PadX(5))
 
-	spin := spinbox.New(spinFrame.Window(), "spin1", app,
+	spin := spinbox.New(spinFrame, "spin1",
 		spinbox.FromOpt(0),
 		spinbox.ToOpt(100),
 		spinbox.IncrementOpt(1),
@@ -154,10 +149,10 @@ func main() {
 	pack.Pack(spin, pack.SideOpt(pack.Left), pack.PadX(5))
 
 	// Values-mode spinbox.
-	valSpinLabel := label.New(spinFrame.Window(), "valspinlabel", app, label.Text("Values:"))
+	valSpinLabel := label.New(spinFrame, "valspinlabel", label.Text("Values:"))
 	pack.Pack(valSpinLabel, pack.SideOpt(pack.Left), pack.PadX(5))
 
-	valSpin := spinbox.New(spinFrame.Window(), "spin2", app,
+	valSpin := spinbox.New(spinFrame, "spin2",
 		spinbox.ValuesOpt([]string{"Apple", "Banana", "Cherry", "Date", "Elderberry"}),
 		spinbox.WrapOpt(true),
 		spinbox.CommandOpt(func(v string) {
@@ -167,14 +162,14 @@ func main() {
 	pack.Pack(valSpin, pack.SideOpt(pack.Left), pack.PadX(5))
 
 	// --- Mouse wheel test: Scale + Scrollbar ---
-	wheelFrame := frame.New(root, "wheelframe", app)
+	wheelFrame := frame.New(app, "wheelframe")
 	pack.Pack(wheelFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(10))
 
-	wheelLabel := label.New(wheelFrame.Window(), "wheellabel", app,
+	wheelLabel := label.New(wheelFrame, "wheellabel",
 		label.Text("Mouse wheel test (hover + scroll):"))
 	pack.Pack(wheelLabel, pack.SideOpt(pack.Left), pack.PadX(5))
 
-	testScale := scale.New(wheelFrame.Window(), "testscale", app,
+	testScale := scale.New(wheelFrame, "testscale",
 		scale.OrientOpt(scale.Horizontal),
 		scale.FromOpt(0), scale.ToOpt(100),
 		scale.ValueOpt(50),
@@ -184,7 +179,7 @@ func main() {
 	)
 	pack.Pack(testScale, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillX), pack.Expand(true))
 
-	testScrollbar := scrollbar.New(wheelFrame.Window(), "testscroll", app,
+	testScrollbar := scrollbar.New(wheelFrame, "testscroll",
 		scrollbar.OrientOpt(scrollbar.Vertical),
 		scrollbar.CommandOpt(func(args ...interface{}) {
 			setStatus(fmt.Sprintf("Scrollbar: %v", args))
@@ -194,10 +189,10 @@ func main() {
 	pack.Pack(testScrollbar, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
 
 	// --- Busy window ---
-	busyFrame := frame.New(root, "busyframe", app)
+	busyFrame := frame.New(app, "busyframe")
 	pack.Pack(busyFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(5))
 
-	busyBtn := button.New(busyFrame.Window(), "busybtn", app,
+	busyBtn := button.New(busyFrame, "busybtn",
 		button.Text("Busy 2s"),
 		button.Command(func() {
 			setStatus("Busy...")
@@ -211,7 +206,7 @@ func main() {
 	pack.Pack(busyBtn, pack.SideOpt(pack.Left), pack.PadX(5))
 
 	// --- System tray ---
-	trayBtn := button.New(busyFrame.Window(), "traybtn", app,
+	trayBtn := button.New(busyFrame, "traybtn",
 		button.Text("Add Tray Icon"),
 		button.Command(func() {
 			tray, err := systray.New(app, app.Display(),

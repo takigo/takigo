@@ -29,10 +29,10 @@ func main() {
 	eng := app.BindEng()
 
 	// Status label to show binding events.
-	statusFrame := frame.New(root, "statusframe", app)
+	statusFrame := frame.New(app, "statusframe")
 	pack.Pack(statusFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
 
-	statusLabel := label.New(statusFrame.Window(), "status", app,
+	statusLabel := label.New(statusFrame, "status",
 		label.Text("Status: Ready"))
 	pack.Pack(statusLabel, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillX), pack.Expand(true))
 
@@ -42,15 +42,15 @@ func main() {
 	}
 
 	// Two buttons to demonstrate per-widget bindings.
-	btnFrame := frame.New(root, "btnframe", app)
+	btnFrame := frame.New(app, "btnframe")
 	pack.Pack(btnFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(10))
 
-	btn1 := button.New(btnFrame.Window(), "btn1", app,
+	btn1 := button.New(btnFrame, "btn1",
 		button.Text("Button 1 (click me)"),
 		button.Command(func() { setStatus("Button 1 command") }))
 	pack.Pack(btn1, pack.SideOpt(pack.Left), pack.PadX(10))
 
-	btn2 := button.New(btnFrame.Window(), "btn2", app,
+	btn2 := button.New(btnFrame, "btn2",
 		button.Text("Button 2 (click me)"),
 		button.Command(func() { setStatus("Button 2 command") }))
 	pack.Pack(btn2, pack.SideOpt(pack.Left), pack.PadX(10))
@@ -120,7 +120,7 @@ func main() {
 	})
 
 	// Info label.
-	infoLabel := label.New(root, "info", app,
+	infoLabel := label.New(app, "info",
 		label.Text("Try: hover buttons, right-click, double-click, Ctrl+C/V/A, press 'q' or Esc"))
 	pack.Pack(infoLabel, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX), pack.PadY(10))
 	eng.RegisterWindow(infoLabel.Window(), "Label")

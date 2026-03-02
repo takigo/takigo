@@ -64,8 +64,9 @@ func ButtonFont(name string) ButtonOption {
 }
 
 // NewButton creates a themed button widget.
-func NewButton(parent *window.Window, name string, app widget.AppContext, opts ...ButtonOption) *Button {
-	win := window.NewChildWindow(parent, name, 0, 0, 1, 1)
+func NewButton(parent widget.Caregiver, name string, opts ...ButtonOption) *Button {
+	app := parent.AppContext()
+	win := window.NewChildWindow(parent.Window(), name, 0, 0, 1, 1)
 	window.MakeWindowExist(win)
 
 	b := &Button{}

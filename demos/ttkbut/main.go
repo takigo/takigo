@@ -17,11 +17,11 @@ import (
 func main() {
 	d := demohelper.Setup("TTK Widgets", 400, 350,
 		"TTK themed widgets: labels, buttons, separators.\nThey use the clam theme for modern appearance.")
-	root, app := d.Root, d.App
+	app := d.App
 
 	ttk.SetCurrentTheme("clam")
 
-	statusLabel := label.New(root, "status", app,
+	statusLabel := label.New(app, "status",
 		label.Text("Status: Ready"),
 		label.Anchor(option.AnchorW),
 		label.Background("#e8e8e8"),
@@ -35,7 +35,7 @@ func main() {
 	}
 
 	// TTK Frame.
-	ttkFrame := ttk.NewFrame(root, "ttkframe", app,
+	ttkFrame := ttk.NewFrame(app, "ttkframe",
 		ttk.FrameBorderWidth(2),
 		ttk.FrameRelief(option.ReliefGroove),
 	)
@@ -43,20 +43,20 @@ func main() {
 		pack.PadX(15), pack.PadY(10))
 
 	// TTK Label.
-	ttkLabel := ttk.NewLabel(ttkFrame.Window(), "ttklabel", app,
+	ttkLabel := ttk.NewLabel(ttkFrame, "ttklabel",
 		ttk.LabelText("This is a TTK Label"),
 	)
 	pack.Pack(ttkLabel, pack.SideOpt(pack.Top), pack.PadX(10), pack.PadY(8))
 
 	// Separator.
-	sep := ttk.NewSeparator(ttkFrame.Window(), "sep", app)
+	sep := ttk.NewSeparator(ttkFrame, "sep")
 	pack.Pack(sep, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadX(5))
 
 	// TTK Buttons.
 	for i, text := range []string{"TTK Button 1", "TTK Button 2", "TTK Button 3"} {
 		idx := i + 1
 		btnText := text
-		btn := ttk.NewButton(ttkFrame.Window(), fmt.Sprintf("ttkbtn%d", idx), app,
+		btn := ttk.NewButton(ttkFrame, fmt.Sprintf("ttkbtn%d", idx),
 			ttk.ButtonText(btnText),
 			ttk.ButtonCommand(func() {
 				setStatus(fmt.Sprintf("Clicked: %s", btnText))

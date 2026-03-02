@@ -16,9 +16,9 @@ import (
 func main() {
 	d := demohelper.Setup("Text Peer Demonstration", 700, 500,
 		"Two text widgets are shown side by side. Use the\nbuttons to copy content between them.")
-	root, app := d.Root, d.App
+	app := d.App
 
-	noteLabel := label.New(root, "note", app,
+	noteLabel := label.New(app, "note",
 		label.Text("Note: Tk text peering (shared document) is not implemented. Using copy buttons instead."),
 		label.Anchor(option.AnchorW),
 		label.PadX(10), label.Foreground("#666666"),
@@ -26,20 +26,20 @@ func main() {
 	pack.Pack(noteLabel, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX), pack.PadY(3))
 
 	// Main content area.
-	contentFrame := frame.New(root, "content", app)
+	contentFrame := frame.New(app, "content")
 	pack.Pack(contentFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true), pack.PadX(5), pack.PadY(5))
 
 	// Left text + scrollbar.
-	leftFrame := frame.New(contentFrame.Window(), "left", app)
+	leftFrame := frame.New(contentFrame, "left")
 	pack.Pack(leftFrame, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
-	leftLabel := label.New(leftFrame.Window(), "llabel", app,
+	leftLabel := label.New(leftFrame, "llabel",
 		label.Text("Text A"), label.Anchor(option.AnchorW), label.PadX(5))
 	pack.Pack(leftLabel, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
 
-	leftSb := scrollbar.New(leftFrame.Window(), "lsb", app)
-	leftText := text.New(leftFrame.Window(), "lefttxt", app,
+	leftSb := scrollbar.New(leftFrame, "lsb")
+	leftText := text.New(leftFrame, "lefttxt",
 		text.Width(30), text.Height(20), text.WrapModeOpt(text.WrapWord),
 	)
 	leftText.YScrollCmd = func(first, last float64) { leftSb.Set(first, last) }
@@ -65,19 +65,19 @@ func main() {
 	pack.Pack(leftText, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	// Center buttons.
-	centerFrame := frame.New(contentFrame.Window(), "center", app)
+	centerFrame := frame.New(contentFrame, "center")
 	pack.Pack(centerFrame, pack.SideOpt(pack.Left), pack.PadX(5), pack.PadY(20))
 
 	// Right text + scrollbar.
-	rightFrame := frame.New(contentFrame.Window(), "right", app)
+	rightFrame := frame.New(contentFrame, "right")
 	pack.Pack(rightFrame, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
-	rightLabel := label.New(rightFrame.Window(), "rlabel", app,
+	rightLabel := label.New(rightFrame, "rlabel",
 		label.Text("Text B"), label.Anchor(option.AnchorW), label.PadX(5))
 	pack.Pack(rightLabel, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
 
-	rightSb := scrollbar.New(rightFrame.Window(), "rsb", app)
-	rightText := text.New(rightFrame.Window(), "righttxt", app,
+	rightSb := scrollbar.New(rightFrame, "rsb")
+	rightText := text.New(rightFrame, "righttxt",
 		text.Width(30), text.Height(20), text.WrapModeOpt(text.WrapWord),
 	)
 	rightText.YScrollCmd = func(first, last float64) { rightSb.Set(first, last) }
@@ -103,7 +103,7 @@ func main() {
 	pack.Pack(rightText, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	// Copy buttons.
-	copyRight := button.New(centerFrame.Window(), "copyright", app,
+	copyRight := button.New(centerFrame, "copyright",
 		button.Text("Copy -->"),
 		button.Command(func() {
 			content := leftText.Get("1.0", "end")
@@ -114,7 +114,7 @@ func main() {
 	)
 	pack.Pack(copyRight, pack.SideOpt(pack.Top), pack.PadY(10))
 
-	copyLeft := button.New(centerFrame.Window(), "copyleft", app,
+	copyLeft := button.New(centerFrame, "copyleft",
 		button.Text("<-- Copy"),
 		button.Command(func() {
 			content := rightText.Get("1.0", "end")

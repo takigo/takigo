@@ -12,10 +12,10 @@ import (
 func main() {
 	d := demohelper.Setup("Floor Plan", 650, 500,
 		"A simplified building floor plan drawn with canvas lines\nand polygons. Rooms are labeled with text items.")
-	root, app := d.Root, d.App
+	app := d.App
 
 	// Canvas.
-	c := canvas.New(root, "floor", app,
+	c := canvas.New(app, "floor",
 		canvas.Background("#f5f5dc"),
 		canvas.Width(600),
 		canvas.Height(380),

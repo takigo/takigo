@@ -15,9 +15,9 @@ import (
 func main() {
 	d := demohelper.Setup("Menubutton Directions", 500, 350,
 		"Four menu buttons showing menus in different directions.\nClick each to see the menu position.")
-	root, app := d.Root, d.App
+	app := d.App
 
-	statusLabel := label.New(root, "status", app,
+	statusLabel := label.New(app, "status",
 		label.Text("Status: Ready"),
 		label.Anchor(option.AnchorW),
 		label.Background("#e8e8e8"),
@@ -31,7 +31,7 @@ func main() {
 	}
 
 	// Create menu buttons with different directions.
-	mbFrame := frame.New(root, "mbframe", app)
+	mbFrame := frame.New(app, "mbframe")
 	pack.Pack(mbFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
 		pack.PadX(20), pack.PadY(20))
 
@@ -46,13 +46,13 @@ func main() {
 	}
 
 	for _, d := range directions {
-		m := menu.New(root, "menu_"+d.name, app)
+		m := menu.New(app, "menu_"+d.name)
 		dirName := d.name
 		m.AddCommand("Item 1", func() { setStatus(dirName + " > Item 1") })
 		m.AddCommand("Item 2", func() { setStatus(dirName + " > Item 2") })
 		m.AddCommand("Item 3", func() { setStatus(dirName + " > Item 3") })
 
-		mb := menubutton.New(mbFrame.Window(), "mb_"+d.name, app,
+		mb := menubutton.New(mbFrame, "mb_"+d.name,
 			menubutton.Text(d.name),
 			menubutton.MenuOpt(m),
 			menubutton.DirectionOpt(d.dir),

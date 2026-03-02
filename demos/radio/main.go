@@ -16,10 +16,10 @@ import (
 
 func main() {
 	d := demohelper.Setup("Radiobutton Demonstration", 500, 400, "Two groups of radiobuttons are displayed below. Click on\na button to select it. The current selection is shown at\nthe bottom.")
-	root, app := d.Root, d.App
+	app := d.App
 
 	// Status label.
-	statusLabel := label.New(root, "status", app,
+	statusLabel := label.New(app, "status",
 		label.Text("Point size: 10, Color: red"),
 		label.Anchor(option.AnchorW),
 		label.PadX(10),
@@ -36,16 +36,16 @@ func main() {
 	}
 
 	// Container for two groups side by side.
-	groupFrame := frame.New(root, "groups", app)
+	groupFrame := frame.New(app, "groups")
 	pack.Pack(groupFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true), pack.PadX(10), pack.PadY(5))
 
 	// Point size group.
-	sizeFrame := frame.New(groupFrame.Window(), "sizes", app,
+	sizeFrame := frame.New(groupFrame, "sizes",
 		frame.BorderWidth(2), frame.Relief(option.ReliefGroove))
 	pack.Pack(sizeFrame, pack.SideOpt(pack.Left), pack.PadX(10), pack.PadY(5))
 
-	sizeTitle := label.New(sizeFrame.Window(), "sizetitle", app,
+	sizeTitle := label.New(sizeFrame, "sizetitle",
 		label.Text("Point Size"),
 		label.PadX(5),
 	)
@@ -53,7 +53,7 @@ func main() {
 
 	sizes := []string{"10", "12", "14", "18", "24"}
 	for _, s := range sizes {
-		rb := radiobutton.New(sizeFrame.Window(), "size_"+s, app,
+		rb := radiobutton.New(sizeFrame, "size_"+s,
 			radiobutton.Text(s+" point"),
 			radiobutton.Value(s),
 			radiobutton.Var(sizeVar),
@@ -64,11 +64,11 @@ func main() {
 	}
 
 	// Color group.
-	colorFrame := frame.New(groupFrame.Window(), "colors", app,
+	colorFrame := frame.New(groupFrame, "colors",
 		frame.BorderWidth(2), frame.Relief(option.ReliefGroove))
 	pack.Pack(colorFrame, pack.SideOpt(pack.Left), pack.PadX(10), pack.PadY(5))
 
-	colorTitle := label.New(colorFrame.Window(), "colortitle", app,
+	colorTitle := label.New(colorFrame, "colortitle",
 		label.Text("Color"),
 		label.PadX(5),
 	)
@@ -77,7 +77,7 @@ func main() {
 	colors := []string{"Red", "Orange", "Yellow", "Green", "Blue"}
 	for _, c := range colors {
 		val := c
-		rb := radiobutton.New(colorFrame.Window(), "color_"+c, app,
+		rb := radiobutton.New(colorFrame, "color_"+c,
 			radiobutton.Text(c),
 			radiobutton.Value(c),
 			radiobutton.Var(colorVar),

@@ -60,22 +60,23 @@ func MinSize(w, h int) ToplevelOption {
 }
 
 // TransientFor marks this as a transient window (dialog) for the given parent.
-func TransientFor(parent *window.Window) ToplevelOption {
+func TransientFor(parent window.Windower) ToplevelOption {
 	return func(t *Toplevel) {
-		t.WmInfo.SetTransientFor(parent)
+		t.WmInfo.SetTransientFor(parent.Window())
 	}
 }
 
 // New creates a new Toplevel window.
-func New(parent *window.Window, name string, app widget.AppContext, opts ...ToplevelOption) *Toplevel {
-	d := parent.Display
+func New(parent widget.Caregiver, name string, opts ...ToplevelOption) *Toplevel {
+	app := parent.AppContext()
+	d := parent.Window().Display
 
 	// Create a new X top-level window.
 	w := &window.Window{
 		Display:         d,
-		Parent:          parent,
+		Parent:          parent.Window(),
 		Name:            name,
-		PathName:        window.BuildPathName(parent, name),
+		PathName:        window.BuildPathName(parent.Window(), name),
 		Width:           200,
 		Height:          200,
 		ReqWidth:        200,
@@ -87,7 +88,7 @@ func New(parent *window.Window, name string, app widget.AppContext, opts ...Topl
 		Flags:           window.FlagTopLevel,
 	}
 
-	parent.AddChild(w)
+	parent.Window().AddChild(w)
 
 	// Create X window as a child of the root (not the parent widget).
 	attrs := &xlib.WindowAttributes{

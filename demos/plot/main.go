@@ -15,10 +15,10 @@ import (
 func main() {
 	d := demohelper.Setup("2D Plot", 550, 450,
 		"A 2D data plot. Drag the data points with the mouse\nto see them move along the line.")
-	root, app := d.Root, d.App
+	app := d.App
 
 	// Canvas.
-	c := canvas.New(root, "plot", app,
+	c := canvas.New(app, "plot",
 		canvas.Background("white"),
 		canvas.Width(500),
 		canvas.Height(350),

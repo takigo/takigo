@@ -12,10 +12,10 @@ import (
 func main() {
 	d := demohelper.Setup("Canvas Text Demo", 550, 400,
 		"Canvas text items rendered at various positions\nwith different anchors, fonts, and colors.")
-	root, app := d.Root, d.App
+	app := d.App
 
 	// Canvas.
-	c := canvas.New(root, "canvas", app,
+	c := canvas.New(app, "canvas",
 		canvas.Background("white"),
 		canvas.Width(500),
 		canvas.Height(300),

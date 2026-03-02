@@ -15,9 +15,9 @@ import (
 
 func main() {
 	d := demohelper.Setup("Goldberg Machine", 600, 500, "A simplified Rube Goldberg machine.\nClick Start to begin the chain reaction.")
-	root, app := d.Root, d.App
+	app := d.App
 
-	c := canvas.New(root, "goldberg", app,
+	c := canvas.New(app, "goldberg",
 		canvas.Background("#2c3e50"),
 		canvas.Width(560),
 		canvas.Height(380),
@@ -122,7 +122,7 @@ func main() {
 		app.After(30*time.Millisecond, animate)
 	}
 
-	startBtn := button.New(root, "start", app,
+	startBtn := button.New(app, "start",
 		button.Text("Start"),
 		button.Command(func() {
 			step = 0

@@ -17,18 +17,18 @@ import (
 
 func main() {
 	d := demohelper.Setup("Notebook Demonstration", 500, 350, "A notebook widget with three tabs. Click each tab\nto switch between pages.")
-	root, app := d.Root, d.App
+	app := d.App
 
 	ttk.SetCurrentTheme("clam")
 
 	// Notebook.
-	nb := ttk.NewNotebook(root, "nb", app)
+	nb := ttk.NewNotebook(app, "nb")
 	pack.Pack(nb, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true), pack.PadX(15), pack.PadY(10))
 
 	// Tab 1: Description.
-	page1 := frame.New(nb.Window(), "page1", app)
-	descLabel := label.New(page1.Window(), "desc", app,
+	page1 := frame.New(nb, "page1")
+	descLabel := label.New(page1, "desc",
 		label.Text("This is the first tab.\n\nNotebook widgets allow you to\norganize content into tabs.\nClick on a tab to view its content."),
 		label.Anchor(option.AnchorNW),
 		label.PadX(10), label.PadY(10),
@@ -37,9 +37,9 @@ func main() {
 	nb.Add(page1.Window(), "Description")
 
 	// Tab 2: Buttons.
-	page2 := frame.New(nb.Window(), "page2", app)
+	page2 := frame.New(nb, "page2")
 
-	statusLabel := label.New(page2.Window(), "status2", app,
+	statusLabel := label.New(page2, "status2",
 		label.Text("Click a button:"),
 		label.Anchor(option.AnchorW),
 		label.PadX(10),
@@ -48,7 +48,7 @@ func main() {
 
 	for i, text := range []string{"Button A", "Button B", "Button C"} {
 		btnText := text
-		btn := ttk.NewButton(page2.Window(), fmt.Sprintf("btn%d", i), app,
+		btn := ttk.NewButton(page2, fmt.Sprintf("btn%d", i),
 			ttk.ButtonText(btnText),
 			ttk.ButtonCommand(func() {
 				statusLabel.Text = "Clicked: " + btnText
@@ -61,9 +61,9 @@ func main() {
 	nb.Add(page2.Window(), "Buttons")
 
 	// Tab 3: Labels.
-	page3 := frame.New(nb.Window(), "page3", app)
+	page3 := frame.New(nb, "page3")
 	for _, text := range []string{"Label One", "Label Two", "Label Three"} {
-		l := ttk.NewLabel(page3.Window(), "l_"+text, app,
+		l := ttk.NewLabel(page3, "l_"+text,
 			ttk.LabelText(text),
 		)
 		pack.Pack(l, pack.SideOpt(pack.Top), pack.PadX(10), pack.PadY(5))

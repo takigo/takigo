@@ -77,8 +77,9 @@ func LabelAnchor(a option.Anchor) Option {
 }
 
 // New creates a new Labelframe widget.
-func New(parent *window.Window, name string, app widget.AppContext, opts ...Option) *Labelframe {
-	w := window.NewChildWindow(parent, name, 0, 0, 200, 200)
+func New(parent widget.Caregiver, name string, opts ...Option) *Labelframe {
+	app := parent.AppContext()
+	w := window.NewChildWindow(parent.Window(), name, 0, 0, 200, 200)
 	window.MakeWindowExist(w)
 
 	lf := &Labelframe{

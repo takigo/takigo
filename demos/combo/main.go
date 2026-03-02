@@ -15,12 +15,12 @@ import (
 func main() {
 	d := demohelper.Setup("Combobox Demonstration", 450, 400,
 		"Three comboboxes are shown below: editable,\nreadonly, and disabled. Click the arrow to see the\ndropdown list.")
-	root, app := d.Root, d.App
+	app := d.App
 
 	ttk.SetCurrentTheme("clam")
 
 	// Status label.
-	statusLabel := label.New(root, "status", app,
+	statusLabel := label.New(app, "status",
 		label.Text("Selection: (none)"),
 		label.Anchor(option.AnchorW),
 		label.PadX(10),
@@ -33,14 +33,14 @@ func main() {
 	}
 
 	// Editable combobox.
-	editLabel := label.New(root, "editlabel", app,
+	editLabel := label.New(app, "editlabel",
 		label.Text("Editable:"),
 		label.Anchor(option.AnchorW),
 		label.PadX(20),
 	)
 	pack.Pack(editLabel, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(5))
 
-	editCombo := ttk.NewCombobox(root, "editcombo", app,
+	editCombo := ttk.NewCombobox(app, "editcombo",
 		ttk.ComboboxValues(countries),
 		ttk.ComboboxText("Australia"),
 		ttk.ComboboxCommand(func(v string) {
@@ -51,14 +51,14 @@ func main() {
 	pack.Pack(editCombo, pack.SideOpt(pack.Top), pack.PadX(20), pack.PadY(5))
 
 	// Readonly combobox.
-	roLabel := label.New(root, "rolabel", app,
+	roLabel := label.New(app, "rolabel",
 		label.Text("Readonly:"),
 		label.Anchor(option.AnchorW),
 		label.PadX(20),
 	)
 	pack.Pack(roLabel, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(5))
 
-	roCombo := ttk.NewCombobox(root, "rocombo", app,
+	roCombo := ttk.NewCombobox(app, "rocombo",
 		ttk.ComboboxValues(countries),
 		ttk.ComboboxText("Canada"),
 		ttk.ComboboxCbState(ttk.ComboReadonly),
@@ -70,14 +70,14 @@ func main() {
 	pack.Pack(roCombo, pack.SideOpt(pack.Top), pack.PadX(20), pack.PadY(5))
 
 	// Disabled combobox.
-	disLabel := label.New(root, "dislabel", app,
+	disLabel := label.New(app, "dislabel",
 		label.Text("Disabled:"),
 		label.Anchor(option.AnchorW),
 		label.PadX(20),
 	)
 	pack.Pack(disLabel, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(5))
 
-	disCombo := ttk.NewCombobox(root, "discombo", app,
+	disCombo := ttk.NewCombobox(app, "discombo",
 		ttk.ComboboxValues(countries),
 		ttk.ComboboxText("France"),
 		ttk.ComboboxCbState(ttk.ComboDisabled),

@@ -143,6 +143,11 @@ func (w *TtkWidget) Window() *window.Window {
 	return w.Win
 }
 
+// AppContext returns the application context, satisfying the widget.Caregiver interface.
+func (w *TtkWidget) AppContext() widget.AppContext {
+	return w.App
+}
+
 // bindTtkCommon binds common TTK events: Expose, Configure, Enter, Leave, Focus.
 func bindTtkCommon(w *TtkWidget, app widget.AppContext) {
 	win := w.Win

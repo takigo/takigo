@@ -18,10 +18,10 @@ import (
 func main() {
 	d := demohelper.Setup("15-Puzzle", 340, 400,
 		"A 15-puzzle. Click on a piece next to the\nempty space to slide it into the space.")
-	root, app := d.Root, d.App
+	app := d.App
 
 	// Puzzle frame.
-	puzzleFrame := frame.New(root, "puzzle", app,
+	puzzleFrame := frame.New(app, "puzzle",
 		frame.Width(240),
 		frame.Height(240),
 		frame.BorderWidth(2),
@@ -79,7 +79,7 @@ func main() {
 
 			piecePos[num] = pos{col, row}
 			n := num // capture
-			btn := button.New(puzzleFrame.Window(), fmt.Sprintf("p%d", num), app,
+			btn := button.New(puzzleFrame, fmt.Sprintf("p%d", num),
 				button.Text(fmt.Sprintf("%d", num)),
 				button.Command(func() { tryMove(n) }),
 				button.PadX(2),

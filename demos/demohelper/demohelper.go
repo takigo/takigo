@@ -36,7 +36,7 @@ func Setup(title string, width, height int, description string) *Demo {
 	root.BackgroundPixel = bgColor.Pixel
 
 	// Description label.
-	msg := label.New(root, "msg", app,
+	msg := label.New(app, "msg",
 		label.Text(description),
 		label.Anchor(option.AnchorW),
 		label.PadX(10),
@@ -45,10 +45,10 @@ func Setup(title string, width, height int, description string) *Demo {
 	pack.Pack(msg, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
 
 	// Dismiss button at bottom.
-	btnFrame := frame.New(root, "btnframe", app)
+	btnFrame := frame.New(app, "btnframe")
 	pack.Pack(btnFrame, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX), pack.PadY(5))
 
-	dismissBtn := button.New(btnFrame.Window(), "dismiss", app,
+	dismissBtn := button.New(btnFrame, "dismiss",
 		button.Text("Dismiss"),
 		button.Command(func() { app.Quit() }),
 		button.PadX(10),

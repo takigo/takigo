@@ -16,9 +16,9 @@ import (
 func main() {
 	d := demohelper.Setup("Message Boxes", 400, 350,
 		"Click any button to show a message dialog\nwith different types and button combinations.")
-	root, app := d.Root, d.App
+	app := d.App
 
-	statusLabel := label.New(root, "status", app,
+	statusLabel := label.New(app, "status",
 		label.Text("Result: —"),
 		label.Anchor(option.AnchorW),
 		label.Background("#e8e8e8"),
@@ -48,11 +48,10 @@ func main() {
 
 	for _, d := range dialogs {
 		dlg := d
-		btn := button.New(root, "btn_"+dlg.text, app,
+		btn := button.New(app, "btn_"+dlg.text,
 			button.Text(dlg.text),
 			button.Command(func() {
 				result := dialog.ShowMessage(app,
-					dialog.MsgParent(root),
 					dialog.MsgTitle(dlg.title),
 					dialog.MsgMessage(dlg.message),
 					dialog.MsgType(dlg.msgType),

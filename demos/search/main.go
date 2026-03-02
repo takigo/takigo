@@ -27,23 +27,23 @@ func main() {
 	focusMgr.BindTraversal(root)
 
 	// Search bar.
-	searchFrame := frame.New(root, "searchframe", app)
+	searchFrame := frame.New(app, "searchframe")
 	pack.Pack(searchFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
 		pack.PadX(10), pack.PadY(5))
 
-	searchLabel := label.New(searchFrame.Window(), "slabel", app,
+	searchLabel := label.New(searchFrame, "slabel",
 		label.Text("Search:"),
 	)
 	pack.Pack(searchLabel, pack.SideOpt(pack.Left), pack.PadX(5))
 
-	searchEntry := entry.New(searchFrame.Window(), "sentry", app,
+	searchEntry := entry.New(searchFrame, "sentry",
 		entry.Width(20),
 	)
 	pack.Pack(searchEntry, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillX),
 		pack.Expand(true), pack.PadX(5))
 
 	// Status label.
-	statusLabel := label.New(root, "status", app,
+	statusLabel := label.New(app, "status",
 		label.Text("0 matches"),
 		label.Anchor(option.AnchorW),
 		label.Background("#e8e8e8"),
@@ -52,17 +52,17 @@ func main() {
 	pack.Pack(statusLabel, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	// Text widget with scrollbar.
-	txtFrame := frame.New(root, "txtframe", app)
+	txtFrame := frame.New(app, "txtframe")
 	pack.Pack(txtFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true), pack.PadX(10), pack.PadY(5))
 
-	tw := text.New(txtFrame.Window(), "searchtext", app,
+	tw := text.New(txtFrame, "searchtext",
 		text.Width(60),
 		text.Height(20),
 		text.WrapModeOpt(text.WrapWord),
 	)
 
-	yscroll := scrollbar.New(txtFrame.Window(), "yscroll", app,
+	yscroll := scrollbar.New(txtFrame, "yscroll",
 		scrollbar.OrientOpt(scrollbar.Vertical),
 		scrollbar.CommandOpt(func(args ...any) {
 			if len(args) < 1 {
@@ -153,7 +153,7 @@ Go has built-in concurrency and a robust standard library.
 	}
 
 	// Highlight button.
-	highlightBtn := button.New(searchFrame.Window(), "highlight", app,
+	highlightBtn := button.New(searchFrame, "highlight",
 		button.Text("Highlight"),
 		button.Command(doSearch),
 		button.PadX(8),

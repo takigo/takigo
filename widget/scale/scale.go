@@ -78,8 +78,9 @@ func Background(name string) ScaleOption {
 }
 
 // New creates a new Scale widget.
-func New(parent *window.Window, name string, app widget.AppContext, opts ...ScaleOption) *Scale {
-	w := window.NewChildWindow(parent, name, 0, 0, 1, 1)
+func New(parent widget.Caregiver, name string, opts ...ScaleOption) *Scale {
+	app := parent.AppContext()
+	w := window.NewChildWindow(parent.Window(), name, 0, 0, 1, 1)
 	window.MakeWindowExist(w)
 
 	s := &Scale{

@@ -64,8 +64,9 @@ func LabelCompound(c widget.Compound) LabelOption {
 }
 
 // NewLabel creates a themed label widget.
-func NewLabel(parent *window.Window, name string, app widget.AppContext, opts ...LabelOption) *Label {
-	win := window.NewChildWindow(parent, name, 0, 0, 1, 1)
+func NewLabel(parent widget.Caregiver, name string, opts ...LabelOption) *Label {
+	app := parent.AppContext()
+	win := window.NewChildWindow(parent.Window(), name, 0, 0, 1, 1)
 	window.MakeWindowExist(win)
 
 	l := &Label{}

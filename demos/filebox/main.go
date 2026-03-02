@@ -16,9 +16,9 @@ import (
 func main() {
 	d := demohelper.Setup("File Dialogs", 400, 250,
 		"Click a button to open a file dialog.\nThe selected path is shown in the status bar.")
-	root, app := d.Root, d.App
+	app := d.App
 
-	statusLabel := label.New(root, "status", app,
+	statusLabel := label.New(app, "status",
 		label.Text("Selected: —"),
 		label.Anchor(option.AnchorW),
 		label.Background("#e8e8e8"),
@@ -37,11 +37,10 @@ func main() {
 		{Name: "All files", Pattern: "*"},
 	}
 
-	openBtn := button.New(root, "open", app,
+	openBtn := button.New(app, "open",
 		button.Text("Open File..."),
 		button.Command(func() {
 			path, ok := dialog.OpenFile(app,
-				dialog.FileParent(root),
 				dialog.FileTitle("Open File"),
 				dialog.FileTypes(fileTypes...),
 			)
@@ -56,11 +55,10 @@ func main() {
 	pack.Pack(openBtn, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
 		pack.PadX(30), pack.PadY(10))
 
-	saveBtn := button.New(root, "save", app,
+	saveBtn := button.New(app, "save",
 		button.Text("Save File..."),
 		button.Command(func() {
 			path, ok := dialog.SaveFile(app,
-				dialog.FileParent(root),
 				dialog.FileTitle("Save File"),
 				dialog.FileTypes(fileTypes...),
 			)

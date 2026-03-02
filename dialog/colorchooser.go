@@ -9,12 +9,10 @@ import (
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
 	"github.com/msorc/takigo/widget/scale"
-	"github.com/msorc/takigo/window"
 )
 
 // colorConfig holds ChooseColor options.
 type colorConfig struct {
-	parent       *window.Window
 	title        string
 	initialColor string // "#RRGGBB"
 }
@@ -22,13 +20,12 @@ type colorConfig struct {
 // ColorOption configures ChooseColor.
 type ColorOption func(*colorConfig)
 
-func ColorParent(w *window.Window) ColorOption { return func(c *colorConfig) { c.parent = w } }
-func ColorTitle(s string) ColorOption          { return func(c *colorConfig) { c.title = s } }
-func ColorInitial(s string) ColorOption        { return func(c *colorConfig) { c.initialColor = s } }
+func ColorTitle(s string) ColorOption   { return func(c *colorConfig) { c.title = s } }
+func ColorInitial(s string) ColorOption { return func(c *colorConfig) { c.initialColor = s } }
 
 // ChooseColor displays a modal color chooser dialog.
 // Returns the chosen color as "#RRGGBB" and true, or "" and false if cancelled.
-func ChooseColor(app widget.AppContext, opts ...ColorOption) (string, bool) {
+func ChooseColor(parent widget.Caregiver, opts ...ColorOption) (string, bool) {
 	cfg := colorConfig{
 		title:        "Choose Color",
 		initialColor: "#000000",
@@ -37,10 +34,12 @@ func ChooseColor(app widget.AppContext, opts ...ColorOption) (string, bool) {
 		opt(&cfg)
 	}
 
+	app := parent.AppContext()
+
 	// Parse initial color.
 	r, g, b := parseHexColor(cfg.initialColor)
 
-	d := New(app, cfg.parent, cfg.title, 350, 280)
+	d := New(parent, cfg.title, 350, 280)
 
 	var chosenColor string
 	var rScale, gScale, bScale *scale.Scale
@@ -67,15 +66,15 @@ func ChooseColor(app widget.AppContext, opts ...ColorOption) (string, bool) {
 	}
 
 	// Sliders frame.
-	slidersFrame := newFrame(d.Content.Window(), "sliders", app)
+	slidersFrame := newFrame(d.Content, "sliders")
 	pack.Pack(slidersFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(5))
 
 	// R slider.
-	rFrame := newFrame(slidersFrame.Window(), "rframe", app)
+	rFrame := newFrame(slidersFrame, "rframe")
 	pack.Pack(rFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
-	rLabel := label.New(rFrame.Window(), "rlabel", app, label.Text("R:"))
+	rLabel := label.New(rFrame, "rlabel", label.Text("R:"))
 	pack.Pack(rLabel, pack.SideOpt(pack.Left), pack.PadX(5))
-	rScale = scale.New(rFrame.Window(), "rscale", app,
+	rScale = scale.New(rFrame, "rscale",
 		scale.OrientOpt(scale.Horizontal),
 		scale.FromOpt(0), scale.ToOpt(255),
 		scale.ValueOpt(float64(r)),
@@ -86,11 +85,11 @@ func ChooseColor(app widget.AppContext, opts ...ColorOption) (string, bool) {
 	pack.Pack(rScale, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillX), pack.Expand(true))
 
 	// G slider.
-	gFrame := newFrame(slidersFrame.Window(), "gframe", app)
+	gFrame := newFrame(slidersFrame, "gframe")
 	pack.Pack(gFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
-	gLabel := label.New(gFrame.Window(), "glabel", app, label.Text("G:"))
+	gLabel := label.New(gFrame, "glabel", label.Text("G:"))
 	pack.Pack(gLabel, pack.SideOpt(pack.Left), pack.PadX(5))
-	gScale = scale.New(gFrame.Window(), "gscale", app,
+	gScale = scale.New(gFrame, "gscale",
 		scale.OrientOpt(scale.Horizontal),
 		scale.FromOpt(0), scale.ToOpt(255),
 		scale.ValueOpt(float64(g)),
@@ -101,11 +100,11 @@ func ChooseColor(app widget.AppContext, opts ...ColorOption) (string, bool) {
 	pack.Pack(gScale, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillX), pack.Expand(true))
 
 	// B slider.
-	bFrame := newFrame(slidersFrame.Window(), "bframe", app)
+	bFrame := newFrame(slidersFrame, "bframe")
 	pack.Pack(bFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
-	bLabel := label.New(bFrame.Window(), "blabel", app, label.Text("B:"))
+	bLabel := label.New(bFrame, "blabel", label.Text("B:"))
 	pack.Pack(bLabel, pack.SideOpt(pack.Left), pack.PadX(5))
-	bScale = scale.New(bFrame.Window(), "bscale", app,
+	bScale = scale.New(bFrame, "bscale",
 		scale.OrientOpt(scale.Horizontal),
 		scale.FromOpt(0), scale.ToOpt(255),
 		scale.ValueOpt(float64(b)),
@@ -116,20 +115,20 @@ func ChooseColor(app widget.AppContext, opts ...ColorOption) (string, bool) {
 	pack.Pack(bScale, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillX), pack.Expand(true))
 
 	// Preview + hex entry frame.
-	bottomFrame := newFrame(d.Content.Window(), "bottom", app)
+	bottomFrame := newFrame(d.Content, "bottom")
 	pack.Pack(bottomFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(5))
 
 	// Color preview.
-	previewFrame = frame.New(bottomFrame.Window(), "preview", app,
+	previewFrame = frame.New(bottomFrame, "preview",
 		frame.Width(60), frame.Height(40),
 		frame.BorderWidth(2), frame.Relief(1), // ReliefSunken
 	)
 	pack.Pack(previewFrame, pack.SideOpt(pack.Left), pack.PadX(10))
 
 	// Hex entry.
-	hexLabel := label.New(bottomFrame.Window(), "hexlabel", app, label.Text("Hex:"))
+	hexLabel := label.New(bottomFrame, "hexlabel", label.Text("Hex:"))
 	pack.Pack(hexLabel, pack.SideOpt(pack.Left), pack.PadX(5))
-	hexEntry = entry.New(bottomFrame.Window(), "hexentry", app,
+	hexEntry = entry.New(bottomFrame, "hexentry",
 		entry.Width(10),
 		entry.Text(cfg.initialColor),
 	)

@@ -66,9 +66,9 @@ func makeFlagImage(name string, up bool) *tkimage.Photo {
 func main() {
 	d := demohelper.Setup("Iconic Button Demonstration", 450, 400,
 		"This demo shows checkbuttons and radiobuttons with\ncolored icon images instead of text labels.")
-	root, app := d.Root, d.App
+	app := d.App
 
-	statusLabel := label.New(root, "status", app,
+	statusLabel := label.New(app, "status",
 		label.Text("Flag: down, Color: red"),
 		label.Anchor(option.AnchorW),
 		label.PadX(10),
@@ -95,7 +95,7 @@ func main() {
 	colorVar := widget.NewVariable("red")
 
 	// Flag display label.
-	flagLabel := label.New(root, "flagdisp", app,
+	flagLabel := label.New(app, "flagdisp",
 		label.ImageOpt(flagDown),
 		label.BorderWidth(2), label.Relief(option.ReliefSunken),
 		label.PadX(4), label.PadY(4),
@@ -112,7 +112,7 @@ func main() {
 	}
 
 	// Checkbutton for flag.
-	cb := checkbutton.New(root, "flagcb", app,
+	cb := checkbutton.New(app, "flagcb",
 		checkbutton.Text("Raise Flag"),
 		checkbutton.Var(flagVar),
 		checkbutton.Command(func() {
@@ -128,12 +128,12 @@ func main() {
 	pack.Pack(cb, pack.SideOpt(pack.Top), pack.PadY(5))
 
 	// Radiobutton group for colors.
-	colorFrame := frame.New(root, "colors", app,
+	colorFrame := frame.New(app, "colors",
 		frame.BorderWidth(2), frame.Relief(option.ReliefGroove),
 	)
 	pack.Pack(colorFrame, pack.SideOpt(pack.Top), pack.PadX(20), pack.PadY(10))
 
-	colorTitle := label.New(colorFrame.Window(), "ctitle", app, label.Text("Select Color"))
+	colorTitle := label.New(colorFrame, "ctitle", label.Text("Select Color"))
 	pack.Pack(colorTitle, pack.SideOpt(pack.Top), pack.PadY(5))
 
 	type colorDef struct {
@@ -148,7 +148,7 @@ func main() {
 	}
 
 	for _, cd := range colorDefs {
-		rb := radiobutton.New(colorFrame.Window(), "rb_"+cd.name, app,
+		rb := radiobutton.New(colorFrame, "rb_"+cd.name,
 			radiobutton.Text(cd.name),
 			radiobutton.Value(cd.name),
 			radiobutton.Var(colorVar),

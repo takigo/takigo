@@ -103,8 +103,9 @@ func ScrollRegion(x1, y1, x2, y2 int) CanvasOption {
 }
 
 // New creates a new Canvas widget.
-func New(parent *window.Window, name string, app widget.AppContext, opts ...CanvasOption) *Canvas {
-	w := window.NewChildWindow(parent, name, 0, 0, 1, 1)
+func New(parent widget.Caregiver, name string, opts ...CanvasOption) *Canvas {
+	app := parent.AppContext()
+	w := window.NewChildWindow(parent.Window(), name, 0, 0, 1, 1)
 	window.MakeWindowExist(w)
 
 	c := &Canvas{

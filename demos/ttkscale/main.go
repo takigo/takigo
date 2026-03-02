@@ -15,17 +15,17 @@ import (
 func main() {
 	d := demohelper.Setup("Scale with Label", 400, 250,
 		"Drag the scale to update the label value.")
-	root, app := d.Root, d.App
+	app := d.App
 
 	// Value display.
-	valueLabel := label.New(root, "value", app,
+	valueLabel := label.New(app, "value",
 		label.Text("Value: 50"),
 		label.Anchor(option.AnchorCenter),
 		label.PadX(10), label.PadY(10),
 	)
 	pack.Pack(valueLabel, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(10))
 
-	sc := scale.New(root, "ttkscale", app,
+	sc := scale.New(app, "ttkscale",
 		scale.OrientOpt(scale.Horizontal),
 		scale.FromOpt(0),
 		scale.ToOpt(100),

@@ -12,7 +12,6 @@ import (
 	"github.com/msorc/takigo/widget/entry"
 	"github.com/msorc/takigo/widget/label"
 	"github.com/msorc/takigo/widget/listbox"
-	"github.com/msorc/takigo/window"
 )
 
 // FileType describes a file type filter.
@@ -23,7 +22,6 @@ type FileType struct {
 
 // fileConfig holds file dialog options.
 type fileConfig struct {
-	parent     *window.Window
 	title      string
 	initialDir string
 	fileTypes  []FileType
@@ -33,44 +31,44 @@ type fileConfig struct {
 // FileOption configures file dialogs.
 type FileOption func(*fileConfig)
 
-func FileParent(w *window.Window) FileOption   { return func(c *fileConfig) { c.parent = w } }
-func FileTitle(s string) FileOption            { return func(c *fileConfig) { c.title = s } }
-func FileInitialDir(s string) FileOption       { return func(c *fileConfig) { c.initialDir = s } }
-func FileTypes(types ...FileType) FileOption   { return func(c *fileConfig) { c.fileTypes = types } }
+func FileTitle(s string) FileOption          { return func(c *fileConfig) { c.title = s } }
+func FileInitialDir(s string) FileOption     { return func(c *fileConfig) { c.initialDir = s } }
+func FileTypes(types ...FileType) FileOption { return func(c *fileConfig) { c.fileTypes = types } }
 
 // OpenFile displays a file open dialog. Returns the selected path and true,
 // or "" and false if cancelled.
-func OpenFile(app widget.AppContext, opts ...FileOption) (string, bool) {
+func OpenFile(parent widget.Caregiver, opts ...FileOption) (string, bool) {
 	cfg := fileConfig{title: "Open File"}
 	for _, opt := range opts {
 		opt(&cfg)
 	}
-	return showFileDialog(app, cfg)
+	return showFileDialog(parent, cfg)
 }
 
 // SaveFile displays a file save dialog. Returns the selected path and true,
 // or "" and false if cancelled.
-func SaveFile(app widget.AppContext, opts ...FileOption) (string, bool) {
+func SaveFile(parent widget.Caregiver, opts ...FileOption) (string, bool) {
 	cfg := fileConfig{title: "Save File", isSave: true}
 	for _, opt := range opts {
 		opt(&cfg)
 	}
-	return showFileDialog(app, cfg)
+	return showFileDialog(parent, cfg)
 }
 
-func showFileDialog(app widget.AppContext, cfg fileConfig) (string, bool) {
+func showFileDialog(parent widget.Caregiver, cfg fileConfig) (string, bool) {
 	if cfg.initialDir == "" {
 		cfg.initialDir, _ = os.Getwd()
 	}
 
+	app := parent.AppContext()
 	currentDir := cfg.initialDir
-	d := New(app, cfg.parent, cfg.title, 450, 400)
+	d := New(parent, cfg.title, 450, 400)
 
 	// Current directory label + Up button.
-	navFrame := newFrame(d.Content.Window(), "nav", app)
+	navFrame := newFrame(d.Content, "nav")
 	pack.Pack(navFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(2))
 
-	dirLabel := label.New(navFrame.Window(), "dirlabel", app,
+	dirLabel := label.New(navFrame, "dirlabel",
 		label.Text(currentDir),
 		label.Anchor(3), // AnchorW
 	)
@@ -78,7 +76,7 @@ func showFileDialog(app widget.AppContext, cfg fileConfig) (string, bool) {
 		pack.Expand(true), pack.PadX(5))
 
 	// File listbox.
-	fileList := listbox.New(d.Content.Window(), "filelist", app,
+	fileList := listbox.New(d.Content, "filelist",
 		listbox.Width(50),
 		listbox.Height(15),
 	)
@@ -86,13 +84,13 @@ func showFileDialog(app widget.AppContext, cfg fileConfig) (string, bool) {
 		pack.Expand(true), pack.PadX(5), pack.PadY(2))
 
 	// Filename entry.
-	entryFrame := newFrame(d.Content.Window(), "entryframe", app)
+	entryFrame := newFrame(d.Content, "entryframe")
 	pack.Pack(entryFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(2))
 
-	fnLabel := label.New(entryFrame.Window(), "fnlabel", app, label.Text("File:"))
+	fnLabel := label.New(entryFrame, "fnlabel", label.Text("File:"))
 	pack.Pack(fnLabel, pack.SideOpt(pack.Left), pack.PadX(5))
 
-	fnEntry := entry.New(entryFrame.Window(), "fnentry", app, entry.Width(40))
+	fnEntry := entry.New(entryFrame, "fnentry", entry.Width(40))
 	pack.Pack(fnEntry, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillX),
 		pack.Expand(true), pack.PadX(5))
 

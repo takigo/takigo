@@ -42,16 +42,16 @@ var countries = []countryData{
 func main() {
 	d := demohelper.Setup("Multi-Column List", 500, 400,
 		"A sortable multi-column list.\nClick column headings to sort.")
-	root, app := d.Root, d.App
+	app := d.App
 
 	ttk.SetCurrentTheme("clam")
 
 	// Treeview frame with scrollbar.
-	tvFrame := frame.New(root, "tvframe", app)
+	tvFrame := frame.New(app, "tvframe")
 	pack.Pack(tvFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true), pack.PadX(10), pack.PadY(5))
 
-	tv := ttk.NewTreeview(tvFrame.Window(), "mclist", app,
+	tv := ttk.NewTreeview(tvFrame, "mclist",
 		ttk.TreeviewColumns("country", "capital", "currency"),
 		ttk.TreeviewShow("headings"),
 	)
@@ -109,7 +109,7 @@ func main() {
 	}
 
 	// Scrollbar.
-	yscroll := scrollbar.New(tvFrame.Window(), "yscroll", app,
+	yscroll := scrollbar.New(tvFrame, "yscroll",
 		scrollbar.OrientOpt(scrollbar.Vertical),
 		scrollbar.CommandOpt(func(args ...any) {
 			if len(args) < 1 {

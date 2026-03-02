@@ -168,8 +168,9 @@ func TreeviewXScrollCommand(fn func(float64, float64)) TreeviewOption {
 }
 
 // NewTreeview creates a themed treeview widget.
-func NewTreeview(parent *window.Window, name string, app widget.AppContext, opts ...TreeviewOption) *Treeview {
-	win := window.NewChildWindow(parent, name, 0, 0, 400, 200)
+func NewTreeview(parent widget.Caregiver, name string, opts ...TreeviewOption) *Treeview {
+	app := parent.AppContext()
+	win := window.NewChildWindow(parent.Window(), name, 0, 0, 400, 200)
 	window.MakeWindowExist(win)
 
 	tv := &Treeview{

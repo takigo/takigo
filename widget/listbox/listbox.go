@@ -101,8 +101,9 @@ func XScrollCommand(fn func(float64, float64)) ListboxOption {
 }
 
 // New creates a new Listbox widget.
-func New(parent *window.Window, name string, app widget.AppContext, opts ...ListboxOption) *Listbox {
-	w := window.NewChildWindow(parent, name, 0, 0, 1, 1)
+func New(parent widget.Caregiver, name string, opts ...ListboxOption) *Listbox {
+	app := parent.AppContext()
+	w := window.NewChildWindow(parent.Window(), name, 0, 0, 1, 1)
 	window.MakeWindowExist(w)
 
 	lb := &Listbox{

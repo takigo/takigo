@@ -51,8 +51,9 @@ func Height(h int) FrameOption {
 }
 
 // New creates a new Frame widget as a child of parent.
-func New(parent *window.Window, name string, app widget.AppContext, opts ...FrameOption) *Frame {
-	w := window.NewChildWindow(parent, name, 0, 0, 200, 200)
+func New(parent widget.Caregiver, name string, opts ...FrameOption) *Frame {
+	app := parent.AppContext()
+	w := window.NewChildWindow(parent.Window(), name, 0, 0, 200, 200)
 	window.MakeWindowExist(w)
 
 	f := &Frame{}

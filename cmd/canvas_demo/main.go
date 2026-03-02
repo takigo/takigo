@@ -45,7 +45,7 @@ func main() {
 	root.BackgroundPixel = bgColor.Pixel
 
 	// Status label at bottom.
-	statusLabel := label.New(root, "status", app,
+	statusLabel := label.New(app, "status",
 		label.Text("Phase 10: Canvas Widget. Hover items for events. Esc to quit."),
 		label.Background("#e8e8e8"),
 		label.Anchor(option.AnchorW),
@@ -55,7 +55,7 @@ func main() {
 	pack.Pack(statusLabel, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	// Create canvas with scrollbars.
-	cv := canvas.New(root, "canvas", app,
+	cv := canvas.New(app, "canvas",
 		canvas.Width(760),
 		canvas.Height(550),
 		canvas.Background("white"),
@@ -65,7 +65,7 @@ func main() {
 	)
 
 	// Horizontal scrollbar.
-	xscroll := scrollbar.New(root, "xscroll", app,
+	xscroll := scrollbar.New(app, "xscroll",
 		scrollbar.OrientOpt(scrollbar.Horizontal),
 		scrollbar.WidthOpt(14),
 		scrollbar.CommandOpt(func(args ...interface{}) {
@@ -93,7 +93,7 @@ func main() {
 	}
 
 	// Vertical scrollbar.
-	yscroll := scrollbar.New(root, "yscroll", app,
+	yscroll := scrollbar.New(app, "yscroll",
 		scrollbar.OrientOpt(scrollbar.Vertical),
 		scrollbar.WidthOpt(14),
 		scrollbar.CommandOpt(func(args ...interface{}) {

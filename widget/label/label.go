@@ -117,8 +117,9 @@ func Height(h int) LabelOption {
 }
 
 // New creates a new Label widget as a child of parent.
-func New(parent *window.Window, name string, app widget.AppContext, opts ...LabelOption) *Label {
-	w := window.NewChildWindow(parent, name, 0, 0, 1, 1)
+func New(parent widget.Caregiver, name string, opts ...LabelOption) *Label {
+	app := parent.AppContext()
+	w := window.NewChildWindow(parent.Window(), name, 0, 0, 1, 1)
 	window.MakeWindowExist(w)
 
 	l := &Label{

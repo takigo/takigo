@@ -22,7 +22,7 @@ func main() {
 	focusMgr.BindTraversal(root)
 
 	// Status label.
-	statusLabel := label.New(root, "status", app,
+	statusLabel := label.New(app, "status",
 		label.Text("Status: Ready"),
 		label.Anchor(option.AnchorW),
 		label.PadX(10),
@@ -35,14 +35,14 @@ func main() {
 	}
 
 	// Spinbox 1: Integer range 1-10.
-	spin1Label := label.New(root, "spin1label", app,
+	spin1Label := label.New(app, "spin1label",
 		label.Text("Integer (1-10):"),
 		label.Anchor(option.AnchorW),
 		label.PadX(20),
 	)
 	pack.Pack(spin1Label, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(2))
 
-	spin1 := spinbox.New(root, "spin1", app,
+	spin1 := spinbox.New(app, "spin1",
 		spinbox.FromOpt(1),
 		spinbox.ToOpt(10),
 		spinbox.IncrementOpt(1),
@@ -55,14 +55,14 @@ func main() {
 		pack.PadX(20), pack.PadY(5))
 
 	// Spinbox 2: Float range 0-3, increment 0.5.
-	spin2Label := label.New(root, "spin2label", app,
+	spin2Label := label.New(app, "spin2label",
 		label.Text("Float (0.0-3.0, step 0.5):"),
 		label.Anchor(option.AnchorW),
 		label.PadX(20),
 	)
 	pack.Pack(spin2Label, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(2))
 
-	spin2 := spinbox.New(root, "spin2", app,
+	spin2 := spinbox.New(app, "spin2",
 		spinbox.FromOpt(0),
 		spinbox.ToOpt(3),
 		spinbox.IncrementOpt(0.5),
@@ -75,7 +75,7 @@ func main() {
 		pack.PadX(20), pack.PadY(5))
 
 	// Spinbox 3: Australian cities.
-	spin3Label := label.New(root, "spin3label", app,
+	spin3Label := label.New(app, "spin3label",
 		label.Text("City:"),
 		label.Anchor(option.AnchorW),
 		label.PadX(20),
@@ -86,7 +86,7 @@ func main() {
 		"Canberra", "Sydney", "Melbourne", "Perth",
 		"Adelaide", "Brisbane", "Hobart", "Darwin", "Alice Springs",
 	}
-	spin3 := spinbox.New(root, "spin3", app,
+	spin3 := spinbox.New(app, "spin3",
 		spinbox.ValuesOpt(cities),
 		spinbox.WrapOpt(true),
 		spinbox.CommandOpt(func(v string) {

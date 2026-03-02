@@ -38,6 +38,15 @@ const (
 	CompoundCenter                 // image behind text
 )
 
+// Caregiver is implemented by anything that can serve as a parent for
+// widget construction — the App (for root-level widgets) or any widget
+// (for nested widgets). It provides both a parent window and the
+// application services needed during widget initialization.
+type Caregiver interface {
+	window.Windower
+	AppContext() AppContext
+}
+
 // Widget is the interface implemented by all takigo widgets.
 type Widget interface {
 	// Window returns the widget's underlying window.
@@ -103,6 +112,11 @@ type AppContext interface {
 // Window returns the widget's underlying window.
 func (b *Base) Window() *window.Window {
 	return b.Win
+}
+
+// AppContext returns the application context, satisfying the Caregiver interface.
+func (b *Base) AppContext() AppContext {
+	return b.App
 }
 
 // UpdateBorder recomputes the 3D border from the background color.

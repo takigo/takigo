@@ -22,16 +22,16 @@ func main() {
 	focusMgr.BindTraversal(root)
 
 	// Form grid.
-	formFrame := frame.New(root, "form", app)
+	formFrame := frame.New(app, "form")
 	pack.Pack(formFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
 		pack.PadX(20), pack.PadY(10))
 
 	// Row 0: Integer entry.
-	l1 := label.New(formFrame.Window(), "l1", app,
+	l1 := label.New(formFrame, "l1",
 		label.Text("Integer:"),
 		label.Anchor(option.AnchorE),
 	)
-	e1 := entry.New(formFrame.Window(), "e1", app,
+	e1 := entry.New(formFrame, "e1",
 		entry.Text("12345"),
 		entry.Width(20),
 	)
@@ -39,11 +39,11 @@ func main() {
 	grid.Grid(e1, grid.Row(0), grid.Column(1), grid.Sticky(grid.EW), grid.PadX(5), grid.PadY(5))
 
 	// Row 1: Short entry (max ~10 chars concept).
-	l2 := label.New(formFrame.Window(), "l2", app,
+	l2 := label.New(formFrame, "l2",
 		label.Text("Short text:"),
 		label.Anchor(option.AnchorE),
 	)
-	e2 := entry.New(formFrame.Window(), "e2", app,
+	e2 := entry.New(formFrame, "e2",
 		entry.Width(10),
 		entry.Placeholder("Max 10 chars"),
 	)
@@ -51,11 +51,11 @@ func main() {
 	grid.Grid(e2, grid.Row(1), grid.Column(1), grid.Sticky(grid.EW), grid.PadX(5), grid.PadY(5))
 
 	// Row 2: Phone number.
-	l3 := label.New(formFrame.Window(), "l3", app,
+	l3 := label.New(formFrame, "l3",
 		label.Text("Phone:"),
 		label.Anchor(option.AnchorE),
 	)
-	e3 := entry.New(formFrame.Window(), "e3", app,
+	e3 := entry.New(formFrame, "e3",
 		entry.Text("1-(555)-123-4567"),
 		entry.Width(20),
 	)
@@ -63,11 +63,11 @@ func main() {
 	grid.Grid(e3, grid.Row(2), grid.Column(1), grid.Sticky(grid.EW), grid.PadX(5), grid.PadY(5))
 
 	// Row 3: Password entry.
-	l4 := label.New(formFrame.Window(), "l4", app,
+	l4 := label.New(formFrame, "l4",
 		label.Text("Password:"),
 		label.Anchor(option.AnchorE),
 	)
-	e4 := entry.New(formFrame.Window(), "e4", app,
+	e4 := entry.New(formFrame, "e4",
 		entry.Show('*'),
 		entry.Width(20),
 		entry.Placeholder("Enter password"),

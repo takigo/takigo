@@ -15,10 +15,10 @@ import (
 func main() {
 	d := demohelper.Setup("Menu Demo", 500, 350,
 		"Click the menu buttons below to open menus.\nMenus support commands, separators, and cascaded submenus.")
-	root, app := d.Root, d.App
+	app := d.App
 
 	// Status label.
-	statusLabel := label.New(root, "status", app,
+	statusLabel := label.New(app, "status",
 		label.Text("Status: Ready"),
 		label.Anchor(option.AnchorW),
 		label.Background("#e8e8e8"),
@@ -32,14 +32,14 @@ func main() {
 	}
 
 	// Menu bar frame.
-	menuBar := frame.New(root, "menubar", app,
+	menuBar := frame.New(app, "menubar",
 		frame.Relief(option.ReliefRaised),
 		frame.BorderWidth(1),
 	)
 	pack.Pack(menuBar, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
 
 	// File menu.
-	fileMenu := menu.New(root, "filemenu", app)
+	fileMenu := menu.New(app, "filemenu")
 	fileMenu.AddCommand("New", func() { setStatus("File > New") })
 	fileMenu.AddCommand("Open...", func() { setStatus("File > Open") })
 	fileMenu.AddCommand("Save", func() { setStatus("File > Save") })
@@ -47,14 +47,14 @@ func main() {
 	fileMenu.AddSeparator()
 	fileMenu.AddCommand("Quit", func() { app.Quit() })
 
-	fileMb := menubutton.New(menuBar.Window(), "filemb", app,
+	fileMb := menubutton.New(menuBar, "filemb",
 		menubutton.Text("File"),
 		menubutton.MenuOpt(fileMenu),
 	)
 	pack.Pack(fileMb, pack.SideOpt(pack.Left))
 
 	// Edit menu with cascade.
-	editMenu := menu.New(root, "editmenu", app)
+	editMenu := menu.New(app, "editmenu")
 	editMenu.AddCommand("Undo", func() { setStatus("Edit > Undo") })
 	editMenu.AddCommand("Redo", func() { setStatus("Edit > Redo") })
 	editMenu.AddSeparator()
@@ -62,18 +62,18 @@ func main() {
 	editMenu.AddCommand("Copy", func() { setStatus("Edit > Copy") })
 	editMenu.AddCommand("Paste", func() { setStatus("Edit > Paste") })
 
-	editMb := menubutton.New(menuBar.Window(), "editmb", app,
+	editMb := menubutton.New(menuBar, "editmb",
 		menubutton.Text("Edit"),
 		menubutton.MenuOpt(editMenu),
 	)
 	pack.Pack(editMb, pack.SideOpt(pack.Left))
 
 	// Help menu.
-	helpMenu := menu.New(root, "helpmenu", app)
+	helpMenu := menu.New(app, "helpmenu")
 	helpMenu.AddCommand("About", func() { setStatus("Help > About: Takigo Menu Demo") })
 	helpMenu.AddCommand("Documentation", func() { setStatus("Help > Documentation") })
 
-	helpMb := menubutton.New(menuBar.Window(), "helpmb", app,
+	helpMb := menubutton.New(menuBar, "helpmb",
 		menubutton.Text("Help"),
 		menubutton.MenuOpt(helpMenu),
 	)

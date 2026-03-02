@@ -63,8 +63,9 @@ func ProgressbarLength(l int) ProgressbarOption {
 }
 
 // NewProgressbar creates a themed progressbar widget.
-func NewProgressbar(parent *window.Window, name string, app widget.AppContext, opts ...ProgressbarOption) *Progressbar {
-	win := window.NewChildWindow(parent, name, 0, 0, 1, 1)
+func NewProgressbar(parent widget.Caregiver, name string, opts ...ProgressbarOption) *Progressbar {
+	app := parent.AppContext()
+	win := window.NewChildWindow(parent.Window(), name, 0, 0, 1, 1)
 	window.MakeWindowExist(win)
 
 	p := &Progressbar{

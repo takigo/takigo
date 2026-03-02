@@ -20,8 +20,9 @@ func SeparatorOrient(o Orientation) SeparatorOption {
 }
 
 // NewSeparator creates a themed separator widget.
-func NewSeparator(parent *window.Window, name string, app widget.AppContext, opts ...SeparatorOption) *Separator {
-	win := window.NewChildWindow(parent, name, 0, 0, 1, 1)
+func NewSeparator(parent widget.Caregiver, name string, opts ...SeparatorOption) *Separator {
+	app := parent.AppContext()
+	win := window.NewChildWindow(parent.Window(), name, 0, 0, 1, 1)
 	window.MakeWindowExist(win)
 
 	s := &Separator{Orient: Horizontal}

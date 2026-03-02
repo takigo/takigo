@@ -17,10 +17,10 @@ import (
 func main() {
 	d := demohelper.Setup("Text Tag Bindings", 550, 450,
 		"This demo shows hypertext-like tag bindings.\nColored text acts as links — visual feedback on hover.")
-	root, app := d.Root, d.App
+	app := d.App
 
 	// Status label.
-	statusLabel := label.New(root, "status", app,
+	statusLabel := label.New(app, "status",
 		label.Text("Status: Ready"),
 		label.Anchor(option.AnchorW),
 		label.Background("#e8e8e8"),
@@ -35,17 +35,17 @@ func main() {
 	}
 
 	// Text widget.
-	txtFrame := frame.New(root, "txtframe", app)
+	txtFrame := frame.New(app, "txtframe")
 	pack.Pack(txtFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true), pack.PadX(10), pack.PadY(5))
 
-	tw := text.New(txtFrame.Window(), "hypertext", app,
+	tw := text.New(txtFrame, "hypertext",
 		text.Width(60),
 		text.Height(20),
 		text.WrapModeOpt(text.WrapWord),
 	)
 
-	yscroll := scrollbar.New(txtFrame.Window(), "yscroll", app,
+	yscroll := scrollbar.New(txtFrame, "yscroll",
 		scrollbar.OrientOpt(scrollbar.Vertical),
 		scrollbar.CommandOpt(func(args ...any) {
 			if len(args) < 1 {

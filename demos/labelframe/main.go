@@ -14,10 +14,10 @@ import (
 
 func main() {
 	d := demohelper.Setup("Labelframe Demonstration", 500, 450, "Labelframes are used to group related widgets together.\nThe label can be positioned at different locations.")
-	root, app := d.Root, d.App
+	app := d.App
 
 	// Gender labelframe with radiobuttons.
-	genderFrame := labelframe.New(root, "gender", app,
+	genderFrame := labelframe.New(app, "gender",
 		labelframe.Text("Gender"),
 		labelframe.Width(200),
 		labelframe.Height(130),
@@ -32,7 +32,7 @@ func main() {
 		{"Other", "other"},
 	}
 	for _, g := range genders {
-		rb := radiobutton.New(genderFrame.Window(), "gender_"+g.value, app,
+		rb := radiobutton.New(genderFrame, "gender_"+g.value,
 			radiobutton.Text(g.text),
 			radiobutton.Value(g.value),
 			radiobutton.Var(genderVar),
@@ -43,7 +43,7 @@ func main() {
 	}
 
 	// Options labelframe with checkbuttons.
-	optFrame := labelframe.New(root, "options", app,
+	optFrame := labelframe.New(app, "options",
 		labelframe.Text("Options"),
 		labelframe.Width(200),
 		labelframe.Height(130),
@@ -55,21 +55,21 @@ func main() {
 	italic := widget.NewVariable(false)
 	underline := widget.NewVariable(false)
 
-	cb1 := checkbutton.New(optFrame.Window(), "bold", app,
+	cb1 := checkbutton.New(optFrame, "bold",
 		checkbutton.Text("Bold"),
 		checkbutton.Var(bold),
 	)
 	pack.Pack(cb1, pack.SideOpt(pack.Top), pack.PadY(2),
 		pack.Anchor(option.AnchorW), pack.PadX(10))
 
-	cb2 := checkbutton.New(optFrame.Window(), "italic", app,
+	cb2 := checkbutton.New(optFrame, "italic",
 		checkbutton.Text("Italic"),
 		checkbutton.Var(italic),
 	)
 	pack.Pack(cb2, pack.SideOpt(pack.Top), pack.PadY(2),
 		pack.Anchor(option.AnchorW), pack.PadX(10))
 
-	cb3 := checkbutton.New(optFrame.Window(), "underline", app,
+	cb3 := checkbutton.New(optFrame, "underline",
 		checkbutton.Text("Underline"),
 		checkbutton.Var(underline),
 	)

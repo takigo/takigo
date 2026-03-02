@@ -15,10 +15,10 @@ import (
 func main() {
 	d := demohelper.Setup("Color Picker", 400, 250,
 		"Click the button to open the color chooser.\nThe chosen color is displayed below.")
-	root, app := d.Root, d.App
+	app := d.App
 
 	// Color display label.
-	colorLabel := label.New(root, "colorlabel", app,
+	colorLabel := label.New(app, "colorlabel",
 		label.Text("Selected: #3399ff"),
 		label.Background("#3399ff"),
 		label.Foreground("white"),
@@ -27,11 +27,10 @@ func main() {
 	pack.Pack(colorLabel, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX),
 		pack.PadX(20), pack.PadY(10))
 
-	chooseBtn := button.New(root, "choose", app,
+	chooseBtn := button.New(app, "choose",
 		button.Text("Choose Color..."),
 		button.Command(func() {
 			color, ok := dialog.ChooseColor(app,
-				dialog.ColorParent(root),
 				dialog.ColorInitial("#3399ff"),
 			)
 			if ok {

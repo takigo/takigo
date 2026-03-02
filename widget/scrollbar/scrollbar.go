@@ -87,7 +87,8 @@ func CommandOpt(fn func(args ...interface{})) ScrollbarOption {
 }
 
 // New creates a new Scrollbar widget.
-func New(parent *window.Window, name string, app widget.AppContext, opts ...ScrollbarOption) *Scrollbar {
+func New(parent widget.Caregiver, name string, opts ...ScrollbarOption) *Scrollbar {
+	app := parent.AppContext()
 	s := &Scrollbar{
 		Orient:    Vertical,
 		First:     0,
@@ -96,7 +97,7 @@ func New(parent *window.Window, name string, app widget.AppContext, opts ...Scro
 		ElementBW: 1,
 	}
 
-	w := window.NewChildWindow(parent, name, 0, 0, 1, 1)
+	w := window.NewChildWindow(parent.Window(), name, 0, 0, 1, 1)
 	window.MakeWindowExist(w)
 	widget.InitBase(&s.Base, w, app)
 

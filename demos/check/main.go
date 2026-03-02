@@ -13,10 +13,10 @@ import (
 
 func main() {
 	d := demohelper.Setup("Checkbutton Demonstration", 400, 350, "Three checkbuttons are displayed below. Click on a\nbutton to toggle its state. The current state of each\nbutton is displayed at the bottom.")
-	root, app := d.Root, d.App
+	app := d.App
 
 	// Status label.
-	statusLabel := label.New(root, "status", app,
+	statusLabel := label.New(app, "status",
 		label.Text("Status: all unchecked"),
 		label.Anchor(option.AnchorW),
 		label.PadX(10),
@@ -47,21 +47,21 @@ func main() {
 	}
 
 	// Checkbuttons.
-	cb1 := checkbutton.New(root, "wipers", app,
+	cb1 := checkbutton.New(app, "wipers",
 		checkbutton.Text("Safety Check: Wipers OK"),
 		checkbutton.Var(wipers),
 		checkbutton.Command(updateStatus),
 	)
 	pack.Pack(cb1, pack.SideOpt(pack.Top), pack.PadY(4), pack.Anchor(option.AnchorW), pack.PadX(20))
 
-	cb2 := checkbutton.New(root, "brakes", app,
+	cb2 := checkbutton.New(app, "brakes",
 		checkbutton.Text("Safety Check: Brakes OK"),
 		checkbutton.Var(brakes),
 		checkbutton.Command(updateStatus),
 	)
 	pack.Pack(cb2, pack.SideOpt(pack.Top), pack.PadY(4), pack.Anchor(option.AnchorW), pack.PadX(20))
 
-	cb3 := checkbutton.New(root, "sober", app,
+	cb3 := checkbutton.New(app, "sober",
 		checkbutton.Text("Safety Check: Driver Sober"),
 		checkbutton.Var(sober),
 		checkbutton.Command(updateStatus),

@@ -122,8 +122,9 @@ func PadY(p int) Option {
 const indicatorSize = 13
 
 // New creates a new Checkbutton widget as a child of parent.
-func New(parent *window.Window, name string, app widget.AppContext, opts ...Option) *Checkbutton {
-	w := window.NewChildWindow(parent, name, 0, 0, 1, 1)
+func New(parent widget.Caregiver, name string, opts ...Option) *Checkbutton {
+	app := parent.AppContext()
+	w := window.NewChildWindow(parent.Window(), name, 0, 0, 1, 1)
 	window.MakeWindowExist(w)
 
 	c := &Checkbutton{

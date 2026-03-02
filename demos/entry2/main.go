@@ -21,12 +21,12 @@ func main() {
 
 	// Helper: create entry+scrollbar pair.
 	makeEntryWithScroll := func(parent *frame.Frame, name, text string) *entry.Entry {
-		ef := frame.New(parent.Window(), name+"_frame", app)
+		ef := frame.New(parent, name+"_frame")
 		pack.Pack(ef, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
 			pack.PadX(20), pack.PadY(5))
 
-		e := entry.New(ef.Window(), name, app)
-		sb := scrollbar.New(ef.Window(), name+"_sb", app,
+		e := entry.New(ef, name)
+		sb := scrollbar.New(ef, name+"_sb",
 			scrollbar.OrientOpt(scrollbar.Horizontal),
 			scrollbar.CommandOpt(func(args ...any) {
 				if len(args) < 1 {
@@ -61,7 +61,7 @@ func main() {
 	}
 
 	// Container frame.
-	container := frame.New(root, "container", app)
+	container := frame.New(app, "container")
 	pack.Pack(container, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	// Three entry+scrollbar pairs.

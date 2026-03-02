@@ -108,6 +108,17 @@ func (a *App) Root() *window.Window {
 	return a.root
 }
 
+// Window returns the root window, satisfying the widget.Caregiver interface.
+func (a *App) Window() *window.Window {
+	return a.root
+}
+
+// AppContext returns the App itself as a widget.AppContext, satisfying
+// the widget.Caregiver interface.
+func (a *App) AppContext() widget.AppContext {
+	return a
+}
+
 // Display returns the display.
 func (a *App) Display() *window.Display {
 	return a.display

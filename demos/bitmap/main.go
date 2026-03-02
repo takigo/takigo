@@ -17,7 +17,7 @@ import (
 func main() {
 	d := demohelper.Setup("Bitmap Demonstration", 600, 350,
 		"Tk defines several built-in bitmap patterns. Below are\nrepresentations of the 10 standard bitmaps as images.")
-	root, app := d.Root, d.App
+	app := d.App
 
 	fg := color.RGBA{R: 0, G: 0, B: 0, A: 255}
 	bg := color.RGBA{R: 255, G: 255, B: 255, A: 255}
@@ -88,38 +88,38 @@ func main() {
 	}
 
 	// Row 1: first 5 bitmaps.
-	row1 := frame.New(root, "row1", app)
+	row1 := frame.New(app, "row1")
 	pack.Pack(row1, pack.SideOpt(pack.Top), pack.PadX(10), pack.PadY(10))
 
 	for _, b := range bitmaps[:5] {
-		col := frame.New(row1.Window(), "col_"+b.name, app)
+		col := frame.New(row1, "col_"+b.name)
 		pack.Pack(col, pack.SideOpt(pack.Left), pack.PadX(10))
-		il := label.New(col.Window(), "img_"+b.name, app,
+		il := label.New(col, "img_"+b.name,
 			label.ImageOpt(b.photo),
 			label.BorderWidth(2), label.Relief(option.ReliefGroove),
 			label.PadX(4), label.PadY(4),
 		)
 		pack.Pack(il, pack.SideOpt(pack.Top))
-		nl := label.New(col.Window(), "name_"+b.name, app, label.Text(b.name))
+		nl := label.New(col, "name_"+b.name, label.Text(b.name))
 		pack.Pack(nl, pack.SideOpt(pack.Top), pack.PadY(2))
 		_ = il
 		_ = nl
 	}
 
 	// Row 2: last 5 bitmaps.
-	row2 := frame.New(root, "row2", app)
+	row2 := frame.New(app, "row2")
 	pack.Pack(row2, pack.SideOpt(pack.Top), pack.PadX(10), pack.PadY(10))
 
 	for _, b := range bitmaps[5:] {
-		col := frame.New(row2.Window(), "col_"+b.name, app)
+		col := frame.New(row2, "col_"+b.name)
 		pack.Pack(col, pack.SideOpt(pack.Left), pack.PadX(10))
-		il := label.New(col.Window(), "img_"+b.name, app,
+		il := label.New(col, "img_"+b.name,
 			label.ImageOpt(b.photo),
 			label.BorderWidth(2), label.Relief(option.ReliefGroove),
 			label.PadX(4), label.PadY(4),
 		)
 		pack.Pack(il, pack.SideOpt(pack.Top))
-		nl := label.New(col.Window(), "name_"+b.name, app, label.Text(b.name))
+		nl := label.New(col, "name_"+b.name, label.Text(b.name))
 		pack.Pack(nl, pack.SideOpt(pack.Top), pack.PadY(2))
 		_ = il
 		_ = nl

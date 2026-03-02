@@ -95,8 +95,9 @@ func Background(name string) SpinboxOption {
 }
 
 // New creates a new Spinbox widget.
-func New(parent *window.Window, name string, app widget.AppContext, opts ...SpinboxOption) *Spinbox {
-	w := window.NewChildWindow(parent, name, 0, 0, 1, 1)
+func New(parent widget.Caregiver, name string, opts ...SpinboxOption) *Spinbox {
+	app := parent.AppContext()
+	w := window.NewChildWindow(parent.Window(), name, 0, 0, 1, 1)
 	window.MakeWindowExist(w)
 
 	s := &Spinbox{

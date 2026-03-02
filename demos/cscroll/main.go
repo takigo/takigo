@@ -17,21 +17,21 @@ import (
 func main() {
 	d := demohelper.Setup("Scrollable Canvas", 550, 450,
 		"A scrollable canvas with a grid of rectangles.\nUse scrollbars to navigate the large canvas.")
-	root, app := d.Root, d.App
+	app := d.App
 
 	// Grid frame for canvas + scrollbars.
-	gridFrame := frame.New(root, "gridframe", app)
+	gridFrame := frame.New(app, "gridframe")
 	pack.Pack(gridFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true), pack.PadX(10), pack.PadY(5))
 
-	c := canvas.New(gridFrame.Window(), "cscroll", app,
+	c := canvas.New(gridFrame, "cscroll",
 		canvas.Background("white"),
 		canvas.Width(400),
 		canvas.Height(300),
 		canvas.ScrollRegion(0, 0, 1200, 900),
 	)
 
-	yscroll := scrollbar.New(gridFrame.Window(), "yscroll", app,
+	yscroll := scrollbar.New(gridFrame, "yscroll",
 		scrollbar.OrientOpt(scrollbar.Vertical),
 		scrollbar.CommandOpt(func(args ...any) {
 			if len(args) < 1 {
@@ -54,7 +54,7 @@ func main() {
 		}),
 	)
 
-	xscroll := scrollbar.New(gridFrame.Window(), "xscroll", app,
+	xscroll := scrollbar.New(gridFrame, "xscroll",
 		scrollbar.OrientOpt(scrollbar.Horizontal),
 		scrollbar.CommandOpt(func(args ...any) {
 			if len(args) < 1 {

@@ -128,8 +128,9 @@ func PadY(p int) ButtonOption {
 }
 
 // New creates a new Button widget as a child of parent.
-func New(parent *window.Window, name string, app widget.AppContext, opts ...ButtonOption) *Button {
-	w := window.NewChildWindow(parent, name, 0, 0, 1, 1)
+func New(parent widget.Caregiver, name string, opts ...ButtonOption) *Button {
+	app := parent.AppContext()
+	w := window.NewChildWindow(parent.Window(), name, 0, 0, 1, 1)
 	window.MakeWindowExist(w)
 
 	b := &Button{

@@ -15,9 +15,9 @@ import (
 
 func main() {
 	d := demohelper.Setup("Modal Dialogs", 400, 250, "Modal dialog examples. Each dialog blocks\ninteraction with the main window until dismissed.")
-	root, app := d.Root, d.App
+	app := d.App
 
-	statusLabel := label.New(root, "status", app,
+	statusLabel := label.New(app, "status",
 		label.Text("Result: —"),
 		label.Anchor(option.AnchorW),
 		label.Background("#e8e8e8"),
@@ -31,11 +31,10 @@ func main() {
 	}
 
 	// Dialog 1: Simple OK message.
-	btn1 := button.New(root, "btn1", app,
+	btn1 := button.New(app, "btn1",
 		button.Text("Simple Message"),
 		button.Command(func() {
 			result := dialog.ShowMessage(app,
-				dialog.MsgParent(root),
 				dialog.MsgTitle("Greeting"),
 				dialog.MsgMessage("Hello! This is a modal dialog."),
 				dialog.MsgType(dialog.MsgInfo),
@@ -49,11 +48,10 @@ func main() {
 		pack.PadX(30), pack.PadY(5))
 
 	// Dialog 2: Yes/No/Cancel question.
-	btn2 := button.New(root, "btn2", app,
+	btn2 := button.New(app, "btn2",
 		button.Text("Save Changes?"),
 		button.Command(func() {
 			result := dialog.ShowMessage(app,
-				dialog.MsgParent(root),
 				dialog.MsgTitle("Save"),
 				dialog.MsgMessage("Do you want to save your changes?"),
 				dialog.MsgDetail("If you don't save, your changes will be lost."),

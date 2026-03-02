@@ -14,7 +14,7 @@ import (
 func main() {
 	d := demohelper.Setup("Unicode Text", 450, 400,
 		"Unicode text samples from various scripts.\nAll rendered via Xft/fontconfig.")
-	root, app := d.Root, d.App
+	app := d.App
 
 	// Unicode samples.
 	samples := []struct {
@@ -34,7 +34,7 @@ func main() {
 	}
 
 	for _, s := range samples {
-		l := label.New(root, "lang_"+s.lang, app,
+		l := label.New(app, "lang_"+s.lang,
 			label.Text(fmt.Sprintf("%s: %s", s.lang, s.text)),
 			label.Anchor(option.AnchorW),
 			label.PadX(10), label.PadY(2),

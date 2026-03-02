@@ -54,7 +54,7 @@ func main() {
 
 	for _, c := range colors {
 		colorVal := c.color
-		btn := button.New(root, "btn_"+c.text, app,
+		btn := button.New(app, "btn_"+c.text,
 			button.Text(c.text),
 			button.Command(func() { changeColor(colorVal) }),
 			button.PadX(10),

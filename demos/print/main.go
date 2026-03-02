@@ -15,9 +15,9 @@ import (
 func main() {
 	d := demohelper.Setup("Canvas & Text Print Demo", 700, 500,
 		"This demo shows a canvas with shapes and a text widget\nwith sample content, as used in the Tk print demo.")
-	root, app := d.Root, d.App
+	app := d.App
 
-	infoLabel := label.New(root, "info", app,
+	infoLabel := label.New(app, "info",
 		label.Text("Note: Printing is not available on this platform."),
 		label.Anchor(option.AnchorW),
 		label.PadX(10), label.Foreground("#666666"),
@@ -25,12 +25,12 @@ func main() {
 	pack.Pack(infoLabel, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX), pack.PadY(3))
 
 	// Content area: canvas left, text right.
-	contentFrame := frame.New(root, "content", app)
+	contentFrame := frame.New(app, "content")
 	pack.Pack(contentFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true), pack.PadX(5), pack.PadY(5))
 
 	// Canvas with shapes.
-	c := canvas.New(contentFrame.Window(), "canv", app,
+	c := canvas.New(contentFrame, "canv",
 		canvas.Background("white"),
 		canvas.Width(300), canvas.Height(350),
 		canvas.BorderWidthOpt(2), canvas.ReliefOpt(option.ReliefSunken),
@@ -46,7 +46,7 @@ func main() {
 	c.CreateText(150, 105, canvas.TextOpt("Shapes Demo"), canvas.TextColor("black"))
 
 	// Text widget with sample content.
-	tw := text.New(contentFrame.Window(), "txt", app,
+	tw := text.New(contentFrame, "txt",
 		text.Width(40), text.Height(20),
 		text.WrapModeOpt(text.WrapWord),
 		text.BorderWidthOpt(2),

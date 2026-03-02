@@ -16,10 +16,10 @@ import (
 func main() {
 	d := demohelper.Setup("Horizontal Scale", 500, 350,
 		"Drag the scale to change the arrow angle on the canvas.")
-	root, app := d.Root, d.App
+	app := d.App
 
 	// Canvas for arrow display.
-	c := canvas.New(root, "canvas", app,
+	c := canvas.New(app, "canvas",
 		canvas.Background("white"),
 		canvas.Width(300),
 		canvas.Height(200),
@@ -47,7 +47,7 @@ func main() {
 	drawArrow(45)
 
 	// Horizontal scale.
-	sc := scale.New(root, "hscale", app,
+	sc := scale.New(app, "hscale",
 		scale.OrientOpt(scale.Horizontal),
 		scale.FromOpt(0),
 		scale.ToOpt(360),

@@ -14,18 +14,18 @@ import (
 func main() {
 	d := demohelper.Setup("Vertical Panes", 500, 450,
 		"A vertical paned window with a listbox and text widget.\nDrag the sash between them to resize.")
-	root, app := d.Root, d.App
+	app := d.App
 
 	// Vertical paned window.
-	pw := panedwindow.New(root, "vpanes", app,
+	pw := panedwindow.New(app, "vpanes",
 		panedwindow.OrientOpt(panedwindow.Vertical),
 	)
 	pack.Pack(pw, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true), pack.PadX(10), pack.PadY(5))
 
 	// Top pane: listbox.
-	topFrame := frame.New(pw.Window(), "top", app)
-	lb := listbox.New(topFrame.Window(), "filelist", app,
+	topFrame := frame.New(pw, "top")
+	lb := listbox.New(topFrame, "filelist",
 		listbox.Items(
 			"main.go", "canvas.go", "widget.go", "event.go", "window.go",
 			"label.go", "button.go", "entry.go", "text.go", "scrollbar.go",
@@ -37,8 +37,8 @@ func main() {
 	pw.Add(topFrame.Window(), 100)
 
 	// Bottom pane: text widget.
-	bottomFrame := frame.New(pw.Window(), "bottom", app)
-	tw := text.New(bottomFrame.Window(), "preview", app,
+	bottomFrame := frame.New(pw, "bottom")
+	tw := text.New(bottomFrame, "preview",
 		text.Width(50),
 		text.Height(10),
 		text.WrapModeOpt(text.WrapWord),

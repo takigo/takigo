@@ -18,9 +18,9 @@ const boardSize = 6 // 6x6 for faster computation.
 
 func main() {
 	d := demohelper.Setup("Knight's Tour", 450, 500, fmt.Sprintf("Knight's tour on a %dx%d board.\nClick Start to begin the animation.", boardSize, boardSize))
-	root, app := d.Root, d.App
+	app := d.App
 
-	statusLabel := label.New(root, "status", app,
+	statusLabel := label.New(app, "status",
 		label.Text("Move: 0"),
 		label.Anchor(option.AnchorW),
 		label.Background("#e8e8e8"),
@@ -28,7 +28,7 @@ func main() {
 	)
 	pack.Pack(statusLabel, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
-	c := canvas.New(root, "board", app,
+	c := canvas.New(app, "board",
 		canvas.Background("white"),
 		canvas.Width(400),
 		canvas.Height(400),
@@ -109,7 +109,7 @@ func main() {
 	step := 0
 	var animateFunc func()
 
-	startBtn := button.New(root, "start", app,
+	startBtn := button.New(app, "start",
 		button.Text("Start"),
 		button.PadX(10), button.PadY(4),
 	)

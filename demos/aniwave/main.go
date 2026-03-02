@@ -14,9 +14,9 @@ import (
 
 func main() {
 	d := demohelper.Setup("Animated Waveform", 550, 350, "An animated sine wave on a canvas.")
-	root, app := d.Root, d.App
+	app := d.App
 
-	c := canvas.New(root, "wave", app,
+	c := canvas.New(app, "wave",
 		canvas.Background("black"),
 		canvas.Width(500),
 		canvas.Height(250),

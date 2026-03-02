@@ -16,10 +16,10 @@ import (
 func main() {
 	d := demohelper.Setup("Font Chooser", 450, 250,
 		"Click the button to open the font chooser.\nThe selected font description is shown below.")
-	root, app := d.Root, d.App
+	app := d.App
 
 	// Font display label.
-	fontLabel := label.New(root, "fontlabel", app,
+	fontLabel := label.New(app, "fontlabel",
 		label.Text("Selected: (none)"),
 		label.Anchor(option.AnchorW),
 		label.Background("#e8e8e8"),
@@ -29,18 +29,17 @@ func main() {
 		pack.PadX(20), pack.PadY(10))
 
 	// Preview label.
-	previewLabel := label.New(root, "preview", app,
+	previewLabel := label.New(app, "preview",
 		label.Text("The quick brown fox jumps over the lazy dog."),
 		label.PadX(10), label.PadY(10),
 	)
 	pack.Pack(previewLabel, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX),
 		pack.PadX(20), pack.PadY(5))
 
-	chooseBtn := button.New(root, "choose", app,
+	chooseBtn := button.New(app, "choose",
 		button.Text("Choose Font..."),
 		button.Command(func() {
 			fontDesc, ok := dialog.ChooseFont(app,
-				dialog.FontParent(root),
 			)
 			if ok {
 				fontLabel.Text = fmt.Sprintf("Selected: %s", fontDesc)

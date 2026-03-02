@@ -16,24 +16,24 @@ import (
 func main() {
 	d := demohelper.Setup("Text Widget Features", 650, 550,
 		"This demo shows text tags, colors, fonts, and undo/redo.\nThe original Tk demo also embeds windows and images.")
-	root, app := d.Root, d.App
+	app := d.App
 
 	// Side control buttons.
-	ctrlFrame := frame.New(root, "ctrl", app)
+	ctrlFrame := frame.New(app, "ctrl")
 	pack.Pack(ctrlFrame, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY), pack.PadX(5), pack.PadY(5))
 
 	// Text widget with scrollbar.
-	txtFrame := frame.New(root, "txtframe", app)
+	txtFrame := frame.New(app, "txtframe")
 	pack.Pack(txtFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true), pack.PadX(5), pack.PadY(5))
 
-	tw := text.New(txtFrame.Window(), "tw", app,
+	tw := text.New(txtFrame, "tw",
 		text.Width(55), text.Height(28),
 		text.WrapModeOpt(text.WrapWord),
 		text.UndoOpt(true),
 	)
 
-	yscroll := scrollbar.New(txtFrame.Window(), "yscroll", app)
+	yscroll := scrollbar.New(txtFrame, "yscroll")
 	tw.YScrollCmd = func(first, last float64) { yscroll.Set(first, last) }
 	yscroll.Command = func(args ...interface{}) {
 		if len(args) >= 2 {
@@ -107,25 +107,25 @@ func main() {
 	tw.Insert("end", "The original Tk twind.tcl demo embeds buttons, other widgets, and images directly inside the text widget. Since embedded windows and images in text are not yet implemented in the Go port, this demo focuses on the tag-based rich text features that are available.\n")
 
 	// Control buttons.
-	ctrlLabel := label.New(ctrlFrame.Window(), "ctrllabel", app,
+	ctrlLabel := label.New(ctrlFrame, "ctrllabel",
 		label.Text("Actions:"), label.Anchor(option.AnchorW))
 	pack.Pack(ctrlLabel, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(5))
 
-	undoBtn := button.New(ctrlFrame.Window(), "undo", app,
+	undoBtn := button.New(ctrlFrame, "undo",
 		button.Text("Undo"),
 		button.Command(func() { tw.Edit("undo") }),
 		button.PadX(8), button.PadY(3),
 	)
 	pack.Pack(undoBtn, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(3))
 
-	redoBtn := button.New(ctrlFrame.Window(), "redo", app,
+	redoBtn := button.New(ctrlFrame, "redo",
 		button.Text("Redo"),
 		button.Command(func() { tw.Edit("redo") }),
 		button.PadX(8), button.PadY(3),
 	)
 	pack.Pack(redoBtn, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(3))
 
-	boldBtn := button.New(ctrlFrame.Window(), "boldbtn", app,
+	boldBtn := button.New(ctrlFrame, "boldbtn",
 		button.Text("Bold Sel"),
 		button.Command(func() {
 			sel := tw.GetSelection()
@@ -138,7 +138,7 @@ func main() {
 	)
 	pack.Pack(boldBtn, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(3))
 
-	underBtn := button.New(ctrlFrame.Window(), "underbtn", app,
+	underBtn := button.New(ctrlFrame, "underbtn",
 		button.Text("Underline Sel"),
 		button.Command(func() {
 			sel := tw.GetSelection()
@@ -151,7 +151,7 @@ func main() {
 	)
 	pack.Pack(underBtn, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(3))
 
-	redBtn := button.New(ctrlFrame.Window(), "redbtn", app,
+	redBtn := button.New(ctrlFrame, "redbtn",
 		button.Text("Red Sel"),
 		button.Command(func() {
 			sel := tw.GetSelection()
@@ -164,7 +164,7 @@ func main() {
 	)
 	pack.Pack(redBtn, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(3))
 
-	blueBtn := button.New(ctrlFrame.Window(), "bluebtn", app,
+	blueBtn := button.New(ctrlFrame, "bluebtn",
 		button.Text("Blue Sel"),
 		button.Command(func() {
 			sel := tw.GetSelection()

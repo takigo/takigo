@@ -63,8 +63,9 @@ type TextWidget struct {
 }
 
 // New creates a new TextWidget.
-func New(parent *window.Window, name string, app widget.AppContext, opts ...TextOption) *TextWidget {
-	w := window.NewChildWindow(parent, name, 0, 0, 1, 1)
+func New(parent widget.Caregiver, name string, opts ...TextOption) *TextWidget {
+	app := parent.AppContext()
+	w := window.NewChildWindow(parent.Window(), name, 0, 0, 1, 1)
 	window.MakeWindowExist(w)
 
 	t := &TextWidget{

@@ -14,14 +14,14 @@ import (
 func main() {
 	d := demohelper.Setup("Animated Label", 400, 200,
 		"A label with scrolling text animation.")
-	root, app := d.Root, d.App
+	app := d.App
 
 	// Animated label.
 	scrollText := "    Welcome to Takigo — a pure Go port of the Tk toolkit!    "
 	runes := []rune(scrollText)
 	offset := 0
 
-	aniLabel := label.New(root, "anilabel", app,
+	aniLabel := label.New(app, "anilabel",
 		label.Text(scrollText),
 		label.Anchor(option.AnchorW),
 		label.PadX(20), label.PadY(20),

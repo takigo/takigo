@@ -127,8 +127,9 @@ func PadY(p int) Option {
 const indicatorSize = 13
 
 // New creates a new Radiobutton widget.
-func New(parent *window.Window, name string, app widget.AppContext, opts ...Option) *Radiobutton {
-	w := window.NewChildWindow(parent, name, 0, 0, 1, 1)
+func New(parent widget.Caregiver, name string, opts ...Option) *Radiobutton {
+	app := parent.AppContext()
+	w := window.NewChildWindow(parent.Window(), name, 0, 0, 1, 1)
 	window.MakeWindowExist(w)
 
 	r := &Radiobutton{

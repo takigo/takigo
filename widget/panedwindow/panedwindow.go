@@ -68,8 +68,9 @@ func Background(name string) PanedWindowOption {
 }
 
 // New creates a new PanedWindow widget.
-func New(parent *window.Window, name string, app widget.AppContext, opts ...PanedWindowOption) *PanedWindow {
-	w := window.NewChildWindow(parent, name, 0, 0, 200, 200)
+func New(parent widget.Caregiver, name string, opts ...PanedWindowOption) *PanedWindow {
+	app := parent.AppContext()
+	w := window.NewChildWindow(parent.Window(), name, 0, 0, 200, 200)
 	window.MakeWindowExist(w)
 
 	pw := &PanedWindow{

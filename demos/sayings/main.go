@@ -13,7 +13,7 @@ import (
 func main() {
 	d := demohelper.Setup("Sayings", 500, 350,
 		"A listbox with well-known sayings.\nScroll vertically to see them all.")
-	root, app := d.Root, d.App
+	app := d.App
 
 	// Sayings data.
 	sayings := []string{
@@ -40,17 +40,17 @@ func main() {
 	}
 
 	// Listbox frame with Y scrollbar.
-	lbFrame := frame.New(root, "lbframe", app)
+	lbFrame := frame.New(app, "lbframe")
 	pack.Pack(lbFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true), pack.PadX(10), pack.PadY(5))
 
-	lb := listbox.New(lbFrame.Window(), "sayings", app,
+	lb := listbox.New(lbFrame, "sayings",
 		listbox.Items(sayings...),
 		listbox.Width(20),
 		listbox.Height(10),
 	)
 
-	yscroll := scrollbar.New(lbFrame.Window(), "yscroll", app,
+	yscroll := scrollbar.New(lbFrame, "yscroll",
 		scrollbar.OrientOpt(scrollbar.Vertical),
 		scrollbar.CommandOpt(func(args ...any) {
 			if len(args) < 1 {

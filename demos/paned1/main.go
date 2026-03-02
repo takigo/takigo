@@ -13,10 +13,10 @@ import (
 func main() {
 	d := demohelper.Setup("Horizontal Panes", 500, 300,
 		"A horizontal paned window. Drag the sash to resize panes.")
-	root, app := d.Root, d.App
+	app := d.App
 
 	// Paned window.
-	pw := panedwindow.New(root, "panes", app,
+	pw := panedwindow.New(app, "panes",
 		panedwindow.OrientOpt(panedwindow.Horizontal),
 	)
 	pack.Pack(pw, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
@@ -32,8 +32,8 @@ func main() {
 	}
 
 	for _, c := range colors {
-		f := frame.New(pw.Window(), c.name, app, frame.Background(c.color))
-		l := label.New(f.Window(), c.name+"_label", app,
+		f := frame.New(pw, c.name, frame.Background(c.color))
+		l := label.New(f, c.name+"_label",
 			label.Text(c.text),
 			label.Background(c.color),
 			label.Foreground("white"),

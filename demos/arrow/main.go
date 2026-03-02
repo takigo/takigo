@@ -14,10 +14,10 @@ import (
 func main() {
 	d := demohelper.Setup("Arrow Shapes", 550, 400,
 		"Various arrow shapes on canvas lines.\nArrows can appear at first, last, or both ends.")
-	root, app := d.Root, d.App
+	app := d.App
 
 	// Canvas.
-	c := canvas.New(root, "arrows", app,
+	c := canvas.New(app, "arrows",
 		canvas.Background("white"),
 		canvas.Width(500),
 		canvas.Height(300),

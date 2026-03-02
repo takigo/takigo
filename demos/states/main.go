@@ -13,10 +13,10 @@ import (
 func main() {
 	d := demohelper.Setup("US States", 300, 400,
 		"A listbox containing the 50 US states.\nSelect a state and press Dismiss to exit.")
-	root, app := d.Root, d.App
+	app := d.App
 
 	// Listbox frame.
-	lbFrame := frame.New(root, "lbframe", app)
+	lbFrame := frame.New(app, "lbframe")
 	pack.Pack(lbFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true), pack.PadX(10), pack.PadY(5))
 
@@ -33,12 +33,12 @@ func main() {
 		"Virginia", "Washington", "West Virginia", "Wisconsin", "Wyoming",
 	}
 
-	lb := listbox.New(lbFrame.Window(), "states", app,
+	lb := listbox.New(lbFrame, "states",
 		listbox.Items(states...),
 		listbox.Height(12),
 	)
 
-	yscroll := scrollbar.New(lbFrame.Window(), "yscroll", app,
+	yscroll := scrollbar.New(lbFrame, "yscroll",
 		scrollbar.OrientOpt(scrollbar.Vertical),
 		scrollbar.CommandOpt(func(args ...any) {
 			if len(args) < 1 {

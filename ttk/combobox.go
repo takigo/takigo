@@ -67,8 +67,9 @@ func ComboboxCommand(fn func(string)) ComboboxOption {
 }
 
 // NewCombobox creates a themed combobox widget.
-func NewCombobox(parent *window.Window, name string, app widget.AppContext, opts ...ComboboxOption) *Combobox {
-	win := window.NewChildWindow(parent, name, 0, 0, 1, 1)
+func NewCombobox(parent widget.Caregiver, name string, opts ...ComboboxOption) *Combobox {
+	app := parent.AppContext()
+	win := window.NewChildWindow(parent.Window(), name, 0, 0, 1, 1)
 	window.MakeWindowExist(win)
 
 	c := &Combobox{

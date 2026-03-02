@@ -16,12 +16,12 @@ import (
 func main() {
 	d := demohelper.Setup("TTK Menubutton Demonstration", 400, 350,
 		"Below are themed menubuttons. Click each to\nopen a dropdown menu.")
-	root, app := d.Root, d.App
+	app := d.App
 
 	ttk.SetCurrentTheme("clam")
 
 	// Status label.
-	statusLabel := label.New(root, "status", app,
+	statusLabel := label.New(app, "status",
 		label.Text("Selected: (none)"),
 		label.Anchor(option.AnchorW),
 		label.PadX(10),
@@ -34,37 +34,37 @@ func main() {
 	}
 
 	// File menubutton.
-	fileMenu := menu.New(root, "filemenu", app)
+	fileMenu := menu.New(app, "filemenu")
 	fileMenu.AddCommand("New", func() { setStatus("File > New") })
 	fileMenu.AddCommand("Open", func() { setStatus("File > Open") })
 	fileMenu.AddSeparator()
 	fileMenu.AddCommand("Save", func() { setStatus("File > Save") })
 	fileMenu.AddCommand("Close", func() { setStatus("File > Close") })
 
-	fileMB := ttk.NewMenubutton(root, "filemb", app,
+	fileMB := ttk.NewMenubutton(app, "filemb",
 		ttk.MenubuttonText("File"),
 		ttk.MenubuttonMenu(fileMenu),
 	)
 	pack.Pack(fileMB, pack.SideOpt(pack.Top), pack.PadX(20), pack.PadY(10))
 
 	// Edit menubutton.
-	editMenu := menu.New(root, "editmenu", app)
+	editMenu := menu.New(app, "editmenu")
 	editMenu.AddCommand("Cut", func() { setStatus("Edit > Cut") })
 	editMenu.AddCommand("Copy", func() { setStatus("Edit > Copy") })
 	editMenu.AddCommand("Paste", func() { setStatus("Edit > Paste") })
 
-	editMB := ttk.NewMenubutton(root, "editmb", app,
+	editMB := ttk.NewMenubutton(app, "editmb",
 		ttk.MenubuttonText("Edit"),
 		ttk.MenubuttonMenu(editMenu),
 	)
 	pack.Pack(editMB, pack.SideOpt(pack.Top), pack.PadX(20), pack.PadY(10))
 
 	// Help menubutton.
-	helpMenu := menu.New(root, "helpmenu", app)
+	helpMenu := menu.New(app, "helpmenu")
 	helpMenu.AddCommand("About", func() { setStatus("Help > About") })
 	helpMenu.AddCommand("Documentation", func() { setStatus("Help > Documentation") })
 
-	helpMB := ttk.NewMenubutton(root, "helpmb", app,
+	helpMB := ttk.NewMenubutton(app, "helpmb",
 		ttk.MenubuttonText("Help"),
 		ttk.MenubuttonMenu(helpMenu),
 	)

@@ -69,7 +69,7 @@ func main() {
 	focusMgr.BindTraversal(root)
 
 	// Title.
-	titleLabel := label.New(root, "title", app,
+	titleLabel := label.New(app, "title",
 		label.Text("Phase 9: TTK Themed Widgets"),
 		label.PadX(10),
 		label.PadY(5),
@@ -77,18 +77,18 @@ func main() {
 	pack.Pack(titleLabel, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(5))
 
 	// --- TTK section ---
-	ttkFrame := ttk.NewFrame(root, "ttkFrame", app,
+	ttkFrame := ttk.NewFrame(app, "ttkFrame",
 		ttk.FrameBorderWidth(2),
 		ttk.FrameRelief(option.ReliefGroove),
 	)
 	pack.Pack(ttkFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadX(10), pack.PadY(5))
 
-	ttkLabel := ttk.NewLabel(ttkFrame.Window(), "ttkLabel", app,
+	ttkLabel := ttk.NewLabel(ttkFrame, "ttkLabel",
 		ttk.LabelText("TTK Label (clam theme)"),
 	)
 	pack.Pack(ttkLabel, pack.SideOpt(pack.Left), pack.PadX(8), pack.PadY(4))
 
-	ttkBtn := ttk.NewButton(ttkFrame.Window(), "ttkBtn", app,
+	ttkBtn := ttk.NewButton(ttkFrame, "ttkBtn",
 		ttk.ButtonText("TTK Button"),
 		ttk.ButtonCommand(func() {
 			fmt.Println("TTK button clicked!")
@@ -97,11 +97,11 @@ func main() {
 	pack.Pack(ttkBtn, pack.SideOpt(pack.Left), pack.PadX(8), pack.PadY(4))
 
 	// Separator.
-	ttkSep := ttk.NewSeparator(root, "ttkSep", app)
+	ttkSep := ttk.NewSeparator(app, "ttkSep")
 	pack.Pack(ttkSep, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadX(10), pack.PadY(2))
 
 	// --- Image section (from Phase 8) ---
-	imgFrame := frame.New(root, "imgFrame", app)
+	imgFrame := frame.New(app, "imgFrame")
 	pack.Pack(imgFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadX(10), pack.PadY(5))
 
 	// Generate a test image at runtime.
@@ -110,7 +110,7 @@ func main() {
 	app.ImageRegistry().Register(testPhoto)
 
 	// Label with image only.
-	imgLabel := label.New(imgFrame.Window(), "imgLabel", app,
+	imgLabel := label.New(imgFrame, "imgLabel",
 		label.ImageOpt(testPhoto),
 		label.BorderWidth(2),
 		label.Relief(option.ReliefGroove),
@@ -120,7 +120,7 @@ func main() {
 	pack.Pack(imgLabel, pack.SideOpt(pack.Left), pack.PadX(5))
 
 	// Button with image + text (compound left).
-	imgBtn := button.New(imgFrame.Window(), "imgBtn", app,
+	imgBtn := button.New(imgFrame, "imgBtn",
 		button.Text("Click Me"),
 		button.ImageOpt(testPhoto),
 		button.CompoundOpt(widget.CompoundLeft),
@@ -146,7 +146,7 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Warning: could not load %s: %v\n", imgPath, err)
 		} else {
 			app.ImageRegistry().Register(filePhoto)
-			fileLabel := label.New(imgFrame.Window(), "fileLabel", app,
+			fileLabel := label.New(imgFrame, "fileLabel",
 				label.ImageOpt(filePhoto),
 				label.BorderWidth(2),
 				label.Relief(option.ReliefSunken),
@@ -158,15 +158,15 @@ func main() {
 	}
 
 	// --- Classic widgets to show coexistence ---
-	midFrame := frame.New(root, "midFrame", app)
+	midFrame := frame.New(app, "midFrame")
 	pack.Pack(midFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadX(10), pack.PadY(5))
 
 	// Scale.
-	scaleLabel := label.New(midFrame.Window(), "scaleLabel", app,
+	scaleLabel := label.New(midFrame, "scaleLabel",
 		label.Text("Scale: 50"),
 		label.Anchor(option.AnchorW),
 	)
-	sc := scale.New(midFrame.Window(), "scale1", app,
+	sc := scale.New(midFrame, "scale1",
 		scale.OrientOpt(scale.Horizontal),
 		scale.FromOpt(0),
 		scale.ToOpt(100),
@@ -181,7 +181,7 @@ func main() {
 	pack.Pack(scaleLabel, pack.SideOpt(pack.Left), pack.PadX(5))
 
 	// Listbox with scrollbar.
-	lbFrame := frame.New(root, "lbFrame", app)
+	lbFrame := frame.New(app, "lbFrame")
 	pack.Pack(lbFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true), pack.PadX(10), pack.PadY(5))
 
 	items := make([]string, 20)
@@ -189,13 +189,13 @@ func main() {
 		items[i] = fmt.Sprintf("Item %d", i+1)
 	}
 
-	lb := listbox.New(lbFrame.Window(), "listbox", app,
+	lb := listbox.New(lbFrame, "listbox",
 		listbox.Items(items...),
 		listbox.Height(8),
 		listbox.Width(30),
 	)
 
-	yscroll := scrollbar.New(lbFrame.Window(), "yscroll", app,
+	yscroll := scrollbar.New(lbFrame, "yscroll",
 		scrollbar.OrientOpt(scrollbar.Vertical),
 		scrollbar.WidthOpt(14),
 		scrollbar.CommandOpt(func(args ...interface{}) {
@@ -228,7 +228,7 @@ func main() {
 	yscroll.Set(first, last)
 
 	// Status label.
-	statusLabel := label.New(root, "status", app,
+	statusLabel := label.New(app, "status",
 		label.Text("Phase 9: TTK + Classic widgets. Esc to quit."),
 		label.Background("#e8e8e8"),
 		label.Anchor(option.AnchorW),

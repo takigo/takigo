@@ -79,8 +79,9 @@ func Background(name string) MenuOption {
 
 // New creates a new Menu. The menu is an override-redirect window,
 // initially unmapped, created as a child of the root X window.
-func New(parent *window.Window, name string, app widget.AppContext, opts ...MenuOption) *Menu {
-	d := parent.Display
+func New(parent widget.Caregiver, name string, opts ...MenuOption) *Menu {
+	app := parent.AppContext()
+	d := parent.Window().Display
 
 	// Create override-redirect toplevel window.
 	attrs := &xlib.WindowAttributes{
@@ -110,9 +111,9 @@ func New(parent *window.Window, name string, app widget.AppContext, opts ...Menu
 	w := &window.Window{
 		XWindow:         xwin,
 		Display:         d,
-		Parent:          parent,
+		Parent:          parent.Window(),
 		Name:            name,
-		PathName:        window.BuildPathName(parent, name),
+		PathName:        window.BuildPathName(parent.Window(), name),
 		Width:           1,
 		Height:          1,
 		ReqWidth:        1,
@@ -129,7 +130,7 @@ func New(parent *window.Window, name string, app widget.AppContext, opts ...Menu
 	})
 
 	d.RegisterWindow(xwin, w)
-	parent.AddChild(w)
+	parent.Window().AddChild(w)
 
 	m := &Menu{
 		activeIndex: -1,

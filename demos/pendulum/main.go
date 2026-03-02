@@ -13,9 +13,9 @@ import (
 
 func main() {
 	d := demohelper.Setup("Pendulum", 400, 450, "A simple pendulum physics simulation.")
-	root, app := d.Root, d.App
+	app := d.App
 
-	c := canvas.New(root, "pendulum", app,
+	c := canvas.New(app, "pendulum",
 		canvas.Background("#1a1a2e"),
 		canvas.Width(350),
 		canvas.Height(350),

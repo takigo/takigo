@@ -13,21 +13,21 @@ import (
 func main() {
 	d := demohelper.Setup("Text Widget Demo", 550, 450,
 		"A text widget with scrollbar. Click to position\ncursor. Select by dragging. Ctrl+Z to undo.")
-	root, app := d.Root, d.App
+	app := d.App
 
 	// Text widget with scrollbar.
-	txtFrame := frame.New(root, "txtframe", app)
+	txtFrame := frame.New(app, "txtframe")
 	pack.Pack(txtFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true), pack.PadX(10), pack.PadY(5))
 
-	tw := text.New(txtFrame.Window(), "text1", app,
+	tw := text.New(txtFrame, "text1",
 		text.Width(60),
 		text.Height(20),
 		text.WrapModeOpt(text.WrapWord),
 		text.UndoOpt(true),
 	)
 
-	yscroll := scrollbar.New(txtFrame.Window(), "yscroll", app,
+	yscroll := scrollbar.New(txtFrame, "yscroll",
 		scrollbar.OrientOpt(scrollbar.Vertical),
 		scrollbar.CommandOpt(func(args ...any) {
 			if len(args) < 1 {

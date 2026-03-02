@@ -14,10 +14,10 @@ import (
 func main() {
 	d := demohelper.Setup("Canvas Items", 700, 550,
 		"A showcase of all canvas item types: rectangles, ovals,\nlines, polygons, arcs, and text.")
-	root, app := d.Root, d.App
+	app := d.App
 
 	// Canvas.
-	c := canvas.New(root, "items", app,
+	c := canvas.New(app, "items",
 		canvas.Background("white"),
 		canvas.Width(660),
 		canvas.Height(420),

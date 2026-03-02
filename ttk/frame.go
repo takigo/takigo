@@ -47,8 +47,9 @@ func FrameBackground(pixel uint64) FrameOption {
 }
 
 // NewFrame creates a themed frame widget.
-func NewFrame(parent *window.Window, name string, app widget.AppContext, opts ...FrameOption) *Frame {
-	win := window.NewChildWindow(parent, name, 0, 0, 1, 1)
+func NewFrame(parent widget.Caregiver, name string, opts ...FrameOption) *Frame {
+	app := parent.AppContext()
+	win := window.NewChildWindow(parent.Window(), name, 0, 0, 1, 1)
 	window.MakeWindowExist(win)
 
 	f := &Frame{}

@@ -34,8 +34,9 @@ type Notebook struct {
 type NotebookOption func(*Notebook)
 
 // NewNotebook creates a themed notebook widget.
-func NewNotebook(parent *window.Window, name string, app widget.AppContext, opts ...NotebookOption) *Notebook {
-	win := window.NewChildWindow(parent, name, 0, 0, 300, 200)
+func NewNotebook(parent widget.Caregiver, name string, opts ...NotebookOption) *Notebook {
+	app := parent.AppContext()
+	win := window.NewChildWindow(parent.Window(), name, 0, 0, 300, 200)
 	window.MakeWindowExist(win)
 
 	nb := &Notebook{

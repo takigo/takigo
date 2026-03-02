@@ -24,7 +24,7 @@ func main() {
 	focusMgr.BindTraversal(root)
 
 	// Form grid.
-	formFrame := frame.New(root, "form", app)
+	formFrame := frame.New(app, "form")
 	pack.Pack(formFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
 		pack.PadX(20), pack.PadY(10))
 
@@ -32,11 +32,11 @@ func main() {
 	entries := make([]*entry.Entry, len(fields))
 
 	for i, fieldName := range fields {
-		l := label.New(formFrame.Window(), fmt.Sprintf("l%d", i), app,
+		l := label.New(formFrame, fmt.Sprintf("l%d", i),
 			label.Text(fieldName),
 			label.Anchor(option.AnchorE),
 		)
-		e := entry.New(formFrame.Window(), fmt.Sprintf("e%d", i), app,
+		e := entry.New(formFrame, fmt.Sprintf("e%d", i),
 			entry.Width(30),
 		)
 		grid.Grid(l, grid.Row(i), grid.Column(0), grid.Sticky(grid.StickE), grid.PadX(5), grid.PadY(4))

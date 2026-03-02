@@ -22,7 +22,7 @@ import (
 func main() {
 	d := demohelper.Setup("Image Viewer", 550, 400,
 		"Select an image from the list to preview it.")
-	root, app := d.Root, d.App
+	app := d.App
 
 	// Generate several images.
 	type imgEntry struct {
@@ -86,12 +86,12 @@ func main() {
 	}
 
 	// Layout: listbox on left, preview on right.
-	mainFrame := frame.New(root, "mainframe", app)
+	mainFrame := frame.New(app, "mainframe")
 	pack.Pack(mainFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true), pack.PadX(10), pack.PadY(5))
 
 	// Listbox.
-	lbFrame := frame.New(mainFrame.Window(), "lbframe", app)
+	lbFrame := frame.New(mainFrame, "lbframe")
 	pack.Pack(lbFrame, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillY), pack.PadX(5))
 
 	names := make([]string, len(images))
@@ -99,12 +99,12 @@ func main() {
 		names[i] = e.name
 	}
 
-	lb := listbox.New(lbFrame.Window(), "imglist", app,
+	lb := listbox.New(lbFrame, "imglist",
 		listbox.Items(names...),
 		listbox.Height(8),
 		listbox.Width(20),
 	)
-	yscroll := scrollbar.New(lbFrame.Window(), "yscroll", app,
+	yscroll := scrollbar.New(lbFrame, "yscroll",
 		scrollbar.OrientOpt(scrollbar.Vertical),
 		scrollbar.CommandOpt(func(args ...any) {
 			if len(args) < 1 {
@@ -131,7 +131,7 @@ func main() {
 	pack.Pack(lb, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	// Preview label.
-	previewLabel := label.New(mainFrame.Window(), "preview", app,
+	previewLabel := label.New(mainFrame, "preview",
 		label.Text("(select an image)"),
 		label.BorderWidth(2),
 		label.Relief(option.ReliefSunken),

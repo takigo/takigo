@@ -28,7 +28,7 @@ func main() {
 	root.BackgroundPixel = bgColor.Pixel
 
 	// Status label at bottom.
-	statusLabel := label.New(root, "status", app,
+	statusLabel := label.New(app, "status",
 		label.Text("Phase 11: Text Widget. Edit text, Ctrl+A select all, Ctrl+Z undo, Ctrl+Y redo. Esc to quit."),
 		label.Background("#e8e8e8"),
 		label.Anchor(option.AnchorW),
@@ -38,7 +38,7 @@ func main() {
 	pack.Pack(statusLabel, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	// Create text widget.
-	txt := text.New(root, "text", app,
+	txt := text.New(app, "text",
 		text.Width(80),
 		text.Height(24),
 		text.Background("white"),
@@ -47,7 +47,7 @@ func main() {
 	)
 
 	// Vertical scrollbar.
-	yscroll := scrollbar.New(root, "yscroll", app,
+	yscroll := scrollbar.New(app, "yscroll",
 		scrollbar.OrientOpt(scrollbar.Vertical),
 		scrollbar.WidthOpt(14),
 		scrollbar.CommandOpt(func(args ...interface{}) {

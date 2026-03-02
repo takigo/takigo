@@ -49,17 +49,18 @@ type Dialog struct {
 // New creates a new dialog as a transient window over parent.
 // The minWidth/minHeight set minimum dimensions; the dialog will grow
 // to fit its content if needed.
-func New(app widget.AppContext, parent *window.Window, title string, minWidth, minHeight int) *Dialog {
+func New(parent widget.Caregiver, title string, minWidth, minHeight int) *Dialog {
+	app := parent.AppContext()
 	d := &Dialog{
 		App:      app,
 		done:     make(chan struct{}),
-		parent:   parent,
+		parent:   parent.Window(),
 		minWidth: minWidth,
 		minHeight: minHeight,
 	}
 
 	// Create transient toplevel at an initial size.
-	d.Toplevel = toplevel.New(parent, "dialog", app,
+	d.Toplevel = toplevel.New(parent, "dialog",
 		toplevel.Title(title),
 		toplevel.TransientFor(parent),
 	)
@@ -68,11 +69,11 @@ func New(app widget.AppContext, parent *window.Window, title string, minWidth, m
 	d.Toplevel.WmInfo.SetGeometry(fmt.Sprintf("%dx%d", minWidth, minHeight))
 
 	// Button frame at bottom — pack first so it claims space before content.
-	d.BtnFrame = newFrame(d.Toplevel.Window(), "buttons", app)
+	d.BtnFrame = newFrame(d.Toplevel, "buttons")
 	pack.Pack(d.BtnFrame, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX), pack.PadY(5))
 
 	// Content frame fills the remaining area.
-	d.Content = newFrame(d.Toplevel.Window(), "content", app)
+	d.Content = newFrame(d.Toplevel, "content")
 	pack.Pack(d.Content, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	// Register close handler for WM_DELETE_WINDOW routing.
@@ -194,8 +195,8 @@ func centerOverParent(info *wm.WmInfo, parent *window.Window, width, height int)
 // newFrame creates a frame with minimal requested size, suitable for dialog layout.
 // Unlike frame.New() which defaults to 200x200, this creates frames that let
 // pack's cavity algorithm work correctly with fixed-size dialog windows.
-func newFrame(parent *window.Window, name string, app widget.AppContext, opts ...frame.FrameOption) *frame.Frame {
-	f := frame.New(parent, name, app, opts...)
+func newFrame(parent widget.Caregiver, name string, opts ...frame.FrameOption) *frame.Frame {
+	f := frame.New(parent, name, opts...)
 	// Set small requested AND actual sizes so pack's cavity algorithm
 	// works correctly. The actual size will be set by the parent's pack.
 	f.Window().ReqWidth = 1
@@ -216,7 +217,7 @@ type dialogButton struct {
 func addButtons(d *Dialog, buttons []dialogButton) {
 	for _, b := range buttons {
 		res := b.result // capture for closure
-		btn := button.New(d.BtnFrame.Window(), "btn_"+b.text, d.App,
+		btn := button.New(d.BtnFrame, "btn_"+b.text,
 			button.Text(b.text),
 			button.Command(func() {
 				d.Close(res)

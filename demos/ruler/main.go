@@ -14,10 +14,10 @@ import (
 func main() {
 	d := demohelper.Setup("Ruler Demo", 600, 250,
 		"A ruler with tick marks and tab stops.\nThe tab stops are represented by small triangles.")
-	root, app := d.Root, d.App
+	app := d.App
 
 	// Canvas.
-	c := canvas.New(root, "ruler", app,
+	c := canvas.New(app, "ruler",
 		canvas.Background("#ffffee"),
 		canvas.Width(560),
 		canvas.Height(100),

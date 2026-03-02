@@ -98,17 +98,17 @@ func main() {
 	}
 
 	// Listbox frame.
-	lbFrame := frame.New(root, "lbframe", app)
+	lbFrame := frame.New(app, "lbframe")
 	pack.Pack(lbFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true), pack.PadX(10), pack.PadY(5))
 
-	lb := listbox.New(lbFrame.Window(), "colors", app,
+	lb := listbox.New(lbFrame, "colors",
 		listbox.Items(colors...),
 		listbox.Width(20),
 		listbox.Height(16),
 	)
 
-	yscroll := scrollbar.New(lbFrame.Window(), "yscroll", app,
+	yscroll := scrollbar.New(lbFrame, "yscroll",
 		scrollbar.OrientOpt(scrollbar.Vertical),
 		scrollbar.CommandOpt(func(args ...any) {
 			if len(args) < 1 {

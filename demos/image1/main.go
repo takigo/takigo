@@ -17,7 +17,7 @@ import (
 func main() {
 	d := demohelper.Setup("Image Demo", 500, 400,
 		"Photo images displayed in labels.\nImages are generated at runtime.")
-	root, app := d.Root, d.App
+	app := d.App
 
 	// Generate test images.
 	makeGradient := func(name string, c1, c2 color.RGBA, w, h int) *tkimage.Photo {
@@ -64,10 +64,10 @@ func main() {
 	app.ImageRegistry().Register(checker)
 
 	// Display images in labels.
-	imgFrame := frame.New(root, "imgframe", app)
+	imgFrame := frame.New(app, "imgframe")
 	pack.Pack(imgFrame, pack.SideOpt(pack.Top), pack.PadX(10), pack.PadY(10))
 
-	l1 := label.New(imgFrame.Window(), "img1", app,
+	l1 := label.New(imgFrame, "img1",
 		label.ImageOpt(gradient1),
 		label.BorderWidth(2),
 		label.Relief(option.ReliefGroove),
@@ -75,7 +75,7 @@ func main() {
 	)
 	pack.Pack(l1, pack.SideOpt(pack.Left), pack.PadX(10))
 
-	l2 := label.New(imgFrame.Window(), "img2", app,
+	l2 := label.New(imgFrame, "img2",
 		label.ImageOpt(gradient2),
 		label.BorderWidth(2),
 		label.Relief(option.ReliefGroove),
@@ -83,7 +83,7 @@ func main() {
 	)
 	pack.Pack(l2, pack.SideOpt(pack.Left), pack.PadX(10))
 
-	l3 := label.New(imgFrame.Window(), "img3", app,
+	l3 := label.New(imgFrame, "img3",
 		label.ImageOpt(checker),
 		label.BorderWidth(2),
 		label.Relief(option.ReliefGroove),
@@ -92,11 +92,11 @@ func main() {
 	pack.Pack(l3, pack.SideOpt(pack.Left), pack.PadX(10))
 
 	// Labels.
-	labFrame := frame.New(root, "labframe", app)
+	labFrame := frame.New(app, "labframe")
 	pack.Pack(labFrame, pack.SideOpt(pack.Top), pack.PadX(10), pack.PadY(5))
 
 	for _, name := range []string{"Red→Blue Gradient", "Green→Yellow Gradient", "Checkerboard"} {
-		ll := label.New(labFrame.Window(), "lab_"+name, app,
+		ll := label.New(labFrame, "lab_"+name,
 			label.Text(name),
 		)
 		pack.Pack(ll, pack.SideOpt(pack.Left), pack.PadX(20))
