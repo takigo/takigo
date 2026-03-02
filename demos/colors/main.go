@@ -3,54 +3,19 @@
 package main
 
 import (
-	"fmt"
-	"os"
-
-	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/bind"
-	"github.com/msorc/takigo/event"
+	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/pack"
-	"github.com/msorc/takigo/internal/xlib"
-	"github.com/msorc/takigo/option"
-	"github.com/msorc/takigo/widget/button"
 	"github.com/msorc/takigo/widget/frame"
-	"github.com/msorc/takigo/widget/label"
 	"github.com/msorc/takigo/widget/listbox"
 	"github.com/msorc/takigo/widget/scrollbar"
 )
 
 func main() {
-	app, err := takigo.NewApp(takigo.Title("Listbox of Colors"), takigo.Size(350, 450))
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-		os.Exit(1)
-	}
-	defer app.Destroy()
-
-	root := app.Root()
-	bgColor, _ := app.ColorCache().Get("#d9d9d9")
-	root.BackgroundPixel = bgColor.Pixel
-
-	// Description.
-	msg := label.New(root, "msg", app,
-		label.Text("A list of X color names. Double-click a color\nto change the application background."),
-		label.Anchor(option.AnchorW),
-		label.PadX(10),
-		label.PadY(5),
-	)
-	pack.Pack(msg.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
-
-	// Dismiss button.
-	btnFrame := frame.New(root, "btnframe", app)
-	pack.Pack(btnFrame.Window(), pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX), pack.PadY(5))
-
-	dismissBtn := button.New(btnFrame.Window(), "dismiss", app,
-		button.Text("Dismiss"),
-		button.Command(func() { app.Quit() }),
-		button.PadX(10),
-		button.PadY(4),
-	)
-	pack.Pack(dismissBtn.Window(), pack.SideOpt(pack.Left), pack.PadX(10))
+	d := demohelper.Setup("Listbox of Colors", 350, 450,
+		"A list of X color names. Double-click a color\nto change the application background.")
+	defer d.App.Destroy()
+	root, app := d.Root, d.App
 
 	// Color names (grouped by family).
 	colors := []string{
@@ -185,44 +150,16 @@ func main() {
 			c, err := app.ColorCache().Get(colorName)
 			if err == nil {
 				root.BackgroundPixel = c.Pixel
-				d := root.Display.XDisplay
+				di := root.Display.XDisplay
 				gc := root.GC
-				d.SetForeground(gc, c.Pixel)
-				d.FillRectangle(root.Drawable(), gc, 0, 0, uint(root.Width), uint(root.Height))
-				d.Flush()
+				di.SetForeground(gc, c.Pixel)
+				di.FillRectangle(root.Drawable(), gc, 0, 0, uint(root.Width), uint(root.Height))
+				di.Flush()
 				pack.ArrangeContainer(root)
 			}
 		}
 		return true
 	})
 
-	// Root event handlers.
-	app.Dispatcher().Bind(root.XWindow, event.StructureNotifyMask, func(ev *event.Event) {
-		if ev.Type == event.ConfigureType {
-			root.Width = ev.ConfigWidth
-			root.Height = ev.ConfigHeight
-			pack.ArrangeContainer(root)
-		}
-	})
-
-	app.Dispatcher().Bind(root.XWindow, event.ExposureMask, func(ev *event.Event) {
-		if ev.ExposeCount > 0 {
-			return
-		}
-		d := root.Display.XDisplay
-		gc := root.GC
-		d.SetForeground(gc, root.BackgroundPixel)
-		d.FillRectangle(root.Drawable(), gc, 0, 0, uint(root.Width), uint(root.Height))
-		d.Flush()
-	})
-
-	app.Dispatcher().BindGlobal(event.KeyPressMask, func(ev *event.Event) {
-		if ev.KeySym == xlib.XK_Escape {
-			app.Quit()
-		}
-	})
-
-	_ = msg
-	_ = dismissBtn
-	app.MainLoop()
+	d.Run()
 }

@@ -3,57 +3,24 @@
 package main
 
 import (
-	"fmt"
-	"os"
-
-	"github.com/msorc/takigo"
-	"github.com/msorc/takigo/event"
+	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/focus"
 	"github.com/msorc/takigo/geometry/grid"
 	"github.com/msorc/takigo/geometry/pack"
-	"github.com/msorc/takigo/internal/xlib"
 	"github.com/msorc/takigo/option"
-	"github.com/msorc/takigo/widget/button"
 	"github.com/msorc/takigo/widget/entry"
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
 )
 
 func main() {
-	app, err := takigo.NewApp(takigo.Title("Validated Entries"), takigo.Size(500, 300))
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-		os.Exit(1)
-	}
-	defer app.Destroy()
-
-	root := app.Root()
-	bgColor, _ := app.ColorCache().Get("#d9d9d9")
-	root.BackgroundPixel = bgColor.Pixel
+	d := demohelper.Setup("Validated Entries", 500, 300,
+		"Four different entries are shown, each with\ndifferent constraints. Use Tab to move between them.")
+	defer d.App.Destroy()
+	root, app := d.Root, d.App
 
 	focusMgr := focus.NewManager(app.Dispatcher(), app.DisplayPtr())
 	focusMgr.BindTraversal(root)
-
-	// Description.
-	msg := label.New(root, "msg", app,
-		label.Text("Four different entries are shown, each with\ndifferent constraints. Use Tab to move between them."),
-		label.Anchor(option.AnchorW),
-		label.PadX(10),
-		label.PadY(5),
-	)
-	pack.Pack(msg.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
-
-	// Dismiss button.
-	btnFrame := frame.New(root, "btnframe", app)
-	pack.Pack(btnFrame.Window(), pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX), pack.PadY(5))
-
-	dismissBtn := button.New(btnFrame.Window(), "dismiss", app,
-		button.Text("Dismiss"),
-		button.Command(func() { app.Quit() }),
-		button.PadX(10),
-		button.PadY(4),
-	)
-	pack.Pack(dismissBtn.Window(), pack.SideOpt(pack.Left), pack.PadX(10))
 
 	// Form grid.
 	formFrame := frame.New(root, "form", app)
@@ -111,34 +78,6 @@ func main() {
 
 	grid.ColumnConfigure(formFrame.Window(), 1, grid.SlotConfig{Weight: 1})
 
-	// Root event handlers.
-	app.Dispatcher().Bind(root.XWindow, event.StructureNotifyMask, func(ev *event.Event) {
-		if ev.Type == event.ConfigureType {
-			root.Width = ev.ConfigWidth
-			root.Height = ev.ConfigHeight
-			pack.ArrangeContainer(root)
-		}
-	})
-
-	app.Dispatcher().Bind(root.XWindow, event.ExposureMask, func(ev *event.Event) {
-		if ev.ExposeCount > 0 {
-			return
-		}
-		d := root.Display.XDisplay
-		gc := root.GC
-		d.SetForeground(gc, bgColor.Pixel)
-		d.FillRectangle(root.Drawable(), gc, 0, 0, uint(root.Width), uint(root.Height))
-		d.Flush()
-	})
-
-	app.Dispatcher().BindGlobal(event.KeyPressMask, func(ev *event.Event) {
-		if ev.KeySym == xlib.XK_Escape {
-			app.Quit()
-		}
-	})
-
-	_ = msg
-	_ = dismissBtn
 	_ = focusMgr
 	_ = l1
 	_ = l2
@@ -148,5 +87,5 @@ func main() {
 	_ = e2
 	_ = e3
 	_ = e4
-	app.MainLoop()
+	d.Run()
 }

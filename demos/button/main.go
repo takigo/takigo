@@ -3,52 +3,20 @@
 package main
 
 import (
-	"fmt"
-	"os"
 	"time"
 
-	"github.com/msorc/takigo"
-	"github.com/msorc/takigo/event"
+	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/pack"
-	"github.com/msorc/takigo/internal/xlib"
-	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/widget/button"
-	"github.com/msorc/takigo/widget/frame"
-	"github.com/msorc/takigo/widget/label"
 )
 
 func main() {
-	app, err := takigo.NewApp(takigo.Title("Button Demonstration"), takigo.Size(400, 350))
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-		os.Exit(1)
-	}
-	defer app.Destroy()
+	d := demohelper.Setup("Button Demonstration", 400, 350,
+		"Click any button to change the background color.\nThe color resets after 1.5 seconds.")
+	defer d.App.Destroy()
+	root, app := d.Root, d.App
 
-	root := app.Root()
 	defaultBg, _ := app.ColorCache().Get("#d9d9d9")
-	root.BackgroundPixel = defaultBg.Pixel
-
-	// Description.
-	msg := label.New(root, "msg", app,
-		label.Text("Click any button to change the background color.\nThe color resets after 1.5 seconds."),
-		label.Anchor(option.AnchorW),
-		label.PadX(10),
-		label.PadY(5),
-	)
-	pack.Pack(msg.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
-
-	// Dismiss button at bottom.
-	btnFrame := frame.New(root, "btnframe", app)
-	pack.Pack(btnFrame.Window(), pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX), pack.PadY(5))
-
-	dismissBtn := button.New(btnFrame.Window(), "dismiss", app,
-		button.Text("Dismiss"),
-		button.Command(func() { app.Quit() }),
-		button.PadX(10),
-		button.PadY(4),
-	)
-	pack.Pack(dismissBtn.Window(), pack.SideOpt(pack.Left), pack.PadX(10))
 
 	// Color-changing function.
 	changeColor := func(colorName string) {
@@ -57,18 +25,18 @@ func main() {
 			return
 		}
 		root.BackgroundPixel = c.Pixel
-		d := root.Display.XDisplay
+		di := root.Display.XDisplay
 		gc := root.GC
-		d.SetForeground(gc, c.Pixel)
-		d.FillRectangle(root.Drawable(), gc, 0, 0, uint(root.Width), uint(root.Height))
-		d.Flush()
+		di.SetForeground(gc, c.Pixel)
+		di.FillRectangle(root.Drawable(), gc, 0, 0, uint(root.Width), uint(root.Height))
+		di.Flush()
 
 		// Reset after 1.5 seconds.
 		app.After(1500*time.Millisecond, func() {
 			root.BackgroundPixel = defaultBg.Pixel
-			d.SetForeground(gc, defaultBg.Pixel)
-			d.FillRectangle(root.Drawable(), gc, 0, 0, uint(root.Width), uint(root.Height))
-			d.Flush()
+			di.SetForeground(gc, defaultBg.Pixel)
+			di.FillRectangle(root.Drawable(), gc, 0, 0, uint(root.Width), uint(root.Height))
+			di.Flush()
 			// Redraw all children.
 			pack.ArrangeContainer(root)
 		})
@@ -98,33 +66,5 @@ func main() {
 		_ = btn
 	}
 
-	// Root event handlers.
-	app.Dispatcher().Bind(root.XWindow, event.StructureNotifyMask, func(ev *event.Event) {
-		if ev.Type == event.ConfigureType {
-			root.Width = ev.ConfigWidth
-			root.Height = ev.ConfigHeight
-			pack.ArrangeContainer(root)
-		}
-	})
-
-	app.Dispatcher().Bind(root.XWindow, event.ExposureMask, func(ev *event.Event) {
-		if ev.ExposeCount > 0 {
-			return
-		}
-		d := root.Display.XDisplay
-		gc := root.GC
-		d.SetForeground(gc, root.BackgroundPixel)
-		d.FillRectangle(root.Drawable(), gc, 0, 0, uint(root.Width), uint(root.Height))
-		d.Flush()
-	})
-
-	app.Dispatcher().BindGlobal(event.KeyPressMask, func(ev *event.Event) {
-		if ev.KeySym == xlib.XK_Escape {
-			app.Quit()
-		}
-	})
-
-	_ = msg
-	_ = dismissBtn
-	app.MainLoop()
+	d.Run()
 }

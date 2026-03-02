@@ -3,48 +3,22 @@
 package main
 
 import (
-	"fmt"
 	goimage "image"
 	"image/color"
-	"os"
 
-	"github.com/msorc/takigo"
-	"github.com/msorc/takigo/event"
+	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/pack"
 	tkimage "github.com/msorc/takigo/image"
-	"github.com/msorc/takigo/internal/xlib"
 	"github.com/msorc/takigo/option"
-	"github.com/msorc/takigo/widget/button"
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
 )
 
 func main() {
-	app, err := takigo.NewApp(takigo.Title("Bitmap Demonstration"), takigo.Size(600, 350))
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-		os.Exit(1)
-	}
-	defer app.Destroy()
-
-	root := app.Root()
-	bgColor, _ := app.ColorCache().Get("#d9d9d9")
-	root.BackgroundPixel = bgColor.Pixel
-
-	msg := label.New(root, "msg", app,
-		label.Text("Tk defines several built-in bitmap patterns. Below are\nrepresentations of the 10 standard bitmaps as images."),
-		label.Anchor(option.AnchorW),
-		label.PadX(10), label.PadY(5),
-	)
-	pack.Pack(msg.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
-
-	btnFrame := frame.New(root, "btnframe", app)
-	pack.Pack(btnFrame.Window(), pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX), pack.PadY(5))
-	dismissBtn := button.New(btnFrame.Window(), "dismiss", app,
-		button.Text("Dismiss"), button.Command(func() { app.Quit() }),
-		button.PadX(10), button.PadY(4),
-	)
-	pack.Pack(dismissBtn.Window(), pack.SideOpt(pack.Left), pack.PadX(10))
+	d := demohelper.Setup("Bitmap Demonstration", 600, 350,
+		"Tk defines several built-in bitmap patterns. Below are\nrepresentations of the 10 standard bitmaps as images.")
+	defer d.App.Destroy()
+	root, app := d.Root, d.App
 
 	fg := color.RGBA{R: 0, G: 0, B: 0, A: 255}
 	bg := color.RGBA{R: 255, G: 255, B: 255, A: 255}
@@ -152,30 +126,5 @@ func main() {
 		_ = nl
 	}
 
-	// Root events.
-	app.Dispatcher().Bind(root.XWindow, event.StructureNotifyMask, func(ev *event.Event) {
-		if ev.Type == event.ConfigureType {
-			root.Width = ev.ConfigWidth
-			root.Height = ev.ConfigHeight
-			pack.ArrangeContainer(root)
-		}
-	})
-	app.Dispatcher().Bind(root.XWindow, event.ExposureMask, func(ev *event.Event) {
-		if ev.ExposeCount > 0 {
-			return
-		}
-		d := root.Display.XDisplay
-		d.SetForeground(root.GC, bgColor.Pixel)
-		d.FillRectangle(root.Drawable(), root.GC, 0, 0, uint(root.Width), uint(root.Height))
-		d.Flush()
-	})
-	app.Dispatcher().BindGlobal(event.KeyPressMask, func(ev *event.Event) {
-		if ev.KeySym == xlib.XK_Escape {
-			app.Quit()
-		}
-	})
-
-	_ = msg
-	_ = dismissBtn
-	app.MainLoop()
+	d.Run()
 }

@@ -5,52 +5,21 @@ package main
 import (
 	"fmt"
 	"math"
-	"os"
 
-	"github.com/msorc/takigo"
-	"github.com/msorc/takigo/event"
+	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/geometry/place"
-	"github.com/msorc/takigo/internal/xlib"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/widget/button"
 	"github.com/msorc/takigo/widget/frame"
-	"github.com/msorc/takigo/widget/label"
 	"github.com/msorc/takigo/window"
 )
 
 func main() {
-	app, err := takigo.NewApp(takigo.Title("15-Puzzle"), takigo.Size(340, 400))
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-		os.Exit(1)
-	}
-	defer app.Destroy()
-
-	root := app.Root()
-	bgColor, _ := app.ColorCache().Get("#d9d9d9")
-	root.BackgroundPixel = bgColor.Pixel
-
-	// Description.
-	msg := label.New(root, "msg", app,
-		label.Text("A 15-puzzle. Click on a piece next to the\nempty space to slide it into the space."),
-		label.Anchor(option.AnchorW),
-		label.PadX(10),
-		label.PadY(5),
-	)
-	pack.Pack(msg.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
-
-	// Dismiss button at bottom.
-	btnFrame := frame.New(root, "btnframe", app)
-	pack.Pack(btnFrame.Window(), pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX), pack.PadY(5))
-
-	dismissBtn := button.New(btnFrame.Window(), "dismiss", app,
-		button.Text("Dismiss"),
-		button.Command(func() { app.Quit() }),
-		button.PadX(10),
-		button.PadY(4),
-	)
-	pack.Pack(dismissBtn.Window(), pack.SideOpt(pack.Left), pack.PadX(10))
+	d := demohelper.Setup("15-Puzzle", 340, 400,
+		"A 15-puzzle. Click on a piece next to the\nempty space to slide it into the space.")
+	defer d.App.Destroy()
+	root, app := d.Root, d.App
 
 	// Puzzle frame.
 	puzzleFrame := frame.New(root, "puzzle", app,
@@ -123,34 +92,6 @@ func main() {
 		}
 	}
 
-	// Root event handlers.
-	app.Dispatcher().Bind(root.XWindow, event.StructureNotifyMask, func(ev *event.Event) {
-		if ev.Type == event.ConfigureType {
-			root.Width = ev.ConfigWidth
-			root.Height = ev.ConfigHeight
-			pack.ArrangeContainer(root)
-		}
-	})
-
-	app.Dispatcher().Bind(root.XWindow, event.ExposureMask, func(ev *event.Event) {
-		if ev.ExposeCount > 0 {
-			return
-		}
-		d := root.Display.XDisplay
-		gc := root.GC
-		d.SetForeground(gc, bgColor.Pixel)
-		d.FillRectangle(root.Drawable(), gc, 0, 0, uint(root.Width), uint(root.Height))
-		d.Flush()
-	})
-
-	app.Dispatcher().BindGlobal(event.KeyPressMask, func(ev *event.Event) {
-		if ev.KeySym == xlib.XK_Escape {
-			app.Quit()
-		}
-	})
-
-	_ = msg
-	_ = dismissBtn
 	_ = buttons
-	app.MainLoop()
+	d.Run()
 }
