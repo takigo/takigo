@@ -71,6 +71,13 @@ type Base struct {
 	Destroyed  bool
 }
 
+// BindEngine is the interface for the binding engine, defined here to
+// avoid circular imports between widget and bind packages.
+type BindEngine interface {
+	RegisterWindow(w *window.Window, className string)
+	UnregisterWindow(w *window.Window)
+}
+
 // AppContext provides the application services widgets need.
 // This avoids importing the top-level takigo package.
 type AppContext interface {
@@ -79,6 +86,7 @@ type AppContext interface {
 	ColorCache() *color.Cache
 	FontRegistry() *font.Registry
 	DisplayPtr() *xlib.Display
+	BindEngine() BindEngine
 }
 
 // Window returns the widget's underlying window.

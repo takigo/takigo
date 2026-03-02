@@ -7,11 +7,13 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/msorc/takigo/bind"
 	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/font"
 	"github.com/msorc/takigo/image"
 	"github.com/msorc/takigo/internal/xlib"
+	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/window"
 )
 
@@ -25,6 +27,7 @@ type App struct {
 	colorCache *color.Cache
 	fontReg    *font.Registry
 	imageReg   *image.Registry
+	bindEng    *bind.Engine
 }
 
 // NewApp creates a new takigo application. It opens the X11 display,
@@ -57,6 +60,8 @@ func NewApp(opts ...AppOption) (*App, error) {
 	colors := color.NewCache(d.XDisplay, d.Screen, d.Colormap)
 	fontReg := font.NewRegistry(d.XDisplay, d.Screen, d.Visual, d.Colormap)
 
+	bindEng := bind.NewEngine(d)
+
 	app := &App{
 		display:    d,
 		root:       root,
@@ -65,7 +70,11 @@ func NewApp(opts ...AppOption) (*App, error) {
 		colorCache: colors,
 		fontReg:    fontReg,
 		imageReg:   image.NewRegistry(),
+		bindEng:    bindEng,
 	}
+
+	// Install bind engine as a global handler (fires after per-window handlers).
+	bindEng.Install(dispatcher)
 
 	// Handle WM_DELETE_WINDOW (window close button).
 	dispatcher.BindGlobal(event.AllEventsMask, func(ev *event.Event) {
@@ -138,6 +147,16 @@ func (a *App) ImageRegistry() *image.Registry {
 // DisplayPtr returns the underlying xlib.Display pointer.
 func (a *App) DisplayPtr() *xlib.Display {
 	return a.display.XDisplay
+}
+
+// BindEngine returns the application's binding engine.
+func (a *App) BindEngine() widget.BindEngine {
+	return a.bindEng
+}
+
+// BindEng returns the full bind.Engine for direct access.
+func (a *App) BindEng() *bind.Engine {
+	return a.bindEng
 }
 
 // DoWhenIdle schedules a function to run during the next idle phase.
