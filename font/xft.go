@@ -38,6 +38,17 @@ static FcBool fc_pattern_add_slant(FcPattern *p, int slant) {
 static FcResult fc_pattern_get_spacing(FcPattern *p, int *spacing) {
 	return FcPatternGetInteger(p, FC_SPACING, 0, spacing);
 }
+
+// Helper for listing font families.
+static FcObjectSet *FcObjectSetBuild_helper(void) {
+	return FcObjectSetBuild(FC_FAMILY, NULL);
+}
+static FcPattern *fc_fontset_get_font(FcFontSet *fs, int i) {
+	return fs->fonts[i];
+}
+static FcResult fc_pattern_get_family(FcPattern *p, FcChar8 **family) {
+	return FcPatternGetString(p, FC_FAMILY, 0, family);
+}
 */
 import "C"
 import (
@@ -195,6 +206,53 @@ func (f *XftFont) DrawString(drawable xlib.Drawable, x, y int, s string, pixel u
 	color := C.make_xft_color(C.ulong(pixel), C.ushort(r), C.ushort(g), C.ushort(b))
 	C.XftDrawStringUtf8(draw, &color, f.font, C.int(x), C.int(y),
 		(*C.FcChar8)(unsafe.Pointer(cs)), C.int(len(s)))
+}
+
+// ListFamilies returns a sorted list of available font family names
+// from fontconfig.
+func ListFamilies() []string {
+	pattern := C.FcPatternCreate()
+	objectSet := C.FcObjectSetBuild_helper()
+	fontSet := C.FcFontList(nil, pattern, objectSet)
+	C.FcPatternDestroy(pattern)
+	C.FcObjectSetDestroy(objectSet)
+
+	if fontSet == nil {
+		return nil
+	}
+	defer C.FcFontSetDestroy(fontSet)
+
+	seen := make(map[string]bool)
+	var families []string
+
+	for i := C.int(0); i < fontSet.nfont; i++ {
+		p := C.fc_fontset_get_font(fontSet, i)
+		var family *C.FcChar8
+		if C.fc_pattern_get_family(p, &family) == C.FcResultMatch {
+			name := C.GoString((*C.char)(unsafe.Pointer(family)))
+			if !seen[name] {
+				seen[name] = true
+				families = append(families, name)
+			}
+		}
+	}
+
+	// Sort families.
+	sortStrings(families)
+	return families
+}
+
+func sortStrings(s []string) {
+	// Simple insertion sort — font family lists are typically <500 items.
+	for i := 1; i < len(s); i++ {
+		key := s[i]
+		j := i - 1
+		for j >= 0 && s[j] > key {
+			s[j+1] = s[j]
+			j--
+		}
+		s[j+1] = key
+	}
 }
 
 // Close releases font resources.

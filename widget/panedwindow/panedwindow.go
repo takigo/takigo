@@ -334,6 +334,7 @@ func (pw *PanedWindow) Destroy() {
 
 func bindPanedWindow(pw *PanedWindow, app widget.AppContext) {
 	w := pw.Win
+	w.Flags |= window.FlagFocusable
 
 	// Expose.
 	app.Dispatcher().Bind(w.XWindow, event.ExposureMask, func(ev *event.Event) {
@@ -389,5 +390,33 @@ func bindPanedWindow(pw *PanedWindow, app widget.AppContext) {
 		delta := pos - pw.dragStartPos
 		newSize := pw.dragStartSize + delta
 		pw.moveSash(pw.dragSash, newSize)
+	})
+
+	// Keyboard sash movement.
+	app.Dispatcher().Bind(w.XWindow, event.KeyPressMask, func(ev *event.Event) {
+		if len(pw.panes) <= 1 {
+			return
+		}
+		step := 10
+		sashIdx := 0 // move first sash by default
+
+		switch ev.KeySym {
+		case xlib.XK_Left:
+			if pw.Orient == Horizontal {
+				pw.moveSash(sashIdx, pw.panes[sashIdx].size-step)
+			}
+		case xlib.XK_Right:
+			if pw.Orient == Horizontal {
+				pw.moveSash(sashIdx, pw.panes[sashIdx].size+step)
+			}
+		case xlib.XK_Up:
+			if pw.Orient == Vertical {
+				pw.moveSash(sashIdx, pw.panes[sashIdx].size-step)
+			}
+		case xlib.XK_Down:
+			if pw.Orient == Vertical {
+				pw.moveSash(sashIdx, pw.panes[sashIdx].size+step)
+			}
+		}
 	})
 }

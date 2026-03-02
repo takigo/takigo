@@ -28,6 +28,9 @@ type App struct {
 	fontReg    *font.Registry
 	imageReg   *image.Registry
 	bindEng    *bind.Engine
+
+	// closeHandlers maps toplevel XWindow IDs to their WM_DELETE_WINDOW handlers.
+	closeHandlers map[xlib.Window]func()
 }
 
 // NewApp creates a new takigo application. It opens the X11 display,
@@ -63,25 +66,37 @@ func NewApp(opts ...AppOption) (*App, error) {
 	bindEng := bind.NewEngine(d)
 
 	app := &App{
-		display:    d,
-		root:       root,
-		dispatcher: dispatcher,
-		loop:       loop,
-		colorCache: colors,
-		fontReg:    fontReg,
-		imageReg:   image.NewRegistry(),
-		bindEng:    bindEng,
+		display:       d,
+		root:          root,
+		dispatcher:    dispatcher,
+		loop:          loop,
+		colorCache:    colors,
+		fontReg:       fontReg,
+		imageReg:      image.NewRegistry(),
+		bindEng:       bindEng,
+		closeHandlers: make(map[xlib.Window]func()),
 	}
 
 	// Install bind engine as a global handler (fires after per-window handlers).
 	bindEng.Install(dispatcher)
 
 	// Handle WM_DELETE_WINDOW (window close button).
-	dispatcher.BindGlobal(event.AllEventsMask, func(ev *event.Event) {
-		if ev.Type == event.ClientMessageType {
-			if xlib.Atom(ev.MessageData[0]) == d.WMDeleteWindow {
-				app.Quit()
-			}
+	// For the root window, quit the app. For other toplevels (dialogs),
+	// look up their per-window handler via the toplevel registry.
+	dispatcher.BindGlobal(event.ClientMessageMask, func(ev *event.Event) {
+		if ev.Type != event.ClientMessageType {
+			return
+		}
+		if xlib.Atom(ev.MessageData[0]) != d.WMDeleteWindow {
+			return
+		}
+		if ev.Window == root.XWindow {
+			app.Quit()
+			return
+		}
+		// For non-root windows, look up a registered close handler.
+		if fn, ok := app.closeHandlers[ev.Window]; ok {
+			fn()
 		}
 	})
 
@@ -157,6 +172,22 @@ func (a *App) BindEngine() widget.BindEngine {
 // BindEng returns the full bind.Engine for direct access.
 func (a *App) BindEng() *bind.Engine {
 	return a.bindEng
+}
+
+// RunNestedLoop processes events until done is closed.
+// Used by modal dialogs to keep the event loop alive while blocking.
+func (a *App) RunNestedLoop(done <-chan struct{}) {
+	a.loop.RunNested(done)
+}
+
+// RegisterCloseHandler registers a WM_DELETE_WINDOW handler for a toplevel window.
+func (a *App) RegisterCloseHandler(w xlib.Window, fn func()) {
+	a.closeHandlers[w] = fn
+}
+
+// UnregisterCloseHandler removes a WM_DELETE_WINDOW handler.
+func (a *App) UnregisterCloseHandler(w xlib.Window) {
+	delete(a.closeHandlers, w)
 }
 
 // DoWhenIdle schedules a function to run during the next idle phase.

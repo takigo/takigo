@@ -87,6 +87,13 @@ type AppContext interface {
 	FontRegistry() *font.Registry
 	DisplayPtr() *xlib.Display
 	BindEngine() BindEngine
+	// RunNestedLoop processes events until done is closed.
+	// Used by modal dialogs to keep the event loop alive while blocking.
+	RunNestedLoop(done <-chan struct{})
+	// RegisterCloseHandler registers a WM_DELETE_WINDOW handler for a toplevel window.
+	RegisterCloseHandler(w xlib.Window, fn func())
+	// UnregisterCloseHandler removes a WM_DELETE_WINDOW handler.
+	UnregisterCloseHandler(w xlib.Window)
 }
 
 // Window returns the widget's underlying window.

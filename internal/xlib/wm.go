@@ -5,6 +5,24 @@ package xlib
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/Xatom.h>
+#include <string.h>
+
+// Helper to send a ClientMessage event.
+static void send_client_message(Display *dpy, Window w, Window target, Atom msgType,
+	long d0, long d1, long d2, long d3, long d4) {
+	XEvent ev;
+	memset(&ev, 0, sizeof(ev));
+	ev.xclient.type = ClientMessage;
+	ev.xclient.window = w;
+	ev.xclient.message_type = msgType;
+	ev.xclient.format = 32;
+	ev.xclient.data.l[0] = d0;
+	ev.xclient.data.l[1] = d1;
+	ev.xclient.data.l[2] = d2;
+	ev.xclient.data.l[3] = d3;
+	ev.xclient.data.l[4] = d4;
+	XSendEvent(dpy, target, False, NoEventMask, &ev);
+}
 */
 import "C"
 import "unsafe"
@@ -238,6 +256,12 @@ var (
 	XA_CARDINAL = Atom(C.XA_CARDINAL)
 	XA_WINDOW   = Atom(C.XA_WINDOW)
 )
+
+// SendClientMessage sends a ClientMessage event to a target window.
+func (d *Display) SendClientMessage(w, target Window, msgType Atom, d0, d1, d2, d3, d4 int64) {
+	C.send_client_message(d.ptr, C.Window(w), C.Window(target), C.Atom(msgType),
+		C.long(d0), C.long(d1), C.long(d2), C.long(d3), C.long(d4))
+}
 
 // XSetIconName sets the icon name for a window.
 func (d *Display) SetIconName(w Window, name string) {

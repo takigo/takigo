@@ -3,6 +3,8 @@
 package label
 
 import (
+	"strings"
+
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/font"
@@ -165,11 +167,18 @@ func New(parent *window.Window, name string, app widget.AppContext, opts ...Labe
 
 // computeGeometry computes the text/image size and sets the requested window size.
 func (l *Label) computeGeometry() {
-	// Measure text.
+	// Measure text, handling multiline (newline-separated).
 	if l.Font != nil && l.Text != "" {
-		l.textWidth = l.Font.MeasureString(l.Text)
 		m := l.Font.Metrics()
-		l.textHeight = m.Linespace()
+		lines := strings.Split(l.Text, "\n")
+		l.textHeight = len(lines) * m.Linespace()
+		l.textWidth = 0
+		for _, line := range lines {
+			w := l.Font.MeasureString(line)
+			if w > l.textWidth {
+				l.textWidth = w
+			}
+		}
 	} else {
 		l.textWidth = 0
 		l.textHeight = 0
@@ -233,14 +242,28 @@ func (l *Label) Display() {
 		l.Img.Draw(w.Display.XDisplay, w.Drawable(), gc,
 			w.Visual, w.Depth, 0, 0, imgW, imgH, ix, iy, bgPixel)
 	} else if hasText {
-		// Text only.
+		// Text only — handle multiline.
 		textX, textY := anchorText(l.Anchor, frameX, frameY,
 			availW, availH, l.textWidth, l.textHeight)
 		m := l.Font.Metrics()
-		baseline := textY + m.Ascent
 		if xftFont, ok := l.Font.(*font.XftFont); ok {
-			xftFont.DrawString(w.Drawable(), textX, baseline, l.Text,
-				l.Foreground.Pixel, l.Foreground.Red, l.Foreground.Green, l.Foreground.Blue)
+			lines := strings.Split(l.Text, "\n")
+			for i, line := range lines {
+				baseline := textY + m.Ascent + i*m.Linespace()
+				lx := textX
+				// Apply justify for multiline.
+				if len(lines) > 1 {
+					lw := l.Font.MeasureString(line)
+					switch l.Justify {
+					case option.JustifyCenter:
+						lx = textX + (l.textWidth-lw)/2
+					case option.JustifyRight:
+						lx = textX + l.textWidth - lw
+					}
+				}
+				xftFont.DrawString(w.Drawable(), lx, baseline, line,
+					l.Foreground.Pixel, l.Foreground.Red, l.Foreground.Green, l.Foreground.Blue)
+			}
 		}
 	}
 

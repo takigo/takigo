@@ -330,6 +330,19 @@ func bindScrollbar(s *Scrollbar, app widget.AppContext) {
 
 	// Button press.
 	app.Dispatcher().Bind(w.XWindow, event.ButtonPressMask, func(ev *event.Event) {
+		// Mouse wheel: Button 4 (up) and Button 5 (down).
+		if ev.Button == 4 {
+			if s.Command != nil {
+				s.Command("scroll", -3, "units")
+			}
+			return
+		}
+		if ev.Button == 5 {
+			if s.Command != nil {
+				s.Command("scroll", 3, "units")
+			}
+			return
+		}
 		if ev.Button != 1 {
 			return
 		}

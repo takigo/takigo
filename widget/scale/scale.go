@@ -416,6 +416,31 @@ func bindScale(s *Scale, app widget.AppContext) {
 
 	// Button press.
 	app.Dispatcher().Bind(w.XWindow, event.ButtonPressMask, func(ev *event.Event) {
+		// Mouse wheel: Button 4 (up/left) and Button 5 (down/right).
+		if ev.Button == 4 {
+			step := s.Resolution
+			if step <= 0 {
+				step = 1
+			}
+			inc := step
+			if s.From > s.To {
+				inc = -step
+			}
+			s.Set(s.Value + inc)
+			return
+		}
+		if ev.Button == 5 {
+			step := s.Resolution
+			if step <= 0 {
+				step = 1
+			}
+			inc := step
+			if s.From > s.To {
+				inc = -step
+			}
+			s.Set(s.Value - inc)
+			return
+		}
 		if ev.Button != 1 {
 			return
 		}

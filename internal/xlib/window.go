@@ -107,6 +107,27 @@ func (d *Display) MoveResizeWindow(w Window, x, y int, width, height uint) {
 	C.XMoveResizeWindow(d.ptr, C.Window(w), C.int(x), C.int(y), C.uint(width), C.uint(height))
 }
 
+// CreateFontCursor creates a cursor from the standard X11 cursor font.
+func (d *Display) CreateFontCursor(shape uint) Cursor {
+	return Cursor(C.XCreateFontCursor(d.ptr, C.uint(shape)))
+}
+
+// DefineCursor sets the cursor for a window.
+func (d *Display) DefineCursor(w Window, cursor Cursor) {
+	C.XDefineCursor(d.ptr, C.Window(w), C.Cursor(cursor))
+}
+
+// DefineCursorFromFont creates a cursor from the font and sets it on a window.
+func (d *Display) DefineCursorFromFont(w Window, shape uint) {
+	cursor := d.CreateFontCursor(shape)
+	d.DefineCursor(w, cursor)
+}
+
+// FreeCursor frees a cursor.
+func (d *Display) FreeCursor(cursor Cursor) {
+	C.XFreeCursor(d.ptr, C.Cursor(cursor))
+}
+
 // SelectInput selects the event mask for a window.
 func (d *Display) SelectInput(w Window, eventMask int64) {
 	C.XSelectInput(d.ptr, C.Window(w), C.long(eventMask))

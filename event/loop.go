@@ -115,6 +115,44 @@ func (l *Loop) RunOnMain(fn func()) {
 	}
 }
 
+// RunNested processes events until the done channel is closed.
+// This implements nested event loops needed for modal dialogs (like Tcl's vwait).
+// It must be called from within a handler running on the main goroutine.
+func (l *Loop) RunNested(done <-chan struct{}) {
+	for {
+		l.processIdleQueue()
+
+		select {
+		case <-done:
+			return
+
+		case <-l.done:
+			return
+
+		case raw := <-l.eventCh:
+			if raw.FilterEvent() {
+				continue
+			}
+			ev := FromRawEventIM(raw, l.display)
+			if ev.Type != 0 {
+				l.dispatcher.Dispatch(&ev)
+			}
+			l.display.Flush()
+
+		case fn := <-l.idleCh:
+			l.idleQueue = append(l.idleQueue, fn)
+
+		case fn := <-l.timerCh:
+			fn()
+			l.display.Flush()
+
+		case fn := <-l.mainCh:
+			fn()
+			l.display.Flush()
+		}
+	}
+}
+
 // processIdleQueue runs all pending idle callbacks.
 func (l *Loop) processIdleQueue() {
 	// Drain any pending idle callbacks from the channel.

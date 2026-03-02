@@ -1,0 +1,191 @@
+package dialog
+
+import (
+	"fmt"
+	"strconv"
+
+	"github.com/msorc/takigo/font"
+	"github.com/msorc/takigo/geometry/pack"
+	"github.com/msorc/takigo/widget"
+	"github.com/msorc/takigo/widget/frame"
+	"github.com/msorc/takigo/widget/label"
+	"github.com/msorc/takigo/widget/listbox"
+	"github.com/msorc/takigo/window"
+)
+
+// fontConfig holds ChooseFont options.
+type fontConfig struct {
+	parent      *window.Window
+	title       string
+	initialFont string // font descriptor
+}
+
+// FontOption configures ChooseFont.
+type FontOption func(*fontConfig)
+
+func FontParent(w *window.Window) FontOption { return func(c *fontConfig) { c.parent = w } }
+func FontTitle(s string) FontOption          { return func(c *fontConfig) { c.title = s } }
+func FontInitial(s string) FontOption        { return func(c *fontConfig) { c.initialFont = s } }
+
+// ChooseFont displays a modal font chooser dialog.
+// Returns a font descriptor string and true, or "" and false if cancelled.
+func ChooseFont(app widget.AppContext, opts ...FontOption) (string, bool) {
+	cfg := fontConfig{
+		title: "Choose Font",
+	}
+	for _, opt := range opts {
+		opt(&cfg)
+	}
+
+	d := New(app, cfg.parent, cfg.title, 450, 350)
+
+	// Get available font families.
+	families := font.ListFamilies()
+	if len(families) == 0 {
+		families = []string{"sans-serif", "serif", "monospace"}
+	}
+
+	// Size options.
+	sizes := []string{"8", "9", "10", "11", "12", "14", "16", "18", "20", "24", "28", "32", "36", "48", "72"}
+
+	selectedFamily := "sans-serif"
+	selectedSize := "12"
+	selectedBold := false
+	selectedItalic := false
+
+	// Parse initial font if provided.
+	if cfg.initialFont != "" {
+		if attrs, err := font.ParseDescriptor(cfg.initialFont); err == nil {
+			if attrs.Family != "" {
+				selectedFamily = attrs.Family
+			}
+			if attrs.Size > 0 {
+				selectedSize = strconv.Itoa(int(attrs.Size))
+			}
+			selectedBold = attrs.Weight == font.WeightBold
+			selectedItalic = attrs.Slant == font.SlantItalic
+		}
+	}
+
+	// Top area: family list + size list.
+	listsFrame := newFrame(d.Content.Window(), "lists", app)
+	pack.Pack(listsFrame.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+
+	// Family listbox with label.
+	familyFrame := newFrame(listsFrame.Window(), "famframe", app)
+	pack.Pack(familyFrame.Window(), pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.Expand(true), pack.PadX(5))
+
+	familyLabel := label.New(familyFrame.Window(), "famlabel", app, label.Text("Family:"))
+	pack.Pack(familyLabel.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
+
+	familyList := listbox.New(familyFrame.Window(), "famlist", app,
+		listbox.Items(families...),
+		listbox.Width(25),
+		listbox.Height(10),
+	)
+	pack.Pack(familyList.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+
+	// Size listbox with label.
+	sizeFrame := newFrame(listsFrame.Window(), "sizeframe", app)
+	pack.Pack(sizeFrame.Window(), pack.SideOpt(pack.Left), pack.FillOpt(pack.FillY), pack.PadX(5))
+
+	sizeLabel := label.New(sizeFrame.Window(), "sizelabel", app, label.Text("Size:"))
+	pack.Pack(sizeLabel.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
+
+	sizeList := listbox.New(sizeFrame.Window(), "sizelist", app,
+		listbox.Items(sizes...),
+		listbox.Width(6),
+		listbox.Height(10),
+	)
+	pack.Pack(sizeList.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+
+	// Style labels (toggle bold/italic by clicking).
+	styleFrame := newFrame(d.Content.Window(), "styleframe", app)
+	pack.Pack(styleFrame.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(5))
+
+	boldLabel := label.New(styleFrame.Window(), "bold", app,
+		label.Text("Bold"), label.PadX(10))
+	pack.Pack(boldLabel.Window(), pack.SideOpt(pack.Left), pack.PadX(5))
+
+	italicLabel := label.New(styleFrame.Window(), "italic", app,
+		label.Text("Italic"), label.PadX(10))
+	pack.Pack(italicLabel.Window(), pack.SideOpt(pack.Left), pack.PadX(5))
+
+	// Preview label.
+	previewFrame := newFrame(d.Content.Window(), "previewframe", app,
+		frame.BorderWidth(1), frame.Relief(1), // sunken
+	)
+	pack.Pack(previewFrame.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadX(5), pack.PadY(5))
+
+	previewLabel := label.New(previewFrame.Window(), "preview", app,
+		label.Text("AaBbCcDd 123"),
+		label.PadX(5), label.PadY(10),
+	)
+	pack.Pack(previewLabel.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
+
+	// Select initial family in list.
+	for i, f := range families {
+		if f == selectedFamily {
+			familyList.SelectionSet(i, i)
+			familyList.See(i)
+			break
+		}
+	}
+
+	// Select initial size.
+	for i, s := range sizes {
+		if s == selectedSize {
+			sizeList.SelectionSet(i, i)
+			sizeList.See(i)
+			break
+		}
+	}
+
+	// Suppress unused variable warnings.
+	_ = familyLabel
+	_ = sizeLabel
+	_ = boldLabel
+	_ = italicLabel
+	_ = previewLabel
+
+	// Buttons.
+	addButtons(d, []dialogButton{
+		{text: "OK", result: ResultOK, isDefault: true},
+		{text: "Cancel", result: ResultCancel},
+	})
+
+	result := d.Run()
+	if result == ResultOK {
+		// Build font descriptor from selections.
+		famSel := familyList.Selection()
+		if len(famSel) > 0 && famSel[0] < len(families) {
+			selectedFamily = families[famSel[0]]
+		}
+		sizeSel := sizeList.Selection()
+		if len(sizeSel) > 0 && sizeSel[0] < len(sizes) {
+			selectedSize = sizes[sizeSel[0]]
+		}
+
+		desc := selectedFamily + " " + selectedSize
+		if selectedBold {
+			desc += " bold"
+		}
+		if selectedItalic {
+			desc += " italic"
+		}
+		return desc, true
+	}
+	return "", false
+}
+
+// fontDescriptor builds a font descriptor string.
+func fontDescriptor(family string, size int, bold, italic bool) string {
+	desc := fmt.Sprintf("%s %d", family, size)
+	if bold {
+		desc += " bold"
+	}
+	if italic {
+		desc += " italic"
+	}
+	return desc
+}
