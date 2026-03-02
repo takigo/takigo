@@ -1,4 +1,4 @@
-// Phase 8 demo: Image system — Photo images in Label and Button widgets.
+// Phase 9 demo: TTK themed widgets alongside classic widgets.
 package main
 
 import (
@@ -14,6 +14,9 @@ import (
 	tkimage "github.com/msorc/takigo/image"
 	"github.com/msorc/takigo/internal/xlib"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/ttk"
+	_ "github.com/msorc/takigo/ttk/clamtheme"
+	_ "github.com/msorc/takigo/ttk/defaulttheme"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/button"
 	"github.com/msorc/takigo/widget/frame"
@@ -48,12 +51,15 @@ func generateTestImage() *goimage.RGBA {
 }
 
 func main() {
-	app, err := takigo.NewApp(takigo.Title("Takigo Phase 8 — Image System"), takigo.Size(600, 450))
+	app, err := takigo.NewApp(takigo.Title("Takigo Phase 9 — TTK Themed Widgets"), takigo.Size(700, 550))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
 	defer app.Destroy()
+
+	// Set clam theme as default.
+	ttk.SetCurrentTheme("clam")
 
 	root := app.Root()
 	bgColor, _ := app.ColorCache().Get("#d9d9d9")
@@ -65,13 +71,37 @@ func main() {
 
 	// Title.
 	titleLabel := label.New(root, "title", app,
-		label.Text("Phase 8: Image System"),
+		label.Text("Phase 9: TTK Themed Widgets"),
 		label.PadX(10),
 		label.PadY(5),
 	)
 	pack.Pack(titleLabel.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(5))
 
-	// --- Image section ---
+	// --- TTK section ---
+	ttkFrame := ttk.NewFrame(root, "ttkFrame", app,
+		ttk.FrameBorderWidth(2),
+		ttk.FrameRelief(option.ReliefGroove),
+	)
+	pack.Pack(ttkFrame.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadX(10), pack.PadY(5))
+
+	ttkLabel := ttk.NewLabel(ttkFrame.Window(), "ttkLabel", app,
+		ttk.LabelText("TTK Label (clam theme)"),
+	)
+	pack.Pack(ttkLabel.Window(), pack.SideOpt(pack.Left), pack.PadX(8), pack.PadY(4))
+
+	ttkBtn := ttk.NewButton(ttkFrame.Window(), "ttkBtn", app,
+		ttk.ButtonText("TTK Button"),
+		ttk.ButtonCommand(func() {
+			fmt.Println("TTK button clicked!")
+		}),
+	)
+	pack.Pack(ttkBtn.Window(), pack.SideOpt(pack.Left), pack.PadX(8), pack.PadY(4))
+
+	// Separator.
+	ttkSep := ttk.NewSeparator(root, "ttkSep", app)
+	pack.Pack(ttkSep.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadX(10), pack.PadY(2))
+
+	// --- Image section (from Phase 8) ---
 	imgFrame := frame.New(root, "imgFrame", app)
 	pack.Pack(imgFrame.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadX(10), pack.PadY(5))
 
@@ -90,18 +120,6 @@ func main() {
 	)
 	pack.Pack(imgLabel.Window(), pack.SideOpt(pack.Left), pack.PadX(5))
 
-	// Label with image + text (compound left).
-	compLabel := label.New(imgFrame.Window(), "compLabel", app,
-		label.Text("Image + Text"),
-		label.ImageOpt(testPhoto),
-		label.CompoundOpt(widget.CompoundLeft),
-		label.BorderWidth(2),
-		label.Relief(option.ReliefGroove),
-		label.PadX(8),
-		label.PadY(4),
-	)
-	pack.Pack(compLabel.Window(), pack.SideOpt(pack.Left), pack.PadX(5))
-
 	// Button with image + text (compound left).
 	imgBtn := button.New(imgFrame.Window(), "imgBtn", app,
 		button.Text("Click Me"),
@@ -116,7 +134,6 @@ func main() {
 	pack.Pack(imgBtn.Window(), pack.SideOpt(pack.Left), pack.PadX(5))
 
 	// Optionally load a PNG from file if provided as argument.
-	// Skip any "--" separator from "go run ./cmd/demo -- file.png".
 	var imgPath string
 	for _, arg := range os.Args[1:] {
 		if arg != "--" {
@@ -141,7 +158,7 @@ func main() {
 		}
 	}
 
-	// --- Keep some Phase 7 widgets to show coexistence ---
+	// --- Classic widgets to show coexistence ---
 	midFrame := frame.New(root, "midFrame", app)
 	pack.Pack(midFrame.Window(), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadX(10), pack.PadY(5))
 
@@ -213,7 +230,7 @@ func main() {
 
 	// Status label.
 	statusLabel := label.New(root, "status", app,
-		label.Text("Phase 8: Images in Label & Button. Pass a PNG path as arg. Esc to quit."),
+		label.Text("Phase 9: TTK + Classic widgets. Esc to quit."),
 		label.Background("#e8e8e8"),
 		label.Anchor(option.AnchorW),
 		label.PadX(5),
@@ -247,7 +264,7 @@ func main() {
 		}
 	})
 
-	fmt.Println("Takigo Phase 8 Demo — Image System")
+	fmt.Println("Takigo Phase 9 Demo — TTK Themed Widgets")
 	fmt.Println("Esc to quit.")
 	app.MainLoop()
 	fmt.Println("Goodbye!")
@@ -256,7 +273,9 @@ func main() {
 	_ = statusLabel
 	_ = focusMgr
 	_ = imgLabel
-	_ = compLabel
 	_ = imgBtn
 	_ = scaleLabel
+	_ = ttkLabel
+	_ = ttkBtn
+	_ = ttkSep
 }
