@@ -35,9 +35,22 @@ func init() {
 	// Clam border element.
 	theme.RegisterElement("border", newClamBorderFactory)
 
+	// TLabel style — set padding explicitly (each theme is self-contained).
+	tlabel := theme.GetStyle("TLabel")
+	tlabel.Defaults["-padding"] = ttk.Padding{Left: 4, Top: 2, Right: 4, Bottom: 2}
+	tlabel.Defaults["-relief"] = option.ReliefFlat
+	tlabel.Defaults["-borderwidth"] = 0
+
+	// TFrame style.
+	tframe := theme.GetStyle("TFrame")
+	tframe.Defaults["-relief"] = option.ReliefFlat
+	tframe.Defaults["-borderwidth"] = 0
+
 	// TButton style overrides.
 	tbutton := theme.GetStyle("TButton")
+	tbutton.Defaults["-padding"] = ttk.Padding{Left: 8, Top: 4, Right: 8, Bottom: 4}
 	tbutton.Defaults["-relief"] = option.ReliefRaised
+	tbutton.Defaults["-borderwidth"] = 2
 	tbutton.Maps["-background"] = ttk.StateMap[any]{
 		{Spec: ttk.StateSpec{OnBits: ttk.StatePressed}, Value: darkerColor},
 		{Spec: ttk.StateSpec{OnBits: ttk.StateHover}, Value: uint64(0xececec)},
@@ -46,6 +59,12 @@ func init() {
 		{Spec: ttk.StateSpec{OnBits: ttk.StatePressed}, Value: option.ReliefSunken},
 		{Spec: ttk.StateSpec{OnBits: ttk.StateDisabled}, Value: option.ReliefFlat},
 	}
+
+	// TSeparator styles.
+	tsepH := theme.GetStyle("TSeparator.Horizontal")
+	tsepH.Defaults["-relief"] = option.ReliefFlat
+	tsepV := theme.GetStyle("TSeparator.Vertical")
+	tsepV.Defaults["-relief"] = option.ReliefFlat
 
 	ttk.RegisterTheme(theme)
 }

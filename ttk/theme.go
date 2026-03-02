@@ -115,8 +115,8 @@ func (t *Theme) GetElement(name string) ElementFactory {
 }
 
 // GetStyle returns the style for name, creating it on demand.
-// Parents to the same-named style in the parent theme if available,
-// otherwise auto-parents via dot-separated naming: "TButton" → ".".
+// Named styles parent to the local root "."; the root "." parents
+// to the parent theme's "." for cross-theme default inheritance.
 func (t *Theme) GetStyle(name string) *Style {
 	if s, ok := t.Styles[name]; ok {
 		return s
@@ -128,30 +128,34 @@ func (t *Theme) GetStyle(name string) *Style {
 		Maps:     make(map[string]StateMap[any]),
 	}
 	if name == "." {
-		// Root style: parent to parent theme's root if available.
+		// Root style: parent to parent theme's root for default inheritance.
 		if t.Parent != nil {
 			if parentRoot, ok := t.Parent.Styles["."]; ok {
 				s.Parent = parentRoot
 			}
 		}
 	} else {
-		// Try same-named style in parent theme first (cross-theme inheritance).
-		if t.Parent != nil {
-			if parentStyle, ok := t.Parent.Styles[name]; ok {
-				s.Parent = parentStyle
-			}
-		}
-		// If no parent theme style, fall back to local dot-separated parent.
-		if s.Parent == nil {
-			if dot := strings.LastIndex(name, "."); dot >= 0 {
-				s.Parent = t.GetStyle(name[:dot])
-			} else {
-				s.Parent = t.GetStyle(".")
-			}
+		// Named styles parent to local root via dot-separated naming.
+		if dot := strings.LastIndex(name, "."); dot >= 0 {
+			s.Parent = t.GetStyle(name[:dot])
+		} else {
+			s.Parent = t.GetStyle(".")
 		}
 	}
 	t.Styles[name] = s
 	return s
+}
+
+// ResolveStyle finds the best style for name by walking the theme chain.
+// If the current theme has the style, use it. Otherwise check parent themes.
+// If no theme has it, auto-create in the current theme.
+func (t *Theme) ResolveStyle(name string) *Style {
+	for cur := t; cur != nil; cur = cur.Parent {
+		if s, ok := cur.Styles[name]; ok {
+			return s
+		}
+	}
+	return t.GetStyle(name)
 }
 
 // RegisterLayout registers a layout template for a widget class.

@@ -37,7 +37,7 @@ func InitTtkWidget(w *TtkWidget, win *window.Window, app widget.AppContext, styl
 		return
 	}
 
-	style := w.Theme.GetStyle(styleName)
+	style := w.Theme.ResolveStyle(styleName)
 
 	w.Context = &DrawContext{
 		Display:  app.DisplayPtr(),
