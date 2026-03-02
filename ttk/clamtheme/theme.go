@@ -66,6 +66,22 @@ func init() {
 	tsepV := theme.GetStyle("TSeparator.Vertical")
 	tsepV.Defaults["-relief"] = option.ReliefFlat
 
+	// TTreeview style.
+	ttreeview := theme.GetStyle("TTreeview")
+	ttreeview.Defaults["-fieldbackground"] = uint64(0xffffff)
+	ttreeview.Defaults["-selectbackground"] = uint64(0x4a6984)
+	ttreeview.Defaults["-selectforeground"] = uint64(0xffffff)
+	ttreeview.Defaults["-bordercolor"] = darkestColor
+
+	// Treeview.Heading style.
+	tvHeading := theme.GetStyle("Treeview.Heading")
+	tvHeading.Defaults["-background"] = frameColor
+	tvHeading.Defaults["-foreground"] = uint64(0x000000)
+	tvHeading.Maps["-background"] = ttk.StateMap[any]{
+		{Spec: ttk.StateSpec{OnBits: ttk.StatePressed}, Value: darkerColor},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateHover}, Value: uint64(0xececec)},
+	}
+
 	// Progressbar styles.
 	hProgress := theme.GetStyle("Horizontal.TProgressbar")
 	hProgress.Defaults["-troughcolor"] = uint64(0xc3c3c3)

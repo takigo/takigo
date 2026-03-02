@@ -122,6 +122,29 @@ func init() {
 		{Spec: ttk.StateSpec{OnBits: ttk.StateHover}, Value: uint64(0xececec)},
 	}
 
+	// TTreeview style.
+	ttreeview := theme.GetStyle("TTreeview")
+	ttreeview.Defaults["-background"] = uint64(0xd9d9d9)
+	ttreeview.Defaults["-foreground"] = uint64(0x000000)
+	ttreeview.Defaults["-fieldbackground"] = uint64(0xffffff)
+	ttreeview.Defaults["-selectbackground"] = uint64(0x4a6984)
+	ttreeview.Defaults["-selectforeground"] = uint64(0xffffff)
+	ttreeview.Defaults["-bordercolor"] = uint64(0xd9d9d9)
+	ttreeview.Defaults["-borderwidth"] = 1
+	ttreeview.Defaults["-relief"] = option.ReliefSunken
+	ttreeview.Defaults["-indent"] = 20
+
+	// Treeview.Heading style.
+	tvHeading := theme.GetStyle("Treeview.Heading")
+	tvHeading.Defaults["-background"] = uint64(0xd9d9d9)
+	tvHeading.Defaults["-foreground"] = uint64(0x000000)
+	tvHeading.Defaults["-relief"] = option.ReliefRaised
+	tvHeading.Defaults["-borderwidth"] = 1
+	tvHeading.Maps["-background"] = ttk.StateMap[any]{
+		{Spec: ttk.StateSpec{OnBits: ttk.StatePressed}, Value: uint64(0xc0c0c0)},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateHover}, Value: uint64(0xececec)},
+	}
+
 	// Progressbar styles.
 	hProgress := theme.GetStyle("Horizontal.TProgressbar")
 	hProgress.Defaults["-troughcolor"] = uint64(0xc3c3c3)
