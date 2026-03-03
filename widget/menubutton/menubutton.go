@@ -4,6 +4,8 @@
 package menubutton
 
 import (
+	"unicode"
+
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/font"
@@ -32,6 +34,7 @@ type Menubutton struct {
 	Menu      *menu.Menu
 	Direction Direction
 	Anchor    option.Anchor
+	Underline int // index of underlined character for Alt+letter, -1=none
 
 	// Active colors.
 	ActiveBg *colorRef
@@ -57,8 +60,9 @@ type MenubuttonOption func(*Menubutton)
 func Text(s string) MenubuttonOption      { return func(mb *Menubutton) { mb.Text = s } }
 func MenuOpt(m *menu.Menu) MenubuttonOption { return func(mb *Menubutton) { mb.Menu = m } }
 func DirectionOpt(d Direction) MenubuttonOption { return func(mb *Menubutton) { mb.Direction = d } }
-func PadX(p int) MenubuttonOption         { return func(mb *Menubutton) { mb.PadX = p } }
-func PadY(p int) MenubuttonOption         { return func(mb *Menubutton) { mb.PadY = p } }
+func PadX(p int) MenubuttonOption           { return func(mb *Menubutton) { mb.PadX = p } }
+func PadY(p int) MenubuttonOption           { return func(mb *Menubutton) { mb.PadY = p } }
+func UnderlineOpt(i int) MenubuttonOption { return func(mb *Menubutton) { mb.Underline = i } }
 
 func Background(name string) MenubuttonOption {
 	return func(mb *Menubutton) {
@@ -88,6 +92,7 @@ func New(parent widget.Caregiver, name string, opts ...MenubuttonOption) *Menubu
 	mb := &Menubutton{
 		Direction: Below,
 		Anchor:    option.AnchorCenter,
+		Underline: -1,
 	}
 	widget.InitBase(&mb.Base, w, app)
 	mb.BorderWidth = widget.DefBorderWidth
@@ -138,31 +143,23 @@ func (mb *Menubutton) PostMenu() {
 		return
 	}
 
-	w := mb.Win
-	// Translate widget coordinates to screen coordinates.
-	// Since we're using child windows, we need the absolute position.
-	screenX, screenY := mb.screenPos()
+	win := mb.Win
+	d := win.Display.XDisplay
+	var x, y int
 
 	switch mb.Direction {
 	case Below:
-		mb.Menu.Post(screenX, screenY+w.Height)
+		x, y = d.TranslateCoordinates(win.XWindow, win.Display.RootXWindow, 0, win.Height)
 	case Above:
-		mb.Menu.Post(screenX, screenY-mb.Menu.Win.ReqHeight)
+		x, y = d.TranslateCoordinates(win.XWindow, win.Display.RootXWindow, 0, 0)
+		y -= mb.Menu.Win.ReqHeight
 	case Right:
-		mb.Menu.Post(screenX+w.Width, screenY)
+		x, y = d.TranslateCoordinates(win.XWindow, win.Display.RootXWindow, win.Width, 0)
 	case Left:
-		mb.Menu.Post(screenX-mb.Menu.Win.ReqWidth, screenY)
+		x, y = d.TranslateCoordinates(win.XWindow, win.Display.RootXWindow, 0, 0)
+		x -= mb.Menu.Win.ReqWidth
 	}
-}
-
-// screenPos calculates the screen position of the widget.
-func (mb *Menubutton) screenPos() (int, int) {
-	x, y := 0, 0
-	for w := mb.Win; w != nil; w = w.Parent {
-		x += w.X
-		y += w.Y
-	}
-	return x, y
+	mb.Menu.Post(x, y)
 }
 
 // Display draws the menubutton.
@@ -218,6 +215,17 @@ func (mb *Menubutton) Display() {
 		if xftFont, ok := mb.Font.(*font.XftFont); ok {
 			xftFont.DrawString(w.Drawable(), textX, textY, mb.Text,
 				fgCol.Pixel, fgCol.Red, fgCol.Green, fgCol.Blue)
+
+			// Draw underline for Alt+letter mnemonic.
+			if mb.Underline >= 0 && mb.Underline < len(mb.Text) {
+				prefix := mb.Text[:mb.Underline]
+				ch := string([]rune(mb.Text)[mb.Underline])
+				ulX := textX + mb.Font.MeasureString(prefix)
+				ulW := mb.Font.MeasureString(ch)
+				ulY := textY + 2
+				d.SetForeground(gc, fgCol.Pixel)
+				d.DrawLine(w.Drawable(), gc, ulX, ulY, ulX+ulW, ulY)
+			}
 
 			// Draw dropdown indicator triangle.
 			triX := w.Width - inset - mb.PadX - 10
@@ -297,4 +305,21 @@ func bindMenubutton(mb *Menubutton, app widget.AppContext) {
 			mb.PostMenu()
 		}
 	})
+
+	// Alt+letter global binding for mnemonic navigation.
+	if mb.Underline >= 0 && mb.Underline < len([]rune(mb.Text)) {
+		mnemonicRune := unicode.ToLower([]rune(mb.Text)[mb.Underline])
+		app.Dispatcher().BindGlobal(event.KeyPressMask, func(ev *event.Event) {
+			if ev.State&xlib.Mod1Mask == 0 {
+				return
+			}
+			if mb.Destroyed || mb.State == widget.StateDisabled {
+				return
+			}
+			r := xlib.KeySymToRune(ev.KeySym)
+			if unicode.ToLower(r) == mnemonicRune {
+				mb.PostMenu()
+			}
+		})
+	}
 }

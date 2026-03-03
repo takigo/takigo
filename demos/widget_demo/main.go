@@ -1,5 +1,7 @@
 // Widget Demo Launcher — browse and run all takigo demos.
 // Ported from Tk's widget demo launcher (widget.tcl).
+// Uses a text widget with clickable hyperlinks for demo entries,
+// matching the original Tk widget demo's look and behavior.
 package main
 
 import (
@@ -8,25 +10,26 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
-	"strings"
 
 	"github.com/msorc/takigo"
-	"github.com/msorc/takigo/bind"
+	"github.com/msorc/takigo/color"
+	"github.com/msorc/takigo/dialog"
+	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/internal/xlib"
 	"github.com/msorc/takigo/option"
-	"github.com/msorc/takigo/widget/button"
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
-	"github.com/msorc/takigo/widget/listbox"
+	"github.com/msorc/takigo/widget/menu"
+	"github.com/msorc/takigo/widget/menubutton"
 	"github.com/msorc/takigo/widget/scrollbar"
 	"github.com/msorc/takigo/widget/text"
 )
 
 type demoEntry struct {
-	name string // directory name under demo/
-	desc string // human-readable description
+	name string
+	desc string
 }
 
 type category struct {
@@ -123,7 +126,7 @@ var categories = []category{
 }
 
 func main() {
-	app, err := takigo.NewApp(takigo.Title("Widget Demonstration"), takigo.Size(1024, 600))
+	app, err := takigo.NewApp(takigo.Title("Widget Demonstration"), takigo.Size(800, 600))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
@@ -137,59 +140,71 @@ func main() {
 	_, thisFile, _, _ := runtime.Caller(0)
 	demoBase := filepath.Dir(filepath.Dir(thisFile))
 
-	// Header.
-	header := label.New(app, "header",
-		label.Text("Widget Demonstration"),
-		label.Anchor(option.AnchorCenter),
-		label.PadX(10), label.PadY(8),
+	// ── Menu bar ──
+	menuBar := frame.New(app, "menubar",
+		frame.Relief(option.ReliefRaised),
+		frame.BorderWidth(1),
 	)
-	pack.Pack(header, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
+	pack.Pack(menuBar, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
 
-	// Bottom button frame.
-	btnFrame := frame.New(app, "btnframe")
-	pack.Pack(btnFrame, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX), pack.PadY(5))
+	fileMenu := menu.New(app, "filemenu")
+	if menuFont, err := app.FontRegistry().Get("Sans 10"); err == nil {
+		fileMenu.Font = menuFont
+	}
+	fileMenu.AddCommandAccel("About...", "F1", func() {
+		dialog.ShowMessage(app,
+			dialog.MsgTitle("About Widget Demo"),
+			dialog.MsgMessage("Tk widget demonstration application"),
+			dialog.MsgDetail("A Go port of the Tk widget demo using the Takigo toolkit."),
+			dialog.MsgType(dialog.MsgInfo),
+			dialog.MsgButtons(dialog.BtnOK),
+		)
+	})
+	fileMenu.AddSeparator()
+	fileMenu.AddCommandAccel("Quit", "Meta+Q", func() { app.Quit() })
 
-	dismissBtn := button.New(btnFrame, "dismiss",
-		button.Text("Quit"), button.Command(func() { app.Quit() }),
-		button.PadX(10), button.PadY(4),
+	fileMb := menubutton.New(menuBar, "filemb",
+		menubutton.Text("File"),
+		menubutton.MenuOpt(fileMenu),
+		menubutton.UnderlineOpt(0),
 	)
-	pack.Pack(dismissBtn, pack.SideOpt(pack.Right), pack.PadX(10))
+	pack.Pack(fileMb, pack.SideOpt(pack.Left))
 
-	// Status bar.
-	statusLabel := label.New(app, "status",
-		label.Text("Select a demo and click Run."),
+	// ── Status bar with sizegrip ──
+	statusBar := frame.New(app, "statusbar")
+	pack.Pack(statusBar, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX), pack.PadY(1))
+
+	statusLabel := label.New(statusBar, "status",
+		label.Text("   "),
 		label.Anchor(option.AnchorW),
-		label.Background("#e8e8e8"),
-		label.PadX(5), label.PadY(2),
+		label.PadX(5), label.PadY(1),
 	)
-	pack.Pack(statusLabel, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
+	pack.Pack(statusLabel, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth),
+		pack.Expand(true))
 
-	// Main content: left listbox + right source viewer.
-	contentFrame := frame.New(app, "content")
-	pack.Pack(contentFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
-		pack.Expand(true), pack.PadX(5), pack.PadY(2))
-
-	// Left panel: listbox of demos.
-	leftFrame := frame.New(contentFrame, "left")
-	pack.Pack(leftFrame, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth),
-		pack.Expand(false))
-
-	// Action buttons (pack bottom FIRST so listbox doesn't consume all space).
-	actionFrame := frame.New(leftFrame, "actions")
-	pack.Pack(actionFrame, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX), pack.PadY(3))
-
-	sb := scrollbar.New(leftFrame, "sb")
-	lb := listbox.New(leftFrame, "demos",
-		listbox.Height(20), listbox.Width(35),
+	// Sizegrip: small frame that draws diagonal resize lines.
+	grip := frame.New(statusBar, "grip",
+		frame.Width(15), frame.Height(15),
 	)
-	lb.YScrollCmd = func(first, last float64) { sb.Set(first, last) }
-	sb.Command = func(args ...interface{}) {
+	pack.Pack(grip, pack.SideOpt(pack.Right), pack.PadX(1))
+	drawSizegrip(app, grip, bgColor)
+
+	// ── Text widget with scrollbar ──
+	sb := scrollbar.New(app, "sb")
+	t := text.New(app, "t",
+		text.WrapModeOpt(text.WrapWord),
+		text.Width(70), text.Height(30),
+		text.FontOpt("Sans 10"),
+		text.ReadOnly(true),
+	)
+	t.YScrollCmd = func(first, last float64) { sb.Set(first, last) }
+	sb.Command = func(args ...any) {
 		if len(args) >= 2 {
 			action, _ := args[0].(string)
 			number, _ := args[1].(float64)
 			switch action {
 			case "moveto":
-				lb.YViewMoveTo(number)
+				t.YViewMoveTo(number)
 			case "scroll":
 				unit := "units"
 				if len(args) >= 3 {
@@ -198,174 +213,144 @@ func main() {
 					}
 				}
 				if unit == "pages" {
-					lb.YViewScroll(int(number), true)
+					t.YViewScroll(int(number), true)
 				} else {
-					lb.YViewScroll(int(number), false)
+					t.YViewScroll(int(number), false)
 				}
 			}
 		}
 	}
 	pack.Pack(sb, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
-	pack.Pack(lb, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+	pack.Pack(t, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth),
+		pack.Expand(true), pack.PadX(1))
 
-	// Populate listbox with categories and demos.
-	type listItem struct {
-		isCategory bool
-		demoDir    string
-		demoDesc   string
-	}
-	var items []listItem
+	// ── Configure tags ──
+	t.TagConfigure("title", text.TagFont("Sans Bold 14"))
+	t.TagConfigure("subtitle", text.TagFont("Sans Bold 10"))
+	t.TagConfigure("bold", text.TagFont("Sans Bold 10"))
+	// Demo links: normal weight, blue, underlined.
+	t.TagConfigure("demo",
+		text.TagForeground("blue"),
+		text.TagUnderline(true),
+		text.TagFont("Sans 10"),
+	)
+	t.TagConfigure("hot",
+		text.TagForeground("red"),
+		text.TagUnderline(true),
+	)
+
+	line := 1
+
+	// Title.
+	t.Insert("1.0", "Tk Widget Demonstrations\n")
+	t.TagAdd("title", "1.0", "1.end")
+	line++
+
+	// Blank line.
+	t.Insert("end", "\n")
+	line++
+
+	// Intro paragraph.
+	introLine := line
+	intro1 := "This application provides a front end for several short scripts " +
+		"that demonstrate what you can do with Tk widgets. Each of the numbered " +
+		"lines below describes a demonstration; you can click on it to invoke " +
+		"the demonstration. Once the demonstration window appears, you can click the "
+	t.Insert("end", intro1)
+	t.Insert("end", "See Code")
+	intro2 := " button to see the Go code that created the demonstration. " +
+		"If you wish, you can edit the code and click the "
+	t.Insert("end", intro2)
+	t.Insert("end", "Rerun Demo")
+	t.Insert("end", " button in the code window to reinvoke the demonstration "+
+		"with the modified code.\n")
+
+	// Bold "See Code" and "Rerun Demo".
+	seeCodeStart := len(intro1)
+	seeCodeEnd := seeCodeStart + len("See Code")
+	t.TagAdd("bold",
+		fmt.Sprintf("%d.%d", introLine, seeCodeStart),
+		fmt.Sprintf("%d.%d", introLine, seeCodeEnd))
+	rerunStart := seeCodeEnd + len(intro2)
+	rerunEnd := rerunStart + len("Rerun Demo")
+	t.TagAdd("bold",
+		fmt.Sprintf("%d.%d", introLine, rerunStart),
+		fmt.Sprintf("%d.%d", introLine, rerunEnd))
+	line++
+
+	// ── Categories and demos ──
+	// Indentation spaces before demo number (not part of the link).
+	const indent = "      "
 
 	for _, cat := range categories {
-		lb.Insert(lb.ItemCount(), fmt.Sprintf("-- %s --", cat.title))
-		items = append(items, listItem{isCategory: true})
-		for _, d := range cat.demos {
-			lb.Insert(lb.ItemCount(), fmt.Sprintf("  %s", d.desc))
-			items = append(items, listItem{demoDir: d.name, demoDesc: d.desc})
-		}
-	}
+		t.Insert("end", "\n")
+		line++
 
-	// Right panel: source viewer.
-	rightFrame := frame.New(contentFrame, "right")
-	pack.Pack(rightFrame, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillBoth),
-		pack.Expand(true))
+		subStart := fmt.Sprintf("%d.0", line)
+		t.Insert("end", cat.title+"\n")
+		subEnd := fmt.Sprintf("%d.0", line+1)
+		t.TagAdd("subtitle", subStart, subEnd)
+		line++
 
-	rightLabel := label.New(rightFrame, "srclabel",
-		label.Text("Source Code:"),
-		label.Anchor(option.AnchorW),
-		label.PadX(5),
-	)
-	pack.Pack(rightLabel, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
+		for i, d := range cat.demos {
+			demoLine := line
+			numStr := fmt.Sprintf("%d. %s", i+1, d.desc)
+			t.Insert("end", indent+numStr+"\n")
+			line++
 
-	srcSb := scrollbar.New(rightFrame, "srcsb")
-	srcText := text.New(rightFrame, "source",
-		text.WrapModeOpt(text.WrapNone),
-	)
-	srcText.YScrollCmd = func(first, last float64) { srcSb.Set(first, last) }
-	srcSb.Command = func(args ...interface{}) {
-		if len(args) >= 2 {
-			action, _ := args[0].(string)
-			number, _ := args[1].(float64)
-			switch action {
-			case "moveto":
-				srcText.YViewMoveTo(number)
-			case "scroll":
-				unit := "units"
-				if len(args) >= 3 {
-					if u, ok := args[2].(string); ok {
-						unit = u
+			tagName := "demo-" + d.name
+			// Tag only the numbered text, not the leading spaces.
+			linkStart := fmt.Sprintf("%d.%d", demoLine, len(indent))
+			linkEnd := fmt.Sprintf("%d.%d", demoLine, len(indent)+len(numStr))
+			t.TagAdd("demo", linkStart, linkEnd)
+			t.TagAdd(tagName, linkStart, linkEnd)
+			t.TagConfigure(tagName,
+				text.TagForeground("blue"),
+				text.TagUnderline(true),
+				text.TagFont("Sans 10"),
+			)
+
+			si := linkStart
+			ei := linkEnd
+			demoDir := d.name
+			demoDesc := d.desc
+
+			// Click → run demo.
+			t.TagBind(tagName, "<Button-1>", func() {
+				dir := filepath.Join(demoBase, demoDir)
+				statusLabel.Text = fmt.Sprintf("Running: %s...", demoDesc)
+				statusLabel.Display()
+				go func() {
+					cmd := exec.Command("go", "run", ".")
+					cmd.Dir = dir
+					cmd.Stdout = os.Stdout
+					cmd.Stderr = os.Stderr
+					if err := cmd.Run(); err != nil {
+						fmt.Fprintf(os.Stderr, "Demo %s error: %v\n", demoDir, err)
 					}
-				}
-				if unit == "pages" {
-					srcText.YViewScroll(int(number), true)
-				} else {
-					srcText.YViewScroll(int(number), false)
-				}
-			}
+				}()
+			})
+
+			// Hover → red highlight + status message.
+			t.TagBind(tagName, "<Enter>", func() {
+				t.TagAdd("hot", si, ei)
+				statusLabel.Text = fmt.Sprintf("Run the \"%s\" sample program", demoDir)
+				statusLabel.Display()
+				t.Display()
+			})
+			t.TagBind(tagName, "<Leave>", func() {
+				t.TagRemove("hot", si, ei)
+				statusLabel.Text = "   "
+				statusLabel.Display()
+				t.Display()
+			})
 		}
 	}
-	pack.Pack(srcSb, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
-	pack.Pack(srcText, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth),
-		pack.Expand(true))
 
-	getSelectedDemo := func() (string, string, bool) {
-		sel := lb.Selection()
-		if len(sel) == 0 {
-			return "", "", false
-		}
-		idx := sel[0]
-		if idx < 0 || idx >= len(items) || items[idx].isCategory {
-			return "", "", false
-		}
-		return items[idx].demoDir, items[idx].demoDesc, true
-	}
+	// Scroll to top after populating.
+	t.See("1.0")
 
-	runBtn := button.New(actionFrame, "run",
-		button.Text("Run Demo"),
-		button.Command(func() {
-			dir, desc, ok := getSelectedDemo()
-			if !ok {
-				statusLabel.Text = "Select a demo first."
-				statusLabel.Display()
-				return
-			}
-			demoDir := filepath.Join(demoBase, dir)
-			statusLabel.Text = fmt.Sprintf("Running: %s...", desc)
-			statusLabel.Display()
-
-			go func() {
-				cmd := exec.Command("go", "run", ".")
-				cmd.Dir = demoDir
-				cmd.Stdout = os.Stdout
-				cmd.Stderr = os.Stderr
-				if err := cmd.Run(); err != nil {
-					fmt.Fprintf(os.Stderr, "Demo %s error: %v\n", dir, err)
-				}
-			}()
-		}),
-		button.PadX(8), button.PadY(3),
-	)
-	pack.Pack(runBtn, pack.SideOpt(pack.Left), pack.PadX(3))
-
-	codeBtn := button.New(actionFrame, "code",
-		button.Text("See Code"),
-		button.Command(func() {
-			dir, desc, ok := getSelectedDemo()
-			if !ok {
-				statusLabel.Text = "Select a demo first."
-				statusLabel.Display()
-				return
-			}
-			srcPath := filepath.Join(demoBase, dir, "main.go")
-			data, err := os.ReadFile(srcPath)
-			if err != nil {
-				statusLabel.Text = fmt.Sprintf("Error: %v", err)
-				statusLabel.Display()
-				return
-			}
-			srcText.Delete("1.0", "end")
-			srcText.Insert("1.0", string(data))
-			rightLabel.Text = fmt.Sprintf("Source: %s/main.go", dir)
-			rightLabel.Display()
-			statusLabel.Text = fmt.Sprintf("Showing source for: %s", desc)
-			statusLabel.Display()
-		}),
-		button.PadX(8), button.PadY(3),
-	)
-	pack.Pack(codeBtn, pack.SideOpt(pack.Left), pack.PadX(3))
-
-	// Show source on selection change via double-click.
-	eng := app.BindEng()
-	eng.Bind(lb.Window().PathName, "<Double-Button-1>", func(ed *bind.EventData) bool {
-		dir, _, ok := getSelectedDemo()
-		if !ok {
-			return false
-		}
-		srcPath := filepath.Join(demoBase, dir, "main.go")
-		data, err := os.ReadFile(srcPath)
-		if err != nil {
-			return false
-		}
-		srcText.Delete("1.0", "end")
-		srcText.Insert("1.0", string(data))
-		rightLabel.Text = fmt.Sprintf("Source: %s/main.go", dir)
-		rightLabel.Display()
-		return false
-	})
-
-	// Initial source display.
-	srcText.Insert("1.0", strings.Join([]string{
-		"Welcome to the Takigo Widget Demonstrations!",
-		"",
-		"Select a demo from the list on the left, then:",
-		"  - Click 'Run Demo' to launch it",
-		"  - Click 'See Code' to view its source code",
-		"  - Double-click a demo to view its source",
-		"",
-		fmt.Sprintf("Total demos: %d", countDemos()),
-	}, "\n"))
-
-	// Root events.
+	// ── Root events ──
 	app.Dispatcher().Bind(root.XWindow, event.StructureNotifyMask, func(ev *event.Event) {
 		if ev.Type == event.ConfigureType {
 			root.Width = ev.ConfigWidth
@@ -388,18 +373,56 @@ func main() {
 		}
 	})
 
-	_ = header
-	_ = dismissBtn
-	_ = statusLabel
-	_ = runBtn
-	_ = codeBtn
 	app.Run()
 }
 
-func countDemos() int {
-	total := 0
-	for _, cat := range categories {
-		total += len(cat.demos)
-	}
-	return total
+// drawSizegrip sets up expose handling for a frame that draws diagonal
+// resize grip lines, matching Tk's ttkElements.c SizegripDraw algorithm.
+func drawSizegrip(app *takigo.App, grip *frame.Frame, bg *color.Color) {
+	border := draw.NewBorder(bg.Red, bg.Green, bg.Blue)
+
+	app.Dispatcher().Bind(grip.Window().XWindow, event.ExposureMask, func(ev *event.Event) {
+		if ev.ExposeCount > 0 {
+			return
+		}
+		w := grip.Window()
+		d := w.Display.XDisplay
+		gc := w.GC
+
+		// Fill background.
+		d.SetForeground(gc, bg.Pixel)
+		d.FillRectangle(w.Drawable(), gc, 0, 0, uint(w.Width), uint(w.Height))
+
+		// Tk algorithm: gripSize=15, gripCount=3,
+		// gripThickness = gripSize*3/(gripCount*5) = 3,
+		// gripSpace = gripSize/3 - gripThickness = 2.
+		gripCount := 3
+		gripSize := w.Height
+		if w.Width < gripSize {
+			gripSize = w.Width
+		}
+		gripThickness := gripSize * 3 / (gripCount * 5)
+		gripSpace := gripSize/3 - gripThickness
+
+		x1 := w.Width - 1
+		y1 := w.Height - 1
+		x2 := x1
+		y2 := y1
+
+		for g := 0; g < gripCount; g++ {
+			x1 -= gripSpace
+			y2 -= gripSpace
+			for i := 1; i < gripThickness; i++ {
+				d.SetForeground(gc, border.DarkPixel)
+				d.DrawLine(w.Drawable(), gc, x1, y1, x2, y2)
+				x1--
+				y2--
+			}
+			d.SetForeground(gc, border.LightPixel)
+			d.DrawLine(w.Drawable(), gc, x1, y1, x2, y2)
+			x1--
+			y2--
+		}
+		d.Flush()
+	})
 }

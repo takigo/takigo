@@ -232,12 +232,14 @@ func (m *Menu) Post(x, y int) {
 	m.posted = true
 	m.activeIndex = -1
 
-	// Grab pointer and keyboard.
-	d.GrabPointer(w.XWindow, true,
+	// Grab pointer and keyboard with owner_events=false so all pointer
+	// events go to the menu window. This ensures clicks outside the menu
+	// (including inside other app windows) are caught and close the menu.
+	d.GrabPointer(w.XWindow, false,
 		uint(xlib.ButtonPressMask|xlib.ButtonReleaseMask|xlib.PointerMotionMask|xlib.EnterWindowMask|xlib.LeaveWindowMask),
 		xlib.GrabModeAsync, xlib.GrabModeAsync,
 		xlib.Window(0), xlib.Cursor(0), xlib.CurrentTime)
-	d.GrabKeyboard(w.XWindow, true, xlib.GrabModeAsync, xlib.GrabModeAsync, xlib.CurrentTime)
+	d.GrabKeyboard(w.XWindow, false, xlib.GrabModeAsync, xlib.GrabModeAsync, xlib.CurrentTime)
 	m.grabbed = true
 
 	m.Display()

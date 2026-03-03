@@ -87,3 +87,9 @@ func XScrollCommand(fn func(first, last float64)) TextOption {
 func InsertWidth(w int) TextOption {
 	return func(t *TextWidget) { t.insertWidth = w }
 }
+
+// ReadOnly sets the text widget to read-only mode. Navigation and selection
+// still work, but text insertion and deletion are blocked.
+func ReadOnly(on bool) TextOption {
+	return func(t *TextWidget) { t.readOnly = on }
+}

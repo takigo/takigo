@@ -2,6 +2,8 @@
 package menu
 
 import (
+	"unicode"
+
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/internal/xlib"
 	"github.com/msorc/takigo/widget"
@@ -85,6 +87,31 @@ func bindMenu(m *Menu, app widget.AppContext) {
 		case xlib.XK_Return:
 			if m.activeIndex >= 0 {
 				m.invoke(m.activeIndex)
+			}
+
+		default:
+			// Letter navigation: match first character of entry labels.
+			r := xlib.KeySymToRune(ev.KeySym)
+			if r <= 0 {
+				return
+			}
+			r = unicode.ToLower(r)
+			// Search from entry after the active one, wrapping around.
+			start := m.activeIndex + 1
+			if start < 0 {
+				start = 0
+			}
+			n := len(m.entries)
+			for i := 0; i < n; i++ {
+				idx := (start + i) % n
+				e := &m.entries[idx]
+				if e.Type == Separator || e.State == widget.StateDisabled {
+					continue
+				}
+				if len(e.Label) > 0 && unicode.ToLower(rune(e.Label[0])) == r {
+					m.invoke(idx)
+					return
+				}
 			}
 		}
 	})

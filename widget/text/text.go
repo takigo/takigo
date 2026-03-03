@@ -55,6 +55,9 @@ type TextWidget struct {
 	undoEnabled bool
 	undoStack   *UndoStack
 
+	// Read-only mode: navigation/selection work, editing blocked.
+	readOnly bool
+
 	// Tag event bindings: tagName → eventName → handlers.
 	tagBindings map[string]map[string][]func()
 	hoverTags   map[string]bool

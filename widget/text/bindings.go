@@ -165,6 +165,9 @@ func bindText(t *TextWidget, app widget.AppContext) {
 			t.notifyYScrollbar()
 
 		case xlib.XK_Return:
+			if t.readOnly {
+				return
+			}
 			t.undoStack.Separator()
 			t.deleteSelection()
 			insertAt := t.doc.Marks["insert"].Pos
@@ -178,6 +181,9 @@ func bindText(t *TextWidget, app widget.AppContext) {
 			t.Display()
 
 		case xlib.XK_BackSpace:
+			if t.readOnly {
+				return
+			}
 			if t.deleteSelection() {
 				t.seeInsert()
 				t.notifyYScrollbar()
@@ -199,6 +205,9 @@ func bindText(t *TextWidget, app widget.AppContext) {
 			}
 
 		case xlib.XK_Delete:
+			if t.readOnly {
+				return
+			}
 			if t.deleteSelection() {
 				t.seeInsert()
 				t.notifyYScrollbar()
@@ -220,6 +229,9 @@ func bindText(t *TextWidget, app widget.AppContext) {
 			}
 
 		case xlib.XK_Tab:
+			if t.readOnly {
+				return
+			}
 			t.deleteSelection()
 			insertAt := t.doc.Marks["insert"].Pos
 			spaces := tabWidth - (insertAt.Char % tabWidth)
@@ -234,7 +246,12 @@ func bindText(t *TextWidget, app widget.AppContext) {
 
 		default:
 			if ctrl {
-				handleCtrlKey(t, ev)
+				if !t.readOnly {
+					handleCtrlKey(t, ev)
+				}
+				return
+			}
+			if t.readOnly {
 				return
 			}
 			// Insert printable characters.
