@@ -15,7 +15,7 @@ import (
 
 func main() {
 	app := demohelper.Setup("Spinbox Demonstration", 400, 300,
-		"Three spinboxes are shown: an integer range,\na float range, and a list of city names.")
+		"Three different spin-boxes are displayed below. You can add characters by pointing, clicking and typing. Note that the first spin-box will only permit you to type in integers, and the third selects from a list of Australian cities.")
 	root := app.Window()
 
 	focusMgr := focus.NewManager(app.Dispatcher(), app.DisplayPtr())

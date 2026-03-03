@@ -1,4 +1,4 @@
-// Demo: Message box varieties.
+// Demo: Message box with selectable icon and type.
 // Ported from Tk's msgbox.tcl demo.
 package main
 
@@ -9,62 +9,113 @@ import (
 	"github.com/msorc/takigo/dialog"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/button"
+	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
+	"github.com/msorc/takigo/widget/radiobutton"
 )
 
 func main() {
-	app := demohelper.Setup("Message Boxes", 400, 350,
-		"Click any button to show a message dialog\nwith different types and button combinations.")
+	app := demohelper.Setup("Message Boxes", 500, 400,
+		"Choose the icon and type option of the message box. Then press the "+
+			"\"Message Box\" button to see the message box.")
 
-	statusLabel := label.New(app, "status",
-		label.Text("Result: —"),
-		label.Anchor(option.AnchorW),
-		label.Background("#e8e8e8"),
-		label.PadX(5), label.PadY(2),
+	// Icon selection (left column).
+	iconVar := widget.NewVariable("info")
+	typeVar := widget.NewVariable("ok")
+
+	columns := frame.New(app, "columns")
+	pack.Pack(columns, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
+		pack.Expand(true), pack.PadX(10), pack.PadY(5))
+
+	// Left: Icon radios.
+	leftFrame := frame.New(columns, "left")
+	pack.Pack(leftFrame, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillY),
+		pack.Expand(true), pack.PadX(10))
+
+	iconLabel := label.New(leftFrame, "iconlabel",
+		label.Text("Icon"),
+		label.Anchor(option.AnchorCenter),
 	)
-	pack.Pack(statusLabel, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
+	pack.Pack(iconLabel, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
 
-	setStatus := func(s string) {
-		statusLabel.Text = s
-		statusLabel.Display()
-	}
-
-	// Message box buttons.
-	dialogs := []struct {
-		text    string
-		msgType dialog.MessageType
-		buttons dialog.ButtonSet
-		title   string
-		message string
-	}{
-		{"Info (OK)", dialog.MsgInfo, dialog.BtnOK, "Information", "This is an informational message."},
-		{"Warning (OK)", dialog.MsgWarning, dialog.BtnOK, "Warning", "This is a warning message!"},
-		{"Error (OK)", dialog.MsgError, dialog.BtnOK, "Error", "An error has occurred."},
-		{"Question (Yes/No)", dialog.MsgQuestion, dialog.BtnYesNo, "Confirm", "Do you want to proceed?"},
-		{"Question (Yes/No/Cancel)", dialog.MsgQuestion, dialog.BtnYesNoCancel, "Save?", "Save changes before closing?"},
-	}
-
-	for _, d := range dialogs {
-		dlg := d
-		btn := button.New(app, "btn_"+dlg.text,
-			button.Text(dlg.text),
-			button.Command(func() {
-				result := dialog.ShowMessage(app,
-					dialog.MsgTitle(dlg.title),
-					dialog.MsgMessage(dlg.message),
-					dialog.MsgType(dlg.msgType),
-					dialog.MsgButtons(dlg.buttons),
-				)
-				setStatus(fmt.Sprintf("Result: button %d", result))
-			}),
-			button.PadX(10), button.PadY(4),
+	for _, icon := range []string{"error", "info", "question", "warning"} {
+		rb := radiobutton.New(leftFrame, "icon_"+icon,
+			radiobutton.Text(icon),
+			radiobutton.Value(icon),
+			radiobutton.Var(iconVar),
+			radiobutton.Anchor(option.AnchorW),
 		)
-		pack.Pack(btn, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
-			pack.PadX(20), pack.PadY(5))
-		_ = btn
+		pack.Pack(rb, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(2))
+		_ = rb
 	}
 
-	_ = statusLabel
+	// Right: Type radios.
+	rightFrame := frame.New(columns, "right")
+	pack.Pack(rightFrame, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillY),
+		pack.Expand(true), pack.PadX(10))
+
+	typeLabel := label.New(rightFrame, "typelabel",
+		label.Text("Type"),
+		label.Anchor(option.AnchorCenter),
+	)
+	pack.Pack(typeLabel, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
+
+	for _, t := range []string{"ok", "okcancel", "yesno", "yesnocancel"} {
+		rb := radiobutton.New(rightFrame, "type_"+t,
+			radiobutton.Text(t),
+			radiobutton.Value(t),
+			radiobutton.Var(typeVar),
+			radiobutton.Anchor(option.AnchorW),
+		)
+		pack.Pack(rb, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(2))
+		_ = rb
+	}
+
+	// Message Box button.
+	msgBtn := button.New(app, "msgbtn",
+		button.Text("Message Box"),
+		button.Command(func() {
+			iconMap := map[string]dialog.MessageType{
+				"error":    dialog.MsgError,
+				"info":     dialog.MsgInfo,
+				"question": dialog.MsgQuestion,
+				"warning":  dialog.MsgWarning,
+			}
+			typeMap := map[string]dialog.ButtonSet{
+				"ok":             dialog.BtnOK,
+				"okcancel":       dialog.BtnOKCancel,
+				"yesno":          dialog.BtnYesNo,
+				"yesnocancel":    dialog.BtnYesNoCancel,
+			}
+
+			icon := iconVar.Get()
+			typ := typeVar.Get()
+
+			msg := fmt.Sprintf("This is a %q type messagebox with the %q icon.", typ, icon)
+			result := dialog.ShowMessage(app,
+				dialog.MsgTitle("Message"),
+				dialog.MsgMessage(msg),
+				dialog.MsgType(iconMap[icon]),
+				dialog.MsgButtons(typeMap[typ]),
+			)
+
+			// Show result in a follow-up info dialog.
+			dialog.ShowMessage(app,
+				dialog.MsgTitle("Result"),
+				dialog.MsgMessage(fmt.Sprintf("You pressed button %d.", result)),
+				dialog.MsgType(dialog.MsgInfo),
+				dialog.MsgButtons(dialog.BtnOK),
+			)
+		}),
+		button.PadX(10), button.PadY(4),
+	)
+	pack.Pack(msgBtn, pack.SideOpt(pack.Top), pack.PadY(10))
+
+	_ = iconLabel
+	_ = typeLabel
+	_ = columns
+	_ = msgBtn
 	app.Run()
 }

@@ -1,6 +1,7 @@
 package ttk
 
 import (
+	"sort"
 	"strings"
 	"sync"
 
@@ -204,4 +205,16 @@ func CurrentTheme() *Theme {
 	themesMu.RLock()
 	defer themesMu.RUnlock()
 	return currentTheme
+}
+
+// ThemeNames returns the sorted names of all registered themes.
+func ThemeNames() []string {
+	themesMu.RLock()
+	defer themesMu.RUnlock()
+	names := make([]string, 0, len(themes))
+	for name := range themes {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return names
 }

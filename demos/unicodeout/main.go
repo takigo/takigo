@@ -6,41 +6,62 @@ import (
 	"fmt"
 
 	"github.com/msorc/takigo/demos/demohelper"
+	"github.com/msorc/takigo/geometry/grid"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
 )
 
 func main() {
-	app := demohelper.Setup("Unicode Text", 450, 400,
-		"Unicode text samples from various scripts.\nAll rendered via Xft/fontconfig.")
+	app := demohelper.Setup("Unicode Label Demonstration", 550, 500,
+		"This is a sample of Tk's support for languages that use "+
+			"non-Western character sets. However, what you will actually see "+
+			"below depends largely on what character sets you have installed, "+
+			"and what you see for characters that are not present varies greatly "+
+			"between platforms as well.")
 
-	// Unicode samples.
+	// Frame to hold the two-column grid of language samples.
+	f := frame.New(app, "samples")
+	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
+		pack.Expand(true), pack.PadX(10), pack.PadY(5))
+
+	// Unicode samples matching Tk's unicodeout.tcl.
 	samples := []struct {
 		lang string
 		text string
 	}{
-		{"English", "The quick brown fox jumps over the lazy dog."},
-		{"Russian", "Быстрая коричневая лиса перепрыгнула через ленивую собаку."},
-		{"Greek", "Η γρήγορη καφετιά αλεπού πήδηξε πάνω από το τεμπέλικο σκυλί."},
-		{"Japanese", "色は匂へど散りぬるを我が世誰ぞ常ならむ"},
-		{"Chinese", "天地玄黃 宇宙洪荒 日月盈昃 辰宿列張"},
-		{"Korean", "키스의 고유 조건은 입술끼리 만, 아니 , , 합니다."},
-		{"Arabic", "صِف خَلقَ خَودِ كَمِثلِ الشَمسِ إِذ بَزَغَت"},
-		{"Hebrew", "דג סקרן שט בים מאוכזב ולפתע מצא חברה"},
-		{"Math", "∀x∈ℝ: ∑(i=1..n) xᵢ² ≥ 0, ∫₀∞ f(x)dx = π"},
-		{"Emoji", "🎉 🎨 🖌️ 🎭 🎪 🎬 🎧 🎹 🎷 🎸"},
+		{"Arabic", "\uFE94\uFEF4\uFE91\uFEAE\uFECC\uFEDF\uFE8D \uFE94\uFEE4\uFEE0\uFEDC\uFEDF\uFE8D"},
+		{"Trad. Chinese", "\u4E2D\u570B\u7684\u6F22\u5B57"},
+		{"Simpl. Chinese", "\u6C49\u8BED"},
+		{"French", "Langue fran\u00E7aise"},
+		{"Greek", "\u0395\u03BB\u03BB\u03B7\u03BD\u03B9\u03BA\u03AE \u03B3\u03BB\u03CE\u03C3\u03C3\u03B1"},
+		{"Hebrew", "\u05EA\u05D9\u05E8\u05D1\u05E2 \u05D1\u05EA\u05DB"},
+		{"Hindi", "\u0939\u093F\u0928\u094D\u0926\u0940 \u092D\u093E\u0937\u093E"},
+		{"Icelandic", "\u00CDslenska"},
+		{"Japanese", "\u65E5\u672C\u8A9E\u306E\u3072\u3089\u304C\u306A, \u6F22\u5B57\u3068\u30AB\u30BF\u30AB\u30CA"},
+		{"Korean", "\uB300\uD55C\uBBFC\uAD6D\uC758 \uD55C\uAE00"},
+		{"Russian", "\u0420\u0443\u0441\u0441\u043A\u0438\u0439 \u044F\u0437\u044B\u043A"},
 	}
 
-	for _, s := range samples {
-		l := label.New(app, "lang_"+s.lang,
-			label.Text(fmt.Sprintf("%s: %s", s.lang, s.text)),
-			label.Anchor(option.AnchorW),
-			label.PadX(10), label.PadY(2),
+	for i, s := range samples {
+		langLabel := label.New(f, fmt.Sprintf("l%d", i),
+			label.Text(s.lang+":"),
+			label.Anchor(option.AnchorNW),
+			label.PadY(0),
 		)
-		pack.Pack(l, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
-		_ = l
+		sampleLabel := label.New(f, fmt.Sprintf("s%d", i),
+			label.Text(s.text),
+			label.Anchor(option.AnchorNW),
+			label.PadY(0),
+		)
+		grid.Grid(langLabel, grid.Row(i), grid.Column(0),
+			grid.Sticky(grid.EW), grid.PadX(5), grid.PadY(0))
+		grid.Grid(sampleLabel, grid.Row(i), grid.Column(1),
+			grid.Sticky(grid.EW), grid.PadX(5), grid.PadY(0))
 	}
+
+	grid.ColumnConfigure(f.Window(), 1, grid.SlotConfig{Weight: 1})
 
 	app.Run()
 }

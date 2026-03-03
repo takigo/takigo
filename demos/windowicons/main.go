@@ -6,17 +6,47 @@ import (
 	"encoding/binary"
 
 	"github.com/msorc/takigo/demos/demohelper"
+	"github.com/msorc/takigo/dialog"
+	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/internal/xlib"
+	"github.com/msorc/takigo/widget/button"
 	"github.com/msorc/takigo/window"
 )
 
 func main() {
-	app := demohelper.Setup("Window Icon Demonstration", 400, 200,
+	app := demohelper.Setup("Window Icon Demonstration", 400, 300,
 		"This demo sets the window icon using the _NET_WM_ICON\nX11 property. The icon should be visible in the window\nmanager's title bar and taskbar.")
 	root := app.Window()
 
 	// Set window icon via _NET_WM_ICON.
 	setWindowIcon(root)
+
+	// Badge buttons (badge is not supported on X11, show info dialog).
+	badgeMsg := func() {
+		dialog.ShowMessage(app,
+			dialog.MsgTitle("Badge"),
+			dialog.MsgMessage("Icon badge is not supported on this platform."),
+			dialog.MsgType(dialog.MsgInfo),
+		)
+	}
+
+	badge3Btn := button.New(app, "badge3",
+		button.Text("Set Badge to 3"),
+		button.Command(badgeMsg),
+	)
+	pack.Pack(badge3Btn, pack.FillOpt(pack.FillX), pack.PadX(3), pack.PadY(2))
+
+	badge11Btn := button.New(app, "badge11",
+		button.Text("Set Badge to 11"),
+		button.Command(badgeMsg),
+	)
+	pack.Pack(badge11Btn, pack.FillOpt(pack.FillX), pack.PadX(3), pack.PadY(2))
+
+	resetBadgeBtn := button.New(app, "resetbadge",
+		button.Text("Reset Badge"),
+		button.Command(badgeMsg),
+	)
+	pack.Pack(resetBadgeBtn, pack.FillOpt(pack.FillX), pack.PadX(3), pack.PadY(2))
 
 	app.Run()
 }

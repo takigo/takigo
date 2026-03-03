@@ -493,6 +493,17 @@ func (c *Canvas) SetItemCoords(tagOrID string, coords []float64) error {
 	return err
 }
 
+// FindWithTag returns item IDs matching a tag-or-ID string.
+// Supports: numeric IDs, "all", "current", and tag name strings.
+func (c *Canvas) FindWithTag(tagOrID string) []int64 {
+	entries := c.resolve(tagOrID)
+	ids := make([]int64, len(entries))
+	for i, e := range entries {
+		ids[i] = e.id
+	}
+	return ids
+}
+
 // Find returns item IDs that satisfy the given search mode.
 // Supported modes: "all", "closest" (args: x, y), "enclosed" (args: x1,y1,x2,y2),
 // "overlapping" (args: x1,y1,x2,y2).

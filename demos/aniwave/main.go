@@ -10,10 +10,11 @@ import (
 	"github.com/msorc/takigo/canvas"
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/pack"
+	"github.com/msorc/takigo/widget/button"
 )
 
 func main() {
-	app := demohelper.Setup("Animated Waveform", 550, 350, "An animated sine wave on a canvas.")
+	app := demohelper.Setup("Animated Wave", 550, 350, "This demonstration contains a canvas widget with a line item inside it. The animation routines work by adjusting the coordinates list of the line.")
 
 	c := canvas.New(app, "wave",
 		canvas.Background("black"),
@@ -45,15 +46,41 @@ func main() {
 	wave2ID := c.CreateLine(makeWaveCoords(math.Pi/3),
 		canvas.OutlineColor("#ff6600"), canvas.OutlineWidth(2), canvas.Smooth(true))
 
+	// Animation state.
+	running := true
+
 	// Animation loop.
 	var animate func()
 	animate = func() {
+		if !running {
+			return
+		}
 		phase += 0.1
 		c.SetItemCoords(fmt.Sprintf("%d", waveID), makeWaveCoords(phase))
 		c.SetItemCoords(fmt.Sprintf("%d", wave2ID), makeWaveCoords(phase+math.Pi/3))
 		app.After(33*time.Millisecond, animate)
 	}
 	app.After(33*time.Millisecond, animate)
+
+	// Pause/Resume toggle button.
+	pauseBtn := button.New(app, "pause",
+		button.Text("Pause"),
+		button.PadX(10),
+		button.PadY(4),
+	)
+	pauseBtn.Command = func() {
+		if running {
+			running = false
+			pauseBtn.Text = "Resume"
+			pauseBtn.Display()
+		} else {
+			running = true
+			pauseBtn.Text = "Pause"
+			pauseBtn.Display()
+			animate()
+		}
+	}
+	pack.Pack(pauseBtn, pack.SideOpt(pack.Top), pack.PadY(5))
 
 	app.Run()
 }

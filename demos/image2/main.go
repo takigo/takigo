@@ -20,8 +20,11 @@ import (
 )
 
 func main() {
-	app := demohelper.Setup("Image Viewer", 550, 400,
-		"Select an image from the list to preview it.")
+	app := demohelper.Setup("Image Demonstration #2", 550, 400,
+		"This demonstration allows you to view images using a photo "+
+			"image. First type a directory name in the entry, then press "+
+			"Return to load the directory into the listbox. Then "+
+			"double-click on a file name in the listbox to see that image.")
 
 	// Generate several images.
 	type imgEntry struct {

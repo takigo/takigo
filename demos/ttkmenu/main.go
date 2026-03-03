@@ -1,77 +1,72 @@
-// Demo: TTK Menubuttons with different menu configurations.
-// Ported from Tk's ttkmenu.tcl demo (simplified — no tearoff).
+// Demo: TTK Menubuttons arranged in compass directions for theme selection.
+// Ported from Tk's ttkmenu.tcl demo.
 package main
 
 import (
+	"fmt"
+
 	"github.com/msorc/takigo/demos/demohelper"
+	"github.com/msorc/takigo/geometry/grid"
 	"github.com/msorc/takigo/geometry/pack"
-	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/ttk"
 	_ "github.com/msorc/takigo/ttk/clamtheme"
 	_ "github.com/msorc/takigo/ttk/defaulttheme"
-	"github.com/msorc/takigo/widget/label"
 	"github.com/msorc/takigo/widget/menu"
 )
 
 func main() {
-	app := demohelper.Setup("TTK Menubutton Demonstration", 400, 350,
-		"Below are themed menubuttons. Click each to\nopen a dropdown menu.")
+	app := demohelper.Setup("Themed Menu Buttons", 400, 350,
+		"One widget available in themed form is the menubutton. Below are some themed menu buttons that allow you to pick the current theme in use. Notice how picking a theme changes the way that the menu buttons themselves look.")
 
 	ttk.SetCurrentTheme("clam")
 
-	// Status label.
-	statusLabel := label.New(app, "status",
-		label.Text("Selected: (none)"),
-		label.Anchor(option.AnchorW),
-		label.PadX(10),
-	)
-	pack.Pack(statusLabel, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX), pack.PadY(5))
+	// Container frame for the compass grid layout.
+	f := ttk.NewFrame(app, "f")
+	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true), pack.PadY(10))
 
-	setStatus := func(s string) {
-		statusLabel.Text = "Selected: " + s
-		statusLabel.Display()
+	// Create five menubuttons in compass directions: above, left, center, right, below.
+	m1 := ttk.NewMenubutton(f, "m1",
+		ttk.MenubuttonText("Select a theme"),
+		ttk.MenubuttonDirection(ttk.DirAbove),
+	)
+	m2 := ttk.NewMenubutton(f, "m2",
+		ttk.MenubuttonText("Select a theme"),
+		ttk.MenubuttonDirection(ttk.DirLeft),
+	)
+	m3 := ttk.NewMenubutton(f, "m3",
+		ttk.MenubuttonText("Select a theme"),
+		ttk.MenubuttonDirection(ttk.DirRight),
+	)
+	m4 := ttk.NewMenubutton(f, "m4",
+		ttk.MenubuttonText("Select a theme"),
+	)
+	m5 := ttk.NewMenubutton(f, "m5",
+		ttk.MenubuttonText("Select a theme"),
+	)
+
+	// Build menus listing available themes; selecting one switches the theme.
+	themes := ttk.ThemeNames()
+	buttons := []*ttk.Menubutton{m1, m2, m3, m4, m5}
+	for i, mb := range buttons {
+		m := menu.New(f, fmt.Sprintf("menu%d", i+1))
+		for _, themeName := range themes {
+			name := themeName // capture for closure
+			m.AddCommand(name, func() {
+				ttk.SetCurrentTheme(name)
+			})
+		}
+		mb.Menu = m
 	}
 
-	// File menubutton.
-	fileMenu := menu.New(app, "filemenu")
-	fileMenu.AddCommand("New", func() { setStatus("File > New") })
-	fileMenu.AddCommand("Open", func() { setStatus("File > Open") })
-	fileMenu.AddSeparator()
-	fileMenu.AddCommand("Save", func() { setStatus("File > Save") })
-	fileMenu.AddCommand("Close", func() { setStatus("File > Close") })
+	// Grid layout: compass arrangement.
+	//     .  m1  .
+	//    m2  m4  m3
+	//     .  m5  .
+	grid.Grid(m1, grid.Row(0), grid.Column(1), grid.PadX(3), grid.PadY(2))
+	grid.Grid(m2, grid.Row(1), grid.Column(0), grid.PadX(3), grid.PadY(2))
+	grid.Grid(m4, grid.Row(1), grid.Column(1), grid.PadX(3), grid.PadY(2))
+	grid.Grid(m3, grid.Row(1), grid.Column(2), grid.PadX(3), grid.PadY(2))
+	grid.Grid(m5, grid.Row(2), grid.Column(1), grid.PadX(3), grid.PadY(2))
 
-	fileMB := ttk.NewMenubutton(app, "filemb",
-		ttk.MenubuttonText("File"),
-		ttk.MenubuttonMenu(fileMenu),
-	)
-	pack.Pack(fileMB, pack.SideOpt(pack.Top), pack.PadX(20), pack.PadY(10))
-
-	// Edit menubutton.
-	editMenu := menu.New(app, "editmenu")
-	editMenu.AddCommand("Cut", func() { setStatus("Edit > Cut") })
-	editMenu.AddCommand("Copy", func() { setStatus("Edit > Copy") })
-	editMenu.AddCommand("Paste", func() { setStatus("Edit > Paste") })
-
-	editMB := ttk.NewMenubutton(app, "editmb",
-		ttk.MenubuttonText("Edit"),
-		ttk.MenubuttonMenu(editMenu),
-	)
-	pack.Pack(editMB, pack.SideOpt(pack.Top), pack.PadX(20), pack.PadY(10))
-
-	// Help menubutton.
-	helpMenu := menu.New(app, "helpmenu")
-	helpMenu.AddCommand("About", func() { setStatus("Help > About") })
-	helpMenu.AddCommand("Documentation", func() { setStatus("Help > Documentation") })
-
-	helpMB := ttk.NewMenubutton(app, "helpmb",
-		ttk.MenubuttonText("Help"),
-		ttk.MenubuttonMenu(helpMenu),
-	)
-	pack.Pack(helpMB, pack.SideOpt(pack.Top), pack.PadX(20), pack.PadY(10))
-
-	_ = statusLabel
-	_ = fileMB
-	_ = editMB
-	_ = helpMB
 	app.Run()
 }

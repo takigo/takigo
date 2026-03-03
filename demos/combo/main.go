@@ -10,11 +10,12 @@ import (
 	_ "github.com/msorc/takigo/ttk/clamtheme"
 	_ "github.com/msorc/takigo/ttk/defaulttheme"
 	"github.com/msorc/takigo/widget/label"
+	"github.com/msorc/takigo/widget/labelframe"
 )
 
 func main() {
 	app := demohelper.Setup("Combobox Demonstration", 450, 400,
-		"Three comboboxes are shown below: editable,\nreadonly, and disabled. Click the arrow to see the\ndropdown list.")
+		"Three different combo-boxes are displayed below. You can add characters to the first one by pointing, clicking and typing, just as with an entry; pressing Return will cause the current value to be added to the drop-down list. The second combo-box is fixed to a particular value, and cannot be modified at all. The third one only allows you to select values from its drop-down list of Australian cities.")
 
 	ttk.SetCurrentTheme("clam")
 
@@ -26,69 +27,57 @@ func main() {
 	)
 	pack.Pack(statusLabel, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX), pack.PadY(5))
 
-	countries := []string{
-		"Australia", "Canada", "France", "Germany",
-		"Japan", "United Kingdom", "United States",
+	cities := []string{
+		"Canberra", "Sydney", "Melbourne", "Perth",
+		"Adelaide", "Brisbane", "Hobart", "Darwin", "Alice Springs",
 	}
 
-	// Editable combobox.
-	editLabel := label.New(app, "editlabel",
-		label.Text("Editable:"),
-		label.Anchor(option.AnchorW),
-		label.PadX(20),
-	)
-	pack.Pack(editLabel, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(5))
+	// Editable combobox in labelframe.
+	editFrame := labelframe.New(app, "c1", labelframe.Text("Fully Editable"))
+	pack.Pack(editFrame, pack.SideOpt(pack.Top), pack.PadY(3), pack.PadX(8))
 
-	editCombo := ttk.NewCombobox(app, "editcombo",
-		ttk.ComboboxValues(countries),
-		ttk.ComboboxText("Australia"),
+	editCombo := ttk.NewCombobox(editFrame, "c",
+		ttk.ComboboxValues(cities),
+		ttk.ComboboxText("Canberra"),
 		ttk.ComboboxCommand(func(v string) {
 			statusLabel.Text = "Selection: " + v
 			statusLabel.Display()
 		}),
 	)
-	pack.Pack(editCombo, pack.SideOpt(pack.Top), pack.PadX(20), pack.PadY(5))
+	pack.Pack(editCombo, pack.PadY(3), pack.PadX(8))
 
-	// Readonly combobox.
-	roLabel := label.New(app, "rolabel",
-		label.Text("Readonly:"),
-		label.Anchor(option.AnchorW),
-		label.PadX(20),
+	// Disabled combobox in labelframe.
+	disFrame := labelframe.New(app, "c2", labelframe.Text("Disabled"))
+	pack.Pack(disFrame, pack.SideOpt(pack.Top), pack.PadY(3), pack.PadX(8))
+
+	disCombo := ttk.NewCombobox(disFrame, "c",
+		ttk.ComboboxValues(cities),
+		ttk.ComboboxText("Melbourne"),
+		ttk.ComboboxCbState(ttk.ComboDisabled),
 	)
-	pack.Pack(roLabel, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(5))
+	pack.Pack(disCombo, pack.PadY(3), pack.PadX(8))
 
-	roCombo := ttk.NewCombobox(app, "rocombo",
-		ttk.ComboboxValues(countries),
-		ttk.ComboboxText("Canada"),
+	// Readonly combobox in labelframe.
+	roFrame := labelframe.New(app, "c3", labelframe.Text("Defined List Only"))
+	pack.Pack(roFrame, pack.SideOpt(pack.Top), pack.PadY(3), pack.PadX(8))
+
+	roCombo := ttk.NewCombobox(roFrame, "c",
+		ttk.ComboboxValues(cities),
+		ttk.ComboboxText("Sydney"),
 		ttk.ComboboxCbState(ttk.ComboReadonly),
 		ttk.ComboboxCommand(func(v string) {
 			statusLabel.Text = "Selection: " + v
 			statusLabel.Display()
 		}),
 	)
-	pack.Pack(roCombo, pack.SideOpt(pack.Top), pack.PadX(20), pack.PadY(5))
-
-	// Disabled combobox.
-	disLabel := label.New(app, "dislabel",
-		label.Text("Disabled:"),
-		label.Anchor(option.AnchorW),
-		label.PadX(20),
-	)
-	pack.Pack(disLabel, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(5))
-
-	disCombo := ttk.NewCombobox(app, "discombo",
-		ttk.ComboboxValues(countries),
-		ttk.ComboboxText("France"),
-		ttk.ComboboxCbState(ttk.ComboDisabled),
-	)
-	pack.Pack(disCombo, pack.SideOpt(pack.Top), pack.PadX(20), pack.PadY(5))
+	pack.Pack(roCombo, pack.PadY(3), pack.PadX(8))
 
 	_ = statusLabel
-	_ = editLabel
+	_ = editFrame
 	_ = editCombo
-	_ = roLabel
-	_ = roCombo
-	_ = disLabel
+	_ = disFrame
 	_ = disCombo
+	_ = roFrame
+	_ = roCombo
 	app.Run()
 }

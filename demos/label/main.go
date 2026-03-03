@@ -11,7 +11,9 @@ import (
 
 func main() {
 	app := demohelper.Setup("Label Demonstration", 450, 350,
-		"Five labels are displayed below. They are all the same except\nfor their relief and border width settings.")
+		"Five labels are displayed below: three textual ones on the left, "+
+			"and an image label and a text label on the right. Labels are "+
+			"pretty boring because you can't do anything with them.")
 
 	// Labels with different relief styles.
 	reliefs := []struct {

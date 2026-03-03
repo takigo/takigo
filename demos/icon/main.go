@@ -65,7 +65,14 @@ func makeFlagImage(name string, up bool) *tkimage.Photo {
 
 func main() {
 	app := demohelper.Setup("Iconic Button Demonstration", 450, 400,
-		"This demo shows checkbuttons and radiobuttons with\ncolored icon images instead of text labels.")
+		"This window shows three ways of using bitmaps or images in "+
+			"radiobuttons and checkbuttons. On the left are two "+
+			"radiobuttons, each of which displays a bitmap and an "+
+			"indicator. In the middle is a checkbutton that displays a "+
+			"different image depending on whether it is selected or not. "+
+			"On the right is a checkbutton that displays a single bitmap "+
+			"but changes its background color to indicate whether or not "+
+			"it is selected.")
 
 	statusLabel := label.New(app, "status",
 		label.Text("Flag: down, Color: red"),

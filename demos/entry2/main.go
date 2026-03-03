@@ -13,7 +13,7 @@ import (
 
 func main() {
 	app := demohelper.Setup("Entry Demonstration (with scrollbars)", 450, 320,
-		"Three entry widgets with scrollbars are displayed below.\nYou can add characters by pointing, clicking and typing.")
+		"Three different entries are displayed below, with a scrollbar for each entry. You can add characters by pointing, clicking and typing. The normal editing characters are supported, along with many Emacs bindings. For entries that are too large to fit in the window all at once, you can scan through the entries with the scrollbars.")
 	root := app.Window()
 
 	focusMgr := focus.NewManager(app.Dispatcher(), app.DisplayPtr())

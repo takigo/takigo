@@ -17,7 +17,10 @@ import (
 
 func main() {
 	app := demohelper.Setup("15-Puzzle", 340, 400,
-		"A 15-puzzle. Click on a piece next to the\nempty space to slide it into the space.")
+		"A 15-puzzle appears below as a collection of buttons. Click "+
+			"on any of the pieces next to the space, and that piece will "+
+			"slide over the space. Continue this until the pieces are "+
+			"arranged in numerical order from upper-left to lower-right.")
 
 	// Puzzle frame.
 	puzzleFrame := frame.New(app, "puzzle",

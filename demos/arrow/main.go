@@ -12,8 +12,8 @@ import (
 )
 
 func main() {
-	app := demohelper.Setup("Arrow Shapes", 550, 400,
-		"Various arrow shapes on canvas lines.\nArrows can appear at first, last, or both ends.")
+	app := demohelper.Setup("Arrowhead Editor", 550, 400,
+		"This widget allows you to experiment with different widths and arrowhead shapes for lines in canvases. To change the line width or the shape of the arrowhead, drag any of the three boxes attached to the oversized arrow. The arrows on the right give examples at normal scale.")
 
 	// Canvas.
 	c := canvas.New(app, "arrows",

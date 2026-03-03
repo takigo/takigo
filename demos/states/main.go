@@ -11,8 +11,8 @@ import (
 )
 
 func main() {
-	app := demohelper.Setup("US States", 300, 400,
-		"A listbox containing the 50 US states.\nSelect a state and press Dismiss to exit.")
+	app := demohelper.Setup("The 50 States", 300, 400,
+		"A listbox containing the 50 states is displayed below, along with a scrollbar. You can scan the list either using the scrollbar or by scanning.")
 
 	// Listbox frame.
 	lbFrame := frame.New(app, "lbframe")

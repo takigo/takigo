@@ -3,7 +3,7 @@
 package main
 
 import (
-	"fmt"
+	"time"
 
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/pack"
@@ -13,10 +13,12 @@ import (
 	_ "github.com/msorc/takigo/ttk/defaulttheme"
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
+	"github.com/msorc/takigo/widget/scrollbar"
+	"github.com/msorc/takigo/widget/text"
 )
 
 func main() {
-	app := demohelper.Setup("Notebook Demonstration", 500, 350, "A notebook widget with three tabs. Click each tab\nto switch between pages.")
+	app := demohelper.Setup("Ttk Notebook Widget", 500, 350, "One of the Ttk widgets is the notebook widget, which provides a set of tabs that allow the selection of a group of panels, each with distinct content. Not only can the tabs be selected with the mouse, but they can also be switched between using Ctrl+Tab when the notebook page heading itself is selected. Note that the second tab is disabled, and cannot be selected.")
 
 	ttk.SetCurrentTheme("clam")
 
@@ -25,52 +27,79 @@ func main() {
 	pack.Pack(nb, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true), pack.PadX(15), pack.PadY(10))
 
-	// Tab 1: Description.
+	// Tab 1: Description with "Neat!" button.
 	page1 := frame.New(nb, "page1")
 	descLabel := label.New(page1, "desc",
-		label.Text("This is the first tab.\n\nNotebook widgets allow you to\norganize content into tabs.\nClick on a tab to view its content."),
+		label.Text("Ttk is the new Tk themed widget set. One of the widgets\nit includes is the notebook widget, which provides a set\nof tabs that allow the selection of a group of panels,\neach with distinct content. They are a feature of many\nmodern user interfaces. Not only can the tabs be selected\nwith the mouse, but they can also be switched between\nusing Ctrl+Tab when the notebook page heading itself is\nselected. Note that the second tab is disabled, and\ncannot be selected."),
 		label.Anchor(option.AnchorNW),
 		label.PadX(10), label.PadY(10),
 	)
 	pack.Pack(descLabel, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
-	nb.Add(page1.Window(), "Description")
 
-	// Tab 2: Buttons.
-	page2 := frame.New(nb, "page2")
-
-	statusLabel := label.New(page2, "status2",
-		label.Text("Click a button:"),
+	neatLabel := label.New(page1, "neat",
+		label.Text(""),
 		label.Anchor(option.AnchorW),
 		label.PadX(10),
 	)
-	pack.Pack(statusLabel, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(5))
 
-	for i, text := range []string{"Button A", "Button B", "Button C"} {
-		btnText := text
-		btn := ttk.NewButton(page2, fmt.Sprintf("btn%d", i),
-			ttk.ButtonText(btnText),
-			ttk.ButtonCommand(func() {
-				statusLabel.Text = "Clicked: " + btnText
-				statusLabel.Display()
-			}),
-		)
-		pack.Pack(btn, pack.SideOpt(pack.Top), pack.PadX(10), pack.PadY(3))
-		_ = btn
-	}
-	nb.Add(page2.Window(), "Buttons")
+	neatBtn := ttk.NewButton(page1, "neatbtn",
+		ttk.ButtonText("Neat!"),
+		ttk.ButtonCommand(func() {
+			neatLabel.Text = "Yeah, I know..."
+			neatLabel.Display()
+			app.After(500*time.Millisecond, func() {
+				neatLabel.Text = ""
+				neatLabel.Display()
+			})
+		}),
+	)
+	pack.Pack(neatBtn, pack.SideOpt(pack.Left), pack.PadX(10), pack.PadY(5))
+	pack.Pack(neatLabel, pack.SideOpt(pack.Left), pack.PadX(10), pack.PadY(5))
+	nb.Add(page1.Window(), "Description")
 
-	// Tab 3: Labels.
+	// Tab 2: Disabled tab.
+	page2 := frame.New(nb, "page2")
+	nb.Add(page2.Window(), "Disabled")
+	nb.SetTabState(1, ttk.StateDisabled)
+
+	// Tab 3: Text editor with scrollbar.
 	page3 := frame.New(nb, "page3")
-	for _, text := range []string{"Label One", "Label Two", "Label Three"} {
-		l := ttk.NewLabel(page3, "l_"+text,
-			ttk.LabelText(text),
-		)
-		pack.Pack(l, pack.SideOpt(pack.Top), pack.PadX(10), pack.PadY(5))
-		_ = l
-	}
-	nb.Add(page3.Window(), "Labels")
 
-	_ = descLabel
-	_ = statusLabel
+	tw := text.New(page3, "editor",
+		text.Width(40),
+		text.Height(10),
+		text.WrapModeOpt(text.WrapChar),
+	)
+
+	yscroll := scrollbar.New(page3, "yscroll",
+		scrollbar.OrientOpt(scrollbar.Vertical),
+		scrollbar.CommandOpt(func(args ...any) {
+			if len(args) < 1 {
+				return
+			}
+			switch args[0] {
+			case "moveto":
+				if len(args) >= 2 {
+					if f, ok := args[1].(float64); ok {
+						tw.YViewMoveTo(f)
+					}
+				}
+			case "scroll":
+				if len(args) >= 3 {
+					n, _ := args[1].(int)
+					unit, _ := args[2].(string)
+					tw.YViewScroll(n, unit == "pages")
+				}
+			}
+		}),
+	)
+	tw.YScrollCmd = func(first, last float64) {
+		yscroll.Set(first, last)
+	}
+
+	pack.Pack(yscroll, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
+	pack.Pack(tw, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+	nb.Add(page3.Window(), "Text Editor")
+
 	app.Run()
 }

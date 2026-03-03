@@ -16,7 +16,7 @@ import (
 )
 
 func main() {
-	app := demohelper.Setup("Progressbar Demonstration", 400, 350, "Below are two progressbars: one determinate (showing\nprogress percentage) and one indeterminate (bouncing).")
+	app := demohelper.Setup("Progressbar Demonstration", 400, 350, "Below are two progress bars. The top one is a \"determinate\" progress bar, which is used for showing how far through a defined task the program has got. The bottom one is an \"indeterminate\" progress bar, which is used to show that the program is busy but does not know how long for. Both are run here in self-animated mode, which can be turned on and off using the buttons underneath.")
 
 	ttk.SetCurrentTheme("clam")
 

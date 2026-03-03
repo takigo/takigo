@@ -40,8 +40,8 @@ var countries = []countryData{
 }
 
 func main() {
-	app := demohelper.Setup("Multi-Column List", 500, 400,
-		"A sortable multi-column list.\nClick column headings to sort.")
+	app := demohelper.Setup("Multi-Column List of Countries", 500, 400,
+		"One of the Ttk widgets is a tree widget, which can be configured to display multiple columns of informational data without displaying the tree itself. This is a simple way to build a listbox that has multiple columns. Clicking on the heading for a column will sort the data by that column. You can also change the width of the columns by dragging the boundary between them.")
 
 	ttk.SetCurrentTheme("clam")
 

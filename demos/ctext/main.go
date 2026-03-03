@@ -10,8 +10,8 @@ import (
 )
 
 func main() {
-	app := demohelper.Setup("Canvas Text Demo", 550, 400,
-		"Canvas text items rendered at various positions\nwith different anchors, fonts, and colors.")
+	app := demohelper.Setup("Canvas Text Demonstration", 550, 400,
+		"This window displays a string of text to demonstrate the text facilities of canvas widgets. You can click in the boxes to adjust the position of the text relative to its positioning point or change its justification.")
 
 	// Canvas.
 	c := canvas.New(app, "canvas",

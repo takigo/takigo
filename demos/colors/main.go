@@ -12,8 +12,8 @@ import (
 )
 
 func main() {
-	app := demohelper.Setup("Listbox of Colors", 350, 450,
-		"A list of X color names. Double-click a color\nto change the application background.")
+	app := demohelper.Setup("Colors", 350, 450,
+		"A listbox containing several color names is displayed below, along with a scrollbar. You can scan the list either using the scrollbar or by dragging in the listbox window with button 2 pressed. If you double-click button 1 on a color, then the application's color palette will be set to match that color.")
 	root := app.Window()
 
 	// Color names (grouped by family).

@@ -15,9 +15,7 @@ import (
 
 func main() {
 	app := demohelper.Setup("Dialog with local grab", 400, 200,
-		"This demo uses a modal dialog with a \"local grab\". The grab prevents mouse or\n"+
-			"keyboard events from reaching other windows in this application until the dialog\n"+
-			"is dismissed. You can still interact with other applications.")
+		"This is a modal dialog box. It uses a \"local grab\" on the dialog box. The grab prevents any mouse or keyboard events from getting to any other windows in the application until you have answered the dialog by invoking one of the buttons below. However, you can still interact with other applications.")
 
 	statusLabel := label.New(app, "status",
 		label.Text("Result: —"),

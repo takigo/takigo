@@ -15,8 +15,9 @@ import (
 )
 
 func main() {
-	app := demohelper.Setup("Image Demo", 500, 400,
-		"Photo images displayed in labels.\nImages are generated at runtime.")
+	app := demohelper.Setup("Image Demonstration #1", 500, 400,
+		"This demonstration displays two images, each in a separate "+
+			"label widget.")
 
 	// Generate test images.
 	makeGradient := func(name string, c1, c2 color.RGBA, w, h int) *tkimage.Photo {

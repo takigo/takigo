@@ -10,14 +10,17 @@ import (
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/button"
+	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
+	"github.com/msorc/takigo/widget/scale"
 )
 
 const boardSize = 6 // 6x6 for faster computation.
 
 func main() {
-	app := demohelper.Setup("Knight's Tour", 450, 500, fmt.Sprintf("Knight's tour on a %dx%d board.\nClick Start to begin the animation.", boardSize, boardSize))
+	app := demohelper.Setup("Knight's Tour", 450, 530, fmt.Sprintf("Knight's tour on a %dx%d board.\nClick Start to begin the animation.", boardSize, boardSize))
 
 	statusLabel := label.New(app, "status",
 		label.Text("Move: 0"),
@@ -38,21 +41,26 @@ func main() {
 	cellSize := 400.0 / float64(boardSize)
 	margin := 10.0
 
-	// Draw chessboard.
-	for row := range boardSize {
-		for col := range boardSize {
-			x1 := margin + float64(col)*cellSize
-			y1 := margin + float64(row)*cellSize
-			x2 := x1 + cellSize
-			y2 := y1 + cellSize
-			fill := "#f0d9b5"
-			if (row+col)%2 == 1 {
-				fill = "#b58863"
+	// Draw chessboard squares (tagged so we can redraw).
+	drawBoard := func() {
+		c.Delete("board")
+		for row := range boardSize {
+			for col := range boardSize {
+				x1 := margin + float64(col)*cellSize
+				y1 := margin + float64(row)*cellSize
+				x2 := x1 + cellSize
+				y2 := y1 + cellSize
+				fill := "#f0d9b5"
+				if (row+col)%2 == 1 {
+					fill = "#b58863"
+				}
+				c.CreateRectangle(x1, y1, x2, y2,
+					canvas.FillColor(fill), canvas.OutlineColor("#888888"),
+					canvas.Tags("board"))
 			}
-			c.CreateRectangle(x1, y1, x2, y2,
-				canvas.FillColor(fill), canvas.OutlineColor("#888888"))
 		}
 	}
+	drawBoard()
 
 	// Find knight's tour using Warnsdorff's heuristic.
 	knightMoves := [][2]int{{-2, -1}, {-2, 1}, {-1, -2}, {-1, 2}, {1, -2}, {1, 2}, {2, -1}, {2, 1}}
@@ -104,24 +112,71 @@ func main() {
 
 	tour := findTour()
 
-	// Start button.
+	// Animation state.
 	step := 0
+	running := false
+	delayMs := 300.0 // milliseconds between steps
 	var animateFunc func()
 
-	startBtn := button.New(app, "start",
+	// Button bar.
+	btnFrame := frame.New(app, "buttons")
+	pack.Pack(btnFrame, pack.SideOpt(pack.Top), pack.PadX(10), pack.PadY(5))
+
+	startBtn := button.New(btnFrame, "start",
 		button.Text("Start"),
 		button.PadX(10), button.PadY(4),
 	)
+	stopBtn := button.New(btnFrame, "stop",
+		button.Text("Stop"),
+		button.PadX(10), button.PadY(4),
+	)
+	resetBtn := button.New(btnFrame, "reset",
+		button.Text("Reset"),
+		button.PadX(10), button.PadY(4),
+	)
+	stopBtn.State = widget.StateDisabled
+	stopBtn.Display()
 
-	startBtn.Command = func() {
-		step = 0
-		c.Delete("knight")
-		c.Delete("path")
-		animateFunc()
+	pack.Pack(startBtn, pack.SideOpt(pack.Left), pack.PadX(4))
+	pack.Pack(stopBtn, pack.SideOpt(pack.Left), pack.PadX(4))
+	pack.Pack(resetBtn, pack.SideOpt(pack.Left), pack.PadX(4))
+
+	// Speed slider.
+	speedScale := scale.New(app, "speed",
+		scale.OrientOpt(scale.Horizontal),
+		scale.FromOpt(50),
+		scale.ToOpt(800),
+		scale.ValueOpt(delayMs),
+		scale.ResolutionOpt(10),
+		scale.LabelOpt("Delay (ms)"),
+		scale.ShowValueOpt(true),
+	)
+	speedScale.Command = func(v float64) {
+		delayMs = v
+	}
+	pack.Pack(speedScale, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
+		pack.PadX(10), pack.PadY(2))
+
+	// Update button states based on running/stopped.
+	updateButtons := func() {
+		if running {
+			startBtn.State = widget.StateDisabled
+			stopBtn.State = widget.StateNormal
+		} else {
+			startBtn.State = widget.StateNormal
+			stopBtn.State = widget.StateDisabled
+		}
+		startBtn.Display()
+		stopBtn.Display()
 	}
 
 	animateFunc = func() {
+		if !running {
+			return
+		}
 		if step >= len(tour) {
+			running = false
+			updateButtons()
 			statusLabel.Text = fmt.Sprintf("Tour complete! %d moves.", len(tour))
 			statusLabel.Display()
 			return
@@ -155,12 +210,43 @@ func main() {
 		statusLabel.Display()
 
 		step++
-		app.After(300*time.Millisecond, animateFunc)
+		app.After(time.Duration(delayMs)*time.Millisecond, animateFunc)
 	}
 
-	pack.Pack(startBtn, pack.SideOpt(pack.Top), pack.PadX(10), pack.PadY(5))
+	startBtn.Command = func() {
+		if running {
+			return
+		}
+		// If tour was completed or never started from 0, restart from current step.
+		if step == 0 {
+			c.Delete("knight")
+			c.Delete("path")
+		}
+		running = true
+		updateButtons()
+		animateFunc()
+	}
+
+	stopBtn.Command = func() {
+		running = false
+		updateButtons()
+		statusLabel.Text = fmt.Sprintf("Stopped at move %d / %d", step, len(tour))
+		statusLabel.Display()
+	}
+
+	resetBtn.Command = func() {
+		running = false
+		step = 0
+		c.Delete("knight")
+		c.Delete("path")
+		updateButtons()
+		statusLabel.Text = "Move: 0"
+		statusLabel.Display()
+	}
 
 	_ = statusLabel
 	_ = startBtn
+	_ = stopBtn
+	_ = resetBtn
 	app.Run()
 }

@@ -11,7 +11,7 @@ import (
 
 func main() {
 	app := demohelper.Setup("Entry Demonstration (no scrollbars)", 450, 250,
-		"Three entry widgets are displayed below. You can click in\nan entry and type text. Use Tab to move between entries.")
+		"Three different entries are displayed below. You can add characters by pointing, clicking and typing. The normal editing characters are supported, along with many Emacs bindings. For example, Backspace and Control-h delete the character to the left of the insertion cursor and Delete and Control-d delete the character to the right of the insertion cursor.")
 	root := app.Window()
 
 	focusMgr := focus.NewManager(app.Dispatcher(), app.DisplayPtr())

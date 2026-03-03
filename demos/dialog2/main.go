@@ -15,10 +15,7 @@ import (
 
 func main() {
 	app := demohelper.Setup("Dialog with global grab", 400, 200,
-		"This demo uses a modal dialog that simulates a \"global grab\". On X11 a true\n"+
-			"global grab would prevent interaction with anything on the display until\n"+
-			"dismissed. This is almost always a bad idea; don't use global grabs\n"+
-			"unless you're truly desperate.")
+		"This dialog box uses a global grab. You will be prevented from interacting with anything on your display until you invoke one of the buttons below. This is almost always a bad idea; don't use global grabs unless you're truly desperate.")
 
 	statusLabel := label.New(app, "status",
 		label.Text("Result: —"),

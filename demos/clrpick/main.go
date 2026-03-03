@@ -3,50 +3,76 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/dialog"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/widget/button"
-	"github.com/msorc/takigo/widget/label"
 )
 
 func main() {
 	app := demohelper.Setup("Color Picker", 400, 250,
-		"Click the button to open the color chooser.\nThe chosen color is displayed below.")
+		"Press the buttons below to choose the foreground and background colors for the widgets in this window.")
 
-	// Color display label.
-	colorLabel := label.New(app, "colorlabel",
-		label.Text("Selected: #3399ff"),
-		label.Background("#3399ff"),
-		label.Foreground("white"),
-		label.PadX(20), label.PadY(20),
-	)
-	pack.Pack(colorLabel, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX),
-		pack.PadX(20), pack.PadY(10))
+	// Current colors tracked for initial values in subsequent dialogs.
+	bgHex := "#d9d9d9"
+	fgHex := "#000000"
 
-	chooseBtn := button.New(app, "choose",
-		button.Text("Choose Color..."),
-		button.Command(func() {
-			color, ok := dialog.ChooseColor(app,
-				dialog.ColorInitial("#3399ff"),
-			)
-			if ok {
-				colorLabel.Text = fmt.Sprintf("Selected: %s", color)
-				c, err := app.ColorCache().Get(color)
-				if err == nil {
-					colorLabel.Background = c
-					colorLabel.UpdateBorder()
-				}
-				colorLabel.Display()
-			}
-		}),
+	// "Set background color ..." button.
+	backBtn := button.New(app, "back",
+		button.Text("Set background color ..."),
 		button.PadX(15), button.PadY(8),
 	)
-	pack.Pack(chooseBtn, pack.SideOpt(pack.Top), pack.PadX(30), pack.PadY(20))
 
-	_ = colorLabel
-	_ = chooseBtn
+	// "Set foreground color ..." button.
+	foreBtn := button.New(app, "fore",
+		button.Text("Set foreground color ..."),
+		button.PadX(15), button.PadY(8),
+	)
+
+	backBtn.Command = func() {
+		color, ok := dialog.ChooseColor(app,
+			dialog.ColorTitle("Choose a background color"),
+			dialog.ColorInitial(bgHex),
+		)
+		if ok {
+			bgHex = color
+			c, err := app.ColorCache().Get(color)
+			if err == nil {
+				// Apply background to both buttons.
+				backBtn.Background = c
+				backBtn.UpdateBorder()
+				backBtn.Display()
+				foreBtn.Background = c
+				foreBtn.UpdateBorder()
+				foreBtn.Display()
+
+				// Apply to root window background.
+				root := app.Root()
+				root.BackgroundPixel = c.Pixel
+			}
+		}
+	}
+
+	foreBtn.Command = func() {
+		color, ok := dialog.ChooseColor(app,
+			dialog.ColorTitle("Choose a foreground color"),
+			dialog.ColorInitial(fgHex),
+		)
+		if ok {
+			fgHex = color
+			c, err := app.ColorCache().Get(color)
+			if err == nil {
+				// Apply foreground to both buttons.
+				backBtn.Foreground = c
+				backBtn.Display()
+				foreBtn.Foreground = c
+				foreBtn.Display()
+			}
+		}
+	}
+
+	pack.Pack(backBtn, pack.SideOpt(pack.Top), pack.PadY(5))
+	pack.Pack(foreBtn, pack.SideOpt(pack.Top), pack.PadY(5))
+
 	app.Run()
 }

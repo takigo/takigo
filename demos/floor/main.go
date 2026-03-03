@@ -10,8 +10,8 @@ import (
 )
 
 func main() {
-	app := demohelper.Setup("Floor Plan", 650, 500,
-		"A simplified building floor plan drawn with canvas lines\nand polygons. Rooms are labeled with text items.")
+	app := demohelper.Setup("Floor Plan Demonstration", 650, 500,
+		"This window contains a canvas widget showing a floorplan. As the mouse moves over the active level, the room under the mouse lights up and its room number appears in the entry.")
 
 	// Canvas.
 	c := canvas.New(app, "floor",

@@ -5,16 +5,46 @@ package main
 import (
 	"github.com/msorc/takigo/canvas"
 	"github.com/msorc/takigo/demos/demohelper"
+	"github.com/msorc/takigo/dialog"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/widget/button"
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
 	"github.com/msorc/takigo/widget/text"
 )
 
 func main() {
-	app := demohelper.Setup("Canvas & Text Print Demo", 700, 500,
-		"This demo shows a canvas with shapes and a text widget\nwith sample content, as used in the Tk print demo.")
+	app := demohelper.Setup("Print Demonstration", 700, 500,
+		"This demonstration showcases the print command. Clicking the buttons below prints the data from the canvas and text widgets using platform-native dialogs.")
+
+	// Button row at the bottom.
+	btnFrame := frame.New(app, "buttons")
+	pack.Pack(btnFrame, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX), pack.PadY(5))
+
+	printCanvasBtn := button.New(btnFrame, "printcanvas",
+		button.Text("Print Canvas"),
+		button.Command(func() {
+			dialog.ShowMessage(app,
+				dialog.MsgTitle("Print"),
+				dialog.MsgMessage("Printing is not available on this platform."),
+				dialog.MsgType(dialog.MsgInfo),
+			)
+		}),
+	)
+	pack.Pack(printCanvasBtn, pack.SideOpt(pack.Left), pack.PadX(10))
+
+	printTextBtn := button.New(btnFrame, "printtext",
+		button.Text("Print Text"),
+		button.Command(func() {
+			dialog.ShowMessage(app,
+				dialog.MsgTitle("Print"),
+				dialog.MsgMessage("Printing is not available on this platform."),
+				dialog.MsgType(dialog.MsgInfo),
+			)
+		}),
+	)
+	pack.Pack(printTextBtn, pack.SideOpt(pack.Left), pack.PadX(10))
 
 	infoLabel := label.New(app, "info",
 		label.Text("Note: Printing is not available on this platform."),

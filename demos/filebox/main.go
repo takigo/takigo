@@ -7,73 +7,82 @@ import (
 
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/dialog"
+	"github.com/msorc/takigo/geometry/grid"
 	"github.com/msorc/takigo/geometry/pack"
-	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/widget/button"
+	"github.com/msorc/takigo/widget/entry"
+	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
 )
 
 func main() {
-	app := demohelper.Setup("File Dialogs", 400, 250,
-		"Click a button to open a file dialog.\nThe selected path is shown in the status bar.")
-
-	statusLabel := label.New(app, "status",
-		label.Text("Selected: —"),
-		label.Anchor(option.AnchorW),
-		label.Background("#e8e8e8"),
-		label.PadX(5), label.PadY(2),
-	)
-	pack.Pack(statusLabel, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
-
-	setStatus := func(s string) {
-		statusLabel.Text = s
-		statusLabel.Display()
-	}
+	app := demohelper.Setup("File Selection Dialogs", 500, 200,
+		"Enter a file name in the entry box or click on the \"Browse\" buttons to select a file name using the file selection dialog.")
 
 	fileTypes := []dialog.FileType{
-		{Name: "Go files", Pattern: "*.go"},
 		{Name: "Text files", Pattern: "*.txt"},
+		{Name: "Go files", Pattern: "*.go"},
+		{Name: "C Source Files", Pattern: "*.c"},
 		{Name: "All files", Pattern: "*"},
 	}
 
-	openBtn := button.New(app, "open",
-		button.Text("Open File..."),
-		button.Command(func() {
-			path, ok := dialog.OpenFile(app,
-				dialog.FileTitle("Open File"),
-				dialog.FileTypes(fileTypes...),
-			)
-			if ok {
-				setStatus(fmt.Sprintf("Open: %s", path))
-			} else {
-				setStatus("Open cancelled")
-			}
-		}),
-		button.PadX(10), button.PadY(6),
-	)
-	pack.Pack(openBtn, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
-		pack.PadX(30), pack.PadY(10))
+	// Grid frame for label + entry + browse button rows.
+	f := frame.New(app, "form")
+	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
+		pack.PadX(20), pack.PadY(10))
 
-	saveBtn := button.New(app, "save",
-		button.Text("Save File..."),
-		button.Command(func() {
-			path, ok := dialog.SaveFile(app,
-				dialog.FileTitle("Save File"),
-				dialog.FileTypes(fileTypes...),
-			)
-			if ok {
-				setStatus(fmt.Sprintf("Save: %s", path))
-			} else {
-				setStatus("Save cancelled")
-			}
-		}),
-		button.PadX(10), button.PadY(6),
-	)
-	pack.Pack(saveBtn, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
-		pack.PadX(30), pack.PadY(5))
+	rows := []struct {
+		label string
+		op    string
+	}{
+		{"Select a file to open:", "open"},
+		{"Select a file to save:", "save"},
+	}
 
-	_ = statusLabel
-	_ = openBtn
-	_ = saveBtn
+	for i, r := range rows {
+		row := i
+		op := r.op
+
+		l := label.New(f, fmt.Sprintf("lab_%s", op),
+			label.Text(r.label),
+		)
+		e := entry.New(f, fmt.Sprintf("ent_%s", op),
+			entry.Width(20),
+		)
+		b := button.New(f, fmt.Sprintf("but_%s", op),
+			button.Text("Browse ..."),
+		)
+
+		// Wire up the browse button command to open the appropriate dialog
+		// and fill the entry with the selected path.
+		ent := e
+		b.Command = func() {
+			var path string
+			var ok bool
+			if op == "open" {
+				path, ok = dialog.OpenFile(app,
+					dialog.FileTitle("Open File"),
+					dialog.FileTypes(fileTypes...),
+				)
+			} else {
+				path, ok = dialog.SaveFile(app,
+					dialog.FileTitle("Save File"),
+					dialog.FileTypes(fileTypes...),
+				)
+			}
+			if ok {
+				ent.SetText(path)
+				ent.XView(len([]rune(path)))
+				ent.Display()
+			}
+		}
+
+		grid.Grid(l, grid.Row(row), grid.Column(0), grid.Sticky(grid.StickW), grid.PadY(4))
+		grid.Grid(e, grid.Row(row), grid.Column(1), grid.Sticky(grid.EW), grid.PadX(5), grid.PadY(4))
+		grid.Grid(b, grid.Row(row), grid.Column(2), grid.PadY(4))
+	}
+
+	grid.ColumnConfigure(f.Window(), 1, grid.SlotConfig{Weight: 1})
+
 	app.Run()
 }

@@ -4,17 +4,19 @@ package main
 
 import (
 	"fmt"
-	"math"
+	"strconv"
 
 	"github.com/msorc/takigo/canvas"
 	"github.com/msorc/takigo/demos/demohelper"
+	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/geometry/pack"
+	"github.com/msorc/takigo/internal/xlib"
 	"github.com/msorc/takigo/option"
 )
 
 func main() {
-	app := demohelper.Setup("2D Plot", 550, 450,
-		"A 2D data plot. Drag the data points with the mouse\nto see them move along the line.")
+	app := demohelper.Setup("Plot Demonstration", 550, 450,
+		"This window displays a canvas widget containing a simple 2-dimensional plot. You can doctor the data by dragging any of the points with mouse button 1.")
 
 	// Canvas.
 	c := canvas.New(app, "plot",
@@ -38,6 +40,11 @@ func main() {
 		canvas.OutlineColor("black"), canvas.OutlineWidth(2))
 	c.CreateLine([]float64{plotLeft, plotBottom, plotLeft, plotTop},
 		canvas.OutlineColor("black"), canvas.OutlineWidth(2))
+
+	// Title.
+	c.CreateText(float64(plotLeft+plotRight)/2, float64(plotTop-20),
+		canvas.TextOpt("A Simple Plot"), canvas.AnchorOpt(option.AnchorCenter),
+		canvas.FontOpt("Sans 14"), canvas.FillColor("brown"))
 
 	// Axis labels.
 	c.CreateText(float64(plotLeft+plotRight)/2, float64(plotBottom+25),
@@ -63,7 +70,7 @@ func main() {
 			canvas.AnchorOpt(option.AnchorE), canvas.FontOpt("Sans 8"))
 	}
 
-	// Data points and line.
+	// Data points and connecting line.
 	dataX := []float64{0, 20, 40, 60, 80, 100}
 	dataY := []float64{10, 45, 30, 70, 55, 90}
 
@@ -81,19 +88,10 @@ func main() {
 		lineCoords[i*2] = toPixelX(dataX[i])
 		lineCoords[i*2+1] = toPixelY(dataY[i])
 	}
-	c.CreateLine(lineCoords,
+	lineID := c.CreateLine(lineCoords,
 		canvas.OutlineColor("#3498db"), canvas.OutlineWidth(2),
 		canvas.Tags("dataline"))
-
-	// Draw data points as small filled circles.
-	ptSize := 5.0
-	for i := range dataX {
-		px := toPixelX(dataX[i])
-		py := toPixelY(dataY[i])
-		c.CreateOval(px-ptSize, py-ptSize, px+ptSize, py+ptSize,
-			canvas.FillColor("#e74c3c"), canvas.OutlineColor("black"), canvas.OutlineWidth(1),
-			canvas.Tags("point"))
-	}
+	lineIDStr := strconv.FormatInt(lineID, 10)
 
 	// Draw grid lines.
 	for i := 1; i < 5; i++ {
@@ -105,15 +103,76 @@ func main() {
 			canvas.OutlineColor("#e0e0e0"), canvas.OutlineWidth(1))
 	}
 
-	// Sine curve overlay.
-	sineCoords := make([]float64, 0, 202)
-	for i := range 101 {
-		x := float64(i)
-		y := 50 + 40*math.Sin(x*math.Pi/50)
-		sineCoords = append(sineCoords, toPixelX(x), toPixelY(y))
+	// Draw data points as small filled circles.
+	ptSize := 5.0
+	pointIDs := make([]int64, len(dataX))
+	for i := range dataX {
+		px := toPixelX(dataX[i])
+		py := toPixelY(dataY[i])
+		pointIDs[i] = c.CreateOval(px-ptSize, py-ptSize, px+ptSize, py+ptSize,
+			canvas.FillColor("SkyBlue2"), canvas.OutlineColor("black"), canvas.OutlineWidth(1),
+			canvas.Tags("point"))
 	}
-	c.CreateLine(sineCoords,
-		canvas.OutlineColor("#27ae60"), canvas.OutlineWidth(1), canvas.Smooth(true))
+
+	// updateLine rebuilds the connecting line coordinates from current point positions.
+	updateLine := func() {
+		coords := make([]float64, 0, len(pointIDs)*2)
+		for _, pid := range pointIDs {
+			pidStr := strconv.FormatInt(pid, 10)
+			oc := c.ItemCoords(pidStr)
+			if len(oc) >= 4 {
+				// Oval coords are x1,y1,x2,y2; center is midpoint.
+				cx := (oc[0] + oc[2]) / 2
+				cy := (oc[1] + oc[3]) / 2
+				coords = append(coords, cx, cy)
+			}
+		}
+		c.SetItemCoords(lineIDStr, coords)
+	}
+
+	// Drag state.
+	var lastX, lastY int
+
+	// Hover: change color on enter/leave.
+	c.BindItem("point", event.EnterMask, func(ev *event.Event) {
+		c.ItemConfigure("current", canvas.FillColor("red"))
+	})
+	c.BindItem("point", event.LeaveMask, func(ev *event.Event) {
+		c.ItemConfigure("current", canvas.FillColor("SkyBlue2"))
+	})
+
+	// ButtonPress-1 on point: start drag.
+	c.BindItem("point", event.ButtonPressMask, func(ev *event.Event) {
+		if ev.Button != 1 {
+			return
+		}
+		c.DeleteTag("selected", "selected")
+		c.AddTag("selected", "current")
+		c.Raise("current")
+		lastX = ev.X
+		lastY = ev.Y
+	})
+
+	// ButtonRelease-1 on point: end drag.
+	c.BindItem("point", event.ButtonReleaseMask, func(ev *event.Event) {
+		if ev.Button != 1 {
+			return
+		}
+		c.DeleteTag("selected", "selected")
+	})
+
+	// B1-Motion on point: drag the selected point and update the line.
+	c.BindItem("point", event.MotionMask, func(ev *event.Event) {
+		if ev.State&xlib.Button1Mask == 0 {
+			return
+		}
+		dx := float64(ev.X - lastX)
+		dy := float64(ev.Y - lastY)
+		c.Move("selected", dx, dy)
+		lastX = ev.X
+		lastY = ev.Y
+		updateLine()
+	})
 
 	app.Run()
 }

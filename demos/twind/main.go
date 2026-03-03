@@ -15,7 +15,7 @@ import (
 
 func main() {
 	app := demohelper.Setup("Text Widget Features", 650, 550,
-		"This demo shows text tags, colors, fonts, and undo/redo.\nThe original Tk demo also embeds windows and images.")
+		"Embedded windows/images in text are not supported in this port.\nText tags, colors, fonts, and undo/redo work.")
 
 	// Side control buttons.
 	ctrlFrame := frame.New(app, "ctrl")

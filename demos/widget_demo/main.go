@@ -35,97 +35,95 @@ type category struct {
 }
 
 var categories = []category{
-	{"Labels, Buttons & Entries", []demoEntry{
-		{"label", "Labels with relief styles"},
-		{"button", "Buttons that change background"},
-		{"puzzle", "15-puzzle game"},
-		{"entry1", "Basic entry widgets"},
+	{"Labels, buttons, checkbuttons, and radiobuttons", []demoEntry{
+		{"label", "Labels (text and bitmaps)"},
+		{"unicodeout", "Labels and UNICODE text"},
+		{"button", "Buttons"},
+		{"check", "Check-buttons (select any of a group)"},
+		{"radio", "Radio-buttons (select one of a group)"},
+		{"puzzle", "A 15-puzzle game made out of buttons"},
+		{"icon", "Iconic buttons that use bitmaps"},
+		{"image1", "Two labels displaying images"},
+		{"image2", "A simple user interface for viewing images"},
+		{"labelframe", "Labelled frames"},
+		{"ttkbut", "The simple Themed Tk widgets"},
+	}},
+	{"Listboxes and Trees", []demoEntry{
+		{"states", "The 50 states"},
+		{"colors", "Colors: change the color scheme for the application"},
+		{"sayings", "A collection of famous and infamous sayings"},
+		{"mclist", "A multi-column list of countries"},
+		{"tree", "A directory browser tree"},
+	}},
+	{"Entries, Spin-boxes and Combo-boxes", []demoEntry{
+		{"entry1", "Entries without scrollbars"},
 		{"entry2", "Entries with scrollbars"},
-		{"entry3", "Validated entry fields"},
-		{"form", "Form with grid layout"},
-		{"spin", "Spinbox widgets"},
-		{"check", "Checkbutton toggles"},
-		{"radio", "Radiobutton groups"},
-		{"labelframe", "Labelframe with border label"},
+		{"entry3", "Validated entries and password fields"},
+		{"spin", "Spin-boxes"},
+		{"ttkspin", "Themed spin-boxes"},
+		{"combo", "Combo-boxes"},
+		{"form", "Simple Rolodex-like form"},
 	}},
-	{"Listboxes", []demoEntry{
-		{"states", "US states listbox"},
-		{"colors", "Color names with double-click"},
-		{"sayings", "Famous sayings listbox"},
+	{"Text", []demoEntry{
+		{"text", "Basic editable text"},
+		{"style", "Text display styles"},
+		{"bind", "Hypertext (tag bindings)"},
+		{"twind", "A text widget with embedded windows and other features"},
+		{"search", "A search tool built with a text widget"},
+		{"textpeer", "Peering text widgets"},
 	}},
-	{"Text Widget", []demoEntry{
-		{"text", "Basic text editing"},
-		{"style", "Text display styles (tags)"},
-		{"bind", "Hypertext-like tag bindings"},
-		{"search", "Text search and highlight"},
-		{"textpeer", "Two text widgets with copy"},
-		{"twind", "Text tags, styles, and undo"},
+	{"Canvases", []demoEntry{
+		{"items", "The canvas item types"},
+		{"plot", "A simple 2-D plot"},
+		{"ctext", "Text items in canvases"},
+		{"arrow", "An editor for arrowheads on canvas lines"},
+		{"ruler", "A ruler with adjustable tab stops"},
+		{"floor", "A building floor plan"},
+		{"cscroll", "A simple scrollable canvas"},
+		{"knightstour", "A Knight's tour of the chess board"},
 	}},
-	{"Canvas", []demoEntry{
-		{"items", "All canvas item types"},
-		{"plot", "2D data plot"},
-		{"arrow", "Arrow shapes on lines"},
-		{"ruler", "Ruler with tab stops"},
-		{"cscroll", "Scrollable canvas grid"},
-		{"floor", "Building floorplan"},
-		{"ctext", "Canvas text items"},
+	{"Scales and Progress Bars", []demoEntry{
+		{"hscale", "Horizontal scale"},
+		{"vscale", "Vertical scale"},
+		{"ttkscale", "Themed scale linked to a label with traces"},
+		{"ttkprogress", "Progress bar"},
 	}},
-	{"Scales", []demoEntry{
-		{"hscale", "Horizontal scale (arrow angle)"},
-		{"vscale", "Vertical scale (bar height)"},
+	{"Paned Windows and Notebooks", []demoEntry{
+		{"paned1", "Horizontal paned window"},
+		{"paned2", "Vertical paned window"},
+		{"ttkpane", "Themed nested panes"},
+		{"ttknote", "Notebook widget"},
 	}},
-	{"Paned Windows", []demoEntry{
-		{"paned1", "Horizontal colored panes"},
-		{"paned2", "Vertical panes (listbox + text)"},
+	{"Menus and Toolbars", []demoEntry{
+		{"menu", "Menus and cascades (sub-menus)"},
+		{"menubu", "Menu-buttons"},
+		{"ttkmenu", "Themed menu buttons"},
+		{"toolbar", "Themed toolbar"},
 	}},
-	{"Menus", []demoEntry{
-		{"menu", "Menu bar (File/Edit/Help)"},
-		{"menubu", "Menu buttons (4 directions)"},
-		{"toolbar", "Toolbar with TTK menubutton"},
-	}},
-	{"Dialogs", []demoEntry{
-		{"msgbox", "Message box varieties"},
-		{"filebox", "File open/save dialogs"},
-		{"clrpick", "Color picker dialog"},
-		{"fontchoose", "Font chooser dialog"},
-		{"dialog1", "Modal dialog with local grab"},
-		{"dialog2", "Modal dialog with global grab"},
-	}},
-	{"Images", []demoEntry{
-		{"image1", "Generated gradient/checkerboard"},
-		{"image2", "Image viewer with listbox"},
-		{"bitmap", "Built-in bitmap patterns"},
-		{"icon", "Iconic buttons with images"},
-	}},
-	{"TTK Themed Widgets", []demoEntry{
-		{"ttkbut", "TTK buttons and labels"},
-		{"ttkpane", "TTK frames in paned window"},
-		{"ttkscale", "Scale with label feedback"},
-		{"ttknote", "TTK notebook (tabs)"},
-		{"ttkprogress", "TTK progressbar"},
-		{"combo", "TTK combobox"},
-		{"ttkmenu", "TTK menubutton"},
-		{"ttkspin", "TTK spinbox"},
-		{"mclist", "Multi-column sortable list"},
-		{"tree", "Directory tree browser"},
-		{"windowicons", "Window icon setting"},
-	}},
-	{"Special Features", []demoEntry{
-		{"systray", "System tray icon"},
-		{"unicodeout", "Unicode text display"},
-		{"print", "Canvas & text display"},
+	{"Common Dialogs", []demoEntry{
+		{"msgbox", "Message boxes"},
+		{"filebox", "File selection dialog"},
+		{"clrpick", "Color picker"},
+		{"fontchoose", "Font selection dialog"},
+		{"systray", "System tray icon and notification"},
+		{"print", "Printing from canvas and text widgets"},
 	}},
 	{"Animation", []demoEntry{
-		{"anilabel", "Animated scrolling label"},
-		{"aniwave", "Animated sine waveform"},
-		{"pendulum", "Pendulum physics simulation"},
-		{"knightstour", "Knight's tour visualization"},
-		{"goldberg", "Rube Goldberg machine"},
+		{"anilabel", "Animated labels"},
+		{"aniwave", "Animated wave"},
+		{"pendulum", "Pendulum simulation"},
+		{"goldberg", "A celebration of Rube Goldberg"},
+	}},
+	{"Miscellaneous", []demoEntry{
+		{"bitmap", "The built-in bitmaps"},
+		{"dialog1", "A dialog box with a local grab"},
+		{"dialog2", "A dialog box with a global grab"},
+		{"windowicons", "Window icons and badges"},
 	}},
 }
 
 func main() {
-	app, err := takigo.NewApp(takigo.Title("Takigo Widget Demos"), takigo.Size(1024, 600))
+	app, err := takigo.NewApp(takigo.Title("Widget Demonstration"), takigo.Size(1024, 600))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
@@ -141,7 +139,7 @@ func main() {
 
 	// Header.
 	header := label.New(app, "header",
-		label.Text("Takigo Widget Demonstrations"),
+		label.Text("Widget Demonstration"),
 		label.Anchor(option.AnchorCenter),
 		label.PadX(10), label.PadY(8),
 	)

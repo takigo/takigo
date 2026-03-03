@@ -19,8 +19,8 @@ import (
 )
 
 func main() {
-	app := demohelper.Setup("Directory Browser", 500, 400,
-		"A directory browser. Click the arrows\nto expand directories.")
+	app := demohelper.Setup("Directory Browser Tree", 500, 400,
+		"One of the Ttk widgets is a tree widget, which allows the user to browse a hierarchical data-set such as a filesystem. The tree widget not only allows for the tree part itself, but it also supports an arbitrary number of additional columns which can show additional data. You can also change the width of the columns by dragging the boundary between them.")
 
 	ttk.SetCurrentTheme("clam")
 

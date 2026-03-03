@@ -15,7 +15,7 @@ import (
 
 func main() {
 	app := demohelper.Setup("Text Peer Demonstration", 700, 500,
-		"Two text widgets are shown side by side. Use the\nbuttons to copy content between them.")
+		"True peer text (shared document) is not implemented.\nCopy buttons work as a workaround.")
 
 	noteLabel := label.New(app, "note",
 		label.Text("Note: Tk text peering (shared document) is not implemented. Using copy buttons instead."),

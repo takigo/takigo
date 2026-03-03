@@ -16,8 +16,8 @@ import (
 )
 
 func main() {
-	app := demohelper.Setup("Form Entry", 450, 280,
-		"A simple form with five fields. Use Tab\nto move between fields.")
+	app := demohelper.Setup("Form Demonstration", 450, 280,
+		"This window contains a simple form where you can type in the various entries and use tabs to move circularly between the entries.")
 	root := app.Window()
 
 	focusMgr := focus.NewManager(app.Dispatcher(), app.DisplayPtr())

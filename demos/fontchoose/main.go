@@ -3,54 +3,94 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/dialog"
 	"github.com/msorc/takigo/geometry/pack"
-	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/widget/button"
-	"github.com/msorc/takigo/widget/label"
+	"github.com/msorc/takigo/widget/frame"
+	"github.com/msorc/takigo/widget/scrollbar"
+	"github.com/msorc/takigo/widget/text"
 )
 
 func main() {
-	app := demohelper.Setup("Font Chooser", 450, 250,
-		"Click the button to open the font chooser.\nThe selected font description is shown below.")
+	app := demohelper.Setup("Font Selection Dialog", 450, 300,
+		"Press the button below to choose a new font for the text shown in this window.")
 
-	// Font display label.
-	fontLabel := label.New(app, "fontlabel",
-		label.Text("Selected: (none)"),
-		label.Anchor(option.AnchorW),
-		label.Background("#e8e8e8"),
-		label.PadX(10), label.PadY(10),
+	// Content frame (sunken border like the Tk original).
+	contentFrame := frame.New(app, "content",
+		frame.BorderWidth(2),
+		frame.Relief(1), // sunken
 	)
-	pack.Pack(fontLabel, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX),
-		pack.PadX(20), pack.PadY(10))
+	pack.Pack(contentFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
+		pack.Expand(true), pack.PadX(10), pack.PadY(5))
 
-	// Preview label.
-	previewLabel := label.New(app, "preview",
-		label.Text("The quick brown fox jumps over the lazy dog."),
-		label.PadX(10), label.PadY(10),
+	// Text widget with scrollbar showing sample text.
+	tw := text.New(contentFrame, "msg",
+		text.Width(40),
+		text.Height(6),
+		text.WrapModeOpt(text.WrapWord),
 	)
-	pack.Pack(previewLabel, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX),
-		pack.PadX(20), pack.PadY(5))
 
-	chooseBtn := button.New(app, "choose",
-		button.Text("Choose Font..."),
+	yscroll := scrollbar.New(contentFrame, "vs",
+		scrollbar.OrientOpt(scrollbar.Vertical),
+		scrollbar.CommandOpt(func(args ...any) {
+			if len(args) < 1 {
+				return
+			}
+			switch args[0] {
+			case "moveto":
+				if len(args) >= 2 {
+					if f, ok := args[1].(float64); ok {
+						tw.YViewMoveTo(f)
+					}
+				}
+			case "scroll":
+				if len(args) >= 3 {
+					n, _ := args[1].(int)
+					unit, _ := args[2].(string)
+					tw.YViewScroll(n, unit == "pages")
+				}
+			}
+		}),
+	)
+	tw.YScrollCmd = func(first, last float64) {
+		yscroll.Set(first, last)
+	}
+
+	pack.Pack(yscroll, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
+	pack.Pack(tw, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+
+	tw.Insert("end", "Press the button below to choose a new font for the "+
+		"text shown in this window.\n")
+
+	// Current font descriptor for passing back into the dialog.
+	currentFontDesc := ""
+
+	// "Set font ..." button.
+	setFontBtn := button.New(app, "font",
+		button.Text("Set font ..."),
 		button.Command(func() {
-			fontDesc, ok := dialog.ChooseFont(app,
-			)
+			opts := []dialog.FontOption{
+				dialog.FontTitle("Font Selection"),
+			}
+			if currentFontDesc != "" {
+				opts = append(opts, dialog.FontInitial(currentFontDesc))
+			}
+			fontDesc, ok := dialog.ChooseFont(app, opts...)
 			if ok {
-				fontLabel.Text = fmt.Sprintf("Selected: %s", fontDesc)
-				fontLabel.Display()
+				currentFontDesc = fontDesc
+				f, err := app.FontRegistry().Get(fontDesc)
+				if err == nil {
+					tw.Font = f
+					tw.Display()
+				}
 			}
 		}),
 		button.PadX(15), button.PadY(8),
 	)
-	pack.Pack(chooseBtn, pack.SideOpt(pack.Top), pack.PadX(30), pack.PadY(20))
+	pack.Pack(setFontBtn, pack.SideOpt(pack.Top), pack.PadX(10), pack.PadY(10))
 
-	_ = fontLabel
-	_ = previewLabel
-	_ = chooseBtn
+	_ = yscroll
+	_ = setFontBtn
 	app.Run()
 }

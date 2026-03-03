@@ -185,10 +185,31 @@ func (m *Menu) AddCascade(label string, subMenu *Menu) {
 	})
 }
 
+// AddCommandAccel adds a command entry with accelerator display text.
+func (m *Menu) AddCommandAccel(label string, accel string, command func()) {
+	m.entries = append(m.entries, MenuEntry{
+		Type:     Command,
+		Label:    label,
+		AccelStr: accel,
+		Command:  command,
+	})
+}
+
 // AddCheckbutton adds a checkbutton entry.
 func (m *Menu) AddCheckbutton(label string, checked bool, command func()) {
 	m.entries = append(m.entries, MenuEntry{
 		Type:    Checkbutton,
+		Label:   label,
+		Checked: checked,
+		Command: command,
+	})
+}
+
+// AddRadiobutton adds a radiobutton entry. It behaves like a command
+// but is displayed with a radio-style indicator when checked.
+func (m *Menu) AddRadiobutton(label string, checked bool, command func()) {
+	m.entries = append(m.entries, MenuEntry{
+		Type:    Radiobutton,
 		Label:   label,
 		Checked: checked,
 		Command: command,
@@ -400,9 +421,12 @@ func (m *Menu) Display() {
 		}
 
 		if fgCol != nil {
-			// Check indicator.
+			// Check/Radio indicator.
 			if e.Type == Checkbutton && e.Checked {
 				xftFont.DrawString(w.Drawable(), m.BorderWidth+4, textY, "\u2713",
+					fgCol.Pixel, fgCol.Red, fgCol.Green, fgCol.Blue)
+			} else if e.Type == Radiobutton && e.Checked {
+				xftFont.DrawString(w.Drawable(), m.BorderWidth+4, textY, "\u25cf",
 					fgCol.Pixel, fgCol.Red, fgCol.Green, fgCol.Blue)
 			}
 
@@ -459,6 +483,18 @@ func (m *Menu) invoke(index int) {
 		}
 	case Checkbutton:
 		e.Checked = !e.Checked
+		m.Unpost()
+		if e.Command != nil {
+			e.Command()
+		}
+	case Radiobutton:
+		// Uncheck all other radiobuttons in this menu, check this one.
+		for j := range m.entries {
+			if m.entries[j].Type == Radiobutton && j != index {
+				m.entries[j].Checked = false
+			}
+		}
+		e.Checked = true
 		m.Unpost()
 		if e.Command != nil {
 			e.Command()

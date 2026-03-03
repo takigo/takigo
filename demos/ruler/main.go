@@ -12,8 +12,8 @@ import (
 )
 
 func main() {
-	app := demohelper.Setup("Ruler Demo", 600, 250,
-		"A ruler with tick marks and tab stops.\nThe tab stops are represented by small triangles.")
+	app := demohelper.Setup("Ruler Demonstration", 600, 250,
+		"This canvas widget shows a mock-up of a ruler. You can create tab stops by dragging them out of the well to the right of the ruler. You can also drag existing tab stops. If you drag a tab stop far enough up or down so that it turns dim, it will be deleted when you release the mouse button.")
 
 	// Canvas.
 	c := canvas.New(app, "ruler",

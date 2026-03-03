@@ -1,63 +1,68 @@
-// Demo: Vertical scale controlling a canvas bar height.
+// Demo: Vertical scale controlling a canvas arrow size.
 // Ported from Tk's vscale.tcl demo.
 package main
 
 import (
-	"fmt"
-
 	"github.com/msorc/takigo/canvas"
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/pack"
-	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/scale"
 )
 
+// setHeight mirrors the Tk setHeight proc.
+func setHeight(c *canvas.Canvas, value float64) {
+	height := value + 21
+	y2 := height - 30
+	if y2 < 21 {
+		y2 = 21
+	}
+	// Polygon: shaft rectangle + triangular arrowhead pointing down, closed.
+	coords := []float64{
+		15, 20, 35, 20, 35, y2, 45, y2, 25, height, 5, y2, 15, y2, 15, 20,
+	}
+	c.SetItemCoords("poly", coords)
+	c.SetItemCoords("line", coords)
+}
+
 func main() {
-	app := demohelper.Setup("Vertical Scale", 400, 400,
-		"Drag the vertical scale to change the bar height.")
+	app := demohelper.Setup("Vertical Scale Demonstration", 400, 400,
+		"An arrow and a vertical scale are displayed below. If you click or drag mouse button 1 in the scale, you can change the size of the arrow.")
 
 	// Middle frame: scale on left, canvas on right.
-	midFrame := frame.New(app, "midframe")
-	pack.Pack(midFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
+	fr := frame.New(app, "frame")
+	pack.Pack(fr, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true), pack.PadX(10), pack.PadY(5))
 
-	// Canvas.
-	c := canvas.New(midFrame, "canvas",
-		canvas.Background("white"),
-		canvas.Width(250),
-		canvas.Height(250),
+	// Canvas for arrow display.
+	c := canvas.New(fr, "canvas",
+		canvas.Width(60),
+		canvas.Height(300),
 	)
 
-	barBottom := 240.0
+	// Create initial polygon and line items with dummy coords.
+	c.CreatePolygon([]float64{0, 0, 1, 1, 2, 2},
+		canvas.FillColor("SeaGreen3"), canvas.Tags("poly"))
+	c.CreateLine([]float64{0, 0, 1, 1, 2, 2, 0, 0},
+		canvas.OutlineColor("black"), canvas.Tags("line"))
 
-	drawBar := func(v float64) {
-		c.Delete("bar")
-		c.Delete("label")
-		h := v / 100 * 200
-		c.CreateRectangle(80, barBottom-h, 180, barBottom,
-			canvas.FillColor("#3498db"), canvas.OutlineColor("#2980b9"), canvas.OutlineWidth(2),
-			canvas.Tags("bar"))
-		c.CreateText(130, barBottom-h-10,
-			canvas.TextOpt(fmt.Sprintf("%.0f%%", v)),
-			canvas.FontOpt("Sans Bold 11"), canvas.AnchorOpt(option.AnchorCenter),
-			canvas.Tags("label"))
-	}
-	drawBar(50)
-
-	// Vertical scale.
-	sc := scale.New(midFrame, "vscale",
+	// Vertical scale: 0-250.
+	sc := scale.New(fr, "vscale",
 		scale.OrientOpt(scale.Vertical),
-		scale.FromOpt(100),
-		scale.ToOpt(0),
-		scale.ValueOpt(50),
+		scale.FromOpt(0),
+		scale.ToOpt(250),
+		scale.ValueOpt(75),
 		scale.ShowValueOpt(true),
-		scale.CommandOpt(func(v float64) { drawBar(v) }),
+		scale.CommandOpt(func(v float64) {
+			setHeight(c, v)
+		}),
 	)
 
 	pack.Pack(sc, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillY), pack.PadX(10))
-	pack.Pack(c, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+	pack.Pack(c, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillY))
 
-	_ = sc
+	// Set initial arrow.
+	setHeight(c, 75)
+
 	app.Run()
 }

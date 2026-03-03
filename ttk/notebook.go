@@ -105,6 +105,16 @@ func (nb *Notebook) TabCount() int {
 	return len(nb.tabs)
 }
 
+// SetTabState sets the state flags on the tab at the given index.
+// Use StateDisabled to prevent tab selection.
+func (nb *Notebook) SetTabState(index int, state State) {
+	if index < 0 || index >= len(nb.tabs) {
+		return
+	}
+	nb.tabs[index].State = state
+	nb.Display()
+}
+
 // Selected returns the index of the selected tab.
 func (nb *Notebook) Selected() int {
 	return nb.selected

@@ -11,28 +11,28 @@ import (
 )
 
 func main() {
-	app := demohelper.Setup("Spinbox Demonstration", 400, 350,
-		"Three spinboxes are shown below. The first uses\nan integer range, the second uses float values,\nand the third uses a list of string values.")
+	app := demohelper.Setup("Themed Spinbox Demonstration", 400, 350,
+		"Three different themed spin-boxes are displayed below. You can add characters by pointing, clicking and typing. Note that the first spin-box will only permit you to type in integers, and the third selects from a list of Australian cities.")
 
-	// Integer spinbox (0-100).
+	// Integer spinbox (1-10).
 	intLabel := label.New(app, "intlabel",
-		label.Text("Integer (0 to 100):"),
+		label.Text("Integer (1 to 10):"),
 		label.Anchor(option.AnchorW),
 		label.PadX(20),
 	)
 	pack.Pack(intLabel, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(5))
 
 	intSpin := spinbox.New(app, "intspin",
-		spinbox.FromOpt(0),
-		spinbox.ToOpt(100),
+		spinbox.FromOpt(1),
+		spinbox.ToOpt(10),
 		spinbox.IncrementOpt(1),
 	)
-	intSpin.SetText("0")
+	intSpin.SetText("1")
 	pack.Pack(intSpin, pack.SideOpt(pack.Top), pack.PadX(20), pack.PadY(5))
 
-	// Float spinbox (0-10 step 0.5).
+	// Float spinbox (0-3 step 0.5).
 	floatLabel := label.New(app, "floatlabel",
-		label.Text("Float (0.0 to 10.0, step 0.5):"),
+		label.Text("Float (0.0 to 3.0, step 0.5):"),
 		label.Anchor(option.AnchorW),
 		label.PadX(20),
 	)
@@ -40,16 +40,16 @@ func main() {
 
 	floatSpin := spinbox.New(app, "floatspin",
 		spinbox.FromOpt(0),
-		spinbox.ToOpt(10),
+		spinbox.ToOpt(3),
 		spinbox.IncrementOpt(0.5),
-		spinbox.FormatOpt("%.1f"),
+		spinbox.FormatOpt("%05.2f"),
 	)
-	floatSpin.SetText("0.0")
+	floatSpin.SetText("00.00")
 	pack.Pack(floatSpin, pack.SideOpt(pack.Top), pack.PadX(20), pack.PadY(5))
 
-	// Values spinbox (days of week).
+	// Values spinbox (Australian cities).
 	valLabel := label.New(app, "vallabel",
-		label.Text("Day of week:"),
+		label.Text("Australian city:"),
 		label.Anchor(option.AnchorW),
 		label.PadX(20),
 	)
@@ -57,11 +57,11 @@ func main() {
 
 	valSpin := spinbox.New(app, "valspin",
 		spinbox.ValuesOpt([]string{
-			"Sunday", "Monday", "Tuesday", "Wednesday",
-			"Thursday", "Friday", "Saturday",
+			"Canberra", "Sydney", "Melbourne", "Perth",
+			"Adelaide", "Brisbane", "Hobart", "Darwin", "Alice Springs",
 		}),
 	)
-	valSpin.SetText("Sunday")
+	valSpin.SetText("Canberra")
 	pack.Pack(valSpin, pack.SideOpt(pack.Top), pack.PadX(20), pack.PadY(5))
 
 	_ = intLabel

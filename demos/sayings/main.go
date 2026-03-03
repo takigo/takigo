@@ -11,8 +11,8 @@ import (
 )
 
 func main() {
-	app := demohelper.Setup("Sayings", 500, 350,
-		"A listbox with well-known sayings.\nScroll vertically to see them all.")
+	app := demohelper.Setup("Well-Known Sayings", 500, 350,
+		"The listbox below contains a collection of well-known sayings. You can scan the list using either of the scrollbars or by dragging in the listbox window with button 2 pressed.")
 
 	// Sayings data.
 	sayings := []string{
