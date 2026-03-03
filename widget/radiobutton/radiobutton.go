@@ -5,9 +5,8 @@ package radiobutton
 
 import (
 	"github.com/msorc/takigo/draw"
-	"github.com/msorc/takigo/font"
-	"github.com/msorc/takigo/internal/xlib"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/window"
 )
@@ -212,11 +211,11 @@ func (r *Radiobutton) Display() {
 		return
 	}
 	w := r.Win
-	if w.XWindow == xlib.Window(0) {
+	if w.PlatformID == platform.WindowID(0) {
 		return
 	}
 
-	d := w.Display.XDisplay
+	d := w.Display.Server
 	gc := w.GC
 
 	selected := r.Selected()
@@ -306,8 +305,8 @@ func (r *Radiobutton) Display() {
 		}
 		m := r.Font.Metrics()
 		baseline := textY + m.Ascent
-		if xftFont, ok := r.Font.(*font.XftFont); ok {
-			xftFont.DrawString(w.Drawable(), textX, baseline, r.Text,
+		if df, ok := r.Font.(platform.DrawableFont); ok {
+			df.DrawString(w.Drawable(), textX, baseline, r.Text,
 				fgCol.Pixel, fgCol.Red, fgCol.Green, fgCol.Blue)
 		}
 	}

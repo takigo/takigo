@@ -1,8 +1,8 @@
 package canvas
 
 import (
-	"github.com/msorc/takigo/internal/xlib"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/widget"
 )
 
@@ -74,7 +74,7 @@ func (im *ImageItem) updateBBox() {
 	im.Y2 = im.Y1 + h
 }
 
-func (im *ImageItem) Display(d *xlib.Display, drawable xlib.Drawable, gc xlib.GC,
+func (im *ImageItem) Display(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID,
 	clipX, clipY, clipW, clipH, originX, originY int) {
 
 	if im.image == nil {
@@ -87,7 +87,7 @@ func (im *ImageItem) Display(d *xlib.Display, drawable xlib.Drawable, gc xlib.GC
 	drawX := int(im.x) + ax - originX
 	drawY := int(im.y) + ay - originY
 
-	// Get visual/depth/bgPixel from the canvas window.
+	// Get depth/bgPixel from the canvas window.
 	win := im.canvas.Win
 	bgPixel := win.BackgroundPixel
 	if im.canvas.Base.Background != nil {
@@ -95,7 +95,7 @@ func (im *ImageItem) Display(d *xlib.Display, drawable xlib.Drawable, gc xlib.GC
 	}
 
 	im.image.Draw(d, drawable, gc,
-		win.Visual, win.Depth,
+		win.Depth,
 		0, 0, w, h, drawX, drawY, bgPixel)
 }
 
@@ -126,4 +126,4 @@ func (im *ImageItem) Translate(dx, dy float64) {
 	im.updateBBox()
 }
 
-func (im *ImageItem) Delete(d *xlib.Display) {}
+func (im *ImageItem) Delete(d platform.DisplayServer) {}

@@ -10,7 +10,7 @@ func bindCheckbutton(c *Checkbutton, app widget.AppContext) {
 	w := c.Win
 
 	// Expose.
-	app.Dispatcher().Bind(w.XWindow, event.ExposureMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(w.PlatformID, event.ExposureMask, func(ev *event.Event) {
 		if ev.ExposeCount > 0 {
 			return
 		}
@@ -18,7 +18,7 @@ func bindCheckbutton(c *Checkbutton, app widget.AppContext) {
 	})
 
 	// Configure (resize).
-	app.Dispatcher().Bind(w.XWindow, event.StructureNotifyMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(w.PlatformID, event.StructureNotifyMask, func(ev *event.Event) {
 		if ev.Type == event.ConfigureType {
 			w.Width = ev.ConfigWidth
 			w.Height = ev.ConfigHeight
@@ -27,7 +27,7 @@ func bindCheckbutton(c *Checkbutton, app widget.AppContext) {
 	})
 
 	// Enter → active.
-	app.Dispatcher().Bind(w.XWindow, event.EnterMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(w.PlatformID, event.EnterMask, func(ev *event.Event) {
 		if c.State == widget.StateDisabled {
 			return
 		}
@@ -36,7 +36,7 @@ func bindCheckbutton(c *Checkbutton, app widget.AppContext) {
 	})
 
 	// Leave → normal.
-	app.Dispatcher().Bind(w.XWindow, event.LeaveMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(w.PlatformID, event.LeaveMask, func(ev *event.Event) {
 		if c.State == widget.StateDisabled {
 			return
 		}
@@ -46,7 +46,7 @@ func bindCheckbutton(c *Checkbutton, app widget.AppContext) {
 	})
 
 	// Button1 press.
-	app.Dispatcher().Bind(w.XWindow, event.ButtonPressMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(w.PlatformID, event.ButtonPressMask, func(ev *event.Event) {
 		if c.State == widget.StateDisabled {
 			return
 		}
@@ -56,7 +56,7 @@ func bindCheckbutton(c *Checkbutton, app widget.AppContext) {
 	})
 
 	// Button1 release → toggle.
-	app.Dispatcher().Bind(w.XWindow, event.ButtonReleaseMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(w.PlatformID, event.ButtonReleaseMask, func(ev *event.Event) {
 		if c.State == widget.StateDisabled {
 			return
 		}

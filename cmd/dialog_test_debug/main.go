@@ -21,7 +21,7 @@ func dumpWindow(w *window.Window, depth int) {
 		flags += " TOPLEVEL"
 	}
 	fmt.Printf("%s%s: pos=(%d,%d) size=%dx%d req=%dx%d xwin=%d%s\n",
-		indent, w.PathName, w.X, w.Y, w.Width, w.Height, w.ReqWidth, w.ReqHeight, w.XWindow, flags)
+		indent, w.PathName, w.X, w.Y, w.Width, w.Height, w.ReqWidth, w.ReqHeight, w.PlatformID, flags)
 	for _, c := range w.Children {
 		dumpWindow(c, depth+1)
 	}

@@ -4,8 +4,8 @@ package clamtheme
 
 import (
 	"github.com/msorc/takigo/draw"
-	"github.com/msorc/takigo/internal/xlib"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/ttk"
 	_ "github.com/msorc/takigo/ttk/defaulttheme" // ensure default theme init runs first
 )
@@ -108,7 +108,7 @@ func (e *ClamBorderElement) Size(state ttk.State) (int, int, ttk.Padding) {
 	return 0, 0, ttk.UniformPadding(bw)
 }
 
-func (e *ClamBorderElement) Draw(d *xlib.Display, drawable xlib.Drawable, gc xlib.GC, box ttk.Box, state ttk.State) {
+func (e *ClamBorderElement) Draw(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID, box ttk.Box, state ttk.State) {
 	bw := ttk.LookupInt(e.ctx.Style, "-borderwidth", state, 2)
 	relief := ttk.LookupRelief(e.ctx.Style, "-relief", state, option.ReliefFlat)
 
@@ -158,7 +158,7 @@ func (e *ClamBorderElement) Draw(d *xlib.Display, drawable xlib.Drawable, gc xli
 	}
 }
 
-func drawRectOutline(d *xlib.Display, drawable xlib.Drawable, gc xlib.GC, x, y, w, h int) {
+func drawRectOutline(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID, x, y, w, h int) {
 	d.DrawLine(drawable, gc, x, y, x+w-1, y)         // top
 	d.DrawLine(drawable, gc, x, y+h-1, x+w-1, y+h-1) // bottom
 	d.DrawLine(drawable, gc, x, y, x, y+h-1)         // left

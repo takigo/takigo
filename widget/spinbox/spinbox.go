@@ -9,8 +9,8 @@ import (
 
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/font"
-	"github.com/msorc/takigo/internal/xlib"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/window"
 )
@@ -456,11 +456,11 @@ func (s *Spinbox) Display() {
 		return
 	}
 	w := s.Win
-	if w.XWindow == xlib.Window(0) {
+	if w.PlatformID == platform.WindowID(0) {
 		return
 	}
 
-	d := w.Display.XDisplay
+	d := w.Display.Server
 	gc := w.GC
 
 	// Background.
@@ -476,7 +476,7 @@ func (s *Spinbox) Display() {
 	}
 
 	// Draw text.
-	xftFont, isXft := s.Font.(*font.XftFont)
+	xftFont, isXft := s.Font.(platform.DrawableFont)
 	if isXft && len(s.text) > 0 {
 		// Selection highlight.
 		if s.HasFocus && s.SelFirst >= 0 && s.SelLast > s.SelFirst && s.SelBg != nil {
@@ -521,7 +521,7 @@ func (s *Spinbox) Display() {
 	d.Flush()
 }
 
-func (s *Spinbox) drawButtons(d *xlib.Display, gc xlib.GC) {
+func (s *Spinbox) drawButtons(d platform.DisplayServer, gc platform.GCID) {
 	w := s.Win
 	btnLeft := w.Width - s.buttonWidth
 	midY := w.Height / 2

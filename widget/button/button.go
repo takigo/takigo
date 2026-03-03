@@ -5,9 +5,8 @@ package button
 
 import (
 	"github.com/msorc/takigo/draw"
-	"github.com/msorc/takigo/font"
-	"github.com/msorc/takigo/internal/xlib"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/window"
 )
@@ -200,11 +199,11 @@ func (b *Button) Display() {
 		return
 	}
 	w := b.Win
-	if w.XWindow == xlib.Window(0) {
+	if w.PlatformID == platform.WindowID(0) {
 		return
 	}
 
-	d := w.Display.XDisplay
+	d := w.Display.Server
 	gc := w.GC
 
 	// Choose colors based on state.
@@ -269,8 +268,8 @@ func (b *Button) Display() {
 		imgW := b.Img.Width()
 		imgH := b.Img.Height()
 		ix, iy := anchorText(b.Anchor, frameX, frameY, availW, availH, imgW, imgH)
-		b.Img.Draw(w.Display.XDisplay, w.Drawable(), gc,
-			w.Visual, w.Depth, 0, 0, imgW, imgH, ix+pressOff, iy+pressOff, bgPixel)
+		b.Img.Draw(w.Display.Server, w.Drawable(), gc,
+			w.Depth, 0, 0, imgW, imgH, ix+pressOff, iy+pressOff, bgPixel)
 	} else if hasText {
 		textX, textY := anchorText(b.Anchor, frameX, frameY,
 			availW, availH, b.textWidth, b.textHeight)
@@ -278,8 +277,8 @@ func (b *Button) Display() {
 		textY += pressOff
 		m := b.Font.Metrics()
 		baseline := textY + m.Ascent
-		if xftFont, ok := b.Font.(*font.XftFont); ok {
-			xftFont.DrawString(w.Drawable(), textX, baseline, b.Text,
+		if df, ok := b.Font.(platform.DrawableFont); ok {
+			df.DrawString(w.Drawable(), textX, baseline, b.Text,
 				fgCol.Pixel, fgCol.Red, fgCol.Green, fgCol.Blue)
 		}
 	}
@@ -380,15 +379,15 @@ func drawCompoundButton(b *Button, w *window.Window,
 	}
 
 	// Draw image.
-	b.Img.Draw(w.Display.XDisplay, w.Drawable(), w.GC,
-		w.Visual, w.Depth, 0, 0, imgW, imgH, imgX, imgY, bgPixel)
+	b.Img.Draw(w.Display.Server, w.Drawable(), w.GC,
+		w.Depth, 0, 0, imgW, imgH, imgX, imgY, bgPixel)
 
 	// Draw text.
 	if b.Font != nil && fgCol != nil {
 		m := b.Font.Metrics()
 		baseline := textY + m.Ascent
-		if xftFont, ok := b.Font.(*font.XftFont); ok {
-			xftFont.DrawString(w.Drawable(), textX, baseline, b.Text,
+		if df, ok := b.Font.(platform.DrawableFont); ok {
+			df.DrawString(w.Drawable(), textX, baseline, b.Text,
 				fgCol.Pixel, fgCol.Red, fgCol.Green, fgCol.Blue)
 		}
 	}

@@ -1,7 +1,7 @@
 package window
 
 import (
-	"github.com/msorc/takigo/internal/xlib"
+	"github.com/msorc/takigo/platform"
 )
 
 // CreateMainWindow creates the root window of a takigo application.
@@ -18,47 +18,44 @@ func CreateMainWindow(d *Display, x, y, width, height int) *Window {
 		ReqWidth:        width,
 		ReqHeight:       height,
 		Depth:           d.Depth,
-		Visual:          d.Visual,
-		Colormap:        d.Colormap,
 		BackgroundPixel: d.WhitePixel,
 		Flags:           FlagTopLevel,
 	}
 
-	// Create the actual X11 window.
-	attrs := &xlib.WindowAttributes{
+	// Create the actual platform window.
+	attrs := &platform.WindowAttrs{
 		BackgroundPixel: w.BackgroundPixel,
 		BorderPixel:     d.BlackPixel,
 		EventMask: int64(
-			xlib.KeyPressMask |
-				xlib.KeyReleaseMask |
-				xlib.ButtonPressMask |
-				xlib.ButtonReleaseMask |
-				xlib.PointerMotionMask |
-				xlib.EnterWindowMask |
-				xlib.LeaveWindowMask |
-				xlib.ExposureMask |
-				xlib.StructureNotifyMask |
-				xlib.FocusChangeMask),
-		Colormap: d.Colormap,
+			platform.KeyPressMask |
+				platform.KeyReleaseMask |
+				platform.ButtonPressMask |
+				platform.ButtonReleaseMask |
+				platform.PointerMotionMask |
+				platform.EnterWindowMask |
+				platform.LeaveWindowMask |
+				platform.ExposureMask |
+				platform.StructureNotifyMask |
+				platform.FocusChangeMask),
 	}
 
-	w.XWindow = d.XDisplay.CreateWindow(
-		d.RootXWindow,
+	w.PlatformID = d.Server.CreateWindow(
+		d.RootWindow,
 		x, y, uint(width), uint(height), 0,
-		d.Depth, xlib.InputOutput, d.Visual,
-		xlib.CWBackPixel|xlib.CWBorderPixel|xlib.CWEventMask|xlib.CWColormap,
+		d.Depth, platform.InputOutput,
+		platform.CWBackPixel|platform.CWBorderPixel|platform.CWEventMask|platform.CWOverrideRedirect,
 		attrs,
 	)
 
 	// Register in display's window table.
-	d.RegisterWindow(w.XWindow, w)
+	d.RegisterWindow(w.PlatformID, w)
 
 	// Set WM_DELETE_WINDOW protocol.
-	protocols := []xlib.Atom{d.WMDeleteWindow}
-	d.XDisplay.SetWMProtocols(w.XWindow, protocols)
+	protocols := []platform.AtomID{d.WMDeleteWindow}
+	d.Server.SetWMProtocols(w.PlatformID, protocols)
 
 	// Create a default GC for drawing.
-	w.GC = d.XDisplay.CreateGC(w.Drawable(), xlib.GCForeground|xlib.GCBackground, &xlib.GCValues{
+	w.GC = d.Server.CreateGC(w.Drawable(), platform.GCForeground|platform.GCBackground, &platform.GCValues{
 		Foreground: d.BlackPixel,
 		Background: d.WhitePixel,
 	})
@@ -66,46 +63,46 @@ func CreateMainWindow(d *Display, x, y, width, height int) *Window {
 	return w
 }
 
-// MakeWindowExist ensures the X11 window exists for a non-top-level window.
+// MakeWindowExist ensures the platform window exists for a non-top-level window.
 // Top-level windows are created eagerly; child windows may be created lazily.
 func MakeWindowExist(w *Window) {
-	if w.XWindow != xlib.Window(0) {
+	if w.PlatformID != 0 {
 		return
 	}
 
 	d := w.Display
 	parent := w.Parent
-	if parent == nil || parent.XWindow == xlib.Window(0) {
+	if parent == nil || parent.PlatformID == 0 {
 		return
 	}
 
-	attrs := &xlib.WindowAttributes{
+	attrs := &platform.WindowAttrs{
 		BackgroundPixel: w.BackgroundPixel,
 		BorderPixel:     d.BlackPixel,
 		EventMask: int64(
-			xlib.KeyPressMask |
-				xlib.KeyReleaseMask |
-				xlib.ButtonPressMask |
-				xlib.ButtonReleaseMask |
-				xlib.PointerMotionMask |
-				xlib.EnterWindowMask |
-				xlib.LeaveWindowMask |
-				xlib.ExposureMask |
-				xlib.StructureNotifyMask |
-				xlib.FocusChangeMask),
+			platform.KeyPressMask |
+				platform.KeyReleaseMask |
+				platform.ButtonPressMask |
+				platform.ButtonReleaseMask |
+				platform.PointerMotionMask |
+				platform.EnterWindowMask |
+				platform.LeaveWindowMask |
+				platform.ExposureMask |
+				platform.StructureNotifyMask |
+				platform.FocusChangeMask),
 	}
 
-	w.XWindow = d.XDisplay.CreateWindow(
-		parent.XWindow,
+	w.PlatformID = d.Server.CreateWindow(
+		parent.PlatformID,
 		w.X, w.Y, uint(w.Width), uint(w.Height), uint(w.BorderWidth),
-		w.Depth, xlib.InputOutput, w.Visual,
-		xlib.CWBackPixel|xlib.CWBorderPixel|xlib.CWEventMask,
+		w.Depth, platform.InputOutput,
+		platform.CWBackPixel|platform.CWBorderPixel|platform.CWEventMask,
 		attrs,
 	)
 
-	d.RegisterWindow(w.XWindow, w)
+	d.RegisterWindow(w.PlatformID, w)
 
-	w.GC = d.XDisplay.CreateGC(w.Drawable(), xlib.GCForeground|xlib.GCBackground, &xlib.GCValues{
+	w.GC = d.Server.CreateGC(w.Drawable(), platform.GCForeground|platform.GCBackground, &platform.GCValues{
 		Foreground: d.BlackPixel,
 		Background: w.BackgroundPixel,
 	})
@@ -127,16 +124,16 @@ func DestroyWindow(w *Window) {
 		w.Parent.RemoveChild(w)
 	}
 
-	// Destroy X resources.
+	// Destroy platform resources.
 	d := w.Display
-	if !xlib.IsZeroGC(w.GC) {
-		d.XDisplay.FreeGC(w.GC)
-		w.GC = xlib.ZeroGC()
+	if !platform.IsZeroGC(w.GC) {
+		d.Server.FreeGC(w.GC)
+		w.GC = platform.ZeroGC()
 	}
-	if w.XWindow != xlib.Window(0) {
-		d.UnregisterWindow(w.XWindow)
-		d.XDisplay.DestroyWindow(w.XWindow)
-		w.XWindow = xlib.Window(0)
+	if w.PlatformID != 0 {
+		d.UnregisterWindow(w.PlatformID)
+		d.Server.DestroyWindow(w.PlatformID)
+		w.PlatformID = 0
 	}
 }
 
@@ -154,8 +151,6 @@ func NewChildWindow(parent *Window, name string, x, y, width, height int) *Windo
 		ReqWidth:        width,
 		ReqHeight:       height,
 		Depth:           parent.Depth,
-		Visual:          parent.Visual,
-		Colormap:        parent.Colormap,
 		BackgroundPixel: parent.Display.WhitePixel,
 	}
 

@@ -4,7 +4,7 @@ import (
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/font"
-	"github.com/msorc/takigo/internal/xlib"
+	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/window"
 )
@@ -126,11 +126,11 @@ func (c *Combobox) Display() {
 		return
 	}
 	win := c.Win
-	if win.XWindow == xlib.Window(0) {
+	if win.PlatformID == 0 {
 		return
 	}
 
-	d := win.Display.XDisplay
+	d := win.Display.Server
 	gc := win.GC
 	width := win.Width
 	height := win.Height
@@ -140,8 +140,8 @@ func (c *Combobox) Display() {
 	}
 
 	// Double buffer.
-	if c.pixmap == xlib.Pixmap(0) || c.pixmapW != width || c.pixmapH != height {
-		if c.pixmap != xlib.Pixmap(0) {
+	if c.pixmap == 0 || c.pixmapW != width || c.pixmapH != height {
+		if c.pixmap != 0 {
 			d.FreePixmap(c.pixmap)
 		}
 		c.pixmap = d.CreatePixmap(win.Drawable(), uint(width), uint(height), uint(win.Depth))
@@ -149,7 +149,7 @@ func (c *Combobox) Display() {
 		c.pixmapH = height
 	}
 
-	pixDrawable := xlib.PixmapDrawable(c.pixmap)
+	pixDrawable := platform.PixmapDrawable(c.pixmap)
 
 	bg := LookupColor(c.Context.Style, "-background", c.State, 0xd9d9d9)
 	fg := LookupColor(c.Context.Style, "-foreground", c.State, 0x000000)
@@ -197,11 +197,11 @@ func (c *Combobox) Display() {
 		textX := c.insetX + 1
 		textY := (height-m.Linespace())/2 + m.Ascent
 
-		if xftFont, ok := c.Font.(*font.XftFont); ok {
+		if df, ok := c.Font.(platform.DrawableFont); ok {
 			r := uint16((fg >> 16) & 0xFF) << 8
 			g := uint16((fg >> 8) & 0xFF) << 8
 			b := uint16((fg) & 0xFF) << 8
-			xftFont.DrawString(pixDrawable, textX, textY, textStr, fg, r, g, b)
+			df.DrawString(pixDrawable, textX, textY, textStr, fg, r, g, b)
 		}
 	}
 
@@ -218,10 +218,10 @@ func (c *Combobox) openDropdown() {
 
 	win := c.Win
 	disp := win.Display
-	d := disp.XDisplay
+	d := disp.Server
 
 	// Calculate dropdown position (below the combobox in screen coordinates).
-	screenX, screenY := d.TranslateCoordinates(win.XWindow, disp.RootXWindow, 0, win.Height)
+	screenX, screenY := d.TranslateCoordinates(win.PlatformID, disp.RootWindow, 0, win.Height)
 
 	lineH := 0
 	if c.Font != nil {
@@ -235,31 +235,31 @@ func (c *Combobox) openDropdown() {
 	}
 	dropW := win.Width
 
-	// Create override-redirect popup window (same pattern as menu.go).
-	attrs := &xlib.WindowAttributes{
+	// Create override-redirect popup window.
+	attrs := &platform.WindowAttrs{
 		BackgroundPixel:  disp.WhitePixel,
 		BorderPixel:      disp.BlackPixel,
 		OverrideRedirect: true,
 		EventMask: int64(
-			xlib.ButtonPressMask |
-				xlib.ButtonReleaseMask |
-				xlib.PointerMotionMask |
-				xlib.EnterWindowMask |
-				xlib.LeaveWindowMask |
-				xlib.ExposureMask |
-				xlib.StructureNotifyMask),
+			platform.ButtonPressMask |
+				platform.ButtonReleaseMask |
+				platform.PointerMotionMask |
+				platform.EnterWindowMask |
+				platform.LeaveWindowMask |
+				platform.ExposureMask |
+				platform.StructureNotifyMask),
 	}
 
 	xwin := d.CreateWindow(
-		disp.RootXWindow,
+		disp.RootWindow,
 		screenX, screenY, uint(dropW), uint(dropH), 1,
-		disp.Depth, xlib.InputOutput, disp.Visual,
-		xlib.CWBackPixel|xlib.CWBorderPixel|xlib.CWOverrideRedirect|xlib.CWEventMask,
+		disp.Depth, platform.InputOutput,
+		platform.CWBackPixel|platform.CWBorderPixel|platform.CWOverrideRedirect|platform.CWEventMask,
 		attrs,
 	)
 
 	dw := &window.Window{
-		XWindow:         xwin,
+		PlatformID:      xwin,
 		Display:         disp,
 		Parent:          win,
 		Name:            "dropdown",
@@ -269,12 +269,10 @@ func (c *Combobox) openDropdown() {
 		ReqWidth:        dropW,
 		ReqHeight:       dropH,
 		Depth:           disp.Depth,
-		Visual:          disp.Visual,
-		Colormap:        disp.Colormap,
 		BackgroundPixel: disp.WhitePixel,
 	}
 
-	dw.GC = d.CreateGC(dw.Drawable(), xlib.GCForeground|xlib.GCBackground, &xlib.GCValues{
+	dw.GC = d.CreateGC(dw.Drawable(), platform.GCForeground|platform.GCBackground, &platform.GCValues{
 		Foreground: disp.BlackPixel,
 		Background: disp.WhitePixel,
 	})
@@ -332,9 +330,9 @@ func (c *Combobox) openDropdown() {
 
 	// Grab pointer.
 	d.GrabPointer(xwin, true,
-		uint(xlib.ButtonPressMask|xlib.ButtonReleaseMask|xlib.PointerMotionMask|xlib.EnterWindowMask|xlib.LeaveWindowMask),
-		xlib.GrabModeAsync, xlib.GrabModeAsync,
-		xlib.Window(0), xlib.Cursor(0), xlib.CurrentTime)
+		uint(platform.ButtonPressMask|platform.ButtonReleaseMask|platform.PointerMotionMask|platform.EnterWindowMask|platform.LeaveWindowMask),
+		platform.GrabModeAsync, platform.GrabModeAsync,
+		platform.WindowID(0), platform.CursorID(0), platform.CurrentTime)
 	c.grabbed = true
 
 	c.displayDropdown()
@@ -346,16 +344,16 @@ func (c *Combobox) closeDropdown() {
 		return
 	}
 	c.dropOpen = false
-	d := c.Win.Display.XDisplay
+	d := c.Win.Display.Server
 
 	if c.grabbed {
-		d.UngrabPointer(xlib.CurrentTime)
+		d.UngrabPointer(platform.CurrentTime)
 		c.grabbed = false
 	}
 
 	if c.dropWin != nil {
-		d.UnmapWindow(c.dropWin.XWindow)
-		d.DestroyWindow(c.dropWin.XWindow)
+		d.UnmapWindow(c.dropWin.PlatformID)
+		d.DestroyWindow(c.dropWin.PlatformID)
 		c.dropWin = nil
 	}
 }
@@ -367,7 +365,7 @@ func (c *Combobox) displayDropdown() {
 	}
 
 	dw := c.dropWin
-	d := dw.Display.XDisplay
+	d := dw.Display.Server
 	gc := dw.GC
 	width := dw.Width
 	height := dw.Height
@@ -406,11 +404,11 @@ func (c *Combobox) displayDropdown() {
 				fg = uint64(0xffffff)
 			}
 
-			if xftFont, ok := c.Font.(*font.XftFont); ok {
+			if df, ok := c.Font.(platform.DrawableFont); ok {
 				r := uint16((fg >> 16) & 0xFF) << 8
 				g := uint16((fg >> 8) & 0xFF) << 8
 				b := uint16((fg) & 0xFF) << 8
-				xftFont.DrawString(dw.Drawable(), 4, textY, val, fg, r, g, b)
+				df.DrawString(dw.Drawable(), 4, textY, val, fg, r, g, b)
 			}
 		}
 	}
@@ -421,14 +419,14 @@ func (c *Combobox) displayDropdown() {
 func bindCombobox(c *Combobox, app widget.AppContext) {
 	win := c.Win
 
-	app.Dispatcher().Bind(win.XWindow, event.ExposureMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(win.PlatformID, event.ExposureMask, func(ev *event.Event) {
 		if ev.ExposeCount > 0 {
 			return
 		}
 		c.Display()
 	})
 
-	app.Dispatcher().Bind(win.XWindow, event.StructureNotifyMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(win.PlatformID, event.StructureNotifyMask, func(ev *event.Event) {
 		if ev.Type == event.ConfigureType {
 			win.Width = ev.ConfigWidth
 			win.Height = ev.ConfigHeight
@@ -436,16 +434,16 @@ func bindCombobox(c *Combobox, app widget.AppContext) {
 		}
 	})
 
-	app.Dispatcher().Bind(win.XWindow, event.EnterMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(win.PlatformID, event.EnterMask, func(ev *event.Event) {
 		c.ChangeState(StateHover|StateActive, 0)
 	})
 
-	app.Dispatcher().Bind(win.XWindow, event.LeaveMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(win.PlatformID, event.LeaveMask, func(ev *event.Event) {
 		c.ChangeState(0, StateHover|StateActive)
 	})
 
 	// Button1 → open/close dropdown.
-	app.Dispatcher().Bind(win.XWindow, event.ButtonPressMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(win.PlatformID, event.ButtonPressMask, func(ev *event.Event) {
 		if c.State&StateDisabled != 0 {
 			return
 		}
@@ -462,36 +460,37 @@ func bindCombobox(c *Combobox, app widget.AppContext) {
 	})
 
 	// Key events for editable combobox.
-	app.Dispatcher().Bind(win.XWindow, event.KeyPressMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(win.PlatformID, event.KeyPressMask, func(ev *event.Event) {
 		if c.State&StateDisabled != 0 || c.CbState != ComboNormal {
 			return
 		}
-		switch ev.KeySym {
-		case xlib.XK_BackSpace:
+		ks := ev.KeySym
+		switch {
+		case ks == platform.XK_BackSpace:
 			if c.insertPos > 0 {
 				c.text = append(c.text[:c.insertPos-1], c.text[c.insertPos:]...)
 				c.insertPos--
 				c.Display()
 			}
-		case xlib.XK_Delete:
+		case ks == platform.XK_Delete:
 			if c.insertPos < len(c.text) {
 				c.text = append(c.text[:c.insertPos], c.text[c.insertPos+1:]...)
 				c.Display()
 			}
-		case xlib.XK_Left:
+		case ks == platform.XK_Left:
 			if c.insertPos > 0 {
 				c.insertPos--
 				c.Display()
 			}
-		case xlib.XK_Right:
+		case ks == platform.XK_Right:
 			if c.insertPos < len(c.text) {
 				c.insertPos++
 				c.Display()
 			}
-		case xlib.XK_Home:
+		case ks == platform.XK_Home:
 			c.insertPos = 0
 			c.Display()
-		case xlib.XK_End:
+		case ks == platform.XK_End:
 			c.insertPos = len(c.text)
 			c.Display()
 		default:
@@ -511,7 +510,7 @@ func bindCombobox(c *Combobox, app widget.AppContext) {
 	})
 
 	// Focus events.
-	app.Dispatcher().Bind(win.XWindow, event.FocusChangeMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(win.PlatformID, event.FocusChangeMask, func(ev *event.Event) {
 		if ev.Type == event.FocusInType {
 			c.ChangeState(StateFocus, 0)
 		} else if ev.Type == event.FocusOutType {

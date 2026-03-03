@@ -3,7 +3,7 @@
 package busy
 
 import (
-	"github.com/msorc/takigo/internal/xlib"
+	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/window"
 )
@@ -11,19 +11,19 @@ import (
 // BusyWin is an InputOnly overlay window that intercepts all input
 // to the target window beneath it.
 type BusyWin struct {
-	overlay xlib.Window
-	display *xlib.Display
+	overlay platform.WindowID
+	display platform.DisplayServer
 	target  *window.Window
 }
 
 // Hold creates an InputOnly overlay covering the target window,
 // preventing all mouse and keyboard interaction.
 func Hold(app widget.AppContext, target *window.Window) *BusyWin {
-	if target == nil || target.XWindow == xlib.Window(0) {
+	if target == nil || target.PlatformID == platform.WindowID(0) {
 		return nil
 	}
 
-	d := target.Display.XDisplay
+	d := target.Display.Server
 	w := uint(target.Width)
 	h := uint(target.Height)
 	if w < 1 {
@@ -33,22 +33,21 @@ func Hold(app widget.AppContext, target *window.Window) *BusyWin {
 		h = 1
 	}
 
-	attrs := &xlib.WindowAttributes{
+	attrs := &platform.WindowAttrs{
 		EventMask: int64(
-			xlib.KeyPressMask |
-				xlib.KeyReleaseMask |
-				xlib.ButtonPressMask |
-				xlib.ButtonReleaseMask |
-				xlib.PointerMotionMask),
+			platform.KeyPressMask |
+				platform.KeyReleaseMask |
+				platform.ButtonPressMask |
+				platform.ButtonReleaseMask |
+				platform.PointerMotionMask),
 	}
 
 	overlay := d.CreateWindow(
-		target.XWindow,
+		target.PlatformID,
 		0, 0, w, h, 0,
 		0,             // depth=0 for InputOnly
-		xlib.InputOnly,
-		nil, // visual=nil for InputOnly
-		xlib.CWEventMask,
+		platform.InputOnly,
+		platform.CWEventMask,
 		attrs,
 	)
 
@@ -69,10 +68,10 @@ func Hold(app widget.AppContext, target *window.Window) *BusyWin {
 
 // Release destroys the overlay window, restoring interaction.
 func (b *BusyWin) Release() {
-	if b == nil || b.overlay == xlib.Window(0) {
+	if b == nil || b.overlay == platform.WindowID(0) {
 		return
 	}
 	b.display.DestroyWindow(b.overlay)
-	b.overlay = xlib.Window(0)
+	b.overlay = platform.WindowID(0)
 	b.display.Flush()
 }

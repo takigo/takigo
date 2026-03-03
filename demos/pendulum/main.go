@@ -195,7 +195,7 @@ func main() {
 
 	// Click-and-drag to reposition pendulum bob.
 	disp := app.Dispatcher()
-	disp.Bind(pendulumCanvas.Win.XWindow, event.ButtonPressMask, func(ev *event.Event) {
+	disp.Bind(pendulumCanvas.Win.PlatformID, event.ButtonPressMask, func(ev *event.Event) {
 		// Scroll events (button 4-7) should not trigger drag.
 		if ev.Button >= 4 {
 			return
@@ -217,7 +217,7 @@ func main() {
 		showPendulum()
 	})
 
-	disp.Bind(pendulumCanvas.Win.XWindow, event.MotionMask, func(ev *event.Event) {
+	disp.Bind(pendulumCanvas.Win.PlatformID, event.MotionMask, func(ev *event.Event) {
 		if !dragging {
 			return
 		}
@@ -234,7 +234,7 @@ func main() {
 		showPendulum()
 	})
 
-	disp.Bind(pendulumCanvas.Win.XWindow, event.ButtonReleaseMask, func(ev *event.Event) {
+	disp.Bind(pendulumCanvas.Win.PlatformID, event.ButtonReleaseMask, func(ev *event.Event) {
 		if ev.Button >= 4 {
 			return
 		}

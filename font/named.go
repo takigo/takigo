@@ -2,56 +2,54 @@ package font
 
 import (
 	"sync"
-
-	"github.com/msorc/takigo/internal/xlib"
 )
 
 // Named font constants matching Tk's default named fonts.
 const (
-	TkDefaultFont  = "TkDefaultFont"
-	TkTextFont     = "TkTextFont"
-	TkFixedFont    = "TkFixedFont"
-	TkMenuFont     = "TkMenuFont"
-	TkHeadingFont  = "TkHeadingFont"
-	TkCaptionFont  = "TkCaptionFont"
+	TkDefaultFont      = "TkDefaultFont"
+	TkTextFont         = "TkTextFont"
+	TkFixedFont        = "TkFixedFont"
+	TkMenuFont         = "TkMenuFont"
+	TkHeadingFont      = "TkHeadingFont"
+	TkCaptionFont      = "TkCaptionFont"
 	TkSmallCaptionFont = "TkSmallCaptionFont"
-	TkIconFont     = "TkIconFont"
-	TkTooltipFont  = "TkTooltipFont"
+	TkIconFont         = "TkIconFont"
+	TkTooltipFont      = "TkTooltipFont"
 )
 
 // namedFontDefs maps named font names to their default attributes.
 var namedFontDefs = map[string]Attributes{
-	TkDefaultFont: {Family: "sans-serif", Size: 10, Weight: WeightNormal, Slant: SlantRoman},
-	TkTextFont:    {Family: "sans-serif", Size: 10, Weight: WeightNormal, Slant: SlantRoman},
-	TkFixedFont:   {Family: "monospace", Size: 10, Weight: WeightNormal, Slant: SlantRoman},
-	TkMenuFont:    {Family: "sans-serif", Size: 10, Weight: WeightNormal, Slant: SlantRoman},
-	TkHeadingFont: {Family: "sans-serif", Size: 12, Weight: WeightBold, Slant: SlantRoman},
-	TkCaptionFont: {Family: "sans-serif", Size: 10, Weight: WeightBold, Slant: SlantRoman},
+	TkDefaultFont:      {Family: "sans-serif", Size: 10, Weight: WeightNormal, Slant: SlantRoman},
+	TkTextFont:         {Family: "sans-serif", Size: 10, Weight: WeightNormal, Slant: SlantRoman},
+	TkFixedFont:        {Family: "monospace", Size: 10, Weight: WeightNormal, Slant: SlantRoman},
+	TkMenuFont:         {Family: "sans-serif", Size: 10, Weight: WeightNormal, Slant: SlantRoman},
+	TkHeadingFont:      {Family: "sans-serif", Size: 12, Weight: WeightBold, Slant: SlantRoman},
+	TkCaptionFont:      {Family: "sans-serif", Size: 10, Weight: WeightBold, Slant: SlantRoman},
 	TkSmallCaptionFont: {Family: "sans-serif", Size: 9, Weight: WeightNormal, Slant: SlantRoman},
-	TkIconFont:    {Family: "sans-serif", Size: 9, Weight: WeightNormal, Slant: SlantRoman},
-	TkTooltipFont: {Family: "sans-serif", Size: 9, Weight: WeightNormal, Slant: SlantRoman},
+	TkIconFont:         {Family: "sans-serif", Size: 9, Weight: WeightNormal, Slant: SlantRoman},
+	TkTooltipFont:      {Family: "sans-serif", Size: 9, Weight: WeightNormal, Slant: SlantRoman},
+}
+
+// FontOpener is the interface for platform-specific font creation.
+// The X11 backend implements this using OpenXft.
+type FontOpener interface {
+	OpenFont(attrs Attributes) (Font, error)
 }
 
 // Registry manages named fonts and caches opened font handles.
 type Registry struct {
-	mu       sync.Mutex
-	display  *xlib.Display
-	screen   int
-	visual   *xlib.Visual
-	colormap xlib.Colormap
-	named    map[string]Attributes
-	cache    map[string]Font
+	mu     sync.Mutex
+	opener FontOpener
+	named  map[string]Attributes
+	cache  map[string]Font
 }
 
-// NewRegistry creates a new font registry.
-func NewRegistry(display *xlib.Display, screen int, visual *xlib.Visual, colormap xlib.Colormap) *Registry {
+// NewRegistry creates a new font registry with the given font opener.
+func NewRegistry(opener FontOpener) *Registry {
 	reg := &Registry{
-		display:  display,
-		screen:   screen,
-		visual:   visual,
-		colormap: colormap,
-		named:    make(map[string]Attributes),
-		cache:    make(map[string]Font),
+		opener: opener,
+		named:  make(map[string]Attributes),
+		cache:  make(map[string]Font),
 	}
 
 	// Register default named fonts.
@@ -99,8 +97,8 @@ func (r *Registry) Get(name string) (Font, error) {
 		}
 	}
 
-	// Open via Xft.
-	f, err := OpenXft(r.display, r.screen, r.visual, r.colormap, attrs)
+	// Open via platform-specific opener.
+	f, err := r.opener.OpenFont(attrs)
 	if err != nil {
 		return nil, err
 	}

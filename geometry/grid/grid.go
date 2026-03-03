@@ -4,7 +4,7 @@ package grid
 
 import (
 	"github.com/msorc/takigo/geometry"
-	"github.com/msorc/takigo/internal/xlib"
+	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/window"
 )
 
@@ -234,7 +234,7 @@ func (g *gridder) nextRow() int {
 // arrange performs the grid layout.
 func (g *gridder) arrange() {
 	container := g.container
-	if container.XWindow == xlib.Window(0) || len(g.entries) == 0 {
+	if container.PlatformID == platform.WindowID(0) || len(g.entries) == 0 {
 		return
 	}
 
@@ -391,11 +391,11 @@ func (g *gridder) arrange() {
 			child.Height = 1
 		}
 
-		if child.XWindow != xlib.Window(0) {
-			container.Display.XDisplay.MoveResizeWindow(child.XWindow,
+		if child.PlatformID != platform.WindowID(0) {
+			container.Display.Server.MoveResizeWindow(child.PlatformID,
 				child.X, child.Y, uint(child.Width), uint(child.Height))
 			if child.Flags&window.FlagMapped == 0 {
-				container.Display.XDisplay.MapWindow(child.XWindow)
+				container.Display.Server.MapWindow(child.PlatformID)
 				child.Flags |= window.FlagMapped
 			}
 		}

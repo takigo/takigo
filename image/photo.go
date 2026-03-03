@@ -9,10 +9,10 @@ import (
 	"io"
 	"os"
 
-	"github.com/msorc/takigo/internal/xlib"
+	"github.com/msorc/takigo/platform"
 )
 
-// Photo is an image backed by Go RGBA pixel data. It caches an X11 Pixmap
+// Photo is an image backed by Go RGBA pixel data. It caches a Pixmap
 // for efficient repeated drawing, re-creating it when the background color
 // changes or the pixel data is invalidated.
 type Photo struct {
@@ -20,8 +20,8 @@ type Photo struct {
 	rgba *goimage.RGBA
 
 	// Pixmap cache.
-	display    *xlib.Display
-	pixmap     xlib.Pixmap
+	server     platform.DisplayServer
+	pixmap     platform.PixmapID
 	pixmapW    int
 	pixmapH    int
 	pixmapBg   uint64 // bgPixel used when rendering the cached pixmap
@@ -78,8 +78,8 @@ func (p *Photo) Invalidate() {
 }
 
 // Draw renders a region of the photo onto a drawable.
-func (p *Photo) Draw(d *xlib.Display, drawable xlib.Drawable, gc xlib.GC,
-	visual *xlib.Visual, depth int,
+func (p *Photo) Draw(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID,
+	depth int,
 	imgX, imgY, w, h, dstX, dstY int,
 	bgPixel uint64) {
 
@@ -111,30 +111,30 @@ func (p *Photo) Draw(d *xlib.Display, drawable xlib.Drawable, gc xlib.GC,
 	}
 
 	// Ensure cached pixmap is up to date.
-	p.ensurePixmap(d, drawable, gc, visual, depth, bgPixel)
+	p.ensurePixmap(d, drawable, gc, depth, bgPixel)
 
-	if p.pixmap != xlib.Pixmap(0) {
+	if p.pixmap != platform.PixmapID(0) {
 		// Copy from cached pixmap.
-		d.CopyArea(xlib.PixmapDrawable(p.pixmap), drawable, gc,
+		d.CopyArea(platform.PixmapDrawable(p.pixmap), drawable, gc,
 			imgX, imgY, uint(w), uint(h), dstX, dstY)
 	} else {
 		// Fallback: direct PutImage (no caching).
-		d.PutImageRGBA(drawable, gc, visual, depth,
+		d.PutImageRGBA(drawable, gc, depth,
 			p.rgba.Pix, p.rgba.Stride, imgW, imgH,
 			imgX, imgY, dstX, dstY, w, h, bgPixel)
 	}
 }
 
 // ensurePixmap creates or re-creates the cached pixmap if needed.
-func (p *Photo) ensurePixmap(d *xlib.Display, drawable xlib.Drawable, gc xlib.GC,
-	visual *xlib.Visual, depth int, bgPixel uint64) {
+func (p *Photo) ensurePixmap(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID,
+	depth int, bgPixel uint64) {
 
 	imgW := p.Width()
 	imgH := p.Height()
 
 	needRecreate := p.pixmapDirty ||
-		p.pixmap == xlib.Pixmap(0) ||
-		p.display != d ||
+		p.pixmap == platform.PixmapID(0) ||
+		p.server != d ||
 		p.pixmapW != imgW ||
 		p.pixmapH != imgH ||
 		p.pixmapBg != bgPixel
@@ -144,23 +144,23 @@ func (p *Photo) ensurePixmap(d *xlib.Display, drawable xlib.Drawable, gc xlib.GC
 	}
 
 	// Free old pixmap.
-	if p.pixmap != xlib.Pixmap(0) && p.display != nil {
-		p.display.FreePixmap(p.pixmap)
-		p.pixmap = xlib.Pixmap(0)
+	if p.pixmap != platform.PixmapID(0) && p.server != nil {
+		p.server.FreePixmap(p.pixmap)
+		p.pixmap = platform.PixmapID(0)
 	}
 
 	// Create new pixmap.
 	pix := d.CreatePixmap(drawable, uint(imgW), uint(imgH), uint(depth))
-	if pix == xlib.Pixmap(0) {
+	if pix == platform.PixmapID(0) {
 		return
 	}
 
 	// Render RGBA data into the pixmap.
-	d.PutImageRGBA(xlib.PixmapDrawable(pix), gc, visual, depth,
+	d.PutImageRGBA(platform.PixmapDrawable(pix), gc, depth,
 		p.rgba.Pix, p.rgba.Stride, imgW, imgH,
 		0, 0, 0, 0, imgW, imgH, bgPixel)
 
-	p.display = d
+	p.server = d
 	p.pixmap = pix
 	p.pixmapW = imgW
 	p.pixmapH = imgH
@@ -168,11 +168,11 @@ func (p *Photo) ensurePixmap(d *xlib.Display, drawable xlib.Drawable, gc xlib.GC
 	p.pixmapDirty = false
 }
 
-// Destroy releases the cached X11 pixmap.
+// Destroy releases the cached pixmap.
 func (p *Photo) Destroy() {
-	if p.pixmap != xlib.Pixmap(0) && p.display != nil {
-		p.display.FreePixmap(p.pixmap)
-		p.pixmap = xlib.Pixmap(0)
+	if p.pixmap != platform.PixmapID(0) && p.server != nil {
+		p.server.FreePixmap(p.pixmap)
+		p.pixmap = platform.PixmapID(0)
 	}
 }
 

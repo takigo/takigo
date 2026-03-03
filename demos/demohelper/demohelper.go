@@ -10,8 +10,8 @@ import (
 	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/geometry/pack"
-	"github.com/msorc/takigo/internal/xlib"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/button"
 	"github.com/msorc/takigo/widget/frame"
@@ -53,7 +53,7 @@ func Setup(title string, width, height int, description string) *takigo.App {
 	pack.Pack(dismissBtn, pack.SideOpt(pack.Left), pack.PadX(10))
 
 	// Configure handler.
-	app.Dispatcher().Bind(root.XWindow, event.StructureNotifyMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(root.PlatformID, event.StructureNotifyMask, func(ev *event.Event) {
 		if ev.Type == event.ConfigureType {
 			root.Width = ev.ConfigWidth
 			root.Height = ev.ConfigHeight
@@ -62,11 +62,11 @@ func Setup(title string, width, height int, description string) *takigo.App {
 	})
 
 	// Expose handler — reads root.BackgroundPixel so dynamic bg changes work.
-	app.Dispatcher().Bind(root.XWindow, event.ExposureMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(root.PlatformID, event.ExposureMask, func(ev *event.Event) {
 		if ev.ExposeCount > 0 {
 			return
 		}
-		d := root.Display.XDisplay
+		d := root.Display.Server
 		gc := root.GC
 		d.SetForeground(gc, root.BackgroundPixel)
 		d.FillRectangle(root.Drawable(), gc, 0, 0, uint(root.Width), uint(root.Height))
@@ -75,7 +75,7 @@ func Setup(title string, width, height int, description string) *takigo.App {
 
 	// Escape to quit.
 	app.Dispatcher().BindGlobal(event.KeyPressMask, func(ev *event.Event) {
-		if ev.KeySym == xlib.XK_Escape {
+		if ev.KeySym == platform.XK_Escape {
 			app.Quit()
 		}
 	})

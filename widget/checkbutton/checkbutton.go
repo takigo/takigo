@@ -5,9 +5,8 @@ package checkbutton
 
 import (
 	"github.com/msorc/takigo/draw"
-	"github.com/msorc/takigo/font"
-	"github.com/msorc/takigo/internal/xlib"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/window"
 )
@@ -207,11 +206,11 @@ func (c *Checkbutton) Display() {
 		return
 	}
 	w := c.Win
-	if w.XWindow == xlib.Window(0) {
+	if w.PlatformID == platform.WindowID(0) {
 		return
 	}
 
-	d := w.Display.XDisplay
+	d := w.Display.Server
 	gc := w.GC
 
 	selected := c.Variable.Get()
@@ -305,8 +304,8 @@ func (c *Checkbutton) Display() {
 		}
 		m := c.Font.Metrics()
 		baseline := textY + m.Ascent
-		if xftFont, ok := c.Font.(*font.XftFont); ok {
-			xftFont.DrawString(w.Drawable(), textX, baseline, c.Text,
+		if df, ok := c.Font.(platform.DrawableFont); ok {
+			df.DrawString(w.Drawable(), textX, baseline, c.Text,
 				fgCol.Pixel, fgCol.Red, fgCol.Green, fgCol.Blue)
 		}
 	}

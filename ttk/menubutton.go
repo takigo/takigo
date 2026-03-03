@@ -3,7 +3,6 @@ package ttk
 import (
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/font"
-	"github.com/msorc/takigo/internal/xlib"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/menu"
 	"github.com/msorc/takigo/window"
@@ -89,11 +88,9 @@ func NewMenubutton(parent widget.Caregiver, name string, opts ...MenubuttonOptio
 		tmpl := mb.Theme.GetLayout("TMenubutton")
 		if tmpl != nil {
 			ctx := &DrawContext{
-				Display:  mb.Context.Display,
-				Visual:   mb.Context.Visual,
-				Depth:    mb.Context.Depth,
-				Colormap: mb.Context.Colormap,
-				Style:    mb.Context.Style,
+				Display: mb.Context.Display,
+				Depth:   mb.Context.Depth,
+				Style:   mb.Context.Style,
 			}
 			mb.Layout = newLayoutWithLabel(tmpl, mb.Theme, ctx, mb.Context.Style, labelFactory)
 			mb.Context = ctx
@@ -128,7 +125,7 @@ func (mb *Menubutton) Display() {
 		return
 	}
 	win := mb.Win
-	if win.XWindow == xlib.Window(0) {
+	if win.PlatformID == 0 {
 		return
 	}
 
@@ -136,7 +133,7 @@ func (mb *Menubutton) Display() {
 	mb.TtkWidget.Display()
 
 	// Draw arrow indicator on top.
-	d := win.Display.XDisplay
+	d := win.Display.Server
 	gc := win.GC
 
 	fg := LookupColor(mb.Context.Style, "-foreground", mb.State, 0x000000)
@@ -155,7 +152,7 @@ func bindMenubutton(mb *Menubutton, app widget.AppContext) {
 	win := mb.Win
 
 	// Button1 press → post menu.
-	app.Dispatcher().Bind(win.XWindow, event.ButtonPressMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(win.PlatformID, event.ButtonPressMask, func(ev *event.Event) {
 		if mb.State&StateDisabled != 0 {
 			return
 		}
@@ -166,7 +163,7 @@ func bindMenubutton(mb *Menubutton, app widget.AppContext) {
 	})
 
 	// Button1 release → unpress.
-	app.Dispatcher().Bind(win.XWindow, event.ButtonReleaseMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(win.PlatformID, event.ButtonReleaseMask, func(ev *event.Event) {
 		mb.ChangeState(0, StatePressed)
 	})
 }
@@ -177,21 +174,21 @@ func (mb *Menubutton) postMenu() {
 	}
 
 	win := mb.Win
-	d := win.Display.XDisplay
+	d := win.Display.Server
 
 	// Compute menu position.
 	var x, y int
 	switch mb.Direction {
 	case DirBelow:
-		x, y = d.TranslateCoordinates(win.XWindow, win.Display.RootXWindow, 0, win.Height)
+		x, y = d.TranslateCoordinates(win.PlatformID, win.Display.RootWindow, 0, win.Height)
 	case DirAbove:
-		x, y = d.TranslateCoordinates(win.XWindow, win.Display.RootXWindow, 0, 0)
+		x, y = d.TranslateCoordinates(win.PlatformID, win.Display.RootWindow, 0, 0)
 		y -= mb.Menu.Window().Height
 	case DirLeft:
-		x, y = d.TranslateCoordinates(win.XWindow, win.Display.RootXWindow, 0, 0)
+		x, y = d.TranslateCoordinates(win.PlatformID, win.Display.RootWindow, 0, 0)
 		x -= mb.Menu.Window().Width
 	case DirRight:
-		x, y = d.TranslateCoordinates(win.XWindow, win.Display.RootXWindow, win.Width, 0)
+		x, y = d.TranslateCoordinates(win.PlatformID, win.Display.RootWindow, win.Width, 0)
 	}
 
 	mb.Menu.Post(x, y)

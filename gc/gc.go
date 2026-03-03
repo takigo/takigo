@@ -6,7 +6,7 @@ package gc
 import (
 	"sync"
 
-	"github.com/msorc/takigo/internal/xlib"
+	"github.com/msorc/takigo/platform"
 )
 
 // Values describes the desired attributes for a graphics context.
@@ -25,35 +25,35 @@ type key struct {
 
 // entry is a cached GC with a reference count.
 type entry struct {
-	gc       xlib.GC
+	gc       platform.GCID
 	refCount int
 }
 
 // Pool manages a cache of shared GCs per display.
 type Pool struct {
 	mu      sync.Mutex
-	display *xlib.Display
+	server  platform.DisplayServer
 	screen  int
 	depth   int
 
 	byValue map[key]*entry
-	byGC    map[xlib.GC]*entry
+	byGC    map[platform.GCID]*entry
 }
 
-// NewPool creates a new GC pool for the given display.
-func NewPool(display *xlib.Display, screen, depth int) *Pool {
+// NewPool creates a new GC pool for the given display server.
+func NewPool(server platform.DisplayServer, screen, depth int) *Pool {
 	return &Pool{
-		display: display,
+		server:  server,
 		screen:  screen,
 		depth:   depth,
 		byValue: make(map[key]*entry),
-		byGC:    make(map[xlib.GC]*entry),
+		byGC:    make(map[platform.GCID]*entry),
 	}
 }
 
 // Get returns a GC with the specified values, creating one if necessary.
 // The returned GC is shared — do not modify it. Call Free when done.
-func (p *Pool) Get(drawable xlib.Drawable, mask uint64, values *Values) xlib.GC {
+func (p *Pool) Get(drawable platform.DrawableID, mask uint64, values *Values) platform.GCID {
 	k := key{Values: *values, depth: p.depth}
 
 	p.mu.Lock()
@@ -65,13 +65,13 @@ func (p *Pool) Get(drawable xlib.Drawable, mask uint64, values *Values) xlib.GC 
 	}
 
 	// Create new GC.
-	xv := &xlib.GCValues{
+	pv := &platform.GCValues{
 		Foreground: values.Foreground,
 		Background: values.Background,
 		LineWidth:  values.LineWidth,
 		Function:   values.Function,
 	}
-	gc := p.display.CreateGC(drawable, mask, xv)
+	gc := p.server.CreateGC(drawable, mask, pv)
 
 	e := &entry{gc: gc, refCount: 1}
 	p.byValue[k] = e
@@ -81,7 +81,7 @@ func (p *Pool) Get(drawable xlib.Drawable, mask uint64, values *Values) xlib.GC 
 }
 
 // Free decrements the reference count on a GC, freeing it when unused.
-func (p *Pool) Free(gc xlib.GC) {
+func (p *Pool) Free(gc platform.GCID) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
@@ -92,7 +92,7 @@ func (p *Pool) Free(gc xlib.GC) {
 
 	e.refCount--
 	if e.refCount <= 0 {
-		p.display.FreeGC(gc)
+		p.server.FreeGC(gc)
 		delete(p.byGC, gc)
 		// Remove from byValue map.
 		for k, v := range p.byValue {
@@ -110,8 +110,8 @@ func (p *Pool) Cleanup() {
 	defer p.mu.Unlock()
 
 	for gc := range p.byGC {
-		p.display.FreeGC(gc)
+		p.server.FreeGC(gc)
 	}
 	p.byValue = make(map[key]*entry)
-	p.byGC = make(map[xlib.GC]*entry)
+	p.byGC = make(map[platform.GCID]*entry)
 }

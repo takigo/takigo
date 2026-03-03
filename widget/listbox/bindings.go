@@ -3,7 +3,7 @@ package listbox
 
 import (
 	"github.com/msorc/takigo/event"
-	"github.com/msorc/takigo/internal/xlib"
+	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/widget"
 )
 
@@ -11,7 +11,7 @@ func bindListbox(lb *Listbox, app widget.AppContext) {
 	w := lb.Win
 
 	// Expose.
-	app.Dispatcher().Bind(w.XWindow, event.ExposureMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(w.PlatformID, event.ExposureMask, func(ev *event.Event) {
 		if ev.ExposeCount > 0 {
 			return
 		}
@@ -19,7 +19,7 @@ func bindListbox(lb *Listbox, app widget.AppContext) {
 	})
 
 	// Configure.
-	app.Dispatcher().Bind(w.XWindow, event.StructureNotifyMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(w.PlatformID, event.StructureNotifyMask, func(ev *event.Event) {
 		if ev.Type == event.ConfigureType {
 			w.Width = ev.ConfigWidth
 			w.Height = ev.ConfigHeight
@@ -29,7 +29,7 @@ func bindListbox(lb *Listbox, app widget.AppContext) {
 	})
 
 	// Focus.
-	app.Dispatcher().Bind(w.XWindow, event.FocusChangeMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(w.PlatformID, event.FocusChangeMask, func(ev *event.Event) {
 		if ev.Type == event.FocusInType {
 			lb.HasFocus = true
 			lb.Display()
@@ -40,9 +40,9 @@ func bindListbox(lb *Listbox, app widget.AppContext) {
 	})
 
 	// Button press.
-	app.Dispatcher().Bind(w.XWindow, event.ButtonPressMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(w.PlatformID, event.ButtonPressMask, func(ev *event.Event) {
 		// Take focus.
-		app.DisplayPtr().SetInputFocus(w.XWindow, xlib.RevertToParent, xlib.CurrentTime)
+		app.Server().SetInputFocus(w.PlatformID, platform.RevertToParent, platform.CurrentTime)
 
 		if ev.Button == 1 {
 			idx := lb.indexAtY(ev.Y)
@@ -62,8 +62,8 @@ func bindListbox(lb *Listbox, app widget.AppContext) {
 	})
 
 	// Motion (drag select for browse/extended).
-	app.Dispatcher().Bind(w.XWindow, event.MotionMask, func(ev *event.Event) {
-		if ev.State&xlib.Button1Mask == 0 {
+	app.Dispatcher().Bind(w.PlatformID, event.MotionMask, func(ev *event.Event) {
+		if ev.State&platform.Button1Mask == 0 {
 			return
 		}
 		idx := lb.indexAtY(ev.Y)
@@ -94,21 +94,21 @@ func bindListbox(lb *Listbox, app widget.AppContext) {
 	})
 
 	// Keyboard.
-	app.Dispatcher().Bind(w.XWindow, event.KeyPressMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(w.PlatformID, event.KeyPressMask, func(ev *event.Event) {
 		switch ev.KeySym {
-		case xlib.XK_Up:
+		case platform.XK_Up:
 			moveActive(lb, -1)
-		case xlib.XK_Down:
+		case platform.XK_Down:
 			moveActive(lb, 1)
-		case xlib.XK_Prior: // PageUp
+		case platform.XK_Prior: // PageUp
 			moveActive(lb, -lb.visibleLines())
-		case xlib.XK_Next: // PageDown
+		case platform.XK_Next: // PageDown
 			moveActive(lb, lb.visibleLines())
-		case xlib.XK_Home:
+		case platform.XK_Home:
 			setActive(lb, 0)
-		case xlib.XK_End:
+		case platform.XK_End:
 			setActive(lb, len(lb.items)-1)
-		case xlib.XK_space:
+		case platform.XK_space:
 			// Toggle selection on active item.
 			if lb.activeIndex >= 0 && lb.activeIndex < len(lb.items) {
 				if lb.selectMode == SelectMultiple {
@@ -144,8 +144,8 @@ func handleSelect(lb *Listbox, idx int, state uint) {
 		}
 
 	case SelectExtended:
-		shift := state&xlib.ShiftMask != 0
-		ctrl := state&xlib.ControlMask != 0
+		shift := state&platform.ShiftMask != 0
+		ctrl := state&platform.ControlMask != 0
 
 		if shift && lb.selAnchor >= 0 {
 			// Extend from anchor.

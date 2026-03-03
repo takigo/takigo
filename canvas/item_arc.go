@@ -3,7 +3,7 @@ package canvas
 import (
 	"math"
 
-	"github.com/msorc/takigo/internal/xlib"
+	"github.com/msorc/takigo/platform"
 )
 
 // ArcItem implements an arc/chord/pieslice canvas item.
@@ -78,7 +78,7 @@ func (a *ArcItem) updateBBox() {
 	a.Y2 = int(math.Ceil(y2 + hw))
 }
 
-func (a *ArcItem) Display(d *xlib.Display, drawable xlib.Drawable, gc xlib.GC,
+func (a *ArcItem) Display(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID,
 	clipX, clipY, clipW, clipH, originX, originY int) {
 
 	x1 := int(a.coords[0]) - originX
@@ -160,17 +160,17 @@ func (a *ArcItem) Display(d *xlib.Display, drawable xlib.Drawable, gc xlib.GC,
 	}
 }
 
-func (a *ArcItem) setLineAttrs(d *xlib.Display, gc xlib.GC) {
-	lineStyle := xlib.LineSolid
+func (a *ArcItem) setLineAttrs(d platform.DisplayServer, gc platform.GCID) {
+	lineStyle := platform.LineSolid
 	if len(a.dash) > 0 {
-		lineStyle = xlib.LineOnOffDash
+		lineStyle = platform.LineOnOffDash
 		d.SetDashes(gc, 0, a.dash)
 	}
-	d.SetLineAttributes(gc, uint(a.outlineWidth), lineStyle, xlib.CapButt, xlib.JoinMiter)
+	d.SetLineAttributes(gc, uint(a.outlineWidth), lineStyle, platform.CapButt, platform.JoinMiter)
 }
 
-func (a *ArcItem) resetLineAttrs(d *xlib.Display, gc xlib.GC) {
-	d.SetLineAttributes(gc, 1, xlib.LineSolid, xlib.CapButt, xlib.JoinMiter)
+func (a *ArcItem) resetLineAttrs(d platform.DisplayServer, gc platform.GCID) {
+	d.SetLineAttributes(gc, 1, platform.LineSolid, platform.CapButt, platform.JoinMiter)
 }
 
 func (a *ArcItem) PointDistance(x, y float64) float64 {
@@ -211,4 +211,4 @@ func (a *ArcItem) Translate(dx, dy float64) {
 	a.updateBBox()
 }
 
-func (a *ArcItem) Delete(d *xlib.Display) {}
+func (a *ArcItem) Delete(d platform.DisplayServer) {}

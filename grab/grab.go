@@ -4,7 +4,7 @@ package grab
 
 import (
 	"github.com/msorc/takigo/event"
-	"github.com/msorc/takigo/internal/xlib"
+	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/window"
 )
 
@@ -20,7 +20,7 @@ const (
 
 // Manager manages grab state for the application.
 type Manager struct {
-	display    *xlib.Display
+	display    platform.DisplayServer
 	dispatcher *event.Dispatcher
 
 	// Current grab window (nil = no grab).
@@ -31,7 +31,7 @@ type Manager struct {
 }
 
 // NewManager creates a new grab manager.
-func NewManager(display *xlib.Display, dispatcher *event.Dispatcher) *Manager {
+func NewManager(display platform.DisplayServer, dispatcher *event.Dispatcher) *Manager {
 	return &Manager{
 		display:    display,
 		dispatcher: dispatcher,
@@ -52,7 +52,7 @@ func (m *Manager) IsGlobal() bool {
 // If global is true, an X server pointer+keyboard grab is used.
 // Otherwise, the grab is enforced in software by the event dispatcher.
 func (m *Manager) Set(w *window.Window, global bool) bool {
-	if w == nil || w.XWindow == xlib.Window(0) {
+	if w == nil || w.PlatformID == platform.WindowID(0) {
 		return false
 	}
 
@@ -66,21 +66,21 @@ func (m *Manager) Set(w *window.Window, global bool) bool {
 
 	if global {
 		// Grab pointer.
-		result := m.display.GrabPointer(w.XWindow, true,
-			uint(xlib.ButtonPressMask|xlib.ButtonReleaseMask|xlib.PointerMotionMask|xlib.ButtonMotionMask),
-			xlib.GrabModeAsync, xlib.GrabModeAsync,
-			xlib.Window(xlib.None), xlib.Cursor(0), xlib.CurrentTime)
-		if result != xlib.GrabSuccess {
+		result := m.display.GrabPointer(w.PlatformID, true,
+			uint(platform.ButtonPressMask|platform.ButtonReleaseMask|platform.PointerMotionMask|platform.ButtonMotionMask),
+			platform.GrabModeAsync, platform.GrabModeAsync,
+			platform.WindowID(platform.None), platform.CursorID(0), platform.CurrentTime)
+		if result != platform.GrabSuccess {
 			m.grabWin = nil
 			m.grabGlobal = false
 			return false
 		}
 
 		// Grab keyboard.
-		result = m.display.GrabKeyboard(w.XWindow, false,
-			xlib.GrabModeAsync, xlib.GrabModeAsync, xlib.CurrentTime)
-		if result != xlib.GrabSuccess {
-			m.display.UngrabPointer(xlib.CurrentTime)
+		result = m.display.GrabKeyboard(w.PlatformID, false,
+			platform.GrabModeAsync, platform.GrabModeAsync, platform.CurrentTime)
+		if result != platform.GrabSuccess {
+			m.display.UngrabPointer(platform.CurrentTime)
 			m.grabWin = nil
 			m.grabGlobal = false
 			return false
@@ -97,8 +97,8 @@ func (m *Manager) Release() {
 	}
 
 	if m.grabGlobal {
-		m.display.UngrabPointer(xlib.CurrentTime)
-		m.display.UngrabKeyboard(xlib.CurrentTime)
+		m.display.UngrabPointer(platform.CurrentTime)
+		m.display.UngrabKeyboard(platform.CurrentTime)
 	}
 
 	m.grabWin = nil

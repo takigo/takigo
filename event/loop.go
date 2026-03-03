@@ -3,32 +3,36 @@ package event
 import (
 	"time"
 
-	"github.com/msorc/takigo/internal/xlib"
+	"github.com/msorc/takigo/platform"
 )
 
-// Loop is the main event loop, integrating X11 events with idle callbacks,
+// Loop is the main event loop, integrating platform events with idle callbacks,
 // timers, and cross-goroutine dispatching.
 type Loop struct {
-	display    *xlib.Display
+	server     platform.DisplayServer
+	parser     platform.EventParser
+	hasIM      bool
 	dispatcher *Dispatcher
 
 	// Channels for the select-based event loop.
-	eventCh chan *xlib.RawEvent // raw X events from reader goroutine
-	idleCh  chan func()         // idle callbacks (replaces Tcl_DoWhenIdle)
-	timerCh chan func()         // timer-fired callbacks
-	mainCh  chan func()         // cross-goroutine calls via RunOnMain
-	done    chan struct{}        // signal to stop the loop
+	eventCh chan *platform.RawEvent // raw events from reader goroutine
+	idleCh  chan func()             // idle callbacks (replaces Tcl_DoWhenIdle)
+	timerCh chan func()             // timer-fired callbacks
+	mainCh  chan func()             // cross-goroutine calls via RunOnMain
+	done    chan struct{}            // signal to stop the loop
 
 	// Pending idle callbacks (coalesced).
 	idleQueue []func()
 }
 
-// NewLoop creates a new event loop for the given display.
-func NewLoop(display *xlib.Display, dispatcher *Dispatcher) *Loop {
+// NewLoop creates a new event loop for the given display server.
+func NewLoop(server platform.DisplayServer, parser platform.EventParser, dispatcher *Dispatcher) *Loop {
 	return &Loop{
-		display:    display,
+		server:     server,
+		parser:     parser,
+		hasIM:      server.HasIM(),
 		dispatcher: dispatcher,
-		eventCh:    make(chan *xlib.RawEvent, 64),
+		eventCh:    make(chan *platform.RawEvent, 64),
 		idleCh:     make(chan func(), 256),
 		timerCh:    make(chan func(), 64),
 		mainCh:     make(chan func(), 64),
@@ -38,7 +42,7 @@ func NewLoop(display *xlib.Display, dispatcher *Dispatcher) *Loop {
 
 // Run starts the event loop. It blocks until Quit is called.
 func (l *Loop) Run() {
-	// Start X11 event reader goroutine.
+	// Start event reader goroutine.
 	go l.readEvents()
 
 	for {
@@ -50,29 +54,25 @@ func (l *Loop) Run() {
 			return
 
 		case raw := <-l.eventCh:
-			if raw.FilterEvent() {
+			if l.server.FilterEvent(raw) {
 				continue
 			}
-			ev := FromRawEventIM(raw, l.display)
+			ev := FromRawEventIM(raw, l.parser, l.hasIM)
 			if ev.Type != 0 {
 				l.dispatcher.Dispatch(&ev)
 			}
-			// Flush after dispatching so any X requests issued by
-			// event handlers (e.g. MapWindow, IconifyWindow) are
-			// sent to the server immediately, not deferred until
-			// the next XNextEvent call in the reader goroutine.
-			l.display.Flush()
+			l.server.Flush()
 
 		case fn := <-l.idleCh:
 			l.idleQueue = append(l.idleQueue, fn)
 
 		case fn := <-l.timerCh:
 			fn()
-			l.display.Flush()
+			l.server.Flush()
 
 		case fn := <-l.mainCh:
 			fn()
-			l.display.Flush()
+			l.server.Flush()
 		}
 	}
 }
@@ -130,25 +130,25 @@ func (l *Loop) RunNested(done <-chan struct{}) {
 			return
 
 		case raw := <-l.eventCh:
-			if raw.FilterEvent() {
+			if l.server.FilterEvent(raw) {
 				continue
 			}
-			ev := FromRawEventIM(raw, l.display)
+			ev := FromRawEventIM(raw, l.parser, l.hasIM)
 			if ev.Type != 0 {
 				l.dispatcher.Dispatch(&ev)
 			}
-			l.display.Flush()
+			l.server.Flush()
 
 		case fn := <-l.idleCh:
 			l.idleQueue = append(l.idleQueue, fn)
 
 		case fn := <-l.timerCh:
 			fn()
-			l.display.Flush()
+			l.server.Flush()
 
 		case fn := <-l.mainCh:
 			fn()
-			l.display.Flush()
+			l.server.Flush()
 		}
 	}
 }
@@ -173,14 +173,14 @@ drain:
 	for _, fn := range queue {
 		fn()
 	}
-	l.display.Flush()
+	l.server.Flush()
 }
 
-// readEvents runs in a separate goroutine, blocking on XNextEvent
+// readEvents runs in a separate goroutine, blocking on NextEvent
 // and posting raw events to the eventCh channel.
 func (l *Loop) readEvents() {
 	for {
-		raw := l.display.NextEvent()
+		raw := l.server.NextEvent()
 		select {
 		case l.eventCh <- raw:
 		case <-l.done:

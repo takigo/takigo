@@ -4,8 +4,8 @@ import (
 	"math"
 
 	"github.com/msorc/takigo/font"
-	"github.com/msorc/takigo/internal/xlib"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/platform"
 )
 
 // TextItem implements a positioned text canvas item.
@@ -90,7 +90,7 @@ func (t *TextItem) updateBBox() {
 	t.Y2 = t.Y1 + textH
 }
 
-func (t *TextItem) Display(d *xlib.Display, drawable xlib.Drawable, gc xlib.GC,
+func (t *TextItem) Display(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID,
 	clipX, clipY, clipW, clipH, originX, originY int) {
 
 	if t.font == nil || len(t.text) == 0 || t.color == nil {
@@ -105,15 +105,11 @@ func (t *TextItem) Display(d *xlib.Display, drawable xlib.Drawable, gc xlib.GC,
 	drawX := int(t.x) + ax - originX
 	drawY := int(t.y) + ay - originY
 
-	// Use Xft for text rendering if available.
-	if xftFont, ok := t.font.(*font.XftFont); ok {
-		xftFont.DrawString(drawable,
+	// Use DrawableFont for text rendering.
+	if df, ok := t.font.(platform.DrawableFont); ok {
+		df.DrawString(drawable,
 			drawX, drawY+m.Ascent,
 			t.text, t.color.Pixel, t.color.Red, t.color.Green, t.color.Blue)
-	} else {
-		// Fallback to core X11 text (less pretty).
-		d.SetForeground(gc, t.color.Pixel)
-		d.DrawString(drawable, gc, drawX, drawY+m.Ascent, t.text)
 	}
 }
 
@@ -144,7 +140,7 @@ func (t *TextItem) Translate(dx, dy float64) {
 	t.updateBBox()
 }
 
-func (t *TextItem) Delete(d *xlib.Display) {}
+func (t *TextItem) Delete(d platform.DisplayServer) {}
 
 // anchorOffset computes the top-left offset from the anchor point
 // for a region of size (w, h).

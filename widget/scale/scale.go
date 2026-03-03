@@ -8,9 +8,8 @@ import (
 
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/event"
-	"github.com/msorc/takigo/font"
-	"github.com/msorc/takigo/internal/xlib"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/window"
 )
@@ -279,11 +278,11 @@ func (s *Scale) Display() {
 		return
 	}
 	w := s.Win
-	if w.XWindow == xlib.Window(0) {
+	if w.PlatformID == platform.WindowID(0) {
 		return
 	}
 
-	d := w.Display.XDisplay
+	d := w.Display.Server
 	gc := w.GC
 
 	// Background.
@@ -338,18 +337,18 @@ func (s *Scale) Display() {
 	// Value text.
 	if s.ShowValue && s.Font != nil && s.Foreground != nil {
 		valStr := s.formatValue(s.Value)
-		if xftFont, ok := s.Font.(*font.XftFont); ok {
+		if df, ok := s.Font.(platform.DrawableFont); ok {
 			m := s.Font.Metrics()
 			if s.Orient == Horizontal {
 				valW := s.Font.MeasureString(valStr)
 				vx := sliderPos + s.SliderLength/2 - valW/2
 				vy := s.BorderWidth + m.Ascent
-				xftFont.DrawString(w.Drawable(), vx, vy, valStr,
+				df.DrawString(w.Drawable(), vx, vy, valStr,
 					s.Foreground.Pixel, s.Foreground.Red, s.Foreground.Green, s.Foreground.Blue)
 			} else {
 				vx := tx + tw + 4
 				vy := sliderPos + s.SliderLength/2 + m.Ascent/2
-				xftFont.DrawString(w.Drawable(), vx, vy, valStr,
+				df.DrawString(w.Drawable(), vx, vy, valStr,
 					s.Foreground.Pixel, s.Foreground.Red, s.Foreground.Green, s.Foreground.Blue)
 			}
 		}
@@ -357,7 +356,7 @@ func (s *Scale) Display() {
 
 	// Label text.
 	if s.Label != "" && s.Font != nil && s.Foreground != nil {
-		if xftFont, ok := s.Font.(*font.XftFont); ok {
+		if df, ok := s.Font.(platform.DrawableFont); ok {
 			m := s.Font.Metrics()
 			if s.Orient == Horizontal {
 				_, _, _, troughH := s.troughRect()
@@ -366,7 +365,7 @@ func (s *Scale) Display() {
 					ly += m.Linespace() + 2
 				}
 				ly += m.Ascent + 2
-				xftFont.DrawString(w.Drawable(), s.BorderWidth+4, ly, s.Label,
+				df.DrawString(w.Drawable(), s.BorderWidth+4, ly, s.Label,
 					s.Foreground.Pixel, s.Foreground.Red, s.Foreground.Green, s.Foreground.Blue)
 			}
 		}
@@ -399,7 +398,7 @@ func bindScale(s *Scale, app widget.AppContext) {
 	w := s.Win
 
 	// Expose.
-	app.Dispatcher().Bind(w.XWindow, event.ExposureMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(w.PlatformID, event.ExposureMask, func(ev *event.Event) {
 		if ev.ExposeCount > 0 {
 			return
 		}
@@ -407,7 +406,7 @@ func bindScale(s *Scale, app widget.AppContext) {
 	})
 
 	// Configure.
-	app.Dispatcher().Bind(w.XWindow, event.StructureNotifyMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(w.PlatformID, event.StructureNotifyMask, func(ev *event.Event) {
 		if ev.Type == event.ConfigureType {
 			w.Width = ev.ConfigWidth
 			w.Height = ev.ConfigHeight
@@ -416,7 +415,7 @@ func bindScale(s *Scale, app widget.AppContext) {
 	})
 
 	// Button press.
-	app.Dispatcher().Bind(w.XWindow, event.ButtonPressMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(w.PlatformID, event.ButtonPressMask, func(ev *event.Event) {
 		// Mouse wheel: Button 4 (up/left) and Button 5 (down/right).
 		if ev.Button == 4 {
 			step := s.Resolution
@@ -479,12 +478,12 @@ func bindScale(s *Scale, app widget.AppContext) {
 	})
 
 	// Button release.
-	app.Dispatcher().Bind(w.XWindow, event.ButtonReleaseMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(w.PlatformID, event.ButtonReleaseMask, func(ev *event.Event) {
 		s.dragging = false
 	})
 
 	// Motion (drag).
-	app.Dispatcher().Bind(w.XWindow, event.MotionMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(w.PlatformID, event.MotionMask, func(ev *event.Event) {
 		if !s.dragging {
 			return
 		}
@@ -499,7 +498,7 @@ func bindScale(s *Scale, app widget.AppContext) {
 	})
 
 	// Keyboard.
-	app.Dispatcher().Bind(w.XWindow, event.KeyPressMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(w.PlatformID, event.KeyPressMask, func(ev *event.Event) {
 		step := s.Resolution
 		if step <= 0 {
 			step = 1
@@ -510,13 +509,13 @@ func bindScale(s *Scale, app widget.AppContext) {
 		}
 
 		switch ev.KeySym {
-		case xlib.XK_Left, xlib.XK_Down:
+		case platform.XK_Left, platform.XK_Down:
 			s.Set(s.Value - inc)
-		case xlib.XK_Right, xlib.XK_Up:
+		case platform.XK_Right, platform.XK_Up:
 			s.Set(s.Value + inc)
-		case xlib.XK_Home:
+		case platform.XK_Home:
 			s.Set(s.From)
-		case xlib.XK_End:
+		case platform.XK_End:
 			s.Set(s.To)
 		}
 	})

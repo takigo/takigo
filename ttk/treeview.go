@@ -7,8 +7,8 @@ import (
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/font"
-	"github.com/msorc/takigo/internal/xlib"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/window"
 )
@@ -723,11 +723,11 @@ func (tv *Treeview) Display() {
 		return
 	}
 	win := tv.Win
-	if win.XWindow == xlib.Window(0) {
+	if win.PlatformID == 0 {
 		return
 	}
 
-	d := win.Display.XDisplay
+	d := win.Display.Server
 	gc := win.GC
 	width := win.Width
 	height := win.Height
@@ -737,8 +737,8 @@ func (tv *Treeview) Display() {
 	}
 
 	// Allocate or resize pixmap.
-	if tv.pixmap == xlib.Pixmap(0) || tv.pixmapW != width || tv.pixmapH != height {
-		if tv.pixmap != xlib.Pixmap(0) {
+	if tv.pixmap == 0 || tv.pixmapW != width || tv.pixmapH != height {
+		if tv.pixmap != 0 {
 			d.FreePixmap(tv.pixmap)
 		}
 		tv.pixmap = d.CreatePixmap(win.Drawable(), uint(width), uint(height), uint(win.Depth))
@@ -746,7 +746,7 @@ func (tv *Treeview) Display() {
 		tv.pixmapH = height
 	}
 
-	pixDrawable := xlib.PixmapDrawable(tv.pixmap)
+	pixDrawable := platform.PixmapDrawable(tv.pixmap)
 
 	// Colors from style.
 	bg := LookupColor(tv.Context.Style, "-background", tv.State, 0xd9d9d9)
@@ -767,8 +767,8 @@ func (tv *Treeview) Display() {
 		d.FillRectangle(pixDrawable, gc, 0, itemAreaY, uint(width), uint(itemAreaH))
 	}
 
-	xftFont, isXft := tv.Font.(*font.XftFont)
-	if !isXft {
+	df, isDF := tv.Font.(platform.DrawableFont)
+	if !isDF {
 		d.CopyArea(pixDrawable, win.Drawable(), gc, 0, 0, uint(width), uint(height), 0, 0)
 		d.Flush()
 		return
@@ -789,7 +789,7 @@ func (tv *Treeview) Display() {
 			draw.Fill3DRectangle(d, pixDrawable, gc, border,
 				colX, 0, tv.treeColumnWidth, tv.headingHeight, 1, option.ReliefRaised)
 			if tv.treeHeadingText != "" {
-				tv.drawAlignedText(xftFont, pixDrawable, colX+4, 0, tv.treeColumnWidth-8,
+				tv.drawAlignedText(df, pixDrawable, colX+4, 0, tv.treeColumnWidth-8,
 					tv.headingHeight, tv.treeHeadingText, option.AnchorW, fg, fgR, fgG, fgB, m)
 			}
 			colX += tv.treeColumnWidth
@@ -806,7 +806,7 @@ func (tv *Treeview) Display() {
 					textW -= 12
 				}
 				if textW > 0 {
-					tv.drawAlignedText(xftFont, pixDrawable, textX, 0, textW,
+					tv.drawAlignedText(df, pixDrawable, textX, 0, textW,
 						tv.headingHeight, col.HeadingText, col.HeadingAnchor, fg, fgR, fgG, fgB, m)
 				}
 			}
@@ -869,7 +869,7 @@ func (tv *Treeview) Display() {
 			if item.Text != "" {
 				textY := rowY + (tv.rowHeight-m.Linespace())/2 + m.Ascent
 				maxW := tv.treeColumnWidth - (textStartX - colX) - 4
-				tv.drawClippedText(xftFont, pixDrawable, textStartX, textY, maxW,
+				tv.drawClippedText(df, pixDrawable, textStartX, textY, maxW,
 					item.Text, textPixel, textR, textG, textB)
 			}
 
@@ -883,7 +883,7 @@ func (tv *Treeview) Display() {
 				val = item.Values[ci]
 			}
 			if val != "" {
-				tv.drawAlignedText(xftFont, pixDrawable, colX+4, rowY, col.Width-8,
+				tv.drawAlignedText(df, pixDrawable, colX+4, rowY, col.Width-8,
 					tv.rowHeight, val, col.Anchor, textPixel, textR, textG, textB, m)
 			}
 			colX += col.Width
@@ -920,7 +920,7 @@ func (tv *Treeview) Display() {
 	d.Flush()
 }
 
-func (tv *Treeview) drawAlignedText(xftFont *font.XftFont, drawable xlib.Drawable,
+func (tv *Treeview) drawAlignedText(df platform.DrawableFont, drawable platform.DrawableID,
 	x, y, maxW, h int, text string, anchor option.Anchor,
 	pixel uint64, r, g, b uint16, m font.Metrics) {
 
@@ -935,10 +935,10 @@ func (tv *Treeview) drawAlignedText(xftFont *font.XftFont, drawable xlib.Drawabl
 		textX = x + maxW - textW
 	}
 
-	tv.drawClippedText(xftFont, drawable, textX, textY, maxW, text, pixel, r, g, b)
+	tv.drawClippedText(df, drawable, textX, textY, maxW, text, pixel, r, g, b)
 }
 
-func (tv *Treeview) drawClippedText(xftFont *font.XftFont, drawable xlib.Drawable,
+func (tv *Treeview) drawClippedText(df platform.DrawableFont, drawable platform.DrawableID,
 	x, y, maxW int, text string, pixel uint64, r, g, b uint16) {
 
 	if maxW <= 0 {
@@ -946,7 +946,7 @@ func (tv *Treeview) drawClippedText(xftFont *font.XftFont, drawable xlib.Drawabl
 	}
 	textW := tv.Font.MeasureString(text)
 	if textW <= maxW {
-		xftFont.DrawString(drawable, x, y, text, pixel, r, g, b)
+		df.DrawString(drawable, x, y, text, pixel, r, g, b)
 		return
 	}
 	// Truncate with ellipsis.
@@ -958,13 +958,13 @@ func (tv *Treeview) drawClippedText(xftFont *font.XftFont, drawable xlib.Drawabl
 	}
 	for i := len(text); i > 0; i-- {
 		if tv.Font.MeasureString(text[:i]) <= avail {
-			xftFont.DrawString(drawable, x, y, text[:i]+ellipsis, pixel, r, g, b)
+			df.DrawString(drawable, x, y, text[:i]+ellipsis, pixel, r, g, b)
 			return
 		}
 	}
 }
 
-func (tv *Treeview) drawIndicator(d *xlib.Display, drawable xlib.Drawable, gc xlib.GC,
+func (tv *Treeview) drawIndicator(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID,
 	x, y int, open bool, pixel uint64) {
 
 	// Draw a small triangle: right-pointing (closed) or down-pointing (open).
@@ -992,7 +992,7 @@ func (tv *Treeview) drawIndicator(d *xlib.Display, drawable xlib.Drawable, gc xl
 	}
 }
 
-func (tv *Treeview) drawSortIndicator(d *xlib.Display, drawable xlib.Drawable, gc xlib.GC,
+func (tv *Treeview) drawSortIndicator(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID,
 	x, cy int, reverse bool, pixel uint64) {
 
 	d.SetForeground(gc, pixel)
@@ -1117,7 +1117,7 @@ func bindTreeview(tv *Treeview, app widget.AppContext) {
 	win := tv.Win
 
 	// Expose.
-	app.Dispatcher().Bind(win.XWindow, event.ExposureMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(win.PlatformID, event.ExposureMask, func(ev *event.Event) {
 		if ev.ExposeCount > 0 {
 			return
 		}
@@ -1125,7 +1125,7 @@ func bindTreeview(tv *Treeview, app widget.AppContext) {
 	})
 
 	// Configure (resize).
-	app.Dispatcher().Bind(win.XWindow, event.StructureNotifyMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(win.PlatformID, event.StructureNotifyMask, func(ev *event.Event) {
 		if ev.Type == event.ConfigureType {
 			win.Width = ev.ConfigWidth
 			win.Height = ev.ConfigHeight
@@ -1135,7 +1135,7 @@ func bindTreeview(tv *Treeview, app widget.AppContext) {
 	})
 
 	// Focus.
-	app.Dispatcher().Bind(win.XWindow, event.FocusChangeMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(win.PlatformID, event.FocusChangeMask, func(ev *event.Event) {
 		if ev.Type == event.FocusInType {
 			tv.hasFocus = true
 			tv.Display()
@@ -1146,9 +1146,9 @@ func bindTreeview(tv *Treeview, app widget.AppContext) {
 	})
 
 	// Button press.
-	app.Dispatcher().Bind(win.XWindow, event.ButtonPressMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(win.PlatformID, event.ButtonPressMask, func(ev *event.Event) {
 		// Take focus.
-		app.DisplayPtr().SetInputFocus(win.XWindow, xlib.RevertToParent, xlib.CurrentTime)
+		app.Server().SetInputFocus(win.PlatformID, platform.RevertToParent, platform.CurrentTime)
 
 		if ev.Button == 1 {
 			hit := tv.hitTest(ev.X, ev.Y)
@@ -1186,7 +1186,7 @@ func bindTreeview(tv *Treeview, app widget.AppContext) {
 	})
 
 	// Motion (column resize drag).
-	app.Dispatcher().Bind(win.XWindow, event.MotionMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(win.PlatformID, event.MotionMask, func(ev *event.Event) {
 		if tv.resizeCol < 0 {
 			return
 		}
@@ -1211,20 +1211,21 @@ func bindTreeview(tv *Treeview, app widget.AppContext) {
 	})
 
 	// Button release.
-	app.Dispatcher().Bind(win.XWindow, event.ButtonReleaseMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(win.PlatformID, event.ButtonReleaseMask, func(ev *event.Event) {
 		if ev.Button == 1 {
 			tv.resizeCol = -1
 		}
 	})
 
 	// Keyboard.
-	app.Dispatcher().Bind(win.XWindow, event.KeyPressMask, func(ev *event.Event) {
-		switch ev.KeySym {
-		case xlib.XK_Up:
+	app.Dispatcher().Bind(win.PlatformID, event.KeyPressMask, func(ev *event.Event) {
+		ks := ev.KeySym
+		switch {
+		case ks == platform.XK_Up:
 			tv.moveFocus(-1)
-		case xlib.XK_Down:
+		case ks == platform.XK_Down:
 			tv.moveFocus(1)
-		case xlib.XK_Left:
+		case ks == platform.XK_Left:
 			// Collapse current or move to parent.
 			if item := tv.items[tv.focus]; item != nil {
 				if item.Open && len(item.Children) > 0 {
@@ -1235,7 +1236,7 @@ func bindTreeview(tv *Treeview, app widget.AppContext) {
 					tv.See(tv.focus)
 				}
 			}
-		case xlib.XK_Right:
+		case ks == platform.XK_Right:
 			// Expand current or move to first child.
 			if item := tv.items[tv.focus]; item != nil {
 				if !item.Open && len(item.Children) > 0 {
@@ -1246,17 +1247,17 @@ func bindTreeview(tv *Treeview, app widget.AppContext) {
 					tv.See(tv.focus)
 				}
 			}
-		case xlib.XK_Return, xlib.XK_space:
+		case ks == platform.XK_Return || ks == platform.XK_space:
 			if item := tv.items[tv.focus]; item != nil && len(item.Children) > 0 {
 				tv.SetItemOpen(tv.focus, !item.Open)
 			}
-		case xlib.XK_Home:
+		case ks == platform.XK_Home:
 			if len(tv.displayList) > 0 {
 				tv.focus = tv.displayList[0].ID
 				tv.SelectionSet(tv.focus)
 				tv.See(tv.focus)
 			}
-		case xlib.XK_End:
+		case ks == platform.XK_End:
 			if len(tv.displayList) > 0 {
 				tv.focus = tv.displayList[len(tv.displayList)-1].ID
 				tv.SelectionSet(tv.focus)
@@ -1266,10 +1267,10 @@ func bindTreeview(tv *Treeview, app widget.AppContext) {
 	})
 
 	// Enter/Leave for hover state.
-	app.Dispatcher().Bind(win.XWindow, event.EnterMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(win.PlatformID, event.EnterMask, func(ev *event.Event) {
 		tv.ChangeState(StateHover|StateActive, 0)
 	})
-	app.Dispatcher().Bind(win.XWindow, event.LeaveMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(win.PlatformID, event.LeaveMask, func(ev *event.Event) {
 		tv.ChangeState(0, StateHover|StateActive|StatePressed)
 	})
 }
@@ -1282,8 +1283,8 @@ func (tv *Treeview) handleSelect(id string, dispIdx int, state uint) {
 		tv.selection = map[string]bool{id: true}
 		tv.selAnchor = dispIdx
 	case TreeSelectExtended:
-		shift := state&xlib.ShiftMask != 0
-		ctrl := state&xlib.ControlMask != 0
+		shift := state&platform.ShiftMask != 0
+		ctrl := state&platform.ControlMask != 0
 		if shift && tv.selAnchor >= 0 {
 			tv.selection = make(map[string]bool)
 			lo, hi := tv.selAnchor, dispIdx

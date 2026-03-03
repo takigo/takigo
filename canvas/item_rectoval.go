@@ -3,7 +3,7 @@ package canvas
 import (
 	"math"
 
-	"github.com/msorc/takigo/internal/xlib"
+	"github.com/msorc/takigo/platform"
 )
 
 // RectOvalItem implements rectangle and oval canvas items.
@@ -15,8 +15,8 @@ type RectOvalItem struct {
 	outline      *colorRef
 	outlineWidth int
 	dash         []byte
-	fillGC       xlib.GC
-	outlineGC    xlib.GC
+	fillGC       platform.GCID
+	outlineGC    platform.GCID
 }
 
 func newRectOvalItem(typeName string, x1, y1, x2, y2 float64, c *Canvas) *RectOvalItem {
@@ -78,7 +78,7 @@ func (r *RectOvalItem) updateBBox() {
 	r.Y2 = int(math.Ceil(y2 + hw))
 }
 
-func (r *RectOvalItem) Display(d *xlib.Display, drawable xlib.Drawable, gc xlib.GC,
+func (r *RectOvalItem) Display(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID,
 	clipX, clipY, clipW, clipH, originX, originY int) {
 
 	x1 := int(r.coords[0]) - originX
@@ -104,14 +104,14 @@ func (r *RectOvalItem) Display(d *xlib.Display, drawable xlib.Drawable, gc xlib.
 		}
 		if r.outline != nil && r.outlineWidth > 0 {
 			d.SetForeground(gc, r.outline.Pixel)
-			d.SetLineAttributes(gc, uint(r.outlineWidth), xlib.LineSolid, xlib.CapButt, xlib.JoinMiter)
+			d.SetLineAttributes(gc, uint(r.outlineWidth), platform.LineSolid, platform.CapButt, platform.JoinMiter)
 			if len(r.dash) > 0 {
-				d.SetLineAttributes(gc, uint(r.outlineWidth), xlib.LineOnOffDash, xlib.CapButt, xlib.JoinMiter)
+				d.SetLineAttributes(gc, uint(r.outlineWidth), platform.LineOnOffDash, platform.CapButt, platform.JoinMiter)
 				d.SetDashes(gc, 0, r.dash)
 			}
 			d.DrawRectangle(drawable, gc, x1, y1, uint(w), uint(h))
 			// Reset line style.
-			d.SetLineAttributes(gc, 1, xlib.LineSolid, xlib.CapButt, xlib.JoinMiter)
+			d.SetLineAttributes(gc, 1, platform.LineSolid, platform.CapButt, platform.JoinMiter)
 		}
 	} else { // oval
 		if r.fill != nil {
@@ -120,13 +120,13 @@ func (r *RectOvalItem) Display(d *xlib.Display, drawable xlib.Drawable, gc xlib.
 		}
 		if r.outline != nil && r.outlineWidth > 0 {
 			d.SetForeground(gc, r.outline.Pixel)
-			d.SetLineAttributes(gc, uint(r.outlineWidth), xlib.LineSolid, xlib.CapButt, xlib.JoinMiter)
+			d.SetLineAttributes(gc, uint(r.outlineWidth), platform.LineSolid, platform.CapButt, platform.JoinMiter)
 			if len(r.dash) > 0 {
-				d.SetLineAttributes(gc, uint(r.outlineWidth), xlib.LineOnOffDash, xlib.CapButt, xlib.JoinMiter)
+				d.SetLineAttributes(gc, uint(r.outlineWidth), platform.LineOnOffDash, platform.CapButt, platform.JoinMiter)
 				d.SetDashes(gc, 0, r.dash)
 			}
 			d.DrawArc(drawable, gc, x1, y1, uint(w), uint(h), 0, 360*64)
-			d.SetLineAttributes(gc, 1, xlib.LineSolid, xlib.CapButt, xlib.JoinMiter)
+			d.SetLineAttributes(gc, 1, platform.LineSolid, platform.CapButt, platform.JoinMiter)
 		}
 	}
 }
@@ -183,7 +183,7 @@ func (r *RectOvalItem) Translate(dx, dy float64) {
 	r.updateBBox()
 }
 
-func (r *RectOvalItem) Delete(d *xlib.Display) {
+func (r *RectOvalItem) Delete(d platform.DisplayServer) {
 	// No per-item GCs allocated (we use shared gc), nothing to free.
 }
 

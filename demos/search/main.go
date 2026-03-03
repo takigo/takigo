@@ -23,7 +23,7 @@ func main() {
 		"Type a search string below and click Highlight\nto find and highlight all matches in the text.")
 	root := app.Window()
 
-	focusMgr := focus.NewManager(app.Dispatcher(), app.DisplayPtr())
+	focusMgr := focus.NewManager(app.Dispatcher(), app.Server())
 	focusMgr.BindTraversal(root)
 
 	// Search bar.

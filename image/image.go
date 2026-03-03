@@ -6,7 +6,7 @@ package image
 import (
 	"sync"
 
-	"github.com/msorc/takigo/internal/xlib"
+	"github.com/msorc/takigo/platform"
 )
 
 // Image is the interface implemented by all takigo image types.
@@ -24,8 +24,8 @@ type Image interface {
 	// imgX, imgY, w, h define the source region within the image.
 	// dstX, dstY define the destination position on the drawable.
 	// bgPixel is the background color for alpha compositing.
-	Draw(d *xlib.Display, drawable xlib.Drawable, gc xlib.GC,
-		visual *xlib.Visual, depth int,
+	Draw(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID,
+		depth int,
 		imgX, imgY, w, h, dstX, dstY int,
 		bgPixel uint64)
 

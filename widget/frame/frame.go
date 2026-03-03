@@ -4,8 +4,8 @@ package frame
 
 import (
 	"github.com/msorc/takigo/event"
-	"github.com/msorc/takigo/internal/xlib"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/window"
 )
@@ -73,14 +73,14 @@ func New(parent widget.Caregiver, name string, opts ...FrameOption) *Frame {
 	}
 
 	// Bind events.
-	app.Dispatcher().Bind(w.XWindow, event.ExposureMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(w.PlatformID, event.ExposureMask, func(ev *event.Event) {
 		if ev.ExposeCount > 0 {
 			return
 		}
 		f.Display()
 	})
 
-	app.Dispatcher().Bind(w.XWindow, event.StructureNotifyMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(w.PlatformID, event.StructureNotifyMask, func(ev *event.Event) {
 		if ev.Type == event.ConfigureType {
 			w.Width = ev.ConfigWidth
 			w.Height = ev.ConfigHeight
@@ -138,9 +138,9 @@ func (f *Frame) SetInternalBorder(left, right, top, bottom int) {
 // DrawBackground fills the frame background and draws the border.
 func (f *Frame) DrawBackground() {
 	w := f.Win
-	if w.XWindow == xlib.Window(0) {
+	if w.PlatformID == platform.WindowID(0) {
 		return
 	}
 	f.Base.DrawBackground()
-	w.Display.XDisplay.Flush()
+	w.Display.Server.Flush()
 }

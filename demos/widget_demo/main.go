@@ -17,8 +17,8 @@ import (
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/geometry/pack"
-	"github.com/msorc/takigo/internal/xlib"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
 	"github.com/msorc/takigo/widget/menu"
@@ -351,24 +351,24 @@ func main() {
 	t.See("1.0")
 
 	// ── Root events ──
-	app.Dispatcher().Bind(root.XWindow, event.StructureNotifyMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(root.PlatformID, event.StructureNotifyMask, func(ev *event.Event) {
 		if ev.Type == event.ConfigureType {
 			root.Width = ev.ConfigWidth
 			root.Height = ev.ConfigHeight
 			pack.ArrangeContainer(root)
 		}
 	})
-	app.Dispatcher().Bind(root.XWindow, event.ExposureMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(root.PlatformID, event.ExposureMask, func(ev *event.Event) {
 		if ev.ExposeCount > 0 {
 			return
 		}
-		d := root.Display.XDisplay
+		d := root.Display.Server
 		d.SetForeground(root.GC, bgColor.Pixel)
 		d.FillRectangle(root.Drawable(), root.GC, 0, 0, uint(root.Width), uint(root.Height))
 		d.Flush()
 	})
 	app.Dispatcher().BindGlobal(event.KeyPressMask, func(ev *event.Event) {
-		if ev.KeySym == xlib.XK_Escape {
+		if ev.KeySym == platform.XK_Escape {
 			app.Quit()
 		}
 	})
@@ -381,12 +381,12 @@ func main() {
 func drawSizegrip(app *takigo.App, grip *frame.Frame, bg *color.Color) {
 	border := draw.NewBorder(bg.Red, bg.Green, bg.Blue)
 
-	app.Dispatcher().Bind(grip.Window().XWindow, event.ExposureMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(grip.Window().PlatformID, event.ExposureMask, func(ev *event.Event) {
 		if ev.ExposeCount > 0 {
 			return
 		}
 		w := grip.Window()
-		d := w.Display.XDisplay
+		d := w.Display.Server
 		gc := w.GC
 
 		// Fill background.

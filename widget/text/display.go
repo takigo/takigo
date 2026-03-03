@@ -5,7 +5,7 @@ import (
 
 	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/font"
-	"github.com/msorc/takigo/internal/xlib"
+	"github.com/msorc/takigo/platform"
 )
 
 // tabWidth is the number of spaces per tab stop.
@@ -292,9 +292,9 @@ func (t *TextWidget) segmentsForRange(lineIdx, startChar, endChar int) []textSeg
 // renderToPixmap draws the text widget content to the offscreen pixmap.
 func (t *TextWidget) renderToPixmap() {
 	w := t.Win
-	d := w.Display.XDisplay
+	d := w.Display.Server
 	gc := w.GC
-	pxDrawable := xlib.PixmapDrawable(t.pixmap)
+	pxDrawable := platform.PixmapDrawable(t.pixmap)
 
 	winW := w.Width
 	winH := w.Height
@@ -311,8 +311,8 @@ func (t *TextWidget) renderToPixmap() {
 		return
 	}
 
-	xftFont, isXft := t.Font.(*font.XftFont)
-	if !isXft {
+	drawableFont, isDrawable := t.Font.(platform.DrawableFont)
+	if !isDrawable {
 		return
 	}
 
@@ -337,14 +337,14 @@ func (t *TextWidget) renderToPixmap() {
 			t.drawSelectionHighlight(d, gc, pxDrawable, dl, seg, segX, xOffset)
 
 			// Draw text.
-			drawFont := xftFont
+			df := drawableFont
 			if seg.font != nil {
-				if sf, ok := seg.font.(*font.XftFont); ok {
-					drawFont = sf
+				if sf, ok := seg.font.(platform.DrawableFont); ok {
+					df = sf
 				}
 			}
 			if seg.fg != nil {
-				drawFont.DrawString(pxDrawable, segX, baseY, seg.text,
+				df.DrawString(pxDrawable, segX, baseY, seg.text,
 					seg.fg.Pixel, seg.fg.Red, seg.fg.Green, seg.fg.Blue)
 			}
 
@@ -364,7 +364,7 @@ func (t *TextWidget) renderToPixmap() {
 }
 
 // drawSelectionHighlight draws selection highlight for a segment if applicable.
-func (t *TextWidget) drawSelectionHighlight(d *xlib.Display, gc xlib.GC, drawable xlib.Drawable,
+func (t *TextWidget) drawSelectionHighlight(d platform.DisplayServer, gc platform.GCID, drawable platform.DrawableID,
 	dl displayLine, seg textSegment, segX, xOffset int) {
 	selRanges := t.doc.TagRangesFor("sel")
 	if len(selRanges) == 0 || t.selBg == nil {
@@ -402,7 +402,7 @@ func (t *TextWidget) drawSelectionHighlight(d *xlib.Display, gc xlib.GC, drawabl
 }
 
 // drawCursor draws the text insertion cursor.
-func (t *TextWidget) drawCursor(d *xlib.Display, gc xlib.GC, drawable xlib.Drawable, dlines []displayLine) {
+func (t *TextWidget) drawCursor(d platform.DisplayServer, gc platform.GCID, drawable platform.DrawableID, dlines []displayLine) {
 	if t.insertColor == nil {
 		return
 	}

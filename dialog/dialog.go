@@ -7,7 +7,7 @@ import (
 
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/geometry/pack"
-	"github.com/msorc/takigo/internal/xlib"
+	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/button"
 	"github.com/msorc/takigo/widget/frame"
@@ -80,11 +80,11 @@ func New(parent widget.Caregiver, title string, minWidth, minHeight int) *Dialog
 	closeFn := func() {
 		d.Close(ResultCancel)
 	}
-	app.RegisterCloseHandler(d.Toplevel.Window().XWindow, closeFn)
+	app.RegisterCloseHandler(d.Toplevel.Window().PlatformID, closeFn)
 
 	// Bind Escape to cancel.
-	app.Dispatcher().Bind(d.Toplevel.Window().XWindow, event.KeyPressMask, func(ev *event.Event) {
-		if ev.KeySym == xlib.XK_Escape {
+	app.Dispatcher().Bind(d.Toplevel.Window().PlatformID, event.KeyPressMask, func(ev *event.Event) {
+		if ev.KeySym == platform.XK_Escape {
 			d.Close(ResultCancel)
 		}
 	})
@@ -120,7 +120,7 @@ func (d *Dialog) Run() DialogResult {
 	// Apply the computed size.
 	tw.Width = width
 	tw.Height = height
-	tw.Display.XDisplay.MoveResizeWindow(tw.XWindow, tw.X, tw.Y, uint(width), uint(height))
+	tw.Display.Server.MoveResizeWindow(tw.PlatformID, tw.X, tw.Y, uint(width), uint(height))
 	d.Toplevel.WmInfo.SetResizable(false, false)
 
 	// Center over parent.
@@ -132,7 +132,7 @@ func (d *Dialog) Run() DialogResult {
 	pack.ArrangeAll()
 
 	d.Toplevel.Show()
-	tw.Display.XDisplay.Flush()
+	tw.Display.Server.Flush()
 
 	// Run a nested event loop until the dialog is closed.
 	d.App.RunNestedLoop(d.done)
@@ -145,7 +145,7 @@ func (d *Dialog) Close(result DialogResult) {
 	d.result = result
 
 	// Unregister the close handler.
-	d.App.UnregisterCloseHandler(d.Toplevel.Window().XWindow)
+	d.App.UnregisterCloseHandler(d.Toplevel.Window().PlatformID)
 
 	d.Toplevel.Hide()
 	d.Toplevel.Destroy()
@@ -172,8 +172,8 @@ func centerOverParent(info *wm.WmInfo, parent *window.Window, width, height int)
 
 	// Clamp to screen bounds.
 	screen := parent.Display.Screen
-	sw := parent.Display.XDisplay.ScreenWidth(screen)
-	sh := parent.Display.XDisplay.ScreenHeight(screen)
+	sw := parent.Display.Server.ScreenWidth(screen)
+	sh := parent.Display.Server.ScreenHeight(screen)
 	if x+width > sw {
 		x = sw - width
 	}
@@ -189,7 +189,7 @@ func centerOverParent(info *wm.WmInfo, parent *window.Window, width, height int)
 
 	info.Win.X = x
 	info.Win.Y = y
-	info.Win.Display.XDisplay.MoveWindow(info.Win.XWindow, x, y)
+	info.Win.Display.Server.MoveWindow(info.Win.PlatformID, x, y)
 }
 
 // newFrame creates a frame with minimal requested size, suitable for dialog layout.
@@ -228,8 +228,8 @@ func addButtons(d *Dialog, buttons []dialogButton) {
 		if b.isDefault && !d.returnBound {
 			d.returnBound = true
 			defResult := res
-			d.App.Dispatcher().Bind(d.Toplevel.Window().XWindow, event.KeyPressMask, func(ev *event.Event) {
-				if ev.KeySym == xlib.XK_Return {
+			d.App.Dispatcher().Bind(d.Toplevel.Window().PlatformID, event.KeyPressMask, func(ev *event.Event) {
+				if ev.KeySym == platform.XK_Return {
 					d.Close(defResult)
 				}
 			})

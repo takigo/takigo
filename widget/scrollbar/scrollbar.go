@@ -5,8 +5,8 @@ package scrollbar
 import (
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/event"
-	"github.com/msorc/takigo/internal/xlib"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/window"
 )
@@ -191,11 +191,11 @@ func (s *Scrollbar) Display() {
 		return
 	}
 	w := s.Win
-	if w.XWindow == xlib.Window(0) {
+	if w.PlatformID == platform.WindowID(0) {
 		return
 	}
 
-	d := w.Display.XDisplay
+	d := w.Display.Server
 	gc := w.GC
 
 	s.computeGeometry()
@@ -312,7 +312,7 @@ func bindScrollbar(s *Scrollbar, app widget.AppContext) {
 	w := s.Win
 
 	// Expose.
-	app.Dispatcher().Bind(w.XWindow, event.ExposureMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(w.PlatformID, event.ExposureMask, func(ev *event.Event) {
 		if ev.ExposeCount > 0 {
 			return
 		}
@@ -320,7 +320,7 @@ func bindScrollbar(s *Scrollbar, app widget.AppContext) {
 	})
 
 	// Configure.
-	app.Dispatcher().Bind(w.XWindow, event.StructureNotifyMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(w.PlatformID, event.StructureNotifyMask, func(ev *event.Event) {
 		if ev.Type == event.ConfigureType {
 			w.Width = ev.ConfigWidth
 			w.Height = ev.ConfigHeight
@@ -330,7 +330,7 @@ func bindScrollbar(s *Scrollbar, app widget.AppContext) {
 	})
 
 	// Button press.
-	app.Dispatcher().Bind(w.XWindow, event.ButtonPressMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(w.PlatformID, event.ButtonPressMask, func(ev *event.Event) {
 		// Mouse wheel: Button 4 (up) and Button 5 (down).
 		if ev.Button == 4 {
 			if s.Command != nil {
@@ -377,13 +377,13 @@ func bindScrollbar(s *Scrollbar, app widget.AppContext) {
 	})
 
 	// Button release.
-	app.Dispatcher().Bind(w.XWindow, event.ButtonReleaseMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(w.PlatformID, event.ButtonReleaseMask, func(ev *event.Event) {
 		s.pressRegion = regionNone
 	})
 
 	// Motion (drag thumb).
-	app.Dispatcher().Bind(w.XWindow, event.MotionMask, func(ev *event.Event) {
-		if ev.State&xlib.Button1Mask == 0 {
+	app.Dispatcher().Bind(w.PlatformID, event.MotionMask, func(ev *event.Event) {
+		if ev.State&platform.Button1Mask == 0 {
 			return
 		}
 		if s.pressRegion != regionThumb {

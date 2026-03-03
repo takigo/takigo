@@ -3,7 +3,7 @@ package canvas
 import (
 	"math"
 
-	"github.com/msorc/takigo/internal/xlib"
+	"github.com/msorc/takigo/platform"
 )
 
 // PolygonItem implements a filled polygon canvas item.
@@ -89,7 +89,7 @@ func (p *PolygonItem) updateBBox() {
 	p.Y2 = int(math.Ceil(maxY + hw))
 }
 
-func (p *PolygonItem) Display(d *xlib.Display, drawable xlib.Drawable, gc xlib.GC,
+func (p *PolygonItem) Display(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID,
 	clipX, clipY, clipW, clipH, originX, originY int) {
 
 	if len(p.coords) < 6 {
@@ -101,9 +101,9 @@ func (p *PolygonItem) Display(d *xlib.Display, drawable xlib.Drawable, gc xlib.G
 		displayCoords = generateBezierSpline(p.coords, true, p.splineSteps)
 	}
 
-	points := make([]xlib.XPoint, len(displayCoords)/2)
+	points := make([]platform.Point, len(displayCoords)/2)
 	for i := 0; i < len(displayCoords)-1; i += 2 {
-		points[i/2] = xlib.XPoint{
+		points[i/2] = platform.Point{
 			X: int16(displayCoords[i]) - int16(originX),
 			Y: int16(displayCoords[i+1]) - int16(originY),
 		}
@@ -111,23 +111,23 @@ func (p *PolygonItem) Display(d *xlib.Display, drawable xlib.Drawable, gc xlib.G
 
 	if p.fill != nil && len(points) >= 3 {
 		d.SetForeground(gc, p.fill.Pixel)
-		d.FillPolygon(drawable, gc, points, xlib.PolygonComplex, xlib.CoordModeOrigin)
+		d.FillPolygon(drawable, gc, points, platform.PolygonComplex, platform.CoordModeOrigin)
 	}
 
 	if p.outline != nil && p.outlineWidth > 0 && len(points) >= 2 {
 		d.SetForeground(gc, p.outline.Pixel)
-		lineStyle := xlib.LineSolid
+		lineStyle := platform.LineSolid
 		if len(p.dash) > 0 {
-			lineStyle = xlib.LineOnOffDash
+			lineStyle = platform.LineOnOffDash
 			d.SetDashes(gc, 0, p.dash)
 		}
-		d.SetLineAttributes(gc, uint(p.outlineWidth), lineStyle, xlib.CapButt, xlib.JoinRound)
+		d.SetLineAttributes(gc, uint(p.outlineWidth), lineStyle, platform.CapButt, platform.JoinRound)
 		// Close the polygon by appending the first point.
-		closed := make([]xlib.XPoint, len(points)+1)
+		closed := make([]platform.Point, len(points)+1)
 		copy(closed, points)
 		closed[len(points)] = points[0]
-		d.DrawLines(drawable, gc, closed, xlib.CoordModeOrigin)
-		d.SetLineAttributes(gc, 1, xlib.LineSolid, xlib.CapButt, xlib.JoinMiter)
+		d.DrawLines(drawable, gc, closed, platform.CoordModeOrigin)
+		d.SetLineAttributes(gc, 1, platform.LineSolid, platform.CapButt, platform.JoinMiter)
 	}
 }
 
@@ -181,7 +181,7 @@ func (p *PolygonItem) Translate(dx, dy float64) {
 	p.updateBBox()
 }
 
-func (p *PolygonItem) Delete(d *xlib.Display) {}
+func (p *PolygonItem) Delete(d platform.DisplayServer) {}
 
 // pointInPolygon tests if (px,py) is inside the polygon using ray casting.
 func pointInPolygon(px, py float64, coords []float64) bool {

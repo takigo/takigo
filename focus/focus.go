@@ -4,7 +4,7 @@ package focus
 
 import (
 	"github.com/msorc/takigo/event"
-	"github.com/msorc/takigo/internal/xlib"
+	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/window"
 )
 
@@ -14,7 +14,7 @@ type FocusableChecker func(w *window.Window) bool
 // Manager tracks focus state across toplevels and handles traversal.
 type Manager struct {
 	dispatcher *event.Dispatcher
-	display    *xlib.Display
+	display    platform.DisplayServer
 
 	// Per-toplevel focus: which widget last had focus in each toplevel.
 	toplevelFocus map[*window.Window]*window.Window
@@ -30,13 +30,13 @@ type Manager struct {
 }
 
 // NewManager creates a new focus manager.
-func NewManager(dispatcher *event.Dispatcher, display *xlib.Display) *Manager {
+func NewManager(dispatcher *event.Dispatcher, display platform.DisplayServer) *Manager {
 	m := &Manager{
 		dispatcher:    dispatcher,
 		display:       display,
 		toplevelFocus: make(map[*window.Window]*window.Window),
 		IsFocusable: func(w *window.Window) bool {
-			return w.Flags&window.FlagFocusable != 0 && w.XWindow != xlib.Window(0)
+			return w.Flags&window.FlagFocusable != 0 && w.PlatformID != platform.WindowID(0)
 		},
 	}
 	return m
@@ -49,7 +49,7 @@ func (m *Manager) FocusWindow() *window.Window {
 
 // SetFocus moves focus to the given window.
 func (m *Manager) SetFocus(w *window.Window) {
-	if w == nil || w.XWindow == xlib.Window(0) {
+	if w == nil || w.PlatformID == platform.WindowID(0) {
 		return
 	}
 
@@ -75,19 +75,19 @@ func (m *Manager) SetFocus(w *window.Window) {
 	if old != nil {
 		m.dispatcher.Dispatch(&event.Event{
 			Type:   event.FocusOutType,
-			Window: old.XWindow,
+			Window: old.PlatformID,
 		})
 	}
 	m.dispatcher.Dispatch(&event.Event{
 		Type:   event.FocusInType,
-		Window: w.XWindow,
+		Window: w.PlatformID,
 	})
 
 	// Tell X to direct keyboard input to this widget's window.
 	// Only if the toplevel is mapped — X11 requires the target
 	// to be viewable, otherwise SetInputFocus returns BadMatch.
-	if tl != nil && tl.IsMapped() && w.XWindow != xlib.Window(0) {
-		m.display.SetInputFocus(w.XWindow, xlib.RevertToParent, xlib.CurrentTime)
+	if tl != nil && tl.IsMapped() && w.PlatformID != platform.WindowID(0) {
+		m.display.SetInputFocus(w.PlatformID, platform.RevertToParent, platform.CurrentTime)
 	}
 }
 
@@ -118,7 +118,7 @@ func (m *Manager) HandleFocusOut(w *window.Window) {
 		}
 		m.dispatcher.Dispatch(&event.Event{
 			Type:   event.FocusOutType,
-			Window: old.XWindow,
+			Window: old.PlatformID,
 		})
 	}
 }
@@ -235,9 +235,9 @@ func (m *Manager) HandleDestroyWindow(w *window.Window) {
 // Uses a global binding so it works regardless of which widget has focus.
 func (m *Manager) BindTraversal(w *window.Window) {
 	m.dispatcher.BindGlobal(event.KeyPressMask, func(ev *event.Event) {
-		if ev.KeySym == xlib.XK_Tab {
+		if ev.KeySym == platform.XK_Tab {
 			m.FocusNext()
-		} else if ev.KeySym == xlib.XK_ISO_Left_Tab {
+		} else if ev.KeySym == platform.XK_ISO_Left_Tab {
 			m.FocusPrev()
 		}
 	})

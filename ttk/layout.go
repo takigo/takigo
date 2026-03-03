@@ -1,6 +1,6 @@
 package ttk
 
-import "github.com/msorc/takigo/internal/xlib"
+import "github.com/msorc/takigo/platform"
 
 // Position flags for layout elements. Ported from ttkLayout.c.
 const (
@@ -195,9 +195,9 @@ func (l *Layout) Draw(state State, d DrawArgs) {
 
 // DrawArgs bundles drawing parameters.
 type DrawArgs struct {
-	Display  *xlib.Display
-	Drawable xlib.Drawable
-	GC       xlib.GC
+	Display  platform.DisplayServer
+	Drawable platform.DrawableID
+	GC       platform.GCID
 }
 
 func drawNodes(n *LayoutNode, state State, d DrawArgs, borderPass bool) {

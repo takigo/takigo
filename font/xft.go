@@ -56,6 +56,7 @@ import (
 	"unsafe"
 
 	"github.com/msorc/takigo/internal/xlib"
+	"github.com/msorc/takigo/platform"
 )
 
 // XftFont wraps an Xft font handle and provides text measurement and drawing.
@@ -182,9 +183,14 @@ func (f *XftFont) MeasureString(s string) int {
 	return int(extents.xOff)
 }
 
-// DrawString draws a string on a drawable at the given position.
-// The position is the baseline origin.
-func (f *XftFont) DrawString(drawable xlib.Drawable, x, y int, s string, pixel uint64, r, g, b uint16) {
+// DrawString draws a string on a drawable at the given baseline position.
+// Implements platform.DrawableFont.
+func (f *XftFont) DrawString(drawable platform.DrawableID, x, y int, s string, pixel uint64, r, g, b uint16) {
+	f.drawStringXlib(xlib.Drawable(drawable), x, y, s, pixel, r, g, b)
+}
+
+// drawStringXlib is the internal Xft implementation.
+func (f *XftFont) drawStringXlib(drawable xlib.Drawable, x, y int, s string, pixel uint64, r, g, b uint16) {
 	if len(s) == 0 {
 		return
 	}

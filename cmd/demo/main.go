@@ -12,7 +12,7 @@ import (
 	"github.com/msorc/takigo/focus"
 	"github.com/msorc/takigo/geometry/pack"
 	tkimage "github.com/msorc/takigo/image"
-	"github.com/msorc/takigo/internal/xlib"
+	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/ttk"
 	_ "github.com/msorc/takigo/ttk/clamtheme"
@@ -65,7 +65,7 @@ func main() {
 	root.BackgroundPixel = bgColor.Pixel
 
 	// Focus manager.
-	focusMgr := focus.NewManager(app.Dispatcher(), app.DisplayPtr())
+	focusMgr := focus.NewManager(app.Dispatcher(), app.Server())
 	focusMgr.BindTraversal(root)
 
 	// Title.
@@ -238,7 +238,7 @@ func main() {
 	pack.Pack(statusLabel, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	// --- Root event handlers ---
-	app.Dispatcher().Bind(root.XWindow, event.StructureNotifyMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(root.PlatformID, event.StructureNotifyMask, func(ev *event.Event) {
 		if ev.Type == event.ConfigureType {
 			root.Width = ev.ConfigWidth
 			root.Height = ev.ConfigHeight
@@ -246,11 +246,11 @@ func main() {
 		}
 	})
 
-	app.Dispatcher().Bind(root.XWindow, event.ExposureMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(root.PlatformID, event.ExposureMask, func(ev *event.Event) {
 		if ev.ExposeCount > 0 {
 			return
 		}
-		d := root.Display.XDisplay
+		d := root.Display.Server
 		gc := root.GC
 		d.SetForeground(gc, bgColor.Pixel)
 		d.FillRectangle(root.Drawable(), gc, 0, 0, uint(root.Width), uint(root.Height))
@@ -258,7 +258,7 @@ func main() {
 	})
 
 	app.Dispatcher().BindGlobal(event.KeyPressMask, func(ev *event.Event) {
-		if ev.KeySym == xlib.XK_Escape {
+		if ev.KeySym == platform.XK_Escape {
 			app.Quit()
 		}
 	})

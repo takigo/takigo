@@ -14,7 +14,7 @@ func main() {
 		"Three different entries are displayed below. You can add characters by pointing, clicking and typing. The normal editing characters are supported, along with many Emacs bindings. For example, Backspace and Control-h delete the character to the left of the insertion cursor and Delete and Control-d delete the character to the right of the insertion cursor.")
 	root := app.Window()
 
-	focusMgr := focus.NewManager(app.Dispatcher(), app.DisplayPtr())
+	focusMgr := focus.NewManager(app.Dispatcher(), app.Server())
 	focusMgr.BindTraversal(root)
 
 	// Entry 1: pre-populated.

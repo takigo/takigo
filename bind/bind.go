@@ -2,7 +2,7 @@ package bind
 
 import (
 	"github.com/msorc/takigo/event"
-	"github.com/msorc/takigo/internal/xlib"
+	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/window"
 )
 
@@ -11,7 +11,7 @@ func NewEngine(d *window.Display) *Engine {
 	e := &Engine{
 		table:         NewBindingTable(),
 		display:       d,
-		tags:          make(map[xlib.Window]*tagInfo),
+		tags:          make(map[platform.WindowID]*tagInfo),
 		virtualEvents: make(map[string][]Sequence),
 	}
 	installDefaultVirtualEvents(e)
@@ -51,7 +51,7 @@ func (e *Engine) Unbind(tag, pattern string) error {
 // RegisterWindow registers a window with the binding engine, establishing
 // its tag chain for dispatch. className is the widget class (e.g. "Button").
 func (e *Engine) RegisterWindow(w *window.Window, className string) {
-	if w.XWindow == xlib.Window(0) {
+	if w.PlatformID == platform.WindowID(0) {
 		return
 	}
 	info := &tagInfo{
@@ -59,17 +59,17 @@ func (e *Engine) RegisterWindow(w *window.Window, className string) {
 		className: className,
 		tags:      buildTagChain(w, className),
 	}
-	e.tags[w.XWindow] = info
+	e.tags[w.PlatformID] = info
 }
 
 // UnregisterWindow removes a window from the binding engine.
 func (e *Engine) UnregisterWindow(w *window.Window) {
-	delete(e.tags, w.XWindow)
+	delete(e.tags, w.PlatformID)
 }
 
 // BindTags returns the current tag chain for a window.
 func (e *Engine) BindTags(w *window.Window) []string {
-	info := e.tags[w.XWindow]
+	info := e.tags[w.PlatformID]
 	if info == nil {
 		return nil
 	}
@@ -80,7 +80,7 @@ func (e *Engine) BindTags(w *window.Window) []string {
 
 // SetBindTags replaces the tag chain for a window.
 func (e *Engine) SetBindTags(w *window.Window, tags []string) {
-	info := e.tags[w.XWindow]
+	info := e.tags[w.PlatformID]
 	if info == nil {
 		return
 	}
@@ -108,7 +108,7 @@ func (e *Engine) RemoveVirtualEvent(virtual string) {
 
 // GenerateEvent dispatches a virtual event to a window as if it had occurred.
 func (e *Engine) GenerateEvent(w *window.Window, virtual string) {
-	info := e.tags[w.XWindow]
+	info := e.tags[w.PlatformID]
 	if info == nil {
 		return
 	}

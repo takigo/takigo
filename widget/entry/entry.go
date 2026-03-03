@@ -5,8 +5,8 @@ package entry
 import (
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/font"
-	"github.com/msorc/takigo/internal/xlib"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/window"
 )
@@ -529,11 +529,11 @@ func (e *Entry) Display() {
 		return
 	}
 	w := e.Win
-	if w.XWindow == xlib.Window(0) {
+	if w.PlatformID == platform.WindowID(0) {
 		return
 	}
 
-	d := w.Display.XDisplay
+	d := w.Display.Server
 	gc := w.GC
 
 	// Background.
@@ -549,7 +549,7 @@ func (e *Entry) Display() {
 	}
 
 	dt := e.displayText()
-	xftFont, isXft := e.Font.(*font.XftFont)
+	xftFont, isXft := e.Font.(platform.DrawableFont)
 
 	if len(e.text) == 0 && e.Placeholder != "" && !e.HasFocus {
 		// Draw placeholder.

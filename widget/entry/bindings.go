@@ -3,7 +3,7 @@ package entry
 
 import (
 	"github.com/msorc/takigo/event"
-	"github.com/msorc/takigo/internal/xlib"
+	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/widget"
 )
 
@@ -11,7 +11,7 @@ func bindEntry(e *Entry, app widget.AppContext) {
 	w := e.Win
 
 	// Expose.
-	app.Dispatcher().Bind(w.XWindow, event.ExposureMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(w.PlatformID, event.ExposureMask, func(ev *event.Event) {
 		if ev.ExposeCount > 0 {
 			return
 		}
@@ -19,7 +19,7 @@ func bindEntry(e *Entry, app widget.AppContext) {
 	})
 
 	// Configure (resize).
-	app.Dispatcher().Bind(w.XWindow, event.StructureNotifyMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(w.PlatformID, event.StructureNotifyMask, func(ev *event.Event) {
 		if ev.Type == event.ConfigureType {
 			w.Width = ev.ConfigWidth
 			w.Height = ev.ConfigHeight
@@ -29,7 +29,7 @@ func bindEntry(e *Entry, app widget.AppContext) {
 	})
 
 	// Focus.
-	app.Dispatcher().Bind(w.XWindow, event.FocusChangeMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(w.PlatformID, event.FocusChangeMask, func(ev *event.Event) {
 		if ev.Type == event.FocusInType {
 			e.HasFocus = true
 			e.CursorOn = true
@@ -41,10 +41,10 @@ func bindEntry(e *Entry, app widget.AppContext) {
 	})
 
 	// Mouse: click to position cursor and take focus.
-	app.Dispatcher().Bind(w.XWindow, event.ButtonPressMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(w.PlatformID, event.ButtonPressMask, func(ev *event.Event) {
 		if ev.Button == 1 {
 			// Request X11 input focus so key events come to this window.
-			app.DisplayPtr().SetInputFocus(w.XWindow, xlib.RevertToParent, xlib.CurrentTime)
+			app.Server().SetInputFocus(w.PlatformID, platform.RevertToParent, platform.CurrentTime)
 			e.ClearSelection()
 			e.InsertPos = e.closestGap(ev.X)
 			e.SelAnchor = e.InsertPos
@@ -53,8 +53,8 @@ func bindEntry(e *Entry, app widget.AppContext) {
 	})
 
 	// Mouse: drag to select.
-	app.Dispatcher().Bind(w.XWindow, event.MotionMask, func(ev *event.Event) {
-		if ev.State&xlib.Button1Mask != 0 {
+	app.Dispatcher().Bind(w.PlatformID, event.MotionMask, func(ev *event.Event) {
+		if ev.State&platform.Button1Mask != 0 {
 			pos := e.closestGap(ev.X)
 			if pos < e.SelAnchor {
 				e.SelFirst = pos
@@ -70,12 +70,12 @@ func bindEntry(e *Entry, app widget.AppContext) {
 	})
 
 	// Keyboard.
-	app.Dispatcher().Bind(w.XWindow, event.KeyPressMask, func(ev *event.Event) {
-		shift := ev.State&xlib.ShiftMask != 0
-		ctrl := ev.State&xlib.ControlMask != 0
+	app.Dispatcher().Bind(w.PlatformID, event.KeyPressMask, func(ev *event.Event) {
+		shift := ev.State&platform.ShiftMask != 0
+		ctrl := ev.State&platform.ControlMask != 0
 
 		switch ev.KeySym {
-		case xlib.XK_Left:
+		case platform.XK_Left:
 			if ctrl {
 				newPos := wordStart(e.text, e.InsertPos)
 				moveCursor(e, newPos, shift)
@@ -83,7 +83,7 @@ func bindEntry(e *Entry, app widget.AppContext) {
 				moveCursor(e, e.InsertPos-1, shift)
 			}
 
-		case xlib.XK_Right:
+		case platform.XK_Right:
 			if ctrl {
 				newPos := wordEnd(e.text, e.InsertPos)
 				moveCursor(e, newPos, shift)
@@ -91,20 +91,20 @@ func bindEntry(e *Entry, app widget.AppContext) {
 				moveCursor(e, e.InsertPos+1, shift)
 			}
 
-		case xlib.XK_Home:
+		case platform.XK_Home:
 			moveCursor(e, 0, shift)
 
-		case xlib.XK_End:
+		case platform.XK_End:
 			moveCursor(e, len(e.text), shift)
 
-		case xlib.XK_BackSpace:
+		case platform.XK_BackSpace:
 			if e.SelFirst >= 0 {
 				e.DeleteSelection()
 			} else if e.InsertPos > 0 {
 				e.DeleteChars(e.InsertPos-1, 1)
 			}
 
-		case xlib.XK_Delete:
+		case platform.XK_Delete:
 			if e.SelFirst >= 0 {
 				e.DeleteSelection()
 			} else if e.InsertPos < len(e.text) {
@@ -121,7 +121,7 @@ func bindEntry(e *Entry, app widget.AppContext) {
 			// to keysym-to-unicode conversion for non-Latin layouts.
 			insertStr := ev.Str
 			if insertStr == "" {
-				if r := xlib.KeySymToRune(ev.KeySym); r > 0 {
+				if r := platform.KeySymToRune(ev.KeySym); r > 0 {
 					insertStr = string(r)
 				}
 			}
@@ -171,18 +171,18 @@ func moveCursor(e *Entry, newPos int, shift bool) {
 // handleCtrlKey handles control key combinations.
 func handleCtrlKey(e *Entry, ev *event.Event) {
 	switch ev.KeySym {
-	case xlib.XK_a:
+	case platform.KeySym(0x0061): // XK_a
 		// Select all.
 		e.SelectAll()
 		e.Display()
 
-	case xlib.XK_k:
+	case platform.KeySym(0x006b): // XK_k
 		// Kill to end of line.
 		if e.InsertPos < len(e.text) {
 			e.DeleteChars(e.InsertPos, len(e.text)-e.InsertPos)
 		}
 
-	case xlib.XK_d:
+	case platform.KeySym(0x0064): // XK_d
 		// Delete forward.
 		if e.InsertPos < len(e.text) {
 			e.DeleteChars(e.InsertPos, 1)

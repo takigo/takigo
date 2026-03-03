@@ -3,8 +3,8 @@ package ttk
 import (
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/font"
-	"github.com/msorc/takigo/internal/xlib"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/widget"
 )
 
@@ -23,7 +23,7 @@ func (e *BackgroundElement) Size(State) (int, int, Padding) {
 	return 0, 0, Padding{}
 }
 
-func (e *BackgroundElement) Draw(d *xlib.Display, drawable xlib.Drawable, gc xlib.GC, box Box, state State) {
+func (e *BackgroundElement) Draw(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID, box Box, state State) {
 	bg := LookupColor(e.ctx.Style, "-background", state, 0xd9d9d9)
 	d.SetForeground(gc, bg)
 	d.FillRectangle(drawable, gc, box.X, box.Y, uint(box.Width), uint(box.Height))
@@ -45,7 +45,7 @@ func (e *BorderElement) Size(state State) (int, int, Padding) {
 	return 0, 0, UniformPadding(bw)
 }
 
-func (e *BorderElement) Draw(d *xlib.Display, drawable xlib.Drawable, gc xlib.GC, box Box, state State) {
+func (e *BorderElement) Draw(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID, box Box, state State) {
 	bg := LookupColor(e.ctx.Style, "-background", state, 0xd9d9d9)
 	bw := LookupInt(e.ctx.Style, "-borderwidth", state, 2)
 	relief := LookupRelief(e.ctx.Style, "-relief", state, option.ReliefFlat)
@@ -74,7 +74,8 @@ func (e *PaddingElement) Size(state State) (int, int, Padding) {
 	return 0, 0, p
 }
 
-func (e *PaddingElement) Draw(*xlib.Display, xlib.Drawable, xlib.GC, Box, State) {}
+func (e *PaddingElement) Draw(platform.DisplayServer, platform.DrawableID, platform.GCID, Box, State) {
+}
 
 // --- FocusElement ---
 
@@ -91,7 +92,7 @@ func (e *FocusElement) Size(State) (int, int, Padding) {
 	return 0, 0, UniformPadding(1)
 }
 
-func (e *FocusElement) Draw(d *xlib.Display, drawable xlib.Drawable, gc xlib.GC, box Box, state State) {
+func (e *FocusElement) Draw(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID, box Box, state State) {
 	if state&StateFocus == 0 {
 		return
 	}
@@ -131,7 +132,7 @@ func (e *LabelElement) Size(state State) (int, int, Padding) {
 	return w, h, Padding{}
 }
 
-func (e *LabelElement) Draw(d *xlib.Display, drawable xlib.Drawable, gc xlib.GC, box Box, state State) {
+func (e *LabelElement) Draw(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID, box Box, state State) {
 	text := e.provider.GetText()
 	f := e.provider.GetFont()
 	img := e.provider.GetImage()
@@ -163,15 +164,15 @@ func (e *LabelElement) Draw(d *xlib.Display, drawable xlib.Drawable, gc xlib.GC,
 		imgH := img.Height()
 		ix := cx + (contentW-imgW)/2
 		iy := cy + (contentH-imgH)/2
-		img.Draw(d, drawable, gc, e.ctx.Visual, e.ctx.Depth,
+		img.Draw(d, drawable, gc, e.ctx.Depth,
 			0, 0, imgW, imgH, ix, iy, bg)
 	} else if hasText {
 		drawText(d, drawable, f, text, cx, cy, fg)
 	}
 }
 
-func drawText(d *xlib.Display, drawable xlib.Drawable, f font.Font, text string, x, y int, fgPixel uint64) {
-	xftFont, ok := f.(*font.XftFont)
+func drawText(d platform.DisplayServer, drawable platform.DrawableID, f font.Font, text string, x, y int, fgPixel uint64) {
+	df, ok := f.(platform.DrawableFont)
 	if !ok {
 		return
 	}
@@ -181,10 +182,10 @@ func drawText(d *xlib.Display, drawable xlib.Drawable, f font.Font, text string,
 	r := uint16((fgPixel>>16)&0xFF) << 8
 	g := uint16((fgPixel>>8)&0xFF) << 8
 	b := uint16((fgPixel)&0xFF) << 8
-	xftFont.DrawString(drawable, x, baseline, text, fgPixel, r, g, b)
+	df.DrawString(drawable, x, baseline, text, fgPixel, r, g, b)
 }
 
-func drawCompound(d *xlib.Display, drawable xlib.Drawable, gc xlib.GC,
+func drawCompound(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID,
 	img widget.WidgetImage, f font.Font, text string,
 	compound widget.Compound, cx, cy, contentW, contentH, tw, th int,
 	fgPixel, bgPixel uint64, ctx *DrawContext) {
@@ -221,7 +222,7 @@ func drawCompound(d *xlib.Display, drawable xlib.Drawable, gc xlib.GC,
 		textY = cy + (contentH-th)/2
 	}
 
-	img.Draw(d, drawable, gc, ctx.Visual, ctx.Depth,
+	img.Draw(d, drawable, gc, ctx.Depth,
 		0, 0, imgW, imgH, imgX, imgY, bgPixel)
 	drawText(d, drawable, f, text, textX, textY, fgPixel)
 }
@@ -280,7 +281,7 @@ func (e *SeparatorElement) Size(State) (int, int, Padding) {
 	return 2, 0, Padding{}
 }
 
-func (e *SeparatorElement) Draw(d *xlib.Display, drawable xlib.Drawable, gc xlib.GC, box Box, state State) {
+func (e *SeparatorElement) Draw(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID, box Box, state State) {
 	bg := LookupColor(e.ctx.Style, "-background", state, 0xd9d9d9)
 	border := draw.NewBorderFromPixel(bg)
 

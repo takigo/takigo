@@ -1,4 +1,4 @@
-// Package color provides color parsing, X11 allocation, and caching.
+// Package color provides color parsing, allocation, and caching.
 // It ports tk/generic/tkColor.c and tk/unix/tkUnixColor.c.
 package color
 
@@ -7,11 +7,9 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-
-	"github.com/msorc/takigo/internal/xlib"
 )
 
-// Color represents an allocated color with its X11 pixel value and RGB components.
+// Color represents an allocated color with its pixel value and RGB components.
 type Color struct {
 	Pixel uint64
 	Red   uint16
@@ -28,9 +26,7 @@ func (c *Color) RGBA() (r, g, b, a uint8) {
 // Cache manages color allocations per display, caching by name and by value.
 type Cache struct {
 	mu      sync.RWMutex
-	display *xlib.Display
 	screen  int
-	cmap    xlib.Colormap
 	byName  map[string]*Color
 	byValue map[colorKey]*Color
 }
@@ -39,12 +35,10 @@ type colorKey struct {
 	r, g, b uint16
 }
 
-// NewCache creates a new color cache for the given display.
-func NewCache(display *xlib.Display, screen int, cmap xlib.Colormap) *Cache {
+// NewCache creates a new color cache.
+func NewCache(screen int) *Cache {
 	return &Cache{
-		display: display,
 		screen:  screen,
-		cmap:    cmap,
 		byName:  make(map[string]*Color),
 		byValue: make(map[colorKey]*Color),
 	}

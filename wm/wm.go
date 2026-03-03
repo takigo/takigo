@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/msorc/takigo/internal/xlib"
+	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/window"
 )
 
@@ -67,7 +67,7 @@ type WmInfo struct {
 	TransientFor *window.Window
 
 	// Protocol handlers.
-	Protocols map[xlib.Atom]func()
+	Protocols map[platform.AtomID]func()
 
 	// Atoms cached per-display.
 	atoms *wmAtoms
@@ -75,23 +75,23 @@ type WmInfo struct {
 
 // wmAtoms caches interned atoms.
 type wmAtoms struct {
-	NetWMName             xlib.Atom
-	NetWMIconName         xlib.Atom
-	NetWMState            xlib.Atom
-	NetWMStateMaxVert     xlib.Atom
-	NetWMStateMaxHorz     xlib.Atom
-	NetWMStateFullscreen  xlib.Atom
-	NetWMStateAbove       xlib.Atom
-	NetWMPing             xlib.Atom
-	UTF8String            xlib.Atom
-	WMDeleteWindow        xlib.Atom
-	WMProtocols           xlib.Atom
-	WMTransientFor        xlib.Atom
+	NetWMName             platform.AtomID
+	NetWMIconName         platform.AtomID
+	NetWMState            platform.AtomID
+	NetWMStateMaxVert     platform.AtomID
+	NetWMStateMaxHorz     platform.AtomID
+	NetWMStateFullscreen  platform.AtomID
+	NetWMStateAbove       platform.AtomID
+	NetWMPing             platform.AtomID
+	UTF8String            platform.AtomID
+	WMDeleteWindow        platform.AtomID
+	WMProtocols           platform.AtomID
+	WMTransientFor        platform.AtomID
 }
 
-var atomCache = map[*xlib.Display]*wmAtoms{}
+var atomCache = map[platform.DisplayServer]*wmAtoms{}
 
-func getAtoms(d *xlib.Display) *wmAtoms {
+func getAtoms(d platform.DisplayServer) *wmAtoms {
 	if a, ok := atomCache[d]; ok {
 		return a
 	}
@@ -116,7 +116,7 @@ func getAtoms(d *xlib.Display) *wmAtoms {
 // Init initializes WM state for a toplevel window.
 // Call after the X window is created.
 func Init(w *window.Window) *WmInfo {
-	d := w.Display.XDisplay
+	d := w.Display.Server
 	atoms := getAtoms(d)
 
 	info := &WmInfo{
@@ -130,19 +130,19 @@ func Init(w *window.Window) *WmInfo {
 		ResizableW:  true,
 		ResizableH:  true,
 		CurrentState: StateNormal,
-		Protocols:   make(map[xlib.Atom]func()),
+		Protocols:   make(map[platform.AtomID]func()),
 		atoms:       atoms,
 	}
 
 	// Set default WM hints.
-	d.SetWMHints(w.XWindow, &xlib.WMHints{
-		Flags:        xlib.InputHint | xlib.StateHint,
+	d.SetWMHints(w.PlatformID, &platform.WMHints{
+		Flags:        platform.InputHint | platform.StateHint,
 		Input:        true,
-		InitialState: xlib.NormalState,
+		InitialState: platform.NormalState,
 	})
 
 	// Set WM_CLASS.
-	d.SetClassHint(w.XWindow, w.Name, info.Class)
+	d.SetClassHint(w.PlatformID, w.Name, info.Class)
 
 	// Set initial WM_PROTOCOLS.
 	info.updateProtocols()
@@ -156,8 +156,8 @@ func Init(w *window.Window) *WmInfo {
 // SetTitle sets the window title.
 func (info *WmInfo) SetTitle(title string) {
 	info.Title = title
-	d := info.Win.Display.XDisplay
-	w := info.Win.XWindow
+	d := info.Win.Display.Server
+	w := info.Win.PlatformID
 
 	// ICCCM: WM_NAME.
 	d.StoreName(w, title)
@@ -165,18 +165,18 @@ func (info *WmInfo) SetTitle(title string) {
 	// EWMH: _NET_WM_NAME as UTF-8.
 	data := []byte(title)
 	d.ChangeProperty(w, info.atoms.NetWMName, info.atoms.UTF8String,
-		8, xlib.PropModeReplace, data, len(data))
+		8, platform.PropModeReplace, data, len(data))
 }
 
 // SetIconName sets the icon name.
 func (info *WmInfo) SetIconName(name string) {
 	info.IconName = name
-	d := info.Win.Display.XDisplay
-	w := info.Win.XWindow
+	d := info.Win.Display.Server
+	w := info.Win.PlatformID
 	d.SetIconName(w, name)
 	data := []byte(name)
 	d.ChangeProperty(w, info.atoms.NetWMIconName, info.atoms.UTF8String,
-		8, xlib.PropModeReplace, data, len(data))
+		8, platform.PropModeReplace, data, len(data))
 }
 
 // Geometry returns the current geometry as "WxH+X+Y".
@@ -215,14 +215,14 @@ func (info *WmInfo) SetGeometry(geom string) error {
 
 		if negX {
 			screen := info.Win.Display.Screen
-			sw := info.Win.Display.XDisplay.ScreenWidth(screen)
+			sw := info.Win.Display.Server.ScreenWidth(screen)
 			info.UserX = sw - info.Win.Width - x
 		} else {
 			info.UserX = x
 		}
 		if negY {
 			screen := info.Win.Display.Screen
-			sh := info.Win.Display.XDisplay.ScreenHeight(screen)
+			sh := info.Win.Display.Server.ScreenHeight(screen)
 			info.UserY = sh - info.Win.Height - y
 		} else {
 			info.UserY = y
@@ -238,11 +238,11 @@ func (info *WmInfo) SetGeometry(geom string) error {
 // applyGeometry sends the geometry to the X server.
 func (info *WmInfo) applyGeometry() {
 	w := info.Win
-	d := w.Display.XDisplay
-	if w.XWindow == xlib.Window(0) {
+	d := w.Display.Server
+	if w.PlatformID == platform.WindowID(0) {
 		return
 	}
-	d.MoveResizeWindow(w.XWindow, w.X, w.Y, uint(w.Width), uint(w.Height))
+	d.MoveResizeWindow(w.PlatformID, w.X, w.Y, uint(w.Width), uint(w.Height))
 	info.updateSizeHints()
 }
 
@@ -276,55 +276,55 @@ func (info *WmInfo) SetResizable(width, height bool) {
 // updateSizeHints sends WM_NORMAL_HINTS to the X server.
 func (info *WmInfo) updateSizeHints() {
 	w := info.Win
-	if w.XWindow == xlib.Window(0) {
+	if w.PlatformID == platform.WindowID(0) {
 		return
 	}
 
-	hints := &xlib.SizeHints{
-		Flags:      xlib.PMinSize | xlib.PResizeInc | xlib.PWinGravity,
+	hints := &platform.SizeHints{
+		Flags:      platform.PMinSize | platform.PResizeInc | platform.PWinGravity,
 		MinWidth:   info.MinWidth,
 		MinHeight:  info.MinHeight,
 		WidthInc:   1,
 		HeightInc:  1,
-		WinGravity: xlib.NorthWestGravity,
+		WinGravity: platform.NorthWestGravity,
 	}
 
 	if info.PositionSet {
-		hints.Flags |= xlib.USPosition
+		hints.Flags |= platform.USPosition
 		hints.X = w.X
 		hints.Y = w.Y
 	}
 
 	if info.MaxWidth > 0 || info.MaxHeight > 0 {
-		hints.Flags |= xlib.PMaxSize
+		hints.Flags |= platform.PMaxSize
 		hints.MaxWidth = info.MaxWidth
 		hints.MaxHeight = info.MaxHeight
 	}
 
 	// Non-resizable: set min == max for that axis.
 	if !info.ResizableW {
-		hints.Flags |= xlib.PMaxSize
+		hints.Flags |= platform.PMaxSize
 		hints.MinWidth = w.Width
 		hints.MaxWidth = w.Width
 	}
 	if !info.ResizableH {
-		hints.Flags |= xlib.PMaxSize
+		hints.Flags |= platform.PMaxSize
 		hints.MinHeight = w.Height
 		hints.MaxHeight = w.Height
 	}
 
-	w.Display.XDisplay.SetWMNormalHints(w.XWindow, hints)
+	w.Display.Server.SetWMNormalHints(w.PlatformID, hints)
 }
 
 // SetTransientFor marks this window as a transient (dialog) for the given parent.
 // Pass nil to clear the transient relationship.
 func (info *WmInfo) SetTransientFor(parent *window.Window) {
 	info.TransientFor = parent
-	d := info.Win.Display.XDisplay
-	if parent != nil && parent.XWindow != xlib.Window(0) {
-		d.SetTransientForHint(info.Win.XWindow, parent.XWindow)
+	d := info.Win.Display.Server
+	if parent != nil && parent.PlatformID != platform.WindowID(0) {
+		d.SetTransientForHint(info.Win.PlatformID, parent.PlatformID)
 	} else {
-		d.DeleteProperty(info.Win.XWindow, info.atoms.WMTransientFor)
+		d.DeleteProperty(info.Win.PlatformID, info.atoms.WMTransientFor)
 	}
 }
 
@@ -334,38 +334,38 @@ func (info *WmInfo) Iconify() {
 		return // transient windows cannot be independently iconified
 	}
 	w := info.Win
-	if w.XWindow == xlib.Window(0) {
+	if w.PlatformID == platform.WindowID(0) {
 		return
 	}
 	info.CurrentState = StateIconic
-	w.Display.XDisplay.IconifyWindow(w.XWindow, w.Display.Screen)
+	w.Display.Server.IconifyWindow(w.PlatformID, w.Display.Screen)
 }
 
 // Deiconify restores the window from iconic/withdrawn state.
 func (info *WmInfo) Deiconify() {
 	w := info.Win
-	if w.XWindow == xlib.Window(0) {
+	if w.PlatformID == platform.WindowID(0) {
 		return
 	}
 	info.CurrentState = StateNormal
 	info.Withdrawn = false
-	w.Display.XDisplay.SetWMHints(w.XWindow, &xlib.WMHints{
-		Flags:        xlib.InputHint | xlib.StateHint,
+	w.Display.Server.SetWMHints(w.PlatformID, &platform.WMHints{
+		Flags:        platform.InputHint | platform.StateHint,
 		Input:        true,
-		InitialState: xlib.NormalState,
+		InitialState: platform.NormalState,
 	})
-	w.Display.XDisplay.MapWindow(w.XWindow)
+	w.Display.Server.MapWindow(w.PlatformID)
 }
 
 // Withdraw hides the window completely (not in taskbar).
 func (info *WmInfo) Withdraw() {
 	w := info.Win
-	if w.XWindow == xlib.Window(0) {
+	if w.PlatformID == platform.WindowID(0) {
 		return
 	}
 	info.CurrentState = StateWithdrawn
 	info.Withdrawn = true
-	w.Display.XDisplay.WithdrawWindow(w.XWindow, w.Display.Screen)
+	w.Display.Server.WithdrawWindow(w.PlatformID, w.Display.Screen)
 }
 
 // GetState returns the current WM state.
@@ -381,18 +381,18 @@ func (info *WmInfo) OnDeleteWindow(fn func()) {
 
 // OnProtocol registers a callback for a named WM protocol.
 func (info *WmInfo) OnProtocol(name string, fn func()) {
-	atom := info.Win.Display.XDisplay.InternAtom(name, false)
+	atom := info.Win.Display.Server.InternAtom(name, false)
 	info.Protocols[atom] = fn
 	info.updateProtocols()
 }
 
 // HandleClientMessage processes a ClientMessage event for WM protocols.
 // Returns true if the event was handled.
-func (info *WmInfo) HandleClientMessage(messageType xlib.Atom, data [5]int64) bool {
+func (info *WmInfo) HandleClientMessage(messageType platform.AtomID, data [5]int64) bool {
 	if messageType != info.atoms.WMProtocols {
 		return false
 	}
-	protocolAtom := xlib.Atom(data[0])
+	protocolAtom := platform.AtomID(data[0])
 
 	// Handle _NET_WM_PING: reflect back to root.
 	if protocolAtom == info.atoms.NetWMPing {
@@ -410,12 +410,12 @@ func (info *WmInfo) HandleClientMessage(messageType xlib.Atom, data [5]int64) bo
 // updateProtocols sets the WM_PROTOCOLS property.
 func (info *WmInfo) updateProtocols() {
 	w := info.Win
-	if w.XWindow == xlib.Window(0) {
+	if w.PlatformID == platform.WindowID(0) {
 		return
 	}
 
 	// Always include WM_DELETE_WINDOW and _NET_WM_PING.
-	atoms := []xlib.Atom{info.atoms.WMDeleteWindow, info.atoms.NetWMPing}
+	atoms := []platform.AtomID{info.atoms.WMDeleteWindow, info.atoms.NetWMPing}
 
 	// Add registered protocols.
 	for atom := range info.Protocols {
@@ -431,7 +431,7 @@ func (info *WmInfo) updateProtocols() {
 		}
 	}
 
-	w.Display.XDisplay.ChangePropertyAtoms(w.XWindow, info.atoms.WMProtocols, atoms)
+	w.Display.Server.ChangePropertyAtoms(w.PlatformID, info.atoms.WMProtocols, atoms)
 }
 
 // ParseGeometry parses a geometry string "WxH+X+Y" (each part optional).

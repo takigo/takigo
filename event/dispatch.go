@@ -3,7 +3,7 @@ package event
 import (
 	"sync"
 
-	"github.com/msorc/takigo/internal/xlib"
+	"github.com/msorc/takigo/platform"
 )
 
 // Handler is a function called when an event is received.
@@ -18,19 +18,19 @@ type registration struct {
 // Dispatcher manages event handler registration and dispatch per window.
 type Dispatcher struct {
 	mu       sync.RWMutex
-	handlers map[xlib.Window][]registration
+	handlers map[platform.WindowID][]registration
 	global   []registration // handlers for all windows
 }
 
 // NewDispatcher creates a new event dispatcher.
 func NewDispatcher() *Dispatcher {
 	return &Dispatcher{
-		handlers: make(map[xlib.Window][]registration),
+		handlers: make(map[platform.WindowID][]registration),
 	}
 }
 
 // Bind registers an event handler for a specific window and event mask.
-func (d *Dispatcher) Bind(w xlib.Window, mask Mask, h Handler) {
+func (d *Dispatcher) Bind(w platform.WindowID, mask Mask, h Handler) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	d.handlers[w] = append(d.handlers[w], registration{mask: mask, handler: h})
@@ -44,7 +44,7 @@ func (d *Dispatcher) BindGlobal(mask Mask, h Handler) {
 }
 
 // Unbind removes all handlers for a specific window.
-func (d *Dispatcher) Unbind(w xlib.Window) {
+func (d *Dispatcher) Unbind(w platform.WindowID) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	delete(d.handlers, w)

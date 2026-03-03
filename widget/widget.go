@@ -10,8 +10,8 @@ import (
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/font"
-	"github.com/msorc/takigo/internal/xlib"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/window"
 )
 
@@ -20,8 +20,8 @@ import (
 type WidgetImage interface {
 	Width() int
 	Height() int
-	Draw(d *xlib.Display, drawable xlib.Drawable, gc xlib.GC,
-		visual *xlib.Visual, depth int,
+	Draw(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID,
+		depth int,
 		imgX, imgY, w, h, dstX, dstY int,
 		bgPixel uint64)
 }
@@ -96,15 +96,15 @@ type AppContext interface {
 	DoWhenIdle(fn func())
 	ColorCache() *color.Cache
 	FontRegistry() *font.Registry
-	DisplayPtr() *xlib.Display
+	Server() platform.DisplayServer
 	BindEngine() BindEngine
 	// RunNestedLoop processes events until done is closed.
 	// Used by modal dialogs to keep the event loop alive while blocking.
 	RunNestedLoop(done <-chan struct{})
 	// RegisterCloseHandler registers a WM_DELETE_WINDOW handler for a toplevel window.
-	RegisterCloseHandler(w xlib.Window, fn func())
+	RegisterCloseHandler(w platform.WindowID, fn func())
 	// UnregisterCloseHandler removes a WM_DELETE_WINDOW handler.
-	UnregisterCloseHandler(w xlib.Window)
+	UnregisterCloseHandler(w platform.WindowID)
 	// After schedules a function to run after a delay.
 	After(d time.Duration, fn func())
 }
@@ -129,11 +129,11 @@ func (b *Base) UpdateBorder() {
 // DrawBackground fills the widget's window background and draws the 3D border.
 func (b *Base) DrawBackground() {
 	w := b.Win
-	if w.XWindow == xlib.Window(0) {
+	if w.PlatformID == 0 {
 		return
 	}
 
-	d := w.Display.XDisplay
+	d := w.Display.Server
 	gc := w.GC
 
 	if b.Background != nil {

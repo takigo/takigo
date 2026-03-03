@@ -17,7 +17,7 @@ func bindCanvas(c *Canvas) {
 	w := c.Win
 
 	// Expose → redraw.
-	disp.Bind(w.XWindow, event.ExposureMask, func(ev *event.Event) {
+	disp.Bind(w.PlatformID, event.ExposureMask, func(ev *event.Event) {
 		if ev.ExposeCount > 0 {
 			return
 		}
@@ -25,7 +25,7 @@ func bindCanvas(c *Canvas) {
 	})
 
 	// Configure → resize.
-	disp.Bind(w.XWindow, event.StructureNotifyMask, func(ev *event.Event) {
+	disp.Bind(w.PlatformID, event.StructureNotifyMask, func(ev *event.Event) {
 		if ev.Type == event.ConfigureType {
 			w.Width = ev.ConfigWidth
 			w.Height = ev.ConfigHeight
@@ -37,13 +37,13 @@ func bindCanvas(c *Canvas) {
 	})
 
 	// Motion → pick current item + dispatch Enter/Leave.
-	disp.Bind(w.XWindow, event.MotionMask, func(ev *event.Event) {
+	disp.Bind(w.PlatformID, event.MotionMask, func(ev *event.Event) {
 		c.pickCurrentItem(float64(ev.X), float64(ev.Y))
 		c.dispatchItemEvent(ev)
 	})
 
 	// Enter/Leave window → update current item.
-	disp.Bind(w.XWindow, event.EnterMask|event.LeaveMask, func(ev *event.Event) {
+	disp.Bind(w.PlatformID, event.EnterMask|event.LeaveMask, func(ev *event.Event) {
 		if ev.Type == event.LeaveType {
 			c.setCurrentItem(nil, ev)
 		} else {
@@ -52,7 +52,7 @@ func bindCanvas(c *Canvas) {
 	})
 
 	// Button press/release → mouse wheel scroll or dispatch to current item.
-	disp.Bind(w.XWindow, event.ButtonPressMask|event.ButtonReleaseMask, func(ev *event.Event) {
+	disp.Bind(w.PlatformID, event.ButtonPressMask|event.ButtonReleaseMask, func(ev *event.Event) {
 		if ev.Type == event.ButtonPressType {
 			switch ev.Button {
 			case 4: // scroll up

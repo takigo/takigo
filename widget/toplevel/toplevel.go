@@ -4,8 +4,8 @@ package toplevel
 
 import (
 	"github.com/msorc/takigo/event"
-	"github.com/msorc/takigo/internal/xlib"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/window"
 	"github.com/msorc/takigo/wm"
@@ -71,7 +71,7 @@ func New(parent widget.Caregiver, name string, opts ...ToplevelOption) *Toplevel
 	app := parent.AppContext()
 	d := parent.Window().Display
 
-	// Create a new X top-level window.
+	// Create a new top-level window.
 	w := &window.Window{
 		Display:         d,
 		Parent:          parent.Window(),
@@ -82,43 +82,40 @@ func New(parent widget.Caregiver, name string, opts ...ToplevelOption) *Toplevel
 		ReqWidth:        200,
 		ReqHeight:       200,
 		Depth:           d.Depth,
-		Visual:          d.Visual,
-		Colormap:        d.Colormap,
 		BackgroundPixel: d.WhitePixel,
 		Flags:           window.FlagTopLevel,
 	}
 
 	parent.Window().AddChild(w)
 
-	// Create X window as a child of the root (not the parent widget).
-	attrs := &xlib.WindowAttributes{
+	// Create window as a child of the root (not the parent widget).
+	attrs := &platform.WindowAttrs{
 		BackgroundPixel: w.BackgroundPixel,
 		BorderPixel:     d.BlackPixel,
 		EventMask: int64(
-			xlib.KeyPressMask |
-				xlib.KeyReleaseMask |
-				xlib.ButtonPressMask |
-				xlib.ButtonReleaseMask |
-				xlib.PointerMotionMask |
-				xlib.EnterWindowMask |
-				xlib.LeaveWindowMask |
-				xlib.ExposureMask |
-				xlib.StructureNotifyMask |
-				xlib.FocusChangeMask),
-		Colormap: d.Colormap,
+			platform.KeyPressMask |
+				platform.KeyReleaseMask |
+				platform.ButtonPressMask |
+				platform.ButtonReleaseMask |
+				platform.PointerMotionMask |
+				platform.EnterWindowMask |
+				platform.LeaveWindowMask |
+				platform.ExposureMask |
+				platform.StructureNotifyMask |
+				platform.FocusChangeMask),
 	}
 
-	w.XWindow = d.XDisplay.CreateWindow(
-		d.RootXWindow,
+	w.PlatformID = d.Server.CreateWindow(
+		d.RootWindow,
 		0, 0, uint(w.Width), uint(w.Height), 0,
-		d.Depth, xlib.InputOutput, d.Visual,
-		xlib.CWBackPixel|xlib.CWBorderPixel|xlib.CWEventMask|xlib.CWColormap,
+		d.Depth, platform.InputOutput,
+		platform.CWBackPixel|platform.CWBorderPixel|platform.CWEventMask,
 		attrs,
 	)
 
-	d.RegisterWindow(w.XWindow, w)
+	d.RegisterWindow(w.PlatformID, w)
 
-	w.GC = d.XDisplay.CreateGC(w.Drawable(), xlib.GCForeground|xlib.GCBackground, &xlib.GCValues{
+	w.GC = d.Server.CreateGC(w.Drawable(), platform.GCForeground|platform.GCBackground, &platform.GCValues{
 		Foreground: d.BlackPixel,
 		Background: d.WhitePixel,
 	})
@@ -133,20 +130,20 @@ func New(parent widget.Caregiver, name string, opts ...ToplevelOption) *Toplevel
 		opt(t)
 	}
 
-	// Update X window background.
+	// Update window background.
 	if t.Background != nil {
 		w.BackgroundPixel = t.Background.Pixel
 	}
 
 	// Bind events.
-	app.Dispatcher().Bind(w.XWindow, event.ExposureMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(w.PlatformID, event.ExposureMask, func(ev *event.Event) {
 		if ev.ExposeCount > 0 {
 			return
 		}
 		t.Display()
 	})
 
-	app.Dispatcher().Bind(w.XWindow, event.StructureNotifyMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(w.PlatformID, event.StructureNotifyMask, func(ev *event.Event) {
 		if ev.Type == event.ConfigureType {
 			w.Width = ev.ConfigWidth
 			w.Height = ev.ConfigHeight
@@ -166,7 +163,7 @@ func (t *Toplevel) Display() {
 		return
 	}
 	t.DrawBackground()
-	t.Win.Display.XDisplay.Flush()
+	t.Win.Display.Server.Flush()
 }
 
 // Configure applies options.
@@ -181,15 +178,15 @@ func (t *Toplevel) Configure(opts ...option.Option) {
 
 // Show maps the toplevel window.
 func (t *Toplevel) Show() {
-	if t.Win.XWindow != xlib.Window(0) {
-		t.Win.Display.XDisplay.MapRaised(t.Win.XWindow)
+	if t.Win.PlatformID != platform.WindowID(0) {
+		t.Win.Display.Server.MapRaised(t.Win.PlatformID)
 		t.Win.Flags |= window.FlagMapped
 	}
 }
 
 // Hide unmaps the toplevel window.
 func (t *Toplevel) Hide() {
-	if t.Win.XWindow != xlib.Window(0) {
+	if t.Win.PlatformID != platform.WindowID(0) {
 		t.WmInfo.Withdraw()
 		t.Win.Flags &^= window.FlagMapped
 	}

@@ -4,7 +4,7 @@ import (
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/font"
-	"github.com/msorc/takigo/internal/xlib"
+	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/window"
 )
@@ -73,7 +73,7 @@ func (nb *Notebook) Add(pane *window.Window, text string) {
 		nb.Select(0)
 	} else {
 		// Unmap the new pane (not selected).
-		pane.Display.XDisplay.UnmapWindow(pane.XWindow)
+		pane.Display.Server.UnmapWindow(pane.PlatformID)
 		nb.Display()
 	}
 }
@@ -90,9 +90,9 @@ func (nb *Notebook) Select(index int) {
 	for i, tab := range nb.tabs {
 		if i == index {
 			nb.layoutPane(tab.Window)
-			tab.Window.Display.XDisplay.MapWindow(tab.Window.XWindow)
+			tab.Window.Display.Server.MapWindow(tab.Window.PlatformID)
 		} else {
-			tab.Window.Display.XDisplay.UnmapWindow(tab.Window.XWindow)
+			tab.Window.Display.Server.UnmapWindow(tab.Window.PlatformID)
 		}
 		_ = old
 	}
@@ -154,7 +154,7 @@ func (nb *Notebook) layoutPane(pane *window.Window) {
 	if h < 1 {
 		h = 1
 	}
-	pane.Display.XDisplay.MoveResizeWindow(pane.XWindow, x, y, uint(w), uint(h))
+	pane.Display.Server.MoveResizeWindow(pane.PlatformID, x, y, uint(w), uint(h))
 	pane.Width = w
 	pane.Height = h
 }
@@ -165,11 +165,11 @@ func (nb *Notebook) Display() {
 		return
 	}
 	win := nb.Win
-	if win.XWindow == xlib.Window(0) {
+	if win.PlatformID == 0 {
 		return
 	}
 
-	d := win.Display.XDisplay
+	d := win.Display.Server
 	gc := win.GC
 	width := win.Width
 	height := win.Height
@@ -179,8 +179,8 @@ func (nb *Notebook) Display() {
 	}
 
 	// Allocate or resize pixmap.
-	if nb.pixmap == xlib.Pixmap(0) || nb.pixmapW != width || nb.pixmapH != height {
-		if nb.pixmap != xlib.Pixmap(0) {
+	if nb.pixmap == 0 || nb.pixmapW != width || nb.pixmapH != height {
+		if nb.pixmap != 0 {
 			d.FreePixmap(nb.pixmap)
 		}
 		nb.pixmap = d.CreatePixmap(win.Drawable(), uint(width), uint(height), uint(win.Depth))
@@ -188,7 +188,7 @@ func (nb *Notebook) Display() {
 		nb.pixmapH = height
 	}
 
-	pixDrawable := xlib.PixmapDrawable(nb.pixmap)
+	pixDrawable := platform.PixmapDrawable(nb.pixmap)
 
 	bg := LookupColor(nb.Context.Style, "-background", nb.State, 0xd9d9d9)
 	d.SetForeground(gc, bg)
@@ -240,11 +240,11 @@ func (nb *Notebook) Display() {
 			m := nb.Font.Metrics()
 			textY := tabY + (tabH-m.Linespace())/2 + m.Ascent
 
-			if xftFont, ok := nb.Font.(*font.XftFont); ok {
+			if df, ok := nb.Font.(platform.DrawableFont); ok {
 				r := uint16((fgPixel >> 16) & 0xFF) << 8
 				g := uint16((fgPixel >> 8) & 0xFF) << 8
 				b := uint16((fgPixel) & 0xFF) << 8
-				xftFont.DrawString(pixDrawable, textX, textY, tab.Text, fgPixel, r, g, b)
+				df.DrawString(pixDrawable, textX, textY, tab.Text, fgPixel, r, g, b)
 			}
 		}
 
@@ -315,7 +315,7 @@ func bindNotebook(nb *Notebook, app widget.AppContext) {
 	win := nb.Win
 
 	// Expose.
-	app.Dispatcher().Bind(win.XWindow, event.ExposureMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(win.PlatformID, event.ExposureMask, func(ev *event.Event) {
 		if ev.ExposeCount > 0 {
 			return
 		}
@@ -323,7 +323,7 @@ func bindNotebook(nb *Notebook, app widget.AppContext) {
 	})
 
 	// Configure (resize).
-	app.Dispatcher().Bind(win.XWindow, event.StructureNotifyMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(win.PlatformID, event.StructureNotifyMask, func(ev *event.Event) {
 		if ev.Type == event.ConfigureType {
 			win.Width = ev.ConfigWidth
 			win.Height = ev.ConfigHeight
@@ -332,7 +332,7 @@ func bindNotebook(nb *Notebook, app widget.AppContext) {
 	})
 
 	// Button1 on tab → select.
-	app.Dispatcher().Bind(win.XWindow, event.ButtonPressMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(win.PlatformID, event.ButtonPressMask, func(ev *event.Event) {
 		if ev.Button == 1 {
 			idx := nb.hitTestTab(ev.X, ev.Y)
 			if idx >= 0 && nb.tabs[idx].State&StateDisabled == 0 {
@@ -342,7 +342,7 @@ func bindNotebook(nb *Notebook, app widget.AppContext) {
 	})
 
 	// Motion for tab hover.
-	app.Dispatcher().Bind(win.XWindow, event.MotionMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(win.PlatformID, event.MotionMask, func(ev *event.Event) {
 		idx := nb.hitTestTab(ev.X, ev.Y)
 		if idx != nb.hoverTab {
 			nb.hoverTab = idx
@@ -351,7 +351,7 @@ func bindNotebook(nb *Notebook, app widget.AppContext) {
 	})
 
 	// Leave → clear hover.
-	app.Dispatcher().Bind(win.XWindow, event.LeaveMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(win.PlatformID, event.LeaveMask, func(ev *event.Event) {
 		if nb.hoverTab >= 0 {
 			nb.hoverTab = -1
 			nb.Display()

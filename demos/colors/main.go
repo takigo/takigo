@@ -149,7 +149,7 @@ func main() {
 			c, err := app.ColorCache().Get(colorName)
 			if err == nil {
 				root.BackgroundPixel = c.Pixel
-				di := root.Display.XDisplay
+				di := root.Display.Server
 				gc := root.GC
 				di.SetForeground(gc, c.Pixel)
 				di.FillRectangle(root.Drawable(), gc, 0, 0, uint(root.Width), uint(root.Height))

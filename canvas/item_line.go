@@ -3,7 +3,7 @@ package canvas
 import (
 	"math"
 
-	"github.com/msorc/takigo/internal/xlib"
+	"github.com/msorc/takigo/platform"
 )
 
 // LineItem implements a polyline canvas item with optional arrows and smoothing.
@@ -27,8 +27,8 @@ func newLineItem(coords []float64, c *Canvas) *LineItem {
 	item := &LineItem{
 		coords:      append([]float64{}, coords...),
 		width:       1,
-		capStyle:    xlib.CapButt,
-		joinStyle:   xlib.JoinRound,
+		capStyle:    platform.CapButt,
+		joinStyle:   platform.JoinRound,
 		arrowShapeA: 8,
 		arrowShapeB: 10,
 		arrowShapeC: 3,
@@ -103,7 +103,7 @@ func (l *LineItem) updateBBox() {
 	l.Y2 = int(math.Ceil(maxY + hw))
 }
 
-func (l *LineItem) Display(d *xlib.Display, drawable xlib.Drawable, gc xlib.GC,
+func (l *LineItem) Display(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID,
 	clipX, clipY, clipW, clipH, originX, originY int) {
 
 	if len(l.coords) < 4 || l.color == nil {
@@ -111,9 +111,9 @@ func (l *LineItem) Display(d *xlib.Display, drawable xlib.Drawable, gc xlib.GC,
 	}
 
 	d.SetForeground(gc, l.color.Pixel)
-	lineStyle := xlib.LineSolid
+	lineStyle := platform.LineSolid
 	if len(l.dash) > 0 {
-		lineStyle = xlib.LineOnOffDash
+		lineStyle = platform.LineOnOffDash
 		d.SetDashes(gc, 0, l.dash)
 	}
 	d.SetLineAttributes(gc, uint(l.width), lineStyle, l.capStyle, l.joinStyle)
@@ -124,16 +124,16 @@ func (l *LineItem) Display(d *xlib.Display, drawable xlib.Drawable, gc xlib.GC,
 		displayCoords = generateBezierSpline(l.coords, false, l.splineSteps)
 	}
 
-	points := make([]xlib.XPoint, len(displayCoords)/2)
+	points := make([]platform.Point, len(displayCoords)/2)
 	for i := 0; i < len(displayCoords)-1; i += 2 {
-		points[i/2] = xlib.XPoint{
+		points[i/2] = platform.Point{
 			X: int16(displayCoords[i]) - int16(originX),
 			Y: int16(displayCoords[i+1]) - int16(originY),
 		}
 	}
 
 	if len(points) >= 2 {
-		d.DrawLines(drawable, gc, points, xlib.CoordModeOrigin)
+		d.DrawLines(drawable, gc, points, platform.CoordModeOrigin)
 	}
 
 	// Draw arrows.
@@ -145,11 +145,11 @@ func (l *LineItem) Display(d *xlib.Display, drawable xlib.Drawable, gc xlib.GC,
 	}
 
 	// Reset line attributes.
-	d.SetLineAttributes(gc, 1, xlib.LineSolid, xlib.CapButt, xlib.JoinMiter)
+	d.SetLineAttributes(gc, 1, platform.LineSolid, platform.CapButt, platform.JoinMiter)
 }
 
 // drawArrow draws an arrowhead at one end of the line.
-func (l *LineItem) drawArrow(d *xlib.Display, drawable xlib.Drawable, gc xlib.GC,
+func (l *LineItem) drawArrow(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID,
 	originX, originY int, first bool) {
 
 	n := len(l.coords)
@@ -184,13 +184,13 @@ func (l *LineItem) drawArrow(d *xlib.Display, drawable xlib.Drawable, gc xlib.GC
 	c := l.arrowShapeC
 
 	// Arrow polygon: tip, left, right (3 points).
-	arrowPoints := []xlib.XPoint{
+	arrowPoints := []platform.Point{
 		{X: int16(tipX) - int16(originX), Y: int16(tipY) - int16(originY)},
 		{X: int16(tipX-ux*a+px*c) - int16(originX), Y: int16(tipY-uy*a+py*c) - int16(originY)},
 		{X: int16(tipX-ux*a-px*c) - int16(originX), Y: int16(tipY-uy*a-py*c) - int16(originY)},
 	}
 
-	d.FillPolygon(drawable, gc, arrowPoints, xlib.PolygonConvex, xlib.CoordModeOrigin)
+	d.FillPolygon(drawable, gc, arrowPoints, platform.PolygonConvex, platform.CoordModeOrigin)
 }
 
 func (l *LineItem) PointDistance(x, y float64) float64 {
@@ -241,7 +241,7 @@ func (l *LineItem) Translate(dx, dy float64) {
 	l.updateBBox()
 }
 
-func (l *LineItem) Delete(d *xlib.Display) {}
+func (l *LineItem) Delete(d platform.DisplayServer) {}
 
 // segmentPointDistance computes the distance from point (px,py) to the
 // line segment from (x1,y1) to (x2,y2).

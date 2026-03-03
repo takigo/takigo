@@ -12,7 +12,8 @@ import (
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/font"
 	"github.com/msorc/takigo/image"
-	"github.com/msorc/takigo/internal/xlib"
+	"github.com/msorc/takigo/platform"
+	x11platform "github.com/msorc/takigo/platform/x11"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/window"
 )
@@ -29,8 +30,8 @@ type App struct {
 	imageReg   *image.Registry
 	bindEng    *bind.Engine
 
-	// closeHandlers maps toplevel XWindow IDs to their WM_DELETE_WINDOW handlers.
-	closeHandlers map[xlib.Window]func()
+	// closeHandlers maps toplevel window IDs to their WM_DELETE_WINDOW handlers.
+	closeHandlers map[platform.WindowID]func()
 }
 
 // NewApp creates a new takigo application. It opens the X11 display,
@@ -46,22 +47,34 @@ func NewApp(opts ...AppOption) (*App, error) {
 		opt(&cfg)
 	}
 
-	d, err := window.NewDisplay(cfg.displayName)
+	// Create platform-specific display server.
+	server, err := x11platform.NewDisplayServer(cfg.displayName)
 	if err != nil {
 		return nil, fmt.Errorf("takigo: %w", err)
 	}
 
+	// Initialize predefined atoms for platform package.
+	x11platform.InitPredefinedAtoms()
+
+	d, err := window.NewDisplay(server)
+	if err != nil {
+		server.Close()
+		return nil, fmt.Errorf("takigo: %w", err)
+	}
+
 	root := window.CreateMainWindow(d, 0, 0, cfg.width, cfg.height)
-	d.XDisplay.StoreName(root.XWindow, cfg.title)
+	d.Server.StoreName(root.PlatformID, cfg.title)
 
 	// Initialize X Input Method for proper non-Latin keyboard handling.
-	d.XDisplay.InitIM(root.XWindow)
+	d.Server.InitIM(root.PlatformID)
 
 	dispatcher := event.NewDispatcher()
-	loop := event.NewLoop(d.XDisplay, dispatcher)
+	parser := x11platform.NewEventParser(server.XlibDisplay())
+	loop := event.NewLoop(server, parser, dispatcher)
 
-	colors := color.NewCache(d.XDisplay, d.Screen, d.Colormap)
-	fontReg := font.NewRegistry(d.XDisplay, d.Screen, d.Visual, d.Colormap)
+	colors := color.NewCache(d.Screen)
+	fontOpener := x11platform.NewFontOpener(server.XlibDisplay(), d.Screen, server.XlibDisplay().DefaultVisual(d.Screen), server.XlibDisplay().DefaultColormap(d.Screen))
+	fontReg := font.NewRegistry(fontOpener)
 
 	bindEng := bind.NewEngine(d)
 
@@ -74,7 +87,7 @@ func NewApp(opts ...AppOption) (*App, error) {
 		fontReg:       fontReg,
 		imageReg:      image.NewRegistry(),
 		bindEng:       bindEng,
-		closeHandlers: make(map[xlib.Window]func()),
+		closeHandlers: make(map[platform.WindowID]func()),
 	}
 
 	// Install bind engine as a global handler (fires after per-window handlers).
@@ -87,10 +100,10 @@ func NewApp(opts ...AppOption) (*App, error) {
 		if ev.Type != event.ClientMessageType {
 			return
 		}
-		if xlib.Atom(ev.MessageData[0]) != d.WMDeleteWindow {
+		if platform.AtomID(ev.MessageData[0]) != d.WMDeleteWindow {
 			return
 		}
-		if ev.Window == root.XWindow {
+		if ev.Window == root.PlatformID {
 			app.Quit()
 			return
 		}
@@ -139,9 +152,9 @@ func (a *App) Run() {
 // MainLoop maps the root window and runs the event loop.
 // It blocks until Quit is called.
 func (a *App) MainLoop() {
-	a.display.XDisplay.MapWindow(a.root.XWindow)
+	a.display.Server.MapWindow(a.root.PlatformID)
 	a.root.Flags |= window.FlagMapped
-	a.display.XDisplay.Flush()
+	a.display.Server.Flush()
 	a.loop.Run()
 }
 
@@ -177,9 +190,9 @@ func (a *App) ImageRegistry() *image.Registry {
 	return a.imageReg
 }
 
-// DisplayPtr returns the underlying xlib.Display pointer.
-func (a *App) DisplayPtr() *xlib.Display {
-	return a.display.XDisplay
+// Server returns the platform display server.
+func (a *App) Server() platform.DisplayServer {
+	return a.display.Server
 }
 
 // BindEngine returns the application's binding engine.
@@ -199,12 +212,12 @@ func (a *App) RunNestedLoop(done <-chan struct{}) {
 }
 
 // RegisterCloseHandler registers a WM_DELETE_WINDOW handler for a toplevel window.
-func (a *App) RegisterCloseHandler(w xlib.Window, fn func()) {
+func (a *App) RegisterCloseHandler(w platform.WindowID, fn func()) {
 	a.closeHandlers[w] = fn
 }
 
 // UnregisterCloseHandler removes a WM_DELETE_WINDOW handler.
-func (a *App) UnregisterCloseHandler(w xlib.Window) {
+func (a *App) UnregisterCloseHandler(w platform.WindowID) {
 	delete(a.closeHandlers, w)
 }
 

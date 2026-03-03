@@ -1,4 +1,4 @@
-// Package selection implements X11 selection handling (copy/paste).
+// Package selection implements selection handling (copy/paste).
 // It ports tk/generic/tkSelect.c and tk/generic/tkClipboard.c.
 package selection
 
@@ -6,35 +6,35 @@ import (
 	"sync"
 
 	"github.com/msorc/takigo/event"
-	"github.com/msorc/takigo/internal/xlib"
+	"github.com/msorc/takigo/platform"
 )
 
-// Manager handles X11 selection ownership and transfers.
+// Manager handles selection ownership and transfers.
 type Manager struct {
-	display    *xlib.Display
+	server     platform.DisplayServer
 	dispatcher *event.Dispatcher
 
 	mu   sync.Mutex
-	data map[xlib.Atom]string // selection atom → content
+	data map[platform.AtomID]string // selection atom → content
 	// Owner window for each selection.
-	owners map[xlib.Atom]xlib.Window
+	owners map[platform.AtomID]platform.WindowID
 
 	// Atoms.
-	clipboard xlib.Atom
-	utf8str   xlib.Atom
-	targets   xlib.Atom
+	clipboard platform.AtomID
+	utf8str   platform.AtomID
+	targets   platform.AtomID
 }
 
 // NewManager creates a new selection manager.
-func NewManager(display *xlib.Display, dispatcher *event.Dispatcher) *Manager {
+func NewManager(server platform.DisplayServer, dispatcher *event.Dispatcher) *Manager {
 	m := &Manager{
-		display:    display,
+		server:     server,
 		dispatcher: dispatcher,
-		data:       make(map[xlib.Atom]string),
-		owners:     make(map[xlib.Atom]xlib.Window),
-		clipboard:  display.InternAtom("CLIPBOARD", false),
-		utf8str:    display.InternAtom("UTF8_STRING", false),
-		targets:    display.InternAtom("TARGETS", false),
+		data:       make(map[platform.AtomID]string),
+		owners:     make(map[platform.AtomID]platform.WindowID),
+		clipboard:  server.InternAtom("CLIPBOARD", false),
+		utf8str:    server.InternAtom("UTF8_STRING", false),
+		targets:    server.InternAtom("TARGETS", false),
 	}
 
 	// Listen for selection-related events globally.
@@ -49,27 +49,27 @@ func NewManager(display *xlib.Display, dispatcher *event.Dispatcher) *Manager {
 }
 
 // Own claims ownership of a selection and stores content.
-func (m *Manager) Own(selection xlib.Atom, owner xlib.Window, content string, time xlib.Time) {
+func (m *Manager) Own(selection platform.AtomID, owner platform.WindowID, content string, time platform.Timestamp) {
 	m.mu.Lock()
 	m.data[selection] = content
 	m.owners[selection] = owner
 	m.mu.Unlock()
 
-	m.display.SetSelectionOwner(selection, owner, time)
+	m.server.SetSelectionOwner(selection, owner, time)
 }
 
 // OwnPrimary claims PRIMARY selection.
-func (m *Manager) OwnPrimary(owner xlib.Window, content string, time xlib.Time) {
-	m.Own(xlib.XA_PRIMARY, owner, content, time)
+func (m *Manager) OwnPrimary(owner platform.WindowID, content string, time platform.Timestamp) {
+	m.Own(platform.XA_PRIMARY, owner, content, time)
 }
 
 // OwnClipboard claims CLIPBOARD selection.
-func (m *Manager) OwnClipboard(owner xlib.Window, content string, time xlib.Time) {
+func (m *Manager) OwnClipboard(owner platform.WindowID, content string, time platform.Timestamp) {
 	m.Own(m.clipboard, owner, content, time)
 }
 
 // GetContent returns the stored content for a selection.
-func (m *Manager) GetContent(selection xlib.Atom) string {
+func (m *Manager) GetContent(selection platform.AtomID) string {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	return m.data[selection]
@@ -77,14 +77,14 @@ func (m *Manager) GetContent(selection xlib.Atom) string {
 
 // HandleSelectionRequest processes a SelectionRequest event from another client.
 // It sends back the selection data via a property and SelectionNotify.
-func (m *Manager) HandleSelectionRequest(requestor xlib.Window, selection, target, property xlib.Atom, time xlib.Time) {
+func (m *Manager) HandleSelectionRequest(requestor platform.WindowID, selection, target, property platform.AtomID, time platform.Timestamp) {
 	m.mu.Lock()
 	content, ok := m.data[selection]
 	m.mu.Unlock()
 
 	if !ok {
 		// We don't own this selection — refuse.
-		m.display.SendSelectionNotify(requestor, selection, target, 0, time)
+		m.server.SendSelectionNotify(requestor, selection, target, 0, time)
 		return
 	}
 
@@ -94,24 +94,24 @@ func (m *Manager) HandleSelectionRequest(requestor xlib.Window, selection, targe
 
 	if target == m.targets {
 		// Respond with supported targets.
-		m.display.ChangePropertyAtoms(requestor, property, []xlib.Atom{
+		m.server.ChangePropertyAtoms(requestor, property, []platform.AtomID{
 			m.utf8str,
-			xlib.XA_STRING,
+			platform.XA_STRING,
 			m.targets,
 		})
-	} else if target == m.utf8str || target == xlib.XA_STRING {
-		m.display.ChangePropertyString(requestor, property, target, content)
+	} else if target == m.utf8str || target == platform.XA_STRING {
+		m.server.ChangePropertyString(requestor, property, target, content)
 	} else {
 		// Unsupported target — refuse.
-		m.display.SendSelectionNotify(requestor, selection, target, 0, time)
+		m.server.SendSelectionNotify(requestor, selection, target, 0, time)
 		return
 	}
 
-	m.display.SendSelectionNotify(requestor, selection, target, property, time)
+	m.server.SendSelectionNotify(requestor, selection, target, property, time)
 }
 
 // HandleSelectionClear is called when we lose selection ownership.
-func (m *Manager) HandleSelectionClear(selection xlib.Atom) {
+func (m *Manager) HandleSelectionClear(selection platform.AtomID) {
 	m.mu.Lock()
 	delete(m.data, selection)
 	delete(m.owners, selection)
@@ -120,23 +120,23 @@ func (m *Manager) HandleSelectionClear(selection xlib.Atom) {
 
 // Request requests the content of a selection from its current owner.
 // The result comes back as a SelectionNotify event with the data in a property.
-func (m *Manager) Request(selection xlib.Atom, requestor xlib.Window, time xlib.Time) {
-	property := m.display.InternAtom("TAKIGO_SEL", false)
-	m.display.ConvertSelection(selection, m.utf8str, property, requestor, time)
+func (m *Manager) Request(selection platform.AtomID, requestor platform.WindowID, time platform.Timestamp) {
+	property := m.server.InternAtom("TAKIGO_SEL", false)
+	m.server.ConvertSelection(selection, m.utf8str, property, requestor, time)
 }
 
 // ReadProperty reads the result of a selection request from a window property.
-func (m *Manager) ReadProperty(w xlib.Window, property xlib.Atom) string {
-	data, _, _ := m.display.GetWindowProperty(w, property, 0, 1024*1024, true)
+func (m *Manager) ReadProperty(w platform.WindowID, property platform.AtomID) string {
+	data, _, _ := m.server.GetWindowProperty(w, property, 0, 1024*1024, true)
 	return string(data)
 }
 
 // ClipboardAtom returns the CLIPBOARD atom.
-func (m *Manager) ClipboardAtom() xlib.Atom {
+func (m *Manager) ClipboardAtom() platform.AtomID {
 	return m.clipboard
 }
 
 // UTF8StringAtom returns the UTF8_STRING atom.
-func (m *Manager) UTF8StringAtom() xlib.Atom {
+func (m *Manager) UTF8StringAtom() platform.AtomID {
 	return m.utf8str
 }

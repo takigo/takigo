@@ -6,8 +6,8 @@ package panedwindow
 import (
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/event"
-	"github.com/msorc/takigo/internal/xlib"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/window"
 )
@@ -135,7 +135,7 @@ func (pw *PanedWindow) arrangePanes() {
 	}
 
 	w := pw.Win
-	d := w.Display.XDisplay
+	d := w.Display.Server
 
 	totalSashSpace := (len(pw.panes) - 1) * pw.SashWidth
 	var totalAvail int
@@ -201,12 +201,12 @@ func (pw *PanedWindow) arrangePanes() {
 			paneH = 1
 		}
 
-		d.MoveResizeWindow(p.win.XWindow, paneX, paneY, uint(paneW), uint(paneH))
+		d.MoveResizeWindow(p.win.PlatformID, paneX, paneY, uint(paneW), uint(paneH))
 		p.win.X = paneX
 		p.win.Y = paneY
 		p.win.Width = paneW
 		p.win.Height = paneH
-		d.MapWindow(p.win.XWindow)
+		d.MapWindow(p.win.PlatformID)
 
 		if pw.Orient == Horizontal {
 			pos += p.size + pw.SashWidth
@@ -273,11 +273,11 @@ func (pw *PanedWindow) Display() {
 		return
 	}
 	w := pw.Win
-	if w.XWindow == xlib.Window(0) {
+	if w.PlatformID == platform.WindowID(0) {
 		return
 	}
 
-	d := w.Display.XDisplay
+	d := w.Display.Server
 	gc := w.GC
 
 	// Background.
@@ -338,7 +338,7 @@ func bindPanedWindow(pw *PanedWindow, app widget.AppContext) {
 	w.Flags |= window.FlagFocusable
 
 	// Expose.
-	app.Dispatcher().Bind(w.XWindow, event.ExposureMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(w.PlatformID, event.ExposureMask, func(ev *event.Event) {
 		if ev.ExposeCount > 0 {
 			return
 		}
@@ -346,7 +346,7 @@ func bindPanedWindow(pw *PanedWindow, app widget.AppContext) {
 	})
 
 	// Configure (resize).
-	app.Dispatcher().Bind(w.XWindow, event.StructureNotifyMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(w.PlatformID, event.StructureNotifyMask, func(ev *event.Event) {
 		if ev.Type == event.ConfigureType {
 			w.Width = ev.ConfigWidth
 			w.Height = ev.ConfigHeight
@@ -356,7 +356,7 @@ func bindPanedWindow(pw *PanedWindow, app widget.AppContext) {
 	})
 
 	// Button press on sash.
-	app.Dispatcher().Bind(w.XWindow, event.ButtonPressMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(w.PlatformID, event.ButtonPressMask, func(ev *event.Event) {
 		if ev.Button != 1 {
 			return
 		}
@@ -373,12 +373,12 @@ func bindPanedWindow(pw *PanedWindow, app widget.AppContext) {
 	})
 
 	// Button release.
-	app.Dispatcher().Bind(w.XWindow, event.ButtonReleaseMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(w.PlatformID, event.ButtonReleaseMask, func(ev *event.Event) {
 		pw.dragSash = -1
 	})
 
 	// Motion (drag sash).
-	app.Dispatcher().Bind(w.XWindow, event.MotionMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(w.PlatformID, event.MotionMask, func(ev *event.Event) {
 		if pw.dragSash < 0 {
 			return
 		}
@@ -394,7 +394,7 @@ func bindPanedWindow(pw *PanedWindow, app widget.AppContext) {
 	})
 
 	// Keyboard sash movement.
-	app.Dispatcher().Bind(w.XWindow, event.KeyPressMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(w.PlatformID, event.KeyPressMask, func(ev *event.Event) {
 		if len(pw.panes) <= 1 {
 			return
 		}
@@ -402,19 +402,19 @@ func bindPanedWindow(pw *PanedWindow, app widget.AppContext) {
 		sashIdx := 0 // move first sash by default
 
 		switch ev.KeySym {
-		case xlib.XK_Left:
+		case platform.XK_Left:
 			if pw.Orient == Horizontal {
 				pw.moveSash(sashIdx, pw.panes[sashIdx].size-step)
 			}
-		case xlib.XK_Right:
+		case platform.XK_Right:
 			if pw.Orient == Horizontal {
 				pw.moveSash(sashIdx, pw.panes[sashIdx].size+step)
 			}
-		case xlib.XK_Up:
+		case platform.XK_Up:
 			if pw.Orient == Vertical {
 				pw.moveSash(sashIdx, pw.panes[sashIdx].size-step)
 			}
-		case xlib.XK_Down:
+		case platform.XK_Down:
 			if pw.Orient == Vertical {
 				pw.moveSash(sashIdx, pw.panes[sashIdx].size+step)
 			}

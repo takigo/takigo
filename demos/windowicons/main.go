@@ -8,7 +8,7 @@ import (
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/dialog"
 	"github.com/msorc/takigo/geometry/pack"
-	"github.com/msorc/takigo/internal/xlib"
+	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/widget/button"
 	"github.com/msorc/takigo/window"
 )
@@ -54,7 +54,7 @@ func main() {
 // setWindowIcon sets a 16x16 icon on the window via _NET_WM_ICON.
 // The format is: [width, height, ARGB pixels...] as 32-bit values.
 func setWindowIcon(win *window.Window) {
-	d := win.Display.XDisplay
+	d := win.Display.Server
 	const size = 16
 
 	// Generate a simple icon: blue square with white "T" letter.
@@ -81,5 +81,5 @@ func setWindowIcon(win *window.Window) {
 	}
 
 	netWmIcon := d.InternAtom("_NET_WM_ICON", false)
-	d.ChangeProperty(win.XWindow, netWmIcon, xlib.XA_CARDINAL, 32, xlib.PropModeReplace, data, 2+size*size)
+	d.ChangeProperty(win.PlatformID, netWmIcon, platform.XA_CARDINAL, 32, platform.PropModeReplace, data, 2+size*size)
 }

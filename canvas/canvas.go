@@ -4,7 +4,7 @@ import (
 	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/font"
-	"github.com/msorc/takigo/internal/xlib"
+	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/window"
@@ -25,7 +25,7 @@ type Canvas struct {
 
 	// Display.
 	redrawPending    bool
-	pixmap           xlib.Pixmap
+	pixmap           platform.PixmapID
 	pixmapW, pixmapH int
 
 	// Item pick / events.
@@ -133,8 +133,8 @@ func New(parent widget.Caregiver, name string, opts ...CanvasOption) *Canvas {
 	c.displayFunc = c.Display
 
 	// Set window size from requested dimensions.
-	d := app.DisplayPtr()
-	d.ResizeWindow(w.XWindow, uint(w.ReqWidth), uint(w.ReqHeight))
+	d := app.Server()
+	d.ResizeWindow(w.PlatformID, uint(w.ReqWidth), uint(w.ReqHeight))
 	w.Width = w.ReqWidth
 	w.Height = w.ReqHeight
 
@@ -155,11 +155,11 @@ func (c *Canvas) Display() {
 		return
 	}
 	w := c.Win
-	if w.XWindow == xlib.Window(0) || !w.IsMapped() {
+	if w.PlatformID == 0 || !w.IsMapped() {
 		return
 	}
 
-	d := w.Display.XDisplay
+	d := w.Display.Server
 
 	// Compute visible canvas rectangle.
 	winW := w.Width - 2*c.inset
@@ -174,8 +174,8 @@ func (c *Canvas) Display() {
 	pixH := winH + 2*overdraw
 
 	// Allocate or resize pixmap.
-	if c.pixmap == xlib.Pixmap(0) || c.pixmapW != pixW || c.pixmapH != pixH {
-		if c.pixmap != xlib.Pixmap(0) {
+	if c.pixmap == 0 || c.pixmapW != pixW || c.pixmapH != pixH {
+		if c.pixmap != 0 {
 			d.FreePixmap(c.pixmap)
 		}
 		c.pixmap = d.CreatePixmap(w.Drawable(), uint(pixW), uint(pixH), uint(w.Depth))
@@ -183,7 +183,7 @@ func (c *Canvas) Display() {
 		c.pixmapH = pixH
 	}
 
-	pxDrawable := xlib.PixmapDrawable(c.pixmap)
+	pxDrawable := platform.PixmapDrawable(c.pixmap)
 	gc := w.GC
 
 	// Clear pixmap to background color.
@@ -256,7 +256,7 @@ func (c *Canvas) Destroy() {
 	}
 	c.Destroyed = true
 
-	d := c.Win.Display.XDisplay
+	d := c.Win.Display.Server
 
 	// Free all items.
 	for _, entry := range c.items {
@@ -266,9 +266,9 @@ func (c *Canvas) Destroy() {
 	c.idMap = nil
 
 	// Free pixmap.
-	if c.pixmap != xlib.Pixmap(0) {
+	if c.pixmap != 0 {
 		d.FreePixmap(c.pixmap)
-		c.pixmap = xlib.Pixmap(0)
+		c.pixmap = 0
 	}
 }
 
@@ -355,7 +355,7 @@ func (c *Canvas) Delete(tagOrID string) {
 		return
 	}
 
-	d := c.Win.Display.XDisplay
+	d := c.Win.Display.Server
 	deleteSet := make(map[int64]bool, len(entries))
 	for _, e := range entries {
 		deleteSet[e.id] = true
@@ -587,7 +587,7 @@ func (c *Canvas) FontRegistry() *font.Registry {
 	return c.App.FontRegistry()
 }
 
-// DisplayPtr returns the X11 display (for items needing display access).
-func (c *Canvas) DisplayPtr() *xlib.Display {
-	return c.App.DisplayPtr()
+// DisplayServer returns the platform display server (for items needing display access).
+func (c *Canvas) DisplayServer() platform.DisplayServer {
+	return c.App.Server()
 }

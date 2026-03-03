@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	"github.com/msorc/takigo/event"
-	"github.com/msorc/takigo/internal/xlib"
+	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/widget"
 )
 
@@ -12,7 +12,7 @@ func bindText(t *TextWidget, app widget.AppContext) {
 	w := t.Win
 
 	// Expose.
-	app.Dispatcher().Bind(w.XWindow, event.ExposureMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(w.PlatformID, event.ExposureMask, func(ev *event.Event) {
 		if ev.ExposeCount > 0 {
 			return
 		}
@@ -20,7 +20,7 @@ func bindText(t *TextWidget, app widget.AppContext) {
 	})
 
 	// Configure (resize).
-	app.Dispatcher().Bind(w.XWindow, event.StructureNotifyMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(w.PlatformID, event.StructureNotifyMask, func(ev *event.Event) {
 		if ev.Type == event.ConfigureType {
 			w.Width = ev.ConfigWidth
 			w.Height = ev.ConfigHeight
@@ -31,7 +31,7 @@ func bindText(t *TextWidget, app widget.AppContext) {
 	})
 
 	// Focus.
-	app.Dispatcher().Bind(w.XWindow, event.FocusChangeMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(w.PlatformID, event.FocusChangeMask, func(ev *event.Event) {
 		if ev.Type == event.FocusInType {
 			t.hasFocus = true
 			t.cursorOn = true
@@ -43,10 +43,10 @@ func bindText(t *TextWidget, app widget.AppContext) {
 	})
 
 	// Mouse: click to position cursor.
-	app.Dispatcher().Bind(w.XWindow, event.ButtonPressMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(w.PlatformID, event.ButtonPressMask, func(ev *event.Event) {
 		switch ev.Button {
 		case 1:
-			app.DisplayPtr().SetInputFocus(w.XWindow, xlib.RevertToParent, xlib.CurrentTime)
+			app.Server().SetInputFocus(w.PlatformID, platform.RevertToParent, platform.CurrentTime)
 			idx := t.indexFromPixel(ev.X, ev.Y)
 			// Fire tag Button-1 bindings before modifying selection.
 			if len(t.tagBindings) > 0 {
@@ -70,12 +70,12 @@ func bindText(t *TextWidget, app widget.AppContext) {
 	})
 
 	// Mouse: drag to select.
-	app.Dispatcher().Bind(w.XWindow, event.MotionMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(w.PlatformID, event.MotionMask, func(ev *event.Event) {
 		if len(t.tagBindings) > 0 {
 			idx := t.indexFromPixel(ev.X, ev.Y)
 			t.updateTagHover(t.tagsAtIndex(idx))
 		}
-		if ev.State&xlib.Button1Mask != 0 {
+		if ev.State&platform.Button1Mask != 0 {
 			idx := t.indexFromPixel(ev.X, ev.Y)
 			t.updateSelection(idx)
 			t.doc.MarkSet("insert", idx)
@@ -84,19 +84,19 @@ func bindText(t *TextWidget, app widget.AppContext) {
 	})
 
 	// Leave: clear tag hover state.
-	app.Dispatcher().Bind(w.XWindow, event.LeaveMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(w.PlatformID, event.LeaveMask, func(ev *event.Event) {
 		if len(t.tagBindings) > 0 {
 			t.updateTagHover(make(map[string]bool))
 		}
 	})
 
 	// Keyboard.
-	app.Dispatcher().Bind(w.XWindow, event.KeyPressMask, func(ev *event.Event) {
-		shift := ev.State&xlib.ShiftMask != 0
-		ctrl := ev.State&xlib.ControlMask != 0
+	app.Dispatcher().Bind(w.PlatformID, event.KeyPressMask, func(ev *event.Event) {
+		shift := ev.State&platform.ShiftMask != 0
+		ctrl := ev.State&platform.ControlMask != 0
 
 		switch ev.KeySym {
-		case xlib.XK_Left:
+		case platform.XK_Left:
 			if ctrl {
 				newPos := WordStart(t.doc.Marks["insert"].Pos, t.doc)
 				moveCursor(t, newPos, shift)
@@ -105,7 +105,7 @@ func bindText(t *TextWidget, app widget.AppContext) {
 				moveCursor(t, Backward(pos, 1, t.doc), shift)
 			}
 
-		case xlib.XK_Right:
+		case platform.XK_Right:
 			if ctrl {
 				newPos := WordEnd(t.doc.Marks["insert"].Pos, t.doc)
 				moveCursor(t, newPos, shift)
@@ -114,15 +114,15 @@ func bindText(t *TextWidget, app widget.AppContext) {
 				moveCursor(t, Forward(pos, 1, t.doc), shift)
 			}
 
-		case xlib.XK_Up:
+		case platform.XK_Up:
 			pos := t.doc.Marks["insert"].Pos
 			moveCursor(t, UpLine(pos, t.doc), shift)
 
-		case xlib.XK_Down:
+		case platform.XK_Down:
 			pos := t.doc.Marks["insert"].Pos
 			moveCursor(t, DownLine(pos, t.doc), shift)
 
-		case xlib.XK_Home:
+		case platform.XK_Home:
 			if ctrl {
 				moveCursor(t, Index{1, 0}, shift)
 			} else {
@@ -130,7 +130,7 @@ func bindText(t *TextWidget, app widget.AppContext) {
 				moveCursor(t, LineStart(pos.Line), shift)
 			}
 
-		case xlib.XK_End:
+		case platform.XK_End:
 			if ctrl {
 				moveCursor(t, t.doc.EndIndex(), shift)
 			} else {
@@ -138,7 +138,7 @@ func bindText(t *TextWidget, app widget.AppContext) {
 				moveCursor(t, LineEnd(pos.Line, t.doc), shift)
 			}
 
-		case xlib.XK_Prior: // PageUp
+		case platform.XK_Prior: // PageUp
 			visLines := (t.Win.Height - 2*t.inset) / t.lineHeight()
 			if visLines < 1 {
 				visLines = 1
@@ -151,7 +151,7 @@ func bindText(t *TextWidget, app widget.AppContext) {
 			t.scrollByDisplayLines(-visLines)
 			t.notifyYScrollbar()
 
-		case xlib.XK_Next: // PageDown
+		case platform.XK_Next: // PageDown
 			visLines := (t.Win.Height - 2*t.inset) / t.lineHeight()
 			if visLines < 1 {
 				visLines = 1
@@ -164,7 +164,7 @@ func bindText(t *TextWidget, app widget.AppContext) {
 			t.scrollByDisplayLines(visLines)
 			t.notifyYScrollbar()
 
-		case xlib.XK_Return:
+		case platform.XK_Return:
 			if t.readOnly {
 				return
 			}
@@ -180,7 +180,7 @@ func bindText(t *TextWidget, app widget.AppContext) {
 			t.notifyYScrollbar()
 			t.Display()
 
-		case xlib.XK_BackSpace:
+		case platform.XK_BackSpace:
 			if t.readOnly {
 				return
 			}
@@ -204,7 +204,7 @@ func bindText(t *TextWidget, app widget.AppContext) {
 				}
 			}
 
-		case xlib.XK_Delete:
+		case platform.XK_Delete:
 			if t.readOnly {
 				return
 			}
@@ -228,7 +228,7 @@ func bindText(t *TextWidget, app widget.AppContext) {
 				}
 			}
 
-		case xlib.XK_Tab:
+		case platform.XK_Tab:
 			if t.readOnly {
 				return
 			}
@@ -257,7 +257,7 @@ func bindText(t *TextWidget, app widget.AppContext) {
 			// Insert printable characters.
 			insertStr := ev.Str
 			if insertStr == "" {
-				if r := xlib.KeySymToRune(ev.KeySym); r > 0 {
+				if r := platform.KeySymToRune(ev.KeySym); r > 0 {
 					insertStr = string(r)
 				}
 			}
@@ -298,12 +298,12 @@ func moveCursor(t *TextWidget, newPos Index, shift bool) {
 // handleCtrlKey handles Ctrl key combinations.
 func handleCtrlKey(t *TextWidget, ev *event.Event) {
 	switch ev.KeySym {
-	case xlib.XK_a:
+	case platform.XK_a:
 		t.SelectAll()
 		t.Display()
-	case xlib.XK_z:
+	case platform.XK_z:
 		t.Edit("undo")
-	case xlib.XK_y:
+	case platform.XK_y:
 		t.Edit("redo")
 	}
 }

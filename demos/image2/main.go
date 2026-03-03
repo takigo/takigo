@@ -143,7 +143,7 @@ func main() {
 		pack.Expand(true), pack.PadX(10))
 
 	// Selection handler — use bind engine for button click.
-	app.Dispatcher().Bind(lb.Window().XWindow, event.ButtonPressMask, func(_ *event.Event) {
+	app.Dispatcher().Bind(lb.Window().PlatformID, event.ButtonPressMask, func(_ *event.Event) {
 		app.DoWhenIdle(func() {
 			sel := lb.Selection()
 			if len(sel) > 0 && sel[0] < len(images) {

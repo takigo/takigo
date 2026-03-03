@@ -7,7 +7,7 @@ import (
 
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/geometry/pack"
-	"github.com/msorc/takigo/internal/xlib"
+	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/entry"
 	"github.com/msorc/takigo/widget/label"
@@ -136,7 +136,7 @@ func showFileDialog(parent widget.Caregiver, cfg fileConfig) (string, bool) {
 	populateList()
 
 	// Double-click on listbox to navigate/select.
-	app.Dispatcher().Bind(fileList.Window().XWindow, event.ButtonPressMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(fileList.Window().PlatformID, event.ButtonPressMask, func(ev *event.Event) {
 		if ev.Button != 1 {
 			return
 		}
@@ -166,8 +166,8 @@ func showFileDialog(parent widget.Caregiver, cfg fileConfig) (string, bool) {
 	})
 
 	// Keyboard: Enter on listbox to navigate/select.
-	app.Dispatcher().Bind(fileList.Window().XWindow, event.KeyPressMask, func(ev *event.Event) {
-		if ev.KeySym != xlib.XK_Return {
+	app.Dispatcher().Bind(fileList.Window().PlatformID, event.KeyPressMask, func(ev *event.Event) {
+		if ev.KeySym != platform.XK_Return {
 			return
 		}
 		sel := fileList.Selection()

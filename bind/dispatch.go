@@ -2,7 +2,7 @@ package bind
 
 import (
 	"github.com/msorc/takigo/event"
-	"github.com/msorc/takigo/internal/xlib"
+	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/window"
 )
 
@@ -26,14 +26,14 @@ type Engine struct {
 	display *window.Display
 
 	// Per-window tag info.
-	tags map[xlib.Window]*tagInfo
+	tags map[platform.WindowID]*tagInfo
 
 	// Virtual event definitions: name → physical sequences.
 	virtualEvents map[string][]Sequence
 
 	// Double-click state tracking.
-	lastClickTime xlib.Time
-	lastClickWin  xlib.Window
+	lastClickTime platform.Timestamp
+	lastClickWin  platform.WindowID
 	lastClickBtn  uint
 	clickCount    int
 }

@@ -3,8 +3,8 @@
 package draw
 
 import (
-	"github.com/msorc/takigo/internal/xlib"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/platform"
 )
 
 // Point represents an x,y coordinate.
@@ -18,42 +18,42 @@ type Rect struct {
 }
 
 // FillRect fills a rectangle on a drawable.
-func FillRect(d *xlib.Display, drawable xlib.Drawable, gc xlib.GC, r Rect) {
+func FillRect(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID, r Rect) {
 	d.FillRectangle(drawable, gc, r.X, r.Y, uint(r.Width), uint(r.Height))
 }
 
 // StrokeRect draws a rectangle outline.
-func StrokeRect(d *xlib.Display, drawable xlib.Drawable, gc xlib.GC, r Rect) {
+func StrokeRect(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID, r Rect) {
 	d.DrawRectangle(drawable, gc, r.X, r.Y, uint(r.Width), uint(r.Height))
 }
 
 // Line draws a line between two points.
-func Line(d *xlib.Display, drawable xlib.Drawable, gc xlib.GC, p1, p2 Point) {
+func Line(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID, p1, p2 Point) {
 	d.DrawLine(drawable, gc, p1.X, p1.Y, p2.X, p2.Y)
 }
 
-// FillPolygon fills a polygon defined by points using XFillPolygon.
-func FillPolygon(d *xlib.Display, drawable xlib.Drawable, gc xlib.GC, points []Point) {
+// FillPolygon fills a polygon defined by points using platform.FillPolygon.
+func FillPolygon(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID, points []Point) {
 	if len(points) < 3 {
 		return
 	}
-	xpoints := make([]xlib.XPoint, len(points))
+	ppoints := make([]platform.Point, len(points))
 	for i, p := range points {
-		xpoints[i] = xlib.XPoint{X: int16(p.X), Y: int16(p.Y)}
+		ppoints[i] = platform.Point{X: int16(p.X), Y: int16(p.Y)}
 	}
-	d.FillPolygon(drawable, gc, xpoints, xlib.PolygonComplex, xlib.CoordModeOrigin)
+	d.FillPolygon(drawable, gc, ppoints, platform.PolygonComplex, platform.CoordModeOrigin)
 }
 
 // DrawLines draws connected line segments.
-func DrawLines(d *xlib.Display, drawable xlib.Drawable, gc xlib.GC, points []Point) {
+func DrawLines(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID, points []Point) {
 	if len(points) < 2 {
 		return
 	}
-	xpoints := make([]xlib.XPoint, len(points))
+	ppoints := make([]platform.Point, len(points))
 	for i, p := range points {
-		xpoints[i] = xlib.XPoint{X: int16(p.X), Y: int16(p.Y)}
+		ppoints[i] = platform.Point{X: int16(p.X), Y: int16(p.Y)}
 	}
-	d.DrawLines(drawable, gc, xpoints, xlib.CoordModeOrigin)
+	d.DrawLines(drawable, gc, ppoints, platform.CoordModeOrigin)
 }
 
 // Border holds the three colors needed for 3D relief drawing:
@@ -88,7 +88,7 @@ func NewBorderFromPixel(pixel uint64) *Border {
 }
 
 // Draw3DRectangle draws a 3D border around a rectangle.
-func Draw3DRectangle(d *xlib.Display, drawable xlib.Drawable, gc xlib.GC,
+func Draw3DRectangle(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID,
 	border *Border, x, y, width, height, borderWidth int, relief option.Relief) {
 
 	if borderWidth <= 0 || width <= 0 || height <= 0 {
@@ -133,7 +133,7 @@ func Draw3DRectangle(d *xlib.Display, drawable xlib.Drawable, gc xlib.GC,
 }
 
 // Fill3DRectangle fills a rectangle with 3D relief.
-func Fill3DRectangle(d *xlib.Display, drawable xlib.Drawable, gc xlib.GC,
+func Fill3DRectangle(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID,
 	border *Border, x, y, width, height, borderWidth int, relief option.Relief) {
 
 	// Fill interior.
@@ -151,7 +151,7 @@ func Fill3DRectangle(d *xlib.Display, drawable xlib.Drawable, gc xlib.GC,
 }
 
 // drawBevel draws a single raised or sunken bevel.
-func drawBevel(d *xlib.Display, drawable xlib.Drawable, gc xlib.GC,
+func drawBevel(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID,
 	border *Border, x, y, width, height, bw int, raised bool) {
 
 	var topLeftPixel, bottomRightPixel uint64

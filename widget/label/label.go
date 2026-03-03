@@ -7,9 +7,8 @@ import (
 
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/event"
-	"github.com/msorc/takigo/font"
-	"github.com/msorc/takigo/internal/xlib"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/window"
 )
@@ -148,14 +147,14 @@ func New(parent widget.Caregiver, name string, opts ...LabelOption) *Label {
 	}
 
 	// Bind events.
-	app.Dispatcher().Bind(w.XWindow, event.ExposureMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(w.PlatformID, event.ExposureMask, func(ev *event.Event) {
 		if ev.ExposeCount > 0 {
 			return
 		}
 		l.Display()
 	})
 
-	app.Dispatcher().Bind(w.XWindow, event.StructureNotifyMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(w.PlatformID, event.StructureNotifyMask, func(ev *event.Event) {
 		if ev.Type == event.ConfigureType {
 			w.Width = ev.ConfigWidth
 			w.Height = ev.ConfigHeight
@@ -199,11 +198,11 @@ func (l *Label) Display() {
 		return
 	}
 	w := l.Win
-	if w.XWindow == xlib.Window(0) {
+	if w.PlatformID == platform.WindowID(0) {
 		return
 	}
 
-	d := w.Display.XDisplay
+	d := w.Display.Server
 	gc := w.GC
 
 	// Fill background.
@@ -234,20 +233,20 @@ func (l *Label) Display() {
 	}
 
 	if hasImg && hasText && l.Compound != widget.CompoundNone {
-		drawCompound(l, d, w, frameX, frameY, availW, availH, bgPixel)
+		drawCompound(l, w, frameX, frameY, availW, availH, bgPixel)
 	} else if hasImg {
 		// Image only.
 		imgW := l.Img.Width()
 		imgH := l.Img.Height()
 		ix, iy := anchorText(l.Anchor, frameX, frameY, availW, availH, imgW, imgH)
-		l.Img.Draw(w.Display.XDisplay, w.Drawable(), gc,
-			w.Visual, w.Depth, 0, 0, imgW, imgH, ix, iy, bgPixel)
+		l.Img.Draw(w.Display.Server, w.Drawable(), gc,
+			w.Depth, 0, 0, imgW, imgH, ix, iy, bgPixel)
 	} else if hasText {
 		// Text only — handle multiline.
 		textX, textY := anchorText(l.Anchor, frameX, frameY,
 			availW, availH, l.textWidth, l.textHeight)
 		m := l.Font.Metrics()
-		if xftFont, ok := l.Font.(*font.XftFont); ok {
+		if df, ok := l.Font.(platform.DrawableFont); ok {
 			lines := strings.Split(l.Text, "\n")
 			for i, line := range lines {
 				baseline := textY + m.Ascent + i*m.Linespace()
@@ -262,7 +261,7 @@ func (l *Label) Display() {
 						lx = textX + l.textWidth - lw
 					}
 				}
-				xftFont.DrawString(w.Drawable(), lx, baseline, line,
+				df.DrawString(w.Drawable(), lx, baseline, line,
 					l.Foreground.Pixel, l.Foreground.Red, l.Foreground.Green, l.Foreground.Blue)
 			}
 		}
@@ -323,7 +322,7 @@ func compoundSize(c widget.Compound, img widget.WidgetImage, textW, textH int) (
 }
 
 // drawCompound draws image and text in compound mode.
-func drawCompound(l *Label, _ *xlib.Display, w *window.Window,
+func drawCompound(l *Label, w *window.Window,
 	frameX, frameY, availW, availH int, bgPixel uint64) {
 
 	imgW := l.Img.Width()
@@ -363,15 +362,15 @@ func drawCompound(l *Label, _ *xlib.Display, w *window.Window,
 	}
 
 	// Draw image.
-	l.Img.Draw(w.Display.XDisplay, w.Drawable(), w.GC,
-		w.Visual, w.Depth, 0, 0, imgW, imgH, imgX, imgY, bgPixel)
+	l.Img.Draw(w.Display.Server, w.Drawable(), w.GC,
+		w.Depth, 0, 0, imgW, imgH, imgX, imgY, bgPixel)
 
 	// Draw text.
 	if l.Font != nil && l.Foreground != nil {
 		m := l.Font.Metrics()
 		baseline := textY + m.Ascent
-		if xftFont, ok := l.Font.(*font.XftFont); ok {
-			xftFont.DrawString(w.Drawable(), textX, baseline, l.Text,
+		if df, ok := l.Font.(platform.DrawableFont); ok {
+			df.DrawString(w.Drawable(), textX, baseline, l.Text,
 				l.Foreground.Pixel, l.Foreground.Red, l.Foreground.Green, l.Foreground.Blue)
 		}
 	}

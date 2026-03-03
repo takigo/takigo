@@ -80,11 +80,9 @@ func NewButton(parent widget.Caregiver, name string, opts ...ButtonOption) *Butt
 		tmpl := b.Theme.GetLayout("TButton")
 		if tmpl != nil {
 			ctx := &DrawContext{
-				Display:  b.Context.Display,
-				Visual:   b.Context.Visual,
-				Depth:    b.Context.Depth,
-				Colormap: b.Context.Colormap,
-				Style:    b.Context.Style,
+				Display: b.Context.Display,
+				Depth:   b.Context.Depth,
+				Style:   b.Context.Style,
 			}
 			b.Layout = newLayoutWithLabel(tmpl, b.Theme, ctx, b.Context.Style, labelFactory)
 			b.Context = ctx
@@ -127,7 +125,7 @@ func bindTtkButton(b *Button, app widget.AppContext) {
 	win := b.Win
 
 	// Button1 press → +StatePressed.
-	app.Dispatcher().Bind(win.XWindow, event.ButtonPressMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(win.PlatformID, event.ButtonPressMask, func(ev *event.Event) {
 		if b.State&StateDisabled != 0 {
 			return
 		}
@@ -137,7 +135,7 @@ func bindTtkButton(b *Button, app widget.AppContext) {
 	})
 
 	// Button1 release → invoke if inside, -StatePressed.
-	app.Dispatcher().Bind(win.XWindow, event.ButtonReleaseMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(win.PlatformID, event.ButtonReleaseMask, func(ev *event.Event) {
 		if b.State&StateDisabled != 0 {
 			return
 		}

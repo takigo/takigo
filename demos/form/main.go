@@ -20,7 +20,7 @@ func main() {
 		"This window contains a simple form where you can type in the various entries and use tabs to move circularly between the entries.")
 	root := app.Window()
 
-	focusMgr := focus.NewManager(app.Dispatcher(), app.DisplayPtr())
+	focusMgr := focus.NewManager(app.Dispatcher(), app.Server())
 	focusMgr.BindTraversal(root)
 
 	// Form grid.

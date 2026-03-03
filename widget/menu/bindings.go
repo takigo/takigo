@@ -5,7 +5,7 @@ import (
 	"unicode"
 
 	"github.com/msorc/takigo/event"
-	"github.com/msorc/takigo/internal/xlib"
+	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/widget"
 )
 
@@ -13,7 +13,7 @@ func bindMenu(m *Menu, app widget.AppContext) {
 	w := m.Win
 
 	// Expose.
-	app.Dispatcher().Bind(w.XWindow, event.ExposureMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(w.PlatformID, event.ExposureMask, func(ev *event.Event) {
 		if ev.ExposeCount > 0 {
 			return
 		}
@@ -21,24 +21,24 @@ func bindMenu(m *Menu, app widget.AppContext) {
 	})
 
 	// Motion → activate entry under pointer.
-	app.Dispatcher().Bind(w.XWindow, event.MotionMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(w.PlatformID, event.MotionMask, func(ev *event.Event) {
 		idx := m.entryAtY(ev.Y)
 		m.activate(idx)
 	})
 
 	// Enter → activate.
-	app.Dispatcher().Bind(w.XWindow, event.EnterMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(w.PlatformID, event.EnterMask, func(ev *event.Event) {
 		idx := m.entryAtY(ev.Y)
 		m.activate(idx)
 	})
 
 	// Leave → deactivate.
-	app.Dispatcher().Bind(w.XWindow, event.LeaveMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(w.PlatformID, event.LeaveMask, func(ev *event.Event) {
 		m.activate(-1)
 	})
 
 	// Button release → invoke.
-	app.Dispatcher().Bind(w.XWindow, event.ButtonReleaseMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(w.PlatformID, event.ButtonReleaseMask, func(ev *event.Event) {
 		if ev.Button != 1 {
 			return
 		}
@@ -52,7 +52,7 @@ func bindMenu(m *Menu, app widget.AppContext) {
 	})
 
 	// Button press outside menu → unpost.
-	app.Dispatcher().Bind(w.XWindow, event.ButtonPressMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(w.PlatformID, event.ButtonPressMask, func(ev *event.Event) {
 		// If click is outside menu bounds, unpost.
 		if ev.X < 0 || ev.X >= w.Width || ev.Y < 0 || ev.Y >= w.Height {
 			m.Unpost()
@@ -60,18 +60,19 @@ func bindMenu(m *Menu, app widget.AppContext) {
 	})
 
 	// Keyboard.
-	app.Dispatcher().Bind(w.XWindow, event.KeyPressMask, func(ev *event.Event) {
-		switch ev.KeySym {
-		case xlib.XK_Escape:
+	app.Dispatcher().Bind(w.PlatformID, event.KeyPressMask, func(ev *event.Event) {
+		ks := ev.KeySym
+		switch {
+		case ks == platform.XK_Escape:
 			m.Unpost()
 
-		case xlib.XK_Up:
+		case ks == platform.XK_Up:
 			moveActiveEntry(m, -1)
 
-		case xlib.XK_Down:
+		case ks == platform.XK_Down:
 			moveActiveEntry(m, 1)
 
-		case xlib.XK_Right:
+		case ks == platform.XK_Right:
 			// Enter cascade submenu.
 			if m.activeIndex >= 0 && m.activeIndex < len(m.entries) {
 				e := &m.entries[m.activeIndex]
@@ -80,18 +81,18 @@ func bindMenu(m *Menu, app widget.AppContext) {
 				}
 			}
 
-		case xlib.XK_Left:
+		case ks == platform.XK_Left:
 			// Close cascade (parent will handle this via unpost).
 			m.Unpost()
 
-		case xlib.XK_Return:
+		case ks == platform.XK_Return:
 			if m.activeIndex >= 0 {
 				m.invoke(m.activeIndex)
 			}
 
 		default:
 			// Letter navigation: match first character of entry labels.
-			r := xlib.KeySymToRune(ev.KeySym)
+			r := platform.KeySymToRune(ks)
 			if r <= 0 {
 				return
 			}

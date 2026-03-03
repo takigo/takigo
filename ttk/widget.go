@@ -2,7 +2,7 @@ package ttk
 
 import (
 	"github.com/msorc/takigo/event"
-	"github.com/msorc/takigo/internal/xlib"
+	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/window"
 )
@@ -18,7 +18,7 @@ type TtkWidget struct {
 	Context   *DrawContext
 
 	// Double-buffering pixmap.
-	pixmap  xlib.Pixmap
+	pixmap  platform.PixmapID
 	pixmapW int
 	pixmapH int
 
@@ -40,11 +40,9 @@ func InitTtkWidget(w *TtkWidget, win *window.Window, app widget.AppContext, styl
 	style := w.Theme.ResolveStyle(styleName)
 
 	w.Context = &DrawContext{
-		Display:  app.DisplayPtr(),
-		Visual:   win.Visual,
-		Depth:    win.Depth,
-		Colormap: win.Colormap,
-		Style:    style,
+		Display: app.Server(),
+		Depth:   win.Depth,
+		Style:   style,
 	}
 
 	tmpl := w.Theme.GetLayout(styleName)
@@ -76,11 +74,11 @@ func (w *TtkWidget) Display() {
 		return
 	}
 	win := w.Win
-	if win.XWindow == xlib.Window(0) {
+	if win.PlatformID == 0 {
 		return
 	}
 
-	d := win.Display.XDisplay
+	d := win.Display.Server
 	gc := win.GC
 	width := win.Width
 	height := win.Height
@@ -90,8 +88,8 @@ func (w *TtkWidget) Display() {
 	}
 
 	// Allocate or resize pixmap.
-	if w.pixmap == xlib.Pixmap(0) || w.pixmapW != width || w.pixmapH != height {
-		if w.pixmap != xlib.Pixmap(0) {
+	if w.pixmap == 0 || w.pixmapW != width || w.pixmapH != height {
+		if w.pixmap != 0 {
 			d.FreePixmap(w.pixmap)
 		}
 		w.pixmap = d.CreatePixmap(win.Drawable(), uint(width), uint(height), uint(win.Depth))
@@ -99,7 +97,7 @@ func (w *TtkWidget) Display() {
 		w.pixmapH = height
 	}
 
-	pixDrawable := xlib.PixmapDrawable(w.pixmap)
+	pixDrawable := platform.PixmapDrawable(w.pixmap)
 
 	// Clear pixmap with background.
 	bg := LookupColor(w.Context.Style, "-background", w.State, 0xd9d9d9)
@@ -131,9 +129,9 @@ func (w *TtkWidget) Destroy() {
 		return
 	}
 	w.Destroyed = true
-	if w.pixmap != xlib.Pixmap(0) {
-		w.Win.Display.XDisplay.FreePixmap(w.pixmap)
-		w.pixmap = xlib.Pixmap(0)
+	if w.pixmap != 0 {
+		w.Win.Display.Server.FreePixmap(w.pixmap)
+		w.pixmap = 0
 	}
 	window.DestroyWindow(w.Win)
 }
@@ -153,7 +151,7 @@ func bindTtkCommon(w *TtkWidget, app widget.AppContext) {
 	win := w.Win
 
 	// Expose.
-	app.Dispatcher().Bind(win.XWindow, event.ExposureMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(win.PlatformID, event.ExposureMask, func(ev *event.Event) {
 		if ev.ExposeCount > 0 {
 			return
 		}
@@ -161,7 +159,7 @@ func bindTtkCommon(w *TtkWidget, app widget.AppContext) {
 	})
 
 	// Configure (resize).
-	app.Dispatcher().Bind(win.XWindow, event.StructureNotifyMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(win.PlatformID, event.StructureNotifyMask, func(ev *event.Event) {
 		if ev.Type == event.ConfigureType {
 			win.Width = ev.ConfigWidth
 			win.Height = ev.ConfigHeight
@@ -170,17 +168,17 @@ func bindTtkCommon(w *TtkWidget, app widget.AppContext) {
 	})
 
 	// Enter → +StateHover +StateActive.
-	app.Dispatcher().Bind(win.XWindow, event.EnterMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(win.PlatformID, event.EnterMask, func(ev *event.Event) {
 		w.ChangeState(StateHover|StateActive, 0)
 	})
 
 	// Leave → -StateHover -StateActive -StatePressed.
-	app.Dispatcher().Bind(win.XWindow, event.LeaveMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(win.PlatformID, event.LeaveMask, func(ev *event.Event) {
 		w.ChangeState(0, StateHover|StateActive|StatePressed)
 	})
 
 	// FocusIn → +StateFocus.
-	app.Dispatcher().Bind(win.XWindow, event.FocusChangeMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(win.PlatformID, event.FocusChangeMask, func(ev *event.Event) {
 		if ev.Type == event.FocusInType {
 			w.ChangeState(StateFocus, 0)
 		} else if ev.Type == event.FocusOutType {

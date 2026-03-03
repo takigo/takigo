@@ -1,3 +1,5 @@
+//go:build linux
+
 // Package systray provides X11 system tray (_NET_SYSTEM_TRAY) support.
 // It creates a small window that is docked into the desktop's system
 // tray / notification area.
@@ -7,7 +9,7 @@ import (
 	"fmt"
 
 	"github.com/msorc/takigo/event"
-	"github.com/msorc/takigo/internal/xlib"
+	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/window"
 )
@@ -19,8 +21,8 @@ const (
 
 // TrayIcon represents an icon in the system tray.
 type TrayIcon struct {
-	win     xlib.Window
-	display *xlib.Display
+	win     platform.WindowID
+	display platform.DisplayServer
 	app     widget.AppContext
 
 	tooltip      string
@@ -36,32 +38,32 @@ func TrayClickHandler(fn func()) TrayOption { return func(t *TrayIcon) { t.click
 // New creates a new system tray icon and docks it.
 // Returns an error if no system tray manager is running.
 func New(app widget.AppContext, winDisplay *window.Display, opts ...TrayOption) (*TrayIcon, error) {
-	d := winDisplay.XDisplay
+	d := winDisplay.Server
 
 	// Find the system tray manager.
 	screen := winDisplay.Screen
 	trayAtomName := fmt.Sprintf("_NET_SYSTEM_TRAY_S%d", screen)
 	trayAtom := d.InternAtom(trayAtomName, false)
 	manager := d.GetSelectionOwner(trayAtom)
-	if manager == xlib.Window(0) {
+	if manager == platform.WindowID(0) {
 		return nil, fmt.Errorf("systray: no system tray manager found")
 	}
 
 	// Create the tray icon window (24x24).
-	attrs := &xlib.WindowAttributes{
+	attrs := &platform.WindowAttrs{
 		BackgroundPixel: 0,
 		EventMask: int64(
-			xlib.ButtonPressMask |
-				xlib.ButtonReleaseMask |
-				xlib.ExposureMask |
-				xlib.StructureNotifyMask),
+			platform.ButtonPressMask |
+				platform.ButtonReleaseMask |
+				platform.ExposureMask |
+				platform.StructureNotifyMask),
 	}
 
 	iconWin := d.CreateWindow(
-		winDisplay.RootXWindow,
+		winDisplay.RootWindow,
 		0, 0, trayIconSize, trayIconSize, 0,
-		xlib.CopyFromParent, xlib.InputOutput, nil,
-		xlib.CWBackPixel|xlib.CWEventMask,
+		platform.CopyFromParent, platform.InputOutput,
+		platform.CWBackPixel|platform.CWEventMask,
 		attrs,
 	)
 
@@ -84,7 +86,7 @@ func New(app widget.AppContext, winDisplay *window.Display, opts ...TrayOption) 
 	opcodeAtom := d.InternAtom("_NET_SYSTEM_TRAY_OPCODE", false)
 	d.SendClientMessage(
 		iconWin, manager, opcodeAtom,
-		int64(xlib.CurrentTime),
+		int64(platform.CurrentTime),
 		systemTrayRequestDock,
 		int64(iconWin),
 		0, 0,
@@ -114,40 +116,40 @@ func New(app widget.AppContext, winDisplay *window.Display, opts ...TrayOption) 
 // SetTooltip sets the tooltip text for the tray icon.
 func (t *TrayIcon) SetTooltip(s string) {
 	t.tooltip = s
-	if t.win == xlib.Window(0) {
+	if t.win == platform.WindowID(0) {
 		return
 	}
 	utf8Atom := t.display.InternAtom("UTF8_STRING", false)
 	netWmName := t.display.InternAtom("_NET_WM_NAME", false)
 	data := []byte(s)
-	t.display.ChangeProperty(t.win, netWmName, utf8Atom, 8, xlib.PropModeReplace, data, len(data))
+	t.display.ChangeProperty(t.win, netWmName, utf8Atom, 8, platform.PropModeReplace, data, len(data))
 }
 
 // Destroy removes the tray icon.
 func (t *TrayIcon) Destroy() {
-	if t.win == xlib.Window(0) {
+	if t.win == platform.WindowID(0) {
 		return
 	}
 	t.display.DestroyWindow(t.win)
-	t.win = xlib.Window(0)
+	t.win = platform.WindowID(0)
 }
 
 // draw paints a simple placeholder icon (a filled circle).
 func (t *TrayIcon) draw() {
-	if t.win == xlib.Window(0) {
+	if t.win == platform.WindowID(0) {
 		return
 	}
 	// Create a temporary GC for drawing.
-	gc := t.display.CreateGC(xlib.Drawable(t.win), 0, &xlib.GCValues{})
+	gc := t.display.CreateGC(platform.WindowDrawable(t.win), 0, &platform.GCValues{})
 	defer t.display.FreeGC(gc)
 
 	// Fill background with dark grey.
 	t.display.SetForeground(gc, 0x404040)
-	t.display.FillRectangle(xlib.Drawable(t.win), gc, 0, 0, trayIconSize, trayIconSize)
+	t.display.FillRectangle(platform.WindowDrawable(t.win), gc, 0, 0, trayIconSize, trayIconSize)
 
 	// Draw a lighter circle in the center.
 	t.display.SetForeground(gc, 0x80B0FF)
-	t.display.FillArc(xlib.Drawable(t.win), gc, 4, 4, trayIconSize-8, trayIconSize-8, 0, 360*64)
+	t.display.FillArc(platform.WindowDrawable(t.win), gc, 4, 4, trayIconSize-8, trayIconSize-8, 0, 360*64)
 
 	t.display.Flush()
 }

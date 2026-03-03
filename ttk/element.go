@@ -2,7 +2,7 @@ package ttk
 
 import (
 	"github.com/msorc/takigo/font"
-	"github.com/msorc/takigo/internal/xlib"
+	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/widget"
 )
 
@@ -12,7 +12,7 @@ type Element interface {
 	// Size returns the element's intrinsic width, height, and internal padding.
 	Size(state State) (w, h int, padding Padding)
 	// Draw draws the element into the given box.
-	Draw(d *xlib.Display, drawable xlib.Drawable, gc xlib.GC, box Box, state State)
+	Draw(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID, box Box, state State)
 }
 
 // ElementFactory creates an Element bound to a DrawContext.
@@ -20,11 +20,9 @@ type ElementFactory func(ctx *DrawContext) Element
 
 // DrawContext provides shared resources to elements during creation and drawing.
 type DrawContext struct {
-	Display  *xlib.Display
-	Visual   *xlib.Visual
-	Depth    int
-	Colormap xlib.Colormap
-	Style    *Style
+	Display platform.DisplayServer
+	Depth   int
+	Style   *Style
 }
 
 // TextProvider lets the label element read widget text without import cycles.
@@ -39,4 +37,4 @@ type TextProvider interface {
 type NullElement struct{}
 
 func (NullElement) Size(State) (int, int, Padding) { return 0, 0, Padding{} }
-func (NullElement) Draw(*xlib.Display, xlib.Drawable, xlib.GC, Box, State) {}
+func (NullElement) Draw(platform.DisplayServer, platform.DrawableID, platform.GCID, Box, State) {}

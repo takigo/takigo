@@ -2,7 +2,7 @@ package spinbox
 
 import (
 	"github.com/msorc/takigo/event"
-	"github.com/msorc/takigo/internal/xlib"
+	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/widget"
 )
 
@@ -10,7 +10,7 @@ func bindSpinbox(s *Spinbox, app widget.AppContext) {
 	w := s.Win
 
 	// Expose.
-	app.Dispatcher().Bind(w.XWindow, event.ExposureMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(w.PlatformID, event.ExposureMask, func(ev *event.Event) {
 		if ev.ExposeCount > 0 {
 			return
 		}
@@ -18,7 +18,7 @@ func bindSpinbox(s *Spinbox, app widget.AppContext) {
 	})
 
 	// Configure (resize).
-	app.Dispatcher().Bind(w.XWindow, event.StructureNotifyMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(w.PlatformID, event.StructureNotifyMask, func(ev *event.Event) {
 		if ev.Type == event.ConfigureType {
 			w.Width = ev.ConfigWidth
 			w.Height = ev.ConfigHeight
@@ -28,7 +28,7 @@ func bindSpinbox(s *Spinbox, app widget.AppContext) {
 	})
 
 	// Focus.
-	app.Dispatcher().Bind(w.XWindow, event.FocusChangeMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(w.PlatformID, event.FocusChangeMask, func(ev *event.Event) {
 		if ev.Type == event.FocusInType {
 			s.HasFocus = true
 			s.CursorOn = true
@@ -40,9 +40,9 @@ func bindSpinbox(s *Spinbox, app widget.AppContext) {
 	})
 
 	// Mouse: click to position cursor or press buttons.
-	app.Dispatcher().Bind(w.XWindow, event.ButtonPressMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(w.PlatformID, event.ButtonPressMask, func(ev *event.Event) {
 		if ev.Button == 1 {
-			app.DisplayPtr().SetInputFocus(w.XWindow, xlib.RevertToParent, xlib.CurrentTime)
+			app.Server().SetInputFocus(w.PlatformID, platform.RevertToParent, platform.CurrentTime)
 
 			btn := s.hitButton(ev.X, ev.Y)
 			if btn == "up" {
@@ -54,7 +54,7 @@ func bindSpinbox(s *Spinbox, app widget.AppContext) {
 				s.SpinDown()
 				s.Display()
 			} else {
-				// Click in text area — position cursor.
+				// Click in text area -- position cursor.
 				s.ClearSelection()
 				s.InsertPos = s.closestGap(ev.X)
 				s.SelAnchor = s.InsertPos
@@ -70,7 +70,7 @@ func bindSpinbox(s *Spinbox, app widget.AppContext) {
 	})
 
 	// Mouse release.
-	app.Dispatcher().Bind(w.XWindow, event.ButtonReleaseMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(w.PlatformID, event.ButtonReleaseMask, func(ev *event.Event) {
 		if ev.Button == 1 {
 			s.pressedButton = ""
 			s.Display()
@@ -78,8 +78,8 @@ func bindSpinbox(s *Spinbox, app widget.AppContext) {
 	})
 
 	// Mouse drag to select.
-	app.Dispatcher().Bind(w.XWindow, event.MotionMask, func(ev *event.Event) {
-		if ev.State&xlib.Button1Mask != 0 {
+	app.Dispatcher().Bind(w.PlatformID, event.MotionMask, func(ev *event.Event) {
+		if ev.State&platform.Button1Mask != 0 {
 			// Only drag-select in text area.
 			if s.hitButton(ev.X, ev.Y) != "" {
 				return
@@ -99,40 +99,40 @@ func bindSpinbox(s *Spinbox, app widget.AppContext) {
 	})
 
 	// Keyboard.
-	app.Dispatcher().Bind(w.XWindow, event.KeyPressMask, func(ev *event.Event) {
-		shift := ev.State&xlib.ShiftMask != 0
-		ctrl := ev.State&xlib.ControlMask != 0
+	app.Dispatcher().Bind(w.PlatformID, event.KeyPressMask, func(ev *event.Event) {
+		shift := ev.State&platform.ShiftMask != 0
+		ctrl := ev.State&platform.ControlMask != 0
 
 		switch ev.KeySym {
-		case xlib.XK_Up:
+		case platform.XK_Up:
 			s.SpinUp()
-		case xlib.XK_Down:
+		case platform.XK_Down:
 			s.SpinDown()
 
-		case xlib.XK_Left:
+		case platform.XK_Left:
 			if ctrl {
 				moveCursor(s, wordStart(s.text, s.InsertPos), shift)
 			} else {
 				moveCursor(s, s.InsertPos-1, shift)
 			}
-		case xlib.XK_Right:
+		case platform.XK_Right:
 			if ctrl {
 				moveCursor(s, wordEnd(s.text, s.InsertPos), shift)
 			} else {
 				moveCursor(s, s.InsertPos+1, shift)
 			}
-		case xlib.XK_Home:
+		case platform.XK_Home:
 			moveCursor(s, 0, shift)
-		case xlib.XK_End:
+		case platform.XK_End:
 			moveCursor(s, len(s.text), shift)
 
-		case xlib.XK_BackSpace:
+		case platform.XK_BackSpace:
 			if s.SelFirst >= 0 {
 				s.DeleteSelection()
 			} else if s.InsertPos > 0 {
 				s.DeleteChars(s.InsertPos-1, 1)
 			}
-		case xlib.XK_Delete:
+		case platform.XK_Delete:
 			if s.SelFirst >= 0 {
 				s.DeleteSelection()
 			} else if s.InsertPos < len(s.text) {
@@ -142,7 +142,7 @@ func bindSpinbox(s *Spinbox, app widget.AppContext) {
 		default:
 			if ctrl {
 				switch ev.KeySym {
-				case xlib.XK_a:
+				case platform.KeySym(0x0061): // XK_a
 					s.SelectAll()
 					s.Display()
 				}
@@ -151,7 +151,7 @@ func bindSpinbox(s *Spinbox, app widget.AppContext) {
 			// Insert printable characters.
 			insertStr := ev.Str
 			if insertStr == "" {
-				if r := xlib.KeySymToRune(ev.KeySym); r > 0 {
+				if r := platform.KeySymToRune(ev.KeySym); r > 0 {
 					insertStr = string(r)
 				}
 			}

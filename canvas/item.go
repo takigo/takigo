@@ -3,7 +3,7 @@
 package canvas
 
 import (
-	"github.com/msorc/takigo/internal/xlib"
+	"github.com/msorc/takigo/platform"
 )
 
 // ItemState controls per-item visibility.
@@ -35,7 +35,7 @@ type Item interface {
 	// Display draws the item onto the given drawable.
 	// clipX/clipY/clipW/clipH define the visible area; originX/originY
 	// are the canvas coordinates at the drawable origin.
-	Display(d *xlib.Display, drawable xlib.Drawable, gc xlib.GC,
+	Display(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID,
 		clipX, clipY, clipW, clipH, originX, originY int)
 
 	// PointDistance returns the distance from (x,y) in canvas coords
@@ -52,8 +52,8 @@ type Item interface {
 	// Translate moves the item by (dx, dy).
 	Translate(dx, dy float64)
 
-	// Delete frees X11 resources held by the item.
-	Delete(d *xlib.Display)
+	// Delete frees platform resources held by the item.
+	Delete(d platform.DisplayServer)
 }
 
 // ItemBase holds fields common to all item types.

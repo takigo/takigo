@@ -4,9 +4,8 @@ package listbox
 
 import (
 	"github.com/msorc/takigo/draw"
-	"github.com/msorc/takigo/font"
-	"github.com/msorc/takigo/internal/xlib"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/window"
 )
@@ -402,11 +401,11 @@ func (lb *Listbox) Display() {
 		return
 	}
 	w := lb.Win
-	if w.XWindow == xlib.Window(0) {
+	if w.PlatformID == platform.WindowID(0) {
 		return
 	}
 
-	d := w.Display.XDisplay
+	d := w.Display.Server
 	gc := w.GC
 
 	// Background.
@@ -426,8 +425,8 @@ func (lb *Listbox) Display() {
 		return
 	}
 
-	xftFont, isXft := lb.Font.(*font.XftFont)
-	if !isXft {
+	df, isDF := lb.Font.(platform.DrawableFont)
+	if !isDF {
 		d.Flush()
 		return
 	}
@@ -458,10 +457,10 @@ func (lb *Listbox) Display() {
 		// Text.
 		text := lb.items[itemIdx]
 		if isSelected && lb.SelFg != nil {
-			xftFont.DrawString(w.Drawable(), textX, textY, text,
+			df.DrawString(w.Drawable(), textX, textY, text,
 				lb.SelFg.Pixel, lb.SelFg.Red, lb.SelFg.Green, lb.SelFg.Blue)
 		} else if lb.Foreground != nil {
-			xftFont.DrawString(w.Drawable(), textX, textY, text,
+			df.DrawString(w.Drawable(), textX, textY, text,
 				lb.Foreground.Pixel, lb.Foreground.Red, lb.Foreground.Green, lb.Foreground.Blue)
 		}
 

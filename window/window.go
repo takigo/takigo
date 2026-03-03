@@ -1,7 +1,7 @@
 package window
 
 import (
-	"github.com/msorc/takigo/internal/xlib"
+	"github.com/msorc/takigo/platform"
 )
 
 // Flags for Window.Flags field.
@@ -31,9 +31,9 @@ func (w *Window) Window() *Window { return w }
 // Window represents a single window in the takigo hierarchy.
 // Ports TkWindow from tk/generic/tkInt.h.
 type Window struct {
-	// X11 identity.
-	XWindow xlib.Window // X11 window ID (0 = not yet created)
-	Display *Display
+	// Platform identity.
+	PlatformID platform.WindowID // platform window handle (0 = not yet created)
+	Display    *Display
 
 	// Hierarchy.
 	Parent   *Window
@@ -58,10 +58,8 @@ type Window struct {
 	GeomManager GeomManager
 	GeomData    any // manager-specific data for this window
 
-	// Visual.
-	Depth    int
-	Visual   *xlib.Visual
-	Colormap xlib.Colormap
+	// Visual depth (used for pixmap creation).
+	Depth int
 
 	// State flags.
 	Flags int
@@ -70,7 +68,7 @@ type Window struct {
 	BackgroundPixel uint64
 
 	// Graphics context for basic drawing.
-	GC xlib.GC
+	GC platform.GCID
 
 	// ConfigureCallback is called when the window is resized.
 	// Set by geometry managers (e.g. pack) to re-layout children.
@@ -87,7 +85,7 @@ func (w *Window) IsMapped() bool {
 	return w.Flags&FlagMapped != 0
 }
 
-// Drawable returns the window as an xlib.Drawable for drawing operations.
-func (w *Window) Drawable() xlib.Drawable {
-	return xlib.Drawable(w.XWindow)
+// Drawable returns the window as a DrawableID for drawing operations.
+func (w *Window) Drawable() platform.DrawableID {
+	return platform.WindowDrawable(w.PlatformID)
 }

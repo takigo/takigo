@@ -18,7 +18,7 @@ func main() {
 		"Three different spin-boxes are displayed below. You can add characters by pointing, clicking and typing. Note that the first spin-box will only permit you to type in integers, and the third selects from a list of Australian cities.")
 	root := app.Window()
 
-	focusMgr := focus.NewManager(app.Dispatcher(), app.DisplayPtr())
+	focusMgr := focus.NewManager(app.Dispatcher(), app.Server())
 	focusMgr.BindTraversal(root)
 
 	// Status label.

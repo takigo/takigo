@@ -5,9 +5,8 @@ package labelframe
 import (
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/event"
-	"github.com/msorc/takigo/font"
-	"github.com/msorc/takigo/internal/xlib"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/window"
 )
@@ -103,14 +102,14 @@ func New(parent widget.Caregiver, name string, opts ...Option) *Labelframe {
 	}
 
 	// Bind events.
-	app.Dispatcher().Bind(w.XWindow, event.ExposureMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(w.PlatformID, event.ExposureMask, func(ev *event.Event) {
 		if ev.ExposeCount > 0 {
 			return
 		}
 		lf.Display()
 	})
 
-	app.Dispatcher().Bind(w.XWindow, event.StructureNotifyMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(w.PlatformID, event.StructureNotifyMask, func(ev *event.Event) {
 		if ev.Type == event.ConfigureType {
 			w.Width = ev.ConfigWidth
 			w.Height = ev.ConfigHeight
@@ -154,11 +153,11 @@ func (lf *Labelframe) Display() {
 		return
 	}
 	w := lf.Win
-	if w.XWindow == xlib.Window(0) {
+	if w.PlatformID == platform.WindowID(0) {
 		return
 	}
 
-	d := w.Display.XDisplay
+	d := w.Display.Server
 	gc := w.GC
 
 	bgPixel := uint64(0)
@@ -193,8 +192,8 @@ func (lf *Labelframe) Display() {
 		labelY := 0 // label top is at y=0
 		m := lf.Font.Metrics()
 		baseline := labelY + m.Ascent
-		if xftFont, ok := lf.Font.(*font.XftFont); ok {
-			xftFont.DrawString(w.Drawable(), labelX, baseline, lf.Text,
+		if df, ok := lf.Font.(platform.DrawableFont); ok {
+			df.DrawString(w.Drawable(), labelX, baseline, lf.Text,
 				lf.Foreground.Pixel, lf.Foreground.Red, lf.Foreground.Green, lf.Foreground.Blue)
 		}
 	}
@@ -217,7 +216,7 @@ func (lf *Labelframe) labelX() int {
 }
 
 // drawBorderWithGap draws the 3D border with a gap in the top for the label.
-func (lf *Labelframe) drawBorderWithGap(d *xlib.Display, gc xlib.GC, border *draw.Border, bw int) {
+func (lf *Labelframe) drawBorderWithGap(d platform.DisplayServer, gc platform.GCID, border *draw.Border, bw int) {
 	w := lf.Win
 	labelX := lf.labelX()
 	gapLeft := labelX - 4

@@ -8,9 +8,8 @@ import (
 
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/event"
-	"github.com/msorc/takigo/font"
-	"github.com/msorc/takigo/internal/xlib"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/menu"
 	"github.com/msorc/takigo/window"
@@ -144,19 +143,19 @@ func (mb *Menubutton) PostMenu() {
 	}
 
 	win := mb.Win
-	d := win.Display.XDisplay
+	d := win.Display.Server
 	var x, y int
 
 	switch mb.Direction {
 	case Below:
-		x, y = d.TranslateCoordinates(win.XWindow, win.Display.RootXWindow, 0, win.Height)
+		x, y = d.TranslateCoordinates(win.PlatformID, win.Display.RootWindow, 0, win.Height)
 	case Above:
-		x, y = d.TranslateCoordinates(win.XWindow, win.Display.RootXWindow, 0, 0)
+		x, y = d.TranslateCoordinates(win.PlatformID, win.Display.RootWindow, 0, 0)
 		y -= mb.Menu.Win.ReqHeight
 	case Right:
-		x, y = d.TranslateCoordinates(win.XWindow, win.Display.RootXWindow, win.Width, 0)
+		x, y = d.TranslateCoordinates(win.PlatformID, win.Display.RootWindow, win.Width, 0)
 	case Left:
-		x, y = d.TranslateCoordinates(win.XWindow, win.Display.RootXWindow, 0, 0)
+		x, y = d.TranslateCoordinates(win.PlatformID, win.Display.RootWindow, 0, 0)
 		x -= mb.Menu.Win.ReqWidth
 	}
 	mb.Menu.Post(x, y)
@@ -168,11 +167,11 @@ func (mb *Menubutton) Display() {
 		return
 	}
 	w := mb.Win
-	if w.XWindow == xlib.Window(0) {
+	if w.PlatformID == platform.WindowID(0) {
 		return
 	}
 
-	d := w.Display.XDisplay
+	d := w.Display.Server
 	gc := w.GC
 
 	// Choose colors based on state.
@@ -212,8 +211,8 @@ func (mb *Menubutton) Display() {
 		textX := inset + mb.PadX
 		textY := inset + mb.PadY + m.Ascent
 
-		if xftFont, ok := mb.Font.(*font.XftFont); ok {
-			xftFont.DrawString(w.Drawable(), textX, textY, mb.Text,
+		if df, ok := mb.Font.(platform.DrawableFont); ok {
+			df.DrawString(w.Drawable(), textX, textY, mb.Text,
 				fgCol.Pixel, fgCol.Red, fgCol.Green, fgCol.Blue)
 
 			// Draw underline for Alt+letter mnemonic.
@@ -230,7 +229,7 @@ func (mb *Menubutton) Display() {
 			// Draw dropdown indicator triangle.
 			triX := w.Width - inset - mb.PadX - 10
 			triY := textY - m.Ascent/2
-			xftFont.DrawString(w.Drawable(), triX, triY+m.Ascent, "\u25bc",
+			df.DrawString(w.Drawable(), triX, triY+m.Ascent, "\u25bc",
 				fgCol.Pixel, fgCol.Red, fgCol.Green, fgCol.Blue)
 		}
 	}
@@ -262,7 +261,7 @@ func bindMenubutton(mb *Menubutton, app widget.AppContext) {
 	w := mb.Win
 
 	// Expose.
-	app.Dispatcher().Bind(w.XWindow, event.ExposureMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(w.PlatformID, event.ExposureMask, func(ev *event.Event) {
 		if ev.ExposeCount > 0 {
 			return
 		}
@@ -270,7 +269,7 @@ func bindMenubutton(mb *Menubutton, app widget.AppContext) {
 	})
 
 	// Configure.
-	app.Dispatcher().Bind(w.XWindow, event.StructureNotifyMask, func(ev *event.Event) {
+	app.Dispatcher().Bind(w.PlatformID, event.StructureNotifyMask, func(ev *event.Event) {
 		if ev.Type == event.ConfigureType {
 			w.Width = ev.ConfigWidth
 			w.Height = ev.ConfigHeight
@@ -278,8 +277,8 @@ func bindMenubutton(mb *Menubutton, app widget.AppContext) {
 		}
 	})
 
-	// Enter → active.
-	app.Dispatcher().Bind(w.XWindow, event.EnterMask, func(ev *event.Event) {
+	// Enter -> active.
+	app.Dispatcher().Bind(w.PlatformID, event.EnterMask, func(ev *event.Event) {
 		if mb.State == widget.StateDisabled {
 			return
 		}
@@ -287,8 +286,8 @@ func bindMenubutton(mb *Menubutton, app widget.AppContext) {
 		mb.Display()
 	})
 
-	// Leave → normal.
-	app.Dispatcher().Bind(w.XWindow, event.LeaveMask, func(ev *event.Event) {
+	// Leave -> normal.
+	app.Dispatcher().Bind(w.PlatformID, event.LeaveMask, func(ev *event.Event) {
 		if mb.State == widget.StateDisabled {
 			return
 		}
@@ -296,8 +295,8 @@ func bindMenubutton(mb *Menubutton, app widget.AppContext) {
 		mb.Display()
 	})
 
-	// Button press → post menu.
-	app.Dispatcher().Bind(w.XWindow, event.ButtonPressMask, func(ev *event.Event) {
+	// Button press -> post menu.
+	app.Dispatcher().Bind(w.PlatformID, event.ButtonPressMask, func(ev *event.Event) {
 		if mb.State == widget.StateDisabled {
 			return
 		}
@@ -310,13 +309,13 @@ func bindMenubutton(mb *Menubutton, app widget.AppContext) {
 	if mb.Underline >= 0 && mb.Underline < len([]rune(mb.Text)) {
 		mnemonicRune := unicode.ToLower([]rune(mb.Text)[mb.Underline])
 		app.Dispatcher().BindGlobal(event.KeyPressMask, func(ev *event.Event) {
-			if ev.State&xlib.Mod1Mask == 0 {
+			if ev.State&platform.Mod1Mask == 0 {
 				return
 			}
 			if mb.Destroyed || mb.State == widget.StateDisabled {
 				return
 			}
-			r := xlib.KeySymToRune(ev.KeySym)
+			r := platform.KeySymToRune(ev.KeySym)
 			if unicode.ToLower(r) == mnemonicRune {
 				mb.PostMenu()
 			}

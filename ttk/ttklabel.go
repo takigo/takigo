@@ -88,11 +88,9 @@ func NewLabel(parent widget.Caregiver, name string, opts ...LabelOption) *Label 
 		tmpl := l.Theme.GetLayout("TLabel")
 		if tmpl != nil {
 			ctx := &DrawContext{
-				Display:  l.Context.Display,
-				Visual:   l.Context.Visual,
-				Depth:    l.Context.Depth,
-				Colormap: l.Context.Colormap,
-				Style:    l.Context.Style,
+				Display: l.Context.Display,
+				Depth:   l.Context.Depth,
+				Style:   l.Context.Style,
 			}
 			l.Layout = newLayoutWithLabel(tmpl, l.Theme, ctx, l.Context.Style, labelFactory)
 			l.Context = ctx

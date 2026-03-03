@@ -1,15 +1,15 @@
 package event
 
-import "github.com/msorc/takigo/internal/xlib"
+import "github.com/msorc/takigo/platform"
 
 // Event is the unified event struct delivered to handlers.
 // Only fields relevant to the event type are populated.
 type Event struct {
 	Type    Type
-	Window  xlib.Window // target window
+	Window  platform.WindowID // target window
 
 	// Key events
-	KeySym  xlib.KeySym
+	KeySym  platform.KeySym
 	KeyCode uint
 	Str     string // text from key event
 
@@ -29,34 +29,34 @@ type Event struct {
 	ConfigWidth, ConfigHeight int
 
 	// Client message
-	MessageType xlib.Atom
+	MessageType platform.AtomID
 	MessageData [5]int64
 
 	// Timestamp (when available)
-	Time xlib.Time
+	Time platform.Timestamp
 }
 
-// FromRawEvent converts an xlib.RawEvent to a typed Event.
-func FromRawEvent(raw *xlib.RawEvent) Event {
-	return FromRawEventIM(raw, nil)
+// FromRawEvent converts a platform.RawEvent to a typed Event.
+func FromRawEvent(raw *platform.RawEvent, parser platform.EventParser) Event {
+	return FromRawEventIM(raw, parser, false)
 }
 
-// FromRawEventIM converts an xlib.RawEvent to a typed Event, using XIM for
-// key events when display is non-nil and has XIM initialized.
-func FromRawEventIM(raw *xlib.RawEvent, display *xlib.Display) Event {
+// FromRawEventIM converts a platform.RawEvent to a typed Event, using XIM for
+// key events when hasIM is true.
+func FromRawEventIM(raw *platform.RawEvent, parser platform.EventParser, hasIM bool) Event {
 	ev := Event{
-		Window: raw.Window(),
+		Window: raw.EventWindow,
 	}
 
-	switch raw.Type() {
-	case xlib.KeyPress, xlib.KeyRelease:
-		var k xlib.KeyEvent
-		if display != nil && display.HasIM() {
-			k = display.ParseKeyEventIM(raw)
+	switch raw.EventType {
+	case platform.KeyPressEvent, platform.KeyReleaseEvent:
+		var k platform.KeyEvent
+		if hasIM {
+			k = parser.ParseKeyEventIM(raw)
 		} else {
-			k = raw.ParseKeyEvent()
+			k = parser.ParseKeyEvent(raw)
 		}
-		if raw.Type() == xlib.KeyPress {
+		if raw.EventType == platform.KeyPressEvent {
 			ev.Type = KeyPressType
 		} else {
 			ev.Type = KeyReleaseType
@@ -72,9 +72,9 @@ func FromRawEventIM(raw *xlib.RawEvent, display *xlib.Display) Event {
 		ev.State = k.State
 		ev.Time = k.Time
 
-	case xlib.ButtonPress, xlib.ButtonRelease:
-		b := raw.ParseButtonEvent()
-		if raw.Type() == xlib.ButtonPress {
+	case platform.ButtonPressEvent, platform.ButtonReleaseEvent:
+		b := parser.ParseButtonEvent(raw)
+		if raw.EventType == platform.ButtonPressEvent {
 			ev.Type = ButtonPressType
 		} else {
 			ev.Type = ButtonReleaseType
@@ -88,8 +88,8 @@ func FromRawEventIM(raw *xlib.RawEvent, display *xlib.Display) Event {
 		ev.State = b.State
 		ev.Time = b.Time
 
-	case xlib.MotionNotify:
-		m := raw.ParseMotionEvent()
+	case platform.MotionNotifyEvent:
+		m := parser.ParseMotionEvent(raw)
 		ev.Type = MotionType
 		ev.Window = m.EventWindow
 		ev.X = m.X
@@ -99,9 +99,9 @@ func FromRawEventIM(raw *xlib.RawEvent, display *xlib.Display) Event {
 		ev.State = m.State
 		ev.Time = m.Time
 
-	case xlib.EnterNotify, xlib.LeaveNotify:
-		c := raw.ParseCrossingEvent()
-		if raw.Type() == xlib.EnterNotify {
+	case platform.EnterNotifyEvent, platform.LeaveNotifyEvent:
+		c := parser.ParseCrossingEvent(raw)
+		if raw.EventType == platform.EnterNotifyEvent {
 			ev.Type = EnterType
 		} else {
 			ev.Type = LeaveType
@@ -112,18 +112,18 @@ func FromRawEventIM(raw *xlib.RawEvent, display *xlib.Display) Event {
 		ev.State = c.State
 		ev.Time = c.Time
 
-	case xlib.FocusIn:
-		f := raw.ParseFocusEvent()
+	case platform.FocusInEvent:
+		f := parser.ParseFocusEvent(raw)
 		ev.Type = FocusInType
 		ev.Window = f.EventWindow
 
-	case xlib.FocusOut:
-		f := raw.ParseFocusEvent()
+	case platform.FocusOutEvent:
+		f := parser.ParseFocusEvent(raw)
 		ev.Type = FocusOutType
 		ev.Window = f.EventWindow
 
-	case xlib.Expose:
-		e := raw.ParseExposeEvent()
+	case platform.ExposeEvent_:
+		e := parser.ParseExposeEvent(raw)
 		ev.Type = ExposeType
 		ev.Window = e.EventWindow
 		ev.ExposeX = e.X
@@ -132,8 +132,8 @@ func FromRawEventIM(raw *xlib.RawEvent, display *xlib.Display) Event {
 		ev.ExposeHeight = e.Height
 		ev.ExposeCount = e.Count
 
-	case xlib.ConfigureNotify:
-		cfg := raw.ParseConfigureEvent()
+	case platform.ConfigureNotifyEvent:
+		cfg := parser.ParseConfigureEvent(raw)
 		ev.Type = ConfigureType
 		ev.Window = cfg.EventWindow
 		ev.ConfigX = cfg.X
@@ -141,19 +141,19 @@ func FromRawEventIM(raw *xlib.RawEvent, display *xlib.Display) Event {
 		ev.ConfigWidth = cfg.Width
 		ev.ConfigHeight = cfg.Height
 
-	case xlib.DestroyNotify:
-		d := raw.ParseDestroyEvent()
+	case platform.DestroyNotifyEvent:
+		d := parser.ParseDestroyEvent(raw)
 		ev.Type = DestroyType
 		ev.Window = d.EventWindow
 
-	case xlib.MapNotify:
+	case platform.MapNotifyEvent:
 		ev.Type = MapType
 
-	case xlib.UnmapNotify:
+	case platform.UnmapNotifyEvent:
 		ev.Type = UnmapType
 
-	case xlib.ClientMessage:
-		cm := raw.ParseClientMessageEvent()
+	case platform.ClientMessageEvent_:
+		cm := parser.ParseClientMessageEvent(raw)
 		ev.Type = ClientMessageType
 		ev.Window = cm.EventWindow
 		ev.MessageType = cm.MessageType

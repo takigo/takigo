@@ -10,7 +10,7 @@ import (
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/geometry/pack"
-	"github.com/msorc/takigo/internal/xlib"
+	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/option"
 )
 
@@ -163,7 +163,7 @@ func main() {
 
 	// B1-Motion on point: drag the selected point and update the line.
 	c.BindItem("point", event.MotionMask, func(ev *event.Event) {
-		if ev.State&xlib.Button1Mask == 0 {
+		if ev.State&platform.Button1Mask == 0 {
 			return
 		}
 		dx := float64(ev.X - lastX)

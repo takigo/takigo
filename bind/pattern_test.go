@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/msorc/takigo/event"
-	"github.com/msorc/takigo/internal/xlib"
+	"github.com/msorc/takigo/platform"
 )
 
 func TestParseButtonPress(t *testing.T) {
@@ -33,7 +33,7 @@ func TestParseKeyA(t *testing.T) {
 	if p.EventType != event.KeyPressType {
 		t.Errorf("EventType = %d, want KeyPressType", p.EventType)
 	}
-	if p.KeySym != xlib.KeySym(0x0061) {
+	if p.KeySym != platform.KeySym(0x0061) {
 		t.Errorf("KeySym = %x, want 0x0061", p.KeySym)
 	}
 }
@@ -67,7 +67,7 @@ func TestParseModifiers(t *testing.T) {
 	if p.Modifiers&ModControl == 0 {
 		t.Error("expected ModControl")
 	}
-	if p.KeySym != xlib.KeySym(0x0061) {
+	if p.KeySym != platform.KeySym(0x0061) {
 		t.Errorf("KeySym = %x, want 0x0061", p.KeySym)
 	}
 }
@@ -95,7 +95,7 @@ func TestParseAltF4(t *testing.T) {
 	if p.Modifiers&ModAlt == 0 {
 		t.Error("expected ModAlt")
 	}
-	if p.KeySym != xlib.KeySym(0xffc1) {
+	if p.KeySym != platform.KeySym(0xffc1) {
 		t.Errorf("KeySym = %x, want 0xffc1 (F4)", p.KeySym)
 	}
 }
@@ -154,7 +154,7 @@ func TestParseKeyRelease(t *testing.T) {
 	if p.EventType != event.KeyReleaseType {
 		t.Errorf("EventType = %d, want KeyReleaseType", p.EventType)
 	}
-	if p.KeySym != xlib.XK_Escape {
+	if p.KeySym != platform.XK_Escape {
 		t.Errorf("KeySym = %x, want XK_Escape", p.KeySym)
 	}
 }
@@ -168,7 +168,7 @@ func TestParseSingleChar(t *testing.T) {
 	if p.EventType != event.KeyPressType {
 		t.Errorf("EventType = %d, want KeyPressType", p.EventType)
 	}
-	if p.KeySym != xlib.KeySym(0x0061) {
+	if p.KeySym != platform.KeySym(0x0061) {
 		t.Errorf("KeySym = %x, want 0x0061", p.KeySym)
 	}
 }
@@ -178,7 +178,7 @@ func TestParseSingleCharQ(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if seq.Patterns[0].KeySym != xlib.KeySym(0x0071) {
+	if seq.Patterns[0].KeySym != platform.KeySym(0x0071) {
 		t.Errorf("KeySym = %x, want 0x0071", seq.Patterns[0].KeySym)
 	}
 }
@@ -235,7 +235,7 @@ func TestPatternMatches(t *testing.T) {
 	}
 
 	// Should not match key press.
-	ev3 := &event.Event{Type: event.KeyPressType, KeySym: xlib.KeySym(0x0061)}
+	ev3 := &event.Event{Type: event.KeyPressType, KeySym: platform.KeySym(0x0061)}
 	if p.matches(ev3, 0) {
 		t.Error("<Button-1> should not match KeyPress")
 	}
@@ -247,8 +247,8 @@ func TestPatternMatchesModifiers(t *testing.T) {
 	// Control+a with Control held.
 	ev := &event.Event{
 		Type:   event.KeyPressType,
-		KeySym: xlib.KeySym(0x0061),
-		State:  xlib.ControlMask,
+		KeySym: platform.KeySym(0x0061),
+		State:  platform.ControlMask,
 	}
 	if !p.matches(ev, 0) {
 		t.Error("<Control-a> should match with Control held")
@@ -257,7 +257,7 @@ func TestPatternMatchesModifiers(t *testing.T) {
 	// Without Control.
 	ev2 := &event.Event{
 		Type:   event.KeyPressType,
-		KeySym: xlib.KeySym(0x0061),
+		KeySym: platform.KeySym(0x0061),
 		State:  0,
 	}
 	if p.matches(ev2, 0) {
@@ -283,7 +283,7 @@ func TestPatternMatchesDouble(t *testing.T) {
 func TestVirtualPatternDoesNotMatchPhysical(t *testing.T) {
 	seq := MustParse("<<Copy>>")
 	p := seq.Patterns[0]
-	ev := &event.Event{Type: event.KeyPressType, KeySym: xlib.KeySym(0x0063), State: xlib.ControlMask}
+	ev := &event.Event{Type: event.KeyPressType, KeySym: platform.KeySym(0x0063), State: platform.ControlMask}
 	if p.matches(ev, 0) {
 		t.Error("virtual pattern should not match physical events")
 	}

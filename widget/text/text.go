@@ -4,8 +4,8 @@ import (
 	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/font"
-	"github.com/msorc/takigo/internal/xlib"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/window"
 )
@@ -63,7 +63,7 @@ type TextWidget struct {
 	hoverTags   map[string]bool
 
 	// Offscreen pixmap.
-	pixmap           xlib.Pixmap
+	pixmap           platform.PixmapID
 	pixmapW, pixmapH int
 	displayValid     bool
 	redrawPending    bool
@@ -165,11 +165,11 @@ func (t *TextWidget) Display() {
 		return
 	}
 	w := t.Win
-	if w.XWindow == xlib.Window(0) {
+	if w.PlatformID == 0 {
 		return
 	}
 
-	d := w.Display.XDisplay
+	d := w.Display.Server
 	gc := w.GC
 
 	winW := w.Width
@@ -179,8 +179,8 @@ func (t *TextWidget) Display() {
 	}
 
 	// Allocate or resize pixmap.
-	if t.pixmap == xlib.Pixmap(0) || t.pixmapW != winW || t.pixmapH != winH {
-		if t.pixmap != xlib.Pixmap(0) {
+	if t.pixmap == 0 || t.pixmapW != winW || t.pixmapH != winH {
+		if t.pixmap != 0 {
 			d.FreePixmap(t.pixmap)
 		}
 		t.pixmap = d.CreatePixmap(w.Drawable(), uint(winW), uint(winH), uint(w.Depth))
@@ -192,7 +192,7 @@ func (t *TextWidget) Display() {
 	t.renderToPixmap()
 
 	// Copy pixmap to window.
-	d.CopyArea(xlib.PixmapDrawable(t.pixmap), w.Drawable(), gc,
+	d.CopyArea(platform.PixmapDrawable(t.pixmap), w.Drawable(), gc,
 		0, 0, uint(winW), uint(winH), 0, 0)
 
 	// Draw border on top.
@@ -520,9 +520,9 @@ func (t *TextWidget) Destroy() {
 		return
 	}
 	t.Destroyed = true
-	if t.pixmap != xlib.Pixmap(0) {
-		t.Win.Display.XDisplay.FreePixmap(t.pixmap)
-		t.pixmap = xlib.Pixmap(0)
+	if t.pixmap != 0 {
+		t.Win.Display.Server.FreePixmap(t.pixmap)
+		t.pixmap = 0
 	}
 	window.DestroyWindow(t.Win)
 }
@@ -691,4 +691,4 @@ func (t *TextWidget) estimateMaxLineWidth() int {
 
 // Suppress unused import warnings.
 var _ = (*color.Color)(nil)
-var _ = (*font.XftFont)(nil)
+var _ = (*font.Registry)(nil)

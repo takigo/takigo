@@ -3,7 +3,7 @@ package ttk
 import (
 	"time"
 
-	"github.com/msorc/takigo/internal/xlib"
+	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/window"
 )
@@ -104,11 +104,11 @@ func (p *Progressbar) Display() {
 		return
 	}
 	win := p.Win
-	if win.XWindow == xlib.Window(0) {
+	if win.PlatformID == 0 {
 		return
 	}
 
-	d := win.Display.XDisplay
+	d := win.Display.Server
 	gc := win.GC
 	width := win.Width
 	height := win.Height
@@ -118,8 +118,8 @@ func (p *Progressbar) Display() {
 	}
 
 	// Allocate or resize pixmap.
-	if p.pixmap == xlib.Pixmap(0) || p.pixmapW != width || p.pixmapH != height {
-		if p.pixmap != xlib.Pixmap(0) {
+	if p.pixmap == 0 || p.pixmapW != width || p.pixmapH != height {
+		if p.pixmap != 0 {
 			d.FreePixmap(p.pixmap)
 		}
 		p.pixmap = d.CreatePixmap(win.Drawable(), uint(width), uint(height), uint(win.Depth))
@@ -127,7 +127,7 @@ func (p *Progressbar) Display() {
 		p.pixmapH = height
 	}
 
-	pixDrawable := xlib.PixmapDrawable(p.pixmap)
+	pixDrawable := platform.PixmapDrawable(p.pixmap)
 
 	// Background.
 	bg := LookupColor(p.Context.Style, "-background", p.State, 0xd9d9d9)

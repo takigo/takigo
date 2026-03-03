@@ -4,9 +4,8 @@ package menu
 
 import (
 	"github.com/msorc/takigo/draw"
-	"github.com/msorc/takigo/font"
-	"github.com/msorc/takigo/internal/xlib"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/window"
 )
@@ -84,32 +83,32 @@ func New(parent widget.Caregiver, name string, opts ...MenuOption) *Menu {
 	d := parent.Window().Display
 
 	// Create override-redirect toplevel window.
-	attrs := &xlib.WindowAttributes{
+	attrs := &platform.WindowAttrs{
 		BackgroundPixel:  d.WhitePixel,
 		BorderPixel:      d.BlackPixel,
 		OverrideRedirect: true,
 		EventMask: int64(
-			xlib.KeyPressMask |
-				xlib.KeyReleaseMask |
-				xlib.ButtonPressMask |
-				xlib.ButtonReleaseMask |
-				xlib.PointerMotionMask |
-				xlib.EnterWindowMask |
-				xlib.LeaveWindowMask |
-				xlib.ExposureMask |
-				xlib.StructureNotifyMask),
+			platform.KeyPressMask |
+				platform.KeyReleaseMask |
+				platform.ButtonPressMask |
+				platform.ButtonReleaseMask |
+				platform.PointerMotionMask |
+				platform.EnterWindowMask |
+				platform.LeaveWindowMask |
+				platform.ExposureMask |
+				platform.StructureNotifyMask),
 	}
 
-	xwin := d.XDisplay.CreateWindow(
-		d.RootXWindow,
+	xwin := d.Server.CreateWindow(
+		d.RootWindow,
 		0, 0, 1, 1, 1,
-		d.Depth, xlib.InputOutput, d.Visual,
-		xlib.CWBackPixel|xlib.CWBorderPixel|xlib.CWOverrideRedirect|xlib.CWEventMask,
+		d.Depth, platform.InputOutput,
+		platform.CWBackPixel|platform.CWBorderPixel|platform.CWOverrideRedirect|platform.CWEventMask,
 		attrs,
 	)
 
 	w := &window.Window{
-		XWindow:         xwin,
+		PlatformID:      xwin,
 		Display:         d,
 		Parent:          parent.Window(),
 		Name:            name,
@@ -119,12 +118,10 @@ func New(parent widget.Caregiver, name string, opts ...MenuOption) *Menu {
 		ReqWidth:        1,
 		ReqHeight:       1,
 		Depth:           d.Depth,
-		Visual:          d.Visual,
-		Colormap:        d.Colormap,
 		BackgroundPixel: d.WhitePixel,
 	}
 
-	w.GC = d.XDisplay.CreateGC(w.Drawable(), xlib.GCForeground|xlib.GCBackground, &xlib.GCValues{
+	w.GC = d.Server.CreateGC(w.Drawable(), platform.GCForeground|platform.GCBackground, &platform.GCValues{
 		Foreground: d.BlackPixel,
 		Background: d.WhitePixel,
 	})
@@ -225,21 +222,21 @@ func (m *Menu) Entries() []MenuEntry {
 func (m *Menu) Post(x, y int) {
 	m.computeGeometry()
 	w := m.Win
-	d := w.Display.XDisplay
+	d := w.Display.Server
 
-	d.MoveResizeWindow(w.XWindow, x, y, uint(w.Width), uint(w.Height))
-	d.MapRaised(w.XWindow)
+	d.MoveResizeWindow(w.PlatformID, x, y, uint(w.Width), uint(w.Height))
+	d.MapRaised(w.PlatformID)
 	m.posted = true
 	m.activeIndex = -1
 
 	// Grab pointer and keyboard with owner_events=false so all pointer
 	// events go to the menu window. This ensures clicks outside the menu
 	// (including inside other app windows) are caught and close the menu.
-	d.GrabPointer(w.XWindow, false,
-		uint(xlib.ButtonPressMask|xlib.ButtonReleaseMask|xlib.PointerMotionMask|xlib.EnterWindowMask|xlib.LeaveWindowMask),
-		xlib.GrabModeAsync, xlib.GrabModeAsync,
-		xlib.Window(0), xlib.Cursor(0), xlib.CurrentTime)
-	d.GrabKeyboard(w.XWindow, false, xlib.GrabModeAsync, xlib.GrabModeAsync, xlib.CurrentTime)
+	d.GrabPointer(w.PlatformID, false,
+		uint(platform.ButtonPressMask|platform.ButtonReleaseMask|platform.PointerMotionMask|platform.EnterWindowMask|platform.LeaveWindowMask),
+		platform.GrabModeAsync, platform.GrabModeAsync,
+		platform.WindowID(0), platform.CursorID(0), platform.CurrentTime)
+	d.GrabKeyboard(w.PlatformID, false, platform.GrabModeAsync, platform.GrabModeAsync, platform.CurrentTime)
 	m.grabbed = true
 
 	m.Display()
@@ -258,15 +255,15 @@ func (m *Menu) Unpost() {
 	}
 
 	w := m.Win
-	d := w.Display.XDisplay
+	d := w.Display.Server
 
 	if m.grabbed {
-		d.UngrabPointer(xlib.CurrentTime)
-		d.UngrabKeyboard(xlib.CurrentTime)
+		d.UngrabPointer(platform.CurrentTime)
+		d.UngrabKeyboard(platform.CurrentTime)
 		m.grabbed = false
 	}
 
-	d.UnmapWindow(w.XWindow)
+	d.UnmapWindow(w.PlatformID)
 	m.posted = false
 	m.activeIndex = -1
 }
@@ -357,11 +354,11 @@ func (m *Menu) Display() {
 		return
 	}
 	w := m.Win
-	if w.XWindow == xlib.Window(0) {
+	if w.PlatformID == 0 {
 		return
 	}
 
-	d := w.Display.XDisplay
+	d := w.Display.Server
 	gc := w.GC
 
 	// Background.
@@ -376,8 +373,8 @@ func (m *Menu) Display() {
 			0, 0, w.Width, w.Height, m.BorderWidth, option.ReliefRaised)
 	}
 
-	xftFont, isXft := m.Font.(*font.XftFont)
-	if !isXft {
+	df, isDF := m.Font.(platform.DrawableFont)
+	if !isDF {
 		d.Flush()
 		return
 	}
@@ -425,29 +422,29 @@ func (m *Menu) Display() {
 		if fgCol != nil {
 			// Check/Radio indicator.
 			if e.Type == Checkbutton && e.Checked {
-				xftFont.DrawString(w.Drawable(), m.BorderWidth+4, textY, "\u2713",
+				df.DrawString(w.Drawable(), m.BorderWidth+4, textY, "\u2713",
 					fgCol.Pixel, fgCol.Red, fgCol.Green, fgCol.Blue)
 			} else if e.Type == Radiobutton && e.Checked {
-				xftFont.DrawString(w.Drawable(), m.BorderWidth+4, textY, "\u25cf",
+				df.DrawString(w.Drawable(), m.BorderWidth+4, textY, "\u25cf",
 					fgCol.Pixel, fgCol.Red, fgCol.Green, fgCol.Blue)
 			}
 
 			// Label.
-			xftFont.DrawString(w.Drawable(), textX, textY, e.Label,
+			df.DrawString(w.Drawable(), textX, textY, e.Label,
 				fgCol.Pixel, fgCol.Red, fgCol.Green, fgCol.Blue)
 
 			// Accelerator text.
 			if e.AccelStr != "" {
 				accelW := m.Font.MeasureString(e.AccelStr)
 				accelX := w.Width - m.BorderWidth - accelW - 8
-				xftFont.DrawString(w.Drawable(), accelX, textY, e.AccelStr,
+				df.DrawString(w.Drawable(), accelX, textY, e.AccelStr,
 					fgCol.Pixel, fgCol.Red, fgCol.Green, fgCol.Blue)
 			}
 
 			// Cascade arrow.
 			if e.Type == Cascade {
 				arrowX := w.Width - m.BorderWidth - 14
-				xftFont.DrawString(w.Drawable(), arrowX, textY, "\u25b6",
+				df.DrawString(w.Drawable(), arrowX, textY, "\u25b6",
 					fgCol.Pixel, fgCol.Red, fgCol.Green, fgCol.Blue)
 			}
 		}
@@ -526,10 +523,10 @@ func (m *Menu) postCascade(index int) {
 	subY := w.Y + entryY
 
 	// Transfer grab temporarily.
-	d := w.Display.XDisplay
+	d := w.Display.Server
 	if m.grabbed {
-		d.UngrabPointer(xlib.CurrentTime)
-		d.UngrabKeyboard(xlib.CurrentTime)
+		d.UngrabPointer(platform.CurrentTime)
+		d.UngrabKeyboard(platform.CurrentTime)
 		m.grabbed = false
 	}
 

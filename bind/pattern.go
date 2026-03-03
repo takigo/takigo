@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/msorc/takigo/event"
-	"github.com/msorc/takigo/internal/xlib"
+	"github.com/msorc/takigo/platform"
 )
 
 // Modifier represents modifier key flags in a binding pattern.
@@ -25,9 +25,9 @@ const (
 type Pattern struct {
 	EventType event.Type
 	Modifiers Modifier
-	KeySym    xlib.KeySym // 0 = any key
-	Button    uint        // 0 = any button
-	Virtual   string      // non-empty for virtual events like <<Copy>>
+	KeySym    platform.KeySym // 0 = any key
+	Button    uint            // 0 = any button
+	Virtual   string          // non-empty for virtual events like <<Copy>>
 }
 
 // Sequence is one or more patterns forming a complete binding specification.
@@ -389,19 +389,19 @@ func (p *Pattern) specificity() int {
 	return score
 }
 
-// eventModifiers extracts our Modifier flags from X11 state.
+// eventModifiers extracts our Modifier flags from platform state.
 func eventModifiers(ev *event.Event) Modifier {
 	var m Modifier
-	if ev.State&xlib.ControlMask != 0 {
+	if ev.State&platform.ControlMask != 0 {
 		m |= ModControl
 	}
-	if ev.State&xlib.ShiftMask != 0 {
+	if ev.State&platform.ShiftMask != 0 {
 		m |= ModShift
 	}
-	if ev.State&xlib.Mod1Mask != 0 {
+	if ev.State&platform.Mod1Mask != 0 {
 		m |= ModAlt
 	}
-	if ev.State&xlib.Mod4Mask != 0 {
+	if ev.State&platform.Mod4Mask != 0 {
 		m |= ModMeta
 	}
 	return m
