@@ -138,6 +138,7 @@ func New(parent widget.Caregiver, name string, opts ...TextOption) *TextWidget {
 	}
 
 	w.Flags |= window.FlagFocusable
+	w.SetCursor(152) // XC_xterm — I-beam cursor for text
 	bindText(t, app)
 
 	return t

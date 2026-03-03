@@ -85,6 +85,23 @@ func (w *Window) IsMapped() bool {
 	return w.Flags&FlagMapped != 0
 }
 
+// SetCursor sets the cursor for this window to the given font cursor shape.
+// Use cursor shape constants from the cursor package.
+func (w *Window) SetCursor(shape uint) {
+	if w.PlatformID == 0 {
+		return
+	}
+	w.Display.Server.DefineCursorFromFont(w.PlatformID, shape)
+}
+
+// ResetCursor reverts this window to its parent's cursor.
+func (w *Window) ResetCursor() {
+	if w.PlatformID == 0 {
+		return
+	}
+	w.Display.Server.UndefineCursor(w.PlatformID)
+}
+
 // Drawable returns the window as a DrawableID for drawing operations.
 func (w *Window) Drawable() platform.DrawableID {
 	return platform.WindowDrawable(w.PlatformID)

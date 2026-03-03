@@ -184,6 +184,7 @@ func New(parent widget.Caregiver, name string, opts ...EntryOption) *Entry {
 	}
 
 	w.Flags |= window.FlagFocusable
+	w.SetCursor(152) // XC_xterm — I-beam cursor for text
 	bindEntry(e, app)
 
 	return e

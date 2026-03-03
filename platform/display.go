@@ -223,6 +223,9 @@ type CursorManager interface {
 	// DefineCursorFromFont creates and sets a cursor from the font.
 	DefineCursorFromFont(w WindowID, shape uint)
 
+	// UndefineCursor reverts a window to its parent's cursor.
+	UndefineCursor(w WindowID)
+
 	// FreeCursor frees a cursor.
 	FreeCursor(cursor CursorID)
 }

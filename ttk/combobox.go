@@ -100,6 +100,7 @@ func NewCombobox(parent widget.Caregiver, name string, opts ...ComboboxOption) *
 		c.ChangeState(StateReadonly, 0)
 	}
 
+	win.SetCursor(152) // XC_xterm — I-beam cursor for text entry
 	bindCombobox(c, app)
 
 	return c

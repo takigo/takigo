@@ -164,6 +164,9 @@ func bindTtkCommon(w *TtkWidget, app widget.AppContext) {
 			win.Width = ev.ConfigWidth
 			win.Height = ev.ConfigHeight
 			w.Display()
+			if win.ConfigureCallback != nil {
+				win.ConfigureCallback()
+			}
 		}
 	})
 

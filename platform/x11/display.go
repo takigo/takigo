@@ -256,6 +256,8 @@ func (s *X11Display) DefineCursorFromFont(w platform.WindowID, shape uint) {
 	s.dpy.DefineCursorFromFont(xlib.Window(w), shape)
 }
 
+func (s *X11Display) UndefineCursor(w platform.WindowID) { s.dpy.UndefineCursor(xlib.Window(w)) }
+
 func (s *X11Display) FreeCursor(cursor platform.CursorID) { s.dpy.FreeCursor(xlib.Cursor(cursor)) }
 
 // --- PropertyManager ---

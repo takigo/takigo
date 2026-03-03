@@ -123,6 +123,11 @@ func (d *Display) DefineCursorFromFont(w Window, shape uint) {
 	d.DefineCursor(w, cursor)
 }
 
+// UndefineCursor reverts a window to its parent's cursor.
+func (d *Display) UndefineCursor(w Window) {
+	C.XUndefineCursor(d.ptr, C.Window(w))
+}
+
 // FreeCursor frees a cursor.
 func (d *Display) FreeCursor(cursor Cursor) {
 	C.XFreeCursor(d.ptr, C.Cursor(cursor))

@@ -150,6 +150,7 @@ func New(parent widget.Caregiver, name string, opts ...SpinboxOption) *Spinbox {
 	}
 
 	w.Flags |= window.FlagFocusable
+	w.SetCursor(152) // XC_xterm — I-beam cursor for text
 	bindSpinbox(s, app)
 
 	return s

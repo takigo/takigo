@@ -13,6 +13,7 @@ import (
 
 	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/color"
+	"github.com/msorc/takigo/cursor"
 	"github.com/msorc/takigo/dialog"
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/event"
@@ -331,15 +332,17 @@ func main() {
 				}()
 			})
 
-			// Hover → red highlight + status message.
+			// Hover → red highlight + status message + hand cursor.
 			t.TagBind(tagName, "<Enter>", func() {
 				t.TagAdd("hot", si, ei)
+				t.Window().SetCursor(cursor.Hand2)
 				statusLabel.Text = fmt.Sprintf("Run the \"%s\" sample program", demoDir)
 				statusLabel.Display()
 				t.Display()
 			})
 			t.TagBind(tagName, "<Leave>", func() {
 				t.TagRemove("hot", si, ei)
+				t.Window().SetCursor(cursor.XTerm)
 				statusLabel.Text = "   "
 				statusLabel.Display()
 				t.Display()
