@@ -1,6 +1,8 @@
 package text
 
 import (
+	"fmt"
+
 	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/font"
@@ -385,7 +387,8 @@ func (t *TextWidget) YViewMoveTo(fraction float64) {
 	availWidth := t.Win.Width - 2*t.inset
 	dlCount := 0
 	for l := 1; l <= t.doc.LineCount(); l++ {
-		dls := t.wrapLine(l, availWidth)
+		p := t.resolveLineProps(l)
+		dls := t.wrapLine(l, availWidth, p.lm1, p.lm2, p.rm)
 		if dlCount+len(dls) > targetDL {
 			t.topLine = l
 			t.topCharOffset = targetDL - dlCount
@@ -533,6 +536,16 @@ func (t *TextWidget) Doc() *Document {
 	return t.doc
 }
 
+// EndIndex returns the current end position as a "line.char" string.
+func (t *TextWidget) EndIndex() string {
+	n := t.doc.LineCount()
+	if n == 0 {
+		return "1.0"
+	}
+	c := len(t.doc.Lines[n-1].Text)
+	return fmt.Sprintf("%d.%d", n, c)
+}
+
 // --- Internal helpers ---
 
 // seeInsert scrolls to make the insert cursor visible.
@@ -597,7 +610,8 @@ func (t *TextWidget) scrollByDisplayLines(n int) {
 	if n > 0 {
 		// Scroll down.
 		for i := 0; i < n; i++ {
-			dls := t.wrapLine(t.topLine, availWidth)
+			p := t.resolveLineProps(t.topLine)
+			dls := t.wrapLine(t.topLine, availWidth, p.lm1, p.lm2, p.rm)
 			if t.topCharOffset+1 < len(dls) {
 				t.topCharOffset++
 			} else if t.topLine < t.doc.LineCount() {
@@ -614,7 +628,8 @@ func (t *TextWidget) scrollByDisplayLines(n int) {
 				t.topCharOffset--
 			} else if t.topLine > 1 {
 				t.topLine--
-				dls := t.wrapLine(t.topLine, availWidth)
+				p := t.resolveLineProps(t.topLine)
+				dls := t.wrapLine(t.topLine, availWidth, p.lm1, p.lm2, p.rm)
 				t.topCharOffset = len(dls) - 1
 			} else {
 				break

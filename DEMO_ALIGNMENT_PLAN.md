@@ -288,7 +288,8 @@ These patterns recur across nearly every demo and should be addressed globally:
 ### 47. `style`
 - [x] **Layout**: Fixed — scrollbar right, text fills rest (no wrapper frame), matching Tcl's pack order
 - [x] **Style examples**: Fixed — width 70, height 32, font "Courier 12", tags matching Tcl (bold/big/verybig/tiny/color1/color2/underline/overstrike)
-- [ ] **Missing tags**: TagRelief/TagBorderWidth/TagJustify/TagOffset/TagMargins/TagSpacing not yet implemented in text widget — known limitation (text display engine changes needed)
+- [x] **Missing tags**: Added TagJustify (left/center/right), TagOffset/TagOffsetStr (superscript/subscript), TagLMargin1/2Str, TagRMarginStr, TagSpacing1/2/3Str to text tag system; fixed overstrike rendering; updated style demo to match Tcl's full 8-section demo (Font/Color/Underline/Overstrike/Justification/Superscripts/Margins/Spacing). Also added TextWidget.EndIndex() helper.
+- [ ] **Missing tags**: TagRelief/TagBorderWidth (3-D text effects) — known limitation (requires drawing borders around text runs)
 
 ### 48. `systray`
 - [x] **Layout**: Fixed — labelframe "f" with Create/Modify/Destroy buttons (PadX("3p") PadY("3p")); "Display Notification" button outside frame; no status label

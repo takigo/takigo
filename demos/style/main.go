@@ -3,24 +3,21 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/pack"
+	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/ttk"
 	"github.com/msorc/takigo/widget/text"
 )
 
 func main() {
-	app := demohelper.Setup("Text Demonstration - Display Styles", 600, 500,
+	app := demohelper.Setup("Text Demonstration - Display Styles", 600, 550,
 		"This window shows text tags that control display styles. Tags are textual names applied to ranges of characters in a text widget, configuring those characters with various display styles.")
 
 	// Scrollbar packed right, text fills rest (matches Tcl: pack $w.scroll -side right; pack $w.text).
 	yscroll := ttk.NewScrollbar(app, "scroll",
 		ttk.ScrollbarOrientOpt(ttk.Vertical),
-		ttk.ScrollbarCommandOpt(func(args ...any) {
-			// forward to text widget — set after tw is created
-		}),
+		ttk.ScrollbarCommandOpt(func(args ...any) {}),
 	)
 
 	tw := text.New(app, "text",
@@ -33,8 +30,6 @@ func main() {
 	tw.YScrollCmd = func(first, last float64) {
 		yscroll.Set(first, last)
 	}
-
-	// Wire scrollbar command to text widget.
 	yscroll.Command = func(args ...any) {
 		if len(args) < 1 {
 			return
@@ -67,59 +62,107 @@ func main() {
 	tw.TagConfigure("color2", text.TagForeground("red"))
 	tw.TagConfigure("underline", text.TagUnderline(true))
 	tw.TagConfigure("overstrike", text.TagOverstrike(true))
+	tw.TagConfigure("right", text.TagJustify(option.JustifyRight))
+	tw.TagConfigure("center", text.TagJustify(option.JustifyCenter))
+	tw.TagConfigure("super", text.TagOffsetStr("4p"), text.TagFont("Courier 10"))
+	tw.TagConfigure("sub", text.TagOffsetStr("-2p"), text.TagFont("Courier 10"))
+	tw.TagConfigure("margins",
+		text.TagLMargin1Str("12m"),
+		text.TagLMargin2Str("6m"),
+		text.TagRMarginStr("10m"),
+	)
+	tw.TagConfigure("spacing",
+		text.TagSpacing1Str("10p"),
+		text.TagSpacing2Str("2p"),
+		text.TagLMargin1Str("12m"),
+		text.TagLMargin2Str("6m"),
+		text.TagRMarginStr("10m"),
+	)
 
-	// Insert text matching Tcl's style.tcl content.
-	// We insert line by line and tag via "line.start line.end" notation.
-	type line struct {
-		text string
-		tag  string
-	}
-	lines := []line{
-		{"Text widgets like this one allow you to display information in a", ""},
-		{"variety of styles.  Display styles are controlled using a mechanism", ""},
-		{"called tags.  Tags are just textual names that you can apply to one", "bold"},
-		{"or more ranges of characters within a text widget.  You can configure", ""},
-		{"tags with various display styles.  If you do this, then the tagged", ""},
-		{"characters will be displayed with the styles you chose.  The", ""},
-		{"available display styles are:", ""},
-		{"", ""},
-		{"1. Font.", "big"},
-		{"  You can choose any system font, large or small.", ""},
-		{"", ""},
-		{"2. Color.", "big"},
-		{"  You can change the foreground or background color of text.", ""},
-		{"", ""},
-		{"3. Underline.", "big"},
-		{"  You can underline characters in a text widget.", ""},
-		{"", ""},
-		{"4. Overstrike.", "big"},
-		{"  You can draw lines through characters.", ""},
-	}
-
-	for i, l := range lines {
-		tw.Insert("end", l.text+"\n")
-		if l.tag != "" {
-			lineNum := i + 1
-			// Tag just the header word(s) on that line using "line.char" index format.
-			startIdx := fmt.Sprintf("%d.0", lineNum)
-			endIdx := fmt.Sprintf("%d.%d", lineNum, len(l.text))
-			tw.TagAdd(l.tag, startIdx, endIdx)
+	// Insert content matching Tcl's style.tcl (inline tag segments).
+	// ins inserts text at end and optionally applies tags to the inserted range.
+	ins := func(s string, tags ...string) {
+		start := tw.EndIndex()
+		tw.Insert("end", s)
+		if len(tags) > 0 {
+			end := tw.EndIndex()
+			for _, tag := range tags {
+				tw.TagAdd(tag, start, end)
+			}
 		}
 	}
 
-	// Add additional highlighting examples.
-	// "large" on line 10 chars 39-44, "small" chars 48-53.
-	tw.TagConfigure("large", text.TagFont("Helvetica 24 bold"))
-	tw.TagConfigure("small", text.TagFont("Times 8 bold"))
-	// Colorize line 13 ("foreground" and "background" words).
-	tw.TagConfigure("fgexample", text.TagForeground("red"))
-	tw.TagConfigure("bgexample", text.TagBackground("#a0b7ce"))
-	tw.TagAdd("fgexample", "13.25", "13.35")
-	tw.TagAdd("bgexample", "13.40", "13.55")
-	// Underline line 16.
-	tw.TagAdd("underline", "16.8", "16.18")
-	// Overstrike line 19.
-	tw.TagAdd("overstrike", "19.8", "19.36")
+	ins("Text widgets like this one allow you to display information in a\nvariety of styles.  Display styles are controlled using a mechanism\ncalled ")
+	ins("tags", "bold")
+	ins(".  Tags are just textual names that you can apply to one\nor more ranges of characters within a text widget.  You can configure\ntags with various display styles.  If you do this, then the tagged\ncharacters will be displayed with the styles you chose.  The\navailable display styles are:\n")
+	ins("\n1. Font.", "big")
+	ins("  You can choose any system font, ")
+	ins("large", "verybig")
+	ins(" or ")
+	ins("small", "tiny")
+	ins(".\n")
+	ins("\n2. Color.", "big")
+	ins("  You can change either the ")
+	ins("background", "color1")
+	ins(" or ")
+	ins("foreground", "color2")
+	ins("\ncolor, or ")
+	ins("both", "color1", "color2")
+	ins(".\n")
+	ins("\n3. Underlining.", "big")
+	ins("  You can ")
+	ins("underline", "underline")
+	ins(" ranges of text.\n")
+	ins("\n4. Overstrikes.", "big")
+	ins("  You can ")
+	ins("draw lines through", "overstrike")
+	ins(" ranges of text.\n")
+	ins("\n5. Justification.", "big")
+	ins(" You can arrange for lines to be displayed\n")
+	ins("left-justified,\n")
+	ins("right-justified, or\n", "right")
+	ins("centered.\n", "center")
+	ins("\n6. Superscripts and subscripts.", "big")
+	ins(" You can control the vertical\n")
+	ins("position of text to generate superscript effects like 10")
+	ins("n", "super")
+	ins(" or\nsubscript effects like X")
+	ins("i", "sub")
+	ins(".\n")
+	ins("\n7. Margins.", "big")
+	ins(" You can control the amount of extra space left on\neach side of the text:\n")
+	ins("This paragraph is an example of the use of ", "margins")
+	ins("margins.  It consists of a single line of text ", "margins")
+	ins("that wraps around on the screen.  There are two ", "margins")
+	ins("separate left margin values, one for the first ", "margins")
+	ins("display line associated with the text line, ", "margins")
+	ins("and one for the subsequent display lines, which ", "margins")
+	ins("occur because of wrapping.  There is also a ", "margins")
+	ins("separate specification for the right margin, ", "margins")
+	ins("which is used to choose wrap points for lines.\n", "margins")
+	ins("\n8. Spacing.", "big")
+	ins(" You can control the spacing of lines with three\n")
+	ins("separate parameters.  \"Spacing1\" tells how much ")
+	ins("extra space to leave\nabove a line, \"spacing3\" ")
+	ins("tells how much space to leave below a line,\nand ")
+	ins("if a text line wraps, \"spacing2\" tells how much ")
+	ins("space to leave\nbetween the display lines that ")
+	ins("make up the text line.\n")
+	ins("These indented paragraphs illustrate how spacing ", "spacing")
+	ins("can be used.  Each paragraph is actually a ", "spacing")
+	ins("single line in the text widget, which is ", "spacing")
+	ins("word-wrapped by the widget.\n", "spacing")
+	ins("Spacing1 is set to 10 points for this text, ", "spacing")
+	ins("which results in relatively large gaps between ", "spacing")
+	ins("the paragraphs.  Spacing2 is set to 2 points, ", "spacing")
+	ins("which results in just a bit of extra space ", "spacing")
+	ins("within a paragraph.  Spacing3 isn't used ", "spacing")
+	ins("in this example.\n", "spacing")
+	ins("To see where the space is, select ranges of ", "spacing")
+	ins("text within these paragraphs.  The selection ", "spacing")
+	ins("highlight will cover the extra space.", "spacing")
+
+	text.ReadOnly(true)(tw)
 
 	app.Run()
 }
