@@ -35,6 +35,7 @@ type Scale struct {
 	Label        string
 	SliderLength int
 	Width        int // trough cross-axis width
+	TickInterval float64
 	Command      func(float64)
 
 	// Interaction state.
@@ -64,6 +65,7 @@ func ShowValueOpt(b bool) ScaleOption   { return func(s *Scale) { s.ShowValue = 
 func LabelOpt(s string) ScaleOption     { return func(sc *Scale) { sc.Label = s } }
 func SliderLengthOpt(n int) ScaleOption { return func(s *Scale) { s.SliderLength = n } }
 func WidthOpt(w int) ScaleOption        { return func(s *Scale) { s.Width = w } }
+func TickIntervalOpt(v float64) ScaleOption { return func(s *Scale) { s.TickInterval = v } }
 func CommandOpt(fn func(float64)) ScaleOption { return func(s *Scale) { s.Command = fn } }
 
 func Background(name string) ScaleOption {
@@ -226,6 +228,10 @@ func (s *Scale) computeGeometry() {
 				w.ReqHeight += m.Linespace() + 2
 			}
 		}
+		if s.TickInterval > 0 && s.Font != nil {
+			m := s.Font.Metrics()
+			w.ReqHeight += 5 + m.Linespace() + 2 // tick line + label
+		}
 		if s.Label != "" && s.Font != nil {
 			m := s.Font.Metrics()
 			w.ReqHeight += m.Linespace() + 2
@@ -238,6 +244,14 @@ func (s *Scale) computeGeometry() {
 				valStr := s.formatValue(s.To)
 				valW := s.Font.MeasureString(valStr)
 				w.ReqWidth += valW + 4
+			}
+		}
+		if s.TickInterval > 0 && s.Font != nil {
+			valStr := s.formatValue(s.To)
+			valW := s.Font.MeasureString(valStr)
+			extra := 5 + valW + 4 // tick line + label
+			if extra > w.ReqWidth-s.Width-4 {
+				w.ReqWidth = s.Width + 4 + extra
 			}
 		}
 		if s.Label != "" && s.Font != nil {
@@ -331,6 +345,41 @@ func (s *Scale) Display() {
 		if s.Border != nil {
 			draw.Draw3DRectangle(d, w.Drawable(), gc, s.Border,
 				sliderX, sliderY, sliderW, sliderH, 2, option.ReliefRaised)
+		}
+	}
+
+	// Tick marks and labels.
+	if s.TickInterval > 0 && s.Font != nil && s.Foreground != nil {
+		if df, ok := s.Font.(platform.DrawableFont); ok {
+			m := s.Font.Metrics()
+			_, ty, tw2, th := s.troughRect()
+			vRange := s.To - s.From
+			if vRange != 0 && s.TickInterval > 0 {
+				_, pxRange := s.pixelRange()
+				pxStart, _ := s.pixelRange()
+				if s.Orient == Horizontal {
+					tickY := ty + th + 2
+					for tv := s.From; tv <= s.To+s.TickInterval*0.001; tv += s.TickInterval {
+						px := pxStart + int((tv-s.From)/vRange*float64(pxRange)) + s.SliderLength/2
+						d.SetForeground(gc, s.Foreground.Pixel)
+						d.DrawLine(w.Drawable(), gc, px, tickY, px, tickY+4)
+						label := s.formatValue(tv)
+						lw := s.Font.MeasureString(label)
+						df.DrawString(w.Drawable(), px-lw/2, tickY+5+m.Ascent, label,
+							s.Foreground.Pixel, s.Foreground.Red, s.Foreground.Green, s.Foreground.Blue)
+					}
+				} else {
+					tickX := s.BorderWidth + tw2 + 2
+					for tv := s.From; tv <= s.To+s.TickInterval*0.001; tv += s.TickInterval {
+						py := pxStart + int((tv-s.From)/vRange*float64(pxRange)) + s.SliderLength/2
+						d.SetForeground(gc, s.Foreground.Pixel)
+						d.DrawLine(w.Drawable(), gc, tickX, py, tickX+4, py)
+						label := s.formatValue(tv)
+						df.DrawString(w.Drawable(), tickX+6, py+m.Ascent/2, label,
+							s.Foreground.Pixel, s.Foreground.Red, s.Foreground.Green, s.Foreground.Blue)
+					}
+				}
+			}
 		}
 	}
 

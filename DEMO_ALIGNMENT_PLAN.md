@@ -150,7 +150,7 @@ These patterns recur across nearly every demo and should be addressed globally:
 
 ### 23. `hscale`
 - [x] **Layout**: Added frame with BorderWidth(10) matching `borderwidth 7.5p`; removed outer padding
-- [ ] **Scale config**: Tcl has `-tickinterval 50` — not implemented in scale widget, known limitation
+- [x] **Scale config**: Tcl has `-tickinterval 50` — implemented TickIntervalOpt(50) in scale widget
 - [x] **Canvas**: height 50, BorderWidthOpt(0), HighlightWidthOpt(0)
 - [ ] **DPI scaling**: Tcl applies `$tk::scalingPct` scaling to canvas items — not implemented, known limitation
 
@@ -181,7 +181,7 @@ These patterns recur across nearly every demo and should be addressed globally:
 - [x] **Board size**: 8x8 matching Tcl
 - [ ] **Missing features**: Tcl has click-to-set-start, step counter, dialog-based control; Go has simple Start button only
 - [ ] **Canvas size**: Tcl uses 192p x 192p ≈ 256px; Go uses 400x400px — oversized but acceptable
-- [ ] **Algorithm**: Tcl uses full Warnsdorff's rule (minimum accessibility heuristic); Go uses simpler backtracking — verify completeness
+- [x] **Algorithm**: Go already implements Warnsdorff's heuristic (degree-based minimum accessibility) — plan note was incorrect
 
 ### 29. `label`
 - [x] **Widget types**: Tcl uses classic `label` — Go matches
@@ -222,7 +222,8 @@ These patterns recur across nearly every demo and should be addressed globally:
 
 ### 36. `paned2`
 - [x] **Layout**: Fixed — panedwindow PadX("2m") PadY("1.5p")
-- [ ] **Widget types**: Tcl uses ttk::scrollbar — S1 issue; listbox item 0 highlight with inverted fg/bg not implemented
+- [x] **Widget types**: Tcl uses ttk::scrollbar — now uses ttk.NewScrollbar
+- [ ] **listbox item 0 highlight**: inverted fg/bg for highlighted item not implemented — known limitation
 - [x] **Content**: Listbox has same 18 Tk widget names; bottom text widget width 30 height 8 wrap none; initial text matches Tcl
 
 ### 37. `pendulum`
@@ -278,7 +279,8 @@ These patterns recur across nearly every demo and should be addressed globally:
 
 ### 46. `states`
 - [x] **Layout**: Fixed — added justification labelframe with Left/Center/Right radiobuttons; lbFrame BorderWidth(19) (≈.5c); removed PadX/PadY; FillY
-- [ ] **Widget types**: Tcl uses ttk::scrollbar (S1); radiobuttons have `-tristatevalue "multi"` for multi-selection state — not implemented
+- [x] **Widget types**: Tcl uses ttk::scrollbar — now uses ttk.NewScrollbar
+- [ ] **radiobuttons tristatevalue**: `-tristatevalue "multi"` for multi-selection state — not implemented, known limitation
 - [x] **States**: All 50 US states in alphabetical order — matches Tcl exactly; justify command N/A (listbox has no justify option in Go)
 
 ### 47. `style`
@@ -402,7 +404,7 @@ These patterns recur across nearly every demo and should be addressed globally:
 
 ### 62. `vscale`
 - [x] **Canvas size**: Changed from 60 to 50 width
-- [ ] **Scale tick interval**: Tcl has `-tickinterval 50` — not implemented, known limitation
+- [x] **Scale tick interval**: Implemented TickIntervalOpt(50) — tick marks drawn at 0/50/100/150/200/250
 - [ ] **Scale length**: Tcl uses `213p` (~284px) — no TotalLength option, known limitation
 - [x] **Frame borders**: Added BorderWidth(10) matching `borderwidth 7.5p`
 - [x] **Canvas border**: Added BorderWidthOpt(0) and HighlightWidthOpt(0)
