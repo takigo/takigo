@@ -46,6 +46,10 @@ type Listbox struct {
 	SelBg *colorRef
 	SelFg *colorRef
 
+	// Per-item colors (set via ItemConfigure).
+	itemFg map[int]*colorRef
+	itemBg map[int]*colorRef
+
 	// Scrollbar callbacks.
 	YScrollCmd func(first, last float64)
 	XScrollCmd func(first, last float64)
@@ -107,6 +111,8 @@ func New(parent widget.Caregiver, name string, opts ...ListboxOption) *Listbox {
 
 	lb := &Listbox{
 		selected:    make(map[int]bool),
+		itemFg:      make(map[int]*colorRef),
+		itemBg:      make(map[int]*colorRef),
 		selectMode:  SelectBrowse,
 		activeIndex: -1,
 		selAnchor:   -1,
@@ -261,6 +267,21 @@ func (lb *Listbox) SelectionSet(first, last int) {
 func (lb *Listbox) SelectionClear(first, last int) {
 	for i := first; i <= last; i++ {
 		delete(lb.selected, i)
+	}
+}
+
+// ItemConfigure sets per-item foreground and/or background colors.
+// Pass empty string to clear a per-item color (revert to default).
+func (lb *Listbox) ItemConfigure(idx int, fg, bg string) {
+	if fg == "" {
+		delete(lb.itemFg, idx)
+	} else if col, err := lb.App.ColorCache().Get(fg); err == nil {
+		lb.itemFg[idx] = &colorRef{col.Pixel, col.Red, col.Green, col.Blue}
+	}
+	if bg == "" {
+		delete(lb.itemBg, idx)
+	} else if col, err := lb.App.ColorCache().Get(bg); err == nil {
+		lb.itemBg[idx] = &colorRef{col.Pixel, col.Red, col.Green, col.Blue}
 	}
 }
 
@@ -447,9 +468,17 @@ func (lb *Listbox) Display() {
 
 		isSelected := lb.selected[itemIdx]
 
-		// Selection highlight.
+		// Determine effective item colors (per-item overrides default).
+		itemBg := lb.itemBg[itemIdx]
+		itemFg := lb.itemFg[itemIdx]
+
+		// Selection highlight (selection overrides per-item bg).
 		if isSelected && lb.SelBg != nil {
 			d.SetForeground(gc, lb.SelBg.Pixel)
+			d.FillRectangle(w.Drawable(), gc, lb.inset, rowY,
+				uint(clipRight-lb.inset), uint(lb.lineHeight))
+		} else if itemBg != nil {
+			d.SetForeground(gc, itemBg.Pixel)
 			d.FillRectangle(w.Drawable(), gc, lb.inset, rowY,
 				uint(clipRight-lb.inset), uint(lb.lineHeight))
 		}
@@ -459,6 +488,9 @@ func (lb *Listbox) Display() {
 		if isSelected && lb.SelFg != nil {
 			df.DrawString(w.Drawable(), textX, textY, text,
 				lb.SelFg.Pixel, lb.SelFg.Red, lb.SelFg.Green, lb.SelFg.Blue)
+		} else if itemFg != nil {
+			df.DrawString(w.Drawable(), textX, textY, text,
+				itemFg.Pixel, itemFg.Red, itemFg.Green, itemFg.Blue)
 		} else if lb.Foreground != nil {
 			df.DrawString(w.Drawable(), textX, textY, text,
 				lb.Foreground.Pixel, lb.Foreground.Red, lb.Foreground.Green, lb.Foreground.Blue)

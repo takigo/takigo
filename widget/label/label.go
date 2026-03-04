@@ -86,6 +86,11 @@ func Anchor(a option.Anchor) LabelOption {
 	return func(l *Label) { l.Anchor = a }
 }
 
+// JustifyOpt sets the text justification for multi-line labels.
+func JustifyOpt(j option.Justify) LabelOption {
+	return func(l *Label) { l.Justify = j }
+}
+
 // PadX sets horizontal padding.
 // Accepts int (pixels), float64 (rounded pixels), or string with unit suffix ("3p", "2m", "1c", "0.5i").
 func PadX(p any) LabelOption {

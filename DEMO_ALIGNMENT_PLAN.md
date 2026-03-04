@@ -18,9 +18,9 @@ These patterns recur across nearly every demo and should be addressed globally:
 **Issue:** Tcl uses points (`p`), millimeters (`m`), centimeters (`c`), inches (`i`). Go uses pixels only.
 **Fix:** Added `screenunit` package with `Px()` function that accepts Tk-style distance strings (`"3p"`, `"2m"`, `"1c"`, `"0.5i"`) and converts to pixels using actual screen DPI. All padding option functions (`PadX`, `PadY`, `IPadX`, `IPadY`) in pack, grid, label, button, checkbutton, and radiobutton now accept `any` type (int, float64, or string with unit suffix). TTK `PaddingFromAny()` helper added. Demos can now use `pack.PadX("3p")` to match Tcl originals.
 
-### S3. Description Labels
-**Issue:** Tcl creates explicit `ttk::label` widgets with `-font $font -wraplength -justify left`. Go delegates to `demohelper.Setup()`.
-**Fix:** This is acceptable as an architectural difference — demohelper handles this. No change needed unless specific demos have wrong description text.
+### S3. Description Labels ✅ RESOLVED
+**Issue:** Tcl creates explicit `ttk::label` widgets with `-font $font -wraplength 4i -justify left`. Go delegates to `demohelper.Setup()`.
+**Fix:** Added `WrapLength("4i")` to demohelper's description label. Also added `label.WrapLength(any)` option to classic label widget for per-demo customization (e.g., ttknote Tab 1).
 
 ### S4. Window Sizing
 **Issue:** Go hardcodes pixel dimensions; Tcl uses `positionWindow` helper.
@@ -224,7 +224,7 @@ These patterns recur across nearly every demo and should be addressed globally:
 ### 36. `paned2`
 - [x] **Layout**: Fixed — panedwindow PadX("2m") PadY("1.5p")
 - [x] **Widget types**: Tcl uses ttk::scrollbar — now uses ttk.NewScrollbar
-- [ ] **listbox item 0 highlight**: inverted fg/bg for highlighted item not implemented — known limitation
+- [x] **listbox item 0 highlight**: Added ItemConfigure(idx, fg, bg) to listbox; paned2 uses it to invert colors of item 0 (matching Tcl's `itemconfigure 0 -background fg -foreground bg`)
 - [x] **Content**: Listbox has same 18 Tk widget names; bottom text widget width 30 height 8 wrap none; initial text matches Tcl
 
 ### 37. `pendulum`

@@ -76,6 +76,9 @@ func main() {
 		lbScroll.Set(first, last)
 	}
 
+	// Invert first item to highlight it (matches Tcl's itemconfigure 0 -bg fg -fg bg).
+	lb.ItemConfigure(0, "#d9d9d9", "#000000")
+
 	pack.Pack(lbScroll, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
 	pack.Pack(lb, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 	pw.Add(topFrame.Window(), 100)
