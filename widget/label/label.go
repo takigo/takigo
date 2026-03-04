@@ -118,6 +118,13 @@ func Height(h int) LabelOption {
 	return func(l *Label) { l.Win.ReqHeight = h }
 }
 
+// WrapLength sets the maximum line width for text wrapping.
+// Accepts int (pixels), float64 (rounded pixels), or string with unit suffix ("4i", "3p", etc.).
+// Set to 0 (default) to disable wrapping.
+func WrapLength(w any) LabelOption {
+	return func(l *Label) { l.WrapLen = screenunit.Px(w) }
+}
+
 // New creates a new Label widget as a child of parent.
 func New(parent widget.Caregiver, name string, opts ...LabelOption) *Label {
 	app := parent.AppContext()
@@ -168,18 +175,53 @@ func New(parent widget.Caregiver, name string, opts ...LabelOption) *Label {
 	return l
 }
 
+// textLines returns the text split into display lines, applying WrapLen if set.
+func (l *Label) textLines() []string {
+	if l.Text == "" {
+		return nil
+	}
+	paragraphs := strings.Split(l.Text, "\n")
+	if l.WrapLen <= 0 || l.Font == nil {
+		return paragraphs
+	}
+	var result []string
+	for _, para := range paragraphs {
+		words := strings.Fields(para)
+		if len(words) == 0 {
+			result = append(result, "")
+			continue
+		}
+		current := words[0]
+		for _, word := range words[1:] {
+			candidate := current + " " + word
+			if l.Font.MeasureString(candidate) <= l.WrapLen {
+				current = candidate
+			} else {
+				result = append(result, current)
+				current = word
+			}
+		}
+		result = append(result, current)
+	}
+	return result
+}
+
 // computeGeometry computes the text/image size and sets the requested window size.
 func (l *Label) computeGeometry() {
-	// Measure text, handling multiline (newline-separated).
+	// Measure text, handling multiline and wraplength.
 	if l.Font != nil && l.Text != "" {
 		m := l.Font.Metrics()
-		lines := strings.Split(l.Text, "\n")
+		lines := l.textLines()
 		l.textHeight = len(lines) * m.Linespace()
 		l.textWidth = 0
-		for _, line := range lines {
-			w := l.Font.MeasureString(line)
-			if w > l.textWidth {
-				l.textWidth = w
+		if l.WrapLen > 0 {
+			l.textWidth = l.WrapLen
+		} else {
+			for _, line := range lines {
+				w := l.Font.MeasureString(line)
+				if w > l.textWidth {
+					l.textWidth = w
+				}
 			}
 		}
 	} else {
@@ -245,12 +287,12 @@ func (l *Label) Display() {
 		l.Img.Draw(w.Display.Server, w.Drawable(), gc,
 			w.Depth, 0, 0, imgW, imgH, ix, iy, bgPixel)
 	} else if hasText {
-		// Text only — handle multiline.
+		// Text only — handle multiline (with optional wraplength).
 		textX, textY := anchorText(l.Anchor, frameX, frameY,
 			availW, availH, l.textWidth, l.textHeight)
 		m := l.Font.Metrics()
 		if df, ok := l.Font.(platform.DrawableFont); ok {
-			lines := strings.Split(l.Text, "\n")
+			lines := l.textLines()
 			for i, line := range lines {
 				baseline := textY + m.Ascent + i*m.Linespace()
 				lx := textX

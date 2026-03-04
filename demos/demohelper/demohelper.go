@@ -44,10 +44,11 @@ func Setup(title string, width, height int, description string) *takigo.App {
 	bgColor, _ := app.ColorCache().Get("#d9d9d9")
 	root.BackgroundPixel = bgColor.Pixel
 
-	// Description label (classic label, same as Tk's "label $w.msg").
+	// Description label (classic label, same as Tk's "label $w.msg -wraplength 4i").
 	msg := label.New(app, "msg",
 		label.Text(description),
 		label.Anchor(option.AnchorW),
+		label.WrapLength("4i"),
 		label.PadX(10),
 		label.PadY(5),
 	)

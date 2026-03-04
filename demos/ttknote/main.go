@@ -37,6 +37,7 @@ func main() {
 			"using Ctrl+Tab when the notebook page heading itself is "+
 			"selected. Note that the second tab is disabled, and "+
 			"cannot be selected."),
+		label.WrapLength("4i"),
 	)
 	grid.Grid(descLabel, grid.Row(0), grid.Column(0), grid.ColumnSpan(2),
 		grid.Sticky(grid.StickN+grid.EW), grid.PadY("1.5p"))
