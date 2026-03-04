@@ -97,7 +97,7 @@ These patterns recur across nearly every demo and should be addressed globally:
 - [x] **Config box hover**: Enter=black fill, Leave=restore original fill — matches Tcl's textEnter/Leave
 - [ ] **Text editing**: Canvas text cursor/insert/delete not implemented — known limitation (no canvas text cursor API)
 - [ ] **Angle selector**: Canvas text rotation not implemented — known limitation
-- [ ] **Scrollbar**: Not needed for current canvas size
+- [x] **Scrollbar**: Not needed for current canvas size — N/A
 
 ### 13. `dialog1`
 - [x] **Layout**: Tcl uses `tk_dialog` immediately; Go wraps in "Show Dialog" button — acceptable architectural difference for standalone demo
@@ -177,7 +177,7 @@ These patterns recur across nearly every demo and should be addressed globally:
 - [x] **Smooth lines**: Already in Go (Smooth(true) used in section 3 lines) ✓
 - [ ] **Missing bitmaps section**: Canvas bitmap items not implemented — known limitation
 - [ ] **Missing window items section**: Canvas window items (embedded widgets) not implemented — known limitation
-- [ ] **Layout**: Tcl uses 3×3 grid with cm coordinates; Go uses fixed pixel layout with 2 new sections — functionally similar
+- [x] **Layout**: Tcl uses 3×3 grid with cm coordinates; Go uses fixed pixel layout with 2 new sections — functionally similar, acceptable difference
 
 ### 28. `knightstour`
 - [x] **Board size**: 8x8 matching Tcl
