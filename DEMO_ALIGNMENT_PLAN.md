@@ -146,9 +146,8 @@ These patterns recur across nearly every demo and should be addressed globally:
 - [x] **Padding**: PadX(5) PadY(4) per row
 
 ### 22. `goldberg`
-- [ ] **MAJOR (~95% missing)**: Tcl demo is a complex Rube Goldberg machine animation with multiple stages. Go demo is a bare skeleton.
-- [ ] This is the most complex demo. Consider implementing incrementally or marking as "simplified version."
-- [ ] Add all animation stages, canvas items, and timing logic
+- [x] **MAJOR → Simplified version**: Go demo has ball rolling through 7 segments (ramps+platforms+funnel), star flash animation, start/reset buttons — a reasonable animated demonstration of canvas capabilities
+- [ ] Add all animation stages matching Tcl's complex multi-stage physics — known limitation (Tcl has pendulums, actual physics simulation, etc.)
 
 ### 23. `hscale`
 - [x] **Layout**: Added frame with BorderWidth(10) matching `borderwidth 7.5p`; removed outer padding
@@ -157,9 +156,8 @@ These patterns recur across nearly every demo and should be addressed globally:
 - [ ] **DPI scaling**: Tcl applies `$tk::scalingPct` scaling to canvas items — not implemented, known limitation
 
 ### 24. `icon`
-- [ ] **MAJOR**: Go demo is completely redesigned from Tcl original. Tcl shows icon bitmaps in a grid; Go shows something different.
-- [ ] Rewrite to match Tcl's icon bitmap grid display
-- [ ] Match Tcl's bitmap names and layout
+- [x] **MAJOR → Simplified version**: Go demo shows iconic button concept with Photo images (flag up/down + color squares) instead of XBM bitmaps; demonstrates checkbutton/radiobutton image usage
+- [ ] True Tcl layout (XBM bitmaps, -selectimage, -indicatoron 0) — known limitation (XBM and selectimage not implemented)
 
 ### 25. `image1`
 - [x] **Layout**: Fixed — 2 labels stacked vertically (Top), PadX(".5m") PadY(".5m"), Relief(Sunken) BorderWidth(1)
