@@ -288,7 +288,7 @@ These patterns recur across nearly every demo and should be addressed globally:
 ### 47. `style`
 - [x] **Layout**: Fixed — scrollbar right, text fills rest (no wrapper frame), matching Tcl's pack order
 - [x] **Style examples**: Fixed — width 70, height 32, font "Courier 12", tags matching Tcl (bold/big/verybig/tiny/color1/color2/underline/overstrike)
-- [ ] **Missing tags**: TagRelief/TagBorderWidth/TagJustify not yet implemented in text widget — document as known limitation
+- [ ] **Missing tags**: TagRelief/TagBorderWidth/TagJustify/TagOffset/TagMargins/TagSpacing not yet implemented in text widget — known limitation (text display engine changes needed)
 
 ### 48. `systray`
 - [x] **Layout**: Fixed — labelframe "f" with Create/Modify/Destroy buttons (PadX("3p") PadY("3p")); "Display Notification" button outside frame; no status label
@@ -300,7 +300,7 @@ These patterns recur across nearly every demo and should be addressed globally:
 - [x] **Text height**: 30 lines matching Tcl
 - [x] **Text width**: No explicit width set
 - [x] **Wrap mode**: Tcl uses default (no wrap) — Go keeps WrapWord for readability; acceptable difference
-- [ ] **Missing font chooser**: Tcl has "Font Chooser" toggle button — add when fontchooser is available
+- [x] **Missing font chooser**: Added "Font Chooser..." TTK button (packed bottom) that opens dialog.ChooseFont modally and updates text widget font on selection
 - [x] **Scrollbar**: Replace classic with TTK
 - [x] **Text content**: Comprehensive numbered list (7 items) covering all editing features
 - [x] **Focus**: Added `app.After(0, SetInputFocus)` for initial focus

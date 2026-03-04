@@ -4,6 +4,7 @@ package main
 
 import (
 	"github.com/msorc/takigo/demos/demohelper"
+	"github.com/msorc/takigo/dialog"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/ttk"
@@ -45,6 +46,20 @@ func main() {
 	tw.YScrollCmd = func(first, last float64) {
 		yscroll.Set(first, last)
 	}
+
+	// Font Chooser button (matches Tcl's fontchooser toggle in button bar).
+	fontBtn := ttk.NewButton(app, "fontchooser",
+		ttk.ButtonText("Font Chooser..."),
+		ttk.ButtonCommand(func() {
+			if f, ok := dialog.ChooseFont(app); ok {
+				if parsed, err := app.FontRegistry().Get(f); err == nil {
+					tw.Font = parsed
+					tw.Display()
+				}
+			}
+		}),
+	)
+	pack.Pack(fontBtn, pack.SideOpt(pack.Bottom), pack.PadX(4), pack.PadY(4))
 
 	pack.Pack(yscroll, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
 	pack.Pack(tw, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
