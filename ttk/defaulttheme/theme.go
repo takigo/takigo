@@ -145,6 +145,15 @@ func init() {
 		{Spec: ttk.StateSpec{OnBits: ttk.StateHover}, Value: uint64(0xececec)},
 	}
 
+	// TScrollbar styles.
+	vScrollbar := theme.GetStyle("Vertical.TScrollbar")
+	vScrollbar.Defaults["-troughcolor"] = uint64(0xc3c3c3)
+	vScrollbar.Defaults["-borderwidth"] = 1
+
+	hScrollbar := theme.GetStyle("Horizontal.TScrollbar")
+	hScrollbar.Defaults["-troughcolor"] = uint64(0xc3c3c3)
+	hScrollbar.Defaults["-borderwidth"] = 1
+
 	// Progressbar styles.
 	hProgress := theme.GetStyle("Horizontal.TProgressbar")
 	hProgress.Defaults["-troughcolor"] = uint64(0xc3c3c3)

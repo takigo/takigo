@@ -13,7 +13,7 @@ import (
 	"github.com/msorc/takigo/widget/entry"
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
-	"github.com/msorc/takigo/widget/scrollbar"
+	"github.com/msorc/takigo/ttk"
 	"github.com/msorc/takigo/widget/text"
 )
 
@@ -37,8 +37,8 @@ func main() {
 	searchEntry := entry.New(searchFrame, "entry", entry.Width(40))
 
 	// Text widget + scrollbar.
-	scroll := scrollbar.New(app, "scroll",
-		scrollbar.OrientOpt(scrollbar.Vertical),
+	scroll := ttk.NewScrollbar(app, "scroll",
+		ttk.ScrollbarOrientOpt(ttk.Vertical),
 	)
 
 	tw := text.New(app, "text",

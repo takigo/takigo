@@ -13,7 +13,7 @@ import (
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/widget/frame"
-	"github.com/msorc/takigo/widget/scrollbar"
+	"github.com/msorc/takigo/ttk"
 )
 
 func main() {
@@ -34,9 +34,9 @@ func main() {
 		canvas.ScrollRegion(-416, -416, 1890, 756),
 	)
 
-	yscroll := scrollbar.New(gridFrame, "yscroll",
-		scrollbar.OrientOpt(scrollbar.Vertical),
-		scrollbar.CommandOpt(func(args ...any) {
+	yscroll := ttk.NewScrollbar(gridFrame, "yscroll",
+		ttk.ScrollbarOrientOpt(ttk.Vertical),
+		ttk.ScrollbarCommandOpt(func(args ...any) {
 			if len(args) < 1 {
 				return
 			}
@@ -57,9 +57,9 @@ func main() {
 		}),
 	)
 
-	xscroll := scrollbar.New(gridFrame, "xscroll",
-		scrollbar.OrientOpt(scrollbar.Horizontal),
-		scrollbar.CommandOpt(func(args ...any) {
+	xscroll := ttk.NewScrollbar(gridFrame, "xscroll",
+		ttk.ScrollbarOrientOpt(ttk.Horizontal),
+		ttk.ScrollbarCommandOpt(func(args ...any) {
 			if len(args) < 1 {
 				return
 			}

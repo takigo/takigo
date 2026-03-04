@@ -10,7 +10,7 @@ import (
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/widget/button"
 	"github.com/msorc/takigo/widget/frame"
-	"github.com/msorc/takigo/widget/scrollbar"
+	"github.com/msorc/takigo/ttk"
 	"github.com/msorc/takigo/widget/text"
 )
 
@@ -39,9 +39,9 @@ func main() {
 			text.Height(10),
 			text.WrapModeOpt(text.WrapWord),
 		)
-		sb := scrollbar.New(w, "sb"+fmt.Sprint(idx),
-			scrollbar.OrientOpt(scrollbar.Vertical),
-			scrollbar.CommandOpt(func(args ...any) {
+		sb := ttk.NewScrollbar(w, "sb"+fmt.Sprint(idx),
+			ttk.ScrollbarOrientOpt(ttk.Vertical),
+			ttk.ScrollbarCommandOpt(func(args ...any) {
 				if len(args) < 1 {
 					return
 				}

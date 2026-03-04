@@ -8,7 +8,7 @@ import (
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/listbox"
-	"github.com/msorc/takigo/widget/scrollbar"
+	"github.com/msorc/takigo/ttk"
 )
 
 func main() {
@@ -53,9 +53,9 @@ func main() {
 		listbox.Height(10),
 	)
 
-	yscroll := scrollbar.New(lbFrame, "yscroll",
-		scrollbar.OrientOpt(scrollbar.Vertical),
-		scrollbar.CommandOpt(func(args ...any) {
+	yscroll := ttk.NewScrollbar(lbFrame, "yscroll",
+		ttk.ScrollbarOrientOpt(ttk.Vertical),
+		ttk.ScrollbarCommandOpt(func(args ...any) {
 			if len(args) < 1 {
 				return
 			}

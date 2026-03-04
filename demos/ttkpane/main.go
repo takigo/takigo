@@ -14,7 +14,6 @@ import (
 	_ "github.com/msorc/takigo/ttk/defaulttheme"
 	"github.com/msorc/takigo/widget/labelframe"
 	"github.com/msorc/takigo/widget/panedwindow"
-	"github.com/msorc/takigo/widget/scrollbar"
 	"github.com/msorc/takigo/widget/text"
 )
 
@@ -155,10 +154,9 @@ func main() {
 		text.BorderWidthOpt(0),
 	)
 
-	sb := scrollbar.New(textLF, "sb",
-		scrollbar.OrientOpt(scrollbar.Vertical),
-		scrollbar.WidthOpt(14),
-		scrollbar.CommandOpt(func(args ...any) {
+	sb := ttk.NewScrollbar(textLF, "sb",
+		ttk.ScrollbarOrientOpt(ttk.Vertical),
+		ttk.ScrollbarCommandOpt(func(args ...any) {
 			if len(args) < 1 {
 				return
 			}

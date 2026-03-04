@@ -8,7 +8,7 @@ import (
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/widget/entry"
 	"github.com/msorc/takigo/widget/frame"
-	"github.com/msorc/takigo/widget/scrollbar"
+	"github.com/msorc/takigo/ttk"
 )
 
 func main() {
@@ -31,9 +31,9 @@ func main() {
 		if placeholder != "" {
 			e.Placeholder = placeholder
 		}
-		sb := scrollbar.New(fr, name+"_sb",
-			scrollbar.OrientOpt(scrollbar.Horizontal),
-			scrollbar.CommandOpt(func(args ...any) {
+		sb := ttk.NewScrollbar(fr, name+"_sb",
+			ttk.ScrollbarOrientOpt(ttk.Horizontal),
+			ttk.ScrollbarCommandOpt(func(args ...any) {
 				if len(args) < 1 {
 					return
 				}

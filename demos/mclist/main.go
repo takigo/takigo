@@ -13,7 +13,6 @@ import (
 	_ "github.com/msorc/takigo/ttk/clamtheme"
 	_ "github.com/msorc/takigo/ttk/defaulttheme"
 	"github.com/msorc/takigo/widget/frame"
-	"github.com/msorc/takigo/widget/scrollbar"
 )
 
 type countryData struct {
@@ -108,9 +107,9 @@ func main() {
 	}
 
 	// Scrollbars — grid layout: tree(0,0), yscroll(0,1), xscroll(1,0).
-	yscroll := scrollbar.New(tvFrame, "vsb",
-		scrollbar.OrientOpt(scrollbar.Vertical),
-		scrollbar.CommandOpt(func(args ...any) {
+	yscroll := ttk.NewScrollbar(tvFrame, "vsb",
+		ttk.ScrollbarOrientOpt(ttk.Vertical),
+		ttk.ScrollbarCommandOpt(func(args ...any) {
 			if len(args) < 1 {
 				return
 			}
@@ -130,8 +129,8 @@ func main() {
 			}
 		}),
 	)
-	xscroll := scrollbar.New(tvFrame, "hsb",
-		scrollbar.OrientOpt(scrollbar.Horizontal),
+	xscroll := ttk.NewScrollbar(tvFrame, "hsb",
+		ttk.ScrollbarOrientOpt(ttk.Horizontal),
 	)
 
 	tv.YScrollCmd = func(first, last float64) {

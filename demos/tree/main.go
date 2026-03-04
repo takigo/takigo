@@ -16,7 +16,6 @@ import (
 	_ "github.com/msorc/takigo/ttk/clamtheme"
 	_ "github.com/msorc/takigo/ttk/defaulttheme"
 	"github.com/msorc/takigo/widget/frame"
-	"github.com/msorc/takigo/widget/scrollbar"
 )
 
 func main() {
@@ -104,9 +103,9 @@ func main() {
 	populateDir("", homeDir)
 
 	// Vertical scrollbar.
-	yscroll := scrollbar.New(tvFrame, "vsb",
-		scrollbar.OrientOpt(scrollbar.Vertical),
-		scrollbar.CommandOpt(func(args ...any) {
+	yscroll := ttk.NewScrollbar(tvFrame, "vsb",
+		ttk.ScrollbarOrientOpt(ttk.Vertical),
+		ttk.ScrollbarCommandOpt(func(args ...any) {
 			if len(args) < 1 {
 				return
 			}
@@ -131,8 +130,8 @@ func main() {
 	}
 
 	// Horizontal scrollbar (display only; X scrolling not yet implemented).
-	xscroll := scrollbar.New(tvFrame, "hsb",
-		scrollbar.OrientOpt(scrollbar.Horizontal),
+	xscroll := ttk.NewScrollbar(tvFrame, "hsb",
+		ttk.ScrollbarOrientOpt(ttk.Horizontal),
 	)
 	_ = xscroll
 

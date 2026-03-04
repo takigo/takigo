@@ -13,7 +13,7 @@ import (
 	"github.com/msorc/takigo/widget/labelframe"
 	"github.com/msorc/takigo/widget/listbox"
 	"github.com/msorc/takigo/widget/radiobutton"
-	"github.com/msorc/takigo/widget/scrollbar"
+	"github.com/msorc/takigo/ttk"
 )
 
 func main() {
@@ -58,9 +58,9 @@ func main() {
 		listbox.Height(12),
 	)
 
-	yscroll := scrollbar.New(lbFrame, "scroll",
-		scrollbar.OrientOpt(scrollbar.Vertical),
-		scrollbar.CommandOpt(func(args ...any) {
+	yscroll := ttk.NewScrollbar(lbFrame, "scroll",
+		ttk.ScrollbarOrientOpt(ttk.Vertical),
+		ttk.ScrollbarCommandOpt(func(args ...any) {
 			if len(args) < 1 {
 				return
 			}

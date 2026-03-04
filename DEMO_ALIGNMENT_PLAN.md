@@ -53,7 +53,7 @@ These patterns recur across nearly every demo and should be addressed globally:
 - [x] **Layout**: Removed wrapper frame, text+scrollbar packed directly into app; height changed to 24
 - [x] **Missing features**: Set `text.ReadOnly(true)` after inserting content (equivalent to `-state disabled`); hover highlight uses background color (TagRelief not implemented)
 - [x] **Text content**: 6 demo links matching Tcl, initial focus set via `app.After(0, SetInputFocus)`
-- [ ] **Scrollbar**: Replace classic with TTK
+- [x] **Scrollbar**: Replace classic with TTK
 
 ### 5. `bitmap`
 - [x] **Layout**: Tcl uses pack (not grid) — Go matches: two row frames, columns packed left within each row
@@ -79,7 +79,7 @@ These patterns recur across nearly every demo and should be addressed globally:
 ### 9. `colors`
 - [x] **Extra colors**: Added missing SlateGray1-4 and LightSteelBlue1-4 to match Tcl's list
 - [x] **Layout**: Fixed — frame with BorderWidth(10) matching Tcl's `borderwidth 7.5p`; FillY not FillBoth
-- [ ] **Scrollbar**: Replace classic with TTK
+- [x] **Scrollbar**: Replace classic with TTK
 
 ### 10. `combo`
 - [x] **Widget types**: Tcl uses `ttk::combobox` — Go matches (ttk.NewCombobox)
@@ -88,7 +88,7 @@ These patterns recur across nearly every demo and should be addressed globally:
 
 ### 11. `cscroll`
 - [x] **Layout**: Grid for canvas+scrollbars; fixed — removed PadX/PadY from gridFrame pack
-- [ ] **Scrollbar**: Replace classic with TTK scrollbar
+- [x] **Scrollbar**: Replace classic with TTK scrollbar
 - [x] **Canvas**: Scroll region (-416,-416,1890,756) matches Tcl's {-11c -11c 50c 20c} at 37.8px/cm; rectangles in pixel coordinates match Tcl's cm-based grid
 
 ### 12. `ctext`
@@ -96,7 +96,7 @@ These patterns recur across nearly every demo and should be addressed globally:
 - [ ] Add canvas text item creation matching Tcl
 - [ ] Add text editing bindings (click to position cursor, type to insert, backspace/delete)
 - [ ] Add selection bindings
-- [ ] **Scrollbar**: Replace classic with TTK
+- [ ] **Scrollbar**: Add TTK scrollbars (P2 item — needs major rewrite first)
 
 ### 13. `dialog1`
 - [x] **Layout**: Tcl uses `tk_dialog` immediately; Go wraps in "Show Dialog" button — acceptable architectural difference for standalone demo
@@ -167,14 +167,14 @@ These patterns recur across nearly every demo and should be addressed globally:
 ### 26. `image2`
 - [x] **Layout**: Rewrote — grid layout: dir labelframe (row 0 col 0-1), file listbox (row 1 col 0), image label (row 1 col 1); PadX("1m") PadY("1m")
 - [x] **Image list**: Lists actual image files from demos/images/ directory; "Select Dir." button reloads
-- [ ] **Scrollbar**: Replace classic with TTK
+- [x] **Scrollbar**: Replace classic with TTK
 
 ### 27. `items`
 - [ ] **Missing sections**: Go has 6 sections (Rectangles/Ovals/Lines/Polygons/Arcs/Text). Tcl has 9 sections in a 3x3 grid: also includes Curves (smooth lines), Bitmaps+Images, Windows (embedded widgets).
 - [ ] **Missing smooth lines**: `$c create line -smooth on` not implemented in canvas
 - [ ] **Missing bitmaps**: canvas bitmap items not implemented; image items should be added (load ouster.png)
 - [ ] **Missing window items**: canvas window items (embedded button/entry/scale) not implemented
-- [ ] **Scrollbar**: Replace classic with TTK
+- [ ] **Scrollbar**: Add TTK scrollbars to canvas (canvas has no scrollbar in Go yet — P2 item)
 - [ ] **Layout**: Tcl uses cm-based scroll region (30c x 24c); Go uses fixed pixel canvas — match scroll region
 
 ### 28. `knightstour`
@@ -198,7 +198,7 @@ These patterns recur across nearly every demo and should be addressed globally:
 - [x] **Layout**: Changed to grid in container frame — tree(0,0), yscroll(0,1), xscroll(1,0); removed extra PadX/PadY; fixed title to "Multi-Column List"
 - [x] **Treeview config**: 3 columns country/capital/currency; headings Country/Capital/Currency; sort by column; column widths 180/180/80 (Tcl auto-calculates from font, Go hardcodes — acceptable)
 - [x] **Data**: Match Tcl's country data list exactly — fixed South Korea→South Africa, Brasilia→Brazilia
-- [ ] **Scrollbar**: Replace classic with TTK
+- [x] **Scrollbar**: Replace classic with TTK
 
 ### 32. `menu`
 - [x] **Layout**: Status bar with PadX(2)/PadY(2) matches Tcl; menuBar frame at top; menubuttons packed left
@@ -260,14 +260,14 @@ These patterns recur across nearly every demo and should be addressed globally:
 ### 43. `sayings`
 - [x] **Layout**: Tcl uses grid — changed Go to grid; added PadX("1c") matching Tcl's `-padx 1c`
 - [x] **Data mismatch**: Go has different sayings list — Updated to Tcl's 21 sayings in Tcl's order.
-- [ ] **Scrollbar**: Replace classic with TTK
+- [x] **Scrollbar**: Replace classic with TTK
 - [x] **Listbox**: Width 20, Height 10 matches Tcl; default selectmode (browse); setgrid not supported — known limitation
 
 ### 44. `search`
 - [x] **Layout**: Fixed — two rows (File name + Load File; Search string + Highlight), PadY("3p") PadX("7.5p"), scrollbar right then text
 - [x] **Text widget**: Match text size and configuration — initial text matches Tcl, uses os.ReadFile for loading
 - [x] **Search functionality**: textSearch finds all instances, tags with "search" (yellow bg), scrolls to first match
-- [ ] **Scrollbar**: Replace classic with TTK
+- [x] **Scrollbar**: Replace classic with TTK
 
 ### 45. `spin`
 - [x] **Widget types**: Tcl uses classic `spinbox` (not ttk::spinbox) — Go matches (widget/spinbox)
@@ -297,7 +297,7 @@ These patterns recur across nearly every demo and should be addressed globally:
 - [x] **Text width**: No explicit width set
 - [x] **Wrap mode**: Tcl uses default (no wrap) — Go keeps WrapWord for readability; acceptable difference
 - [ ] **Missing font chooser**: Tcl has "Font Chooser" toggle button — add when fontchooser is available
-- [ ] **Scrollbar**: Replace classic with TTK
+- [x] **Scrollbar**: Replace classic with TTK
 - [x] **Text content**: Comprehensive numbered list (7 items) covering all editing features
 - [x] **Focus**: Added `app.After(0, SetInputFocus)` for initial focus
 - [ ] **setgrid**: Tcl uses `-setgrid 1` — not supported, known limitation
@@ -305,7 +305,7 @@ These patterns recur across nearly every demo and should be addressed globally:
 ### 50. `textpeer`
 - [ ] **MAJOR**: Go demo simulates peering with copy buttons; Tcl uses true text peering (`peer create`) — text widget peer feature not implemented, known limitation
 - [x] **Layout**: Rewrote — inner frame `w` with grid, RowSpan(2) for text+scrollbar, ColumnConfigure weight 1
-- [ ] **Scrollbar**: Replace classic with TTK
+- [x] **Scrollbar**: Replace classic with TTK
 - [x] **Text height**: Tcl uses 10 lines — changed Go to 10
 - [x] **Text width**: Tcl uses default — removed explicit Width
 - [x] **Buttons**: Changed to "Make Peer" / "Delete Peer" (simplified peering via copy)
@@ -324,7 +324,7 @@ These patterns recur across nearly every demo and should be addressed globally:
 - [x] **Heading text**: Change "#0" heading from "Name" to "Directory Structure"; change "size" heading from "Size" to "File Size"
 - [x] **Column width**: Change size column from 100 to 70
 - [x] **Missing horizontal scrollbar**: Added xscroll widget (X scrolling not yet fully implemented in treeview)
-- [ ] **Scrollbar**: Replace classic with TTK
+- [x] **Scrollbar**: Replace classic with TTK
 - [x] **Root source**: Tcl uses file volumes; Go uses home dir — acceptable platform difference
 - [ ] **Missing icons**: `tk fileicon` not available in Go — known limitation
 - [x] **Size formatting**: Change "KB" to "kB" and "B" to "bytes" to match Tcl
@@ -349,7 +349,7 @@ These patterns recur across nearly every demo and should be addressed globally:
 - [ ] **Tab 1 label**: Tcl uses ttk::label with wraplength 4i — Go uses classic label (TTK label has no wraplength yet)
 - [ ] **Tab underlines**: Tcl uses -underline 0 on tabs and button for keyboard shortcuts — not supported in Go, known limitation
 - [x] **Tab padding**: Added PadX("1.5p") PadY("3p") on notebook, PadY("1.5p") on grid items
-- [ ] **Scrollbar**: Replace classic with TTK in Tab 3
+- [x] **Scrollbar**: Replace classic with TTK in Tab 3
 - [x] **Scrollbar padding**: Added PadX("1.5p") PadY("1.5p") on scrollbar and text
 - [ ] **Ctrl+Tab traversal**: Requires `ttk::notebook::enableTraversal` — known limitation
 - [x] **"Neat!" label**: Classic label is used (textvariable implemented as manual Text update)
@@ -390,7 +390,7 @@ These patterns recur across nearly every demo and should be addressed globally:
 - [x] **Text dimensions**: Changed from 55x28 to 70x35
 - [ ] **Missing embedded windows**: Buttons inside text, canvas plot, color buttons, image embedding — not implemented
 - [ ] **Missing tags**: center (justify center), buttons (margins), spacing tags
-- [ ] **Scrollbar**: Replace classic with TTK; add horizontal scrollbar toggle
+- [x] **Scrollbar**: Replace classic with TTK; add horizontal scrollbar toggle
 - [x] **Border settings**: Added `text.BorderWidthOpt(0)` and `tw.HighlightWidth = 0`
 
 ### 61. `unicodeout`

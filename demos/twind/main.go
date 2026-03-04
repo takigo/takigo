@@ -9,7 +9,7 @@ import (
 	"github.com/msorc/takigo/widget/button"
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
-	"github.com/msorc/takigo/widget/scrollbar"
+	"github.com/msorc/takigo/ttk"
 	"github.com/msorc/takigo/widget/text"
 )
 
@@ -34,7 +34,7 @@ func main() {
 	)
 	tw.HighlightWidth = 0
 
-	yscroll := scrollbar.New(txtFrame, "yscroll")
+	yscroll := ttk.NewScrollbar(txtFrame, "yscroll")
 	tw.YScrollCmd = func(first, last float64) { yscroll.Set(first, last) }
 	yscroll.Command = func(args ...interface{}) {
 		if len(args) >= 2 {
