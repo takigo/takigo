@@ -1,17 +1,29 @@
 // Demo: Building floorplan drawn on canvas.
-// Ported from Tk's floor.tcl demo (simplified — basic floor layout).
+// Ported from Tk's floor.tcl demo (simplified layout with room hover highlighting).
 package main
 
 import (
+	"fmt"
+
 	"github.com/msorc/takigo/canvas"
 	"github.com/msorc/takigo/demos/demohelper"
+	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/widget/label"
 )
 
 func main() {
 	app := demohelper.Setup("Floor Plan Demonstration", 650, 500,
 		"This window contains a canvas widget showing a floorplan. As the mouse moves over the active level, the room under the mouse lights up and its room number appears in the entry.")
+
+	// Status label (bottom) — shows room under cursor.
+	statusLabel := label.New(app, "status",
+		label.Text(""),
+		label.Anchor(option.AnchorW),
+		label.PadX(10),
+	)
+	pack.Pack(statusLabel, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	// Canvas.
 	c := canvas.New(app, "floor",
@@ -23,42 +35,80 @@ func main() {
 		pack.Expand(true), pack.PadX(10), pack.PadY(5))
 
 	wallColor := "#333333"
-	wallWidth := 3
 	roomFill := "#e8e8d0"
+	roomHighlight := "#ffffaa"
 	doorColor := "#8B4513"
 
 	// Outer walls.
 	c.CreateRectangle(20, 20, 580, 360,
-		canvas.OutlineColor(wallColor), canvas.OutlineWidth(wallWidth),
+		canvas.OutlineColor(wallColor), canvas.OutlineWidth(3),
 		canvas.FillColor(roomFill))
 
 	// Room dividers (internal walls).
-	// Horizontal walls.
-	c.CreateLine([]float64{20, 180, 350, 180},
-		canvas.OutlineColor(wallColor), canvas.OutlineWidth(wallWidth))
-	c.CreateLine([]float64{400, 180, 580, 180},
-		canvas.OutlineColor(wallColor), canvas.OutlineWidth(wallWidth))
+	c.CreateLine([]float64{20, 180, 350, 180}, canvas.OutlineColor(wallColor), canvas.OutlineWidth(3))
+	c.CreateLine([]float64{400, 180, 580, 180}, canvas.OutlineColor(wallColor), canvas.OutlineWidth(3))
+	c.CreateLine([]float64{200, 20, 200, 130}, canvas.OutlineColor(wallColor), canvas.OutlineWidth(3))
+	c.CreateLine([]float64{200, 180, 200, 360}, canvas.OutlineColor(wallColor), canvas.OutlineWidth(3))
+	c.CreateLine([]float64{400, 20, 400, 180}, canvas.OutlineColor(wallColor), canvas.OutlineWidth(3))
+	c.CreateLine([]float64{400, 230, 400, 360}, canvas.OutlineColor(wallColor), canvas.OutlineWidth(3))
 
-	// Vertical walls.
-	c.CreateLine([]float64{200, 20, 200, 130},
-		canvas.OutlineColor(wallColor), canvas.OutlineWidth(wallWidth))
-	c.CreateLine([]float64{200, 180, 200, 360},
-		canvas.OutlineColor(wallColor), canvas.OutlineWidth(wallWidth))
-	c.CreateLine([]float64{400, 20, 400, 180},
-		canvas.OutlineColor(wallColor), canvas.OutlineWidth(wallWidth))
-	c.CreateLine([]float64{400, 230, 400, 360},
-		canvas.OutlineColor(wallColor), canvas.OutlineWidth(wallWidth))
+	// Doors.
+	c.CreateRectangle(195, 130, 205, 180, canvas.FillColor(doorColor), canvas.OutlineColor(doorColor))
+	c.CreateRectangle(350, 175, 400, 185, canvas.FillColor(doorColor), canvas.OutlineColor(doorColor))
+	c.CreateRectangle(395, 230, 405, 270, canvas.FillColor(doorColor), canvas.OutlineColor(doorColor))
 
-	// Doors (small gaps represented by colored rectangles).
-	c.CreateRectangle(195, 130, 205, 180,
-		canvas.FillColor(doorColor), canvas.OutlineColor(doorColor))
-	c.CreateRectangle(350, 175, 400, 185,
-		canvas.FillColor(doorColor), canvas.OutlineColor(doorColor))
-	c.CreateRectangle(395, 230, 405, 270,
-		canvas.FillColor(doorColor), canvas.OutlineColor(doorColor))
+	// Furniture.
+	c.CreateRectangle(260, 70, 340, 130,
+		canvas.FillColor("#b8860b"), canvas.OutlineColor("#8b6914"), canvas.OutlineWidth(1))
+	c.CreateRectangle(50, 50, 100, 80,
+		canvas.FillColor("#cd853f"), canvas.OutlineColor("#8b5e3c"), canvas.OutlineWidth(1))
+	c.CreateRectangle(460, 50, 540, 80,
+		canvas.FillColor("#cd853f"), canvas.OutlineColor("#8b5e3c"), canvas.OutlineWidth(1))
+	c.CreateRectangle(460, 250, 540, 280,
+		canvas.FillColor("#cd853f"), canvas.OutlineColor("#8b5e3c"), canvas.OutlineWidth(1))
 
-	// Room labels.
-	rooms := []struct {
+	// Define rooms: transparent overlay rectangles with "room" tag for hover detection.
+	// These sit on top and catch mouse events; FillNone makes them transparent.
+	type roomDef struct {
+		x1, y1, x2, y2 float64
+		name            string
+	}
+	rooms := []roomDef{
+		{22, 22, 198, 178, "Office A"},
+		{202, 22, 398, 178, "Conference Room"},
+		{402, 22, 578, 178, "Office B"},
+		{22, 182, 198, 358, "Kitchen"},
+		{202, 182, 398, 358, "Lobby"},
+		{402, 182, 578, 358, "Office C"},
+	}
+
+	// origFill stores the fill color before highlighting.
+	origFill := map[string]string{}
+
+	for _, r := range rooms {
+		id := c.CreateRectangle(r.x1, r.y1, r.x2, r.y2,
+			canvas.FillColor(roomFill),
+			canvas.OutlineColor(""),
+			canvas.OutlineWidth(0),
+			canvas.Tags("room"),
+		)
+		idStr := fmt.Sprintf("%d", id)
+		origFill[idStr] = roomFill
+		name := r.name // capture for closure
+		c.BindItem(idStr, event.EnterMask, func(ev *event.Event) {
+			c.ItemConfigure(idStr, canvas.FillColor(roomHighlight))
+			statusLabel.Text = name
+			statusLabel.Display()
+		})
+		c.BindItem(idStr, event.LeaveMask, func(ev *event.Event) {
+			c.ItemConfigure(idStr, canvas.FillColor(origFill[idStr]))
+			statusLabel.Text = ""
+			statusLabel.Display()
+		})
+	}
+
+	// Room labels (on top of room overlays).
+	labelDefs := []struct {
 		x, y float64
 		name string
 	}{
@@ -69,27 +119,13 @@ func main() {
 		{300, 270, "Lobby"},
 		{490, 270, "Office C"},
 	}
-
-	for _, r := range rooms {
+	for _, r := range labelDefs {
 		c.CreateText(r.x, r.y,
 			canvas.TextOpt(r.name),
 			canvas.FontOpt("Sans 10"),
 			canvas.TextColor("#555555"),
 			canvas.AnchorOpt(option.AnchorCenter))
 	}
-
-	// Furniture (simple rectangles).
-	// Conference table.
-	c.CreateRectangle(260, 70, 340, 130,
-		canvas.FillColor("#b8860b"), canvas.OutlineColor("#8b6914"), canvas.OutlineWidth(1))
-
-	// Desks in offices.
-	c.CreateRectangle(50, 50, 100, 80,
-		canvas.FillColor("#cd853f"), canvas.OutlineColor("#8b5e3c"), canvas.OutlineWidth(1))
-	c.CreateRectangle(460, 50, 540, 80,
-		canvas.FillColor("#cd853f"), canvas.OutlineColor("#8b5e3c"), canvas.OutlineWidth(1))
-	c.CreateRectangle(460, 250, 540, 280,
-		canvas.FillColor("#cd853f"), canvas.OutlineColor("#8b5e3c"), canvas.OutlineWidth(1))
 
 	// Title.
 	c.CreateText(300, 375,

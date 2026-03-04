@@ -130,10 +130,10 @@ These patterns recur across nearly every demo and should be addressed globally:
 
 ### 19. `floor`
 - [ ] **MAJOR**: Go demo is significantly simplified. Tcl has multi-floor building with interactive room highlighting, tooltips, and color changes on hover.
-- [ ] Add all floor canvas items matching Tcl's complex building layout
-- [ ] Add room hover highlighting (enter/leave bindings)
-- [ ] Add room labels and tooltips
-- [ ] Add multi-floor support (Tcl has floor1/floor2/floor3 tabs or buttons)
+- [ ] Add all floor canvas items matching Tcl's complex building layout — known limitation (hundreds of DEC WRL polygon coordinates, too complex to port)
+- [x] Add room hover highlighting (enter/leave bindings) — implemented via transparent room overlays with BindItem per-room
+- [x] Add room labels and tooltips — room labels + status label shows room name on hover
+- [ ] Add multi-floor support (Tcl has floor1/floor2/floor3 tabs or buttons) — known limitation
 
 ### 20. `fontchoose`
 - [x] **Layout**: Changed to grid inside inner frame — text+scrollbar row 0, button row 1 sticky-E
