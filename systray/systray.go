@@ -25,15 +25,17 @@ type TrayIcon struct {
 	display platform.DisplayServer
 	app     widget.AppContext
 
-	tooltip      string
-	clickHandler func()
+	tooltip           string
+	clickHandler      func()
+	rightClickHandler func(x, y int)
 }
 
 // TrayOption configures a TrayIcon.
 type TrayOption func(*TrayIcon)
 
-func TrayTooltip(s string) TrayOption       { return func(t *TrayIcon) { t.tooltip = s } }
-func TrayClickHandler(fn func()) TrayOption { return func(t *TrayIcon) { t.clickHandler = fn } }
+func TrayTooltip(s string) TrayOption                    { return func(t *TrayIcon) { t.tooltip = s } }
+func TrayClickHandler(fn func()) TrayOption              { return func(t *TrayIcon) { t.clickHandler = fn } }
+func TrayRightClickHandler(fn func(x, y int)) TrayOption { return func(t *TrayIcon) { t.rightClickHandler = fn } }
 
 // New creates a new system tray icon and docks it.
 // Returns an error if no system tray manager is running.
@@ -93,14 +95,14 @@ func New(app widget.AppContext, winDisplay *window.Display, opts ...TrayOption) 
 	)
 	d.Flush()
 
-	// Bind click handler.
-	if t.clickHandler != nil {
-		app.Dispatcher().Bind(iconWin, event.ButtonPressMask, func(ev *event.Event) {
-			if ev.Button == 1 && t.clickHandler != nil {
-				t.clickHandler()
-			}
-		})
-	}
+	// Bind click handlers.
+	app.Dispatcher().Bind(iconWin, event.ButtonPressMask, func(ev *event.Event) {
+		if ev.Button == 1 && t.clickHandler != nil {
+			t.clickHandler()
+		} else if ev.Button == 3 && t.rightClickHandler != nil {
+			t.rightClickHandler(ev.RootX, ev.RootY)
+		}
+	})
 
 	// Bind expose to draw a simple icon placeholder.
 	app.Dispatcher().Bind(iconWin, event.ExposureMask, func(ev *event.Event) {

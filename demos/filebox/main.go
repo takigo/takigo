@@ -9,6 +9,8 @@ import (
 	"github.com/msorc/takigo/dialog"
 	"github.com/msorc/takigo/geometry/grid"
 	"github.com/msorc/takigo/geometry/pack"
+	"github.com/msorc/takigo/ttk"
+	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/button"
 	"github.com/msorc/takigo/widget/entry"
 	"github.com/msorc/takigo/widget/frame"
@@ -85,6 +87,15 @@ func main() {
 	}
 
 	grid.ColumnConfigure(f.Window(), 1, grid.SlotConfig{Weight: 1})
+
+	// X11: "Use Motif Style Dialog" checkbutton (matches Tcl's x11 windowingsystem check).
+	strictMotif := widget.NewVariable(false)
+	strictCb := ttk.NewCheckbutton(app, "strict",
+		ttk.CheckbuttonText("Use Motif Style Dialog"),
+		ttk.CheckbuttonVar(strictMotif),
+	)
+	pack.Pack(strictCb, pack.SideOpt(pack.Top))
+	_ = strictCb
 
 	app.Run()
 }

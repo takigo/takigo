@@ -7,8 +7,7 @@ import (
 	"github.com/msorc/takigo/dialog"
 	"github.com/msorc/takigo/geometry/grid"
 	"github.com/msorc/takigo/geometry/pack"
-	"github.com/msorc/takigo/widget/button"
-	"github.com/msorc/takigo/widget/frame"
+	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/ttk"
 	"github.com/msorc/takigo/widget/text"
 )
@@ -18,9 +17,9 @@ func main() {
 		"Press the button below to choose a new font for the text shown in this window.")
 
 	// Content frame (sunken border like the Tk original), packed into app.
-	f := frame.New(app, "f",
-		frame.BorderWidth(2),
-		frame.Relief(1), // sunken
+	f := ttk.NewFrame(app, "f",
+		ttk.FrameRelief(option.ReliefSunken),
+		ttk.FramePadding(ttk.Padding{Top: 2, Right: 2, Bottom: 2, Left: 2}),
 	)
 	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true),
 		pack.PadX(10), pack.PadY(5))
@@ -71,9 +70,9 @@ func main() {
 	currentFontDesc := ""
 
 	// "Set font ..." button — row 1, spans both columns, sticky east.
-	setFontBtn := button.New(f, "font",
-		button.Text("Set font ..."),
-		button.Command(func() {
+	setFontBtn := ttk.NewButton(f, "font",
+		ttk.ButtonText("Set font ..."),
+		ttk.ButtonCommand(func() {
 			opts := []dialog.FontOption{
 				dialog.FontTitle("Font Selection"),
 			}

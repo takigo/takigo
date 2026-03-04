@@ -9,11 +9,21 @@ import (
 	"github.com/msorc/takigo/systray"
 	"github.com/msorc/takigo/widget/button"
 	"github.com/msorc/takigo/widget/labelframe"
+	"github.com/msorc/takigo/widget/menu"
 )
 
 func main() {
 	app := demohelper.Setup("System Tray Demonstration", 400, 200,
 		"This demonstration showcases the system tray commands. Running this demo creates the systray icon. Clicking the buttons below modifies and destroys the icon and displays the notification.")
+
+	// Context menu for right-click on tray icon (matches Tcl's button3 handler).
+	iconMenu := menu.New(app, "iconmenu")
+	iconMenu.AddCommand("Status", func() {
+		dialog.ShowMessage(app, dialog.MsgTitle("Systray"), dialog.MsgMessage("Systray icon is active"))
+	})
+	iconMenu.AddCommand("Exit", func() {
+		app.Quit()
+	})
 
 	var tray *systray.TrayIcon
 	modified := false
@@ -27,6 +37,9 @@ func main() {
 		tray, err = systray.New(app, app.Display(),
 			systray.TrayTooltip("Takigo Demo"),
 			systray.TrayClickHandler(func() {}),
+			systray.TrayRightClickHandler(func(x, y int) {
+				iconMenu.Post(x, y)
+			}),
 		)
 		if err != nil {
 			tray = nil

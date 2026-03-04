@@ -14,7 +14,6 @@ import (
 	_ "github.com/msorc/takigo/ttk/defaulttheme"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/labelframe"
-	"github.com/msorc/takigo/widget/radiobutton"
 )
 
 func main() {
@@ -101,10 +100,10 @@ func main() {
 		{"Poor", "poor"},
 		{"Awful", "awful"},
 	} {
-		r := radiobutton.New(radFrame, fmt.Sprintf("r%d", i+1),
-			radiobutton.Text(item.text),
-			radiobutton.Value(item.value),
-			radiobutton.Var(happiness),
+		r := ttk.NewRadiobutton(radFrame, fmt.Sprintf("r%d", i+1),
+			ttk.RadiobuttonText(item.text),
+			ttk.RadiobuttonValue(item.value),
+			ttk.RadiobuttonVar(happiness),
 		)
 		pack.Pack(r, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
 			pack.PadX("3p"), pack.PadY("1.5p"))

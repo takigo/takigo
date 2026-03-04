@@ -125,6 +125,7 @@ These patterns recur across nearly every demo and should be addressed globally:
 - [x] **Layout**: Fixed — outer frame PadX("1c"), grid padding PadY("3p") PadX("3p")
 - [x] **Button commands**: OpenFile/SaveFile dialogs with matching file types; open type toggles Open vs Save dialog
 - [x] **Types list**: Updated file type filter list to match Tcl
+- [x] **Motif checkbutton**: Added "Use Motif Style Dialog" ttk::checkbutton (X11 only, matches Tcl)
 
 ### 19. `floor`
 - [ ] **MAJOR**: Go demo is significantly simplified. Tcl has multi-floor building with interactive room highlighting, tooltips, and color changes on hover.
@@ -135,7 +136,7 @@ These patterns recur across nearly every demo and should be addressed globally:
 
 ### 20. `fontchoose`
 - [x] **Layout**: Changed to grid inside inner frame — text+scrollbar row 0, button row 1 sticky-E
-- [ ] **Widget types**: Tcl uses ttk::frame (sunken relief+padding 1.5p), ttk::scrollbar, ttk::button — Go uses classic frame+button; scrollbar is S1 issue
+- [x] **Widget types**: Converted to ttk::frame (sunken relief + padding), ttk::scrollbar (S1 done), ttk::button — matches Tcl
 - [x] **Font preview**: Text widget width 40, height 6, same initial text, font changes on Apply — matches Tcl
 
 ### 21. `form`
@@ -292,7 +293,7 @@ These patterns recur across nearly every demo and should be addressed globally:
 - [x] **Layout**: Fixed — labelframe "f" with Create/Modify/Destroy buttons (PadX("3p") PadY("3p")); "Display Notification" button outside frame; no status label
 - [x] **Icon**: Auto-creates tray icon at startup (matching Tcl's `create` call at end); Modify toggles tooltip
 - [x] **Notification**: Added "Display Notification" button using dialog.ShowMessage as fallback (tk sysnotify not implemented)
-- [ ] **Context menu**: Tcl has right-click popup menu with Status/Exit; not implemented in Go systray
+- [x] **Context menu**: Added right-click popup menu with Status/Exit commands; TrayRightClickHandler(func(x,y int)) added to systray package
 
 ### 49. `text`
 - [x] **Text height**: 30 lines matching Tcl
@@ -338,6 +339,8 @@ These patterns recur across nearly every demo and should be addressed globally:
 - [x] **Padding**: Fixed — buttons/checkbuttons PadY("1.5p"), radiobuttons PadX("3p") PadY("1.5p")
 - [x] **Theme sorting**: Added `sort.Strings(themes)` matching Tcl's `lsort [ttk::themes]`
 - [x] **Grid bug**: Fixed duplicate grid call
+- [x] **TTK Radiobutton**: Converted radiobutton.New → ttk.NewRadiobutton (uses new ttk/radiobutton.go)
+- [x] **TTK Checkbutton**: Already using ttk.NewCheckbutton (from previous session)
 
 ### 54. `ttkmenu`
 - [ ] **m4 style**: Tcl applies `-style TMenubutton.Toolbutton` to m4 (toolbar-style button appearance). No custom style API in Go yet — known limitation.
