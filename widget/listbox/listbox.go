@@ -55,6 +55,9 @@ type Listbox struct {
 	XScrollCmd func(first, last float64)
 
 	HasFocus bool
+
+	// Text justification within items (left/center/right).
+	Justify option.Justify
 }
 
 type colorRef struct {
@@ -75,6 +78,9 @@ func SelectModeOpt(m SelectMode) ListboxOption {
 }
 func Width(w int) ListboxOption  { return func(lb *Listbox) { lb.PrefWidth = w } }
 func Height(h int) ListboxOption { return func(lb *Listbox) { lb.PrefHeight = h } }
+func JustifyOpt(j option.Justify) ListboxOption {
+	return func(lb *Listbox) { lb.Justify = j }
+}
 
 func Background(name string) ListboxOption {
 	return func(lb *Listbox) {
@@ -285,6 +291,12 @@ func (lb *Listbox) ItemConfigure(idx int, fg, bg string) {
 	}
 }
 
+// SetJustify changes the text justification and redraws.
+func (lb *Listbox) SetJustify(j option.Justify) {
+	lb.Justify = j
+	lb.Display()
+}
+
 // See scrolls the listbox so that the item at index is visible.
 func (lb *Listbox) See(index int) {
 	if index < 0 {
@@ -463,7 +475,18 @@ func (lb *Listbox) Display() {
 		}
 
 		rowY := lb.inset + i*lb.lineHeight
-		textX := lb.inset + 2 - lb.xOffset
+		text := lb.items[itemIdx]
+		textW := lb.Font.MeasureString(text)
+		availW := clipRight - lb.inset - 4
+		var textX int
+		switch lb.Justify {
+		case option.JustifyCenter:
+			textX = lb.inset + 2 + (availW-textW)/2
+		case option.JustifyRight:
+			textX = clipRight - 2 - textW
+		default: // JustifyLeft
+			textX = lb.inset + 2 - lb.xOffset
+		}
 		textY := rowY + m.Ascent + 1
 
 		isSelected := lb.selected[itemIdx]
@@ -484,7 +507,6 @@ func (lb *Listbox) Display() {
 		}
 
 		// Text.
-		text := lb.items[itemIdx]
 		if isSelected && lb.SelFg != nil {
 			df.DrawString(w.Drawable(), textX, textY, text,
 				lb.SelFg.Pixel, lb.SelFg.Red, lb.SelFg.Green, lb.SelFg.Blue)
@@ -500,7 +522,7 @@ func (lb *Listbox) Display() {
 		if lb.HasFocus && itemIdx == lb.activeIndex && lb.Foreground != nil {
 			lineY := textY + m.Descent - 1
 			d.SetForeground(gc, lb.Foreground.Pixel)
-			d.DrawLine(w.Drawable(), gc, textX, lineY, textX+lb.Font.MeasureString(text), lineY)
+			d.DrawLine(w.Drawable(), gc, textX, lineY, textX+textW, lineY)
 		}
 	}
 

@@ -57,8 +57,9 @@ func main() {
 
 	// --- Toolbar contents (matches Tk's toolbar.tcl) ---
 
-	// Button.
+	// Button (Toolbutton style: flat, raised on hover).
 	btnNew := ttk.NewButton(toolbar, "button",
+		ttk.ButtonStyleOpt("Toolbutton"),
 		ttk.ButtonText("Button"),
 		ttk.ButtonCommand(func() { appendMsg("Button Pressed") }),
 	)
@@ -79,13 +80,14 @@ func main() {
 	sep := ttk.NewSeparator(toolbar, "sep", ttk.SeparatorOrient(ttk.Vertical))
 	pack.Pack(sep, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillY), pack.PadX("1.5p"), pack.PadY("3p"))
 
-	// Menubutton with example commands.
+	// Menubutton with example commands (Toolbutton style).
 	exMenu := menu.New(app, "exmenu")
 	exMenu.AddCommand("Just", func() { appendMsg("Just") })
 	exMenu.AddCommand("An", func() { appendMsg("An") })
 	exMenu.AddCommand("Example", func() { appendMsg("Example") })
 
 	menuBtn := ttk.NewMenubutton(toolbar, "menu",
+		ttk.MenubuttonStyleOpt("TMenubutton.Toolbutton"),
 		ttk.MenubuttonText("Menu"),
 		ttk.MenubuttonMenu(exMenu),
 	)

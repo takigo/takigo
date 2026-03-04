@@ -63,6 +63,12 @@ func ButtonFont(name string) ButtonOption {
 	}
 }
 
+// ButtonStyleOpt overrides the TTK style name (e.g. "Toolbutton").
+// Must be applied before other options that depend on the layout.
+func ButtonStyleOpt(name string) ButtonOption {
+	return func(b *Button) { b.StyleName = name }
+}
+
 // NewButton creates a themed button widget.
 func NewButton(parent widget.Caregiver, name string, opts ...ButtonOption) *Button {
 	app := parent.AppContext()
@@ -91,6 +97,26 @@ func NewButton(parent widget.Caregiver, name string, opts ...ButtonOption) *Butt
 
 	for _, opt := range opts {
 		opt(b)
+	}
+
+	// If style was overridden, rebuild layout with the new style.
+	if b.StyleName != "TButton" && b.Theme != nil {
+		style := b.Theme.ResolveStyle(b.StyleName)
+		b.Context.Style = style
+		labelFactory := NewLabelElementFactory(b)
+		tmpl := b.Theme.GetLayout(b.StyleName)
+		if tmpl == nil {
+			tmpl = b.Theme.GetLayout("TButton")
+		}
+		if tmpl != nil {
+			ctx := &DrawContext{
+				Display: b.Context.Display,
+				Depth:   b.Context.Depth,
+				Style:   style,
+			}
+			b.Layout = newLayoutWithLabel(tmpl, b.Theme, ctx, style, labelFactory)
+			b.Context = ctx
+		}
 	}
 
 	// Recompute size.

@@ -6,6 +6,7 @@ import (
 	"github.com/msorc/takigo/canvas"
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/pack"
+	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/scale"
 )
@@ -61,8 +62,8 @@ func main() {
 		}),
 	)
 
-	pack.Pack(sc, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillY))
-	pack.Pack(c, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillY))
+	pack.Pack(sc, pack.SideOpt(pack.Left), pack.Anchor(option.AnchorNE))
+	pack.Pack(c, pack.SideOpt(pack.Left), pack.Anchor(option.AnchorNW), pack.FillOpt(pack.FillY))
 
 	// Set initial arrow.
 	setHeight(c, 75)

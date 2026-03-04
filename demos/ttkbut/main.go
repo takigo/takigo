@@ -120,10 +120,10 @@ func main() {
 	grid.Grid(radFrame, grid.Row(0), grid.Column(2),
 		grid.Sticky(nwe), grid.PadX("3p"), grid.PadY("1.5p"))
 
-	// Equal column weights (Tcl uses -uniform yes; not yet supported in grid).
-	grid.ColumnConfigure(container.Window(), 0, grid.SlotConfig{Weight: 1})
-	grid.ColumnConfigure(container.Window(), 1, grid.SlotConfig{Weight: 1})
-	grid.ColumnConfigure(container.Window(), 2, grid.SlotConfig{Weight: 1})
+	// Equal column weights with uniform sizing.
+	grid.ColumnConfigure(container.Window(), 0, grid.SlotConfig{Weight: 1, Uniform: "yes"})
+	grid.ColumnConfigure(container.Window(), 1, grid.SlotConfig{Weight: 1, Uniform: "yes"})
+	grid.ColumnConfigure(container.Window(), 2, grid.SlotConfig{Weight: 1, Uniform: "yes"})
 	grid.RowConfigure(container.Window(), 0, grid.SlotConfig{Weight: 1})
 
 	_ = c1

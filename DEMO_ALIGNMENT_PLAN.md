@@ -66,7 +66,7 @@ These patterns recur across nearly every demo and should be addressed globally:
 - [x] **Content**: Changed colors to X11 named colors (PeachPuff1, LightBlue1, SeaGreen2, Yellow1)
 
 ### 7. `check`
-- [ ] **Missing tri-state**: Tcl checkbutton uses onvalue="all"/offvalue="none"/tristatevalue="partial" on master button. Go only has bool — shows partial as unchecked. Known limitation.
+- [x] **Tri-state visual**: Added `Indeterminate bool` field + `SetIndeterminate(bool)` method to checkbutton; draws a horizontal dash in the indicator when partial. Demo uses `masterCb.SetIndeterminate(true)` when 1 or 2 of 3 sub-buttons are checked — matches Tcl's tristatevalue="partial" visual.
 - [x] **Widget types**: Tcl uses classic `checkbutton` (not ttk) — Go matches
 - [x] **Layout**: Fixed PadY("1.5p"), PadX("12p")
 - [x] **Variable linkage**: Variable[bool] works correctly for on/off; master tristate logic approximated (shows checked only when all three are on)
@@ -251,6 +251,7 @@ These patterns recur across nearly every demo and should be addressed globally:
 - [x] **Widget types**: Tcl uses classic `radiobutton` (not ttk) — Go matches; tristatevalue="multi" not implemented (known limitation)
 - [x] **Layout**: Rewrote — inner body frame, grid with 3 labelframes (size/color/align), tristate button, PadX(".5c") PadY(".5c"); compass grid inside alignFrame; PadY("1.5p") for inner items
 - [x] **Variable linkage**: Variable[string] linkage working; tristate uses Variable[bool]
+- [x] **Alignment buttons**: Added `IndicatorOnOpt(false)` — buttons render as toggle buttons (raised/sunken) matching Tcl's `-indicatoron 0`; alignVar observer updates center label Compound on selection
 
 ### 42. `ruler`
 - [x] **Missing interactivity**: Fully interactive — drag from well to create new tabs; drag existing tabs to move; drag far out to delete (shown in gray, deleted on release); grid snap at 0.25c intervals
@@ -281,7 +282,7 @@ These patterns recur across nearly every demo and should be addressed globally:
 - [x] **Layout**: Fixed — added justification labelframe with Left/Center/Right radiobuttons; lbFrame BorderWidth(19) (≈.5c); removed PadX/PadY; FillY
 - [x] **Widget types**: Tcl uses ttk::scrollbar — now uses ttk.NewScrollbar
 - [ ] **radiobuttons tristatevalue**: `-tristatevalue "multi"` for multi-selection state — not implemented, known limitation
-- [x] **States**: All 50 US states in alphabetical order — matches Tcl exactly; justify command N/A (listbox has no justify option in Go)
+- [x] **States**: All 50 US states in alphabetical order — matches Tcl exactly; added `Justify option.Justify` field + `SetJustify(j)` + `JustifyOpt` to listbox; justify radiobuttons now functional
 
 ### 47. `style`
 - [x] **Layout**: Fixed — scrollbar right, text fills rest (no wrapper frame), matching Tcl's pack order
@@ -316,7 +317,7 @@ These patterns recur across nearly every demo and should be addressed globally:
 ### 51. `toolbar`
 - [x] **Layout**: Changed to grid inside inner frame — toolbar(row 0), sep(row 1), text(row 2 expand)
 - [ ] **Missing tearoff**: Tcl has tearoff grip mechanism — complex, known limitation
-- [ ] **Missing Toolbutton style**: Tcl applies `-style Toolbutton` to buttons — no TTK Toolbutton style in Go yet, known limitation
+- [x] **Toolbutton style**: Added "Toolbutton" TTK style (flat default, raised on hover, sunken on press); applied to button and menubutton in toolbar
 - [x] **Checkbutton**: Replaced simulated button with ttk.NewCheckbutton + Variable[bool] — matches Tcl's ttk::checkbutton (without Toolbutton style indicator suppression)
 - [x] **Font change**: Tcl combobox selection changes text widget font. Added font change on combobox select.
 - [x] **Text scrollbar**: Tcl has no scrollbar on text widget. Removed extra scrollbar.
@@ -335,7 +336,7 @@ These patterns recur across nearly every demo and should be addressed globally:
 ### 53. `ttkbut`
 - [ ] **Missing toggleswitch**: No toggleswitch widget in Go — known limitation.
 - [x] **Layout grid**: Fixed — removed container PadX/PadY, fixed RowConfigure to row 0, PadX("3p") PadY("1.5p")
-- [ ] **Missing `-uniform yes`**: grid.ColumnConfigure uniform not supported — known limitation
+- [x] **Missing `-uniform yes`**: Implemented `Uniform string` in `SlotConfig`; groups columns/rows so they all get the max of their minimum sizes. Applied to ttkbut.
 - [x] **Padding**: Fixed — buttons/checkbuttons PadY("1.5p"), radiobuttons PadX("3p") PadY("1.5p")
 - [x] **Theme sorting**: Added `sort.Strings(themes)` matching Tcl's `lsort [ttk::themes]`
 - [x] **Grid bug**: Fixed duplicate grid call
@@ -343,7 +344,7 @@ These patterns recur across nearly every demo and should be addressed globally:
 - [x] **TTK Checkbutton**: Already using ttk.NewCheckbutton (from previous session)
 
 ### 54. `ttkmenu`
-- [ ] **m4 style**: Tcl applies `-style TMenubutton.Toolbutton` to m4 (toolbar-style button appearance). No custom style API in Go yet — known limitation.
+- [x] **m4 style**: Applied `MenubuttonStyleOpt("TMenubutton.Toolbutton")` to m4 — flat toolbar-style appearance; "TMenubutton.Toolbutton" style added to both default and clam themes.
 - [x] **m5 direction**: Added `ttk.MenubuttonDirection(ttk.DirBelow)` to m5
 - [x] **Padding**: Fixed grid PadX("2.25p") PadY("1.5p") for all five menubuttons
 - [x] **Description text**: Go text is shorter — match Tcl's longer description
@@ -356,7 +357,7 @@ These patterns recur across nearly every demo and should be addressed globally:
 - [x] **Tab padding**: Added PadX("1.5p") PadY("3p") on notebook, PadY("1.5p") on grid items
 - [x] **Scrollbar**: Replace classic with TTK in Tab 3
 - [x] **Scrollbar padding**: Added PadX("1.5p") PadY("1.5p") on scrollbar and text
-- [ ] **Ctrl+Tab traversal**: Requires `ttk::notebook::enableTraversal` — known limitation
+- [x] **Ctrl+Tab traversal**: Added Ctrl+Tab (next tab) and Ctrl+Shift+Tab (prev tab) key bindings to notebook widget; tab click gives focus to notebook; matches `ttk::notebook::enableTraversal`
 - [x] **"Neat!" label**: Classic label is used (textvariable implemented as manual Text update)
 
 ### 56. `ttkpane`

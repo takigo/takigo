@@ -113,6 +113,13 @@ func Anchor(a option.Anchor) Option {
 	return func(r *Radiobutton) { r.Anchor = a }
 }
 
+// IndicatorOnOpt sets whether the circle indicator is shown.
+// When false the button renders like a toggle button: raised when
+// unselected, sunken when selected (matching Tk's -indicatoron 0).
+func IndicatorOnOpt(on bool) Option {
+	return func(r *Radiobutton) { r.IndicatorOn = on }
+}
+
 // PadX sets horizontal padding.
 // Accepts int (pixels), float64 (rounded pixels), or string with unit suffix ("3p", "2m", "1c", "0.5i").
 func PadX(p any) Option {
@@ -188,7 +195,11 @@ func (r *Radiobutton) computeGeometry() {
 		r.textHeight = 0
 	}
 
-	inset := r.BorderWidth + r.HighlightWidth
+	bw := r.BorderWidth
+	if !r.IndicatorOn {
+		bw = 2 // button-mode always uses 2px border
+	}
+	inset := bw + r.HighlightWidth
 	contentW := r.textWidth
 	contentH := r.textHeight
 	if r.IndicatorOn {
@@ -245,12 +256,27 @@ func (r *Radiobutton) Display() {
 	d.FillRectangle(w.Drawable(), gc, 0, 0, uint(w.Width), uint(w.Height))
 
 	// Draw border.
-	if r.Border != nil && r.BorderWidth > 0 {
+	if !r.IndicatorOn {
+		// When indicator is off, render as a toggle button: raised or sunken.
+		btnRelief := option.ReliefRaised
+		if selected {
+			btnRelief = option.ReliefSunken
+		}
+		bw := 2
+		border := r.Border
+		if border == nil {
+			border = draw.NewBorderFromPixel(bgPixel)
+		}
+		draw.Draw3DRectangle(d, w.Drawable(), gc, border, 0, 0, w.Width, w.Height, bw, btnRelief)
+	} else if r.Border != nil && r.BorderWidth > 0 {
 		draw.Draw3DRectangle(d, w.Drawable(), gc, r.Border,
 			0, 0, w.Width, w.Height, r.BorderWidth, r.Relief)
 	}
 
 	inset := r.BorderWidth + r.HighlightWidth
+	if !r.IndicatorOn {
+		inset = 2 + r.HighlightWidth
+	}
 	availW := w.Width - 2*inset - 2*r.PadX
 	availH := w.Height - 2*inset - 2*r.PadY
 	frameX := inset + r.PadX

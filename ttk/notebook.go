@@ -331,12 +331,13 @@ func bindNotebook(nb *Notebook, app widget.AppContext) {
 		}
 	})
 
-	// Button1 on tab → select.
+	// Button1 on tab → select + take focus (enables Ctrl+Tab traversal).
 	app.Dispatcher().Bind(win.PlatformID, event.ButtonPressMask, func(ev *event.Event) {
 		if ev.Button == 1 {
 			idx := nb.hitTestTab(ev.X, ev.Y)
 			if idx >= 0 && nb.tabs[idx].State&StateDisabled == 0 {
 				nb.Select(idx)
+				win.Display.Server.SetInputFocus(win.PlatformID, platform.RevertToParent, ev.Time)
 			}
 		}
 	})
@@ -355,6 +356,45 @@ func bindNotebook(nb *Notebook, app widget.AppContext) {
 		if nb.hoverTab >= 0 {
 			nb.hoverTab = -1
 			nb.Display()
+		}
+	})
+
+	// Ctrl+Tab → next tab; Ctrl+Shift+Tab → previous tab.
+	// Matches ttk::notebook::enableTraversal behavior.
+	app.Dispatcher().Bind(win.PlatformID, event.KeyPressMask, func(ev *event.Event) {
+		if ev.KeySym != platform.XK_Tab {
+			return
+		}
+		if ev.State&platform.ControlMask == 0 {
+			return
+		}
+		n := len(nb.tabs)
+		if n <= 1 {
+			return
+		}
+		cur := nb.Selected()
+		var next int
+		if ev.State&platform.ShiftMask != 0 {
+			// Ctrl+Shift+Tab → previous enabled tab.
+			next = cur
+			for range n {
+				next = (next - 1 + n) % n
+				if nb.tabs[next].State&StateDisabled == 0 {
+					break
+				}
+			}
+		} else {
+			// Ctrl+Tab → next enabled tab.
+			next = cur
+			for range n {
+				next = (next + 1) % n
+				if nb.tabs[next].State&StateDisabled == 0 {
+					break
+				}
+			}
+		}
+		if next != cur {
+			nb.Select(next)
 		}
 	})
 }

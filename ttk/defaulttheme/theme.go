@@ -54,6 +54,35 @@ func init() {
 		{Spec: ttk.StateSpec{OnBits: ttk.StateHover}, Value: uint64(0xececec)},
 	}
 
+	// Toolbutton style: flat by default, raised on hover, sunken on press.
+	// Used by toolbar buttons and styled menubuttons.
+	toolbutton := theme.GetStyle("Toolbutton")
+	toolbutton.Defaults["-padding"] = ttk.Padding{Left: 8, Top: 4, Right: 8, Bottom: 4}
+	toolbutton.Defaults["-relief"] = option.ReliefFlat
+	toolbutton.Defaults["-borderwidth"] = 2
+	toolbutton.Maps["-relief"] = ttk.StateMap[any]{
+		{Spec: ttk.StateSpec{OnBits: ttk.StatePressed}, Value: option.ReliefSunken},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateHover}, Value: option.ReliefRaised},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateDisabled}, Value: option.ReliefFlat},
+	}
+	toolbutton.Maps["-background"] = ttk.StateMap[any]{
+		{Spec: ttk.StateSpec{OnBits: ttk.StateHover}, Value: uint64(0xececec)},
+	}
+
+	// TMenubutton.Toolbutton: same visual behavior as Toolbutton but for menubuttons.
+	tmbToolbutton := theme.GetStyle("TMenubutton.Toolbutton")
+	tmbToolbutton.Defaults["-padding"] = ttk.Padding{Left: 8, Top: 4, Right: 8, Bottom: 4}
+	tmbToolbutton.Defaults["-relief"] = option.ReliefFlat
+	tmbToolbutton.Defaults["-borderwidth"] = 2
+	tmbToolbutton.Maps["-relief"] = ttk.StateMap[any]{
+		{Spec: ttk.StateSpec{OnBits: ttk.StatePressed}, Value: option.ReliefSunken},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateHover}, Value: option.ReliefRaised},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateDisabled}, Value: option.ReliefFlat},
+	}
+	tmbToolbutton.Maps["-background"] = ttk.StateMap[any]{
+		{Spec: ttk.StateSpec{OnBits: ttk.StateHover}, Value: uint64(0xececec)},
+	}
+
 	// TSeparator styles.
 	tsepH := theme.GetStyle("TSeparator.Horizontal")
 	tsepH.Defaults["-relief"] = option.ReliefFlat
@@ -77,6 +106,22 @@ func init() {
 
 	// TButton: border → focus → padding → label
 	theme.RegisterLayout("TButton",
+		ttk.L("background", ttk.Expand|ttk.FillF,
+			ttk.L("border", ttk.Expand|ttk.FillF|ttk.Border,
+				ttk.L("focus", ttk.Expand|ttk.FillF,
+					ttk.L("padding", ttk.Expand|ttk.FillF,
+						ttk.L("label", ttk.Expand|ttk.FillF))))))
+
+	// Toolbutton: same layout as TButton.
+	theme.RegisterLayout("Toolbutton",
+		ttk.L("background", ttk.Expand|ttk.FillF,
+			ttk.L("border", ttk.Expand|ttk.FillF|ttk.Border,
+				ttk.L("focus", ttk.Expand|ttk.FillF,
+					ttk.L("padding", ttk.Expand|ttk.FillF,
+						ttk.L("label", ttk.Expand|ttk.FillF))))))
+
+	// TMenubutton.Toolbutton: same layout as TMenubutton.
+	theme.RegisterLayout("TMenubutton.Toolbutton",
 		ttk.L("background", ttk.Expand|ttk.FillF,
 			ttk.L("border", ttk.Expand|ttk.FillF|ttk.Border,
 				ttk.L("focus", ttk.Expand|ttk.FillF,

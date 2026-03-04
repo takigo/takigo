@@ -69,6 +69,11 @@ func MenubuttonCompound(c widget.Compound) MenubuttonOption {
 	return func(mb *Menubutton) { mb.Compound = c }
 }
 
+// MenubuttonStyleOpt overrides the TTK style name (e.g. "TMenubutton.Toolbutton").
+func MenubuttonStyleOpt(name string) MenubuttonOption {
+	return func(mb *Menubutton) { mb.StyleName = name }
+}
+
 // NewMenubutton creates a themed menubutton widget.
 func NewMenubutton(parent widget.Caregiver, name string, opts ...MenubuttonOption) *Menubutton {
 	app := parent.AppContext()
@@ -99,6 +104,26 @@ func NewMenubutton(parent widget.Caregiver, name string, opts ...MenubuttonOptio
 
 	for _, opt := range opts {
 		opt(mb)
+	}
+
+	// If style was overridden, rebuild layout with the new style.
+	if mb.StyleName != "TMenubutton" && mb.Theme != nil {
+		style := mb.Theme.ResolveStyle(mb.StyleName)
+		mb.Context.Style = style
+		labelFactory := NewLabelElementFactory(mb)
+		tmpl := mb.Theme.GetLayout(mb.StyleName)
+		if tmpl == nil {
+			tmpl = mb.Theme.GetLayout("TMenubutton")
+		}
+		if tmpl != nil {
+			ctx := &DrawContext{
+				Display: mb.Context.Display,
+				Depth:   mb.Context.Depth,
+				Style:   style,
+			}
+			mb.Layout = newLayoutWithLabel(tmpl, mb.Theme, ctx, style, labelFactory)
+			mb.Context = ctx
+		}
 	}
 
 	// Recompute size.

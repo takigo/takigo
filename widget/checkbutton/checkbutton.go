@@ -26,8 +26,9 @@ type Checkbutton struct {
 	unsub    func()
 
 	// Indicator.
-	IndicatorOn bool         // whether to draw the indicator (default true)
-	SelectColor *colorRef    // indicator fill color when selected
+	IndicatorOn   bool      // whether to draw the indicator (default true)
+	Indeterminate bool      // shows a dash (partial/tri-state) instead of a checkmark
+	SelectColor   *colorRef // indicator fill color when selected
 
 	// Active colors (used on hover).
 	ActiveBackground *colorRef
@@ -266,7 +267,7 @@ func (c *Checkbutton) Display() {
 		}
 
 		// Fill indicator.
-		if selected && c.SelectColor != nil {
+		if (selected || c.Indeterminate) && c.SelectColor != nil {
 			d.SetForeground(gc, c.SelectColor.Pixel)
 		} else {
 			d.SetForeground(gc, uint64(0xffffff)) // white background
@@ -278,16 +279,19 @@ func (c *Checkbutton) Display() {
 		draw.Draw3DRectangle(d, w.Drawable(), gc, indBorder,
 			indX, indY, indicatorSize, indicatorSize, 2, option.ReliefSunken)
 
-		// Draw checkmark when selected.
-		if selected && fgCol != nil {
+		if c.Indeterminate && fgCol != nil {
+			// Draw a horizontal dash for the indeterminate/partial state.
 			d.SetForeground(gc, fgCol.Pixel)
-			// Simple checkmark using lines.
+			midY := indY + indicatorSize/2
+			d.DrawLine(w.Drawable(), gc, indX+3, midY, indX+indicatorSize-4, midY)
+			d.DrawLine(w.Drawable(), gc, indX+3, midY+1, indX+indicatorSize-4, midY+1)
+		} else if selected && fgCol != nil {
+			// Draw checkmark when selected.
+			d.SetForeground(gc, fgCol.Pixel)
 			cx := indX + 3
 			cy := indY + indicatorSize/2
-			// Left leg of check: from (cx, cy) to (cx+2, cy+3)
 			d.DrawLine(w.Drawable(), gc, cx, cy, cx+2, cy+3)
 			d.DrawLine(w.Drawable(), gc, cx+1, cy, cx+3, cy+3)
-			// Right leg of check: from (cx+2, cy+3) to (cx+7, cy-2)
 			d.DrawLine(w.Drawable(), gc, cx+2, cy+3, cx+7, cy-2)
 			d.DrawLine(w.Drawable(), gc, cx+3, cy+3, cx+8, cy-2)
 		}
@@ -314,6 +318,12 @@ func (c *Checkbutton) Display() {
 	}
 
 	d.Flush()
+}
+
+// SetIndeterminate sets the indeterminate (partial tri-state) display flag and redraws.
+func (c *Checkbutton) SetIndeterminate(v bool) {
+	c.Indeterminate = v
+	c.Display()
 }
 
 // Toggle flips the checkbutton state.

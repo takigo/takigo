@@ -21,14 +21,31 @@ func main() {
 		"A listbox containing the 50 states is displayed below, along with a scrollbar. You can scan the list either using the scrollbar or by scanning. To scan, press button 2 in the widget and drag up or down.")
 
 	// Justification group (matches Tcl's labelframe $w.justif).
+	// lb is declared below; the command closure captures the pointer.
+	var lb *listbox.Listbox
 	justVar := widget.NewVariable("left")
 	justFrame := labelframe.New(app, "justif", labelframe.Text("Justification"))
 	for _, c := range []string{"Left", "Center", "Right"} {
-		rb := radiobutton.New(justFrame, strings.ToLower(c),
+		val := strings.ToLower(c)
+		var j option.Justify
+		switch val {
+		case "center":
+			j = option.JustifyCenter
+		case "right":
+			j = option.JustifyRight
+		default:
+			j = option.JustifyLeft
+		}
+		rb := radiobutton.New(justFrame, val,
 			radiobutton.Text(c),
-			radiobutton.Value(strings.ToLower(c)),
+			radiobutton.Value(val),
 			radiobutton.Var(justVar),
 			radiobutton.Anchor(option.AnchorW),
+			radiobutton.Command(func() {
+				if lb != nil {
+					lb.SetJustify(j)
+				}
+			}),
 		)
 		pack.Pack(rb, pack.SideOpt(pack.Left), pack.PadY("1.5p"), pack.FillOpt(pack.FillX))
 	}
@@ -53,7 +70,7 @@ func main() {
 		"Virginia", "Washington", "West Virginia", "Wisconsin", "Wyoming",
 	}
 
-	lb := listbox.New(lbFrame, "list",
+	lb = listbox.New(lbFrame, "list",
 		listbox.Items(states...),
 		listbox.Height(12),
 	)

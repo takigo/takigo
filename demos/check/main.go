@@ -30,20 +30,39 @@ func main() {
 	// Guard against recursive updates.
 	inCheck := false
 
+	// masterCb is set after creation; used to control the indeterminate dash display.
+	var masterCb *checkbutton.Checkbutton
+
 	// updateMaster sets the master checkbutton based on the sub-checkbutton states.
-	// In Tk this would show a tri-state indicator when partially checked;
-	// since our checkbutton only supports bool, we show checked only when all
-	// three are checked, unchecked otherwise.
+	// All three checked → checked; none → unchecked; partial → indeterminate (dash).
 	updateMaster := func() {
 		if inCheck {
 			return
 		}
 		inCheck = true
 		w, b, s := wipers.Get(), brakes.Get(), sober.Get()
-		if w && b && s {
+		count := 0
+		for _, v := range []bool{w, b, s} {
+			if v {
+				count++
+			}
+		}
+		if count == 3 {
 			safety.Set(true)
-		} else {
+			if masterCb != nil {
+				masterCb.SetIndeterminate(false)
+			}
+		} else if count == 0 {
 			safety.Set(false)
+			if masterCb != nil {
+				masterCb.SetIndeterminate(false)
+			}
+		} else {
+			// Partial: show indeterminate dash.
+			safety.Set(false)
+			if masterCb != nil {
+				masterCb.SetIndeterminate(true)
+			}
 		}
 		inCheck = false
 	}
@@ -67,6 +86,7 @@ func main() {
 		checkbutton.Var(safety),
 		checkbutton.Command(updateSubs),
 	)
+	masterCb = cb0
 	pack.Pack(cb0, pack.SideOpt(pack.Top), pack.PadY("1.5p"), pack.Anchor(option.AnchorW))
 
 	// Sub-checkbuttons — indented with extra left padding like the Tk original.

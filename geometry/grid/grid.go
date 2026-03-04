@@ -72,6 +72,9 @@ type SlotConfig struct {
 	MinSize int
 	Weight  int
 	Pad     int
+	// Uniform groups slots so they all get the same minimum size (the max
+	// of their individual minimums). Matches Tk's -uniform option.
+	Uniform string
 }
 
 // gridEntry holds grid configuration for a single child.
@@ -293,6 +296,38 @@ func (g *gridder) arrange() {
 	for row, conf := range g.rowConf {
 		if row < maxRow && conf.MinSize > rowHeights[row] {
 			rowHeights[row] = conf.MinSize
+		}
+	}
+
+	// Apply uniform groups: all slots in the same group get the max minimum size.
+	uniformColGroups := map[string]int{}
+	for col, conf := range g.colConf {
+		if conf.Uniform != "" && col < maxCol {
+			if colWidths[col] > uniformColGroups[conf.Uniform] {
+				uniformColGroups[conf.Uniform] = colWidths[col]
+			}
+		}
+	}
+	for col, conf := range g.colConf {
+		if conf.Uniform != "" && col < maxCol {
+			if uniformColGroups[conf.Uniform] > colWidths[col] {
+				colWidths[col] = uniformColGroups[conf.Uniform]
+			}
+		}
+	}
+	uniformRowGroups := map[string]int{}
+	for row, conf := range g.rowConf {
+		if conf.Uniform != "" && row < maxRow {
+			if rowHeights[row] > uniformRowGroups[conf.Uniform] {
+				uniformRowGroups[conf.Uniform] = rowHeights[row]
+			}
+		}
+	}
+	for row, conf := range g.rowConf {
+		if conf.Uniform != "" && row < maxRow {
+			if uniformRowGroups[conf.Uniform] > rowHeights[row] {
+				rowHeights[row] = uniformRowGroups[conf.Uniform]
+			}
 		}
 	}
 

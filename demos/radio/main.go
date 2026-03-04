@@ -64,8 +64,23 @@ func main() {
 	grid.Grid(alignFrame, grid.Row(0), grid.Column(2),
 		grid.PadX(".5c"), grid.PadY(".5c"))
 
-	// Center label.
+	// Center label — compound changes on alignment selection.
 	centerLabel := label.New(alignFrame, "l", label.Text("Label"))
+
+	// Update center label compound when alignment changes.
+	alignVar.OnChange(func(_, v string) {
+		switch v {
+		case "top":
+			centerLabel.Compound = widget.CompoundTop
+		case "left":
+			centerLabel.Compound = widget.CompoundLeft
+		case "right":
+			centerLabel.Compound = widget.CompoundRight
+		case "bottom":
+			centerLabel.Compound = widget.CompoundBottom
+		}
+		centerLabel.Display()
+	})
 
 	for _, a := range []struct {
 		text, value string
@@ -80,6 +95,7 @@ func main() {
 			radiobutton.Text(a.text),
 			radiobutton.Value(a.value),
 			radiobutton.Var(alignVar),
+			radiobutton.IndicatorOnOpt(false),
 		)
 		grid.Grid(rb, grid.Row(a.row), grid.Column(a.col))
 	}

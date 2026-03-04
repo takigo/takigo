@@ -60,6 +60,36 @@ func init() {
 		{Spec: ttk.StateSpec{OnBits: ttk.StateDisabled}, Value: option.ReliefFlat},
 	}
 
+	// Toolbutton style for clam.
+	toolbutton := theme.GetStyle("Toolbutton")
+	toolbutton.Defaults["-padding"] = ttk.Padding{Left: 8, Top: 4, Right: 8, Bottom: 4}
+	toolbutton.Defaults["-relief"] = option.ReliefFlat
+	toolbutton.Defaults["-borderwidth"] = 2
+	toolbutton.Maps["-background"] = ttk.StateMap[any]{
+		{Spec: ttk.StateSpec{OnBits: ttk.StatePressed}, Value: darkerColor},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateHover}, Value: uint64(0xececec)},
+	}
+	toolbutton.Maps["-relief"] = ttk.StateMap[any]{
+		{Spec: ttk.StateSpec{OnBits: ttk.StatePressed}, Value: option.ReliefSunken},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateHover}, Value: option.ReliefRaised},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateDisabled}, Value: option.ReliefFlat},
+	}
+
+	// TMenubutton.Toolbutton for clam.
+	tmbToolbutton := theme.GetStyle("TMenubutton.Toolbutton")
+	tmbToolbutton.Defaults["-padding"] = ttk.Padding{Left: 8, Top: 4, Right: 8, Bottom: 4}
+	tmbToolbutton.Defaults["-relief"] = option.ReliefFlat
+	tmbToolbutton.Defaults["-borderwidth"] = 2
+	tmbToolbutton.Maps["-background"] = ttk.StateMap[any]{
+		{Spec: ttk.StateSpec{OnBits: ttk.StatePressed}, Value: darkerColor},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateHover}, Value: uint64(0xececec)},
+	}
+	tmbToolbutton.Maps["-relief"] = ttk.StateMap[any]{
+		{Spec: ttk.StateSpec{OnBits: ttk.StatePressed}, Value: option.ReliefSunken},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateHover}, Value: option.ReliefRaised},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateDisabled}, Value: option.ReliefFlat},
+	}
+
 	// TSeparator styles.
 	tsepH := theme.GetStyle("TSeparator.Horizontal")
 	tsepH.Defaults["-relief"] = option.ReliefFlat
