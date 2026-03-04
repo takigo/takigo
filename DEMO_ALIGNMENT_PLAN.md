@@ -396,7 +396,7 @@ These patterns recur across nearly every demo and should be addressed globally:
 - [ ] **MAJOR (~70% missing)**: Tcl demo showcases embedded windows in text (buttons, canvas, checkbutton, images). Go demo only shows text styling.
 - [x] **Text dimensions**: Changed from 55x28 to 70x35
 - [ ] **Missing embedded windows**: Buttons inside text, canvas plot, color buttons, image embedding — not implemented
-- [ ] **Missing tags**: center (justify center), buttons (margins), spacing tags
+- [x] **Missing tags**: Added center (justify center + spacing1/3=5m) and buttons (lmargin1/2=1c, rmargin=1c, spacing1=3m) tag configs; rewrote demo using EndIndex() helper; applied tags to appropriate content sections
 - [x] **Scrollbar**: Replace classic with TTK; add horizontal scrollbar toggle
 - [x] **Border settings**: Added `text.BorderWidthOpt(0)` and `tw.HighlightWidth = 0`
 
