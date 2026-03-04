@@ -7,6 +7,7 @@ import (
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/window"
 )
@@ -108,13 +109,15 @@ func Anchor(a option.Anchor) Option {
 }
 
 // PadX sets horizontal padding.
-func PadX(p int) Option {
-	return func(c *Checkbutton) { c.PadX = p }
+// Accepts int (pixels), float64 (rounded pixels), or string with unit suffix ("3p", "2m", "1c", "0.5i").
+func PadX(p any) Option {
+	return func(c *Checkbutton) { c.PadX = screenunit.Px(p) }
 }
 
 // PadY sets vertical padding.
-func PadY(p int) Option {
-	return func(c *Checkbutton) { c.PadY = p }
+// Accepts int (pixels), float64 (rounded pixels), or string with unit suffix ("3p", "2m", "1c", "0.5i").
+func PadY(p any) Option {
+	return func(c *Checkbutton) { c.PadY = screenunit.Px(p) }
 }
 
 // indicatorSize is the side length of the square indicator.

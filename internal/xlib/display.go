@@ -71,6 +71,16 @@ func (d *Display) ScreenHeight(screen int) int {
 	return int(C.XDisplayHeight(d.ptr, C.int(screen)))
 }
 
+// ScreenWidthMM returns the width in millimeters of the given screen.
+func (d *Display) ScreenWidthMM(screen int) int {
+	return int(C.XDisplayWidthMM(d.ptr, C.int(screen)))
+}
+
+// ScreenHeightMM returns the height in millimeters of the given screen.
+func (d *Display) ScreenHeightMM(screen int) int {
+	return int(C.XDisplayHeightMM(d.ptr, C.int(screen)))
+}
+
 // WhitePixel returns the white pixel value for the given screen.
 func (d *Display) WhitePixel(screen int) uint64 {
 	return uint64(C.XWhitePixel(d.ptr, C.int(screen)))

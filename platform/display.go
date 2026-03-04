@@ -35,6 +35,12 @@ type DisplayServer interface {
 	// ScreenHeight returns the screen height in pixels.
 	ScreenHeight(screen int) int
 
+	// ScreenWidthMM returns the screen width in millimeters.
+	ScreenWidthMM(screen int) int
+
+	// ScreenHeightMM returns the screen height in millimeters.
+	ScreenHeightMM(screen int) int
+
 	// WhitePixel returns the white pixel value.
 	WhitePixel(screen int) uint64
 

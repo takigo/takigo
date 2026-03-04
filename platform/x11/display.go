@@ -37,6 +37,8 @@ func (s *X11Display) RootWindow(screen int) platform.WindowID { return platform.
 func (s *X11Display) DefaultDepth(screen int) int     { return s.dpy.DefaultDepth(screen) }
 func (s *X11Display) ScreenWidth(screen int) int      { return s.dpy.ScreenWidth(screen) }
 func (s *X11Display) ScreenHeight(screen int) int     { return s.dpy.ScreenHeight(screen) }
+func (s *X11Display) ScreenWidthMM(screen int) int    { return s.dpy.ScreenWidthMM(screen) }
+func (s *X11Display) ScreenHeightMM(screen int) int   { return s.dpy.ScreenHeightMM(screen) }
 func (s *X11Display) WhitePixel(screen int) uint64    { return s.dpy.WhitePixel(screen) }
 func (s *X11Display) BlackPixel(screen int) uint64    { return s.dpy.BlackPixel(screen) }
 func (s *X11Display) ConnectionNumber() int           { return s.dpy.ConnectionNumber() }

@@ -1,5 +1,7 @@
 package ttk
 
+import "github.com/msorc/takigo/screenunit"
+
 // Box represents a rectangular area. Ported from ttkLayout.c.
 type Box struct {
 	X, Y, Width, Height int
@@ -34,6 +36,23 @@ func (p Padding) Add(other Padding) Padding {
 		Right:  p.Right + other.Right,
 		Bottom: p.Bottom + other.Bottom,
 	}
+}
+
+// PaddingFromAny creates a Padding by converting each value via screenunit.Px().
+// Each argument accepts int (pixels), float64, or string with unit suffix ("3p", "2m", "1c", "0.5i").
+func PaddingFromAny(left, top, right, bottom any) Padding {
+	return Padding{
+		Left:   screenunit.Px(left),
+		Top:    screenunit.Px(top),
+		Right:  screenunit.Px(right),
+		Bottom: screenunit.Px(bottom),
+	}
+}
+
+// UniformPaddingFromAny creates a uniform Padding by converting v via screenunit.Px().
+func UniformPaddingFromAny(v any) Padding {
+	n := screenunit.Px(v)
+	return Padding{n, n, n, n}
 }
 
 // Side specifies which side to pack from.

@@ -14,6 +14,7 @@ import (
 	"github.com/msorc/takigo/image"
 	"github.com/msorc/takigo/platform"
 	x11platform "github.com/msorc/takigo/platform/x11"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/window"
 )
@@ -55,6 +56,10 @@ func NewApp(opts ...AppOption) (*App, error) {
 
 	// Initialize predefined atoms for platform package.
 	x11platform.InitPredefinedAtoms()
+
+	// Configure screen unit conversion from actual screen metrics.
+	defScreen := server.DefaultScreen()
+	screenunit.SetScreenDPI(server.ScreenWidth(defScreen), server.ScreenWidthMM(defScreen))
 
 	d, err := window.NewDisplay(server)
 	if err != nil {

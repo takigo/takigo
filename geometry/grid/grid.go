@@ -5,6 +5,7 @@ package grid
 import (
 	"github.com/msorc/takigo/geometry"
 	"github.com/msorc/takigo/platform"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/window"
 )
 
@@ -51,16 +52,20 @@ func ColumnSpan(n int) GridOption { return func(c *gridConfig) { c.columnSpan = 
 func Sticky(s int) GridOption { return func(c *gridConfig) { c.sticky = s } }
 
 // PadX sets the exterior horizontal padding.
-func PadX(p int) GridOption { return func(c *gridConfig) { c.padX = p } }
+// Accepts int (pixels), float64 (rounded pixels), or string with unit suffix ("3p", "2m", "1c", "0.5i").
+func PadX(p any) GridOption { return func(c *gridConfig) { c.padX = screenunit.Px(p) } }
 
 // PadY sets the exterior vertical padding.
-func PadY(p int) GridOption { return func(c *gridConfig) { c.padY = p } }
+// Accepts int (pixels), float64 (rounded pixels), or string with unit suffix ("3p", "2m", "1c", "0.5i").
+func PadY(p any) GridOption { return func(c *gridConfig) { c.padY = screenunit.Px(p) } }
 
 // IPadX sets the interior horizontal padding.
-func IPadX(p int) GridOption { return func(c *gridConfig) { c.iPadX = p } }
+// Accepts int (pixels), float64 (rounded pixels), or string with unit suffix ("3p", "2m", "1c", "0.5i").
+func IPadX(p any) GridOption { return func(c *gridConfig) { c.iPadX = screenunit.Px(p) } }
 
 // IPadY sets the interior vertical padding.
-func IPadY(p int) GridOption { return func(c *gridConfig) { c.iPadY = p } }
+// Accepts int (pixels), float64 (rounded pixels), or string with unit suffix ("3p", "2m", "1c", "0.5i").
+func IPadY(p any) GridOption { return func(c *gridConfig) { c.iPadY = screenunit.Px(p) } }
 
 // SlotConfig holds configuration for a row or column.
 type SlotConfig struct {

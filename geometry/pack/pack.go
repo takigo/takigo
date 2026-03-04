@@ -6,6 +6,7 @@ import (
 	"github.com/msorc/takigo/geometry"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/window"
 )
 
@@ -56,16 +57,20 @@ func Expand(b bool) PackOption { return func(c *packConfig) { c.expand = b } }
 func Anchor(a option.Anchor) PackOption { return func(c *packConfig) { c.anchor = a } }
 
 // PadX sets the exterior horizontal padding.
-func PadX(p int) PackOption { return func(c *packConfig) { c.padX = p } }
+// Accepts int (pixels), float64 (rounded pixels), or string with unit suffix ("3p", "2m", "1c", "0.5i").
+func PadX(p any) PackOption { return func(c *packConfig) { c.padX = screenunit.Px(p) } }
 
 // PadY sets the exterior vertical padding.
-func PadY(p int) PackOption { return func(c *packConfig) { c.padY = p } }
+// Accepts int (pixels), float64 (rounded pixels), or string with unit suffix ("3p", "2m", "1c", "0.5i").
+func PadY(p any) PackOption { return func(c *packConfig) { c.padY = screenunit.Px(p) } }
 
 // IPadX sets the interior horizontal padding.
-func IPadX(p int) PackOption { return func(c *packConfig) { c.iPadX = p } }
+// Accepts int (pixels), float64 (rounded pixels), or string with unit suffix ("3p", "2m", "1c", "0.5i").
+func IPadX(p any) PackOption { return func(c *packConfig) { c.iPadX = screenunit.Px(p) } }
 
 // IPadY sets the interior vertical padding.
-func IPadY(p int) PackOption { return func(c *packConfig) { c.iPadY = p } }
+// Accepts int (pixels), float64 (rounded pixels), or string with unit suffix ("3p", "2m", "1c", "0.5i").
+func IPadY(p any) PackOption { return func(c *packConfig) { c.iPadY = screenunit.Px(p) } }
 
 // packEntry holds packing configuration for a single child.
 type packEntry struct {

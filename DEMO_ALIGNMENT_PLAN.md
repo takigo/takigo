@@ -14,14 +14,9 @@ These patterns recur across nearly every demo and should be addressed globally:
 **Fix:** Replace classic scrollbar with TTK scrollbar in all demos that have one.
 **Affected demos:** arrow, bind, colors, cscroll, ctext, items, knightstour, plot, sayings, search, text, textpeer, toolbar, tree, ttknote, ttkpane, twind, vscale, canvas demos.
 
-### S2. Padding Unit Conversion
+### S2. Padding Unit Conversion ✅ RESOLVED
 **Issue:** Tcl uses points (`p`), millimeters (`m`), centimeters (`c`), inches (`i`). Go uses pixels only.
-**Fix:** Convert Tcl units to pixel equivalents:
-- 1p (point) ≈ 1.33 px (at 96 DPI)
-- 1m (mm) ≈ 3.78 px
-- 1c (cm) ≈ 37.8 px
-- 1i (inch) ≈ 96 px
-Apply correct pixel values matching the Tcl originals throughout.
+**Fix:** Added `screenunit` package with `Px()` function that accepts Tk-style distance strings (`"3p"`, `"2m"`, `"1c"`, `"0.5i"`) and converts to pixels using actual screen DPI. All padding option functions (`PadX`, `PadY`, `IPadX`, `IPadY`) in pack, grid, label, button, checkbutton, and radiobutton now accept `any` type (int, float64, or string with unit suffix). TTK `PaddingFromAny()` helper added. Demos can now use `pack.PadX("3p")` to match Tcl originals.
 
 ### S3. Description Labels
 **Issue:** Tcl creates explicit `ttk::label` widgets with `-font $font -wraplength -justify left`. Go delegates to `demohelper.Setup()`.

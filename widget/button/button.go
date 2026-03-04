@@ -7,6 +7,7 @@ import (
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/window"
 )
@@ -117,13 +118,15 @@ func Anchor(a option.Anchor) ButtonOption {
 }
 
 // PadX sets horizontal padding.
-func PadX(p int) ButtonOption {
-	return func(b *Button) { b.PadX = p }
+// Accepts int (pixels), float64 (rounded pixels), or string with unit suffix ("3p", "2m", "1c", "0.5i").
+func PadX(p any) ButtonOption {
+	return func(b *Button) { b.PadX = screenunit.Px(p) }
 }
 
 // PadY sets vertical padding.
-func PadY(p int) ButtonOption {
-	return func(b *Button) { b.PadY = p }
+// Accepts int (pixels), float64 (rounded pixels), or string with unit suffix ("3p", "2m", "1c", "0.5i").
+func PadY(p any) ButtonOption {
+	return func(b *Button) { b.PadY = screenunit.Px(p) }
 }
 
 // New creates a new Button widget as a child of parent.

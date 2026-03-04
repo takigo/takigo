@@ -9,6 +9,7 @@ import (
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/window"
 )
@@ -86,13 +87,15 @@ func Anchor(a option.Anchor) LabelOption {
 }
 
 // PadX sets horizontal padding.
-func PadX(p int) LabelOption {
-	return func(l *Label) { l.PadX = p }
+// Accepts int (pixels), float64 (rounded pixels), or string with unit suffix ("3p", "2m", "1c", "0.5i").
+func PadX(p any) LabelOption {
+	return func(l *Label) { l.PadX = screenunit.Px(p) }
 }
 
 // PadY sets vertical padding.
-func PadY(p int) LabelOption {
-	return func(l *Label) { l.PadY = p }
+// Accepts int (pixels), float64 (rounded pixels), or string with unit suffix ("3p", "2m", "1c", "0.5i").
+func PadY(p any) LabelOption {
+	return func(l *Label) { l.PadY = screenunit.Px(p) }
 }
 
 // ImageOpt sets the image to display.
