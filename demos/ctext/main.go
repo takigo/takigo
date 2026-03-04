@@ -1,66 +1,120 @@
-// Demo: Canvas text items at various positions and anchors.
-// Ported from Tk's ctext.tcl demo (simplified — no inline editing).
+// Demo: Canvas text items with interactive configuration.
+// Ported from Tk's ctext.tcl demo.
 package main
 
 import (
+	"fmt"
+
 	"github.com/msorc/takigo/canvas"
 	"github.com/msorc/takigo/demos/demohelper"
+	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
 )
 
 func main() {
-	app := demohelper.Setup("Canvas Text Demonstration", 550, 400,
-		"This window displays a string of text to demonstrate the text facilities of canvas widgets. You can click in the boxes to adjust the position of the text relative to its positioning point or change its justification.")
+	app := demohelper.Setup("Canvas Text Demonstration", 550, 430,
+		"This window displays a string of text to demonstrate the text facilities of canvas widgets. You can click in the colored boxes to adjust the position of the text relative to its positioning point or change its justification.")
 
-	// Canvas.
 	c := canvas.New(app, "canvas",
 		canvas.Background("white"),
 		canvas.Width(500),
-		canvas.Height(300),
+		canvas.Height(350),
 	)
 	pack.Pack(c, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true), pack.PadX(10), pack.PadY(5))
 
-	// Title text.
-	c.CreateText(250, 30,
-		canvas.TextOpt("Canvas Text Demo"),
-		canvas.FontOpt("Sans Bold 18"),
-		canvas.TextColor("navy"),
-		canvas.AnchorOpt(option.AnchorCenter),
-	)
+	// Red anchor-point marker.
+	c.CreateRectangle(245, 163, 255, 173,
+		canvas.OutlineColor("black"), canvas.FillColor("red"), canvas.OutlineWidth(1))
 
-	// Multi-line centered text.
-	c.CreateText(250, 80,
-		canvas.TextOpt("This text is rendered directly on the canvas.\nMultiple lines are supported via newlines."),
-		canvas.FontOpt("Sans 12"),
-		canvas.TextColor("black"),
-		canvas.AnchorOpt(option.AnchorCenter),
+	// Main text item — initially anchored at N.
+	textID := c.CreateText(250, 168,
+		canvas.TextOpt("This is just a string of text to demonstrate the text facilities of canvas widgets. Click the colored boxes to change the anchor or justification."),
+		canvas.WidthOpt(440),
+		canvas.AnchorOpt(option.AnchorN),
+		canvas.FontOpt("Helvetica 16"),
+		canvas.JustifyOpt(option.JustifyLeft),
+		canvas.Tags("text"),
 	)
+	textIDStr := fmt.Sprintf("%d", textID)
 
-	// Left-anchored text.
-	c.CreateText(50, 150,
-		canvas.TextOpt("Left-anchored text\nat position (50, 150)"),
-		canvas.FontOpt("Sans Italic 11"),
-		canvas.TextColor("darkred"),
-		canvas.AnchorOpt(option.AnchorNW),
-	)
+	// Track box fill colors for hover restore.
+	origFill := map[string]string{}
 
-	// Right-anchored text.
-	c.CreateText(450, 150,
-		canvas.TextOpt("Right-anchored text\nat position (450, 150)"),
-		canvas.FontOpt("Sans 11"),
-		canvas.TextColor("darkblue"),
-		canvas.AnchorOpt(option.AnchorNE),
-	)
+	// mkBox creates a clickable config box at pixel position (px, py).
+	// On click, it applies opts to the text item.
+	mkBox := func(px, py float64, fill string, opts ...canvas.ItemOption) {
+		id := c.CreateRectangle(px, py, px+30, py+30,
+			canvas.OutlineColor("black"), canvas.FillColor(fill),
+			canvas.OutlineWidth(1), canvas.Tags("config"))
+		idStr := fmt.Sprintf("%d", id)
+		origFill[idStr] = fill
+		c.BindItem(idStr, event.ButtonPressMask, func(ev *event.Event) {
+			if ev.Button == 1 {
+				c.ItemConfigure(textIDStr, opts...)
+			}
+		})
+	}
 
-	// Center paragraph.
-	c.CreateText(250, 230,
-		canvas.TextOpt("Center-anchored text with a longer paragraph.\nThis demonstrates how canvas text wraps and displays\nmultiple lines of content."),
-		canvas.FontOpt("Serif 11"),
-		canvas.TextColor("darkgreen"),
-		canvas.AnchorOpt(option.AnchorCenter),
-	)
+	// --- Anchor position selector (3×3 grid at top-left) ---
+	// Box positions map to anchor directions.
+	anchorColor := "LightSkyBlue1"
+	bx, by := 50.0, 50.0
+
+	// Row 0: SE, S, SW
+	mkBox(bx, by, anchorColor, canvas.AnchorOpt(option.AnchorSE))
+	mkBox(bx+32, by, anchorColor, canvas.AnchorOpt(option.AnchorS))
+	mkBox(bx+64, by, anchorColor, canvas.AnchorOpt(option.AnchorSW))
+	// Row 1: E, center, W
+	mkBox(bx, by+32, anchorColor, canvas.AnchorOpt(option.AnchorE))
+	mkBox(bx+32, by+32, anchorColor, canvas.AnchorOpt(option.AnchorCenter))
+	mkBox(bx+64, by+32, anchorColor, canvas.AnchorOpt(option.AnchorW))
+	// Row 2: NE, N, NW
+	mkBox(bx, by+64, anchorColor, canvas.AnchorOpt(option.AnchorNE))
+	mkBox(bx+32, by+64, anchorColor, canvas.AnchorOpt(option.AnchorN))
+	mkBox(bx+64, by+64, anchorColor, canvas.AnchorOpt(option.AnchorNW))
+
+	c.CreateText(bx+47, by-5,
+		canvas.TextOpt("Text Position"),
+		canvas.AnchorOpt(option.AnchorS),
+		canvas.FontOpt("Times 16"),
+		canvas.TextColor("brown"))
+
+	// --- Justification selector (3 boxes in a row) ---
+	justColor := "SeaGreen2"
+	jx, jy := 350.0, 50.0
+	mkBox(jx, jy, justColor, canvas.JustifyOpt(option.JustifyLeft))
+	mkBox(jx+32, jy, justColor, canvas.JustifyOpt(option.JustifyCenter))
+	mkBox(jx+64, jy, justColor, canvas.JustifyOpt(option.JustifyRight))
+
+	c.CreateText(jx+47, jy-5,
+		canvas.TextOpt("Justification"),
+		canvas.AnchorOpt(option.AnchorS),
+		canvas.FontOpt("Times 16"),
+		canvas.TextColor("brown"))
+
+	// --- Config box hover: darken on Enter, restore on Leave ---
+	c.BindItem("config", event.EnterMask, func(ev *event.Event) {
+		ids := c.FindWithTag("current")
+		if len(ids) == 0 {
+			return
+		}
+		idStr := fmt.Sprintf("%d", ids[0])
+		if _, ok := origFill[idStr]; ok {
+			c.ItemConfigure(idStr, canvas.FillColor("black"))
+		}
+	})
+	c.BindItem("config", event.LeaveMask, func(ev *event.Event) {
+		ids := c.FindWithTag("current")
+		if len(ids) == 0 {
+			return
+		}
+		idStr := fmt.Sprintf("%d", ids[0])
+		if orig, ok := origFill[idStr]; ok {
+			c.ItemConfigure(idStr, canvas.FillColor(orig))
+		}
+	})
 
 	app.Run()
 }

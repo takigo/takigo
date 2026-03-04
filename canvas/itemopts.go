@@ -303,6 +303,21 @@ func WidthOpt(w int) ItemOption {
 	}
 }
 
+// FillNone removes the fill from an item (transparent interior).
+func FillNone() ItemOption {
+	return func(_ *Canvas, item Item) error {
+		switch it := item.(type) {
+		case *RectOvalItem:
+			it.fill = nil
+		case *PolygonItem:
+			it.fill = nil
+		case *ArcItem:
+			it.fill = nil
+		}
+		return nil
+	}
+}
+
 // StateOpt sets the item state.
 func StateOpt(s ItemState) ItemOption {
 	return func(_ *Canvas, item Item) error {

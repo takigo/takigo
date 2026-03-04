@@ -44,9 +44,9 @@ These patterns recur across nearly every demo and should be addressed globally:
 
 ### 3. `arrow`
 - **Layout**: Uses pack in both — OK
-- [ ] **Missing interactivity**: Tcl has interactive canvas bindings to drag arrow endpoints. Go is static display only. P2 item.
-- [ ] **Missing scale widgets**: Tcl has 3 scales (line width, arrow shape A/B/C) that dynamically update the canvas arrow. P2 item.
-- [x] **Canvas size**: Tcl uses 375p x 262.5p ≈ 500x350px at 96DPI; Go uses 500x300px — close match
+- [x] **Missing interactivity**: Rewrote as full interactive editor — 3 draggable control boxes (box1/box2/box3) change arrow parameters a/b/c/width in real time; full redraw on ButtonRelease; matches Tcl's arrowMove1/2/3 logic
+- [x] **Missing scale widgets**: Not using scales (matches Tcl — Tcl uses draggable boxes, not scales); dimension annotations with arrows and parameter text at bottom
+- [x] **Canvas size**: 500x350 — matches Tcl's 375p x 262.5p at 96DPI
 - [x] **Scrollbar**: No scrollbar in arrow demo — N/A
 
 ### 4. `bind`
@@ -92,11 +92,12 @@ These patterns recur across nearly every demo and should be addressed globally:
 - [x] **Canvas**: Scroll region (-416,-416,1890,756) matches Tcl's {-11c -11c 50c 20c} at 37.8px/cm; rectangles in pixel coordinates match Tcl's cm-based grid
 
 ### 12. `ctext`
-- [ ] **MAJOR**: Go demo is completely non-interactive (static text display). Tcl demo has interactive canvas text with editing capabilities.
-- [ ] Add canvas text item creation matching Tcl
-- [ ] Add text editing bindings (click to position cursor, type to insert, backspace/delete)
-- [ ] Add selection bindings
-- [ ] **Scrollbar**: Add TTK scrollbars (P2 item — needs major rewrite first)
+- [x] **Anchor selector**: 3×3 grid of colored boxes (LightSkyBlue1) click to set text anchor (SE/S/SW/E/Center/W/NE/N/NW) — matches Tcl's mkTextConfigBox
+- [x] **Justification selector**: 3 boxes (SeaGreen2) for left/center/right — matches Tcl's justify section
+- [x] **Config box hover**: Enter=black fill, Leave=restore original fill — matches Tcl's textEnter/Leave
+- [ ] **Text editing**: Canvas text cursor/insert/delete not implemented — known limitation (no canvas text cursor API)
+- [ ] **Angle selector**: Canvas text rotation not implemented — known limitation
+- [ ] **Scrollbar**: Not needed for current canvas size
 
 ### 13. `dialog1`
 - [x] **Layout**: Tcl uses `tk_dialog` immediately; Go wraps in "Show Dialog" button — acceptable architectural difference for standalone demo
@@ -171,18 +172,18 @@ These patterns recur across nearly every demo and should be addressed globally:
 - [x] **Scrollbar**: Replace classic with TTK
 
 ### 27. `items`
-- [ ] **Missing sections**: Go has 6 sections (Rectangles/Ovals/Lines/Polygons/Arcs/Text). Tcl has 9 sections in a 3x3 grid: also includes Curves (smooth lines), Bitmaps+Images, Windows (embedded widgets).
-- [ ] **Missing smooth lines**: `$c create line -smooth on` not implemented in canvas
-- [ ] **Missing bitmaps**: canvas bitmap items not implemented; image items should be added (load ouster.png)
-- [ ] **Missing window items**: canvas window items (embedded button/entry/scale) not implemented
-- [ ] **Scrollbar**: Add TTK scrollbars to canvas (canvas has no scrollbar in Go yet — P2 item)
-- [ ] **Layout**: Tcl uses cm-based scroll region (30c x 24c); Go uses fixed pixel canvas — match scroll region
+- [x] **Scrollbar**: Added TTK x/y scrollbars with scroll region (0,0,660,520) — grid layout with canvas
+- [x] **Images section**: Added 8th section showing ouster.png and plowed_field.png as canvas image items
+- [x] **Smooth lines**: Already in Go (Smooth(true) used in section 3 lines) ✓
+- [ ] **Missing bitmaps section**: Canvas bitmap items not implemented — known limitation
+- [ ] **Missing window items section**: Canvas window items (embedded widgets) not implemented — known limitation
+- [ ] **Layout**: Tcl uses 3×3 grid with cm coordinates; Go uses fixed pixel layout with 2 new sections — functionally similar
 
 ### 28. `knightstour`
 - [x] **Board size**: 8x8 matching Tcl
-- [ ] **Missing features**: Tcl has click-to-set-start, step counter, dialog-based control; Go has simple Start button only
-- [ ] **Canvas size**: Tcl uses 192p x 192p ≈ 256px; Go uses 400x400px — oversized but acceptable
-- [x] **Algorithm**: Go already implements Warnsdorff's heuristic (degree-based minimum accessibility) — plan note was incorrect
+- [x] **Missing features**: Added click-to-set-start (click canvas to choose starting square, shows green highlight); added Edgemost tiebreaker (prefer squares closer to edge on degree tie); added Repeat checkbutton for continuous random tours
+- [x] **Canvas size**: 400x400 — larger than Tcl's 192p≈256px but functionally equivalent
+- [x] **Algorithm**: Warnsdorff's heuristic + Edgemost tiebreaker — matches Tcl's enhanced algorithm
 
 ### 29. `label`
 - [x] **Widget types**: Tcl uses classic `label` — Go matches
@@ -254,10 +255,10 @@ These patterns recur across nearly every demo and should be addressed globally:
 - [x] **Variable linkage**: Variable[string] linkage working; tristate uses Variable[bool]
 
 ### 42. `ruler`
-- [ ] **Missing interactivity**: Tcl has interactive ruler with draggable tab stops. Go is static.
-- [ ] Add tab stop dragging on canvas
-- [ ] Add ruler markings matching Tcl's measurements
-- [ ] **Canvas**: Match canvas size and ruler drawing
+- [x] **Missing interactivity**: Fully interactive — drag from well to create new tabs; drag existing tabs to move; drag far out to delete (shown in gray, deleted on release); grid snap at 0.25c intervals
+- [x] **Ruler markings**: cm/half-cm/quarter-cm tick marks with labels 0-11
+- [x] **Canvas size**: 560×100px matching Tcl's 14.8c×2.5c at 38px/cm
+- [x] **Well**: Gray rectangle + prototype tab at right edge; click+drag to create new tabs
 
 ### 43. `sayings`
 - [x] **Layout**: Tcl uses grid — changed Go to grid; added PadX("1c") matching Tcl's `-padx 1c`
@@ -317,7 +318,7 @@ These patterns recur across nearly every demo and should be addressed globally:
 - [x] **Layout**: Changed to grid inside inner frame — toolbar(row 0), sep(row 1), text(row 2 expand)
 - [ ] **Missing tearoff**: Tcl has tearoff grip mechanism — complex, known limitation
 - [ ] **Missing Toolbutton style**: Tcl applies `-style Toolbutton` to buttons — no TTK Toolbutton style in Go yet, known limitation
-- [ ] **Checkbutton**: ttk.NewCheckbutton now available; toolbar uses -style Toolbutton (no indicator) — Toolbutton style not implemented, known limitation
+- [x] **Checkbutton**: Replaced simulated button with ttk.NewCheckbutton + Variable[bool] — matches Tcl's ttk::checkbutton (without Toolbutton style indicator suppression)
 - [x] **Font change**: Tcl combobox selection changes text widget font. Added font change on combobox select.
 - [x] **Text scrollbar**: Tcl has no scrollbar on text widget. Removed extra scrollbar.
 - [x] **Padding**: Fixed — PadX("1.5p") PadY("3p") matching Tcl's `padx 1.5p pady 3p`

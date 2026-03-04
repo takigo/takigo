@@ -5,47 +5,97 @@ package main
 import (
 	"fmt"
 	"math"
+	"os"
+	"path/filepath"
+	"runtime"
 
 	"github.com/msorc/takigo/canvas"
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/event"
+	"github.com/msorc/takigo/geometry/grid"
 	"github.com/msorc/takigo/geometry/pack"
-	"github.com/msorc/takigo/platform"
+	tkimage "github.com/msorc/takigo/image"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/platform"
+	"github.com/msorc/takigo/ttk"
+	"github.com/msorc/takigo/widget/frame"
 )
 
 func main() {
 	app := demohelper.Setup("Canvas Item Demonstration", 700, 550,
 		"This window contains a canvas widget with examples of the various kinds of items supported by canvases. The following operations are supported:\n  Left-button drag: moves item under pointer.\n  Middle-button drag: repositions view.\n  Right-button drag: strokes out area.")
 
-	// Canvas.
-	c := canvas.New(app, "items",
+	// Outer grid frame for canvas + scrollbars.
+	gf := frame.New(app, "gf")
+	pack.Pack(gf, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true),
+		pack.PadX(10), pack.PadY(5))
+
+	// Canvas with scroll region covering all sections including images.
+	c := canvas.New(gf, "items",
 		canvas.Background("white"),
 		canvas.Width(660),
 		canvas.Height(420),
+		canvas.ScrollRegion(0, 0, 660, 520),
 	)
-	pack.Pack(c, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
-		pack.Expand(true), pack.PadX(10), pack.PadY(5))
+
+	scrollCmd := func(viewFunc func(n int, pages bool), moveFunc func(f float64)) func(args ...any) {
+		return func(args ...any) {
+			if len(args) < 1 {
+				return
+			}
+			switch args[0] {
+			case "moveto":
+				if len(args) >= 2 {
+					if f, ok := args[1].(float64); ok {
+						moveFunc(f)
+					}
+				}
+			case "scroll":
+				if len(args) >= 3 {
+					n, _ := args[1].(int)
+					unit, _ := args[2].(string)
+					viewFunc(n, unit == "pages")
+				}
+			}
+		}
+	}
+
+	yscroll := ttk.NewScrollbar(gf, "yscroll",
+		ttk.ScrollbarOrientOpt(ttk.Vertical),
+		ttk.ScrollbarCommandOpt(scrollCmd(c.YViewScroll, c.YViewMoveTo)),
+	)
+	xscroll := ttk.NewScrollbar(gf, "xscroll",
+		ttk.ScrollbarOrientOpt(ttk.Horizontal),
+		ttk.ScrollbarCommandOpt(scrollCmd(c.XViewScroll, c.XViewMoveTo)),
+	)
+	c.Configure(
+		canvas.YScrollCommand(func(first, last float64) { yscroll.Set(first, last) }),
+		canvas.XScrollCommand(func(first, last float64) { xscroll.Set(first, last) }),
+	)
+
+	// Grid layout: canvas(0,0), yscroll(0,1), xscroll(1,0).
+	grid.Grid(c, grid.Row(0), grid.Column(0), grid.Sticky(grid.NSEW))
+	grid.Grid(yscroll, grid.Row(0), grid.Column(1), grid.Sticky(grid.NS))
+	grid.Grid(xscroll, grid.Row(1), grid.Column(0), grid.Sticky(grid.EW))
+	grid.RowConfigure(gf.Window(), 0, grid.SlotConfig{Weight: 1})
+	grid.ColumnConfigure(gf.Window(), 0, grid.SlotConfig{Weight: 1})
 
 	// Track original colors per item ID for hover restore.
 	type itemColors struct {
-		fill    string // fill color (or text color for text items)
-		outline string // outline color
-		isText  bool   // true for text items (use TextColor instead of FillColor)
+		fill    string
+		outline string
+		isText  bool
 	}
 	origColors := map[string]itemColors{}
 
-	// Helper to record original colors for a shape item.
 	record := func(id int64, fill, outline string) {
 		origColors[fmt.Sprintf("%d", id)] = itemColors{fill: fill, outline: outline}
 	}
-
-	// Helper to record original colors for a text item.
 	recordText := func(id int64, textColor string) {
 		origColors[fmt.Sprintf("%d", id)] = itemColors{fill: textColor, isText: true}
 	}
 
-	// Section 1: Rectangles.
+	// --- Section 1: Rectangles ---
 	c.CreateText(110, 15, canvas.TextOpt("Rectangles"), canvas.FontOpt("Sans Bold 11"),
 		canvas.AnchorOpt(option.AnchorCenter))
 
@@ -61,7 +111,7 @@ func main() {
 		canvas.FillColor("#6bb86b"), canvas.OutlineColor("darkgreen"), canvas.OutlineWidth(3),
 		canvas.Tags("item")), "#6bb86b", "darkgreen")
 
-	// Section 2: Ovals.
+	// --- Section 2: Ovals ---
 	c.CreateText(330, 15, canvas.TextOpt("Ovals"), canvas.FontOpt("Sans Bold 11"),
 		canvas.AnchorOpt(option.AnchorCenter))
 
@@ -73,7 +123,7 @@ func main() {
 		canvas.FillColor("#9b59b6"), canvas.OutlineColor("black"), canvas.OutlineWidth(1),
 		canvas.Tags("item")), "#9b59b6", "black")
 
-	// Section 3: Lines.
+	// --- Section 3: Lines ---
 	c.CreateText(550, 15, canvas.TextOpt("Lines"), canvas.FontOpt("Sans Bold 11"),
 		canvas.AnchorOpt(option.AnchorCenter))
 
@@ -94,16 +144,14 @@ func main() {
 		canvas.Arrow(canvas.ArrowBoth),
 		canvas.Tags("item")), "", "black")
 
-	// Section 4: Polygons.
+	// --- Section 4: Polygons ---
 	c.CreateText(110, 155, canvas.TextOpt("Polygons"), canvas.FontOpt("Sans Bold 11"),
 		canvas.AnchorOpt(option.AnchorCenter))
 
-	// Triangle.
 	record(c.CreatePolygon([]float64{60, 170, 20, 260, 100, 260},
 		canvas.FillColor("#e74c3c"), canvas.OutlineColor("black"), canvas.OutlineWidth(2),
 		canvas.Tags("item")), "#e74c3c", "black")
 
-	// Pentagon.
 	cx, cy, r := 160.0, 220.0, 40.0
 	penta := make([]float64, 10)
 	for i := range 5 {
@@ -115,7 +163,7 @@ func main() {
 		canvas.FillColor("#3498db"), canvas.OutlineColor("navy"), canvas.OutlineWidth(2),
 		canvas.Tags("item")), "#3498db", "navy")
 
-	// Section 5: Arcs.
+	// --- Section 5: Arcs ---
 	c.CreateText(330, 155, canvas.TextOpt("Arcs"), canvas.FontOpt("Sans Bold 11"),
 		canvas.AnchorOpt(option.AnchorCenter))
 
@@ -129,7 +177,7 @@ func main() {
 		canvas.StartAngle(30), canvas.Extent(270), canvas.ArcStyleOpt(canvas.ArcStyleArc),
 		canvas.Tags("item")), "", "#c0392b")
 
-	// Section 6: Text.
+	// --- Section 6: Text ---
 	c.CreateText(550, 155, canvas.TextOpt("Text Items"), canvas.FontOpt("Sans Bold 11"),
 		canvas.AnchorOpt(option.AnchorCenter))
 
@@ -147,7 +195,7 @@ func main() {
 		canvas.AnchorOpt(option.AnchorCenter),
 		canvas.Tags("item")), "darkred")
 
-	// Section 7: Dashed lines.
+	// --- Section 7: Dashed Lines ---
 	c.CreateText(330, 290, canvas.TextOpt("Dashed Lines"), canvas.FontOpt("Sans Bold 11"),
 		canvas.AnchorOpt(option.AnchorCenter))
 
@@ -167,12 +215,31 @@ func main() {
 		canvas.FillColor("#eaf2f8"), canvas.OutlineColor("#2980b9"), canvas.OutlineWidth(2),
 		canvas.Tags("item")), "#eaf2f8", "#2980b9")
 
-	// --- Event bindings for item interaction (matching Tk items.tcl) ---
+	// --- Section 8: Images ---
+	c.CreateText(330, 430, canvas.TextOpt("Images"), canvas.FontOpt("Sans Bold 11"),
+		canvas.AnchorOpt(option.AnchorCenter))
 
-	// Track which item is currently highlighted for restore on Leave.
+	if imgPath := findImage("ouster.png"); imgPath != "" {
+		if photo, err := tkimage.NewPhotoFromFile("items_ouster", imgPath); err == nil {
+			app.ImageRegistry().Register(photo)
+			c.CreateImage(110, 470, canvas.ImageOpt(photo),
+				canvas.AnchorOpt(option.AnchorCenter),
+				canvas.Tags("item"))
+		}
+	}
+	if imgPath := findImage("plowed_field.png"); imgPath != "" {
+		if photo, err := tkimage.NewPhotoFromFile("items_field", imgPath); err == nil {
+			app.ImageRegistry().Register(photo)
+			c.CreateImage(350, 470, canvas.ImageOpt(photo),
+				canvas.AnchorOpt(option.AnchorCenter),
+				canvas.Tags("item"))
+		}
+	}
+
+	// --- Event bindings ---
+
 	var highlightedID string
 
-	// Hover: highlight item on Enter, restore original colors on Leave.
 	c.BindItem("item", event.EnterMask, func(ev *event.Event) {
 		highlightedID = ""
 		ids := c.FindWithTag("current")
@@ -185,15 +252,11 @@ func main() {
 			return
 		}
 		highlightedID = idStr
-
 		if colors.isText {
-			// Text items: change text color.
 			c.ItemConfigure("current", canvas.TextColor("SteelBlue2"))
 		} else if colors.fill != "" {
-			// Filled shapes: change fill color.
 			c.ItemConfigure("current", canvas.FillColor("SteelBlue2"))
 		} else if colors.outline != "" {
-			// Unfilled shapes / lines: change outline color.
 			c.ItemConfigure("current", canvas.OutlineColor("SteelBlue2"))
 		}
 	})
@@ -206,7 +269,6 @@ func main() {
 		if !ok {
 			return
 		}
-		// Restore original colors.
 		if colors.isText {
 			c.ItemConfigure(highlightedID, canvas.TextColor(colors.fill))
 		} else {
@@ -220,10 +282,8 @@ func main() {
 		highlightedID = ""
 	})
 
-	// Drag state for Button-1 item dragging.
 	var lastX, lastY int
 
-	// ButtonPress-1 on item: start drag.
 	c.BindItem("item", event.ButtonPressMask, func(ev *event.Event) {
 		if ev.Button != 1 {
 			return
@@ -232,7 +292,6 @@ func main() {
 		lastY = ev.Y
 	})
 
-	// B1-Motion on item: drag the item under pointer.
 	c.BindItem("item", event.MotionMask, func(ev *event.Event) {
 		if ev.State&platform.Button1Mask == 0 {
 			return
@@ -245,4 +304,18 @@ func main() {
 	})
 
 	app.Run()
+}
+
+// findImage locates an image in the demos/images/ directory.
+func findImage(name string) string {
+	_, file, _, ok := runtime.Caller(0)
+	if !ok {
+		return ""
+	}
+	demosRoot := filepath.Dir(filepath.Dir(file))
+	path := filepath.Join(demosRoot, "images", name)
+	if _, err := os.Stat(path); err == nil {
+		return path
+	}
+	return ""
 }

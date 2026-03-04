@@ -8,6 +8,7 @@ import (
 
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/font"
+	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/geometry/grid"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
@@ -63,13 +64,13 @@ func main() {
 	)
 	pack.Pack(btnNew, pack.SideOpt(pack.Left), pack.PadX("1.5p"), pack.PadY("3p"))
 
-	// Check button (simulated with a regular button toggling state).
-	checkState := false
-	checkBtn := ttk.NewButton(toolbar, "check",
-		ttk.ButtonText("Check"),
-		ttk.ButtonCommand(func() {
-			checkState = !checkState
-			appendMsg(fmt.Sprintf("check is %v", checkState))
+	// Check button (TTK checkbutton).
+	checkVar := widget.NewVariable(false)
+	checkBtn := ttk.NewCheckbutton(toolbar, "check",
+		ttk.CheckbuttonText("Check"),
+		ttk.CheckbuttonVar(checkVar),
+		ttk.CheckbuttonCommand(func() {
+			appendMsg(fmt.Sprintf("check is %v", checkVar.Get()))
 		}),
 	)
 	pack.Pack(checkBtn, pack.SideOpt(pack.Left), pack.PadX("1.5p"), pack.PadY("3p"))
