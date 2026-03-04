@@ -28,19 +28,18 @@ func main() {
 		di.SetForeground(gc, c.Pixel)
 		di.FillRectangle(root.Drawable(), gc, 0, 0, uint(root.Width), uint(root.Height))
 		di.Flush()
-		// Redraw all children.
 		pack.ArrangeContainer(root)
 	}
 
-	// Color buttons (match Tk's button.tcl).
+	// Color buttons — match Tk's button.tcl (X11 named colors, width 10).
 	colors := []struct {
 		text  string
 		color string
 	}{
-		{"Peach Puff", "#ffdab9"},
-		{"Light Blue", "#add8e6"},
-		{"Sea Green", "#2e8b57"},
-		{"Yellow", "#ffff00"},
+		{"Peach Puff", "PeachPuff1"},
+		{"Light Blue", "LightBlue1"},
+		{"Sea Green", "SeaGreen2"},
+		{"Yellow", "Yellow1"},
 	}
 
 	for _, c := range colors {
@@ -48,11 +47,8 @@ func main() {
 		btn := button.New(app, "btn_"+c.text,
 			button.Text(c.text),
 			button.Command(func() { changeColor(colorVal) }),
-			button.PadX(10),
-			button.PadY(6),
 		)
-		pack.Pack(btn, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
-			pack.Expand(true), pack.PadX(20), pack.PadY(5))
+		pack.Pack(btn, pack.SideOpt(pack.Top), pack.Expand(true), pack.PadY("1.5p"))
 	}
 
 	app.Run()

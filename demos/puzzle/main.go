@@ -22,15 +22,15 @@ func main() {
 			"slide over the space. Continue this until the pieces are "+
 			"arranged in numerical order from upper-left to lower-right.")
 
-	// Puzzle frame.
+	// Puzzle frame (matches Tcl: 90p ≈ 120px, pady 1c padx 1c).
 	puzzleFrame := frame.New(app, "puzzle",
-		frame.Width(240),
-		frame.Height(240),
+		frame.Width(120),
+		frame.Height(120),
 		frame.BorderWidth(2),
 		frame.Relief(option.ReliefSunken),
 		frame.Background("#4a6984"),
 	)
-	pack.Pack(puzzleFrame, pack.SideOpt(pack.Top), pack.PadX(20), pack.PadY(10))
+	pack.Pack(puzzleFrame, pack.SideOpt(pack.Top), pack.PadX("1c"), pack.PadY("1c"))
 
 	// Initial tile order (scrambled).
 	order := []int{3, 1, 6, 2, 5, 7, 15, 13, 4, 11, 8, 9, 14, 10, 12}
@@ -84,8 +84,6 @@ func main() {
 			btn := button.New(puzzleFrame, fmt.Sprintf("p%d", num),
 				button.Text(fmt.Sprintf("%d", num)),
 				button.Command(func() { tryMove(n) }),
-				button.PadX(2),
-				button.PadY(2),
 			)
 			placePiece(btn.Window(), col, row)
 			buttons = append(buttons, btn)

@@ -29,8 +29,8 @@ func main() {
 		labelframe.BorderWidth(2),
 		labelframe.Relief(option.ReliefGroove),
 	)
-	pack.Pack(leftFrame, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth),
-		pack.PadX(10), pack.PadY(10), pack.Expand(true))
+	pack.Pack(leftFrame, pack.SideOpt(pack.Left), pack.PadX("7.5p"), pack.PadY("7.5p"),
+		pack.Expand(true))
 
 	// Right labelframe: GIF placeholder.
 	rightFrame := labelframe.New(app, "right",
@@ -38,8 +38,8 @@ func main() {
 		labelframe.BorderWidth(2),
 		labelframe.Relief(option.ReliefGroove),
 	)
-	pack.Pack(rightFrame, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth),
-		pack.PadX(10), pack.PadY(10), pack.Expand(true))
+	pack.Pack(rightFrame, pack.SideOpt(pack.Left), pack.PadX("7.5p"), pack.PadY("7.5p"),
+		pack.Expand(true))
 
 	// Three scrolling labels with different messages and speeds,
 	// matching the Tk original's l1 (slow, ridge), l2 (fast, groove), l3 (flat, long text).
@@ -53,7 +53,7 @@ func main() {
 	specs := []labelSpec{
 		{"l1", "* Slow Animation *", option.ReliefRidge, 300, false},
 		{"l2", "* Fast Animation *", option.ReliefGroove, 80, false},
-		{"l3", "This is a longer scrolling text in a widget that will not show the whole message at once. ", option.ReliefFlat, 150, true},
+		{"l3", "This is a longer scrolling text in a widget that will not show the whole message at once. ", option.ReliefFlat, 150, false},
 	}
 
 	var scrollLabels []*scrollLabel
@@ -69,8 +69,8 @@ func main() {
 			opts = append(opts, label.Width(180))
 		}
 		l := label.New(leftFrame, spec.name, opts...)
-		pack.Pack(l, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
-			pack.PadX(10), pack.PadY(10))
+		pack.Pack(l, pack.SideOpt(pack.Top), pack.Expand(true),
+			pack.PadX("7.5p"), pack.PadY("7.5p"), pack.Anchor(option.AnchorW))
 
 		sl := &scrollLabel{
 			label:  l,
@@ -98,11 +98,10 @@ func main() {
 	// Placeholder label in right frame for animated GIF.
 	gifPlaceholder := label.New(rightFrame, "gif",
 		label.Text("(Animated GIF\nnot supported)"),
-		label.Anchor(option.AnchorCenter),
-		label.PadX(20), label.PadY(40),
+		label.BorderWidth(0),
 	)
-	pack.Pack(gifPlaceholder, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
-		pack.PadX(10), pack.PadY(10), pack.Expand(true))
+	pack.Pack(gifPlaceholder, pack.SideOpt(pack.Top), pack.Expand(true),
+		pack.PadX("7.5p"), pack.PadY("7.5p"))
 
 	app.Run()
 }

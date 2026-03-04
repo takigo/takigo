@@ -27,10 +27,12 @@ func main() {
 		pack.Expand(true), pack.PadX(5), pack.PadY(5))
 
 	tw := text.New(txtFrame, "tw",
-		text.Width(55), text.Height(28),
+		text.Width(70), text.Height(35),
 		text.WrapModeOpt(text.WrapWord),
 		text.UndoOpt(true),
+		text.BorderWidthOpt(0),
 	)
+	tw.HighlightWidth = 0
 
 	yscroll := scrollbar.New(txtFrame, "yscroll")
 	tw.YScrollCmd = func(first, last float64) { yscroll.Set(first, last) }

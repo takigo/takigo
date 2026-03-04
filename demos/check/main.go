@@ -67,7 +67,7 @@ func main() {
 		checkbutton.Var(safety),
 		checkbutton.Command(updateSubs),
 	)
-	pack.Pack(cb0, pack.SideOpt(pack.Top), pack.PadY(2), pack.Anchor(option.AnchorW))
+	pack.Pack(cb0, pack.SideOpt(pack.Top), pack.PadY("1.5p"), pack.Anchor(option.AnchorW))
 
 	// Sub-checkbuttons — indented with extra left padding like the Tk original.
 	cb1 := checkbutton.New(app, "wipers",
@@ -75,21 +75,21 @@ func main() {
 		checkbutton.Var(wipers),
 		checkbutton.Command(updateMaster),
 	)
-	pack.Pack(cb1, pack.SideOpt(pack.Top), pack.PadY(2), pack.Anchor(option.AnchorW), pack.PadX(20))
+	pack.Pack(cb1, pack.SideOpt(pack.Top), pack.PadY("1.5p"), pack.Anchor(option.AnchorW), pack.PadX("12p"))
 
 	cb2 := checkbutton.New(app, "brakes",
 		checkbutton.Text("Brakes OK"),
 		checkbutton.Var(brakes),
 		checkbutton.Command(updateMaster),
 	)
-	pack.Pack(cb2, pack.SideOpt(pack.Top), pack.PadY(2), pack.Anchor(option.AnchorW), pack.PadX(20))
+	pack.Pack(cb2, pack.SideOpt(pack.Top), pack.PadY("1.5p"), pack.Anchor(option.AnchorW), pack.PadX("12p"))
 
 	cb3 := checkbutton.New(app, "sober",
 		checkbutton.Text("Driver Sober"),
 		checkbutton.Var(sober),
 		checkbutton.Command(updateMaster),
 	)
-	pack.Pack(cb3, pack.SideOpt(pack.Top), pack.PadY(2), pack.Anchor(option.AnchorW), pack.PadX(20))
+	pack.Pack(cb3, pack.SideOpt(pack.Top), pack.PadY("1.5p"), pack.Anchor(option.AnchorW), pack.PadX("12p"))
 
 	_ = cb0
 	_ = cb1

@@ -30,23 +30,30 @@ func main() {
 		)
 	}
 
+	// Set icon button (matches Tcl's "Set Window Icon to Globe").
+	iconBtn := button.New(app, "seticon",
+		button.Text("Set Window Icon to Globe"),
+		button.Command(func() { setWindowIcon(root) }),
+	)
+	pack.Pack(iconBtn, pack.FillOpt(pack.FillX), pack.PadX("3p"))
+
 	badge3Btn := button.New(app, "badge3",
 		button.Text("Set Badge to 3"),
 		button.Command(badgeMsg),
 	)
-	pack.Pack(badge3Btn, pack.FillOpt(pack.FillX), pack.PadX(3), pack.PadY(2))
+	pack.Pack(badge3Btn, pack.FillOpt(pack.FillX), pack.PadX("3p"))
 
 	badge11Btn := button.New(app, "badge11",
 		button.Text("Set Badge to 11"),
 		button.Command(badgeMsg),
 	)
-	pack.Pack(badge11Btn, pack.FillOpt(pack.FillX), pack.PadX(3), pack.PadY(2))
+	pack.Pack(badge11Btn, pack.FillOpt(pack.FillX), pack.PadX("3p"))
 
 	resetBadgeBtn := button.New(app, "resetbadge",
 		button.Text("Reset Badge"),
 		button.Command(badgeMsg),
 	)
-	pack.Pack(resetBadgeBtn, pack.FillOpt(pack.FillX), pack.PadX(3), pack.PadY(2))
+	pack.Pack(resetBadgeBtn, pack.FillOpt(pack.FillX), pack.PadX("3p"))
 
 	app.Run()
 }

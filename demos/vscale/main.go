@@ -29,15 +29,18 @@ func main() {
 	app := demohelper.Setup("Vertical Scale Demonstration", 400, 400,
 		"An arrow and a vertical scale are displayed below. If you click or drag mouse button 1 in the scale, you can change the size of the arrow.")
 
-	// Middle frame: scale on left, canvas on right.
-	fr := frame.New(app, "frame")
-	pack.Pack(fr, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
-		pack.Expand(true), pack.PadX(10), pack.PadY(5))
+	// Middle frame with border (matches Tcl's `frame -borderwidth 7.5p`).
+	fr := frame.New(app, "frame",
+		frame.BorderWidth(10), // 7.5p ≈ 10px
+	)
+	pack.Pack(fr, pack.SideOpt(pack.Top))
 
 	// Canvas for arrow display.
 	c := canvas.New(fr, "canvas",
-		canvas.Width(60),
+		canvas.Width(50),
 		canvas.Height(300),
+		canvas.BorderWidthOpt(0),
+		canvas.HighlightWidthOpt(0),
 	)
 
 	// Create initial polygon and line items with dummy coords.
@@ -52,13 +55,12 @@ func main() {
 		scale.FromOpt(0),
 		scale.ToOpt(250),
 		scale.ValueOpt(75),
-		scale.ShowValueOpt(true),
 		scale.CommandOpt(func(v float64) {
 			setHeight(c, v)
 		}),
 	)
 
-	pack.Pack(sc, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillY), pack.PadX(10))
+	pack.Pack(sc, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillY))
 	pack.Pack(c, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillY))
 
 	// Set initial arrow.

@@ -1,5 +1,5 @@
-// Demo: Canvas and text display layout.
-// Ported from Tk's print.tcl demo (printing not available).
+// Demo: Canvas and text display with print buttons.
+// Ported from Tk's print.tcl demo (tk print not available in Go).
 package main
 
 import (
@@ -7,22 +7,20 @@ import (
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/dialog"
 	"github.com/msorc/takigo/geometry/pack"
-	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/widget/button"
 	"github.com/msorc/takigo/widget/frame"
-	"github.com/msorc/takigo/widget/label"
 	"github.com/msorc/takigo/widget/text"
 )
 
 func main() {
-	app := demohelper.Setup("Print Demonstration", 700, 500,
+	app := demohelper.Setup("Printing Demonstration", 700, 500,
 		"This demonstration showcases the print command. Clicking the buttons below prints the data from the canvas and text widgets using platform-native dialogs.")
 
-	// Button row at the bottom.
-	btnFrame := frame.New(app, "buttons")
-	pack.Pack(btnFrame, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX), pack.PadY(5))
+	// Button frame at the bottom.
+	btnFrame := frame.New(app, "f")
+	pack.Pack(btnFrame, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
-	printCanvasBtn := button.New(btnFrame, "printcanvas",
+	printCanvasBtn := button.New(btnFrame, "c",
 		button.Text("Print Canvas"),
 		button.Command(func() {
 			dialog.ShowMessage(app,
@@ -32,9 +30,10 @@ func main() {
 			)
 		}),
 	)
-	pack.Pack(printCanvasBtn, pack.SideOpt(pack.Left), pack.PadX(10))
+	pack.Pack(printCanvasBtn, pack.SideOpt(pack.Left), pack.Anchor(7), // AnchorW
+		pack.PadX("3p"))
 
-	printTextBtn := button.New(btnFrame, "printtext",
+	printTextBtn := button.New(btnFrame, "t",
 		button.Text("Print Text"),
 		button.Command(func() {
 			dialog.ShowMessage(app,
@@ -44,60 +43,32 @@ func main() {
 			)
 		}),
 	)
-	pack.Pack(printTextBtn, pack.SideOpt(pack.Left), pack.PadX(10))
-
-	infoLabel := label.New(app, "info",
-		label.Text("Note: Printing is not available on this platform."),
-		label.Anchor(option.AnchorW),
-		label.PadX(10), label.Foreground("#666666"),
-	)
-	pack.Pack(infoLabel, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX), pack.PadY(3))
+	pack.Pack(printTextBtn, pack.SideOpt(pack.Right), pack.Anchor(3), // AnchorE
+		pack.PadX("3p"))
 
 	// Content area: canvas left, text right.
-	contentFrame := frame.New(app, "content")
-	pack.Pack(contentFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
-		pack.Expand(true), pack.PadX(5), pack.PadY(5))
+	m := frame.New(app, "m")
+	pack.Pack(m, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
+		pack.Expand(true))
 
 	// Canvas with shapes.
-	c := canvas.New(contentFrame, "canv",
-		canvas.Background("white"),
-		canvas.Width(300), canvas.Height(350),
-		canvas.BorderWidthOpt(2), canvas.ReliefOpt(option.ReliefSunken),
-	)
+	c := canvas.New(m, "c", canvas.Background("white"))
 	pack.Pack(c, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth),
-		pack.Expand(true), pack.PadX(5))
+		pack.Expand(true))
 
-	// Draw shapes on canvas.
-	c.CreateRectangle(20, 20, 140, 80, canvas.FillColor("#4488cc"), canvas.OutlineColor("black"))
-	c.CreateOval(160, 20, 280, 100, canvas.FillColor("#cc4444"), canvas.OutlineColor("black"))
-	c.CreateRectangle(20, 120, 280, 200, canvas.FillColor("#44aa44"), canvas.OutlineColor("black"))
-	c.CreateOval(60, 220, 240, 340, canvas.FillColor("#cc8844"), canvas.OutlineColor("black"))
-	c.CreateText(150, 105, canvas.TextOpt("Shapes Demo"), canvas.TextColor("black"))
+	c.CreateRectangle(20, 20, 220, 80, canvas.FillColor("blue"), canvas.OutlineColor("black"))
+	c.CreateOval(20, 100, 220, 160, canvas.FillColor("green"), canvas.OutlineColor("black"))
+	c.CreateText(20, 180, canvas.TextOpt("A short demo of simple canvas elements."),
+		canvas.TextColor("black"))
 
-	// Text widget with sample content.
-	tw := text.New(contentFrame, "txt",
-		text.Width(40), text.Height(20),
-		text.WrapModeOpt(text.WrapWord),
-		text.BorderWidthOpt(2),
-	)
+	// Text widget with Tcl/Tk description.
+	tw := text.New(m, "t", text.WrapModeOpt(text.WrapWord))
 	pack.Pack(tw, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillBoth),
-		pack.Expand(true), pack.PadX(5))
+		pack.Expand(true))
 
-	tw.Insert("1.0", `This is a sample text widget that would normally be printed alongside the canvas in Tk's print demo.
+	tw.Insert("1.0", "Tcl, or Tool Command Language, is an open-source multi-purpose C library which includes a powerful dynamic scripting language. Together they provide ideal cross-platform development environment for any programming project. It has served for decades as an essential system component in organizations ranging from NASA to Cisco Systems, is a must-know language in the fields of EDA, and powers companies such as FlightAware and F5 Networks.\n\nTcl is fit for both the smallest and largest programming tasks, obviating the need to decide whether it is overkill for a given job or whether a system written in Tcl will scale up as needed. Wherever a shell script might be used Tcl is a better choice, and entire web ecosystems and mission-critical control and testing systems have also been written in Tcl. Tcl excels in all these roles due to the minimal syntax of the language, the unique programming paradigm exposed at the script level, and the careful engineering that has gone into the design of the Tcl internals.")
 
-The original Tk demo demonstrates the "tk print" command which sends canvas and text widget contents to the system printer.
-
-Since printing is a platform-specific feature that relies on the native print dialog, it is not implemented in the Go port.
-
-However, this demo still shows the canvas with geometric shapes on the left and this text widget on the right, demonstrating the layout used in the original demo.
-
-Features shown:
-- Canvas rectangles and ovals
-- Canvas text items
-- Fill and outline colors
-- Text widget with word wrapping
-- Side-by-side layout with pack geometry`)
-
-	_ = infoLabel
+	_ = printCanvasBtn
+	_ = printTextBtn
 	app.Run()
 }

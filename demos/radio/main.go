@@ -6,96 +6,103 @@ import (
 	"strings"
 
 	"github.com/msorc/takigo/demos/demohelper"
+	"github.com/msorc/takigo/geometry/grid"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/widget"
+	"github.com/msorc/takigo/widget/button"
 	"github.com/msorc/takigo/widget/frame"
+	"github.com/msorc/takigo/widget/label"
 	"github.com/msorc/takigo/widget/labelframe"
 	"github.com/msorc/takigo/widget/radiobutton"
 )
 
 func main() {
 	app := demohelper.Setup("Radiobutton Demonstration", 580, 400,
-		"Three groups of radiobuttons are displayed below. If you click "+
-			"on a button then the button will become selected exclusively "+
-			"among all the buttons in its group. A variable is associated "+
-			"with each group to indicate which of the group's buttons is "+
-			"selected.")
+		"Three groups of radiobuttons are displayed below. If you click on a button then the button will become selected exclusively among all the buttons in its group. A variable is associated with each group to indicate which of the group's buttons is selected.")
 
 	// Variables.
 	sizeVar := widget.NewVariable("12")
 	colorVar := widget.NewVariable("red")
 	alignVar := widget.NewVariable("left")
 
-	// Container for three groups side by side.
-	groupFrame := frame.New(app, "groups")
-	pack.Pack(groupFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
-		pack.Expand(true), pack.PadX(10), pack.PadY(5))
+	// Inner frame for grid layout (demohelper uses pack in app.Window()).
+	body := frame.New(app, "body")
+	pack.Pack(body, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
-	// Point Size group (labelframe).
-	sizeFrame := labelframe.New(groupFrame, "sizes",
-		labelframe.Text("Point Size"),
-	)
-	pack.Pack(sizeFrame, pack.SideOpt(pack.Left), pack.PadX(10), pack.PadY(5),
-		pack.FillOpt(pack.FillY))
+	// Point Size group — spans 2 rows (matches Tcl: -rowspan 2).
+	sizeFrame := labelframe.New(body, "left", labelframe.Text("Point Size"))
+	grid.Grid(sizeFrame, grid.Row(0), grid.Column(0), grid.RowSpan(2),
+		grid.PadX(".5c"), grid.PadY(".5c"))
 
-	sizes := []string{"10", "12", "14", "18", "24"}
-	for _, s := range sizes {
+	for _, s := range []string{"10", "12", "14", "18", "24"} {
 		rb := radiobutton.New(sizeFrame, "size_"+s,
 			radiobutton.Text("Point Size "+s),
 			radiobutton.Value(s),
 			radiobutton.Var(sizeVar),
 		)
-		pack.Pack(rb, pack.SideOpt(pack.Top), pack.PadY(2),
-			pack.Anchor(option.AnchorW), pack.PadX(10),
-			pack.FillOpt(pack.FillX))
+		pack.Pack(rb, pack.SideOpt(pack.Top), pack.PadY("1.5p"),
+			pack.Anchor(option.AnchorW), pack.FillOpt(pack.FillX))
 	}
 
-	// Color group (labelframe).
-	colorFrame := labelframe.New(groupFrame, "colors",
-		labelframe.Text("Color"),
-	)
-	pack.Pack(colorFrame, pack.SideOpt(pack.Left), pack.PadX(10), pack.PadY(5),
-		pack.FillOpt(pack.FillY))
+	// Color group — spans 2 rows.
+	colorFrame := labelframe.New(body, "mid", labelframe.Text("Color"))
+	grid.Grid(colorFrame, grid.Row(0), grid.Column(1), grid.RowSpan(2),
+		grid.PadX(".5c"), grid.PadY(".5c"))
 
-	colors := []string{"Red", "Green", "Blue", "Yellow", "Orange", "Purple"}
-	for _, c := range colors {
+	for _, c := range []string{"Red", "Green", "Blue", "Yellow", "Orange", "Purple"} {
 		rb := radiobutton.New(colorFrame, "color_"+strings.ToLower(c),
 			radiobutton.Text(c),
 			radiobutton.Value(strings.ToLower(c)),
 			radiobutton.Var(colorVar),
 		)
-		pack.Pack(rb, pack.SideOpt(pack.Top), pack.PadY(2),
-			pack.Anchor(option.AnchorW), pack.PadX(10),
-			pack.FillOpt(pack.FillX))
+		pack.Pack(rb, pack.SideOpt(pack.Top), pack.PadY("1.5p"), pack.FillOpt(pack.FillX))
 	}
 
-	// Alignment group (labelframe).
-	alignFrame := labelframe.New(groupFrame, "align",
-		labelframe.Text("Alignment"),
-	)
-	pack.Pack(alignFrame, pack.SideOpt(pack.Left), pack.PadX(10), pack.PadY(5),
-		pack.FillOpt(pack.FillY))
+	// Alignment group — compass grid layout.
+	alignFrame := labelframe.New(body, "right", labelframe.Text("Alignment"))
+	grid.Grid(alignFrame, grid.Row(0), grid.Column(2),
+		grid.PadX(".5c"), grid.PadY(".5c"))
 
-	alignments := []struct{ text, value string }{
-		{"Top", "top"},
-		{"Left", "left"},
-		{"Right", "right"},
-		{"Bottom", "bottom"},
-	}
-	for _, a := range alignments {
-		rb := radiobutton.New(alignFrame, "align_"+a.value,
+	// Center label.
+	centerLabel := label.New(alignFrame, "l", label.Text("Label"))
+
+	for _, a := range []struct {
+		text, value string
+		row, col    int
+	}{
+		{"Top", "top", 0, 1},
+		{"Left", "left", 1, 0},
+		{"Right", "right", 1, 2},
+		{"Bottom", "bottom", 2, 1},
+	} {
+		rb := radiobutton.New(alignFrame, a.value,
 			radiobutton.Text(a.text),
 			radiobutton.Value(a.value),
 			radiobutton.Var(alignVar),
 		)
-		pack.Pack(rb, pack.SideOpt(pack.Top), pack.PadY(2),
-			pack.Anchor(option.AnchorW), pack.PadX(10),
-			pack.FillOpt(pack.FillX))
+		grid.Grid(rb, grid.Row(a.row), grid.Column(a.col))
 	}
+	grid.Grid(centerLabel, grid.Row(1), grid.Column(1))
+
+	// Tristate button (column 2, row 1 — below alignment group).
+	tristateBtn := button.New(body, "tristate",
+		button.Text("Tristate"),
+		button.Command(func() {
+			sizeVar.Set("multi")
+			colorVar.Set("multi")
+		}),
+	)
+	grid.Grid(tristateBtn, grid.Row(1), grid.Column(2),
+		grid.PadX(".5c"), grid.PadY(".5c"))
 
 	_ = sizeVar
 	_ = colorVar
 	_ = alignVar
+	_ = sizeFrame
+	_ = colorFrame
+	_ = alignFrame
+	_ = centerLabel
+	_ = tristateBtn
 	app.Run()
 }

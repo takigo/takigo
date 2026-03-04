@@ -8,6 +8,7 @@ import (
 
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/pack"
+	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/widget/scrollbar"
 	"github.com/msorc/takigo/widget/text"
 )
@@ -21,17 +22,13 @@ func main() {
 			"mouse over a demo description the description lights up, and when you press\n"+
 			"button 1 over a description then that particular demonstration is invoked.")
 
-	txtFrame := demohelper.NewFrame(app, "txtframe")
-	pack.Pack(txtFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
-		pack.Expand(true), pack.PadX(10), pack.PadY(5))
-
-	tw := text.New(txtFrame, "hypertext",
+	tw := text.New(app, "hypertext",
 		text.Width(60),
-		text.Height(16),
+		text.Height(24),
 		text.WrapModeOpt(text.WrapWord),
 	)
 
-	yscroll := scrollbar.New(txtFrame, "yscroll",
+	yscroll := scrollbar.New(app, "yscroll",
 		scrollbar.OrientOpt(scrollbar.Vertical),
 		scrollbar.CommandOpt(func(args ...any) {
 			if len(args) < 1 {
@@ -100,6 +97,12 @@ func main() {
 	}
 
 	tw.SetInsertPos("1.0")
+	// Match Tcl's `-state disabled` (read-only after setup).
+	text.ReadOnly(true)(tw)
+	// Set initial focus to text widget.
+	app.After(0, func() {
+		app.Server().SetInputFocus(tw.Window().PlatformID, platform.RevertToParent, platform.CurrentTime)
+	})
 	app.Run()
 }
 

@@ -40,6 +40,8 @@ func main() {
 		"DeepSkyBlue1", "DeepSkyBlue2", "DeepSkyBlue3", "DeepSkyBlue4",
 		"SkyBlue1", "SkyBlue2", "SkyBlue3", "SkyBlue4",
 		"LightSkyBlue1", "LightSkyBlue2", "LightSkyBlue3", "LightSkyBlue4",
+		"SlateGray1", "SlateGray2", "SlateGray3", "SlateGray4",
+		"LightSteelBlue1", "LightSteelBlue2", "LightSteelBlue3", "LightSteelBlue4",
 		"LightBlue1", "LightBlue2", "LightBlue3", "LightBlue4",
 		"LightCyan1", "LightCyan2", "LightCyan3", "LightCyan4",
 		"PaleTurquoise1", "PaleTurquoise2", "PaleTurquoise3", "PaleTurquoise4",
@@ -97,10 +99,9 @@ func main() {
 		"thistle1", "thistle2", "thistle3", "thistle4",
 	}
 
-	// Listbox frame.
-	lbFrame := frame.New(app, "lbframe")
-	pack.Pack(lbFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
-		pack.Expand(true), pack.PadX(10), pack.PadY(5))
+	// Listbox frame with border matching Tcl's `frame -borderwidth 7.5p`.
+	lbFrame := frame.New(app, "lbframe", frame.BorderWidth(10))
+	pack.Pack(lbFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillY), pack.Expand(true))
 
 	lb := listbox.New(lbFrame, "colors",
 		listbox.Items(colors...),

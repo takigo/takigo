@@ -92,7 +92,7 @@ func main() {
 
 	for _, b := range bitmaps[:5] {
 		col := frame.New(row1, "col_"+b.name)
-		pack.Pack(col, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.PadX(7), pack.PadY(7))
+		pack.Pack(col, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.PadX(".25c"), pack.PadY(".25c"))
 		il := label.New(col, "img_"+b.name,
 			label.ImageOpt(b.photo),
 			label.BorderWidth(2), label.Relief(option.ReliefGroove),
@@ -100,7 +100,7 @@ func main() {
 		)
 		pack.Pack(il, pack.SideOpt(pack.Top))
 		nl := label.New(col, "name_"+b.name, label.Text(b.name))
-		pack.Pack(nl, pack.SideOpt(pack.Top), pack.PadY(2))
+		pack.Pack(nl, pack.SideOpt(pack.Top))
 		_ = il
 		_ = nl
 	}
@@ -111,7 +111,7 @@ func main() {
 
 	for _, b := range bitmaps[5:] {
 		col := frame.New(row2, "col_"+b.name)
-		pack.Pack(col, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.PadX(7), pack.PadY(7))
+		pack.Pack(col, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.PadX(".25c"), pack.PadY(".25c"))
 		il := label.New(col, "img_"+b.name,
 			label.ImageOpt(b.photo),
 			label.BorderWidth(2), label.Relief(option.ReliefGroove),
@@ -119,7 +119,7 @@ func main() {
 		)
 		pack.Pack(il, pack.SideOpt(pack.Top))
 		nl := label.New(col, "name_"+b.name, label.Text(b.name))
-		pack.Pack(nl, pack.SideOpt(pack.Top), pack.PadY(2))
+		pack.Pack(nl, pack.SideOpt(pack.Top))
 		_ = il
 		_ = nl
 	}

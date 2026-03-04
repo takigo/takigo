@@ -17,7 +17,7 @@ import (
 	"github.com/msorc/takigo/widget/scale"
 )
 
-const boardSize = 6 // 6x6 for faster computation.
+const boardSize = 8 // 8x8 to match Tk's knightstour.tcl.
 
 func main() {
 	app := demohelper.Setup("Knight's Tour", 450, 530, fmt.Sprintf("Knight's tour on a %dx%d board.\nClick Start to begin the animation.", boardSize, boardSize))

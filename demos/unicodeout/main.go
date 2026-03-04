@@ -23,8 +23,8 @@ func main() {
 
 	// Frame to hold the two-column grid of language samples.
 	f := frame.New(app, "samples")
-	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
-		pack.Expand(true), pack.PadX(10), pack.PadY(5))
+	pack.Pack(f, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillBoth),
+		pack.Expand(true), pack.PadX("2m"), pack.PadY("1m"))
 
 	// Unicode samples matching Tk's unicodeout.tcl.
 	samples := []struct {
@@ -42,6 +42,8 @@ func main() {
 		{"Japanese", "\u65E5\u672C\u8A9E\u306E\u3072\u3089\u304C\u306A, \u6F22\u5B57\u3068\u30AB\u30BF\u30AB\u30CA"},
 		{"Korean", "\uB300\uD55C\uBBFC\uAD6D\uC758 \uD55C\uAE00"},
 		{"Russian", "\u0420\u0443\u0441\u0441\u043A\u0438\u0439 \u044F\u0437\u044B\u043A"},
+		// Emoji sample — shown on X11+XFT (which takigo uses).
+		{"Emoji", "😀💩👍🇳🇱"},
 	}
 
 	for i, s := range samples {
@@ -54,11 +56,13 @@ func main() {
 			label.Text(s.text),
 			label.Anchor(option.AnchorNW),
 			label.PadY(0),
+			label.Width(240), // ~30 chars at average 8px/char
 		)
+		// padx "1m" only on language label (column 0), not on sample label.
 		grid.Grid(langLabel, grid.Row(i), grid.Column(0),
-			grid.Sticky(grid.EW), grid.PadX(5), grid.PadY(0))
+			grid.Sticky(grid.EW), grid.PadX("1m"), grid.PadY(0))
 		grid.Grid(sampleLabel, grid.Row(i), grid.Column(1),
-			grid.Sticky(grid.EW), grid.PadX(5), grid.PadY(0))
+			grid.Sticky(grid.EW), grid.PadY(0))
 	}
 
 	grid.ColumnConfigure(f.Window(), 1, grid.SlotConfig{Weight: 1})

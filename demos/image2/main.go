@@ -1,112 +1,94 @@
-// Demo: Image viewer — select from generated images.
-// Ported from Tk's image2.tcl demo (simplified — no file browsing).
+// Demo: Image viewer — browse and select images from a directory.
+// Ported from Tk's image2.tcl demo.
 package main
 
 import (
-	goimage "image"
-	"image/color"
-	"math"
+	"fmt"
+	"os"
+	"path/filepath"
+	"sort"
+	"strings"
 
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/event"
+	"github.com/msorc/takigo/geometry/grid"
 	"github.com/msorc/takigo/geometry/pack"
 	tkimage "github.com/msorc/takigo/image"
 	"github.com/msorc/takigo/option"
-	"github.com/msorc/takigo/widget"
+	"github.com/msorc/takigo/widget/button"
+	"github.com/msorc/takigo/widget/entry"
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
+	"github.com/msorc/takigo/widget/labelframe"
 	"github.com/msorc/takigo/widget/listbox"
 	"github.com/msorc/takigo/widget/scrollbar"
 )
 
 func main() {
 	app := demohelper.Setup("Image Demonstration #2", 550, 400,
-		"This demonstration allows you to view images using a photo "+
-			"image. First type a directory name in the entry, then press "+
-			"Return to load the directory into the listbox. Then "+
-			"double-click on a file name in the listbox to see that image.")
+		"This demonstration allows you to view images using a Tk \"photo\" image. First type a directory name in the listbox, then type Return to load the directory into the listbox. Then double-click on a file name in the listbox to see that image.")
 
-	// Generate several images.
-	type imgEntry struct {
-		name  string
-		photo *tkimage.Photo
-	}
+	// Find demos/images directory relative to working directory.
+	imagesDir := findImagesDir()
 
-	makeCircles := func(name string, size int) *tkimage.Photo {
-		img := goimage.NewRGBA(goimage.Rect(0, 0, size, size))
-		cx, cy := float64(size)/2, float64(size)/2
-		for y := range size {
-			for x := range size {
-				dx := float64(x) - cx
-				dy := float64(y) - cy
-				dist := math.Sqrt(dx*dx + dy*dy)
-				ring := int(dist/10) % 3
-				var c color.RGBA
-				switch ring {
-				case 0:
-					c = color.RGBA{R: 220, G: 60, B: 60, A: 255}
-				case 1:
-					c = color.RGBA{R: 60, G: 180, B: 60, A: 255}
-				default:
-					c = color.RGBA{R: 60, G: 60, B: 220, A: 255}
+	// Middle frame.
+	mid := frame.New(app, "mid")
+	pack.Pack(mid, pack.FillOpt(pack.FillBoth), pack.Expand(true))
+
+	// --- "Directory:" labelframe ---
+	dirLF := labelframe.New(mid, "dir", labelframe.Text("Directory:"))
+	dirEntry := entry.New(dirLF, "e", entry.Width(30))
+	dirEntry.SetText(imagesDir)
+
+	var lb *listbox.Listbox
+
+	loadDir := func(dir string) {
+		entries, err := os.ReadDir(dir)
+		if err != nil {
+			return
+		}
+		// Clear listbox.
+		n := lb.ItemCount()
+		if n > 0 {
+			lb.Delete(0, n-1)
+		}
+		var files []string
+		for _, de := range entries {
+			if !de.IsDir() {
+				name := de.Name()
+				ext := strings.ToLower(filepath.Ext(name))
+				switch ext {
+				case ".gif", ".png", ".ppm", ".jpg", ".jpeg":
+					files = append(files, name)
 				}
-				img.SetRGBA(x, y, c)
 			}
 		}
-		return tkimage.NewPhoto(name, img)
-	}
-
-	makeStripes := func(name string, size int) *tkimage.Photo {
-		img := goimage.NewRGBA(goimage.Rect(0, 0, size, size))
-		for y := range size {
-			for x := range size {
-				stripe := (x + y) / 10 % 4
-				var c color.RGBA
-				switch stripe {
-				case 0:
-					c = color.RGBA{R: 255, G: 200, B: 200, A: 255}
-				case 1:
-					c = color.RGBA{R: 200, G: 255, B: 200, A: 255}
-				case 2:
-					c = color.RGBA{R: 200, G: 200, B: 255, A: 255}
-				default:
-					c = color.RGBA{R: 255, G: 255, B: 200, A: 255}
-				}
-				img.SetRGBA(x, y, c)
-			}
+		sort.Strings(files)
+		for _, f := range files {
+			lb.Insert(lb.ItemCount(), f)
 		}
-		return tkimage.NewPhoto(name, img)
 	}
 
-	images := []imgEntry{
-		{"Concentric Circles", makeCircles("circles", 160)},
-		{"Diagonal Stripes", makeStripes("stripes", 160)},
-	}
-
-	for _, e := range images {
-		app.ImageRegistry().Register(e.photo)
-	}
-
-	// Layout: listbox on left, preview on right.
-	mainFrame := frame.New(app, "mainframe")
-	pack.Pack(mainFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
-		pack.Expand(true), pack.PadX(10), pack.PadY(5))
-
-	// Listbox.
-	lbFrame := frame.New(mainFrame, "lbframe")
-	pack.Pack(lbFrame, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillY), pack.PadX(5))
-
-	names := make([]string, len(images))
-	for i, e := range images {
-		names[i] = e.name
-	}
-
-	lb := listbox.New(lbFrame, "imglist",
-		listbox.Items(names...),
-		listbox.Height(8),
-		listbox.Width(20),
+	// "Select Dir." button loads the directory typed in the entry.
+	selectDirBtn := button.New(dirLF, "b",
+		button.Text("Select Dir."),
+		button.PadX("2m"), button.PadY(0),
+		button.Command(func() {
+			loadDir(dirEntry.GetText())
+		}),
 	)
-	yscroll := scrollbar.New(lbFrame, "yscroll",
+	pack.Pack(dirEntry, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth),
+		pack.PadX("2m"), pack.PadY("2m"), pack.Expand(true))
+	pack.Pack(selectDirBtn, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillY),
+		pack.PadX(0), pack.PadY("2m"))
+
+	// --- "File:" labelframe ---
+	fileLF := labelframe.New(mid, "f", labelframe.Text("File:"))
+	lb = listbox.New(fileLF, "list",
+		listbox.Width(20),
+		listbox.Height(10),
+	)
+	yscroll := scrollbar.New(fileLF, "scroll",
 		scrollbar.OrientOpt(scrollbar.Vertical),
 		scrollbar.CommandOpt(func(args ...any) {
 			if len(args) < 1 {
@@ -129,32 +111,87 @@ func main() {
 		}),
 	)
 	lb.YScrollCmd = func(first, last float64) { yscroll.Set(first, last) }
-	pack.Pack(yscroll, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
-	pack.Pack(lb, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+	pack.Pack(lb, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillY), pack.Expand(true))
+	pack.Pack(yscroll, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillY))
 
-	// Preview label.
-	previewLabel := label.New(mainFrame, "preview",
+	// Pre-load initial file list from images directory.
+	loadDir(imagesDir)
+
+	// --- "Image:" labelframe ---
+	imageLF := labelframe.New(mid, "image", labelframe.Text("Image:"))
+	imgLabel := label.New(imageLF, "image",
 		label.Text("(select an image)"),
-		label.BorderWidth(2),
-		label.Relief(option.ReliefSunken),
-		label.PadX(10), label.PadY(10),
+		label.Relief(option.ReliefGroove),
 	)
-	pack.Pack(previewLabel, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth),
-		pack.Expand(true), pack.PadX(10))
+	pack.Pack(imgLabel, pack.PadX("2m"), pack.PadY("2m"))
 
-	// Selection handler — use bind engine for button click.
-	app.Dispatcher().Bind(lb.Window().PlatformID, event.ButtonPressMask, func(_ *event.Event) {
+	// Double-click on listbox loads the image.
+	var currentPhotoName string
+	app.Dispatcher().Bind(lb.Window().PlatformID, event.ButtonPressMask, func(ev *event.Event) {
+		if ev.Button != 1 {
+			return
+		}
 		app.DoWhenIdle(func() {
 			sel := lb.Selection()
-			if len(sel) > 0 && sel[0] < len(images) {
-				previewLabel.Text = ""
-				previewLabel.Img = images[sel[0]].photo
-				previewLabel.Compound = widget.CompoundCenter
-				previewLabel.Display()
+			if len(sel) == 0 {
+				return
 			}
+			items := lb.GetItems()
+			if sel[0] >= len(items) {
+				return
+			}
+			filename := items[sel[0]]
+			path := filepath.Join(dirEntry.GetText(), filename)
+
+			// Free previous photo.
+			if currentPhotoName != "" {
+				app.ImageRegistry().Unregister(currentPhotoName)
+			}
+
+			photoName := fmt.Sprintf("img2a_%s", filename)
+			photo, err := tkimage.NewPhotoFromFile(photoName, path)
+			if err != nil {
+				imgLabel.Text = fmt.Sprintf("Cannot load:\n%s", filename)
+				imgLabel.Img = nil
+				imgLabel.Display()
+				return
+			}
+			app.ImageRegistry().Register(photo)
+			currentPhotoName = photo.Name()
+
+			imgLabel.Text = ""
+			imgLabel.Img = photo
+			imgLabel.Display()
 		})
 	})
 
-	_ = previewLabel
+	// Grid: dir spans 2 cols row 0; f and image on row 1 (matches Tcl's grid layout).
+	grid.Grid(dirLF, grid.Row(0), grid.Column(0), grid.ColumnSpan(2),
+		grid.Sticky(grid.EW), grid.PadX("1m"), grid.PadY("1m"))
+	grid.Grid(fileLF, grid.Row(1), grid.Column(0),
+		grid.Sticky(grid.StickN|grid.StickW), grid.PadX("1m"), grid.PadY("1m"))
+	grid.Grid(imageLF, grid.Row(1), grid.Column(1),
+		grid.Sticky(grid.StickN|grid.StickW), grid.PadX("1m"), grid.PadY("1m"))
+	grid.ColumnConfigure(mid.Window(), 1, grid.SlotConfig{Weight: 1})
+
+	_ = imgLabel
 	app.Run()
+}
+
+// findImagesDir returns the path to the demos/images directory.
+func findImagesDir() string {
+	candidates := []string{
+		"demos/images",
+		"../images",
+		"images",
+	}
+	for _, c := range candidates {
+		if info, err := os.Stat(c); err == nil && info.IsDir() {
+			if abs, err := filepath.Abs(c); err == nil {
+				return abs
+			}
+		}
+	}
+	cwd, _ := os.Getwd()
+	return cwd
 }

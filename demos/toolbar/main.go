@@ -8,13 +8,13 @@ import (
 
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/font"
+	"github.com/msorc/takigo/geometry/grid"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/ttk"
 	_ "github.com/msorc/takigo/ttk/clamtheme"
 	_ "github.com/msorc/takigo/ttk/defaulttheme"
 	"github.com/msorc/takigo/widget/menu"
-	"github.com/msorc/takigo/widget/scrollbar"
 	"github.com/msorc/takigo/widget/text"
 )
 
@@ -24,53 +24,29 @@ func main() {
 
 	ttk.SetCurrentTheme("clam")
 
-	// Toolbar frame.
-	toolbar := ttk.NewFrame(app, "toolbar",
+	// Inner frame (packs into app alongside demohelper's msg/btnframe).
+	main := ttk.NewFrame(app, "main")
+	pack.Pack(main, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+
+	// Toolbar frame (row 0 inside main).
+	toolbar := ttk.NewFrame(main, "toolbar",
 		ttk.FrameBorderWidth(1),
 		ttk.FrameRelief(option.ReliefRaised),
 	)
-	pack.Pack(toolbar, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
+	grid.Grid(toolbar, grid.Row(0), grid.Column(0), grid.Sticky(grid.EW))
 
-	// Separator below toolbar.
-	sep0 := ttk.NewSeparator(app, "toolsep", ttk.SeparatorOrient(ttk.Horizontal))
-	pack.Pack(sep0, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
+	// Separator below toolbar (row 1).
+	sep0 := ttk.NewSeparator(main, "toolsep", ttk.SeparatorOrient(ttk.Horizontal))
+	grid.Grid(sep0, grid.Row(1), grid.Column(0), grid.Sticky(grid.EW))
 
-	// Text widget frame (with scrollbar) for output messages.
-	txtFrame := demohelper.NewFrame(app, "txtframe")
-	pack.Pack(txtFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
-		pack.Expand(true), pack.PadX(4), pack.PadY(4))
-
-	tw := text.New(txtFrame, "output",
+	// Text widget for output messages, no scrollbar (row 2, expands).
+	tw := text.New(main, "txt",
 		text.Width(40),
 		text.Height(10),
-		text.WrapModeOpt(text.WrapWord),
 	)
-
-	yscroll := scrollbar.New(txtFrame, "yscroll",
-		scrollbar.OrientOpt(scrollbar.Vertical),
-		scrollbar.CommandOpt(func(args ...any) {
-			if len(args) < 1 {
-				return
-			}
-			switch args[0] {
-			case "moveto":
-				if f, ok := args[1].(float64); ok {
-					tw.YViewMoveTo(f)
-				}
-			case "scroll":
-				n, _ := args[1].(int)
-				unit, _ := args[2].(string)
-				tw.YViewScroll(n, unit == "pages")
-			}
-		}),
-	)
-
-	tw.YScrollCmd = func(first, last float64) {
-		yscroll.Set(first, last)
-	}
-
-	pack.Pack(yscroll, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
-	pack.Pack(tw, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+	grid.Grid(tw, grid.Row(2), grid.Column(0), grid.Sticky(grid.NSEW))
+	grid.RowConfigure(main.Window(), 2, grid.SlotConfig{Weight: 1})
+	grid.ColumnConfigure(main.Window(), 0, grid.SlotConfig{Weight: 1})
 
 	// Helper to append text to the output widget.
 	appendMsg := func(msg string) {
@@ -85,7 +61,7 @@ func main() {
 		ttk.ButtonText("Button"),
 		ttk.ButtonCommand(func() { appendMsg("Button Pressed") }),
 	)
-	pack.Pack(btnNew, pack.SideOpt(pack.Left), pack.PadX(2), pack.PadY(2))
+	pack.Pack(btnNew, pack.SideOpt(pack.Left), pack.PadX("1.5p"), pack.PadY("3p"))
 
 	// Check button (simulated with a regular button toggling state).
 	checkState := false
@@ -96,11 +72,11 @@ func main() {
 			appendMsg(fmt.Sprintf("check is %v", checkState))
 		}),
 	)
-	pack.Pack(checkBtn, pack.SideOpt(pack.Left), pack.PadX(2), pack.PadY(2))
+	pack.Pack(checkBtn, pack.SideOpt(pack.Left), pack.PadX("1.5p"), pack.PadY("3p"))
 
 	// Vertical separator.
 	sep := ttk.NewSeparator(toolbar, "sep", ttk.SeparatorOrient(ttk.Vertical))
-	pack.Pack(sep, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillY), pack.PadX(4), pack.PadY(2))
+	pack.Pack(sep, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillY), pack.PadX("1.5p"), pack.PadY("3p"))
 
 	// Menubutton with example commands.
 	exMenu := menu.New(app, "exmenu")
@@ -112,7 +88,7 @@ func main() {
 		ttk.MenubuttonText("Menu"),
 		ttk.MenubuttonMenu(exMenu),
 	)
-	pack.Pack(menuBtn, pack.SideOpt(pack.Left), pack.PadX(2), pack.PadY(2))
+	pack.Pack(menuBtn, pack.SideOpt(pack.Left), pack.PadX("1.5p"), pack.PadY("3p"))
 
 	// Font family combobox.
 	families := font.ListFamilies()
@@ -121,10 +97,14 @@ func main() {
 		ttk.ComboboxValues(families),
 		ttk.ComboboxCbState(ttk.ComboReadonly),
 		ttk.ComboboxCommand(func(val string) {
-			appendMsg(fmt.Sprintf("Font: %s", val))
+			f, err := app.FontRegistry().Get(val + " 10")
+			if err == nil {
+				tw.Font = f
+				tw.Display()
+			}
 		}),
 	)
-	pack.Pack(combo, pack.SideOpt(pack.Left), pack.PadX(2), pack.PadY(2))
+	pack.Pack(combo, pack.SideOpt(pack.Left), pack.PadX("1.5p"), pack.PadY("3p"))
 
 	_ = sep0
 	_ = btnNew

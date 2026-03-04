@@ -3,108 +3,63 @@
 package main
 
 import (
-	goimage "image"
-	"image/color"
+	"fmt"
+	"os"
+	"path/filepath"
+	"runtime"
 
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/pack"
 	tkimage "github.com/msorc/takigo/image"
 	"github.com/msorc/takigo/option"
-	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
 )
 
 func main() {
 	app := demohelper.Setup("Image Demonstration #1", 500, 400,
-		"This demonstration displays two images, each in a separate "+
-			"label widget.")
+		"This demonstration displays two images, each in a separate label widget.")
 
-	// Generate test images.
-	makeGradient := func(name string, c1, c2 color.RGBA, w, h int) *tkimage.Photo {
-		img := goimage.NewRGBA(goimage.Rect(0, 0, w, h))
-		for y := range h {
-			t := float64(y) / float64(h)
-			for x := range w {
-				r := uint8(float64(c1.R)*(1-t) + float64(c2.R)*t)
-				g := uint8(float64(c1.G)*(1-t) + float64(c2.G)*t)
-				b := uint8(float64(c1.B)*(1-t) + float64(c2.B)*t)
-				img.SetRGBA(x, y, color.RGBA{R: r, G: g, B: b, A: 255})
-			}
+	// Load the two earth images from demos/images/.
+	for _, info := range []struct {
+		name, file string
+	}{
+		{"image1a", "earth.gif"},
+		{"image1b", "earthris.gif"},
+	} {
+		path := findImage(info.file)
+		if path == "" {
+			fmt.Fprintf(os.Stderr, "Warning: could not find image %s\n", info.file)
+			continue
 		}
-		return tkimage.NewPhoto(name, img)
-	}
-
-	makeCheckerboard := func(name string, size, squares int) *tkimage.Photo {
-		img := goimage.NewRGBA(goimage.Rect(0, 0, size, size))
-		sq := size / squares
-		for y := range size {
-			for x := range size {
-				if ((x/sq)+(y/sq))%2 == 0 {
-					img.SetRGBA(x, y, color.RGBA{R: 200, G: 200, B: 200, A: 255})
-				} else {
-					img.SetRGBA(x, y, color.RGBA{R: 100, G: 100, B: 100, A: 255})
-				}
-			}
+		photo, err := tkimage.NewPhotoFromFile(info.name, path)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: could not load image %s: %v\n", info.file, err)
+			continue
 		}
-		return tkimage.NewPhoto(name, img)
-	}
+		app.ImageRegistry().Register(photo)
 
-	// Create images.
-	gradient1 := makeGradient("grad1",
-		color.RGBA{R: 255, G: 100, B: 100, A: 255},
-		color.RGBA{R: 100, G: 100, B: 255, A: 255}, 128, 128)
-	app.ImageRegistry().Register(gradient1)
-
-	gradient2 := makeGradient("grad2",
-		color.RGBA{R: 50, G: 200, B: 50, A: 255},
-		color.RGBA{R: 200, G: 200, B: 50, A: 255}, 128, 128)
-	app.ImageRegistry().Register(gradient2)
-
-	checker := makeCheckerboard("checker", 128, 8)
-	app.ImageRegistry().Register(checker)
-
-	// Display images in labels.
-	imgFrame := frame.New(app, "imgframe")
-	pack.Pack(imgFrame, pack.SideOpt(pack.Top), pack.PadX(10), pack.PadY(10))
-
-	l1 := label.New(imgFrame, "img1",
-		label.ImageOpt(gradient1),
-		label.BorderWidth(2),
-		label.Relief(option.ReliefGroove),
-		label.PadX(4), label.PadY(4),
-	)
-	pack.Pack(l1, pack.SideOpt(pack.Left), pack.PadX(10))
-
-	l2 := label.New(imgFrame, "img2",
-		label.ImageOpt(gradient2),
-		label.BorderWidth(2),
-		label.Relief(option.ReliefGroove),
-		label.PadX(4), label.PadY(4),
-	)
-	pack.Pack(l2, pack.SideOpt(pack.Left), pack.PadX(10))
-
-	l3 := label.New(imgFrame, "img3",
-		label.ImageOpt(checker),
-		label.BorderWidth(2),
-		label.Relief(option.ReliefGroove),
-		label.PadX(4), label.PadY(4),
-	)
-	pack.Pack(l3, pack.SideOpt(pack.Left), pack.PadX(10))
-
-	// Labels.
-	labFrame := frame.New(app, "labframe")
-	pack.Pack(labFrame, pack.SideOpt(pack.Top), pack.PadX(10), pack.PadY(5))
-
-	for _, name := range []string{"Red→Blue Gradient", "Green→Yellow Gradient", "Checkerboard"} {
-		ll := label.New(labFrame, "lab_"+name,
-			label.Text(name),
+		l := label.New(app, "l_"+info.name,
+			label.ImageOpt(photo),
+			label.BorderWidth(1),
+			label.Relief(option.ReliefSunken),
 		)
-		pack.Pack(ll, pack.SideOpt(pack.Left), pack.PadX(20))
-		_ = ll
+		pack.Pack(l, pack.SideOpt(pack.Top), pack.PadX(".5m"), pack.PadY(".5m"))
+		_ = l
 	}
 
-	_ = l1
-	_ = l2
-	_ = l3
 	app.Run()
+}
+
+// findImage locates an image in the demos/images/ directory.
+func findImage(name string) string {
+	_, file, _, ok := runtime.Caller(0)
+	if !ok {
+		return ""
+	}
+	demosRoot := filepath.Dir(filepath.Dir(file))
+	path := filepath.Join(demosRoot, "images", name)
+	if _, err := os.Stat(path); err == nil {
+		return path
+	}
+	return ""
 }

@@ -1,4 +1,4 @@
-// Demo: TTK frame with nested paned windows.
+// Demo: TTK frame with nested paned windows and live timezone clocks.
 // Ported from Tk's ttkpane.tcl demo.
 package main
 
@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/msorc/takigo/demos/demohelper"
+	"github.com/msorc/takigo/dialog"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/ttk"
 	_ "github.com/msorc/takigo/ttk/clamtheme"
@@ -23,12 +24,11 @@ func main() {
 
 	ttk.SetCurrentTheme("clam")
 
-	// Outer horizontal panedwindow.
+	// Outer horizontal panedwindow (no padding — matches Tcl non-aqua: pack $w.outer -fill both -expand 1).
 	outer := panedwindow.New(app, "outer",
 		panedwindow.OrientOpt(panedwindow.Horizontal),
 	)
-	pack.Pack(outer, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
-		pack.Expand(true), pack.PadX(10), pack.PadY(5))
+	pack.Pack(outer, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	// Left inner vertical panedwindow.
 	inLeft := panedwindow.New(outer, "inleft",
@@ -51,32 +51,83 @@ func main() {
 	pressBtn := ttk.NewButton(buttonLF, "pressbtn",
 		ttk.ButtonText("Press Me"),
 		ttk.ButtonCommand(func() {
-			fmt.Println("Ouch! That hurt...")
+			dialog.ShowMessage(app,
+				dialog.MsgTitle("Button Pressed"),
+				dialog.MsgMessage("That hurt..."),
+				dialog.MsgType(dialog.MsgInfo),
+			)
 		}),
 	)
-	pack.Pack(pressBtn, pack.PadX(5), pack.PadY(5))
+	pack.Pack(pressBtn, pack.PadX("1.5p"), pack.PadY("3p"))
 
 	// --- Left bottom pane: Clocks ---
 	clocksLF := labelframe.New(inLeft, "clockslf",
 		labelframe.Text("Clocks"),
 	)
-	inLeft.Add(clocksLF.Window(), 120)
+	inLeft.Add(clocksLF.Window(), 200)
 
-	// Show city labels with static timezone names (no live clock since
-	// we don't have a timer-label widget, but matching the Tk structure).
-	cities := []string{
-		"Berlin", "Buenos Aires", "Johannesburg", "London",
-		"Los Angeles", "Moscow", "New York", "Singapore",
-		"Sydney", "Tokyo",
+	// Timezone data matching Tcl's testzones list.
+	type zoneInfo struct {
+		zone string
+		city string
 	}
-	for i, city := range cities {
-		name := fmt.Sprintf("city%d", i)
-		lbl := ttk.NewLabel(clocksLF, name,
-			ttk.LabelText(city),
+	testZones := []zoneInfo{
+		{"Europe/Berlin", "Berlin"},
+		{"America/Argentina/Buenos_Aires", "Buenos Aires"},
+		{"Africa/Johannesburg", "Johannesburg"},
+		{"Europe/London", "London"},
+		{"America/Los_Angeles", "Los Angeles"},
+		{"Europe/Moscow", "Moscow"},
+		{"America/New_York", "New York"},
+		{"Asia/Singapore", "Singapore"},
+		{"Australia/Sydney", "Sydney"},
+		{"Asia/Tokyo", "Tokyo"},
+	}
+
+	type clockEntry struct {
+		loc     *time.Location
+		timeLbl *ttk.Label
+	}
+	var clocks []clockEntry
+
+	for i, z := range testZones {
+		loc, err := time.LoadLocation(z.zone)
+		if err != nil {
+			continue
+		}
+
+		// Separator between entries (matches Tcl's ttk::separator s$i for i > 0).
+		if i > 0 {
+			sep := ttk.NewSeparator(clocksLF, fmt.Sprintf("s%d", i))
+			pack.Pack(sep, pack.FillOpt(pack.FillX))
+		}
+
+		// City name label.
+		cityLbl := ttk.NewLabel(clocksLF, fmt.Sprintf("l%d", i),
+			ttk.LabelText(z.city),
 		)
-		pack.Pack(lbl, pack.FillOpt(pack.FillX))
-		_ = lbl
+		pack.Pack(cityLbl, pack.FillOpt(pack.FillX))
+
+		// Time label (updated every second).
+		timeLbl := ttk.NewLabel(clocksLF, fmt.Sprintf("t%d", i),
+			ttk.LabelText("--:--:--"),
+		)
+		pack.Pack(timeLbl, pack.FillOpt(pack.FillX))
+
+		clocks = append(clocks, clockEntry{loc: loc, timeLbl: timeLbl})
 	}
+
+	// Update all clocks every second (matches Tcl's every 1000).
+	var updateClocks func()
+	updateClocks = func() {
+		now := time.Now()
+		for _, c := range clocks {
+			c.timeLbl.Text = now.In(c.loc).Format("15:04:05")
+			c.timeLbl.Display()
+		}
+		app.After(1000*time.Millisecond, updateClocks)
+	}
+	app.After(0, updateClocks)
 
 	// --- Right top pane: Progress ---
 	progressLF := labelframe.New(inRight, "progresslf",
@@ -87,8 +138,7 @@ func main() {
 	progress := ttk.NewProgressbar(progressLF, "progress",
 		ttk.ProgressbarMode(ttk.ProgressIndeterminate),
 	)
-	pack.Pack(progress, pack.FillOpt(pack.FillBoth), pack.Expand(true),
-		pack.PadX(5), pack.PadY(5))
+	pack.Pack(progress, pack.FillOpt(pack.FillBoth), pack.Expand(true))
 	progress.Start(50 * time.Millisecond)
 
 	// --- Right bottom pane: Text ---
@@ -97,6 +147,7 @@ func main() {
 	)
 	inRight.Add(textLF.Window(), 120)
 
+	// Text starts empty (matches Tcl original which has no initial content).
 	txt := text.New(textLF, "txt",
 		text.Width(30),
 		text.WrapModeOpt(text.WrapWord),
@@ -107,7 +158,7 @@ func main() {
 	sb := scrollbar.New(textLF, "sb",
 		scrollbar.OrientOpt(scrollbar.Vertical),
 		scrollbar.WidthOpt(14),
-		scrollbar.CommandOpt(func(args ...interface{}) {
+		scrollbar.CommandOpt(func(args ...any) {
 			if len(args) < 1 {
 				return
 			}
@@ -131,18 +182,10 @@ func main() {
 		sb.Set(first, last)
 	}
 
+	// Pack scrollbar right, then text fills rest (matches Tcl structure).
 	pack.Pack(sb, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
-	pack.Pack(txt, pack.FillOpt(pack.FillBoth), pack.Expand(true))
-
-	txt.Insert("1.0", `This is a text widget embedded in a themed paned window. You can edit this text, and resize the panes by dragging the sash between them.
-
-The Tk ttkpane demo shows nested panedwindows with four panes:
-  - Button: a simple press-me button
-  - Clocks: timezone labels
-  - Progress: an indeterminate progressbar
-  - Text: this scrollable text widget
-
-Try dragging the dividers to resize each section.`)
+	pack.Pack(txt, pack.FillOpt(pack.FillBoth), pack.Expand(true),
+		pack.PadX("1.5p"), pack.PadY("1.5p"))
 
 	_ = pressBtn
 	_ = progress

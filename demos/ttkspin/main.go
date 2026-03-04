@@ -1,74 +1,55 @@
 // Demo: Spinboxes with integer, float, and string values.
-// Ported from Tk's ttkspin.tcl demo (adapted for classic spinbox).
+// Ported from Tk's ttkspin.tcl demo.
 package main
 
 import (
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/pack"
-	"github.com/msorc/takigo/option"
-	"github.com/msorc/takigo/widget/label"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/widget/spinbox"
 )
 
 func main() {
 	app := demohelper.Setup("Themed Spinbox Demonstration", 400, 350,
-		"Three different themed spin-boxes are displayed below. You can add characters by pointing, clicking and typing. Note that the first spin-box will only permit you to type in integers, and the third selects from a list of Australian cities.")
+		"Three different themed spin-boxes are displayed below. You can add characters by pointing, clicking and typing. The normal Motif editing characters are supported, along with many Emacs bindings. For example, Backspace and Control-h delete the character to the left of the insertion cursor and Delete and Control-d delete the chararacter to the right of the insertion cursor. For values that are too large to fit in the window all at once, you can scan through the value by dragging with mouse button2 pressed. Note that the first spin-box will only permit you to type in integers, and the third selects from a list of Australian cities.")
+
+	padX := screenunit.Px("7.5p")
+	padY := screenunit.Px("3p")
 
 	// Integer spinbox (1-10).
-	intLabel := label.New(app, "intlabel",
-		label.Text("Integer (1 to 10):"),
-		label.Anchor(option.AnchorW),
-		label.PadX(20),
-	)
-	pack.Pack(intLabel, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(5))
-
-	intSpin := spinbox.New(app, "intspin",
+	s1 := spinbox.New(app, "s1",
 		spinbox.FromOpt(1),
 		spinbox.ToOpt(10),
 		spinbox.IncrementOpt(1),
+		spinbox.WidthOpt(10),
 	)
-	intSpin.SetText("1")
-	pack.Pack(intSpin, pack.SideOpt(pack.Top), pack.PadX(20), pack.PadY(5))
+	s1.SetText("1")
+	pack.Pack(s1, pack.SideOpt(pack.Top), pack.PadX(padX), pack.PadY(padY))
 
 	// Float spinbox (0-3 step 0.5).
-	floatLabel := label.New(app, "floatlabel",
-		label.Text("Float (0.0 to 3.0, step 0.5):"),
-		label.Anchor(option.AnchorW),
-		label.PadX(20),
-	)
-	pack.Pack(floatLabel, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(5))
-
-	floatSpin := spinbox.New(app, "floatspin",
+	s2 := spinbox.New(app, "s2",
 		spinbox.FromOpt(0),
 		spinbox.ToOpt(3),
 		spinbox.IncrementOpt(0.5),
 		spinbox.FormatOpt("%05.2f"),
+		spinbox.WidthOpt(10),
 	)
-	floatSpin.SetText("00.00")
-	pack.Pack(floatSpin, pack.SideOpt(pack.Top), pack.PadX(20), pack.PadY(5))
+	s2.SetText("00.00")
+	pack.Pack(s2, pack.SideOpt(pack.Top), pack.PadX(padX), pack.PadY(padY))
 
 	// Values spinbox (Australian cities).
-	valLabel := label.New(app, "vallabel",
-		label.Text("Australian city:"),
-		label.Anchor(option.AnchorW),
-		label.PadX(20),
-	)
-	pack.Pack(valLabel, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(5))
-
-	valSpin := spinbox.New(app, "valspin",
+	s3 := spinbox.New(app, "s3",
 		spinbox.ValuesOpt([]string{
 			"Canberra", "Sydney", "Melbourne", "Perth",
 			"Adelaide", "Brisbane", "Hobart", "Darwin", "Alice Springs",
 		}),
+		spinbox.WidthOpt(10),
 	)
-	valSpin.SetText("Canberra")
-	pack.Pack(valSpin, pack.SideOpt(pack.Top), pack.PadX(20), pack.PadY(5))
+	s3.SetText("Canberra")
+	pack.Pack(s3, pack.SideOpt(pack.Top), pack.PadX(padX), pack.PadY(padY))
 
-	_ = intLabel
-	_ = intSpin
-	_ = floatLabel
-	_ = floatSpin
-	_ = valLabel
-	_ = valSpin
+	_ = s1
+	_ = s2
+	_ = s3
 	app.Run()
 }

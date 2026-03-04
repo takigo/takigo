@@ -23,7 +23,7 @@ func main() {
 	// Grid frame for canvas + scrollbars.
 	gridFrame := frame.New(app, "gridframe")
 	pack.Pack(gridFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
-		pack.Expand(true), pack.PadX(10), pack.PadY(5))
+		pack.Expand(true))
 
 	// Tk uses centimeter coordinates: scrollregion {-11c -11c 50c 20c}
 	// 1c ~ 37.8px. We approximate: -416 -416 1890 756.

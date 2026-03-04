@@ -14,14 +14,18 @@ func main() {
 	app := demohelper.Setup("Horizontal Scale Demonstration", 500, 350,
 		"An arrow and a horizontal scale are displayed below. If you click or drag mouse button 1 in the scale, you can change the length of the arrow.")
 
-	fr := frame.New(app, "frame")
-	pack.Pack(fr, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
-		pack.PadX(10), pack.PadY(5))
+	// Inner frame with border (matches Tcl's `frame -borderwidth 7.5p`).
+	fr := frame.New(app, "frame",
+		frame.BorderWidth(10), // 7.5p ≈ 10px
+	)
+	pack.Pack(fr, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
 
 	// Canvas for arrow display.
 	c := canvas.New(fr, "canvas",
 		canvas.Width(300),
-		canvas.Height(60),
+		canvas.Height(50),
+		canvas.BorderWidthOpt(0),
+		canvas.HighlightWidthOpt(0),
 	)
 
 	// Create initial polygon and line items with dummy coords.
@@ -51,7 +55,6 @@ func main() {
 		scale.FromOpt(0),
 		scale.ToOpt(250),
 		scale.ValueOpt(75),
-		scale.ShowValueOpt(true),
 		scale.CommandOpt(func(v float64) {
 			setWidth(v)
 		}),

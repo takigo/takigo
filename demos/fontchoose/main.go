@@ -5,6 +5,7 @@ package main
 import (
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/dialog"
+	"github.com/msorc/takigo/geometry/grid"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/widget/button"
 	"github.com/msorc/takigo/widget/frame"
@@ -16,22 +17,23 @@ func main() {
 	app := demohelper.Setup("Font Selection Dialog", 450, 300,
 		"Press the button below to choose a new font for the text shown in this window.")
 
-	// Content frame (sunken border like the Tk original).
-	contentFrame := frame.New(app, "content",
+	// Content frame (sunken border like the Tk original), packed into app.
+	f := frame.New(app, "f",
 		frame.BorderWidth(2),
 		frame.Relief(1), // sunken
 	)
-	pack.Pack(contentFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
-		pack.Expand(true), pack.PadX(10), pack.PadY(5))
+	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true),
+		pack.PadX(10), pack.PadY(5))
 
-	// Text widget with scrollbar showing sample text.
-	tw := text.New(contentFrame, "msg",
+	// Text widget + scrollbar in row 0 of f (grid layout inside f).
+	tw := text.New(f, "msg",
 		text.Width(40),
 		text.Height(6),
 		text.WrapModeOpt(text.WrapWord),
+		text.BorderWidthOpt(0),
 	)
 
-	yscroll := scrollbar.New(contentFrame, "vs",
+	yscroll := scrollbar.New(f, "vs",
 		scrollbar.OrientOpt(scrollbar.Vertical),
 		scrollbar.CommandOpt(func(args ...any) {
 			if len(args) < 1 {
@@ -40,8 +42,8 @@ func main() {
 			switch args[0] {
 			case "moveto":
 				if len(args) >= 2 {
-					if f, ok := args[1].(float64); ok {
-						tw.YViewMoveTo(f)
+					if fv, ok := args[1].(float64); ok {
+						tw.YViewMoveTo(fv)
 					}
 				}
 			case "scroll":
@@ -57,17 +59,19 @@ func main() {
 		yscroll.Set(first, last)
 	}
 
-	pack.Pack(yscroll, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
-	pack.Pack(tw, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+	grid.Grid(tw, grid.Row(0), grid.Column(0), grid.Sticky(grid.NSEW))
+	grid.Grid(yscroll, grid.Row(0), grid.Column(1), grid.Sticky(grid.NS))
+	grid.ColumnConfigure(f.Window(), 0, grid.SlotConfig{Weight: 1})
+	grid.RowConfigure(f.Window(), 0, grid.SlotConfig{Weight: 1})
 
-	tw.Insert("end", "Press the button below to choose a new font for the "+
+	tw.Insert("end", "Press the buttons below to choose a new font for the "+
 		"text shown in this window.\n")
 
 	// Current font descriptor for passing back into the dialog.
 	currentFontDesc := ""
 
-	// "Set font ..." button.
-	setFontBtn := button.New(app, "font",
+	// "Set font ..." button — row 1, spans both columns, sticky east.
+	setFontBtn := button.New(f, "font",
 		button.Text("Set font ..."),
 		button.Command(func() {
 			opts := []dialog.FontOption{
@@ -79,16 +83,15 @@ func main() {
 			fontDesc, ok := dialog.ChooseFont(app, opts...)
 			if ok {
 				currentFontDesc = fontDesc
-				f, err := app.FontRegistry().Get(fontDesc)
+				fnt, err := app.FontRegistry().Get(fontDesc)
 				if err == nil {
-					tw.Font = f
+					tw.Font = fnt
 					tw.Display()
 				}
 			}
 		}),
-		button.PadX(15), button.PadY(8),
 	)
-	pack.Pack(setFontBtn, pack.SideOpt(pack.Top), pack.PadX(10), pack.PadY(10))
+	grid.Grid(setFontBtn, grid.Row(1), grid.Column(0), grid.ColumnSpan(2), grid.Sticky(grid.StickE))
 
 	_ = yscroll
 	_ = setFontBtn

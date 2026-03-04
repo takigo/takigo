@@ -3,131 +3,123 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/pack"
-	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/scrollbar"
 	"github.com/msorc/takigo/widget/text"
 )
 
 func main() {
-	app := demohelper.Setup("Text Display Styles", 550, 500,
-		"This demo shows text tags that control display styles.\nDifferent fonts, colors, underline, and overstrike.")
+	app := demohelper.Setup("Text Demonstration - Display Styles", 600, 500,
+		"This window shows text tags that control display styles. Tags are textual names applied to ranges of characters in a text widget, configuring those characters with various display styles.")
 
-	// Text widget with scrollbar.
-	txtFrame := frame.New(app, "txtframe")
-	pack.Pack(txtFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
-		pack.Expand(true), pack.PadX(10), pack.PadY(5))
-
-	tw := text.New(txtFrame, "styled",
-		text.Width(60),
-		text.Height(24),
-		text.WrapModeOpt(text.WrapWord),
-	)
-
-	yscroll := scrollbar.New(txtFrame, "yscroll",
+	// Scrollbar packed right, text fills rest (matches Tcl: pack $w.scroll -side right; pack $w.text).
+	yscroll := scrollbar.New(app, "scroll",
 		scrollbar.OrientOpt(scrollbar.Vertical),
 		scrollbar.CommandOpt(func(args ...any) {
-			if len(args) < 1 {
-				return
-			}
-			switch args[0] {
-			case "moveto":
-				if len(args) >= 2 {
-					if f, ok := args[1].(float64); ok {
-						tw.YViewMoveTo(f)
-					}
-				}
-			case "scroll":
-				if len(args) >= 3 {
-					n, _ := args[1].(int)
-					unit, _ := args[2].(string)
-					tw.YViewScroll(n, unit == "pages")
-				}
-			}
+			// forward to text widget — set after tw is created
 		}),
 	)
+
+	tw := text.New(app, "text",
+		text.Width(70),
+		text.Height(32),
+		text.WrapModeOpt(text.WrapWord),
+		text.FontOpt("Courier 12"),
+	)
+
 	tw.YScrollCmd = func(first, last float64) {
 		yscroll.Set(first, last)
 	}
 
-	pack.Pack(yscroll, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
-	pack.Pack(tw, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+	// Wire scrollbar command to text widget.
+	yscroll.Command = func(args ...any) {
+		if len(args) < 1 {
+			return
+		}
+		switch args[0] {
+		case "moveto":
+			if len(args) >= 2 {
+				if f, ok := args[1].(float64); ok {
+					tw.YViewMoveTo(f)
+				}
+			}
+		case "scroll":
+			if len(args) >= 3 {
+				n, _ := args[1].(int)
+				unit, _ := args[2].(string)
+				tw.YViewScroll(n, unit == "pages")
+			}
+		}
+	}
 
-	// Configure tags for different styles.
-	tw.TagConfigure("bold", text.TagFont("Sans Bold 12"))
-	tw.TagConfigure("italic", text.TagFont("Sans Italic 12"))
-	tw.TagConfigure("big", text.TagFont("Sans Bold 18"))
-	tw.TagConfigure("small", text.TagFont("Sans 8"))
-	tw.TagConfigure("red", text.TagForeground("red"))
-	tw.TagConfigure("blue", text.TagForeground("blue"))
-	tw.TagConfigure("green", text.TagForeground("darkgreen"))
-	tw.TagConfigure("highlight", text.TagBackground("yellow"))
+	pack.Pack(yscroll, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
+	pack.Pack(tw, pack.SideOpt(pack.Left), pack.Expand(true), pack.FillOpt(pack.FillBoth))
+
+	// Configure display style tags matching Tcl's style.tcl.
+	tw.TagConfigure("bold", text.TagFont("Courier 12 bold italic"))
+	tw.TagConfigure("big", text.TagFont("Courier 14 bold"))
+	tw.TagConfigure("verybig", text.TagFont("Helvetica 24 bold"))
+	tw.TagConfigure("tiny", text.TagFont("Times 8 bold"))
+	tw.TagConfigure("color1", text.TagBackground("#a0b7ce"))
+	tw.TagConfigure("color2", text.TagForeground("red"))
 	tw.TagConfigure("underline", text.TagUnderline(true))
 	tw.TagConfigure("overstrike", text.TagOverstrike(true))
-	tw.TagConfigure("redbg", text.TagForeground("white"), text.TagBackground("#cc0000"))
 
-	// Helper: insert text with a tag.
-	insertTagged := func(s, tag string) {
-		start := tw.Get("end", "end") // Not reliable, use line counting approach
-		_ = start
-		tw.Insert("end", s)
-		// We need to figure out the range. Use mark-based approach.
+	// Insert text matching Tcl's style.tcl content.
+	// We insert line by line and tag via "line.start line.end" notation.
+	type line struct {
+		text string
+		tag  string
 	}
-	_ = insertTagged
+	lines := []line{
+		{"Text widgets like this one allow you to display information in a", ""},
+		{"variety of styles.  Display styles are controlled using a mechanism", ""},
+		{"called tags.  Tags are just textual names that you can apply to one", "bold"},
+		{"or more ranges of characters within a text widget.  You can configure", ""},
+		{"tags with various display styles.  If you do this, then the tagged", ""},
+		{"characters will be displayed with the styles you chose.  The", ""},
+		{"available display styles are:", ""},
+		{"", ""},
+		{"1. Font.", "big"},
+		{"  You can choose any system font, large or small.", ""},
+		{"", ""},
+		{"2. Color.", "big"},
+		{"  You can change the foreground or background color of text.", ""},
+		{"", ""},
+		{"3. Underline.", "big"},
+		{"  You can underline characters in a text widget.", ""},
+		{"", ""},
+		{"4. Overstrike.", "big"},
+		{"  You can draw lines through characters.", ""},
+	}
 
-	// Instead, insert each section and tag it by line positions.
-	tw.Insert("1.0", "1. Font Styles\n")
-	tw.TagAdd("big", "1.0", "1.15")
+	for i, l := range lines {
+		tw.Insert("end", l.text+"\n")
+		if l.tag != "" {
+			lineNum := i + 1
+			// Tag just the header word(s) on that line using "line.char" index format.
+			startIdx := fmt.Sprintf("%d.0", lineNum)
+			endIdx := fmt.Sprintf("%d.%d", lineNum, len(l.text))
+			tw.TagAdd(l.tag, startIdx, endIdx)
+		}
+	}
 
-	tw.Insert("end", "\nThis is normal text.\n")
-	tw.Insert("end", "This is bold text.\n")
-	tw.TagAdd("bold", "4.0", "4.18")
-
-	tw.Insert("end", "This is italic text.\n")
-	tw.TagAdd("italic", "5.0", "5.20")
-
-	tw.Insert("end", "This is small text.\n")
-	tw.TagAdd("small", "6.0", "6.19")
-
-	tw.Insert("end", "\n2. Colors\n")
-	tw.TagAdd("big", "8.0", "8.9")
-
-	tw.Insert("end", "\nRed text.\n")
-	tw.TagAdd("red", "10.0", "10.9")
-
-	tw.Insert("end", "Blue text.\n")
-	tw.TagAdd("blue", "11.0", "11.10")
-
-	tw.Insert("end", "Green text.\n")
-	tw.TagAdd("green", "12.0", "12.11")
-
-	tw.Insert("end", "Highlighted text.\n")
-	tw.TagAdd("highlight", "13.0", "13.17")
-
-	tw.Insert("end", "White on red background.\n")
-	tw.TagAdd("redbg", "14.0", "14.24")
-
-	tw.Insert("end", "\n3. Decorations\n")
-	tw.TagAdd("big", "16.0", "16.14")
-
-	tw.Insert("end", "\nUnderlined text.\n")
-	tw.TagAdd("underline", "18.0", "18.16")
-
-	tw.Insert("end", "Overstrike text.\n")
-	tw.TagAdd("overstrike", "19.0", "19.16")
-
-	tw.Insert("end", "\n4. Combined Styles\n")
-	tw.TagAdd("big", "21.0", "21.18")
-
-	tw.Insert("end", "\nBold and red.\n")
-	tw.TagAdd("bold", "23.0", "23.13")
-	tw.TagAdd("red", "23.0", "23.13")
-
-	tw.Insert("end", "Italic, blue, and underlined.\n")
-	tw.TagAdd("italic", "24.0", "24.29")
-	tw.TagAdd("blue", "24.0", "24.29")
-	tw.TagAdd("underline", "24.0", "24.29")
+	// Add additional highlighting examples.
+	// "large" on line 10 chars 39-44, "small" chars 48-53.
+	tw.TagConfigure("large", text.TagFont("Helvetica 24 bold"))
+	tw.TagConfigure("small", text.TagFont("Times 8 bold"))
+	// Colorize line 13 ("foreground" and "background" words).
+	tw.TagConfigure("fgexample", text.TagForeground("red"))
+	tw.TagConfigure("bgexample", text.TagBackground("#a0b7ce"))
+	tw.TagAdd("fgexample", "13.25", "13.35")
+	tw.TagAdd("bgexample", "13.40", "13.55")
+	// Underline line 16.
+	tw.TagAdd("underline", "16.8", "16.18")
+	// Overstrike line 19.
+	tw.TagAdd("overstrike", "19.8", "19.36")
 
 	app.Run()
 }

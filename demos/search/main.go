@@ -1,15 +1,14 @@
 // Demo: Text search and highlight.
-// Ported from Tk's search.tcl demo (simplified — manual search loop).
+// Ported from Tk's search.tcl demo.
 package main
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/msorc/takigo/demos/demohelper"
-	"github.com/msorc/takigo/focus"
 	"github.com/msorc/takigo/geometry/pack"
-	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/widget/button"
 	"github.com/msorc/takigo/widget/entry"
 	"github.com/msorc/takigo/widget/frame"
@@ -19,117 +18,76 @@ import (
 )
 
 func main() {
-	app := demohelper.Setup("Text Search Demo", 600, 500,
-		"Type a search string below and click Highlight\nto find and highlight all matches in the text.")
-	root := app.Window()
+	app := demohelper.Setup("Text Demonstration - Search and Highlight", 600, 500,
+		"This window demonstrates how to use the tagging facilities in text "+
+			"widgets to implement a search/highlight mechanism.")
 
-	focusMgr := focus.NewManager(app.Dispatcher(), app.Server())
-	focusMgr.BindTraversal(root)
+	// File name row.
+	fileFrame := frame.New(app, "file")
+	pack.Pack(fileFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
 
-	// Search bar.
-	searchFrame := frame.New(app, "searchframe")
-	pack.Pack(searchFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
-		pack.PadX(10), pack.PadY(5))
+	fileLabel := label.New(fileFrame, "label", label.Text("File name:"))
+	fileEntry := entry.New(fileFrame, "entry", entry.Width(40))
 
-	searchLabel := label.New(searchFrame, "slabel",
-		label.Text("Search:"),
+	// Search string row.
+	searchFrame := frame.New(app, "string")
+	pack.Pack(searchFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
+
+	searchLabel := label.New(searchFrame, "label", label.Text("Search string:"))
+	searchEntry := entry.New(searchFrame, "entry", entry.Width(40))
+
+	// Text widget + scrollbar.
+	scroll := scrollbar.New(app, "scroll",
+		scrollbar.OrientOpt(scrollbar.Vertical),
 	)
-	pack.Pack(searchLabel, pack.SideOpt(pack.Left), pack.PadX(5))
 
-	searchEntry := entry.New(searchFrame, "sentry",
-		entry.Width(20),
-	)
-	pack.Pack(searchEntry, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillX),
-		pack.Expand(true), pack.PadX(5))
-
-	// Status label.
-	statusLabel := label.New(app, "status",
-		label.Text("0 matches"),
-		label.Anchor(option.AnchorW),
-		label.Background("#e8e8e8"),
-		label.PadX(5),
-	)
-	pack.Pack(statusLabel, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
-
-	// Text widget with scrollbar.
-	txtFrame := frame.New(app, "txtframe")
-	pack.Pack(txtFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
-		pack.Expand(true), pack.PadX(10), pack.PadY(5))
-
-	tw := text.New(txtFrame, "searchtext",
-		text.Width(60),
-		text.Height(20),
+	tw := text.New(app, "text",
 		text.WrapModeOpt(text.WrapWord),
 	)
 
-	yscroll := scrollbar.New(txtFrame, "yscroll",
-		scrollbar.OrientOpt(scrollbar.Vertical),
-		scrollbar.CommandOpt(func(args ...any) {
-			if len(args) < 1 {
-				return
-			}
-			switch args[0] {
-			case "moveto":
-				if len(args) >= 2 {
-					if f, ok := args[1].(float64); ok {
-						tw.YViewMoveTo(f)
-					}
-				}
-			case "scroll":
-				if len(args) >= 3 {
-					n, _ := args[1].(int)
-					unit, _ := args[2].(string)
-					tw.YViewScroll(n, unit == "pages")
-				}
-			}
-		}),
-	)
-	tw.YScrollCmd = func(first, last float64) {
-		yscroll.Set(first, last)
-	}
-
-	pack.Pack(yscroll, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
-	pack.Pack(tw, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.Expand(true))
-
-	// Configure search highlight tag.
-	tw.TagConfigure("search", text.TagForeground("white"), text.TagBackground("#cc0000"))
-
-	// Insert sample text.
-	sampleText := `The quick brown fox jumps over the lazy dog.
-Pack my box with five dozen liquor jugs.
-How vexingly quick daft zebras jump.
-The five boxing wizards jump quickly.
-
-Lorem ipsum dolor sit amet, consectetur adipiscing elit.
-Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
-Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.
-Duis aute irure dolor in reprehenderit in voluptate velit esse.
-Excepteur sint occaecat cupidatat non proident, sunt in culpa.
-
-Go is an open-source programming language that makes it easy
-to build simple, reliable, and efficient software.
-The Go programming language was designed at Google.
-Go has built-in concurrency and a robust standard library.
-`
-	tw.Insert("1.0", sampleText)
-
-	// Search and highlight function.
-	doSearch := func() {
-		query := searchEntry.GetText()
-		tw.TagRemove("search", "1.0", "end")
-
-		if query == "" {
-			statusLabel.Text = "0 matches"
-			statusLabel.Display()
+	scroll.Command = func(args ...any) {
+		if len(args) < 1 {
 			return
 		}
+		switch args[0] {
+		case "moveto":
+			if len(args) >= 2 {
+				if f, ok := args[1].(float64); ok {
+					tw.YViewMoveTo(f)
+				}
+			}
+		case "scroll":
+			if len(args) >= 3 {
+				n, _ := args[1].(int)
+				unit, _ := args[2].(string)
+				tw.YViewScroll(n, unit == "pages")
+			}
+		}
+	}
+	tw.YScrollCmd = func(first, last float64) {
+		scroll.Set(first, last)
+	}
 
-		// Get all text and find matches manually.
+	// textLoadFile loads a file into the text widget.
+	textLoadFile := func(filename string) {
+		data, err := os.ReadFile(filename)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error loading file: %v\n", err)
+			return
+		}
+		tw.Delete("1.0", "end")
+		tw.Insert("end", string(data))
+	}
+
+	// textSearch finds all instances of query and tags them.
+	textSearch := func(query string) {
+		tw.TagRemove("search", "1.0", "end")
+		if query == "" {
+			return
+		}
 		allText := tw.Get("1.0", "end")
 		lines := strings.Split(allText, "\n")
-		count := 0
 		qLower := strings.ToLower(query)
-
 		for lineNum, line := range lines {
 			lineLower := strings.ToLower(line)
 			pos := 0
@@ -143,27 +101,48 @@ Go has built-in concurrency and a robust standard library.
 				tw.TagAdd("search",
 					fmt.Sprintf("%d.%d", lineNum+1, charStart),
 					fmt.Sprintf("%d.%d", lineNum+1, charEnd))
-				count++
 				pos = charEnd
 			}
 		}
-
-		statusLabel.Text = fmt.Sprintf("%d match(es)", count)
-		statusLabel.Display()
 	}
 
-	// Highlight button.
-	highlightBtn := button.New(searchFrame, "highlight",
-		button.Text("Highlight"),
-		button.Command(doSearch),
-		button.PadX(8),
-		button.PadY(2),
+	// Wire buttons.
+	loadBtn := button.New(fileFrame, "button",
+		button.Text("Load File"),
+		button.Command(func() {
+			textLoadFile(fileEntry.GetText())
+		}),
 	)
-	pack.Pack(highlightBtn, pack.SideOpt(pack.Left), pack.PadX(5))
+	highlightBtn := button.New(searchFrame, "button",
+		button.Text("Highlight"),
+		button.Command(func() {
+			textSearch(searchEntry.GetText())
+		}),
+	)
 
+	// Pack file row.
+	pack.Pack(fileLabel, pack.SideOpt(pack.Left))
+	pack.Pack(fileEntry, pack.SideOpt(pack.Left))
+	pack.Pack(loadBtn, pack.SideOpt(pack.Left), pack.PadY("3p"), pack.PadX("7.5p"))
+
+	// Pack search row.
+	pack.Pack(searchLabel, pack.SideOpt(pack.Left))
+	pack.Pack(searchEntry, pack.SideOpt(pack.Left))
+	pack.Pack(highlightBtn, pack.SideOpt(pack.Left), pack.PadY("3p"), pack.PadX("7.5p"))
+
+	// Pack scrollbar then text.
+	pack.Pack(scroll, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
+	pack.Pack(tw, pack.Expand(true), pack.FillOpt(pack.FillBoth))
+
+	// Configure search highlight tag.
+	tw.TagConfigure("search", text.TagForeground("white"), text.TagBackground("#ce5555"))
+
+	// Initial text matches Tcl's description.
+	tw.Insert("1.0", "This window demonstrates how to use the tagging facilities in text\nwidgets to implement a searching mechanism.  First, type a file name\nin the top entry, then type <Return> or click on \"Load File\".  Then\ntype a string in the lower entry and type <Return> or click on\n\"Load File\".  This will cause all of the instances of the string to\nbe tagged with the tag \"search\", and it will arrange for the tag's\ndisplay attributes to change to make all of the strings blink.")
+
+	_ = fileLabel
 	_ = searchLabel
-	_ = statusLabel
+	_ = loadBtn
 	_ = highlightBtn
-	_ = focusMgr
 	app.Run()
 }

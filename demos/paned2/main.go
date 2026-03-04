@@ -22,7 +22,7 @@ func main() {
 		panedwindow.OrientOpt(panedwindow.Vertical),
 	)
 	pack.Pack(pw, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
-		pack.Expand(true), pack.PadX(10), pack.PadY(5))
+		pack.Expand(true), pack.PadX("2m"), pack.PadY("1.5p"))
 
 	// Top pane: listbox with vertical scrollbar.
 	topFrame := frame.New(pw, "top")

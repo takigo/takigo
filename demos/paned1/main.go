@@ -18,7 +18,7 @@ func main() {
 		panedwindow.OrientOpt(panedwindow.Horizontal),
 	)
 	pack.Pack(pw, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
-		pack.Expand(true), pack.PadX(10), pack.PadY(5))
+		pack.Expand(true), pack.PadX("2m"), pack.PadY("1.5p"))
 
 	// Two colored panes (match Tk: yellow left, cyan right).
 	leftLabel := label.New(pw, "left",

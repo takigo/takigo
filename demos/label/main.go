@@ -26,9 +26,9 @@ func main() {
 	left := frame.New(app, "left")
 	right := frame.New(app, "right")
 	pack.Pack(left, pack.SideOpt(pack.Left), pack.Expand(true),
-		pack.PadX(10), pack.PadY(10), pack.FillOpt(pack.FillBoth))
+		pack.PadX("7.5p"), pack.PadY("7.5p"), pack.FillOpt(pack.FillBoth))
 	pack.Pack(right, pack.SideOpt(pack.Left), pack.Expand(true),
-		pack.PadX(10), pack.PadY(10), pack.FillOpt(pack.FillBoth))
+		pack.PadX("7.5p"), pack.PadY("7.5p"), pack.FillOpt(pack.FillBoth))
 
 	// Left side: three text labels.
 	l1 := label.New(left, "l1", label.Text("First label"))
@@ -37,11 +37,11 @@ func main() {
 	l3 := label.New(left, "l3", label.Text("Third label, sunken"),
 		label.Relief(option.ReliefSunken))
 	pack.Pack(l1, pack.SideOpt(pack.Top), pack.Expand(true),
-		pack.PadY(2), pack.Anchor(option.AnchorW))
+		pack.PadY("1.5p"), pack.Anchor(option.AnchorW))
 	pack.Pack(l2, pack.SideOpt(pack.Top), pack.Expand(true),
-		pack.PadY(2), pack.Anchor(option.AnchorW))
+		pack.PadY("1.5p"), pack.Anchor(option.AnchorW))
 	pack.Pack(l3, pack.SideOpt(pack.Top), pack.Expand(true),
-		pack.PadY(2), pack.Anchor(option.AnchorW))
+		pack.PadY("1.5p"), pack.Anchor(option.AnchorW))
 
 	// Right side: image + caption.
 	imgPath := findImage("ouster.png")

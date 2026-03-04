@@ -4,6 +4,7 @@ package main
 
 import (
 	"github.com/msorc/takigo/demos/demohelper"
+	"github.com/msorc/takigo/geometry/grid"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/widget"
@@ -14,27 +15,18 @@ import (
 )
 
 func main() {
-	app := demohelper.Setup("Menubutton Demonstration", 500, 350,
+	app := demohelper.Setup("Menu Button Demonstration", 500, 350,
 		"This is a demonstration of menubuttons. The \"Below\" menubutton pops its menu below the button; the \"Right\" button pops to the right, etc.")
 
-	statusLabel := label.New(app, "status",
-		label.Text("Status: Ready"),
-		label.Anchor(option.AnchorW),
-		label.Background("#e8e8e8"),
-		label.PadX(5), label.PadY(2),
-	)
-	pack.Pack(statusLabel, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
-
-	setStatus := func(s string) {
-		statusLabel.Text = s
-		statusLabel.Display()
-	}
+	// Body frame — expands to fill.
+	body := frame.New(app, "body")
+	pack.Pack(body, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	// Helper to create a menubutton with a 2-item menu.
 	makeMB := func(parent widget.Caregiver, name string, dir menubutton.Direction) *menubutton.Menubutton {
 		m := menu.New(app, "menu_"+name)
-		m.AddCommand(name+" menu: first item", func() { setStatus(name + " menu: first item") })
-		m.AddCommand(name+" menu: second item", func() { setStatus(name + " menu: second item") })
+		m.AddCommand(name+" menu: first item", func() {})
+		m.AddCommand(name+" menu: second item", func() {})
 
 		return menubutton.New(parent, "mb_"+name,
 			menubutton.Text(name),
@@ -43,36 +35,43 @@ func main() {
 		)
 	}
 
-	// Body frame for the compass layout.
-	body := frame.New(app, "body")
-	pack.Pack(body, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
-		pack.Expand(true), pack.PadX(20), pack.PadY(20))
+	// Compass grid layout matching Tcl's menubu.tcl:
+	//   row 0, col 1: Below (sticky n)
+	//   row 1, col 0: Right (sticky w)
+	//   row 1, col 1: center frame
+	//   row 1, col 2: Left  (sticky e)
+	//   row 2, col 1: Above (sticky s)
 
-	// Top row: "Below" centered.
-	topRow := frame.New(body, "top_row")
-	pack.Pack(topRow, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
-	mbBelow := makeMB(topRow, "Below", menubutton.Below)
-	pack.Pack(mbBelow, pack.PadX(10), pack.PadY(10))
+	mbBelow := makeMB(body, "Below", menubutton.Below)
+	grid.Grid(mbBelow, grid.Row(0), grid.Column(1), grid.Sticky(grid.StickN))
 
-	// Middle row: "Right" on the left side, "Left" on the right side.
-	midRow := frame.New(body, "mid_row")
-	pack.Pack(midRow, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
-		pack.Expand(true))
-	mbRight := makeMB(midRow, "Right", menubutton.Right)
-	pack.Pack(mbRight, pack.SideOpt(pack.Left), pack.PadX(10), pack.PadY(10))
-	mbLeft := makeMB(midRow, "Left", menubutton.Left)
-	pack.Pack(mbLeft, pack.SideOpt(pack.Right), pack.PadX(10), pack.PadY(10))
+	mbRight := makeMB(body, "Right", menubutton.Right)
+	grid.Grid(mbRight, grid.Row(1), grid.Column(0), grid.Sticky(grid.StickW))
 
-	// Bottom row: "Above" centered.
-	botRow := frame.New(body, "bot_row")
-	pack.Pack(botRow, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
-	mbAbove := makeMB(botRow, "Above", menubutton.Above)
-	pack.Pack(mbAbove, pack.PadX(10), pack.PadY(10))
+	center := frame.New(body, "center")
+	grid.Grid(center, grid.Row(1), grid.Column(1), grid.Sticky(grid.NSEW))
 
-	_ = statusLabel
+	mbLeft := makeMB(body, "Left", menubutton.Left)
+	grid.Grid(mbLeft, grid.Row(1), grid.Column(2), grid.Sticky(grid.StickE))
+
+	mbAbove := makeMB(body, "Above", menubutton.Above)
+	grid.Grid(mbAbove, grid.Row(2), grid.Column(1), grid.Sticky(grid.StickS))
+
+	// Center label.
+	centerLabel := label.New(center, "lbl",
+		label.Text("This is a demonstration of menubuttons."),
+		label.Anchor(option.AnchorCenter),
+	)
+	pack.Pack(centerLabel, pack.PadX("18p"), pack.PadY("18p"))
+
+	grid.ColumnConfigure(body.Window(), 1, grid.SlotConfig{Weight: 1})
+	grid.RowConfigure(body.Window(), 1, grid.SlotConfig{Weight: 1})
+
 	_ = mbBelow
 	_ = mbLeft
 	_ = mbRight
 	_ = mbAbove
+	_ = center
+	_ = centerLabel
 	app.Run()
 }

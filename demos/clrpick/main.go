@@ -20,13 +20,11 @@ func main() {
 	// "Set background color ..." button.
 	backBtn := button.New(app, "back",
 		button.Text("Set background color ..."),
-		button.PadX(15), button.PadY(8),
 	)
 
 	// "Set foreground color ..." button.
 	foreBtn := button.New(app, "fore",
 		button.Text("Set foreground color ..."),
-		button.PadX(15), button.PadY(8),
 	)
 
 	backBtn.Command = func() {
@@ -71,8 +69,8 @@ func main() {
 		}
 	}
 
-	pack.Pack(backBtn, pack.SideOpt(pack.Top), pack.PadY(5))
-	pack.Pack(foreBtn, pack.SideOpt(pack.Top), pack.PadY(5))
+	pack.Pack(backBtn, pack.SideOpt(pack.Top), pack.Anchor(0), pack.PadY("2m"))
+	pack.Pack(foreBtn, pack.SideOpt(pack.Top), pack.Anchor(0), pack.PadY("2m"))
 
 	app.Run()
 }

@@ -16,7 +16,7 @@ import (
 
 func main() {
 	app := demohelper.Setup("Themed Menu Buttons", 400, 350,
-		"One widget available in themed form is the menubutton. Below are some themed menu buttons that allow you to pick the current theme in use. Notice how picking a theme changes the way that the menu buttons themselves look.")
+		"Ttk is the new Tk themed widget set, and one widget that is available in themed form is the menubutton. Below are some themed menu buttons that allow you to pick the current theme in use. Notice how picking a theme changes the way that the menu buttons themselves look, and that the central menu button is styled differently (in a way that is normally suitable for toolbars). However, there are no themed menus; the standard Tk menus were judged to have a sufficiently good look-and-feel on all platforms, especially as they are implemented as native controls in many places.")
 
 	ttk.SetCurrentTheme("clam")
 
@@ -42,6 +42,7 @@ func main() {
 	)
 	m5 := ttk.NewMenubutton(f, "m5",
 		ttk.MenubuttonText("Select a theme"),
+		ttk.MenubuttonDirection(ttk.DirBelow),
 	)
 
 	// Build menus listing available themes; selecting one switches the theme.
@@ -62,11 +63,11 @@ func main() {
 	//     .  m1  .
 	//    m2  m4  m3
 	//     .  m5  .
-	grid.Grid(m1, grid.Row(0), grid.Column(1), grid.PadX(3), grid.PadY(2))
-	grid.Grid(m2, grid.Row(1), grid.Column(0), grid.PadX(3), grid.PadY(2))
-	grid.Grid(m4, grid.Row(1), grid.Column(1), grid.PadX(3), grid.PadY(2))
-	grid.Grid(m3, grid.Row(1), grid.Column(2), grid.PadX(3), grid.PadY(2))
-	grid.Grid(m5, grid.Row(2), grid.Column(1), grid.PadX(3), grid.PadY(2))
+	grid.Grid(m1, grid.Row(0), grid.Column(1), grid.PadX("2.25p"), grid.PadY("1.5p"))
+	grid.Grid(m2, grid.Row(1), grid.Column(0), grid.PadX("2.25p"), grid.PadY("1.5p"))
+	grid.Grid(m4, grid.Row(1), grid.Column(1), grid.PadX("2.25p"), grid.PadY("1.5p"))
+	grid.Grid(m3, grid.Row(1), grid.Column(2), grid.PadX("2.25p"), grid.PadY("1.5p"))
+	grid.Grid(m5, grid.Row(2), grid.Column(1), grid.PadX("2.25p"), grid.PadY("1.5p"))
 
 	app.Run()
 }

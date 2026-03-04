@@ -1,148 +1,91 @@
-// Demo: Two text widgets with content synchronization.
-// Ported from Tk's textpeer.tcl demo (peering simulated with copy buttons).
+// Demo: Two text widgets sharing the same logical document.
+// Ported from Tk's textpeer.tcl demo (peering not implemented; static layout).
 package main
 
 import (
+	"fmt"
+
 	"github.com/msorc/takigo/demos/demohelper"
+	"github.com/msorc/takigo/geometry/grid"
 	"github.com/msorc/takigo/geometry/pack"
-	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/widget/button"
 	"github.com/msorc/takigo/widget/frame"
-	"github.com/msorc/takigo/widget/label"
 	"github.com/msorc/takigo/widget/scrollbar"
 	"github.com/msorc/takigo/widget/text"
 )
 
 func main() {
-	app := demohelper.Setup("Text Peer Demonstration", 700, 500,
-		"True peer text (shared document) is not implemented.\nCopy buttons work as a workaround.")
+	app := demohelper.Setup("Text Widget Peering Demonstration", 700, 500,
+		"This window demonstrates two text widgets that would be peers in Tk. "+
+			"They have the same underlying data model, but can show different locations, "+
+			"have different current edit locations, and have different selections.")
 
-	noteLabel := label.New(app, "note",
-		label.Text("Note: Tk text peering (shared document) is not implemented. Using copy buttons instead."),
-		label.Anchor(option.AnchorW),
-		label.PadX(10), label.Foreground("#666666"),
-	)
-	pack.Pack(noteLabel, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX), pack.PadY(3))
+	// Inner frame for grid layout (demohelper uses pack in app.Window()).
+	w := frame.New(app, "w")
+	pack.Pack(w, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
-	// Main content area.
-	contentFrame := frame.New(app, "content")
-	pack.Pack(contentFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
-		pack.Expand(true), pack.PadX(5), pack.PadY(5))
+	content := "This is a coupled pair of text widgets; they are peers to " +
+		"each other. They have the same underlying data model, but " +
+		"can show different locations, have different current edit " +
+		"locations, and have different selections. You can also " +
+		"create additional peers of any of these text widgets using " +
+		"the Make Peer button beside the text widget to clone, and " +
+		"delete a particular peer widget using the Delete Peer button."
 
-	// Left text + scrollbar.
-	leftFrame := frame.New(contentFrame, "left")
-	pack.Pack(leftFrame, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+	makeRow := func(idx int) {
+		row := idx * 2
 
-	leftLabel := label.New(leftFrame, "llabel",
-		label.Text("Text A"), label.Anchor(option.AnchorW), label.PadX(5))
-	pack.Pack(leftLabel, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
-
-	leftSb := scrollbar.New(leftFrame, "lsb")
-	leftText := text.New(leftFrame, "lefttxt",
-		text.Width(30), text.Height(20), text.WrapModeOpt(text.WrapWord),
-	)
-	leftText.YScrollCmd = func(first, last float64) { leftSb.Set(first, last) }
-	leftSb.Command = func(args ...interface{}) {
-		if len(args) >= 2 {
-			action, _ := args[0].(string)
-			number, _ := args[1].(float64)
-			switch action {
-			case "moveto":
-				leftText.YViewMoveTo(number)
-			case "scroll":
-				unit := "units"
-				if len(args) >= 3 {
-					if u, ok := args[2].(string); ok {
-						unit = u
+		tw := text.New(w, "text"+fmt.Sprint(idx),
+			text.Height(10),
+			text.WrapModeOpt(text.WrapWord),
+		)
+		sb := scrollbar.New(w, "sb"+fmt.Sprint(idx),
+			scrollbar.OrientOpt(scrollbar.Vertical),
+			scrollbar.CommandOpt(func(args ...any) {
+				if len(args) < 1 {
+					return
+				}
+				switch args[0] {
+				case "moveto":
+					if len(args) >= 2 {
+						if f, ok := args[1].(float64); ok {
+							tw.YViewMoveTo(f)
+						}
+					}
+				case "scroll":
+					if len(args) >= 3 {
+						n, _ := args[1].(int)
+						unit, _ := args[2].(string)
+						tw.YViewScroll(n, unit == "pages")
 					}
 				}
-				leftText.YViewScroll(int(number), unit == "pages")
-			}
-		}
+			}),
+		)
+		tw.YScrollCmd = func(first, last float64) { sb.Set(first, last) }
+
+		makeBtn := button.New(w, "clone"+fmt.Sprint(idx),
+			button.Text("Make Peer"),
+		)
+		deleteBtn := button.New(w, "kill"+fmt.Sprint(idx),
+			button.Text("Delete Peer"),
+		)
+
+		grid.Grid(tw, grid.Row(row), grid.Column(0), grid.RowSpan(2),
+			grid.Sticky(grid.NSEW))
+		grid.Grid(sb, grid.Row(row), grid.Column(1), grid.RowSpan(2),
+			grid.Sticky(grid.NSEW))
+		grid.Grid(makeBtn, grid.Row(row), grid.Column(2),
+			grid.Sticky(grid.StickN+grid.EW))
+		grid.Grid(deleteBtn, grid.Row(row+1), grid.Column(2),
+			grid.Sticky(grid.StickN+grid.EW))
+
+		tw.Insert("1.0", content)
 	}
-	pack.Pack(leftSb, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
-	pack.Pack(leftText, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
-	// Center buttons.
-	centerFrame := frame.New(contentFrame, "center")
-	pack.Pack(centerFrame, pack.SideOpt(pack.Left), pack.PadX(5), pack.PadY(20))
+	makeRow(1)
+	makeRow(2)
 
-	// Right text + scrollbar.
-	rightFrame := frame.New(contentFrame, "right")
-	pack.Pack(rightFrame, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+	grid.ColumnConfigure(w.Window(), 0, grid.SlotConfig{Weight: 1})
 
-	rightLabel := label.New(rightFrame, "rlabel",
-		label.Text("Text B"), label.Anchor(option.AnchorW), label.PadX(5))
-	pack.Pack(rightLabel, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
-
-	rightSb := scrollbar.New(rightFrame, "rsb")
-	rightText := text.New(rightFrame, "righttxt",
-		text.Width(30), text.Height(20), text.WrapModeOpt(text.WrapWord),
-	)
-	rightText.YScrollCmd = func(first, last float64) { rightSb.Set(first, last) }
-	rightSb.Command = func(args ...interface{}) {
-		if len(args) >= 2 {
-			action, _ := args[0].(string)
-			number, _ := args[1].(float64)
-			switch action {
-			case "moveto":
-				rightText.YViewMoveTo(number)
-			case "scroll":
-				unit := "units"
-				if len(args) >= 3 {
-					if u, ok := args[2].(string); ok {
-						unit = u
-					}
-				}
-				rightText.YViewScroll(int(number), unit == "pages")
-			}
-		}
-	}
-	pack.Pack(rightSb, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
-	pack.Pack(rightText, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.Expand(true))
-
-	// Copy buttons.
-	copyRight := button.New(centerFrame, "copyright",
-		button.Text("Copy -->"),
-		button.Command(func() {
-			content := leftText.Get("1.0", "end")
-			rightText.Delete("1.0", "end")
-			rightText.Insert("1.0", content)
-		}),
-		button.PadX(8), button.PadY(4),
-	)
-	pack.Pack(copyRight, pack.SideOpt(pack.Top), pack.PadY(10))
-
-	copyLeft := button.New(centerFrame, "copyleft",
-		button.Text("<-- Copy"),
-		button.Command(func() {
-			content := rightText.Get("1.0", "end")
-			leftText.Delete("1.0", "end")
-			leftText.Insert("1.0", content)
-		}),
-		button.PadX(8), button.PadY(4),
-	)
-	pack.Pack(copyLeft, pack.SideOpt(pack.Top), pack.PadY(10))
-
-	// Initial content.
-	leftText.Insert("1.0", `This is Text A.
-
-In Tk, text peers share the same underlying document, so edits in one widget appear instantly in the other.
-
-Since peering is not implemented in the Go port, you can use the copy buttons to transfer content between the two text widgets.
-
-Try editing this text and then clicking "Copy -->" to send it to Text B.`)
-
-	rightText.Insert("1.0", `This is Text B.
-
-It starts with different content from Text A.
-
-Click "<-- Copy" to replace this with the content from Text A, or edit freely and copy back.`)
-
-	_ = noteLabel
-	_ = leftLabel
-	_ = rightLabel
-	_ = copyRight
-	_ = copyLeft
 	app.Run()
 }

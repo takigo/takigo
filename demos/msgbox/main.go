@@ -25,20 +25,21 @@ func main() {
 	iconVar := widget.NewVariable("info")
 	typeVar := widget.NewVariable("ok")
 
-	columns := frame.New(app, "columns")
-	pack.Pack(columns, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
-		pack.Expand(true), pack.PadX(10), pack.PadY(5))
-
 	// Left: Icon radios.
-	leftFrame := frame.New(columns, "left")
+	leftFrame := frame.New(app, "left")
 	pack.Pack(leftFrame, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillY),
-		pack.Expand(true), pack.PadX(10))
+		pack.Expand(true), pack.PadX(".5c"), pack.PadY(".5c"))
 
 	iconLabel := label.New(leftFrame, "iconlabel",
 		label.Text("Icon"),
-		label.Anchor(option.AnchorCenter),
 	)
-	pack.Pack(iconLabel, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
+	pack.Pack(iconLabel, pack.SideOpt(pack.Top))
+
+	// Separator.
+	sepLeft := frame.New(leftFrame, "sep",
+		frame.Relief(option.ReliefRidge), frame.BorderWidth(1), frame.Height(2),
+	)
+	pack.Pack(sepLeft, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
 
 	for _, icon := range []string{"error", "info", "question", "warning"} {
 		rb := radiobutton.New(leftFrame, "icon_"+icon,
@@ -47,29 +48,36 @@ func main() {
 			radiobutton.Var(iconVar),
 			radiobutton.Anchor(option.AnchorW),
 		)
-		pack.Pack(rb, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(2))
+		pack.Pack(rb, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
+			pack.PadY("1.5p"), pack.Anchor(option.AnchorW))
 		_ = rb
 	}
 
 	// Right: Type radios.
-	rightFrame := frame.New(columns, "right")
+	rightFrame := frame.New(app, "right")
 	pack.Pack(rightFrame, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillY),
-		pack.Expand(true), pack.PadX(10))
+		pack.Expand(true), pack.PadX(".5c"), pack.PadY(".5c"))
 
 	typeLabel := label.New(rightFrame, "typelabel",
 		label.Text("Type"),
-		label.Anchor(option.AnchorCenter),
 	)
-	pack.Pack(typeLabel, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
+	pack.Pack(typeLabel, pack.SideOpt(pack.Top))
 
-	for _, t := range []string{"ok", "okcancel", "yesno", "yesnocancel"} {
+	// Separator.
+	sepRight := frame.New(rightFrame, "sep",
+		frame.Relief(option.ReliefRidge), frame.BorderWidth(1), frame.Height(2),
+	)
+	pack.Pack(sepRight, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
+
+	for _, t := range []string{"abortretryignore", "ok", "okcancel", "retrycancel", "yesno", "yesnocancel"} {
 		rb := radiobutton.New(rightFrame, "type_"+t,
 			radiobutton.Text(t),
 			radiobutton.Value(t),
 			radiobutton.Var(typeVar),
 			radiobutton.Anchor(option.AnchorW),
 		)
-		pack.Pack(rb, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(2))
+		pack.Pack(rb, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
+			pack.PadY("1.5p"), pack.Anchor(option.AnchorW))
 		_ = rb
 	}
 
@@ -84,10 +92,12 @@ func main() {
 				"warning":  dialog.MsgWarning,
 			}
 			typeMap := map[string]dialog.ButtonSet{
-				"ok":             dialog.BtnOK,
-				"okcancel":       dialog.BtnOKCancel,
-				"yesno":          dialog.BtnYesNo,
-				"yesnocancel":    dialog.BtnYesNoCancel,
+				"ok":               dialog.BtnOK,
+				"okcancel":         dialog.BtnOKCancel,
+				"yesno":            dialog.BtnYesNo,
+				"yesnocancel":      dialog.BtnYesNoCancel,
+				"abortretryignore": dialog.BtnOKCancel, // closest match
+				"retrycancel":      dialog.BtnOKCancel, // closest match
 			}
 
 			icon := iconVar.Get()
@@ -109,13 +119,13 @@ func main() {
 				dialog.MsgButtons(dialog.BtnOK),
 			)
 		}),
-		button.PadX(10), button.PadY(4),
 	)
-	pack.Pack(msgBtn, pack.SideOpt(pack.Top), pack.PadY(10))
+	pack.Pack(msgBtn, pack.SideOpt(pack.Top), pack.PadY("1.5p"))
 
 	_ = iconLabel
 	_ = typeLabel
-	_ = columns
+	_ = sepLeft
+	_ = sepRight
 	_ = msgBtn
 	app.Run()
 }

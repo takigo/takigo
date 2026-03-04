@@ -3,21 +3,42 @@
 package main
 
 import (
+	"strings"
+
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/pack"
+	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/frame"
+	"github.com/msorc/takigo/widget/labelframe"
 	"github.com/msorc/takigo/widget/listbox"
+	"github.com/msorc/takigo/widget/radiobutton"
 	"github.com/msorc/takigo/widget/scrollbar"
 )
 
 func main() {
-	app := demohelper.Setup("The 50 States", 300, 400,
-		"A listbox containing the 50 states is displayed below, along with a scrollbar. You can scan the list either using the scrollbar or by scanning.")
+	app := demohelper.Setup("Listbox Demonstration (50 states)", 300, 400,
+		"A listbox containing the 50 states is displayed below, along with a scrollbar. You can scan the list either using the scrollbar or by scanning. To scan, press button 2 in the widget and drag up or down.")
 
-	// Listbox frame.
-	lbFrame := frame.New(app, "lbframe")
-	pack.Pack(lbFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
-		pack.Expand(true), pack.PadX(10), pack.PadY(5))
+	// Justification group (matches Tcl's labelframe $w.justif).
+	justVar := widget.NewVariable("left")
+	justFrame := labelframe.New(app, "justif", labelframe.Text("Justification"))
+	for _, c := range []string{"Left", "Center", "Right"} {
+		rb := radiobutton.New(justFrame, strings.ToLower(c),
+			radiobutton.Text(c),
+			radiobutton.Value(strings.ToLower(c)),
+			radiobutton.Var(justVar),
+			radiobutton.Anchor(option.AnchorW),
+		)
+		pack.Pack(rb, pack.SideOpt(pack.Left), pack.PadY("1.5p"), pack.FillOpt(pack.FillX))
+	}
+	pack.Pack(justFrame, pack.SideOpt(pack.Top))
+
+	// Listbox frame with border.
+	lbFrame := frame.New(app, "frame",
+		frame.BorderWidth(19), // .5c ≈ 19px
+	)
+	pack.Pack(lbFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillY), pack.Expand(true))
 
 	states := []string{
 		"Alabama", "Alaska", "Arizona", "Arkansas", "California",
@@ -32,12 +53,12 @@ func main() {
 		"Virginia", "Washington", "West Virginia", "Wisconsin", "Wyoming",
 	}
 
-	lb := listbox.New(lbFrame, "states",
+	lb := listbox.New(lbFrame, "list",
 		listbox.Items(states...),
 		listbox.Height(12),
 	)
 
-	yscroll := scrollbar.New(lbFrame, "yscroll",
+	yscroll := scrollbar.New(lbFrame, "scroll",
 		scrollbar.OrientOpt(scrollbar.Vertical),
 		scrollbar.CommandOpt(func(args ...any) {
 			if len(args) < 1 {
@@ -69,5 +90,7 @@ func main() {
 	first, last := lb.YVisibleRange()
 	yscroll.Set(first, last)
 
+	_ = justVar
+	_ = justFrame
 	app.Run()
 }

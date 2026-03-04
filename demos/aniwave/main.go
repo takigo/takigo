@@ -18,11 +18,11 @@ func main() {
 
 	c := canvas.New(app, "wave",
 		canvas.Background("black"),
-		canvas.Width(500),
-		canvas.Height(250),
+		canvas.Width(300),
+		canvas.Height(200),
 	)
 	pack.Pack(c, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
-		pack.Expand(true), pack.PadX(10), pack.PadY(5))
+		pack.Expand(true), pack.PadX("7.5p"), pack.PadY("7.5p"))
 
 	// Initial wave.
 	phase := 0.0
@@ -31,8 +31,8 @@ func main() {
 	makeWaveCoords := func(p float64) []float64 {
 		coords := make([]float64, wavePoints*2)
 		for i := range wavePoints {
-			x := float64(i) * 500 / float64(wavePoints-1)
-			y := 125 + 80*math.Sin(2*math.Pi*float64(i)/float64(wavePoints)+p)
+			x := float64(i) * 300 / float64(wavePoints-1)
+			y := 100 + 60*math.Sin(2*math.Pi*float64(i)/float64(wavePoints)+p)
 			coords[i*2] = x
 			coords[i*2+1] = y
 		}
@@ -65,8 +65,6 @@ func main() {
 	// Pause/Resume toggle button.
 	pauseBtn := button.New(app, "pause",
 		button.Text("Pause"),
-		button.PadX(10),
-		button.PadY(4),
 	)
 	pauseBtn.Command = func() {
 		if running {
@@ -80,7 +78,7 @@ func main() {
 			animate()
 		}
 	}
-	pack.Pack(pauseBtn, pack.SideOpt(pack.Top), pack.PadY(5))
+	pack.Pack(pauseBtn, pack.SideOpt(pack.Top), pack.PadY("3p"))
 
 	app.Run()
 }

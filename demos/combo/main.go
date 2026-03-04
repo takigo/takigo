@@ -5,74 +5,55 @@ package main
 import (
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/pack"
-	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/ttk"
 	_ "github.com/msorc/takigo/ttk/clamtheme"
 	_ "github.com/msorc/takigo/ttk/defaulttheme"
-	"github.com/msorc/takigo/widget/label"
 	"github.com/msorc/takigo/widget/labelframe"
 )
 
 func main() {
 	app := demohelper.Setup("Combobox Demonstration", 450, 400,
-		"Three different combo-boxes are displayed below. You can add characters to the first one by pointing, clicking and typing, just as with an entry; pressing Return will cause the current value to be added to the drop-down list. The second combo-box is fixed to a particular value, and cannot be modified at all. The third one only allows you to select values from its drop-down list of Australian cities.")
+		"Three different combo-boxes are displayed below. You can add characters to the first one by pointing, clicking and typing, just as with an entry; pressing Return will cause the current value to be added to the list that is selectable from the drop-down list, and you can choose other values by pressing the Down key, using the arrow keys to pick another one, and pressing Return again. The second combo-box is fixed to a particular value, and cannot be modified at all. The third one only allows you to select values from its drop-down list of Australian cities.")
 
 	ttk.SetCurrentTheme("clam")
 
-	// Status label.
-	statusLabel := label.New(app, "status",
-		label.Text("Selection: (none)"),
-		label.Anchor(option.AnchorW),
-		label.PadX(10),
-	)
-	pack.Pack(statusLabel, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX), pack.PadY(5))
+	// Inner frame (matches Tcl's ttk::frame $w.f).
+	f := ttk.NewFrame(app, "f")
+	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	cities := []string{
 		"Canberra", "Sydney", "Melbourne", "Perth",
 		"Adelaide", "Brisbane", "Hobart", "Darwin", "Alice Springs",
 	}
 
-	// Editable combobox in labelframe.
-	editFrame := labelframe.New(app, "c1", labelframe.Text("Fully Editable"))
-	pack.Pack(editFrame, pack.SideOpt(pack.Top), pack.PadY(3), pack.PadX(8))
+	// Editable combobox in labelframe (starts empty, no initial values).
+	editFrame := labelframe.New(f, "c1", labelframe.Text("Fully Editable"))
+	pack.Pack(editFrame, pack.SideOpt(pack.Top), pack.PadY("3p"), pack.PadX("7.5p"))
 
-	editCombo := ttk.NewCombobox(editFrame, "c",
-		ttk.ComboboxValues(cities),
-		ttk.ComboboxText("Canberra"),
-		ttk.ComboboxCommand(func(v string) {
-			statusLabel.Text = "Selection: " + v
-			statusLabel.Display()
-		}),
-	)
-	pack.Pack(editCombo, pack.PadY(3), pack.PadX(8))
+	editCombo := ttk.NewCombobox(editFrame, "c")
+	pack.Pack(editCombo, pack.PadY("3p"), pack.PadX("7.5p"))
 
 	// Disabled combobox in labelframe.
-	disFrame := labelframe.New(app, "c2", labelframe.Text("Disabled"))
-	pack.Pack(disFrame, pack.SideOpt(pack.Top), pack.PadY(3), pack.PadX(8))
+	disFrame := labelframe.New(f, "c2", labelframe.Text("Disabled"))
+	pack.Pack(disFrame, pack.SideOpt(pack.Top), pack.PadY("3p"), pack.PadX("7.5p"))
 
 	disCombo := ttk.NewCombobox(disFrame, "c",
-		ttk.ComboboxValues(cities),
-		ttk.ComboboxText("Melbourne"),
+		ttk.ComboboxText("unchangable"),
 		ttk.ComboboxCbState(ttk.ComboDisabled),
 	)
-	pack.Pack(disCombo, pack.PadY(3), pack.PadX(8))
+	pack.Pack(disCombo, pack.PadY("3p"), pack.PadX("7.5p"))
 
 	// Readonly combobox in labelframe.
-	roFrame := labelframe.New(app, "c3", labelframe.Text("Defined List Only"))
-	pack.Pack(roFrame, pack.SideOpt(pack.Top), pack.PadY(3), pack.PadX(8))
+	roFrame := labelframe.New(f, "c3", labelframe.Text("Defined List Only"))
+	pack.Pack(roFrame, pack.SideOpt(pack.Top), pack.PadY("3p"), pack.PadX("7.5p"))
 
 	roCombo := ttk.NewCombobox(roFrame, "c",
 		ttk.ComboboxValues(cities),
 		ttk.ComboboxText("Sydney"),
 		ttk.ComboboxCbState(ttk.ComboReadonly),
-		ttk.ComboboxCommand(func(v string) {
-			statusLabel.Text = "Selection: " + v
-			statusLabel.Display()
-		}),
 	)
-	pack.Pack(roCombo, pack.PadY(3), pack.PadX(8))
+	pack.Pack(roCombo, pack.PadY("3p"), pack.PadX("7.5p"))
 
-	_ = statusLabel
 	_ = editFrame
 	_ = editCombo
 	_ = disFrame

@@ -19,14 +19,19 @@ func main() {
 	focusMgr := focus.NewManager(app.Dispatcher(), app.Server())
 	focusMgr.BindTraversal(root)
 
-	// Helper: create entry+scrollbar pair.
-	makeEntryWithScroll := func(parent *frame.Frame, name, text string) *entry.Entry {
-		ef := frame.New(parent, name+"_frame")
-		pack.Pack(ef, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
-			pack.PadX(20), pack.PadY(5))
+	// Container frame with border (matches Tcl's `frame -borderwidth 7.5p`).
+	fr := frame.New(app, "frame",
+		frame.BorderWidth(10), // 7.5p ≈ 10px
+	)
+	pack.Pack(fr, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.Expand(true))
 
-		e := entry.New(ef, name)
-		sb := scrollbar.New(ef, name+"_sb",
+	// Helper: add an entry+scrollbar pair to the frame.
+	makeEntry := func(name, text, placeholder string) *entry.Entry {
+		e := entry.New(fr, name)
+		if placeholder != "" {
+			e.Placeholder = placeholder
+		}
+		sb := scrollbar.New(fr, name+"_sb",
 			scrollbar.OrientOpt(scrollbar.Horizontal),
 			scrollbar.CommandOpt(func(args ...any) {
 				if len(args) < 1 {
@@ -48,31 +53,40 @@ func main() {
 				}
 			}),
 		)
-
-		e.SetText(text)
 		e.ScrollCmd = func(first, last float64) {
 			sb.Set(first, last)
 		}
-
+		if text != "" {
+			e.SetText(text)
+		}
 		pack.Pack(e, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
 		pack.Pack(sb, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
-
 		return e
 	}
 
-	// Container frame.
-	container := frame.New(app, "container")
-	pack.Pack(container, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+	e1 := makeEntry("e1", "Initial value", "")
 
-	// Three entry+scrollbar pairs.
-	e1 := makeEntryWithScroll(container, "e1", "Initial value")
-	e2 := makeEntryWithScroll(container, "e2",
-		"This entry contains a long value, much too long to fit in the window at one time, and thus you can use the scrollbar to see the rest.")
-	e3 := makeEntryWithScroll(container, "e3", "")
+	// Spacer between e1 and e2 (matches Tcl's spacer frame height 7.5p).
+	sp1 := frame.New(fr, "spacer1", frame.Height(10))
+	pack.Pack(sp1, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
+
+	e2 := makeEntry("e2",
+		"This entry contains a long value, much too long "+
+			"to fit in the window at one time, so long in fact "+
+			"that you'll have to scan or scroll to see the end.",
+		"")
+
+	// Spacer between e2 and e3.
+	sp2 := frame.New(fr, "spacer2", frame.Height(10))
+	pack.Pack(sp2, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
+
+	e3 := makeEntry("e3", "", "Enter text here")
 
 	_ = focusMgr
 	_ = e1
 	_ = e2
 	_ = e3
+	_ = sp1
+	_ = sp2
 	app.Run()
 }

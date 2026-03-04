@@ -6,13 +6,13 @@ import (
 	"time"
 
 	"github.com/msorc/takigo/demos/demohelper"
+	"github.com/msorc/takigo/geometry/grid"
 	"github.com/msorc/takigo/geometry/pack"
-	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/ttk"
 	_ "github.com/msorc/takigo/ttk/clamtheme"
 	_ "github.com/msorc/takigo/ttk/defaulttheme"
 	"github.com/msorc/takigo/widget/button"
-	"github.com/msorc/takigo/widget/label"
 )
 
 func main() {
@@ -20,31 +20,47 @@ func main() {
 
 	ttk.SetCurrentTheme("clam")
 
-	// Determinate progressbar.
-	detLabel := label.New(app, "detlabel",
-		label.Text("Determinate:"),
-		label.Anchor(option.AnchorW),
-		label.PadX(20),
-	)
-	pack.Pack(detLabel, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(5))
+	padX := screenunit.Px("7.5p")
+	padY := screenunit.Px("3p")
 
-	detPbar := ttk.NewProgressbar(app, "detpbar",
+	// Container frame with grid layout.
+	f := ttk.NewFrame(app, "f")
+	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+
+	detPbar := ttk.NewProgressbar(f, "p1",
 		ttk.ProgressbarMode(ttk.ProgressDeterminate),
-		ttk.ProgressbarLength(300),
 	)
-	pack.Pack(detPbar, pack.SideOpt(pack.Top), pack.PadX(20), pack.PadY(5))
+	indPbar := ttk.NewProgressbar(f, "p2",
+		ttk.ProgressbarMode(ttk.ProgressIndeterminate),
+	)
 
-	// Progress simulation button.
-	var simulating bool
-	simBtn := button.New(app, "simbtn",
+	startBtn := button.New(f, "start",
 		button.Text("Start Progress"),
-		button.PadX(10), button.PadY(4),
+		button.PadX(padX), button.PadY(padY),
+	)
+	stopBtn := button.New(f, "stop",
+		button.Text("Stop Progress"),
+		button.PadX(padX), button.PadY(padY),
 	)
 
-	var step func()
+	// Grid layout: bars span 2 columns; start sticky-e, stop sticky-w.
+	grid.Grid(detPbar, grid.Row(0), grid.Column(0), grid.ColumnSpan(2),
+		grid.PadX(padX), grid.PadY(padY))
+	grid.Grid(indPbar, grid.Row(1), grid.Column(0), grid.ColumnSpan(2),
+		grid.PadX(padX), grid.PadY(padY))
+	grid.Grid(startBtn, grid.Row(2), grid.Column(0),
+		grid.Sticky(grid.StickE), grid.PadX(padX), grid.PadY(padY))
+	grid.Grid(stopBtn, grid.Row(2), grid.Column(1),
+		grid.Sticky(grid.StickW), grid.PadX(padX), grid.PadY(padY))
+	grid.ColumnConfigure(f.Window(), 0, grid.SlotConfig{Weight: 1})
+	grid.ColumnConfigure(f.Window(), 1, grid.SlotConfig{Weight: 1})
+
+	// Determinate animation state.
+	var running bool
 	progress := 0.0
+	var step func()
 	step = func() {
-		if !simulating {
+		if !running {
 			return
 		}
 		progress += 2
@@ -54,64 +70,22 @@ func main() {
 		detPbar.SetValue(progress)
 		app.After(50*time.Millisecond, step)
 	}
-	simBtn.Command = func() {
-		if simulating {
-			simulating = false
-			simBtn.Text = "Start Progress"
-			simBtn.Display()
-		} else {
-			simulating = true
-			progress = 0
-			simBtn.Text = "Stop Progress"
-			simBtn.Display()
-			step()
+
+	startBtn.Command = func() {
+		if running {
+			return
 		}
+		running = true
+		progress = 0
+		step()
+		indPbar.Start(30 * time.Millisecond)
 	}
-	pack.Pack(simBtn, pack.SideOpt(pack.Top), pack.PadY(5))
-
-	// Separator.
-	sep := ttk.NewSeparator(app, "sep")
-	pack.Pack(sep, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadX(10), pack.PadY(10))
-
-	// Indeterminate progressbar.
-	indLabel := label.New(app, "indlabel",
-		label.Text("Indeterminate:"),
-		label.Anchor(option.AnchorW),
-		label.PadX(20),
-	)
-	pack.Pack(indLabel, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(5))
-
-	indPbar := ttk.NewProgressbar(app, "indpbar",
-		ttk.ProgressbarMode(ttk.ProgressIndeterminate),
-		ttk.ProgressbarLength(300),
-	)
-	pack.Pack(indPbar, pack.SideOpt(pack.Top), pack.PadX(20), pack.PadY(5))
-
-	// Start/Stop button for indeterminate.
-	indBtn := button.New(app, "indbtn",
-		button.Text("Start Bouncing"),
-		button.PadX(10), button.PadY(4),
-	)
-	var bouncing bool
-	indBtn.Command = func() {
-		if bouncing {
-			bouncing = false
-			indPbar.Stop()
-			indBtn.Text = "Start Bouncing"
-			indBtn.Display()
-		} else {
-			bouncing = true
-			indPbar.Start(30 * time.Millisecond)
-			indBtn.Text = "Stop Bouncing"
-			indBtn.Display()
-		}
+	stopBtn.Command = func() {
+		running = false
+		indPbar.Stop()
 	}
-	pack.Pack(indBtn, pack.SideOpt(pack.Top), pack.PadY(5))
 
-	_ = detLabel
-	_ = simBtn
-	_ = indLabel
-	_ = indBtn
-	_ = sep
+	_ = startBtn
+	_ = stopBtn
 	app.Run()
 }

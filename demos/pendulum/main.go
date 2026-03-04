@@ -21,30 +21,34 @@ func main() {
 	// Container frame to hold both canvases side by side.
 	container := frame.New(app, "container")
 	pack.Pack(container, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
-		pack.Expand(true), pack.PadX(5), pack.PadY(5))
+		pack.Expand(true))
 
-	// Left canvas: pendulum visualization.
+	// Left canvas: pendulum visualization (matches Tcl: 240p x 150p ≈ 320x200).
 	pendulumCanvas := canvas.New(container, "pendulum",
-		canvas.Background("#1a1a2e"),
-		canvas.Width(370),
-		canvas.Height(370),
+		canvas.Background("white"),
+		canvas.Width(320),
+		canvas.Height(200),
+		canvas.BorderWidthOpt(2),
+		canvas.ReliefOpt(option.ReliefSunken),
 	)
 	pack.Pack(pendulumCanvas, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth),
-		pack.Expand(true), pack.PadX(5), pack.PadY(5))
+		pack.Expand(true))
 
 	// Right canvas: phase space graph.
 	phaseCanvas := canvas.New(container, "phase",
-		canvas.Background("#0d0d1a"),
-		canvas.Width(370),
-		canvas.Height(370),
+		canvas.Background("white"),
+		canvas.Width(320),
+		canvas.Height(200),
+		canvas.BorderWidthOpt(2),
+		canvas.ReliefOpt(option.ReliefSunken),
 	)
 	pack.Pack(phaseCanvas, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth),
-		pack.Expand(true), pack.PadX(5), pack.PadY(5))
+		pack.Expand(true))
 
-	// Pendulum parameters.
-	pivotX, pivotY := 185.0, 50.0
-	length := 200.0
-	bobRadius := 15.0
+	// Pendulum parameters (scaled to match Tcl: 120p pivot height, 111p length).
+	pivotX, pivotY := 160.0, 24.0
+	length := 148.0 // 111p ≈ 148px
+	bobRadius := 16.0
 	theta := math.Pi / 4 // Initial angle (radians).
 	omega := 0.0         // Angular velocity.
 	gravity := 9.8
@@ -52,8 +56,8 @@ func main() {
 	damping := 0.998
 
 	// Phase space parameters.
-	phaseCX := 185.0 // Center of phase canvas.
-	phaseCY := 185.0
+	phaseCX := 160.0 // Center of phase canvas.
+	phaseCY := 100.0
 	phaseScaleX := 80.0  // Pixels per radian for angle.
 	phaseScaleY := 8.0   // Pixels per (rad/s) for angular velocity.
 	const maxPhasePoints = 500
@@ -64,29 +68,29 @@ func main() {
 
 	// Draw phase space axes (static).
 	// Vertical axis (angular velocity).
-	phaseCanvas.CreateLine([]float64{phaseCX, 10, phaseCX, 360},
-		canvas.OutlineColor("#444466"), canvas.OutlineWidth(1), canvas.Tags("axis"))
+	phaseCanvas.CreateLine([]float64{phaseCX, 190, phaseCX, 5},
+		canvas.OutlineColor("grey75"), canvas.OutlineWidth(1), canvas.Tags("y_axis"))
 	// Horizontal axis (angle).
-	phaseCanvas.CreateLine([]float64{10, phaseCY, 360, phaseCY},
-		canvas.OutlineColor("#444466"), canvas.OutlineWidth(1), canvas.Tags("axis"))
+	phaseCanvas.CreateLine([]float64{5, phaseCY, 315, phaseCY},
+		canvas.OutlineColor("grey75"), canvas.OutlineWidth(1), canvas.Tags("x_axis"))
 	// Axis labels.
-	phaseCanvas.CreateText(355, phaseCY+15,
-		canvas.TextOpt("θ"), canvas.TextColor("#888888"),
-		canvas.AnchorOpt(option.AnchorE), canvas.Tags("axis"))
-	phaseCanvas.CreateText(phaseCX+15, 15,
-		canvas.TextOpt("dθ/dt"), canvas.TextColor("#888888"),
-		canvas.AnchorOpt(option.AnchorW), canvas.Tags("axis"))
+	phaseCanvas.CreateText(phaseCX-3, 4,
+		canvas.TextOpt("δθ"), canvas.TextColor("black"),
+		canvas.AnchorOpt(option.AnchorE), canvas.Tags("label_dtheta"))
+	phaseCanvas.CreateText(315, phaseCY+3,
+		canvas.TextOpt("θ"), canvas.TextColor("black"),
+		canvas.AnchorOpt(option.AnchorE), canvas.Tags("label_theta"))
 
 	// Pivot point on pendulum canvas.
-	pendulumCanvas.CreateOval(pivotX-4, pivotY-4, pivotX+4, pivotY+4,
-		canvas.FillColor("#aaaaaa"), canvas.OutlineColor("#888888"))
+	pendulumCanvas.CreateOval(pivotX-4, pivotY-3, pivotX+4, pivotY+4,
+		canvas.FillColor("grey50"), canvas.Tags("pivot"))
 	// Plate line.
-	pendulumCanvas.CreateLine([]float64{0, pivotY, 370, pivotY},
-		canvas.OutlineColor("#555555"), canvas.OutlineWidth(1), canvas.Tags("plate"))
+	pendulumCanvas.CreateLine([]float64{0, pivotY - 6, 320, pivotY - 6},
+		canvas.OutlineColor("grey50"), canvas.OutlineWidth(2), canvas.Tags("plate"))
 
 	// Instruction text.
-	pendulumCanvas.CreateText(5, 5,
-		canvas.TextOpt("Click to adjust bob"), canvas.TextColor("#666688"),
+	pendulumCanvas.CreateText(4, 4,
+		canvas.TextOpt("Click to Adjust Bob Start Position"), canvas.TextColor("black"),
 		canvas.AnchorOpt(option.AnchorNW), canvas.Tags("instr"))
 
 	// dragging tracks whether the user is dragging the bob.
@@ -102,25 +106,17 @@ func main() {
 		pendulumCanvas.Delete("bob")
 		pendulumCanvas.Delete("trail")
 
-		// Trail shadow.
-		for i := 1; i <= 5; i++ {
-			t := theta - omega*dt*float64(i)
-			tx := pivotX + length*math.Sin(t)
-			ty := pivotY + length*math.Cos(t)
-			pendulumCanvas.CreateOval(tx-bobRadius*0.5, ty-bobRadius*0.5,
-				tx+bobRadius*0.5, ty+bobRadius*0.5,
-				canvas.FillColor("#333355"), canvas.Tags("trail"))
-		}
+		// (no trail shadow — Tcl doesn't have one)
 
 		// Rod.
 		pendulumCanvas.CreateLine([]float64{pivotX, pivotY, bobX, bobY},
-			canvas.OutlineColor("#cccccc"), canvas.OutlineWidth(2), canvas.Tags("rod"))
+			canvas.OutlineColor("black"), canvas.OutlineWidth(3), canvas.Tags("rod"))
 
 		// Bob.
 		pendulumCanvas.CreateOval(bobX-bobRadius, bobY-bobRadius,
 			bobX+bobRadius, bobY+bobRadius,
-			canvas.FillColor("#e74c3c"), canvas.OutlineColor("#c0392b"),
-			canvas.OutlineWidth(2), canvas.Tags("bob"))
+			canvas.FillColor("yellow"), canvas.OutlineColor("black"),
+			canvas.OutlineWidth(1), canvas.Tags("bob"))
 	}
 
 	// showPhase draws the phase space trail.
@@ -137,60 +133,36 @@ func main() {
 		// Remove old trail lines.
 		phaseCanvas.Delete("trail")
 
-		// Draw trail with fading colors — newer segments are brighter.
+		// Draw trail with 10 grey levels (matching Tcl's grey0..grey90).
 		n := len(phaseTrail)
 		if n < 2 {
 			return
 		}
-
-		// Draw segments in batches for performance: use a few color levels.
-		const colorLevels = 10
-		batchSize := n / colorLevels
-		if batchSize < 2 {
-			batchSize = 2
-		}
-
-		for i := 1; i < n; i++ {
-			// Determine brightness: 0.0 (oldest) to 1.0 (newest).
-			frac := float64(i) / float64(n)
-			r := int(40 + frac*200)
-			g := int(40 + frac*80)
-			b := int(80 + frac*175)
-			if r > 255 {
-				r = 255
+		for level := 0; level <= 90; level += 10 {
+			// Each level covers a bucket of the oldest (grey0) to newest (grey90) points.
+			startFrac := float64(level) / 100.0
+			endFrac := float64(level+10) / 100.0
+			start := int(startFrac * float64(n))
+			end := int(endFrac * float64(n))
+			if start >= n-1 {
+				break
 			}
-			if g > 255 {
-				g = 255
+			if end > n {
+				end = n
 			}
-			if b > 255 {
-				b = 255
-			}
-			col := fmt.Sprintf("#%02x%02x%02x", r, g, b)
-
-			// Only draw every Nth segment for older parts to save performance.
-			skip := 1
-			if frac < 0.3 {
-				skip = 4
-			} else if frac < 0.6 {
-				skip = 2
-			}
-			if i%skip != 0 && i != n-1 {
+			if end-start < 2 {
 				continue
 			}
-
-			prev := i - skip
-			if prev < 0 {
-				prev = 0
+			col := fmt.Sprintf("grey%d", level)
+			pts := make([]float64, 0, (end-start)*2)
+			for i := start; i < end; i++ {
+				pts = append(pts, phaseTrail[i].x, phaseTrail[i].y)
 			}
-			phaseCanvas.CreateLine(
-				[]float64{phaseTrail[prev].x, phaseTrail[prev].y,
-					phaseTrail[i].x, phaseTrail[i].y},
-				canvas.OutlineColor(col), canvas.OutlineWidth(2), canvas.Tags("trail"))
+			if len(pts) >= 4 {
+				phaseCanvas.CreateLine(pts, canvas.OutlineColor(col),
+					canvas.OutlineWidth(1), canvas.Tags("trail"))
+			}
 		}
-
-		// Draw current position dot.
-		phaseCanvas.CreateOval(px-3, py-3, px+3, py+3,
-			canvas.FillColor("#ff6644"), canvas.OutlineColor("#ff6644"), canvas.Tags("trail"))
 	}
 
 	// Click-and-drag to reposition pendulum bob.

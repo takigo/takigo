@@ -21,15 +21,17 @@ func main() {
 
 	fileTypes := []dialog.FileType{
 		{Name: "Text files", Pattern: "*.txt"},
-		{Name: "Go files", Pattern: "*.go"},
+		{Name: "Tcl Scripts", Pattern: "*.tcl"},
 		{Name: "C Source Files", Pattern: "*.c"},
+		{Name: "All Source Files", Pattern: "*.go"},
+		{Name: "Image Files", Pattern: "*.gif"},
 		{Name: "All files", Pattern: "*"},
 	}
 
 	// Grid frame for label + entry + browse button rows.
 	f := frame.New(app, "form")
 	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
-		pack.PadX(20), pack.PadY(10))
+		pack.PadX("1c"))
 
 	rows := []struct {
 		label string
@@ -77,9 +79,9 @@ func main() {
 			}
 		}
 
-		grid.Grid(l, grid.Row(row), grid.Column(0), grid.Sticky(grid.StickW), grid.PadY(4))
-		grid.Grid(e, grid.Row(row), grid.Column(1), grid.Sticky(grid.EW), grid.PadX(5), grid.PadY(4))
-		grid.Grid(b, grid.Row(row), grid.Column(2), grid.PadY(4))
+		grid.Grid(l, grid.Row(row), grid.Column(0), grid.Sticky(grid.StickW), grid.PadY("3p"))
+		grid.Grid(e, grid.Row(row), grid.Column(1), grid.Sticky(grid.EW), grid.PadX("3p"), grid.PadY("3p"))
+		grid.Grid(b, grid.Row(row), grid.Column(2), grid.PadY("3p"))
 	}
 
 	grid.ColumnConfigure(f.Window(), 1, grid.SlotConfig{Weight: 1})

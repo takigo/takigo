@@ -4,6 +4,7 @@ package main
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/grid"
@@ -28,10 +29,10 @@ func main() {
 
 	ttk.SetCurrentTheme("clam")
 
-	// Container frame for the grid layout.
+	// Container frame for the grid layout (matches Tcl's ttk::frame $w.f).
 	container := ttk.NewFrame(app, "container")
 	pack.Pack(container, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
-		pack.Expand(true), pack.PadX(5), pack.PadY(5))
+		pack.Expand(true))
 
 	// -- Group 1: Buttons (theme switchers) --
 	btnFrame := labelframe.New(container, "buttons",
@@ -39,6 +40,7 @@ func main() {
 	)
 
 	themes := ttk.ThemeNames()
+	sort.Strings(themes)
 	for i, theme := range themes {
 		themeName := theme
 		btn := ttk.NewButton(btnFrame, fmt.Sprintf("theme%d", i),
@@ -48,7 +50,7 @@ func main() {
 			}),
 		)
 		pack.Pack(btn, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
-			pack.PadX(5), pack.PadY(2))
+			pack.PadY("1.5p"))
 		_ = btn
 	}
 
@@ -70,11 +72,11 @@ func main() {
 		checkbutton.Text("Tomato"),
 		checkbutton.Var(tomato),
 	)
-	pack.Pack(c1, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(2))
-	pack.Pack(c2, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(2))
+	pack.Pack(c1, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY("1.5p"))
+	pack.Pack(c2, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY("1.5p"))
 
 	sep := ttk.NewSeparator(chkFrame, "sep")
-	pack.Pack(sep, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(2))
+	pack.Pack(sep, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY("1.5p"))
 
 	c3 := checkbutton.New(chkFrame, "c3",
 		checkbutton.Text("Basil"),
@@ -84,8 +86,8 @@ func main() {
 		checkbutton.Text("Oregano"),
 		checkbutton.Var(oregano),
 	)
-	pack.Pack(c3, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(2))
-	pack.Pack(c4, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(2))
+	pack.Pack(c3, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY("1.5p"))
+	pack.Pack(c4, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY("1.5p"))
 
 	// -- Group 3: Radiobuttons --
 	radFrame := labelframe.New(container, "radios",
@@ -106,28 +108,25 @@ func main() {
 			radiobutton.Var(happiness),
 		)
 		pack.Pack(r, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
-			pack.PadX(3), pack.PadY(2))
+			pack.PadX("3p"), pack.PadY("1.5p"))
 		_ = r
 	}
 
-	// -- Arrange the three groups in a grid row --
+	// -- Arrange the three groups in a grid row (matches Tcl's grid arrangement) --
+	// Note: Tcl has a 4th toggleswitch group; without it, buttons don't need rowspan 2.
 	nwe := grid.StickN | grid.StickW | grid.StickE
 	grid.Grid(btnFrame, grid.Row(0), grid.Column(0),
-		grid.Sticky(nwe), grid.PadX(3), grid.PadY(2))
+		grid.Sticky(nwe), grid.PadX("3p"), grid.PadY("1.5p"))
 	grid.Grid(chkFrame, grid.Row(0), grid.Column(1),
-		grid.Sticky(nwe), grid.PadX(3), grid.PadY(2))
+		grid.Sticky(nwe), grid.PadX("3p"), grid.PadY("1.5p"))
 	grid.Grid(radFrame, grid.Row(0), grid.Column(2),
-		grid.Sticky(nwe), grid.PadX(3), grid.PadY(2))
+		grid.Sticky(nwe), grid.PadX("3p"), grid.PadY("1.5p"))
 
-	// Make the buttons column span both rows (if there were more rows).
-	grid.Grid(btnFrame, grid.Row(0), grid.Column(0),
-		grid.RowSpan(2), grid.Sticky(nwe), grid.PadX(3), grid.PadY(2))
-
-	// Equal column weights.
+	// Equal column weights (Tcl uses -uniform yes; not yet supported in grid).
 	grid.ColumnConfigure(container.Window(), 0, grid.SlotConfig{Weight: 1})
 	grid.ColumnConfigure(container.Window(), 1, grid.SlotConfig{Weight: 1})
 	grid.ColumnConfigure(container.Window(), 2, grid.SlotConfig{Weight: 1})
-	grid.RowConfigure(container.Window(), 1, grid.SlotConfig{Weight: 1})
+	grid.RowConfigure(container.Window(), 0, grid.SlotConfig{Weight: 1})
 
 	_ = c1
 	_ = c2

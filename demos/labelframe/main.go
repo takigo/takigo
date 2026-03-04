@@ -4,79 +4,68 @@ package main
 
 import (
 	"github.com/msorc/takigo/demos/demohelper"
+	"github.com/msorc/takigo/geometry/grid"
 	"github.com/msorc/takigo/geometry/pack"
-	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/checkbutton"
+	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/labelframe"
 	"github.com/msorc/takigo/widget/radiobutton"
 )
 
 func main() {
-	app := demohelper.Setup("Labelframe Demonstration", 500, 450, "Labelframes are used to group related widgets together. The label may be either plain text or another widget.")
+	app := demohelper.Setup("Labelframe Demonstration", 500, 300, "Labelframes are used to group related widgets together. The label may be either plain text or another widget.")
 
-	// Gender labelframe with radiobuttons.
-	genderFrame := labelframe.New(app, "gender",
-		labelframe.Text("Gender"),
-		labelframe.Width(200),
-		labelframe.Height(130),
+	// Demo area frame — packs at bottom fill both expand.
+	f := frame.New(app, "f")
+	pack.Pack(f, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+
+	// Left labelframe: "Value" with radiobuttons 1-4.
+	lfValue := labelframe.New(f, "lf",
+		labelframe.Text("Value"),
 	)
-	pack.Pack(genderFrame, pack.SideOpt(pack.Top), pack.PadX(20), pack.PadY(10),
-		pack.FillOpt(pack.FillX))
+	grid.Grid(lfValue, grid.Row(0), grid.Column(0), grid.PadX("2m"), grid.PadY("2m"))
 
-	genderVar := widget.NewVariable("male")
-	genders := []struct{ text, value string }{
-		{"Male", "male"},
-		{"Female", "female"},
-		{"Other", "other"},
-	}
-	for _, g := range genders {
-		rb := radiobutton.New(genderFrame, "gender_"+g.value,
-			radiobutton.Text(g.text),
-			radiobutton.Value(g.value),
-			radiobutton.Var(genderVar),
+	valueVar := widget.NewVariable("1")
+	for _, v := range []string{"1", "2", "3", "4"} {
+		rb := radiobutton.New(lfValue, "b"+v,
+			radiobutton.Text("This is value "+v),
+			radiobutton.Value(v),
+			radiobutton.Var(valueVar),
 		)
-		pack.Pack(rb, pack.SideOpt(pack.Top), pack.PadY(2),
-			pack.Anchor(option.AnchorW), pack.PadX(10))
+		pack.Pack(rb, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY("1.5p"))
 		_ = rb
 	}
 
-	// Options labelframe with checkbuttons.
-	optFrame := labelframe.New(app, "options",
+	// Right labelframe: "Options" with checkbuttons.
+	// (Tcl uses a checkbutton as the labelwidget; we use plain text instead.)
+	lfOpts := labelframe.New(f, "lf2",
 		labelframe.Text("Options"),
-		labelframe.Width(200),
-		labelframe.Height(130),
 	)
-	pack.Pack(optFrame, pack.SideOpt(pack.Top), pack.PadX(20), pack.PadY(10),
-		pack.FillOpt(pack.FillX))
+	grid.Grid(lfOpts, grid.Row(0), grid.Column(1), grid.PadX("2m"), grid.PadY("2m"))
 
-	bold := widget.NewVariable(false)
-	italic := widget.NewVariable(false)
-	underline := widget.NewVariable(false)
-
-	cb1 := checkbutton.New(optFrame, "bold",
-		checkbutton.Text("Bold"),
-		checkbutton.Var(bold),
+	enableVar := widget.NewVariable(false)
+	enableCb := checkbutton.New(lfOpts, "cb",
+		checkbutton.Text("Use this option."),
+		checkbutton.Var(enableVar),
 	)
-	pack.Pack(cb1, pack.SideOpt(pack.Top), pack.PadY(2),
-		pack.Anchor(option.AnchorW), pack.PadX(10))
+	pack.Pack(enableCb, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY("1.5p"))
 
-	cb2 := checkbutton.New(optFrame, "italic",
-		checkbutton.Text("Italic"),
-		checkbutton.Var(italic),
-	)
-	pack.Pack(cb2, pack.SideOpt(pack.Top), pack.PadY(2),
-		pack.Anchor(option.AnchorW), pack.PadX(10))
+	for _, s := range []string{"Option1", "Option2", "Option3"} {
+		v := widget.NewVariable(false)
+		cb := checkbutton.New(lfOpts, "opt_"+s,
+			checkbutton.Text(s),
+			checkbutton.Var(v),
+		)
+		pack.Pack(cb, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY("1.5p"))
+		_ = cb
+	}
 
-	cb3 := checkbutton.New(optFrame, "underline",
-		checkbutton.Text("Underline"),
-		checkbutton.Var(underline),
-	)
-	pack.Pack(cb3, pack.SideOpt(pack.Top), pack.PadY(2),
-		pack.Anchor(option.AnchorW), pack.PadX(10))
+	grid.ColumnConfigure(f.Window(), 0, grid.SlotConfig{Weight: 1})
+	grid.ColumnConfigure(f.Window(), 1, grid.SlotConfig{Weight: 1})
 
-	_ = cb1
-	_ = cb2
-	_ = cb3
+	_ = enableCb
+	_ = lfValue
+	_ = lfOpts
 	app.Run()
 }

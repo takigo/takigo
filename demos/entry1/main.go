@@ -22,21 +22,23 @@ func main() {
 		entry.Text("Initial value"),
 	)
 	pack.Pack(e1, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
-		pack.PadX(20), pack.PadY(5))
+		pack.PadX("7.5p"), pack.PadY("3p"))
 
 	// Entry 2: long text that requires scrolling.
 	e2 := entry.New(app, "e2",
-		entry.Text("This entry contains a long value, much too long to fit in the window at one time, and thus you can use the scrollbar to see the rest."),
+		entry.Text("This entry contains a long value, much too long "+
+			"to fit in the window at one time, so long in fact "+
+			"that you'll have to scan or scroll to see the end."),
 	)
 	pack.Pack(e2, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
-		pack.PadX(20), pack.PadY(5))
+		pack.PadX("7.5p"), pack.PadY("3p"))
 
 	// Entry 3: placeholder text.
 	e3 := entry.New(app, "e3",
-		entry.Placeholder("Enter text here..."),
+		entry.Placeholder("Enter text here"),
 	)
 	pack.Pack(e3, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
-		pack.PadX(20), pack.PadY(5))
+		pack.PadX("7.5p"), pack.PadY("3p"))
 
 	_ = focusMgr
 	_ = e1

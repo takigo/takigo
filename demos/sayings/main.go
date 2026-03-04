@@ -4,6 +4,7 @@ package main
 
 import (
 	"github.com/msorc/takigo/demos/demohelper"
+	"github.com/msorc/takigo/geometry/grid"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/listbox"
@@ -14,34 +15,37 @@ func main() {
 	app := demohelper.Setup("Well-Known Sayings", 500, 350,
 		"The listbox below contains a collection of well-known sayings. You can scan the list using either of the scrollbars or by dragging in the listbox window with button 2 pressed.")
 
-	// Sayings data.
+	// Sayings data — matches Tk's sayings.tcl exactly.
 	sayings := []string{
 		"Don't speculate, measure",
-		"A penny for your thoughts",
-		"A stitch in time saves nine",
-		"An apple a day keeps the doctor away",
-		"Don't put all your eggs in one basket",
+		"Waste not, want not",
 		"Early to bed and early to rise makes a man healthy, wealthy, and wise",
+		"Ask not what your country can do for you, ask what you can do for your country",
+		"I shall return",
+		"NOT",
+		"A picture is worth a thousand words",
+		"User interfaces are hard to build",
+		"Thou shalt not steal",
+		"A penny for your thoughts",
+		"Fool me once, shame on you;  fool me twice, shame on me",
 		"Every cloud has a silver lining",
-		"Fool me once, shame on you; fool me twice, shame on me",
-		"Good things come to those who wait",
-		"Haste makes waste",
-		"If at first you don't succeed, try, try again",
-		"Jack of all trades, master of none",
-		"Keep your friends close and your enemies closer",
-		"Laughter is the best medicine",
-		"Make hay while the sun shines",
-		"Necessity is the mother of invention",
-		"Once bitten, twice shy",
-		"People who live in glass houses shouldn't throw stones",
-		"The early bird catches the worm",
-		"The pen is mightier than the sword",
+		"Where there's smoke there's fire",
+		"It takes one to know one",
+		"Curiosity killed the cat",
+		"Take this job and shove it",
+		"Up a creek without a paddle",
+		"I'm mad as hell and I'm not going to take it any more",
+		"An apple a day keeps the doctor away",
+		"Don't look a gift horse in the mouth",
+		"Measure twice, cut once",
 	}
 
-	// Listbox frame with Y scrollbar.
-	lbFrame := frame.New(app, "lbframe")
+	// Frame using grid for listbox + scrollbar.
+	lbFrame := frame.New(app, "lbframe",
+		frame.BorderWidth(10),
+	)
 	pack.Pack(lbFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
-		pack.Expand(true), pack.PadX(10), pack.PadY(5))
+		pack.Expand(true), pack.PadX("1c"))
 
 	lb := listbox.New(lbFrame, "sayings",
 		listbox.Items(sayings...),
@@ -71,13 +75,15 @@ func main() {
 			}
 		}),
 	)
-
 	lb.YScrollCmd = func(first, last float64) {
 		yscroll.Set(first, last)
 	}
 
-	pack.Pack(yscroll, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
-	pack.Pack(lb, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+	// Grid layout: listbox row 0 col 0, yscroll row 0 col 1.
+	grid.Grid(lb, grid.Row(0), grid.Column(0), grid.Sticky(grid.NSEW))
+	grid.Grid(yscroll, grid.Row(0), grid.Column(1), grid.Sticky(grid.NS))
+	grid.RowConfigure(lbFrame.Window(), 0, grid.SlotConfig{Weight: 1})
+	grid.ColumnConfigure(lbFrame.Window(), 0, grid.SlotConfig{Weight: 1})
 
 	first, last := lb.YVisibleRange()
 	yscroll.Set(first, last)
