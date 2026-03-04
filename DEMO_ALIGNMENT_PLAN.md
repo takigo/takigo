@@ -316,7 +316,7 @@ These patterns recur across nearly every demo and should be addressed globally:
 - [x] **Layout**: Changed to grid inside inner frame — toolbar(row 0), sep(row 1), text(row 2 expand)
 - [ ] **Missing tearoff**: Tcl has tearoff grip mechanism — complex, known limitation
 - [ ] **Missing Toolbutton style**: Tcl applies `-style Toolbutton` to buttons — no TTK Toolbutton style in Go yet, known limitation
-- [ ] **Checkbutton**: Go uses regular ttk.Button with state toggle — no TTK checkbutton yet
+- [ ] **Checkbutton**: ttk.NewCheckbutton now available; toolbar uses -style Toolbutton (no indicator) — Toolbutton style not implemented, known limitation
 - [x] **Font change**: Tcl combobox selection changes text widget font. Added font change on combobox select.
 - [x] **Text scrollbar**: Tcl has no scrollbar on text widget. Removed extra scrollbar.
 - [x] **Padding**: Fixed — PadX("1.5p") PadY("3p") matching Tcl's `padx 1.5p pady 3p`

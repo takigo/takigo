@@ -13,7 +13,6 @@ import (
 	_ "github.com/msorc/takigo/ttk/clamtheme"
 	_ "github.com/msorc/takigo/ttk/defaulttheme"
 	"github.com/msorc/takigo/widget"
-	"github.com/msorc/takigo/widget/checkbutton"
 	"github.com/msorc/takigo/widget/labelframe"
 	"github.com/msorc/takigo/widget/radiobutton"
 )
@@ -64,13 +63,13 @@ func main() {
 	basil := widget.NewVariable(false)
 	oregano := widget.NewVariable(false)
 
-	c1 := checkbutton.New(chkFrame, "c1",
-		checkbutton.Text("Cheese"),
-		checkbutton.Var(cheese),
+	c1 := ttk.NewCheckbutton(chkFrame, "c1",
+		ttk.CheckbuttonText("Cheese"),
+		ttk.CheckbuttonVar(cheese),
 	)
-	c2 := checkbutton.New(chkFrame, "c2",
-		checkbutton.Text("Tomato"),
-		checkbutton.Var(tomato),
+	c2 := ttk.NewCheckbutton(chkFrame, "c2",
+		ttk.CheckbuttonText("Tomato"),
+		ttk.CheckbuttonVar(tomato),
 	)
 	pack.Pack(c1, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY("1.5p"))
 	pack.Pack(c2, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY("1.5p"))
@@ -78,13 +77,13 @@ func main() {
 	sep := ttk.NewSeparator(chkFrame, "sep")
 	pack.Pack(sep, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY("1.5p"))
 
-	c3 := checkbutton.New(chkFrame, "c3",
-		checkbutton.Text("Basil"),
-		checkbutton.Var(basil),
+	c3 := ttk.NewCheckbutton(chkFrame, "c3",
+		ttk.CheckbuttonText("Basil"),
+		ttk.CheckbuttonVar(basil),
 	)
-	c4 := checkbutton.New(chkFrame, "c4",
-		checkbutton.Text("Oregano"),
-		checkbutton.Var(oregano),
+	c4 := ttk.NewCheckbutton(chkFrame, "c4",
+		ttk.CheckbuttonText("Oregano"),
+		ttk.CheckbuttonVar(oregano),
 	)
 	pack.Pack(c3, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY("1.5p"))
 	pack.Pack(c4, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY("1.5p"))
