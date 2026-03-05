@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/msorc/takigo/color"
+	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/font"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
@@ -59,6 +60,9 @@ type textSegment struct {
 	underline  bool
 	overstrike bool
 	offset     int // vertical pixel offset (positive = up/superscript, negative = down/subscript)
+	relief     option.Relief
+	reliefBW   int // border-width for 3D relief drawing
+	reliefSet  bool
 }
 
 // lineProps holds resolved per-logical-line properties from tags.
@@ -333,6 +337,9 @@ func (t *TextWidget) segmentsForRange(lineIdx, startChar, endChar int) []textSeg
 		underline := false
 		overstrike := false
 		offset := 0
+		relief := option.ReliefFlat
+		reliefBW := 1
+		reliefSet := false
 
 		tags := t.doc.TagsAt(Index{Line: lineIdx, Char: startChar + segStart})
 		for _, tag := range tags {
@@ -355,6 +362,13 @@ func (t *TextWidget) segmentsForRange(lineIdx, startChar, endChar int) []textSeg
 			if tag.OffsetSet {
 				offset = tag.Offset
 			}
+			if tag.ReliefSet {
+				relief = tag.Relief
+				reliefSet = true
+				if tag.BorderWidth > 0 {
+					reliefBW = tag.BorderWidth
+				}
+			}
 		}
 
 		segments = append(segments, textSegment{
@@ -367,6 +381,9 @@ func (t *TextWidget) segmentsForRange(lineIdx, startChar, endChar int) []textSeg
 			underline:  underline,
 			overstrike: overstrike,
 			offset:     offset,
+			relief:     relief,
+			reliefBW:   reliefBW,
+			reliefSet:  reliefSet,
 		})
 		x += segWidth
 	}
@@ -465,6 +482,22 @@ func (t *TextWidget) renderToPixmap() {
 				strikeY := segBaseY - m.Ascent/2
 				d.SetForeground(gc, seg.fg.Pixel)
 				d.DrawLine(pxDrawable, gc, segX, strikeY, segX+seg.width, strikeY)
+			}
+
+			// Draw 3D relief border around the segment.
+			if seg.reliefSet && seg.relief != option.ReliefFlat {
+				border := t.Border
+				if border == nil {
+					bgPixelLocal := uint64(0xD9D9D9) // default gray
+					if t.Background != nil {
+						bgPixelLocal = t.Background.Pixel
+					}
+					border = draw.NewBorderFromPixel(bgPixelLocal)
+				}
+				bw := seg.reliefBW
+				segRowY := t.inset + dl.y
+				draw.Draw3DRectangle(d, pxDrawable, gc, border,
+					segX, segRowY, seg.width, dl.height, bw, seg.relief)
 			}
 		}
 	}

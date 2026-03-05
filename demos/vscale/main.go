@@ -50,13 +50,14 @@ func main() {
 	c.CreateLine([]float64{0, 0, 1, 1, 2, 2, 0, 0},
 		canvas.OutlineColor("black"), canvas.Tags("line"))
 
-	// Vertical scale: 0-250, matching Tcl's -tickinterval 50.
+	// Vertical scale: 0-250, matching Tcl's -tickinterval 50 -length 213p.
 	sc := scale.New(fr, "vscale",
 		scale.OrientOpt(scale.Vertical),
 		scale.FromOpt(0),
 		scale.ToOpt(250),
 		scale.ValueOpt(75),
 		scale.TickIntervalOpt(50),
+		scale.LengthOpt(284), // 213p at 96dpi
 		scale.CommandOpt(func(v float64) {
 			setHeight(c, v)
 		}),

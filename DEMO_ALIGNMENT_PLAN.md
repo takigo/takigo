@@ -153,6 +153,7 @@ These patterns recur across nearly every demo and should be addressed globally:
 - [x] **Layout**: Added frame with BorderWidth(10) matching `borderwidth 7.5p`; removed outer padding
 - [x] **Scale config**: Tcl has `-tickinterval 50` — implemented TickIntervalOpt(50) in scale widget
 - [x] **Canvas**: height 50, BorderWidthOpt(0), HighlightWidthOpt(0)
+- [x] **Scale length**: Added LengthOpt(284) matching Tcl's `213p`
 - [ ] **DPI scaling**: Tcl applies `$tk::scalingPct` scaling to canvas items — not implemented, known limitation
 
 ### 24. `icon`
@@ -288,7 +289,7 @@ These patterns recur across nearly every demo and should be addressed globally:
 - [x] **Layout**: Fixed — scrollbar right, text fills rest (no wrapper frame), matching Tcl's pack order
 - [x] **Style examples**: Fixed — width 70, height 32, font "Courier 12", tags matching Tcl (bold/big/verybig/tiny/color1/color2/underline/overstrike)
 - [x] **Missing tags**: Added TagJustify (left/center/right), TagOffset/TagOffsetStr (superscript/subscript), TagLMargin1/2Str, TagRMarginStr, TagSpacing1/2/3Str to text tag system; fixed overstrike rendering; updated style demo to match Tcl's full 8-section demo (Font/Color/Underline/Overstrike/Justification/Superscripts/Margins/Spacing). Also added TextWidget.EndIndex() helper.
-- [ ] **Missing tags**: TagRelief/TagBorderWidth (3-D text effects) — known limitation (requires drawing borders around text runs)
+- [x] **Missing tags**: TagRelief/TagBorderWidth — implemented; Draw3DRectangle drawn around text segments; style demo updated with section 9 (Borders: raised/sunken/ridge/groove)
 
 ### 48. `systray`
 - [x] **Layout**: Fixed — labelframe "f" with Create/Modify/Destroy buttons (PadX("3p") PadY("3p")); "Display Notification" button outside frame; no status label
@@ -409,7 +410,7 @@ These patterns recur across nearly every demo and should be addressed globally:
 ### 62. `vscale`
 - [x] **Canvas size**: Changed from 60 to 50 width
 - [x] **Scale tick interval**: Implemented TickIntervalOpt(50) — tick marks drawn at 0/50/100/150/200/250
-- [ ] **Scale length**: Tcl uses `213p` (~284px) — no TotalLength option, known limitation
+- [x] **Scale length**: Added LengthOpt(284) matching Tcl's `213p` — LengthOpt added to scale widget
 - [x] **Frame borders**: Added BorderWidth(10) matching `borderwidth 7.5p`
 - [x] **Canvas border**: Added BorderWidthOpt(0) and HighlightWidthOpt(0)
 - [ ] **DPI scaling**: Tcl scales canvas items with `$tk::scalingPct` — not implemented, known limitation

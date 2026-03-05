@@ -50,13 +50,14 @@ func main() {
 		c.SetItemCoords("line", coords)
 	}
 
-	// Horizontal scale: 0-250, matching Tcl's -tickinterval 50.
+	// Horizontal scale: 0-250, matching Tcl's -tickinterval 50 -length 213p.
 	sc := scale.New(fr, "hscale",
 		scale.OrientOpt(scale.Horizontal),
 		scale.FromOpt(0),
 		scale.ToOpt(250),
 		scale.ValueOpt(75),
 		scale.TickIntervalOpt(50),
+		scale.LengthOpt(284), // 213p at 96dpi
 		scale.CommandOpt(func(v float64) {
 			setWidth(v)
 		}),

@@ -78,6 +78,10 @@ func main() {
 		text.TagLMargin2Str("6m"),
 		text.TagRMarginStr("10m"),
 	)
+	tw.TagConfigure("raised", text.TagRelief(option.ReliefRaised), text.TagBorderWidth(1))
+	tw.TagConfigure("sunken", text.TagRelief(option.ReliefSunken), text.TagBorderWidth(1))
+	tw.TagConfigure("ridge", text.TagRelief(option.ReliefRidge), text.TagBorderWidth(2))
+	tw.TagConfigure("groove", text.TagRelief(option.ReliefGroove), text.TagBorderWidth(2))
 
 	// Insert content matching Tcl's style.tcl (inline tag segments).
 	// ins inserts text at end and optionally applies tags to the inserted range.
@@ -161,6 +165,17 @@ func main() {
 	ins("To see where the space is, select ranges of ", "spacing")
 	ins("text within these paragraphs.  The selection ", "spacing")
 	ins("highlight will cover the extra space.", "spacing")
+	ins("\n9. Borders.", "big")
+	ins(" You can give text a 3D border using the -relief\n")
+	ins("option on tags.  For example, words can appear ")
+	ins("raised", "raised")
+	ins(", ")
+	ins("sunken", "sunken")
+	ins(",\n")
+	ins("ridge", "ridge")
+	ins(", or ")
+	ins("groove", "groove")
+	ins(".\n")
 
 	text.ReadOnly(true)(tw)
 

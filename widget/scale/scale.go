@@ -36,7 +36,10 @@ type Scale struct {
 	SliderLength int
 	Width        int // trough cross-axis width
 	TickInterval float64
-	Command      func(float64)
+	// Length sets the preferred length along the primary axis in pixels.
+	// 0 means use the default (200px).
+	Length  int
+	Command func(float64)
 
 	// Interaction state.
 	dragging   bool
@@ -66,6 +69,7 @@ func LabelOpt(s string) ScaleOption     { return func(sc *Scale) { sc.Label = s 
 func SliderLengthOpt(n int) ScaleOption { return func(s *Scale) { s.SliderLength = n } }
 func WidthOpt(w int) ScaleOption        { return func(s *Scale) { s.Width = w } }
 func TickIntervalOpt(v float64) ScaleOption { return func(s *Scale) { s.TickInterval = v } }
+func LengthOpt(n int) ScaleOption           { return func(s *Scale) { s.Length = n } }
 func CommandOpt(fn func(float64)) ScaleOption { return func(s *Scale) { s.Command = fn } }
 
 func Background(name string) ScaleOption {
@@ -219,8 +223,12 @@ func (s *Scale) hitTest(x, y int) string {
 
 func (s *Scale) computeGeometry() {
 	w := s.Win
+	preferredLength := 200
+	if s.Length > 0 {
+		preferredLength = s.Length
+	}
 	if s.Orient == Horizontal {
-		w.ReqWidth = 200
+		w.ReqWidth = preferredLength
 		w.ReqHeight = s.Width + 4
 		if s.ShowValue {
 			if s.Font != nil {
@@ -238,7 +246,7 @@ func (s *Scale) computeGeometry() {
 		}
 	} else {
 		w.ReqWidth = s.Width + 4
-		w.ReqHeight = 200
+		w.ReqHeight = preferredLength
 		if s.ShowValue {
 			if s.Font != nil {
 				valStr := s.formatValue(s.To)

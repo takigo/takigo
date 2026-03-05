@@ -36,6 +36,12 @@ type Tag struct {
 	Spacing2 int
 	// Spacing3 is extra space (px) below the last display line of a logical line.
 	Spacing3 int
+	// Relief specifies a 3D border style drawn around text with this tag.
+	Relief option.Relief
+	// ReliefSet is true when Relief has been explicitly configured.
+	ReliefSet bool
+	// BorderWidth is the border thickness in pixels used with Relief.
+	BorderWidth int
 }
 
 // TagRange associates a tag name with a half-open index range [Start, End).
@@ -199,5 +205,20 @@ func TagSpacing3(pixels int) TagOption {
 func TagSpacing3Str(s string) TagOption {
 	return func(cache *color.Cache, reg *font.Registry, tag *Tag) {
 		tag.Spacing3 = screenunit.Px(s)
+	}
+}
+
+// TagRelief sets a 3D border style drawn around text covered by this tag.
+func TagRelief(r option.Relief) TagOption {
+	return func(cache *color.Cache, reg *font.Registry, tag *Tag) {
+		tag.Relief = r
+		tag.ReliefSet = true
+	}
+}
+
+// TagBorderWidth sets the border thickness (pixels) used with TagRelief.
+func TagBorderWidth(n int) TagOption {
+	return func(cache *color.Cache, reg *font.Registry, tag *Tag) {
+		tag.BorderWidth = n
 	}
 }
