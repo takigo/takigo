@@ -354,7 +354,7 @@ These patterns recur across nearly every demo and should be addressed globally:
 - [x] **Tab frames**: Changed all tab panes from classic Frame to ttk.NewFrame
 - [x] **Tab 1 layout**: Changed from pack to grid — descLabel row 0 span 2 sticky NEW, button+label row 1
 - [x] **Tab 1 label**: Added WrapLength("4i") to descLabel — wraplength implemented in classic label widget; demohelper also uses WrapLength("4i") for all demo description labels
-- [ ] **Tab underlines**: Tcl uses -underline 0 on tabs and button for keyboard shortcuts — not supported in Go, known limitation
+- [x] **Tab underlines**: Added SetTabUnderline(tabIdx, charIdx) to notebook; renders underline under specified char; Alt+letter keyboard shortcut binds to matching tab; ttknote demo updated with underline 0 on tab 0 (D) and tab 2 (T)
 - [x] **Tab padding**: Added PadX("1.5p") PadY("3p") on notebook, PadY("1.5p") on grid items
 - [x] **Scrollbar**: Replace classic with TTK in Tab 3
 - [x] **Scrollbar padding**: Added PadX("1.5p") PadY("1.5p") on scrollbar and text

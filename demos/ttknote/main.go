@@ -64,6 +64,7 @@ func main() {
 	grid.ColumnConfigure(page1.Window(), 1, grid.SlotConfig{Weight: 1})
 
 	nb.Add(page1.Window(), "Description")
+	nb.SetTabUnderline(0, 0) // Alt+D → Description tab
 
 	// Tab 2: Disabled tab (ttk::frame).
 	page2 := ttk.NewFrame(nb, "page2")
@@ -110,6 +111,7 @@ func main() {
 	pack.Pack(tw, pack.FillOpt(pack.FillBoth), pack.Expand(true),
 		pack.PadX("1.5p"), pack.PadY("1.5p"))
 	nb.Add(page3.Window(), "Text Editor")
+	nb.SetTabUnderline(2, 0) // Alt+T → Text Editor tab
 
 	_ = descLabel
 	_ = neatLabel

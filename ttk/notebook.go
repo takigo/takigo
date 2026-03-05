@@ -11,10 +11,11 @@ import (
 
 // notebookTab holds information about a single notebook tab.
 type notebookTab struct {
-	Text    string
-	Window  *window.Window
-	State   State // tab-specific state (disabled, etc.)
-	Padding Padding
+	Text      string
+	Window    *window.Window
+	State     State // tab-specific state (disabled, etc.)
+	Padding   Padding
+	Underline int // index of character to underline for keyboard shortcut; -1 = none
 }
 
 // Notebook is a themed tabbed container widget.
@@ -61,9 +62,10 @@ func NewNotebook(parent widget.Caregiver, name string, opts ...NotebookOption) *
 // Add appends a tab to the notebook.
 func (nb *Notebook) Add(pane *window.Window, text string) {
 	tab := notebookTab{
-		Text:    text,
-		Window:  pane,
-		Padding: Padding{Left: 8, Top: 4, Right: 8, Bottom: 4},
+		Text:      text,
+		Window:    pane,
+		Padding:   Padding{Left: 8, Top: 4, Right: 8, Bottom: 4},
+		Underline: -1,
 	}
 	nb.tabs = append(nb.tabs, tab)
 	nb.computeTabGeometry()
@@ -103,6 +105,17 @@ func (nb *Notebook) Select(index int) {
 // TabCount returns the number of tabs.
 func (nb *Notebook) TabCount() int {
 	return len(nb.tabs)
+}
+
+// SetTabUnderline sets the character index to underline in the tab label at the
+// given notebook tab index. Pass -1 to clear the underline. The underlined
+// character acts as an Alt+letter keyboard shortcut to select the tab.
+func (nb *Notebook) SetTabUnderline(tabIndex, charIndex int) {
+	if tabIndex < 0 || tabIndex >= len(nb.tabs) {
+		return
+	}
+	nb.tabs[tabIndex].Underline = charIndex
+	nb.Display()
 }
 
 // SetTabState sets the state flags on the tab at the given index.
@@ -246,6 +259,16 @@ func (nb *Notebook) Display() {
 				b := uint16((fgPixel) & 0xFF) << 8
 				df.DrawString(pixDrawable, textX, textY, tab.Text, fgPixel, r, g, b)
 			}
+
+			// Underline a specific character for Alt+letter keyboard shortcut.
+			runes := []rune(tab.Text)
+			if tab.Underline >= 0 && tab.Underline < len(runes) {
+				underX := textX + nb.Font.MeasureString(string(runes[:tab.Underline]))
+				underW := nb.Font.MeasureString(string(runes[tab.Underline : tab.Underline+1]))
+				underY := textY + 1
+				d.SetForeground(gc, fgPixel)
+				d.DrawLine(pixDrawable, gc, underX, underY, underX+underW-1, underY)
+			}
 		}
 
 		tabX += tw
@@ -360,8 +383,30 @@ func bindNotebook(nb *Notebook, app widget.AppContext) {
 	})
 
 	// Ctrl+Tab → next tab; Ctrl+Shift+Tab → previous tab.
+	// Alt+letter → select tab with matching underline character.
 	// Matches ttk::notebook::enableTraversal behavior.
 	app.Dispatcher().Bind(win.PlatformID, event.KeyPressMask, func(ev *event.Event) {
+		// Alt+letter shortcut: switch to tab whose underline character matches.
+		if ev.State&platform.Mod1Mask != 0 && ev.KeySym >= 'a' && ev.KeySym <= 'z' {
+			pressedRune := rune(ev.KeySym)
+			for i, tab := range nb.tabs {
+				if tab.Underline < 0 || tab.State&StateDisabled != 0 {
+					continue
+				}
+				runes := []rune(tab.Text)
+				if tab.Underline < len(runes) {
+					tabRune := rune(runes[tab.Underline])
+					if tabRune >= 'A' && tabRune <= 'Z' {
+						tabRune += 32 // toLower
+					}
+					if tabRune == pressedRune {
+						nb.Select(i)
+						return
+					}
+				}
+			}
+		}
+
 		if ev.KeySym != platform.XK_Tab {
 			return
 		}
