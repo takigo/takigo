@@ -96,7 +96,7 @@ These patterns recur across nearly every demo and should be addressed globally:
 - [x] **Justification selector**: 3 boxes (SeaGreen2) for left/center/right — matches Tcl's justify section
 - [x] **Config box hover**: Enter=black fill, Leave=restore original fill — matches Tcl's textEnter/Leave
 - [x] **Text editing**: Added canvas text cursor — `Focus(itemID)`, `ICursor(itemID, index)`, `Insert(itemID, index, text)`, `Dchars(itemID, first, last)`; `TextItem.cursorPos/hasFocus`, cursor bar drawn in Display(); key bindings (BackSpace/Delete/Left/Right/Home/End/printable) on focused item; ctext demo wires click-to-focus + initial focus at end.
-- [ ] **Angle selector**: Canvas text rotation not implemented — known limitation
+- [x] **Angle selector**: Canvas text rotation via XFT font matrix — `TextAngle(deg)` option; rotated AABB bounding box; `DrawStringAngle` in font/xft.go with cached rotated font variants; angle selector boxes (0°/45°/90°/135°/180°/270°) in ctext demo
 - [x] **Scrollbar**: Not needed for current canvas size — N/A
 
 ### 13. `dialog1`
@@ -129,7 +129,7 @@ These patterns recur across nearly every demo and should be addressed globally:
 - [x] **Motif checkbutton**: Added "Use Motif Style Dialog" ttk::checkbutton (X11 only, matches Tcl)
 
 ### 19. `floor`
-- [ ] **MAJOR**: Go demo is significantly simplified. Tcl has multi-floor building with interactive room highlighting, tooltips, and color changes on hover.
+- [x] **MAJOR → Simplified version**: Go demo has interactive room hover highlighting, labels, and tooltips. Remaining known limitations: actual DEC WRL building polygons (hundreds of coordinates) and multi-floor support.
 - [ ] Add all floor canvas items matching Tcl's complex building layout — known limitation (hundreds of DEC WRL polygon coordinates, too complex to port)
 - [x] Add room hover highlighting (enter/leave bindings) — implemented via transparent room overlays with BindItem per-room
 - [x] Add room labels and tooltips — room labels + status label shows room name on hover
@@ -154,7 +154,7 @@ These patterns recur across nearly every demo and should be addressed globally:
 - [x] **Scale config**: Tcl has `-tickinterval 50` — implemented TickIntervalOpt(50) in scale widget
 - [x] **Canvas**: height 50, BorderWidthOpt(0), HighlightWidthOpt(0)
 - [x] **Scale length**: Added LengthOpt(284) matching Tcl's `213p`
-- [ ] **DPI scaling**: Tcl applies `$tk::scalingPct` scaling to canvas items — not implemented, known limitation
+- [x] **DPI scaling**: Added `screenunit.DPI()` and `screenunit.ScalingFactor()` (= DPI/96); after `setWidth(75)`, calls `c.Scale("all", 0, 0, sf, 1.0)` — no-op at 96 DPI, scales items proportionally on HiDPI displays
 
 ### 24. `icon`
 - [x] **MAJOR → Implemented**: Rewrote demo with three-column layout (radiobuttons left, selectimage checkbutton middle, color-square checkbutton right). Added `SelectImageOpt`/`IndicatorOnOpt` to checkbutton; selectimage switches between flagDown/flagUp images automatically via Variable linkage. Uses Photo images instead of XBM bitmaps (visual equivalent).
@@ -412,7 +412,7 @@ These patterns recur across nearly every demo and should be addressed globally:
 - [x] **Scale length**: Added LengthOpt(284) matching Tcl's `213p` — LengthOpt added to scale widget
 - [x] **Frame borders**: Added BorderWidth(10) matching `borderwidth 7.5p`
 - [x] **Canvas border**: Added BorderWidthOpt(0) and HighlightWidthOpt(0)
-- [ ] **DPI scaling**: Tcl scales canvas items with `$tk::scalingPct` — not implemented, known limitation
+- [x] **DPI scaling**: After `setHeight(c, 75)`, calls `c.Scale("all", 0, 0, 1.0, sf)` where sf = screenunit.ScalingFactor(); no-op at 96 DPI, scales arrow vertically on HiDPI
 - [x] **ShowValue**: Removed explicit `ShowValueOpt(true)`
 - [x] **Scale pack**: Removed PadX(10) from scale pack — Tcl has no padding
 

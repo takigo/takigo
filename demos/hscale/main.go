@@ -7,6 +7,7 @@ import (
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/scale"
 )
@@ -66,8 +67,11 @@ func main() {
 	pack.Pack(c, pack.SideOpt(pack.Top), pack.Expand(true), pack.Anchor(option.AnchorS), pack.FillOpt(pack.FillX), pack.PadX("12p"))
 	pack.Pack(sc, pack.SideOpt(pack.Bottom), pack.Expand(true), pack.Anchor(option.AnchorN))
 
-	// Set initial arrow.
+	// Set initial arrow and apply DPI scaling (matches Tk's $tk::scalingPct / 100.0).
 	setWidth(75)
+	if sf := screenunit.ScalingFactor(); sf != 1.0 {
+		c.Scale("all", 0, 0, sf, 1.0)
+	}
 
 	app.Run()
 }

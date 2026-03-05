@@ -33,6 +33,19 @@ func SetScreenDPI(widthPx, widthMM int) {
 	}
 }
 
+// DPI returns the current screen DPI (dots per inch).
+// Standard desktop DPI is 96; HiDPI displays may be 144, 192, etc.
+func DPI() float64 {
+	return float64(screenWidthPx) * 25.4 / float64(screenWidthMM)
+}
+
+// ScalingFactor returns the ratio of actual DPI to the standard 96 DPI baseline.
+// Returns 1.0 at 96 DPI (no scaling needed), 1.5 at 144 DPI, 2.0 at 192 DPI, etc.
+// Matches Tk's $tk::scalingPct / 100 formula.
+func ScalingFactor() float64 {
+	return DPI() / 96.0
+}
+
 // Px converts a Tk-style screen distance to pixels.
 // Accepts: int (passthrough), float64 (rounded), string ("3p", "2.5m", "1c", "4i", "10").
 // Panics on invalid input for fail-fast behavior during development.

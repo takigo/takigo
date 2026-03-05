@@ -94,6 +94,34 @@ func main() {
 		canvas.FontOpt("Times 16"),
 		canvas.TextColor("brown"))
 
+	// --- Angle selector (row of boxes at bottom-left) ---
+	angleColor := "Orange1"
+	angles := []float64{0, 45, 90, 135, 180, 270}
+	ax2, ay2 := 50.0, 270.0
+	for i, deg := range angles {
+		label := fmt.Sprintf("%.0f°", deg)
+		bxPos := ax2 + float64(i)*50
+		id := c.CreateRectangle(bxPos, ay2, bxPos+44, ay2+30,
+			canvas.OutlineColor("black"), canvas.FillColor(angleColor),
+			canvas.OutlineWidth(1), canvas.Tags("config"))
+		idStr := fmt.Sprintf("%d", id)
+		origFill[idStr] = angleColor
+		c.CreateText(bxPos+22, ay2+15,
+			canvas.TextOpt(label),
+			canvas.AnchorOpt(option.AnchorCenter),
+			canvas.FontOpt("Helvetica 11"))
+		c.BindItem(idStr, event.ButtonPressMask, func(ev *event.Event) {
+			if ev.Button == 1 {
+				c.ItemConfigure(textIDStr, canvas.TextAngle(deg))
+			}
+		})
+	}
+	c.CreateText(ax2+125, ay2-5,
+		canvas.TextOpt("Angle"),
+		canvas.AnchorOpt(option.AnchorS),
+		canvas.FontOpt("Times 16"),
+		canvas.TextColor("brown"))
+
 	// --- Config box hover: darken on Enter, restore on Leave ---
 	c.BindItem("config", event.EnterMask, func(ev *event.Event) {
 		ids := c.FindWithTag("current")

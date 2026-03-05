@@ -5,6 +5,7 @@ package font
 #include <X11/Xlib.h>
 #include <X11/Xft/Xft.h>
 #include <fontconfig/fontconfig.h>
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -17,6 +18,28 @@ static XftColor make_xft_color(unsigned long pixel, unsigned short r, unsigned s
 	c.color.blue = b;
 	c.color.alpha = 0xFFFF;
 	return c;
+}
+
+// open_xft_font_rotated creates a rotated variant of base_font.
+// sin_a and cos_a are sin/cos of the rotation angle (clockwise on screen,
+// matching Tk's canvas -angle convention).
+static XftFont* open_xft_font_rotated(Display *dpy, int screen,
+		XftFont *base_font, double sin_a, double cos_a) {
+	FcPattern *pat = FcPatternDuplicate(base_font->pattern);
+	if (!pat) return NULL;
+	FcMatrix mat;
+	mat.xx = mat.yy = cos_a;
+	mat.xy = -sin_a;
+	mat.yx = sin_a;
+	FcPatternAddMatrix(pat, FC_MATRIX, &mat);
+	FcConfigSubstitute(NULL, pat, FcMatchPattern);
+	XftDefaultSubstitute(dpy, screen, pat);
+	FcResult result;
+	FcPattern *matched = FcFontMatch(NULL, pat, &result);
+	FcPatternDestroy(pat);
+	if (!matched) return NULL;
+	XftFont *font = XftFontOpenPattern(dpy, matched);
+	return font; // matched consumed by XftFontOpenPattern
 }
 
 // Helpers wrapping FC_* string macros so cgo can use them.
@@ -53,6 +76,7 @@ static FcResult fc_pattern_get_family(FcPattern *p, FcChar8 **family) {
 import "C"
 import (
 	"fmt"
+	"math"
 	"unsafe"
 
 	"github.com/msorc/takigo/internal/xlib"
@@ -68,6 +92,9 @@ type XftFont struct {
 	screen   C.int
 	visual   *C.Visual
 	colormap C.Colormap
+
+	// Cache of rotated font variants, keyed by angle×10 (integer tenths of degrees).
+	rotatedVariants map[int64]*C.XftFont
 }
 
 // OpenXft opens a font via Xft/fontconfig.
@@ -187,6 +214,53 @@ func (f *XftFont) MeasureString(s string) int {
 // Implements platform.DrawableFont.
 func (f *XftFont) DrawString(drawable platform.DrawableID, x, y int, s string, pixel uint64, r, g, b uint16) {
 	f.drawStringXlib(xlib.Drawable(drawable), x, y, s, pixel, r, g, b)
+}
+
+// DrawStringAngle draws a string rotated by angleDeg degrees (clockwise on screen,
+// matching Tk's canvas -angle convention). The (x, y) is the baseline start in
+// screen coordinates, already adjusted for anchor and rotation.
+func (f *XftFont) DrawStringAngle(drawable platform.DrawableID, x, y int, angleDeg float64, s string, pixel uint64, r, g, b uint16) {
+	if len(s) == 0 {
+		return
+	}
+	if angleDeg == 0 {
+		f.DrawString(drawable, x, y, s, pixel, r, g, b)
+		return
+	}
+	rotFont := f.getOrCreateRotated(angleDeg)
+	if rotFont == nil {
+		f.DrawString(drawable, x, y, s, pixel, r, g, b)
+		return
+	}
+	dpy := (*C.Display)(f.display.Ptr())
+	draw := C.XftDrawCreate(dpy, C.Drawable(xlib.Drawable(drawable)), f.visual, f.colormap)
+	if draw == nil {
+		return
+	}
+	defer C.XftDrawDestroy(draw)
+	cs := C.CString(s)
+	defer C.free(unsafe.Pointer(cs))
+	color := C.make_xft_color(C.ulong(pixel), C.ushort(r), C.ushort(g), C.ushort(b))
+	C.XftDrawStringUtf8(draw, &color, rotFont, C.int(x), C.int(y),
+		(*C.FcChar8)(unsafe.Pointer(cs)), C.int(len(s)))
+}
+
+// getOrCreateRotated returns (creating if needed) a rotated XFT font for the given angle.
+func (f *XftFont) getOrCreateRotated(angleDeg float64) *C.XftFont {
+	key := int64(angleDeg * 10)
+	if rf, ok := f.rotatedVariants[key]; ok {
+		return rf
+	}
+	if f.rotatedVariants == nil {
+		f.rotatedVariants = make(map[int64]*C.XftFont)
+	}
+	rad := angleDeg * math.Pi / 180.0
+	sinA := math.Sin(rad)
+	cosA := math.Cos(rad)
+	dpy := (*C.Display)(f.display.Ptr())
+	rf := C.open_xft_font_rotated(dpy, f.screen, f.font, C.double(sinA), C.double(cosA))
+	f.rotatedVariants[key] = rf // nil means "not available" — don't retry
+	return rf
 }
 
 // drawStringXlib is the internal Xft implementation.

@@ -17,7 +17,8 @@ type TextItem struct {
 	color      *colorRef
 	anchor     option.Anchor
 	justify    option.Justify
-	wrapLength int // 0 = no wrapping
+	wrapLength int     // 0 = no wrapping
+	angle      float64 // rotation in degrees, clockwise on screen (Tk convention); 0 = normal
 
 	// Cursor state (for focus/edit support).
 	cursorPos int  // byte position in text (0 = before first char)
@@ -132,12 +133,45 @@ func (t *TextItem) updateBBox() {
 	m := t.font.Metrics()
 	textH := m.Linespace()
 
-	// Anchor offset.
 	ax, ay := anchorOffset(t.anchor, textW, textH)
-	t.X1 = int(t.x) + ax
-	t.Y1 = int(t.y) + ay
-	t.X2 = t.X1 + textW
-	t.Y2 = t.Y1 + textH
+
+	if t.angle == 0 {
+		t.X1 = int(t.x) + ax
+		t.Y1 = int(t.y) + ay
+		t.X2 = t.X1 + textW
+		t.Y2 = t.Y1 + textH
+		return
+	}
+
+	// Rotated bounding box: compute all 4 rotated corners and take the AABB.
+	rad := t.angle * math.Pi / 180.0
+	cosA, sinA := math.Cos(rad), math.Sin(rad)
+	// Corners relative to anchor point (t.x, t.y), before rotation.
+	dxs := [4]float64{float64(ax), float64(ax + textW), float64(ax), float64(ax + textW)}
+	dys := [4]float64{float64(ay), float64(ay), float64(ay + textH), float64(ay + textH)}
+	minX, minY := math.MaxFloat64, math.MaxFloat64
+	maxX, maxY := -math.MaxFloat64, -math.MaxFloat64
+	for i := 0; i < 4; i++ {
+		// Clockwise rotation by angle (Tk convention): rotX = dx*c + dy*s, rotY = dy*c - dx*s
+		rx := t.x + dxs[i]*cosA + dys[i]*sinA
+		ry := t.y + dys[i]*cosA - dxs[i]*sinA
+		if rx < minX {
+			minX = rx
+		}
+		if ry < minY {
+			minY = ry
+		}
+		if rx > maxX {
+			maxX = rx
+		}
+		if ry > maxY {
+			maxY = ry
+		}
+	}
+	t.X1 = int(math.Floor(minX))
+	t.Y1 = int(math.Floor(minY))
+	t.X2 = int(math.Ceil(maxX))
+	t.Y2 = int(math.Ceil(maxY))
 }
 
 func (t *TextItem) Display(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID,
@@ -152,26 +186,48 @@ func (t *TextItem) Display(d platform.DisplayServer, drawable platform.DrawableI
 	textH := m.Linespace()
 
 	ax, ay := anchorOffset(t.anchor, textW, textH)
-	drawX := int(t.x) + ax - originX
-	drawY := int(t.y) + ay - originY
 
-	// Use DrawableFont for text rendering.
-	if df, ok := t.font.(platform.DrawableFont); ok {
-		if len(t.text) > 0 {
-			df.DrawString(drawable,
-				drawX, drawY+m.Ascent,
-				t.text, t.color.Pixel, t.color.Red, t.color.Green, t.color.Blue)
+	if t.angle == 0 {
+		drawX := int(t.x) + ax - originX
+		drawY := int(t.y) + ay - originY
+
+		if df, ok := t.font.(platform.DrawableFont); ok {
+			if len(t.text) > 0 {
+				df.DrawString(drawable,
+					drawX, drawY+m.Ascent,
+					t.text, t.color.Pixel, t.color.Red, t.color.Green, t.color.Blue)
+			}
 		}
+
+		// Draw text cursor if focused.
+		if t.hasFocus {
+			cursorX := drawX
+			if t.cursorPos > 0 && t.cursorPos <= len(t.text) {
+				cursorX += t.font.MeasureString(t.text[:t.cursorPos])
+			}
+			d.SetForeground(gc, t.color.Pixel)
+			d.FillRectangle(drawable, gc, cursorX, drawY, 2, uint(textH))
+		}
+		return
 	}
 
-	// Draw text cursor if focused.
-	if t.hasFocus {
-		cursorX := drawX
-		if t.cursorPos > 0 && t.cursorPos <= len(t.text) {
-			cursorX += t.font.MeasureString(t.text[:t.cursorPos])
+	// Rotated text: compute baseline position in rotated coordinates.
+	rad := t.angle * math.Pi / 180.0
+	cosA, sinA := math.Cos(rad), math.Sin(rad)
+	fax, fay := float64(ax), float64(ay)
+	drawOriginX := t.x + fax*cosA + fay*sinA
+	drawOriginY := t.y + fay*cosA - fax*sinA
+	ascent := float64(m.Ascent)
+	baseX := int(drawOriginX+ascent*sinA) - originX
+	baseY := int(drawOriginY+ascent*cosA) - originY
+
+	if af, ok := t.font.(interface {
+		DrawStringAngle(platform.DrawableID, int, int, float64, string, uint64, uint16, uint16, uint16)
+	}); ok {
+		if len(t.text) > 0 {
+			af.DrawStringAngle(drawable, baseX, baseY, t.angle,
+				t.text, t.color.Pixel, t.color.Red, t.color.Green, t.color.Blue)
 		}
-		d.SetForeground(gc, t.color.Pixel)
-		d.FillRectangle(drawable, gc, cursorX, drawY, 2, uint(textH))
 	}
 }
 

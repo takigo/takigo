@@ -165,6 +165,17 @@ func TextOpt(s string) ItemOption {
 	}
 }
 
+// TextAngle sets the rotation angle in degrees (clockwise on screen) for text items.
+func TextAngle(deg float64) ItemOption {
+	return func(_ *Canvas, item Item) error {
+		if it, ok := item.(*TextItem); ok {
+			it.angle = deg
+			it.updateBBox()
+		}
+		return nil
+	}
+}
+
 // TextColor sets the color for text items.
 func TextColor(name string) ItemOption {
 	return func(c *Canvas, item Item) error {
