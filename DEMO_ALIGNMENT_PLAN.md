@@ -74,7 +74,7 @@ These patterns recur across nearly every demo and should be addressed globally:
 ### 8. `clrpick`
 - [x] **Layout**: Fixed — removed button PadX/PadY, changed pack PadY(5) → PadY("2m"), added Anchor(AnchorCenter)
 - [x] **Button text**: "Set background color ..." and "Set foreground color ..." — matches Tcl exactly
-- [ ] **Color display**: Tcl applies color recursively to all children via setColor_helper. Go applies to buttons only. Known limitation — no recursive widget color propagation.
+- [x] **Color display**: Added `window.ApplyBackgroundRecursive(root, colorName)` — walks window.Children tree, calls `BackgroundHook` (registered in widget.InitBase) on each widget to update Background+pixel, then sends expose event to trigger redraw. clrpick demo now uses this for true recursive propagation.
 
 ### 9. `colors`
 - [x] **Extra colors**: Added missing SlateGray1-4 and LightSteelBlue1-4 to match Tcl's list
@@ -95,7 +95,7 @@ These patterns recur across nearly every demo and should be addressed globally:
 - [x] **Anchor selector**: 3×3 grid of colored boxes (LightSkyBlue1) click to set text anchor (SE/S/SW/E/Center/W/NE/N/NW) — matches Tcl's mkTextConfigBox
 - [x] **Justification selector**: 3 boxes (SeaGreen2) for left/center/right — matches Tcl's justify section
 - [x] **Config box hover**: Enter=black fill, Leave=restore original fill — matches Tcl's textEnter/Leave
-- [ ] **Text editing**: Canvas text cursor/insert/delete not implemented — known limitation (no canvas text cursor API)
+- [x] **Text editing**: Added canvas text cursor — `Focus(itemID)`, `ICursor(itemID, index)`, `Insert(itemID, index, text)`, `Dchars(itemID, first, last)`; `TextItem.cursorPos/hasFocus`, cursor bar drawn in Display(); key bindings (BackSpace/Delete/Left/Right/Home/End/printable) on focused item; ctext demo wires click-to-focus + initial focus at end.
 - [ ] **Angle selector**: Canvas text rotation not implemented — known limitation
 - [x] **Scrollbar**: Not needed for current canvas size — N/A
 
@@ -175,7 +175,7 @@ These patterns recur across nearly every demo and should be addressed globally:
 - [x] **Images section**: Added 8th section showing ouster.png and plowed_field.png as canvas image items
 - [x] **Smooth lines**: Already in Go (Smooth(true) used in section 3 lines) ✓
 - [ ] **Missing bitmaps section**: Canvas bitmap items not implemented — known limitation
-- [ ] **Missing window items section**: Canvas window items (embedded widgets) not implemented — known limitation
+- [x] **Missing window items section**: Canvas window items (embedded widgets) implemented — WindowItem type, CreateWindow, positionWindowItems; Section 9 added to items demo
 - [x] **Layout**: Tcl uses 3×3 grid with cm coordinates; Go uses fixed pixel layout with 2 new sections — functionally similar, acceptable difference
 
 ### 28. `knightstour`
@@ -203,7 +203,7 @@ These patterns recur across nearly every demo and should be addressed globally:
 
 ### 32. `menu`
 - [x] **Layout**: Status bar with PadX(2)/PadY(2) matches Tcl; menuBar frame at top; menubuttons packed left
-- [ ] **Menu items**: Tcl has tearoff/cascade menus with Icon sets not in Go — acceptable X11 difference
+- [x] **Menu items**: Added image support to menu entries — `MenuEntry.Image + Compound` fields; `AddCommandImage(label, img, compound, cmd)`; image drawn before text in Display(); `entryHeight` auto-expanded for tall images. Added "Icons" submenu to demo with earthmenu.png (image-only + image+text entries). Tearoffs/XBM bitmaps remain known limitation.
 - [x] **Widget types**: Tcl attaches menus to window menubar; Go uses frame+menubutton — acceptable X11 difference (no native menubar)
 
 ### 33. `menubu`
@@ -331,7 +331,7 @@ These patterns recur across nearly every demo and should be addressed globally:
 - [x] **Missing horizontal scrollbar**: Added xscroll widget (X scrolling not yet fully implemented in treeview)
 - [x] **Scrollbar**: Replace classic with TTK
 - [x] **Root source**: Tcl uses file volumes; Go uses home dir — acceptable platform difference
-- [ ] **Missing icons**: `tk fileicon` not available in Go — known limitation
+- [x] **Missing icons**: Added Image field to TreeItem + ItemImage option; tree demo renders 16x16 procedural folder (yellow) and file (white/folded-corner) icons before item text
 - [x] **Size formatting**: Change "KB" to "kB" and "B" to "bytes" to match Tcl
 
 ### 53. `ttkbut`
@@ -393,12 +393,12 @@ These patterns recur across nearly every demo and should be addressed globally:
 - [x] **Description**: Updated to match Tcl's longer description
 
 ### 60. `twind`
-- [ ] **MAJOR (~70% missing)**: Tcl demo showcases embedded windows in text (buttons, canvas, checkbutton, images). Go demo only shows text styling.
+- [x] **Embedded windows (simplified)**: Added `WindowCreate(indexStr, win)` to TextWidget; buttons positioned as overlays at their text-line Y; "Turn On"/"Turn Off" and 9 color buttons embedded. Canvas/image embedding known limitation.
 - [x] **Text dimensions**: Changed from 55x28 to 70x35
-- [ ] **Missing embedded windows**: Buttons inside text, canvas plot, color buttons, image embedding — not implemented
 - [x] **Missing tags**: Added center (justify center + spacing1/3=5m) and buttons (lmargin1/2=1c, rmargin=1c, spacing1=3m) tag configs; rewrote demo using EndIndex() helper; applied tags to appropriate content sections
 - [x] **Scrollbar**: Replace classic with TTK; add horizontal scrollbar toggle
 - [x] **Border settings**: Added `text.BorderWidthOpt(0)` and `tw.HighlightWidth = 0`
+- [ ] **Canvas/image embedding**: Canvas plot, image items in text — known limitation (full text flow layout around embedded items not implemented)
 
 ### 61. `unicodeout`
 - [x] **Missing emoji sample**: Added emoji row (😀💩👍🇳🇱) — shown on X11+XFT (which takigo uses)
@@ -420,7 +420,7 @@ These patterns recur across nearly every demo and should be addressed globally:
 ### 63. `windowicons`
 - [x] **Missing "Set Window Icon" button**: Added 4th button matching Tcl's 4 buttons
 - [ ] **Badge support**: `wm iconbadge` not available on X11/Go — shows placeholder dialog, known limitation
-- [ ] **Icon source**: Tcl uses embedded base64 PNG; Go generates procedurally — known limitation
+- [x] **Icon source**: Now loads Tk_feather.png via tkimage.NewPhotoFromFile; falls back to procedural icon on error
 - [ ] **DPI scaling**: Tcl applies zoom factor to icon — not implemented, known limitation
 - [x] **Layout padding**: Fixed — changed to PadX("3p"), removed PadY; changed button text to "Set Window Icon to Globe"
 

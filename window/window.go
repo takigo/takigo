@@ -73,6 +73,27 @@ type Window struct {
 	// ConfigureCallback is called when the window is resized.
 	// Set by geometry managers (e.g. pack) to re-layout children.
 	ConfigureCallback func()
+
+	// BackgroundHook is called when a recursive background change is applied.
+	// Widgets register this to update their own Background field and pixel.
+	BackgroundHook func(colorName string)
+}
+
+// ApplyBackgroundRecursive propagates a background color change through the
+// window hierarchy. It calls BackgroundHook(colorName) on every window (and
+// descendant) that has registered one, then triggers an expose event so the
+// widget redraws with the new color.
+func ApplyBackgroundRecursive(w *Window, colorName string) {
+	if w.BackgroundHook != nil {
+		w.BackgroundHook(colorName)
+	}
+	// Trigger a redraw via expose event on mapped windows.
+	if w.PlatformID != 0 && w.Flags&FlagMapped != 0 && w.Width > 0 && w.Height > 0 {
+		w.Display.Server.ClearArea(w.PlatformID, 0, 0, uint(w.Width), uint(w.Height), true)
+	}
+	for _, child := range w.Children {
+		ApplyBackgroundRecursive(child, colorName)
+	}
 }
 
 // IsTopLevel returns true if this is a top-level window.

@@ -1,8 +1,10 @@
-// Demo: Text widget with embedded tags, styles, and undo/redo.
-// Ported from Tk's twind.tcl demo (embedded windows/images not available).
+// Demo: Text widget with embedded windows, tags, and styles.
+// Ported from Tk's twind.tcl demo.
 package main
 
 import (
+	"fmt"
+
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
@@ -15,7 +17,7 @@ import (
 
 func main() {
 	app := demohelper.Setup("Text Demonstration - Embedded Windows and Other Features", 650, 550,
-		"This window demonstrates a range of text widget features. Note: embedded windows inside the text widget are not yet supported in this port.")
+		"This window demonstrates a range of text widget features including embedded windows, word wrapping, and tag-based styling.")
 
 	// Side control buttons.
 	ctrlFrame := frame.New(app, "ctrl")
@@ -58,13 +60,11 @@ func main() {
 	pack.Pack(tw, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	// Configure tags matching twind.tcl.
-	// center: justified + spacing (used for title/header sections).
 	tw.TagConfigure("center",
 		text.TagJustify(option.JustifyCenter),
 		text.TagSpacing1Str("5m"),
 		text.TagSpacing3Str("5m"),
 	)
-	// buttons: margins for embedded-widget regions.
 	tw.TagConfigure("buttons",
 		text.TagLMargin1Str("1c"),
 		text.TagLMargin2Str("1c"),
@@ -92,7 +92,6 @@ func main() {
 		}
 	}
 
-	// Content matching Tcl's twind.tcl text (without embedded window markers).
 	ins("Text Widget Features\n", "big", "center")
 	ins("\n")
 
@@ -105,51 +104,72 @@ func main() {
 	ins("A text widget can contain other widgets embedded in ")
 	ins("it.  These are called \"embedded windows\", ")
 	ins("and they can consist of arbitrary widgets.  ")
-	ins("For example, here are two embedded button widgets ")
-	ins("(not available in this port): ")
-	ins("[Turn On]", "bold")
+	ins("For example, here are two embedded buttons — click ")
+	ins("Turn On", "bold")
 	ins(" to enable horizontal scrolling and ")
-	ins("[Turn Off]", "bold")
-	ins(" to disable it and restore word wrapping.\n\n", "buttons")
+	ins("Turn Off", "bold")
+	ins(" to disable it and restore word wrapping:\n")
 
-	ins("Or, here is another example. If you ")
-	ins("[Click Here]", "bold")
-	ins(" a canvas displaying an x-y plot would appear right here. ")
-	ins("You could drag the data points around with the mouse, ")
-	ins("or click ")
-	ins("[Delete]", "bold")
-	ins(" to remove the plot again.\n\n")
+	// Embedded "Turn On" button.
+	turnOnLine := tw.EndIndex()
+	ins("\n", "buttons")
+	turnOnBtn := button.New(tw, "turnon",
+		button.Text("Turn On"),
+		button.Command(func() { tw.SetWrapMode(text.WrapNone) }),
+		button.PadX(6), button.PadY(2),
+	)
+	tw.WindowCreate(turnOnLine, turnOnBtn.Window())
 
-	ins("You can also create multiple text widgets each of which ")
-	ins("display the same underlying text. Click ")
-	ins("[Make A Peer]", "bold")
-	ins(" to make a peer widget. Notice how peer widgets can have ")
-	ins("different font settings, and by default contain all the images ")
-	ins("of the 'parent'.\n\n")
+	// Embedded "Turn Off" button.
+	turnOffLine := tw.EndIndex()
+	ins("\n", "buttons")
+	turnOffBtn := button.New(tw, "turnoff",
+		button.Text("Turn Off"),
+		button.Command(func() { tw.SetWrapMode(text.WrapWord) }),
+		button.PadX(6), button.PadY(2),
+	)
+	tw.WindowCreate(turnOffLine, turnOffBtn.Window())
 
-	ins("Users of previous versions of Tk will also be interested ")
-	ins("to note that cursor movement is now by visual line by ")
-	ins("default, and that all scrolling of this widget is by pixel.\n\n")
+	ins("\n")
 
-	ins("You may also find it useful to put embedded windows in ")
+	ins("You may find it useful to put embedded windows in ")
 	ins("a text without any actual text.  In this case the ")
 	ins("text widget acts like a geometry manager.  For ")
-	ins("example, here is a collection of buttons laid out ")
-	ins("neatly into rows by the text widget.  These buttons ")
-	ins("can be used to change the background color of the ")
-	ins("text widget.  The button area below has left/right margins ")
-	ins("applied via the 'buttons' tag:\n")
-	ins("\n[Default] [Short] [AntiqueWhite3] [Bisque1] [Bisque2]\n", "buttons")
-	ins("[SlateBlue3] [RoyalBlue1] [SteelBlue2] [DeepSkyBlue3]\n", "buttons")
-	ins("[DarkSlateGray1] [Aquamarine2] [DarkSeaGreen2] [SeaGreen1]\n", "buttons")
-	ins("[Yellow1] [IndianRed1] [IndianRed2] [Tan1] [Tan4]\n\n", "buttons")
+	ins("example, here are buttons to change the background ")
+	ins("color of the text widget:\n")
 
-	ins("You can also change the usual border width and ")
-	ins("highlightthickness and padding.\n")
-	ins("[Big borders] [Small borders] [Big highlight] [Small highlight] [Big pad] [Small pad]\n\n", "buttons")
-
-	ins("Finally, images fit comfortably in text widgets too:\n")
-	ins("[ouster.png would appear here]\n\n", "italic")
+	// Color buttons embedded in the text widget.
+	type colorEntry struct {
+		name string
+		hex  string
+	}
+	colors := []colorEntry{
+		{"Default", "#ffffff"},
+		{"AntiqueWhite3", "#cdc0b0"},
+		{"Bisque1", "#ffe4c4"},
+		{"SlateBlue3", "#6959cd"},
+		{"RoyalBlue1", "#4169e1"},
+		{"Aquamarine2", "#76eec6"},
+		{"Yellow1", "#ffff00"},
+		{"IndianRed1", "#ff6a6a"},
+		{"SeaGreen1", "#54ff9f"},
+	}
+	for i, ce := range colors {
+		name := fmt.Sprintf("clr%d", i)
+		hex := ce.hex
+		btnLine := tw.EndIndex()
+		ins("\n", "buttons")
+		clrBtn := button.New(tw, name,
+			button.Text(ce.name),
+			button.Command(func() {
+				text.Background(hex)(tw)
+				tw.Display()
+			}),
+			button.PadX(4), button.PadY(1),
+		)
+		tw.WindowCreate(btnLine, clrBtn.Window())
+	}
+	ins("\n")
 
 	ins("Centered text with spacing:\n")
 	ins("This line uses the 'center' tag — centered with 5m spacing above and below.\n", "center")

@@ -18,6 +18,56 @@ type TextItem struct {
 	anchor     option.Anchor
 	justify    option.Justify
 	wrapLength int // 0 = no wrapping
+
+	// Cursor state (for focus/edit support).
+	cursorPos int  // byte position in text (0 = before first char)
+	hasFocus  bool // true when this item has canvas keyboard focus
+}
+
+// InsertText inserts s at the given byte position and advances the cursor.
+func (t *TextItem) InsertText(pos int, s string) {
+	if pos < 0 {
+		pos = 0
+	}
+	if pos > len(t.text) {
+		pos = len(t.text)
+	}
+	t.text = t.text[:pos] + s + t.text[pos:]
+	t.cursorPos = pos + len(s)
+	t.updateBBox()
+}
+
+// DeleteChars removes bytes from first to last (exclusive).
+func (t *TextItem) DeleteChars(first, last int) {
+	n := len(t.text)
+	if first < 0 {
+		first = 0
+	}
+	if last > n {
+		last = n
+	}
+	if first >= last {
+		return
+	}
+	t.text = t.text[:first] + t.text[last:]
+	if t.cursorPos > first {
+		t.cursorPos -= last - first
+		if t.cursorPos < first {
+			t.cursorPos = first
+		}
+	}
+	t.updateBBox()
+}
+
+// SetCursorPos sets the cursor byte position (clamped to text length).
+func (t *TextItem) SetCursorPos(pos int) {
+	if pos < 0 {
+		pos = 0
+	}
+	if pos > len(t.text) {
+		pos = len(t.text)
+	}
+	t.cursorPos = pos
 }
 
 func newTextItem(x, y float64, c *Canvas) *TextItem {
@@ -93,7 +143,7 @@ func (t *TextItem) updateBBox() {
 func (t *TextItem) Display(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID,
 	clipX, clipY, clipW, clipH, originX, originY int) {
 
-	if t.font == nil || len(t.text) == 0 || t.color == nil {
+	if t.font == nil || t.color == nil {
 		return
 	}
 
@@ -107,9 +157,21 @@ func (t *TextItem) Display(d platform.DisplayServer, drawable platform.DrawableI
 
 	// Use DrawableFont for text rendering.
 	if df, ok := t.font.(platform.DrawableFont); ok {
-		df.DrawString(drawable,
-			drawX, drawY+m.Ascent,
-			t.text, t.color.Pixel, t.color.Red, t.color.Green, t.color.Blue)
+		if len(t.text) > 0 {
+			df.DrawString(drawable,
+				drawX, drawY+m.Ascent,
+				t.text, t.color.Pixel, t.color.Red, t.color.Green, t.color.Blue)
+		}
+	}
+
+	// Draw text cursor if focused.
+	if t.hasFocus {
+		cursorX := drawX
+		if t.cursorPos > 0 && t.cursorPos <= len(t.text) {
+			cursorX += t.font.MeasureString(t.text[:t.cursorPos])
+		}
+		d.SetForeground(gc, t.color.Pixel)
+		d.FillRectangle(drawable, gc, cursorX, drawY, 2, uint(textH))
 	}
 }
 

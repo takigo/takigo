@@ -20,6 +20,12 @@ type colorRef struct {
 	Blue  uint16
 }
 
+// embeddedWin records a window embedded at a text index position.
+type embeddedWin struct {
+	index Index
+	win   *window.Window
+}
+
 // TextWidget is a multi-line text editor widget.
 type TextWidget struct {
 	widget.Base
@@ -63,6 +69,9 @@ type TextWidget struct {
 	// Tag event bindings: tagName → eventName → handlers.
 	tagBindings map[string]map[string][]func()
 	hoverTags   map[string]bool
+
+	// Embedded windows (overlay-positioned child windows).
+	embeddedWindows []embeddedWin
 
 	// Offscreen pixmap.
 	pixmap           platform.PixmapID
@@ -197,6 +206,12 @@ func (t *TextWidget) Display() {
 	// Copy pixmap to window.
 	d.CopyArea(platform.PixmapDrawable(t.pixmap), w.Drawable(), gc,
 		0, 0, uint(winW), uint(winH), 0, 0)
+
+	// Position any embedded windows.
+	if len(t.embeddedWindows) > 0 {
+		dlines := t.computeVisibleLines()
+		t.positionEmbeddedWindows(dlines)
+	}
 
 	// Draw border on top.
 	if t.Border != nil && t.BorderWidth > 0 {
@@ -544,6 +559,44 @@ func (t *TextWidget) EndIndex() string {
 	}
 	c := len(t.doc.Lines[n-1].Text)
 	return fmt.Sprintf("%d.%d", n, c)
+}
+
+// WindowCreate registers a child window to be positioned at the given text index.
+// The window is placed as an overlay at the Y of the line containing that index.
+func (t *TextWidget) WindowCreate(indexStr string, w *window.Window) {
+	idx, ok := ParseIndex(t.doc, indexStr)
+	if !ok {
+		return
+	}
+	t.embeddedWindows = append(t.embeddedWindows, embeddedWin{index: idx, win: w})
+}
+
+// positionEmbeddedWindows moves embedded windows to their text positions.
+func (t *TextWidget) positionEmbeddedWindows(dlines []displayLine) {
+	d := t.Win.Display.Server
+	for _, ew := range t.embeddedWindows {
+		visible := false
+		for _, dl := range dlines {
+			if dl.logicalLine != ew.index.Line {
+				continue
+			}
+			pixelY := t.inset + dl.y
+			wx := t.inset + dl.leftMargin
+			wy := pixelY
+			ww := ew.win.ReqWidth
+			wh := ew.win.ReqHeight
+			if wh == 0 {
+				wh = dl.height
+			}
+			d.MoveResizeWindow(ew.win.PlatformID, wx, wy, uint(ww), uint(wh))
+			d.MapWindow(ew.win.PlatformID)
+			visible = true
+			break
+		}
+		if !visible {
+			d.UnmapWindow(ew.win.PlatformID)
+		}
+	}
 }
 
 // --- Internal helpers ---

@@ -4,15 +4,25 @@ package main
 
 import (
 	"fmt"
+	"path/filepath"
+	"runtime"
 
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/pack"
+	tkimage "github.com/msorc/takigo/image"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
 	"github.com/msorc/takigo/widget/menu"
 	"github.com/msorc/takigo/widget/menubutton"
 )
+
+// demoImagesDir returns the path to demos/images/.
+func demoImagesDir() string {
+	_, file, _, _ := runtime.Caller(0)
+	return filepath.Join(filepath.Dir(file), "..", "images")
+}
 
 func main() {
 	app := demohelper.Setup("Menu Demonstration", 500, 400,
@@ -158,6 +168,33 @@ func main() {
 	)
 	pack.Pack(moreMb, pack.SideOpt(pack.Left))
 
+	// ── Icons menu ── (demonstrates image menu items, matching Tk's menu.tcl)
+	iconsMenu := menu.New(app, "iconsmenu")
+
+	// Try to load earthmenu.png for image-only entry.
+	earthImg, earthErr := tkimage.NewPhotoFromFile("earthmenu", filepath.Join(demoImagesDir(), "earthmenu.png"))
+	if earthErr == nil {
+		app.ImageRegistry().Register(earthImg)
+		iconsMenu.AddCommandImage("", earthImg, widget.CompoundNone, func() {
+			setStatus("Icons > Earth image (image-only entry)")
+		})
+	}
+	// Image + text (compound left).
+	if earthErr == nil {
+		iconsMenu.AddCommandImage("Image with text", earthImg, widget.CompoundLeft, func() {
+			setStatus("Icons > Image with text")
+		})
+	} else {
+		iconsMenu.AddCommand("(earthmenu.png not found)", nil)
+	}
+	iconsMenu.AddCommand("Plain text entry", func() { setStatus("Icons > Plain text") })
+
+	iconsMb := menubutton.New(menuBar, "iconsmb",
+		menubutton.Text("Icons"),
+		menubutton.MenuOpt(iconsMenu),
+	)
+	pack.Pack(iconsMb, pack.SideOpt(pack.Left))
+
 	// ── Colors menu ──
 	colorsMenu := menu.New(app, "colorsmenu")
 	for _, color := range []string{"red", "orange", "yellow", "green", "blue"} {
@@ -178,6 +215,7 @@ func main() {
 	_ = basicMb
 	_ = cascadeMb
 	_ = moreMb
+	_ = iconsMb
 	_ = colorsMb
 	app.Run()
 }

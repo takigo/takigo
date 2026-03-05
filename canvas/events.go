@@ -1,7 +1,10 @@
 package canvas
 
 import (
+	"unicode/utf8"
+
 	"github.com/msorc/takigo/event"
+	"github.com/msorc/takigo/platform"
 )
 
 // itemHandler stores a per-item event binding.
@@ -71,6 +74,59 @@ func bindCanvas(c *Canvas) {
 		}
 		c.pickCurrentItem(float64(ev.X), float64(ev.Y))
 		c.dispatchItemEvent(ev)
+	})
+
+	// Key press → dispatch to focused text item.
+	disp.Bind(w.PlatformID, event.KeyPressMask, func(ev *event.Event) {
+		if ev.Type != event.KeyPressType || c.focusItemID == 0 {
+			return
+		}
+		e, ok := c.idMap[c.focusItemID]
+		if !ok {
+			return
+		}
+		ti, ok := e.item.(*TextItem)
+		if !ok {
+			return
+		}
+		switch ev.KeySym {
+		case platform.XK_BackSpace:
+			if ti.cursorPos > 0 {
+				// Find previous rune boundary.
+				prev := ti.cursorPos
+				_, sz := utf8.DecodeLastRuneInString(ti.text[:prev])
+				ti.DeleteChars(prev-sz, prev)
+			}
+		case platform.XK_Delete:
+			if ti.cursorPos < len(ti.text) {
+				_, sz := utf8.DecodeRuneInString(ti.text[ti.cursorPos:])
+				ti.DeleteChars(ti.cursorPos, ti.cursorPos+sz)
+			}
+		case platform.XK_Left:
+			if ti.cursorPos > 0 {
+				_, sz := utf8.DecodeLastRuneInString(ti.text[:ti.cursorPos])
+				ti.cursorPos -= sz
+			}
+		case platform.XK_Right:
+			if ti.cursorPos < len(ti.text) {
+				_, sz := utf8.DecodeRuneInString(ti.text[ti.cursorPos:])
+				ti.cursorPos += sz
+			}
+		case platform.XK_Home:
+			ti.cursorPos = 0
+		case platform.XK_End:
+			ti.cursorPos = len(ti.text)
+		case platform.XK_Return:
+			ti.InsertText(ti.cursorPos, "\n")
+		default:
+			// Insert printable character.
+			if ev.KeySym >= 0x20 && ev.KeySym < 0x7f {
+				ti.InsertText(ti.cursorPos, string(rune(ev.KeySym)))
+			} else if ev.KeySym > 0x7f && ev.KeySym < 0x10ffff {
+				ti.InsertText(ti.cursorPos, string(rune(ev.KeySym)))
+			}
+		}
+		c.scheduleRedraw()
 	})
 }
 

@@ -18,7 +18,9 @@ import (
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/ttk"
+	"github.com/msorc/takigo/widget/button"
 	"github.com/msorc/takigo/widget/frame"
+	"github.com/msorc/takigo/widget/label"
 )
 
 func main() {
@@ -30,12 +32,12 @@ func main() {
 	pack.Pack(gf, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true),
 		pack.PadX(10), pack.PadY(5))
 
-	// Canvas with scroll region covering all sections including images.
+	// Canvas with scroll region covering all sections including images and windows.
 	c := canvas.New(gf, "items",
 		canvas.Background("white"),
 		canvas.Width(660),
 		canvas.Height(420),
-		canvas.ScrollRegion(0, 0, 660, 520),
+		canvas.ScrollRegion(0, 0, 660, 660),
 	)
 
 	scrollCmd := func(viewFunc func(n int, pages bool), moveFunc func(f float64)) func(args ...any) {
@@ -235,6 +237,38 @@ func main() {
 				canvas.Tags("item"))
 		}
 	}
+
+	// --- Section 9: Embedded Windows ---
+	c.CreateText(330, 560, canvas.TextOpt("Embedded Windows"), canvas.FontOpt("Sans Bold 11"),
+		canvas.AnchorOpt(option.AnchorCenter))
+
+	// A label widget embedded in the canvas.
+	lbl := label.New(c, "win_label",
+		label.Text("Canvas Label"),
+		label.Relief(option.ReliefGroove),
+		label.BorderWidth(2),
+	)
+	lbl.Win.ReqWidth = 120
+	lbl.Win.ReqHeight = 30
+	c.CreateWindow(80, 580, lbl.Win)
+
+	// A button widget embedded in the canvas.
+	btn := button.New(c, "win_button",
+		button.Text("Click Me"),
+		button.Command(func() {}),
+	)
+	btn.Win.ReqWidth = 100
+	btn.Win.ReqHeight = 30
+	c.CreateWindow(240, 580, btn.Win)
+
+	// A frame with content embedded in the canvas.
+	frm := frame.New(c, "win_frame",
+		frame.Relief(option.ReliefSunken),
+		frame.BorderWidth(2),
+	)
+	frm.Win.ReqWidth = 120
+	frm.Win.ReqHeight = 30
+	c.CreateWindow(380, 580, frm.Win)
 
 	// --- Event bindings ---
 

@@ -29,7 +29,9 @@ type MenuEntry struct {
 	SubMenu  *Menu
 	Checked  bool
 	State    widget.State
-	AccelStr string // accelerator text for display
+	AccelStr string               // accelerator text for display
+	Image    widget.WidgetImage   // optional image
+	Compound widget.Compound      // how to combine image and text
 }
 
 // Menu is a popup menu with a list of entries.
@@ -192,6 +194,18 @@ func (m *Menu) AddCommandAccel(label string, accel string, command func()) {
 	})
 }
 
+// AddCommandImage adds a command entry with an image (and optional label).
+// compound controls how the image and label are combined (CompoundLeft = image left of text).
+func (m *Menu) AddCommandImage(label string, img widget.WidgetImage, compound widget.Compound, command func()) {
+	m.entries = append(m.entries, MenuEntry{
+		Type:     Command,
+		Label:    label,
+		Image:    img,
+		Compound: compound,
+		Command:  command,
+	})
+}
+
 // AddCheckbutton adds a checkbutton entry.
 func (m *Menu) AddCheckbutton(label string, checked bool, command func()) {
 	m.entries = append(m.entries, MenuEntry{
@@ -282,6 +296,13 @@ func (m *Menu) computeGeometry() {
 	m.entryHeight = fm.Linespace() + 6
 	m.sepHeight = 6
 
+	// Expand entryHeight if any entry has a tall image.
+	for _, e := range m.entries {
+		if e.Image != nil && e.Image.Height()+6 > m.entryHeight {
+			m.entryHeight = e.Image.Height() + 6
+		}
+	}
+
 	maxWidth := 0
 	totalHeight := 2 * m.BorderWidth
 
@@ -290,7 +311,16 @@ func (m *Menu) computeGeometry() {
 			totalHeight += m.sepHeight
 		} else {
 			totalHeight += m.entryHeight
-			w := m.Font.MeasureString(e.Label)
+			// Width: image + text (or image alone when CompoundNone and image set).
+			var w int
+			if e.Image != nil && e.Compound == widget.CompoundNone && e.Label == "" {
+				w = e.Image.Width()
+			} else {
+				w = m.Font.MeasureString(e.Label)
+				if e.Image != nil {
+					w += e.Image.Width() + 4
+				}
+			}
 			// Add space for check indicator and cascade arrow.
 			w += 40
 			if e.AccelStr != "" {
@@ -404,9 +434,31 @@ func (m *Menu) Display() {
 				uint(w.Width-2*m.BorderWidth), uint(m.entryHeight))
 		}
 
-		// Text.
+		// Text and image.
 		textX := m.BorderWidth + 20
 		textY := yPos + (m.entryHeight-fm.Linespace())/2 + fm.Ascent
+
+		// Draw image if present.
+		if e.Image != nil {
+			imgW := e.Image.Width()
+			imgH := e.Image.Height()
+			imgY := yPos + (m.entryHeight-imgH)/2
+			var imgX int
+			if e.Compound == widget.CompoundNone && e.Label == "" {
+				// Image only — center where text would be.
+				imgX = textX
+			} else {
+				// Image left of text.
+				imgX = textX
+				textX += imgW + 4
+			}
+			bgPx := uint64(0xD9D9D9)
+			if m.Background != nil {
+				bgPx = m.Background.Pixel
+			}
+			e.Image.Draw(d, w.Drawable(), w.GC, w.Depth,
+				0, 0, imgW, imgH, imgX, imgY, bgPx)
+		}
 
 		var fgCol *colorRef
 		if e.State == widget.StateDisabled {
@@ -429,9 +481,11 @@ func (m *Menu) Display() {
 					fgCol.Pixel, fgCol.Red, fgCol.Green, fgCol.Blue)
 			}
 
-			// Label.
-			df.DrawString(w.Drawable(), textX, textY, e.Label,
-				fgCol.Pixel, fgCol.Red, fgCol.Green, fgCol.Blue)
+			// Label (skip if image-only).
+			if e.Label != "" {
+				df.DrawString(w.Drawable(), textX, textY, e.Label,
+					fgCol.Pixel, fgCol.Red, fgCol.Green, fgCol.Blue)
+			}
 
 			// Accelerator text.
 			if e.AccelStr != "" {

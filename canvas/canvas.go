@@ -33,6 +33,9 @@ type Canvas struct {
 	itemBindings map[string][]itemHandler
 	closeEnough  float64 // hit-test tolerance (default 1.0)
 
+	// Keyboard focus for text items.
+	focusItemID int64 // 0 = none
+
 	// Scrollbar callbacks.
 	XScrollCmd func(first, last float64)
 	YScrollCmd func(first, last float64)
@@ -225,6 +228,9 @@ func (c *Canvas) Display() {
 		overdraw, overdraw, uint(winW), uint(winH),
 		c.inset, c.inset)
 
+	// Position embedded window items.
+	c.positionWindowItems()
+
 	// Draw 3D border if configured.
 	if c.Border != nil && c.BorderWidth > 0 && c.Relief != option.ReliefFlat {
 		draw.Draw3DRectangle(d, w.Drawable(), gc, c.Border,
@@ -234,6 +240,41 @@ func (c *Canvas) Display() {
 	d.Flush()
 	c.redrawPending = false
 	c.NeedRedraw = false
+}
+
+// positionWindowItems maps and positions all embedded WindowItems relative to
+// the canvas window. Items outside the visible area are unmapped.
+func (c *Canvas) positionWindowItems() {
+	d := c.App.Server()
+	winW := c.Win.Width - 2*c.inset
+	winH := c.Win.Height - 2*c.inset
+	for _, entry := range c.items {
+		wi, ok := entry.item.(*WindowItem)
+		if !ok || wi.win == nil {
+			continue
+		}
+		w := wi.win.ReqWidth
+		h := wi.win.ReqHeight
+		if w == 0 {
+			w = wi.win.Width
+		}
+		if h == 0 {
+			h = wi.win.Height
+		}
+		if w == 0 || h == 0 {
+			continue
+		}
+		// Convert canvas coords to window coords.
+		screenX := wi.X1 - c.xOrigin + c.inset
+		screenY := wi.Y1 - c.yOrigin + c.inset
+		// Check visibility.
+		if screenX+w > 0 && screenX < winW && screenY+h > 0 && screenY < winH {
+			d.MoveResizeWindow(wi.win.PlatformID, screenX, screenY, uint(w), uint(h))
+			d.MapWindow(wi.win.PlatformID)
+		} else {
+			d.UnmapWindow(wi.win.PlatformID)
+		}
+	}
 }
 
 // scheduleRedraw schedules a redraw via the idle loop.
@@ -340,6 +381,16 @@ func (c *Canvas) CreateText(x, y float64, opts ...ItemOption) int64 {
 }
 
 // CreateImage creates an image item.
+// CreateWindow embeds a child window at canvas position (x, y).
+// The window must be a child of the canvas window (created with canvas as parent).
+func (c *Canvas) CreateWindow(x, y float64, w *window.Window, opts ...ItemOption) int64 {
+	item := newWindowItem(x, y, w, c)
+	if err := item.Configure(opts); err == nil {
+		item.updateBBox()
+	}
+	return c.addItem(item)
+}
+
 func (c *Canvas) CreateImage(x, y float64, opts ...ItemOption) int64 {
 	item := newImageItem(x, y, c)
 	item.Configure(opts)
@@ -590,4 +641,115 @@ func (c *Canvas) FontRegistry() *font.Registry {
 // DisplayServer returns the platform display server (for items needing display access).
 func (c *Canvas) DisplayServer() platform.DisplayServer {
 	return c.App.Server()
+}
+
+// Focus sets keyboard focus to the given text item. Pass "" to clear focus.
+func (c *Canvas) Focus(tagOrID string) {
+	// Clear previous focus.
+	if c.focusItemID != 0 {
+		if prev, ok := c.idMap[c.focusItemID]; ok {
+			if ti, ok := prev.item.(*TextItem); ok {
+				ti.hasFocus = false
+			}
+		}
+		c.focusItemID = 0
+	}
+	if tagOrID == "" {
+		c.scheduleRedraw()
+		return
+	}
+	entries := c.resolve(tagOrID)
+	for _, e := range entries {
+		if ti, ok := e.item.(*TextItem); ok {
+			ti.hasFocus = true
+			c.focusItemID = e.id
+			// Make canvas window focusable and give it X11 focus.
+			c.Win.Flags |= window.FlagFocusable
+			c.App.Server().SetInputFocus(c.Win.PlatformID, platform.RevertToParent, platform.CurrentTime)
+			break
+		}
+	}
+	c.scheduleRedraw()
+}
+
+// ICursor sets the insertion cursor position in a text item.
+// index can be a number or "end".
+func (c *Canvas) ICursor(tagOrID string, index string) {
+	entries := c.resolve(tagOrID)
+	for _, e := range entries {
+		if ti, ok := e.item.(*TextItem); ok {
+			pos := 0
+			if index == "end" {
+				pos = len(ti.text)
+			} else {
+				for _, ch := range index {
+					if ch >= '0' && ch <= '9' {
+						pos = pos*10 + int(ch-'0')
+					}
+				}
+			}
+			ti.SetCursorPos(pos)
+			break
+		}
+	}
+	c.scheduleRedraw()
+}
+
+// Insert inserts text into a text item at the given index.
+// index can be a number or "end".
+func (c *Canvas) Insert(tagOrID string, index string, text string) {
+	entries := c.resolve(tagOrID)
+	for _, e := range entries {
+		if ti, ok := e.item.(*TextItem); ok {
+			pos := 0
+			if index == "end" || index == "insert" {
+				pos = ti.cursorPos
+			} else {
+				for _, ch := range index {
+					if ch >= '0' && ch <= '9' {
+						pos = pos*10 + int(ch-'0')
+					}
+				}
+			}
+			ti.InsertText(pos, text)
+			break
+		}
+	}
+	c.scheduleRedraw()
+}
+
+// Dchars deletes characters from a text item between first and last indices.
+// Supports numeric indices and "insert"/"end" keywords; "insert-1" subtracts 1.
+func (c *Canvas) Dchars(tagOrID string, first string, last string) {
+	entries := c.resolve(tagOrID)
+	for _, e := range entries {
+		if ti, ok := e.item.(*TextItem); ok {
+			parseIdx := func(s string) int {
+				if s == "end" {
+					return len(ti.text)
+				}
+				if s == "insert" {
+					return ti.cursorPos
+				}
+				if s == "insert-1" {
+					if ti.cursorPos > 0 {
+						return ti.cursorPos - 1
+					}
+					return 0
+				}
+				n := 0
+				for _, ch := range s {
+					if ch >= '0' && ch <= '9' {
+						n = n*10 + int(ch-'0')
+					}
+				}
+				return n
+			}
+			f := parseIdx(first)
+			l := parseIdx(last)
+			ti.DeleteChars(f, l)
+			break
+		}
+	}
+	c.scheduleRedraw()
 }

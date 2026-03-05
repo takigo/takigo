@@ -1,4 +1,4 @@
-// Demo: Canvas text items with interactive configuration.
+// Demo: Canvas text items with interactive configuration and text editing.
 // Ported from Tk's ctext.tcl demo.
 package main
 
@@ -115,6 +115,18 @@ func main() {
 			c.ItemConfigure(idStr, canvas.FillColor(orig))
 		}
 	})
+
+	// --- Click on text item to set keyboard focus and cursor ---
+	c.BindItem(textIDStr, event.ButtonPressMask, func(ev *event.Event) {
+		if ev.Button == 1 {
+			c.Focus(textIDStr)
+			c.ICursor(textIDStr, "end")
+		}
+	})
+
+	// Set initial focus to the text item with cursor at end.
+	c.Focus(textIDStr)
+	c.ICursor(textIDStr, "end")
 
 	app.Run()
 }

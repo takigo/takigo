@@ -164,4 +164,14 @@ func InitBase(b *Base, win *window.Window, app AppContext) {
 	// Get default font.
 	reg := app.FontRegistry()
 	b.Font, _ = reg.Get(font.TkDefaultFont)
+
+	// Register background hook so ApplyBackgroundRecursive can update this widget.
+	win.BackgroundHook = func(colorName string) {
+		if c, err := app.ColorCache().Get(colorName); err == nil {
+			b.Background = c
+			b.Win.BackgroundPixel = c.Pixel
+			b.UpdateBorder()
+		}
+	}
 }
+

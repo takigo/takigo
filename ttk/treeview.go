@@ -31,6 +31,7 @@ type TreeItem struct {
 	Values   []string // data column values
 	Open     bool
 	Tags     []string
+	Image    widget.WidgetImage // optional icon shown in tree column
 }
 
 // TreeColumn describes a data column.
@@ -245,6 +246,11 @@ func ItemID(id string) ItemOption {
 }
 
 // ItemTags sets item tags.
+// ItemImage sets an icon image displayed in the tree column before the text.
+func ItemImage(img widget.WidgetImage) ItemOption {
+	return func(item *TreeItem) { item.Image = img }
+}
+
 func ItemTags(tags ...string) ItemOption {
 	return func(item *TreeItem) { item.Tags = tags }
 }
@@ -863,6 +869,16 @@ func (tv *Treeview) Display() {
 			// Draw expand/collapse indicator if item has children.
 			if len(item.Children) > 0 {
 				tv.drawIndicator(d, pixDrawable, gc, indicatorX, rowY, item.Open, textPixel)
+			}
+
+			// Draw item icon image (if any).
+			if item.Image != nil {
+				imgW := item.Image.Width()
+				imgH := item.Image.Height()
+				imgY := rowY + (tv.rowHeight-imgH)/2
+				item.Image.Draw(d, pixDrawable, gc, tv.Win.Depth,
+					0, 0, imgW, imgH, textStartX, imgY, tv.Win.BackgroundPixel)
+				textStartX += imgW + 3
 			}
 
 			// Draw item text.

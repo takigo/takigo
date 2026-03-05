@@ -7,6 +7,7 @@ import (
 	"github.com/msorc/takigo/dialog"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/widget/button"
+	"github.com/msorc/takigo/window"
 )
 
 func main() {
@@ -34,20 +35,8 @@ func main() {
 		)
 		if ok {
 			bgHex = color
-			c, err := app.ColorCache().Get(color)
-			if err == nil {
-				// Apply background to both buttons.
-				backBtn.Background = c
-				backBtn.UpdateBorder()
-				backBtn.Display()
-				foreBtn.Background = c
-				foreBtn.UpdateBorder()
-				foreBtn.Display()
-
-				// Apply to root window background.
-				root := app.Root()
-				root.BackgroundPixel = c.Pixel
-			}
+			// Apply background recursively to all widgets in the window.
+			window.ApplyBackgroundRecursive(app.Root(), color)
 		}
 	}
 

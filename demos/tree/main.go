@@ -4,6 +4,8 @@ package main
 
 import (
 	"fmt"
+	goimage "image"
+	"image/color"
 	"os"
 	"path/filepath"
 	"sort"
@@ -11,12 +13,89 @@ import (
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/grid"
 	"github.com/msorc/takigo/geometry/pack"
+	tkimage "github.com/msorc/takigo/image"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/ttk"
 	_ "github.com/msorc/takigo/ttk/clamtheme"
 	_ "github.com/msorc/takigo/ttk/defaulttheme"
+	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/frame"
 )
+
+// makeFolderIcon creates a 16x16 yellow folder icon.
+func makeFolderIcon() *tkimage.Photo {
+	img := goimage.NewRGBA(goimage.Rect(0, 0, 16, 16))
+	tab := color.RGBA{R: 0xd4, G: 0xaa, B: 0x00, A: 0xff}     // folder tab
+	body := color.RGBA{R: 0xff, G: 0xcc, B: 0x00, A: 0xff}    // folder body
+	outline := color.RGBA{R: 0x99, G: 0x77, B: 0x00, A: 0xff} // border
+	// Tab: top-left 7 wide, 3 tall (rows 2-4, cols 1-7)
+	for x := 1; x <= 7; x++ {
+		for y := 2; y <= 4; y++ {
+			img.SetRGBA(x, y, tab)
+		}
+	}
+	// Body: rows 4-13, cols 1-14
+	for x := 1; x <= 14; x++ {
+		for y := 4; y <= 13; y++ {
+			img.SetRGBA(x, y, body)
+		}
+	}
+	// Outline
+	for x := 1; x <= 14; x++ {
+		img.SetRGBA(x, 4, outline)
+		img.SetRGBA(x, 13, outline)
+	}
+	for y := 4; y <= 13; y++ {
+		img.SetRGBA(1, y, outline)
+		img.SetRGBA(14, y, outline)
+	}
+	for x := 1; x <= 7; x++ {
+		img.SetRGBA(x, 2, outline)
+	}
+	img.SetRGBA(7, 3, outline)
+	img.SetRGBA(8, 3, outline)
+	return tkimage.NewPhoto("folder-icon", img)
+}
+
+// makeFileIcon creates a 16x16 white file icon with a folded corner.
+func makeFileIcon() *tkimage.Photo {
+	img := goimage.NewRGBA(goimage.Rect(0, 0, 16, 16))
+	paper := color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff}
+	fold := color.RGBA{R: 0xcc, G: 0xcc, B: 0xcc, A: 0xff}
+	outline := color.RGBA{R: 0x88, G: 0x88, B: 0x88, A: 0xff}
+	// Body: rows 1-14, cols 2-12 (with folded corner at top-right)
+	for x := 2; x <= 12; x++ {
+		for y := 1; y <= 14; y++ {
+			if x >= 9 && y <= 4 && (x-9)+(4-y) < 4 {
+				continue // cut out corner
+			}
+			img.SetRGBA(x, y, paper)
+		}
+	}
+	// Fold triangle
+	for d := 0; d < 4; d++ {
+		img.SetRGBA(9+d, 1+d, fold)
+		img.SetRGBA(9+d, 4, fold)
+		img.SetRGBA(12, 1+d, fold)
+	}
+	// Outline
+	for y := 1; y <= 14; y++ {
+		img.SetRGBA(2, y, outline)
+	}
+	for x := 2; x <= 12; x++ {
+		img.SetRGBA(x, 14, outline)
+	}
+	for y := 4; y <= 14; y++ {
+		img.SetRGBA(12, y, outline)
+	}
+	for x := 2; x <= 8; x++ {
+		img.SetRGBA(x, 1, outline)
+	}
+	for d := 0; d <= 3; d++ {
+		img.SetRGBA(9+d, d+1, outline)
+	}
+	return tkimage.NewPhoto("file-icon", img)
+}
 
 func main() {
 	app := demohelper.Setup("Directory Browser", 500, 400,
@@ -37,6 +116,12 @@ func main() {
 	tv.ColumnConfigure("size", ttk.ColWidth(70), ttk.ColAnchor(option.AnchorE))
 	tv.HeadingConfigure("#0", ttk.HeadText("Directory Structure"))
 	tv.HeadingConfigure("size", ttk.HeadText("File Size"))
+
+	// Create simple folder and file icons.
+	folderIcon := makeFolderIcon()
+	fileIcon := makeFileIcon()
+	app.ImageRegistry().Register(folderIcon)
+	app.ImageRegistry().Register(fileIcon)
 
 	// Populate a directory's children into the treeview.
 	populateDir := func(parentID, dirPath string) {
@@ -63,7 +148,11 @@ func main() {
 			fullPath := filepath.Join(dirPath, name)
 			sizeStr := ""
 
-			if !entry.IsDir() {
+			var icon widget.WidgetImage
+			if entry.IsDir() {
+				icon = folderIcon
+			} else {
+				icon = fileIcon
 				if info, err := entry.Info(); err == nil {
 					sizeStr = formatSize(info.Size())
 				}
@@ -73,6 +162,7 @@ func main() {
 				ttk.ItemText(name),
 				ttk.ItemValues(sizeStr),
 				ttk.ItemID(fullPath),
+				ttk.ItemImage(icon),
 			)
 
 			// If directory, add a dummy child so the expand indicator shows.
