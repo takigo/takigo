@@ -49,6 +49,12 @@ type Entry struct {
 	Placeholder    string
 	PlaceholderFg  *colorRef
 
+	// Validation.
+	// Validate is when to validate: "", "none", "key", "focus", "focusin", "focusout", "all".
+	Validate    string
+	// ValidateCmd is called with the prospective new value; returns true to allow, false to reject.
+	ValidateCmd func(string) bool
+
 	// Blink.
 	CursorOn bool
 	HasFocus bool
@@ -120,6 +126,17 @@ func FontOpt(name string) EntryOption {
 // Width sets the preferred width in characters.
 func Width(w int) EntryOption {
 	return func(e *Entry) { e.PrefWidth = w }
+}
+
+// ValidateOpt sets when to validate: "none", "key", "focus", "focusin", "focusout", "all".
+func ValidateOpt(v string) EntryOption {
+	return func(e *Entry) { e.Validate = v }
+}
+
+// ValidateCmdOpt sets the validation callback called with the prospective value.
+// Returns true to allow the change, false to reject it.
+func ValidateCmdOpt(fn func(string) bool) EntryOption {
+	return func(e *Entry) { e.ValidateCmd = fn }
 }
 
 // BorderWidth sets the border width.
@@ -514,6 +531,32 @@ func (e *Entry) VisibleRange() (float64, float64) {
 		last = 1
 	}
 	return first, last
+}
+
+// tryEdit checks whether a proposed edit is valid.
+// prospective is the text that would result from the edit.
+// Returns true if the edit should be allowed (no validator set, or validator approves).
+func (e *Entry) tryEdit(prospective string) bool {
+	if e.ValidateCmd == nil {
+		return true
+	}
+	v := e.Validate
+	if v != "key" && v != "all" {
+		return true
+	}
+	return e.ValidateCmd(prospective)
+}
+
+// tryFocusValidate runs focus-triggered validation. Returns true if valid.
+func (e *Entry) tryFocusValidate(trigger string) bool {
+	if e.ValidateCmd == nil {
+		return true
+	}
+	v := e.Validate
+	if v == "all" || v == trigger || (v == "focus" && (trigger == "focusin" || trigger == "focusout")) {
+		return e.ValidateCmd(string(e.text))
+	}
+	return true
 }
 
 // notifyScrollbar calls the scroll command if set.

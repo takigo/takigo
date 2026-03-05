@@ -3,6 +3,8 @@
 package main
 
 import (
+	"strconv"
+
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/screenunit"
@@ -22,6 +24,14 @@ func main() {
 		spinbox.ToOpt(10),
 		spinbox.IncrementOpt(1),
 		spinbox.WidthOpt(10),
+		spinbox.ValidateOpt("key"),
+		spinbox.ValidateCmdOpt(func(s string) bool {
+			if s == "" {
+				return true
+			}
+			_, err := strconv.Atoi(s)
+			return err == nil
+		}),
 	)
 	s1.SetText("1")
 	pack.Pack(s1, pack.SideOpt(pack.Top), pack.PadX(padX), pack.PadY(padY))

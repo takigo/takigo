@@ -61,6 +61,10 @@ type Spinbox struct {
 	CursorOn      bool
 	pressedButton string // "up", "down", or ""
 
+	// Validation.
+	Validate    string
+	ValidateCmd func(string) bool
+
 	// Scrollbar callback.
 	ScrollCmd func(first, last float64)
 }
@@ -83,6 +87,10 @@ func WrapOpt(b bool) SpinboxOption           { return func(s *Spinbox) { s.Wrap 
 func ValuesOpt(v []string) SpinboxOption     { return func(s *Spinbox) { s.Values = v } }
 func CommandOpt(fn func(string)) SpinboxOption { return func(s *Spinbox) { s.Command = fn } }
 func WidthOpt(w int) SpinboxOption           { return func(s *Spinbox) { s.PrefWidth = w } }
+func ValidateOpt(v string) SpinboxOption     { return func(s *Spinbox) { s.Validate = v } }
+func ValidateCmdOpt(fn func(string) bool) SpinboxOption {
+	return func(s *Spinbox) { s.ValidateCmd = fn }
+}
 
 func Background(name string) SpinboxOption {
 	return func(s *Spinbox) {
@@ -253,6 +261,18 @@ func (s *Spinbox) fireCommand() {
 	if s.Command != nil {
 		s.Command(string(s.text))
 	}
+}
+
+// tryEdit checks whether a proposed edit is valid. Returns true to allow.
+func (s *Spinbox) tryEdit(prospective string) bool {
+	if s.ValidateCmd == nil {
+		return true
+	}
+	v := s.Validate
+	if v != "key" && v != "all" {
+		return true
+	}
+	return s.ValidateCmd(prospective)
 }
 
 // InsertChars inserts text at the given rune index.

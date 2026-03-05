@@ -128,15 +128,27 @@ func bindSpinbox(s *Spinbox, app widget.AppContext) {
 
 		case platform.XK_BackSpace:
 			if s.SelFirst >= 0 {
-				s.DeleteSelection()
+				prospective := string(s.text[:s.SelFirst]) + string(s.text[s.SelLast:])
+				if s.tryEdit(prospective) {
+					s.DeleteSelection()
+				}
 			} else if s.InsertPos > 0 {
-				s.DeleteChars(s.InsertPos-1, 1)
+				prospective := string(s.text[:s.InsertPos-1]) + string(s.text[s.InsertPos:])
+				if s.tryEdit(prospective) {
+					s.DeleteChars(s.InsertPos-1, 1)
+				}
 			}
 		case platform.XK_Delete:
 			if s.SelFirst >= 0 {
-				s.DeleteSelection()
+				prospective := string(s.text[:s.SelFirst]) + string(s.text[s.SelLast:])
+				if s.tryEdit(prospective) {
+					s.DeleteSelection()
+				}
 			} else if s.InsertPos < len(s.text) {
-				s.DeleteChars(s.InsertPos, 1)
+				prospective := string(s.text[:s.InsertPos]) + string(s.text[s.InsertPos+1:])
+				if s.tryEdit(prospective) {
+					s.DeleteChars(s.InsertPos, 1)
+				}
 			}
 
 		default:
@@ -156,10 +168,18 @@ func bindSpinbox(s *Spinbox, app widget.AppContext) {
 				}
 			}
 			if insertStr != "" && insertStr[0] >= 32 {
+				var prospective string
 				if s.SelFirst >= 0 {
-					s.DeleteSelection()
+					prospective = string(s.text[:s.SelFirst]) + insertStr + string(s.text[s.SelLast:])
+				} else {
+					prospective = string(s.text[:s.InsertPos]) + insertStr + string(s.text[s.InsertPos:])
 				}
-				s.InsertChars(s.InsertPos, insertStr)
+				if s.tryEdit(prospective) {
+					if s.SelFirst >= 0 {
+						s.DeleteSelection()
+					}
+					s.InsertChars(s.InsertPos, insertStr)
+				}
 			}
 		}
 	})

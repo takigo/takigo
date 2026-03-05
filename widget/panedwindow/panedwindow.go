@@ -31,14 +31,16 @@ type pane struct {
 type PanedWindow struct {
 	widget.Base
 
-	Orient    Orient
-	panes     []pane
-	SashWidth int
+	Orient     Orient
+	panes      []pane
+	SashWidth  int
 	HandleSize int
+	// FlatSash renders a thin flat sash instead of a 3D raised sash.
+	FlatSash bool
 
 	// Sash interaction.
-	dragSash   int // index of sash being dragged, -1 = none
-	dragStartPos int
+	dragSash      int // index of sash being dragged, -1 = none
+	dragStartPos  int
 	dragStartSize int
 }
 
@@ -287,7 +289,22 @@ func (pw *PanedWindow) Display() {
 	d.FillRectangle(w.Drawable(), gc, 0, 0, uint(w.Width), uint(w.Height))
 
 	// Draw sashes.
-	if pw.Border != nil {
+	if pw.FlatSash {
+		// Flat TTK-style sash: a single thin line with a small grip dot.
+		d.SetForeground(gc, uint64(0x9e9e9e))
+		offset := 0
+		for i := 0; i < len(pw.panes)-1; i++ {
+			offset += pw.panes[i].size
+			if pw.Orient == Horizontal {
+				midX := offset + pw.SashWidth/2
+				d.DrawLine(w.Drawable(), gc, midX, 0, midX, w.Height)
+			} else {
+				midY := offset + pw.SashWidth/2
+				d.DrawLine(w.Drawable(), gc, 0, midY, w.Width, midY)
+			}
+			offset += pw.SashWidth
+		}
+	} else if pw.Border != nil {
 		offset := 0
 		for i := 0; i < len(pw.panes)-1; i++ {
 			offset += pw.panes[i].size

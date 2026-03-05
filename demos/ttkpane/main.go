@@ -23,20 +23,20 @@ func main() {
 
 	ttk.SetCurrentTheme("clam")
 
-	// Outer horizontal panedwindow (no padding — matches Tcl non-aqua: pack $w.outer -fill both -expand 1).
-	outer := panedwindow.New(app, "outer",
+	// Outer horizontal panedwindow (matches Tcl's ttk::panedwindow -orient horizontal).
+	outer := ttk.NewPanedwindow(app, "outer",
 		panedwindow.OrientOpt(panedwindow.Horizontal),
 	)
 	pack.Pack(outer, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	// Left inner vertical panedwindow.
-	inLeft := panedwindow.New(outer, "inleft",
+	inLeft := ttk.NewPanedwindow(outer, "inleft",
 		panedwindow.OrientOpt(panedwindow.Vertical),
 	)
 	outer.Add(inLeft.Window(), 200)
 
 	// Right inner vertical panedwindow.
-	inRight := panedwindow.New(outer, "inright",
+	inRight := ttk.NewPanedwindow(outer, "inright",
 		panedwindow.OrientOpt(panedwindow.Vertical),
 	)
 	outer.Add(inRight.Window(), 200)

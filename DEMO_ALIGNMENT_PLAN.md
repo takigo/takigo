@@ -118,7 +118,7 @@ These patterns recur across nearly every demo and should be addressed globally:
 - [x] **Validation**: entry2.tcl has no validation (that's entry3) — N/A
 
 ### 17. `entry3`
-- [ ] **Missing validation**: Tcl demo showcases entry validation (-validate, -validatecommand). Go entry widget lacks validation API — known limitation.
+- [x] **Missing validation**: Added `Validate string` and `ValidateCmd func(string) bool` to entry widget; `ValidateOpt`/`ValidateCmdOpt` options; `tryEdit(prospective)` hook in bindings. e1=integer, e2=max-9-chars, e3=phone regex, e4=max-8-chars (password).
 - [x] **Layout**: Fixed — mid frame no PadX/PadY, entry PadX("1m") PadY("1m"), grid PadX("3m") PadY("1m")
 - [x] **Widget types**: Tcl uses classic entry — Go matches
 
@@ -274,7 +274,7 @@ These patterns recur across nearly every demo and should be addressed globally:
 ### 45. `spin`
 - [x] **Widget types**: Tcl uses classic `spinbox` (not ttk::spinbox) — Go matches (widget/spinbox)
 - [x] **Layout**: Match padding values — screenunit.Px("7.5p") and screenunit.Px("3p")
-- [ ] **Validation**: Tcl has `-validate key -validatecommand {string is integer %P}` on s1. No validation API in Go entry — known limitation.
+- [x] **Validation**: Added `Validate string` and `ValidateCmd func(string) bool` to spinbox; s1 now validates integer-only input via `ValidateOpt("key")+ValidateCmdOpt`.
 - [x] **Width**: All Tcl spinboxes have `-width 10`. Added spinbox.WidthOpt(10) to all 3.
 - [x] **Labels removed**: Removed extra labels not in Tcl original
 
@@ -334,7 +334,7 @@ These patterns recur across nearly every demo and should be addressed globally:
 - [x] **Size formatting**: Change "KB" to "kB" and "B" to "bytes" to match Tcl
 
 ### 53. `ttkbut`
-- [ ] **Missing toggleswitch**: No toggleswitch widget in Go — known limitation.
+- [x] **Missing toggleswitch**: Added `ttk.NewToggleswitch` widget — oval trough (gray=off, blue=on) with white sliding thumb; `Variable[bool]` linked; 4th labelframe with Lights/Music/Alarm toggle switches added to demo.
 - [x] **Layout grid**: Fixed — removed container PadX/PadY, fixed RowConfigure to row 0, PadX("3p") PadY("1.5p")
 - [x] **Missing `-uniform yes`**: Implemented `Uniform string` in `SlotConfig`; groups columns/rows so they all get the max of their minimum sizes. Applied to ttkbut.
 - [x] **Padding**: Fixed — buttons/checkbuttons PadY("1.5p"), radiobuttons PadX("3p") PadY("1.5p")
@@ -364,7 +364,7 @@ These patterns recur across nearly every demo and should be addressed globally:
 - [x] **Clocks pane**: Implemented live timezone clocks with `app.After(1000ms)`, updating HH:MM:SS per timezone via `time.LoadLocation`
 - [x] **Separators**: Added `ttk.NewSeparator` between clock entries matching Tcl structure
 - [x] **Button command**: `dialog.ShowMessage` with "Button Pressed" title and "That hurt..." message
-- [ ] **TTK panedwindow**: Go uses classic panedwindow; Tcl uses `ttk::panedwindow` — no TTK panedwindow yet, known limitation
+- [x] **TTK panedwindow**: Added `ttk.NewPanedwindow` — wraps classic panedwindow with `FlatSash=true` (thin gray line) and SashWidth=6; demo updated to use `ttk.NewPanedwindow`.
 - [x] **Text content**: Text widget starts empty (matches Tcl)
 - [x] **Padding**: Fixed — outer no padx/pady, button PadX("1.5p") PadY("3p"), text PadX("1.5p") PadY("1.5p")
 
@@ -387,7 +387,7 @@ These patterns recur across nearly every demo and should be addressed globally:
 ### 59. `ttkspin`
 - [x] **Remove labels**: Removed extra labels (intLabel, floatLabel, valLabel)
 - [x] **Width**: Added WidthOpt(10) to each spinbox
-- [ ] **Validation**: Tcl s1 has `-validate key -validatecommand {string is integer %P}` — no validation API in Go, known limitation
+- [x] **Validation**: s1 now validates integer-only input via spinbox.ValidateOpt("key")+ValidateCmdOpt.
 - [x] **Padding**: Using screenunit.Px("7.5p") and screenunit.Px("3p")
 - [x] **Description**: Updated to match Tcl's longer description
 

@@ -33,9 +33,11 @@ func bindEntry(e *Entry, app widget.AppContext) {
 		if ev.Type == event.FocusInType {
 			e.HasFocus = true
 			e.CursorOn = true
+			e.tryFocusValidate("focusin")
 			e.Display()
 		} else if ev.Type == event.FocusOutType {
 			e.HasFocus = false
+			e.tryFocusValidate("focusout")
 			e.Display()
 		}
 	})
@@ -99,16 +101,28 @@ func bindEntry(e *Entry, app widget.AppContext) {
 
 		case platform.XK_BackSpace:
 			if e.SelFirst >= 0 {
-				e.DeleteSelection()
+				prospective := string(e.text[:e.SelFirst]) + string(e.text[e.SelLast:])
+				if e.tryEdit(prospective) {
+					e.DeleteSelection()
+				}
 			} else if e.InsertPos > 0 {
-				e.DeleteChars(e.InsertPos-1, 1)
+				prospective := string(e.text[:e.InsertPos-1]) + string(e.text[e.InsertPos:])
+				if e.tryEdit(prospective) {
+					e.DeleteChars(e.InsertPos-1, 1)
+				}
 			}
 
 		case platform.XK_Delete:
 			if e.SelFirst >= 0 {
-				e.DeleteSelection()
+				prospective := string(e.text[:e.SelFirst]) + string(e.text[e.SelLast:])
+				if e.tryEdit(prospective) {
+					e.DeleteSelection()
+				}
 			} else if e.InsertPos < len(e.text) {
-				e.DeleteChars(e.InsertPos, 1)
+				prospective := string(e.text[:e.InsertPos]) + string(e.text[e.InsertPos+1:])
+				if e.tryEdit(prospective) {
+					e.DeleteChars(e.InsertPos, 1)
+				}
 			}
 
 		default:
@@ -126,10 +140,19 @@ func bindEntry(e *Entry, app widget.AppContext) {
 				}
 			}
 			if insertStr != "" && insertStr[0] >= 32 {
+				// Compute prospective value accounting for any selection deletion.
+				var prospective string
 				if e.SelFirst >= 0 {
-					e.DeleteSelection()
+					prospective = string(e.text[:e.SelFirst]) + insertStr + string(e.text[e.SelLast:])
+				} else {
+					prospective = string(e.text[:e.InsertPos]) + insertStr + string(e.text[e.InsertPos:])
 				}
-				e.InsertChars(e.InsertPos, insertStr)
+				if e.tryEdit(prospective) {
+					if e.SelFirst >= 0 {
+						e.DeleteSelection()
+					}
+					e.InsertChars(e.InsertPos, insertStr)
+				}
 			}
 		}
 	})

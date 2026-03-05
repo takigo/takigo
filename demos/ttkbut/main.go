@@ -17,13 +17,14 @@ import (
 )
 
 func main() {
-	app := demohelper.Setup("Simple Ttk Widgets", 600, 400,
+	app := demohelper.Setup("Simple Ttk Widgets", 750, 400,
 		"Ttk is the themed widget set. This is a Ttk themed label, "+
 			"and below are four groups of Ttk widgets in Ttk labelframes. "+
 			"The first group are buttons that set the current application "+
 			"theme when pressed. The second group contains two sets of "+
 			"checkbuttons, with a separator between the sets. The third "+
-			"group has a collection of linked radiobuttons.")
+			"group has a collection of linked radiobuttons. The fourth "+
+			"group has a collection of toggle switches.")
 
 	ttk.SetCurrentTheme("clam")
 
@@ -110,8 +111,32 @@ func main() {
 		_ = r
 	}
 
-	// -- Arrange the three groups in a grid row (matches Tcl's grid arrangement) --
-	// Note: Tcl has a 4th toggleswitch group; without it, buttons don't need rowspan 2.
+	// -- Group 4: Toggle switches --
+	togFrame := labelframe.New(container, "toggles",
+		labelframe.Text("Toggleswitches"),
+	)
+
+	sw1var := widget.NewVariable(true)
+	sw2var := widget.NewVariable(false)
+	sw3var := widget.NewVariable(true)
+
+	sw1 := ttk.NewToggleswitch(togFrame, "sw1",
+		ttk.ToggleswitchText("Lights"),
+		ttk.ToggleswitchVar(sw1var),
+	)
+	sw2 := ttk.NewToggleswitch(togFrame, "sw2",
+		ttk.ToggleswitchText("Music"),
+		ttk.ToggleswitchVar(sw2var),
+	)
+	sw3 := ttk.NewToggleswitch(togFrame, "sw3",
+		ttk.ToggleswitchText("Alarm"),
+		ttk.ToggleswitchVar(sw3var),
+	)
+	pack.Pack(sw1, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY("1.5p"))
+	pack.Pack(sw2, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY("1.5p"))
+	pack.Pack(sw3, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY("1.5p"))
+
+	// -- Arrange the four groups in a grid row (matches Tcl's grid arrangement) --
 	nwe := grid.StickN | grid.StickW | grid.StickE
 	grid.Grid(btnFrame, grid.Row(0), grid.Column(0),
 		grid.Sticky(nwe), grid.PadX("3p"), grid.PadY("1.5p"))
@@ -119,11 +144,14 @@ func main() {
 		grid.Sticky(nwe), grid.PadX("3p"), grid.PadY("1.5p"))
 	grid.Grid(radFrame, grid.Row(0), grid.Column(2),
 		grid.Sticky(nwe), grid.PadX("3p"), grid.PadY("1.5p"))
+	grid.Grid(togFrame, grid.Row(0), grid.Column(3),
+		grid.Sticky(nwe), grid.PadX("3p"), grid.PadY("1.5p"))
 
 	// Equal column weights with uniform sizing.
 	grid.ColumnConfigure(container.Window(), 0, grid.SlotConfig{Weight: 1, Uniform: "yes"})
 	grid.ColumnConfigure(container.Window(), 1, grid.SlotConfig{Weight: 1, Uniform: "yes"})
 	grid.ColumnConfigure(container.Window(), 2, grid.SlotConfig{Weight: 1, Uniform: "yes"})
+	grid.ColumnConfigure(container.Window(), 3, grid.SlotConfig{Weight: 1, Uniform: "yes"})
 	grid.RowConfigure(container.Window(), 0, grid.SlotConfig{Weight: 1})
 
 	_ = c1
@@ -131,5 +159,11 @@ func main() {
 	_ = c3
 	_ = c4
 	_ = sep
+	_ = sw1
+	_ = sw2
+	_ = sw3
+	_ = sw1var
+	_ = sw2var
+	_ = sw3var
 	app.Run()
 }
