@@ -42,6 +42,46 @@ static XftFont* open_xft_font_rotated(Display *dpy, int screen,
 	return font; // matched consumed by XftFontOpenPattern
 }
 
+// find_fallback_font finds the best font that contains ucs4, matching the
+// size/weight/slant of base_pattern. Returns NULL if none found.
+// The returned XftFont must be closed by the caller.
+static XftFont* find_fallback_font(Display *dpy, int screen,
+		FcPattern *base_pattern, FcChar32 ucs4) {
+	FcCharSet *cs = FcCharSetCreate();
+	if (!cs) return NULL;
+	FcCharSetAddChar(cs, ucs4);
+
+	FcPattern *pat = FcPatternCreate();
+	if (!pat) { FcCharSetDestroy(cs); return NULL; }
+
+	// Copy size/weight/slant from base pattern.
+	double size; int weight, slant;
+	if (FcPatternGetDouble(base_pattern, FC_SIZE, 0, &size) == FcResultMatch)
+		FcPatternAddDouble(pat, FC_SIZE, size);
+	if (FcPatternGetInteger(base_pattern, FC_WEIGHT, 0, &weight) == FcResultMatch)
+		FcPatternAddInteger(pat, FC_WEIGHT, weight);
+	if (FcPatternGetInteger(base_pattern, FC_SLANT, 0, &slant) == FcResultMatch)
+		FcPatternAddInteger(pat, FC_SLANT, slant);
+
+	FcPatternAddCharSet(pat, FC_CHARSET, cs);
+	FcCharSetDestroy(cs);
+
+	FcConfigSubstitute(NULL, pat, FcMatchPattern);
+	XftDefaultSubstitute(dpy, screen, pat);
+
+	FcResult result;
+	FcPattern *matched = FcFontMatch(NULL, pat, &result);
+	FcPatternDestroy(pat);
+	if (!matched) return NULL;
+	XftFont *font = XftFontOpenPattern(dpy, matched); // matched consumed
+	return font;
+}
+
+// xft_char_exists wraps XftCharExists.
+static FcBool xft_char_exists(Display *dpy, XftFont *font, FcChar32 ucs4) {
+	return XftCharExists(dpy, font, ucs4);
+}
+
 // Helpers wrapping FC_* string macros so cgo can use them.
 static FcBool fc_pattern_add_family(FcPattern *p, const FcChar8 *family) {
 	return FcPatternAddString(p, FC_FAMILY, family);
@@ -77,6 +117,7 @@ import "C"
 import (
 	"fmt"
 	"math"
+	"unicode/utf8"
 	"unsafe"
 
 	"github.com/msorc/takigo/internal/xlib"
@@ -95,6 +136,12 @@ type XftFont struct {
 
 	// Cache of rotated font variants, keyed by angle×10 (integer tenths of degrees).
 	rotatedVariants map[int64]*C.XftFont
+
+	// Per-rune font selection cache: maps rune → XftFont to use for that rune.
+	// Value is f.font (primary) or a fallback font handle.
+	fontByRune map[rune]*C.XftFont
+	// Set of opened fallback fonts (for cleanup in Close).
+	fallbackFonts map[*C.XftFont]bool
 }
 
 // OpenXft opens a font via Xft/fontconfig.
@@ -196,18 +243,84 @@ func (f *XftFont) Metrics() Metrics {
 	return f.metrics
 }
 
-// MeasureString returns the pixel width of a string.
+// MeasureString returns the pixel width of a string, using font fallback.
 func (f *XftFont) MeasureString(s string) int {
 	if len(s) == 0 {
 		return 0
 	}
 	dpy := (*C.Display)(f.display.Ptr())
-	cs := C.CString(s)
-	defer C.free(unsafe.Pointer(cs))
+	total := 0
+	for _, run := range f.runsFor(s) {
+		cs := C.CString(run.text)
+		var extents C.XGlyphInfo
+		C.XftTextExtentsUtf8(dpy, run.font, (*C.FcChar8)(unsafe.Pointer(cs)), C.int(len(run.text)), &extents)
+		C.free(unsafe.Pointer(cs))
+		total += int(extents.xOff)
+	}
+	return total
+}
 
-	var extents C.XGlyphInfo
-	C.XftTextExtentsUtf8(dpy, f.font, (*C.FcChar8)(unsafe.Pointer(cs)), C.int(len(s)), &extents)
-	return int(extents.xOff)
+// fontRun is a contiguous run of UTF-8 text that uses the same XftFont.
+type fontRun struct {
+	font *C.XftFont
+	text string
+}
+
+// fontForRune returns the best XftFont for drawing rune r (with caching).
+func (f *XftFont) fontForRune(r rune) *C.XftFont {
+	if f.fontByRune == nil {
+		f.fontByRune = make(map[rune]*C.XftFont)
+	}
+	if xf, ok := f.fontByRune[r]; ok {
+		return xf
+	}
+	dpy := (*C.Display)(f.display.Ptr())
+	var chosen *C.XftFont
+	if C.xft_char_exists(dpy, f.font, C.FcChar32(r)) != 0 {
+		chosen = f.font
+	} else {
+		fb := C.find_fallback_font(dpy, f.screen, f.font.pattern, C.FcChar32(r))
+		if fb != nil {
+			if f.fallbackFonts == nil {
+				f.fallbackFonts = make(map[*C.XftFont]bool)
+			}
+			f.fallbackFonts[fb] = true
+			chosen = fb
+		} else {
+			chosen = f.font // no fallback; will draw a box
+		}
+	}
+	f.fontByRune[r] = chosen
+	return chosen
+}
+
+// runsFor segments s into contiguous runs, each using the same XftFont.
+func (f *XftFont) runsFor(s string) []fontRun {
+	if len(s) == 0 {
+		return nil
+	}
+	var runs []fontRun
+	pos := 0
+	curStart := 0
+	var curFont *C.XftFont
+	first := true
+	for pos < len(s) {
+		ch, size := utf8.DecodeRuneInString(s[pos:])
+		chFont := f.fontForRune(ch)
+		if first || chFont != curFont {
+			if !first {
+				runs = append(runs, fontRun{curFont, s[curStart:pos]})
+			}
+			curFont = chFont
+			curStart = pos
+			first = false
+		}
+		pos += size
+	}
+	if curStart < len(s) {
+		runs = append(runs, fontRun{curFont, s[curStart:]})
+	}
+	return runs
 }
 
 // DrawString draws a string on a drawable at the given baseline position.
@@ -263,7 +376,7 @@ func (f *XftFont) getOrCreateRotated(angleDeg float64) *C.XftFont {
 	return rf
 }
 
-// drawStringXlib is the internal Xft implementation.
+// drawStringXlib is the internal Xft implementation with font fallback.
 func (f *XftFont) drawStringXlib(drawable xlib.Drawable, x, y int, s string, pixel uint64, r, g, b uint16) {
 	if len(s) == 0 {
 		return
@@ -280,12 +393,17 @@ func (f *XftFont) drawStringXlib(drawable xlib.Drawable, x, y int, s string, pix
 	}
 	defer C.XftDrawDestroy(draw)
 
-	cs := C.CString(s)
-	defer C.free(unsafe.Pointer(cs))
-
 	color := C.make_xft_color(C.ulong(pixel), C.ushort(r), C.ushort(g), C.ushort(b))
-	C.XftDrawStringUtf8(draw, &color, f.font, C.int(x), C.int(y),
-		(*C.FcChar8)(unsafe.Pointer(cs)), C.int(len(s)))
+
+	for _, run := range f.runsFor(s) {
+		cs := C.CString(run.text)
+		C.XftDrawStringUtf8(draw, &color, run.font, C.int(x), C.int(y),
+			(*C.FcChar8)(unsafe.Pointer(cs)), C.int(len(run.text)))
+		var extents C.XGlyphInfo
+		C.XftTextExtentsUtf8(dpy, run.font, (*C.FcChar8)(unsafe.Pointer(cs)), C.int(len(run.text)), &extents)
+		C.free(unsafe.Pointer(cs))
+		x += int(extents.xOff)
+	}
 }
 
 // ListFamilies returns a sorted list of available font family names
@@ -342,4 +460,9 @@ func (f *XftFont) Close() {
 		C.XftFontClose(dpy, f.font)
 		f.font = nil
 	}
+	for fb := range f.fallbackFonts {
+		C.XftFontClose(dpy, fb)
+	}
+	f.fallbackFonts = nil
+	f.fontByRune = nil
 }
