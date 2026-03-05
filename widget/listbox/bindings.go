@@ -52,6 +52,7 @@ func bindListbox(lb *Listbox, app widget.AppContext) {
 			handleSelect(lb, idx, ev.State)
 			lb.activeIndex = idx
 			lb.Display()
+			notifySelect(lb)
 		} else if ev.Button == 4 {
 			// Scroll up.
 			lb.YView(lb.topIndex - 3)
@@ -91,6 +92,7 @@ func bindListbox(lb *Listbox, app widget.AppContext) {
 		}
 		lb.See(idx)
 		lb.Display()
+		notifySelect(lb)
 	})
 
 	// Keyboard.
@@ -197,4 +199,10 @@ func setActive(lb *Listbox, idx int) {
 
 	lb.See(idx)
 	lb.Display()
+}
+
+func notifySelect(lb *Listbox) {
+	if lb.SelectCmd != nil {
+		lb.SelectCmd()
+	}
 }

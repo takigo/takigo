@@ -54,6 +54,9 @@ type Listbox struct {
 	YScrollCmd func(first, last float64)
 	XScrollCmd func(first, last float64)
 
+	// SelectCmd is called whenever the selection changes.
+	SelectCmd func()
+
 	HasFocus bool
 
 	// Text justification within items (left/center/right).

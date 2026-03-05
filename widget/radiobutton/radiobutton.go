@@ -27,8 +27,9 @@ type Radiobutton struct {
 	unsub    func()
 
 	// Indicator.
-	IndicatorOn bool
-	SelectColor *colorRef // indicator fill when selected
+	IndicatorOn    bool
+	TristateValue  string    // if non-empty and variable==TristateValue, show indeterminate dash
+	SelectColor    *colorRef // indicator fill when selected
 
 	// Active colors.
 	ActiveBackground *colorRef
@@ -111,6 +112,13 @@ func FontOpt(name string) Option {
 // Anchor sets the text anchor.
 func Anchor(a option.Anchor) Option {
 	return func(r *Radiobutton) { r.Anchor = a }
+}
+
+// TristateValueOpt sets the value that triggers an indeterminate (dash) display.
+// When the linked variable equals this value, the radiobutton shows a horizontal
+// dash instead of the dot, indicating a mixed/indeterminate state.
+func TristateValueOpt(v string) Option {
+	return func(r *Radiobutton) { r.TristateValue = v }
 }
 
 // IndicatorOnOpt sets whether the circle indicator is shown.
@@ -233,6 +241,7 @@ func (r *Radiobutton) Display() {
 	gc := w.GC
 
 	selected := r.Selected()
+	tristate := r.TristateValue != "" && r.Variable.Get() == r.TristateValue
 
 	// Choose colors based on state.
 	bgPixel := uint64(0)
@@ -311,8 +320,14 @@ func (r *Radiobutton) Display() {
 		d.SetForeground(gc, indBorder.LightPixel)
 		d.DrawArc(w.Drawable(), gc, indX, indY, uint(indicatorSize-1), uint(indicatorSize-1), 225*64, 180*64)
 
-		// Draw dot when selected.
-		if selected && fgCol != nil {
+		if tristate && fgCol != nil {
+			// Indeterminate: draw a horizontal dash inside the circle.
+			midY := indY + indicatorSize/2
+			d.SetForeground(gc, fgCol.Pixel)
+			d.DrawLine(w.Drawable(), gc, indX+3, midY, indX+indicatorSize-4, midY)
+			d.DrawLine(w.Drawable(), gc, indX+3, midY+1, indX+indicatorSize-4, midY+1)
+		} else if selected && fgCol != nil {
+			// Draw dot when selected.
 			dotSize := indicatorSize - 6
 			dotX := indX + 3
 			dotY := indY + 3

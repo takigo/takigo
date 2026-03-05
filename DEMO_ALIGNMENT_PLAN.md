@@ -281,7 +281,7 @@ These patterns recur across nearly every demo and should be addressed globally:
 ### 46. `states`
 - [x] **Layout**: Fixed — added justification labelframe with Left/Center/Right radiobuttons; lbFrame BorderWidth(19) (≈.5c); removed PadX/PadY; FillY
 - [x] **Widget types**: Tcl uses ttk::scrollbar — now uses ttk.NewScrollbar
-- [ ] **radiobuttons tristatevalue**: `-tristatevalue "multi"` for multi-selection state — not implemented, known limitation
+- [x] **radiobuttons tristatevalue**: Added `TristateValue string` field + `TristateValueOpt(v string)` to radiobutton; when variable==tristatevalue shows horizontal dash in indicator; states demo changed to `SelectExtended` mode + `SelectCmd` callback sets justVar="multi" when multiple items selected
 - [x] **States**: All 50 US states in alphabetical order — matches Tcl exactly; added `Justify option.Justify` field + `SetJustify(j)` + `JustifyOpt` to listbox; justify radiobuttons now functional
 
 ### 47. `style`

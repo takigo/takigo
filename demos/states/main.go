@@ -16,33 +16,35 @@ import (
 	"github.com/msorc/takigo/ttk"
 )
 
+// justifyValues maps justification radio value → option.Justify.
+var justifyValues = map[string]option.Justify{
+	"left":   option.JustifyLeft,
+	"center": option.JustifyCenter,
+	"right":  option.JustifyRight,
+}
+
 func main() {
 	app := demohelper.Setup("Listbox Demonstration (50 states)", 300, 400,
 		"A listbox containing the 50 states is displayed below, along with a scrollbar. You can scan the list either using the scrollbar or by scanning. To scan, press button 2 in the widget and drag up or down.")
 
-	// Justification group (matches Tcl's labelframe $w.justif).
 	// lb is declared below; the command closure captures the pointer.
 	var lb *listbox.Listbox
+
+	// "multi" is the tristatevalue: shown when selected items have mixed justifications.
 	justVar := widget.NewVariable("left")
+
 	justFrame := labelframe.New(app, "justif", labelframe.Text("Justification"))
 	for _, c := range []string{"Left", "Center", "Right"} {
 		val := strings.ToLower(c)
-		var j option.Justify
-		switch val {
-		case "center":
-			j = option.JustifyCenter
-		case "right":
-			j = option.JustifyRight
-		default:
-			j = option.JustifyLeft
-		}
+		j := justifyValues[val]
 		rb := radiobutton.New(justFrame, val,
 			radiobutton.Text(c),
 			radiobutton.Value(val),
 			radiobutton.Var(justVar),
+			radiobutton.TristateValueOpt("multi"),
 			radiobutton.Anchor(option.AnchorW),
 			radiobutton.Command(func() {
-				if lb != nil {
+				if lb != nil && justVar.Get() != "multi" {
 					lb.SetJustify(j)
 				}
 			}),
@@ -73,7 +75,27 @@ func main() {
 	lb = listbox.New(lbFrame, "list",
 		listbox.Items(states...),
 		listbox.Height(12),
+		listbox.SelectModeOpt(listbox.SelectExtended),
 	)
+
+	// Update justVar based on selection: "multi" if multiple items selected, else reflect current justify.
+	lb.SelectCmd = func() {
+		sel := lb.Selection()
+		if len(sel) <= 1 {
+			// Single or no selection: reflect actual listbox justify setting.
+			switch lb.Justify {
+			case option.JustifyCenter:
+				justVar.Set("center")
+			case option.JustifyRight:
+				justVar.Set("right")
+			default:
+				justVar.Set("left")
+			}
+		} else {
+			// Multiple items selected: show indeterminate state.
+			justVar.Set("multi")
+		}
+	}
 
 	yscroll := ttk.NewScrollbar(lbFrame, "scroll",
 		ttk.ScrollbarOrientOpt(ttk.Vertical),
