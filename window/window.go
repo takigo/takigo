@@ -101,6 +101,18 @@ func (w *Window) IsTopLevel() bool {
 	return w.Flags&FlagTopLevel != 0
 }
 
+// Toplevel walks up the window hierarchy and returns the nearest toplevel
+// ancestor (or w itself if w is a toplevel). Returns nil if no toplevel found.
+func Toplevel(w *Window) *Window {
+	for w != nil {
+		if w.Flags&FlagTopLevel != 0 {
+			return w
+		}
+		w = w.Parent
+	}
+	return nil
+}
+
 // IsMapped returns true if the window is mapped.
 func (w *Window) IsMapped() bool {
 	return w.Flags&FlagMapped != 0

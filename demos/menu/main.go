@@ -53,7 +53,7 @@ func main() {
 	pack.Pack(menuBar, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
 
 	// ── File menu ──
-	fileMenu := menu.New(app, "filemenu")
+	fileMenu := menu.New(app, "filemenu", menu.TearOffOpt(true))
 	fileMenu.AddCommand("Open...", func() { setStatus("File > Open") })
 	fileMenu.AddCommand("New", func() { setStatus("File > New") })
 	fileMenu.AddCommand("Save", func() { setStatus("File > Save") })

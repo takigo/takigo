@@ -39,13 +39,14 @@ type Menu struct {
 	widget.Base
 
 	entries       []MenuEntry
-	activeIndex   int // -1 = none
+	activeIndex   int // -1 = none; -2 = tearoff region
 	postedCascade *Menu
 
 	// Layout.
-	entryHeight int
-	sepHeight   int
-	menuWidth   int
+	entryHeight  int
+	sepHeight    int
+	menuWidth    int
+	tearoffHeight int // height of tearoff grip area (0 if TearOff=false)
 
 	// Colors.
 	ActiveBg *colorRef
@@ -54,6 +55,9 @@ type Menu struct {
 	// State.
 	posted  bool
 	grabbed bool
+
+	// TearOff enables a tearoff grip at the top of the menu.
+	TearOff bool
 
 	app widget.AppContext
 }
@@ -67,6 +71,11 @@ type colorRef struct {
 
 // MenuOption configures a Menu.
 type MenuOption func(*Menu)
+
+// TearOffOpt enables or disables the tearoff grip at the top of the menu.
+func TearOffOpt(on bool) MenuOption {
+	return func(m *Menu) { m.TearOff = on }
+}
 
 func Background(name string) MenuOption {
 	return func(m *Menu) {
@@ -296,6 +305,13 @@ func (m *Menu) computeGeometry() {
 	m.entryHeight = fm.Linespace() + 6
 	m.sepHeight = 6
 
+	// Tearoff grip area.
+	if m.TearOff {
+		m.tearoffHeight = 10
+	} else {
+		m.tearoffHeight = 0
+	}
+
 	// Expand entryHeight if any entry has a tall image.
 	for _, e := range m.entries {
 		if e.Image != nil && e.Image.Height()+6 > m.entryHeight {
@@ -304,7 +320,7 @@ func (m *Menu) computeGeometry() {
 	}
 
 	maxWidth := 0
-	totalHeight := 2 * m.BorderWidth
+	totalHeight := 2*m.BorderWidth + m.tearoffHeight
 
 	for _, e := range m.entries {
 		if e.Type == Separator {
@@ -344,9 +360,16 @@ func (m *Menu) computeGeometry() {
 	w.ReqHeight = totalHeight
 }
 
-// entryAtY returns the entry index at pixel y, or -1.
+// entryAtY returns the entry index at pixel y, -1 for separator/nothing,
+// or -2 for the tearoff grip region.
 func (m *Menu) entryAtY(y int) int {
 	offset := m.BorderWidth
+	if m.TearOff {
+		if y >= offset && y < offset+m.tearoffHeight {
+			return -2 // tearoff region
+		}
+		offset += m.tearoffHeight
+	}
 	for i, e := range m.entries {
 		var h int
 		if e.Type == Separator {
@@ -367,7 +390,7 @@ func (m *Menu) entryAtY(y int) int {
 
 // entryY returns the top y coordinate of entry i.
 func (m *Menu) entryY(i int) int {
-	y := m.BorderWidth
+	y := m.BorderWidth + m.tearoffHeight
 	for j := 0; j < i; j++ {
 		if m.entries[j].Type == Separator {
 			y += m.sepHeight
@@ -411,6 +434,32 @@ func (m *Menu) Display() {
 
 	fm := m.Font.Metrics()
 	yPos := m.BorderWidth
+
+	// Draw tearoff grip (dashed line).
+	if m.TearOff {
+		isActive := m.activeIndex == -2
+		if isActive && m.ActiveBg != nil {
+			d.SetForeground(gc, m.ActiveBg.Pixel)
+			d.FillRectangle(w.Drawable(), gc, m.BorderWidth, yPos,
+				uint(w.Width-2*m.BorderWidth), uint(m.tearoffHeight))
+		}
+		// Dashed line: alternating segments.
+		var dashColor uint64 = d.BlackPixel(0)
+		if m.Foreground != nil {
+			dashColor = m.Foreground.Pixel
+		}
+		if isActive && m.ActiveFg != nil {
+			dashColor = m.ActiveFg.Pixel
+		}
+		d.SetForeground(gc, dashColor)
+		cx := m.BorderWidth + 4
+		cy := yPos + m.tearoffHeight/2
+		for cx+8 < w.Width-m.BorderWidth {
+			d.FillRectangle(w.Drawable(), gc, cx, cy-1, 6, 2)
+			cx += 10
+		}
+		yPos += m.tearoffHeight
+	}
 
 	for i, e := range m.entries {
 		if e.Type == Separator {

@@ -32,12 +32,12 @@ func main() {
 	pack.Pack(gf, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true),
 		pack.PadX(10), pack.PadY(5))
 
-	// Canvas with scroll region covering all sections including images and windows.
+	// Canvas with scroll region covering all sections including images, bitmaps, and windows.
 	c := canvas.New(gf, "items",
 		canvas.Background("white"),
 		canvas.Width(660),
 		canvas.Height(420),
-		canvas.ScrollRegion(0, 0, 660, 660),
+		canvas.ScrollRegion(0, 0, 660, 800),
 	)
 
 	scrollCmd := func(viewFunc func(n int, pages bool), moveFunc func(f float64)) func(args ...any) {
@@ -238,8 +238,26 @@ func main() {
 		}
 	}
 
-	// --- Section 9: Embedded Windows ---
-	c.CreateText(330, 560, canvas.TextOpt("Embedded Windows"), canvas.FontOpt("Sans Bold 11"),
+	// --- Section 9: Bitmaps (XBM) ---
+	c.CreateText(330, 560, canvas.TextOpt("Bitmaps (XBM)"), canvas.FontOpt("Sans Bold 11"),
+		canvas.AnchorOpt(option.AnchorCenter))
+
+	bitmapNames := []string{"gray25.xbm", "flagdown.xbm", "flagup.xbm", "letters.xbm"}
+	bx9 := 60.0
+	for _, name := range bitmapNames {
+		if bPath := findImage(name); bPath != "" {
+			if xbm, err := canvas.ParseXBMFile(bPath); err == nil {
+				c.CreateBitmap(bx9, 615, xbm,
+					canvas.AnchorOpt(option.AnchorCenter),
+					canvas.BitmapForeground(0, 0, 0),
+					canvas.Tags("item"))
+				bx9 += 160
+			}
+		}
+	}
+
+	// --- Section 10: Embedded Windows ---
+	c.CreateText(330, 700, canvas.TextOpt("Embedded Windows"), canvas.FontOpt("Sans Bold 11"),
 		canvas.AnchorOpt(option.AnchorCenter))
 
 	// A label widget embedded in the canvas.
@@ -250,7 +268,7 @@ func main() {
 	)
 	lbl.Win.ReqWidth = 120
 	lbl.Win.ReqHeight = 30
-	c.CreateWindow(80, 580, lbl.Win)
+	c.CreateWindow(80, 720, lbl.Win)
 
 	// A button widget embedded in the canvas.
 	btn := button.New(c, "win_button",
@@ -259,7 +277,7 @@ func main() {
 	)
 	btn.Win.ReqWidth = 100
 	btn.Win.ReqHeight = 30
-	c.CreateWindow(240, 580, btn.Win)
+	c.CreateWindow(240, 720, btn.Win)
 
 	// A frame with content embedded in the canvas.
 	frm := frame.New(c, "win_frame",
@@ -268,7 +286,7 @@ func main() {
 	)
 	frm.Win.ReqWidth = 120
 	frm.Win.ReqHeight = 30
-	c.CreateWindow(380, 580, frm.Win)
+	c.CreateWindow(380, 720, frm.Win)
 
 	// --- Event bindings ---
 

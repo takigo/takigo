@@ -66,6 +66,10 @@ type TextWidget struct {
 	// Read-only mode: navigation/selection work, editing blocked.
 	readOnly bool
 
+	// setGrid: if true, the toplevel window's resize increment is kept at the
+	// character cell size so the window resizes in whole-character steps.
+	setGrid bool
+
 	// Tag event bindings: tagName → eventName → handlers.
 	tagBindings map[string]map[string][]func()
 	hoverTags   map[string]bool
@@ -155,6 +159,71 @@ func New(parent widget.Caregiver, name string, opts ...TextOption) *TextWidget {
 	return t
 }
 
+// NewPeer creates a new TextWidget that shares the given document.
+// The new widget registers itself as a change listener so that edits in
+// any peer are reflected in all peers.
+func NewPeer(doc *Document, parent widget.Caregiver, name string, opts ...TextOption) *TextWidget {
+	app := parent.AppContext()
+	w := window.NewChildWindow(parent.Window(), name, 0, 0, 1, 1)
+	window.MakeWindowExist(w)
+
+	t := &TextWidget{
+		doc:         doc,
+		topLine:     1,
+		wrapMode:    WrapNone,
+		tabWidth:    8,
+		insertWidth: 2,
+		cursorOn:    true,
+		prefWidth:   80,
+		prefHeight:  24,
+		undoEnabled: false, // peers share history via the primary
+	}
+	widget.InitBase(&t.Base, w, app)
+
+	t.BorderWidth = 2
+	t.Relief = option.ReliefSunken
+	t.HighlightWidth = 1
+
+	if bg, err := app.ColorCache().Get("#ffffff"); err == nil {
+		t.Background = bg
+		t.UpdateBorder()
+	}
+	if sel, err := app.ColorCache().Get("#3399ff"); err == nil {
+		t.selBg = &colorRef{sel.Pixel, sel.Red, sel.Green, sel.Blue}
+	}
+	if selfg, err := app.ColorCache().Get("#ffffff"); err == nil {
+		t.selFg = &colorRef{selfg.Pixel, selfg.Red, selfg.Green, selfg.Blue}
+	}
+	if ins, err := app.ColorCache().Get("#000000"); err == nil {
+		t.insertColor = &colorRef{ins.Pixel, ins.Red, ins.Green, ins.Blue}
+	}
+
+	t.undoStack = NewUndoStack(0)
+
+	for _, opt := range opts {
+		opt(t)
+	}
+
+	t.inset = t.BorderWidth + t.HighlightWidth + 1
+	t.computeGeometry()
+
+	if t.Background != nil {
+		w.BackgroundPixel = t.Background.Pixel
+	}
+
+	w.Flags |= window.FlagFocusable
+	w.SetCursor(152)
+	bindText(t, app)
+
+	// Register as a document listener so edits from other peers trigger a redraw.
+	doc.Listeners = append(doc.Listeners, func() {
+		t.notifyYScrollbar()
+		t.scheduleRedraw()
+	})
+
+	return t
+}
+
 // computeGeometry calculates the requested window size.
 func (t *TextWidget) computeGeometry() {
 	if t.Font == nil {
@@ -165,10 +234,33 @@ func (t *TextWidget) computeGeometry() {
 	if avgWidth < 1 {
 		avgWidth = 1
 	}
+	lineHeight := m.Linespace()
 
 	w := t.Win
 	w.ReqWidth = t.prefWidth*avgWidth + 2*t.inset
-	w.ReqHeight = t.prefHeight*m.Linespace() + 2*t.inset
+	w.ReqHeight = t.prefHeight*lineHeight + 2*t.inset
+
+	if t.setGrid {
+		t.applySetGrid(avgWidth, lineHeight)
+	}
+}
+
+// applySetGrid sets the WM size-increment hints on the nearest toplevel so the
+// window resizes in whole character steps (Tk's -setgrid 1 behaviour).
+func (t *TextWidget) applySetGrid(charW, lineH int) {
+	top := window.Toplevel(t.Win)
+	if top == nil || top.PlatformID == 0 {
+		return
+	}
+	inset := 2 * t.inset
+	hints := &platform.SizeHints{
+		Flags:     platform.PResizeInc | platform.PMinSize,
+		WidthInc:  charW,
+		HeightInc: lineH,
+		MinWidth:  inset + charW,
+		MinHeight: inset + lineH,
+	}
+	t.App.Server().SetWMNormalHints(top.PlatformID, hints)
 }
 
 // Display draws the text widget.

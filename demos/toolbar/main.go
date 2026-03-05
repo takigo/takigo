@@ -81,7 +81,7 @@ func main() {
 	pack.Pack(sep, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillY), pack.PadX("1.5p"), pack.PadY("3p"))
 
 	// Menubutton with example commands (Toolbutton style).
-	exMenu := menu.New(app, "exmenu")
+	exMenu := menu.New(app, "exmenu", menu.TearOffOpt(true))
 	exMenu.AddCommand("Just", func() { appendMsg("Just") })
 	exMenu.AddCommand("An", func() { appendMsg("An") })
 	exMenu.AddCommand("Example", func() { appendMsg("Example") })

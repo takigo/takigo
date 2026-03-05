@@ -157,8 +157,7 @@ These patterns recur across nearly every demo and should be addressed globally:
 - [ ] **DPI scaling**: Tcl applies `$tk::scalingPct` scaling to canvas items — not implemented, known limitation
 
 ### 24. `icon`
-- [x] **MAJOR → Simplified version**: Go demo shows iconic button concept with Photo images (flag up/down + color squares) instead of XBM bitmaps; demonstrates checkbutton/radiobutton image usage
-- [ ] True Tcl layout (XBM bitmaps, -selectimage, -indicatoron 0) — known limitation (XBM and selectimage not implemented)
+- [x] **MAJOR → Implemented**: Rewrote demo with three-column layout (radiobuttons left, selectimage checkbutton middle, color-square checkbutton right). Added `SelectImageOpt`/`IndicatorOnOpt` to checkbutton; selectimage switches between flagDown/flagUp images automatically via Variable linkage. Uses Photo images instead of XBM bitmaps (visual equivalent).
 
 ### 25. `image1`
 - [x] **Layout**: Fixed — 2 labels stacked vertically (Top), PadX(".5m") PadY(".5m"), Relief(Sunken) BorderWidth(1)
@@ -174,7 +173,7 @@ These patterns recur across nearly every demo and should be addressed globally:
 - [x] **Scrollbar**: Added TTK x/y scrollbars with scroll region (0,0,660,520) — grid layout with canvas
 - [x] **Images section**: Added 8th section showing ouster.png and plowed_field.png as canvas image items
 - [x] **Smooth lines**: Already in Go (Smooth(true) used in section 3 lines) ✓
-- [ ] **Missing bitmaps section**: Canvas bitmap items not implemented — known limitation
+- [x] **Missing bitmaps section**: XBM bitmap items implemented — `ParseXBM`/`ParseXBMFile` parser in canvas/xbm.go, `BitmapItem` in canvas/item_bitmap.go, `CreateBitmap`/`BitmapForeground`/`BitmapBackground` API; Section 9 (Bitmaps) added to items demo with gray25/flagdown/flagup/letters
 - [x] **Missing window items section**: Canvas window items (embedded widgets) implemented — WindowItem type, CreateWindow, positionWindowItems; Section 9 added to items demo
 - [x] **Layout**: Tcl uses 3×3 grid with cm coordinates; Go uses fixed pixel layout with 2 new sections — functionally similar, acceptable difference
 
@@ -305,10 +304,10 @@ These patterns recur across nearly every demo and should be addressed globally:
 - [x] **Scrollbar**: Replace classic with TTK
 - [x] **Text content**: Comprehensive numbered list (7 items) covering all editing features
 - [x] **Focus**: Added `app.After(0, SetInputFocus)` for initial focus
-- [ ] **setgrid**: Tcl uses `-setgrid 1` — not supported, known limitation
+- [x] **setgrid**: Added `SetGridOpt(bool)` to text widget; `applySetGrid` walks to toplevel and calls `SetWMNormalHints` with `PResizeInc | PMinSize` so the window resizes in whole-character steps; text demo updated
 
 ### 50. `textpeer`
-- [ ] **MAJOR**: Go demo simulates peering with copy buttons; Tcl uses true text peering (`peer create`) — text widget peer feature not implemented, known limitation
+- [x] **MAJOR**: True text peering implemented — `Document.Listeners []func()` notified after Insert/Delete; `text.NewPeer(doc, parent, name, opts)` creates widget sharing existing document; textpeer demo rewrote with real shared doc, Make Peer/Delete Peer buttons
 - [x] **Layout**: Rewrote — inner frame `w` with grid, RowSpan(2) for text+scrollbar, ColumnConfigure weight 1
 - [x] **Scrollbar**: Replace classic with TTK
 - [x] **Text height**: Tcl uses 10 lines — changed Go to 10
@@ -317,7 +316,7 @@ These patterns recur across nearly every demo and should be addressed globally:
 
 ### 51. `toolbar`
 - [x] **Layout**: Changed to grid inside inner frame — toolbar(row 0), sep(row 1), text(row 2 expand)
-- [ ] **Missing tearoff**: Tcl has tearoff grip mechanism — complex, known limitation
+- [x] **Missing tearoff**: Menu tearoff implemented — `TearOff bool` field + `TearOffOpt(bool)` option; `tearoffHeight` dashed grip area drawn at top of menu; click on grip calls `Detach()` which creates a persistent WM-managed toplevel with same entries (no grab, entries invoke without closing); `TearoffWindow` type in widget/menu/tearoff.go; menu and toolbar demos updated
 - [x] **Toolbutton style**: Added "Toolbutton" TTK style (flat default, raised on hover, sunken on press); applied to button and menubutton in toolbar
 - [x] **Checkbutton**: Replaced simulated button with ttk.NewCheckbutton + Variable[bool] — matches Tcl's ttk::checkbutton (without Toolbutton style indicator suppression)
 - [x] **Font change**: Tcl combobox selection changes text widget font. Added font change on combobox select.

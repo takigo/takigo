@@ -391,6 +391,13 @@ func (c *Canvas) CreateWindow(x, y float64, w *window.Window, opts ...ItemOption
 	return c.addItem(item)
 }
 
+// CreateBitmap creates a 1-bit XBM bitmap item at (x, y).
+func (c *Canvas) CreateBitmap(x, y float64, xbm *XBMData, opts ...ItemOption) int64 {
+	item := newBitmapItem(x, y, xbm, c)
+	item.Configure(opts)
+	return c.addItem(item)
+}
+
 func (c *Canvas) CreateImage(x, y float64, opts ...ItemOption) int64 {
 	item := newImageItem(x, y, c)
 	item.Configure(opts)

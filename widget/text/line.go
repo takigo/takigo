@@ -13,11 +13,23 @@ type Line struct {
 }
 
 // Document is the in-memory text model: a slice of lines plus marks and tags.
+// Multiple TextWidget instances may share one Document (peering); each
+// registers a change listener that is called after every insert or delete.
 type Document struct {
 	Lines     []*Line
 	Marks     map[string]*Mark
 	Tags      map[string]*Tag
 	TagRanges []TagRange
+
+	// Listeners are called (in registration order) after every Insert or Delete.
+	Listeners []func()
+}
+
+// notifyListeners calls all registered change listeners.
+func (d *Document) notifyListeners() {
+	for _, fn := range d.Listeners {
+		fn()
+	}
 }
 
 // NewDocument creates a new empty document with one empty line and the
@@ -101,7 +113,9 @@ func (d *Document) Insert(idx Index, text string) Index {
 		newText = append(newText, insertedLines[0]...)
 		newText = append(newText, after...)
 		line.Text = newText
-		return Index{Line: idx.Line, Char: idx.Char + len(insertedLines[0])}
+		result := Index{Line: idx.Line, Char: idx.Char + len(insertedLines[0])}
+		d.notifyListeners()
+		return result
 	}
 
 	// Multi-line insert.
@@ -126,7 +140,9 @@ func (d *Document) Insert(idx Index, text string) Index {
 	newAllLines = append(newAllLines, d.Lines[insertPos:]...)
 	d.Lines = newAllLines
 
-	return Index{Line: idx.Line + len(newLines), Char: endChar}
+	result := Index{Line: idx.Line + len(newLines), Char: endChar}
+	d.notifyListeners()
+	return result
 }
 
 // Delete removes text between start and end.
@@ -147,6 +163,7 @@ func (d *Document) Delete(start, end Index) {
 		// Single-line delete.
 		line := d.Lines[start.Line-1]
 		line.Text = append(line.Text[:start.Char], line.Text[end.Char:]...)
+		d.notifyListeners()
 		return
 	}
 
@@ -160,6 +177,7 @@ func (d *Document) Delete(start, end Index) {
 	removeEnd := end.Line         // 0-based index past last line to remove
 	copy(d.Lines[removeStart:], d.Lines[removeEnd:])
 	d.Lines = d.Lines[:len(d.Lines)-(removeEnd-removeStart)]
+	d.notifyListeners()
 }
 
 // --- Mark methods ---

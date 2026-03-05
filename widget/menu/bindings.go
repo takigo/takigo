@@ -43,7 +43,10 @@ func bindMenu(m *Menu, app widget.AppContext) {
 			return
 		}
 		idx := m.entryAtY(ev.Y)
-		if idx >= 0 {
+		if idx == -2 {
+			// Tearoff grip clicked — detach the menu.
+			m.Detach()
+		} else if idx >= 0 {
 			m.invoke(idx)
 		} else {
 			// Click outside entries — unpost.

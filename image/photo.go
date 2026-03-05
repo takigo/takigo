@@ -3,11 +3,14 @@ package image
 import (
 	"fmt"
 	goimage "image"
+	"image/color"
 	"image/draw"
 	_ "image/gif" // register GIF decoder
 	_ "image/png" // register PNG decoder
 	"io"
 	"os"
+	"strconv"
+	"strings"
 
 	"github.com/msorc/takigo/platform"
 )
@@ -46,6 +49,84 @@ func NewPhotoFromFile(name, path string) (*Photo, error) {
 	}
 	defer f.Close()
 	return NewPhotoFromReader(name, f)
+}
+
+// NewPhotoFromXBMFile loads an XBM (X BitMap) file and creates a Photo.
+// fg and bg are the colors for bit=1 and bit=0 pixels respectively.
+// Use bg.A=0 for transparent backgrounds.
+func NewPhotoFromXBMFile(name, path string, fg, bg color.RGBA) (*Photo, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("image: open xbm %s: %w", path, err)
+	}
+	return NewPhotoFromXBM(name, string(data), fg, bg)
+}
+
+// NewPhotoFromXBM parses XBM source text and creates a Photo.
+func NewPhotoFromXBM(name, src string, fg, bg color.RGBA) (*Photo, error) {
+	var w, h int
+	for _, line := range strings.Split(src, "\n") {
+		line = strings.TrimSpace(line)
+		if !strings.HasPrefix(line, "#define") {
+			continue
+		}
+		fields := strings.Fields(line)
+		if len(fields) < 3 {
+			continue
+		}
+		val, err := strconv.Atoi(fields[2])
+		if err != nil {
+			continue
+		}
+		if strings.HasSuffix(fields[1], "_width") {
+			w = val
+		} else if strings.HasSuffix(fields[1], "_height") {
+			h = val
+		}
+	}
+	if w == 0 || h == 0 {
+		return nil, fmt.Errorf("image: xbm: missing width or height")
+	}
+
+	start := strings.Index(src, "{")
+	end := strings.LastIndex(src, "}")
+	if start < 0 || end < 0 || end <= start {
+		return nil, fmt.Errorf("image: xbm: could not find data array")
+	}
+	body := src[start+1 : end]
+
+	var bits []byte
+	for _, tok := range strings.FieldsFunc(body, func(r rune) bool {
+		return r == ',' || r == ' ' || r == '\t' || r == '\n' || r == '\r'
+	}) {
+		tok = strings.TrimSpace(tok)
+		tok = strings.TrimPrefix(tok, "0x")
+		tok = strings.TrimPrefix(tok, "0X")
+		b, err := strconv.ParseUint(tok, 16, 8)
+		if err != nil {
+			continue
+		}
+		bits = append(bits, byte(b))
+	}
+
+	rowBytes := (w + 7) / 8
+	if len(bits) < rowBytes*h {
+		return nil, fmt.Errorf("image: xbm: not enough data")
+	}
+
+	rgba := goimage.NewRGBA(goimage.Rect(0, 0, w, h))
+	for row := range h {
+		for col := range w {
+			byteIdx := row*rowBytes + col/8
+			bit := (bits[byteIdx] >> uint(col%8)) & 1
+			if bit == 1 {
+				rgba.SetRGBA(col, row, fg)
+			} else {
+				rgba.SetRGBA(col, row, bg)
+			}
+		}
+	}
+	return NewPhoto(name, rgba), nil
 }
 
 // NewPhotoFromReader decodes an image from a reader.

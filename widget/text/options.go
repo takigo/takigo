@@ -93,3 +93,10 @@ func InsertWidth(w int) TextOption {
 func ReadOnly(on bool) TextOption {
 	return func(t *TextWidget) { t.readOnly = on }
 }
+
+// SetGridOpt enables or disables setgrid mode. When enabled, the nearest
+// toplevel window's resize increments are set to the character cell size so
+// that the window resizes in whole character increments (matching Tk's -setgrid).
+func SetGridOpt(on bool) TextOption {
+	return func(t *TextWidget) { t.setGrid = on }
+}

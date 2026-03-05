@@ -30,6 +30,10 @@ type Checkbutton struct {
 	Indeterminate bool      // shows a dash (partial/tri-state) instead of a checkmark
 	SelectColor   *colorRef // indicator fill color when selected
 
+	// Images (selectimage shown when checked; image shown otherwise).
+	Img       widget.WidgetImage
+	SelectImg widget.WidgetImage
+
 	// Active colors (used on hover).
 	ActiveBackground *colorRef
 	ActiveForeground *colorRef
@@ -121,6 +125,21 @@ func PadY(p any) Option {
 	return func(c *Checkbutton) { c.PadY = screenunit.Px(p) }
 }
 
+// ImageOpt sets the image shown in the normal (unselected) state.
+func ImageOpt(img widget.WidgetImage) Option {
+	return func(c *Checkbutton) { c.Img = img }
+}
+
+// SelectImageOpt sets the image shown in the selected state.
+func SelectImageOpt(img widget.WidgetImage) Option {
+	return func(c *Checkbutton) { c.SelectImg = img }
+}
+
+// IndicatorOnOpt sets whether the indicator (checkbox square) is drawn.
+func IndicatorOnOpt(on bool) Option {
+	return func(c *Checkbutton) { c.IndicatorOn = on }
+}
+
 // indicatorSize is the side length of the square indicator.
 const indicatorSize = 13
 
@@ -184,10 +203,18 @@ func (c *Checkbutton) computeGeometry() {
 		c.textHeight = 0
 	}
 
+	// Determine content size from image or text.
+	img := c.activeImage()
 	inset := c.BorderWidth + c.HighlightWidth
-	contentW := c.textWidth
-	contentH := c.textHeight
-	if c.IndicatorOn {
+	var contentW, contentH int
+	if img != nil {
+		contentW = img.Width()
+		contentH = img.Height()
+	} else {
+		contentW = c.textWidth
+		contentH = c.textHeight
+	}
+	if c.IndicatorOn && img == nil {
 		contentW += indicatorSize + 4 // indicator + gap
 		if indicatorSize > contentH {
 			contentH = indicatorSize
@@ -197,6 +224,15 @@ func (c *Checkbutton) computeGeometry() {
 	w := c.Win
 	w.ReqWidth = contentW + 2*c.PadX + 2*inset
 	w.ReqHeight = contentH + 2*c.PadY + 2*inset
+}
+
+// activeImage returns the image to display based on current state.
+func (c *Checkbutton) activeImage() widget.WidgetImage {
+	selected := c.Variable.Get()
+	if selected && c.SelectImg != nil {
+		return c.SelectImg
+	}
+	return c.Img
 }
 
 // Selected returns whether the checkbutton is currently selected.
@@ -297,8 +333,20 @@ func (c *Checkbutton) Display() {
 		}
 	}
 
-	// Draw text.
-	if c.Font != nil && c.Text != "" && fgCol != nil {
+	// Draw image (if set) or text.
+	img := c.activeImage()
+	if img != nil {
+		imgW := img.Width()
+		imgH := img.Height()
+		imgX := frameX + (availW-imgW)/2
+		imgY := frameY + (availH-imgH)/2
+		if photo, ok := img.(interface {
+			Draw(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID,
+				depth int, imgX, imgY, w, h, dstX, dstY int, bgPixel uint64)
+		}); ok {
+			photo.Draw(d, w.Drawable(), gc, w.Depth, 0, 0, imgW, imgH, imgX, imgY, bgPixel)
+		}
+	} else if c.Font != nil && c.Text != "" && fgCol != nil {
 		textX := frameX + indW
 		textY := frameY + (availH-c.textHeight)/2
 		// Apply anchor for remaining space.

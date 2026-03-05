@@ -19,6 +19,7 @@ func main() {
 		text.Height(30),
 		text.WrapModeOpt(text.WrapWord),
 		text.UndoOpt(true),
+		text.SetGridOpt(true),
 	)
 
 	yscroll := ttk.NewScrollbar(app, "scroll",

@@ -3,7 +3,6 @@
 package main
 
 import (
-	"fmt"
 	goimage "image"
 	"image/color"
 
@@ -17,6 +16,35 @@ import (
 	"github.com/msorc/takigo/widget/label"
 	"github.com/msorc/takigo/widget/radiobutton"
 )
+
+func makeFlagImage(name string, up bool) *tkimage.Photo {
+	const w, h = 40, 40
+	img := goimage.NewRGBA(goimage.Rect(0, 0, w, h))
+	bg := color.RGBA{R: 220, G: 220, B: 220, A: 255}
+	pole := color.RGBA{R: 80, G: 60, B: 40, A: 255}
+	flag := color.RGBA{R: 200, G: 40, B: 40, A: 255}
+	for y := range h {
+		for x := range w {
+			img.SetRGBA(x, y, bg)
+		}
+	}
+	// Pole.
+	for y := 4; y < h-2; y++ {
+		img.SetRGBA(8, y, pole)
+		img.SetRGBA(9, y, pole)
+	}
+	// Flag (raised: near top; lowered: near bottom).
+	fy := 4
+	if !up {
+		fy = 20
+	}
+	for y := fy; y < fy+14; y++ {
+		for x := 10; x < 30; x++ {
+			img.SetRGBA(x, y, flag)
+		}
+	}
+	return tkimage.NewPhoto(name, img)
+}
 
 func makeColorSquare(name string, c color.RGBA, sz int) *tkimage.Photo {
 	img := goimage.NewRGBA(goimage.Rect(0, 0, sz, sz))
@@ -33,38 +61,8 @@ func makeColorSquare(name string, c color.RGBA, sz int) *tkimage.Photo {
 	return tkimage.NewPhoto(name, img)
 }
 
-func makeFlagImage(name string, up bool) *tkimage.Photo {
-	const w, h = 32, 32
-	img := goimage.NewRGBA(goimage.Rect(0, 0, w, h))
-	bg := color.RGBA{R: 220, G: 220, B: 220, A: 255}
-	pole := color.RGBA{R: 80, G: 60, B: 40, A: 255}
-	flag := color.RGBA{R: 200, G: 40, B: 40, A: 255}
-	// Background.
-	for y := range h {
-		for x := range w {
-			img.SetRGBA(x, y, bg)
-		}
-	}
-	// Pole.
-	for y := 4; y < h-2; y++ {
-		img.SetRGBA(6, y, pole)
-		img.SetRGBA(7, y, pole)
-	}
-	// Flag.
-	fy := 4
-	if !up {
-		fy = 16
-	}
-	for y := fy; y < fy+12; y++ {
-		for x := 8; x < 24; x++ {
-			img.SetRGBA(x, y, flag)
-		}
-	}
-	return tkimage.NewPhoto(name, img)
-}
-
 func main() {
-	app := demohelper.Setup("Iconic Button Demonstration", 450, 400,
+	app := demohelper.Setup("Iconic Button Demonstration", 500, 400,
 		"This window shows three ways of using bitmaps or images in "+
 			"radiobuttons and checkbuttons. On the left are two "+
 			"radiobuttons, each of which displays a bitmap and an "+
@@ -74,100 +72,99 @@ func main() {
 			"but changes its background color to indicate whether or not "+
 			"it is selected.")
 
-	statusLabel := label.New(app, "status",
-		label.Text("Flag: down, Color: red"),
-		label.Anchor(option.AnchorW),
-		label.PadX(10),
-	)
-	pack.Pack(statusLabel, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX), pack.PadY(5))
-
-	// Create images.
+	// Create flag images.
 	flagUp := makeFlagImage("flag_up", true)
 	flagDown := makeFlagImage("flag_down", false)
 	app.ImageRegistry().Register(flagUp)
 	app.ImageRegistry().Register(flagDown)
 
-	redImg := makeColorSquare("sq_red", color.RGBA{R: 220, G: 40, B: 40, A: 255}, 24)
-	greenImg := makeColorSquare("sq_green", color.RGBA{R: 40, G: 180, B: 40, A: 255}, 24)
-	blueImg := makeColorSquare("sq_blue", color.RGBA{R: 40, G: 40, B: 220, A: 255}, 24)
-	yellowImg := makeColorSquare("sq_yellow", color.RGBA{R: 220, G: 200, B: 40, A: 255}, 24)
+	// Create color square images.
+	redImg := makeColorSquare("sq_red", color.RGBA{R: 220, G: 40, B: 40, A: 255}, 30)
+	greenImg := makeColorSquare("sq_green", color.RGBA{R: 40, G: 180, B: 40, A: 255}, 30)
 	app.ImageRegistry().Register(redImg)
 	app.ImageRegistry().Register(greenImg)
-	app.ImageRegistry().Register(blueImg)
-	app.ImageRegistry().Register(yellowImg)
 
-	// Variables.
+	// Shared variable.
 	flagVar := widget.NewVariable(false)
-	colorVar := widget.NewVariable("red")
 
-	// Flag display label.
-	flagLabel := label.New(app, "flagdisp",
-		label.ImageOpt(flagDown),
-		label.BorderWidth(2), label.Relief(option.ReliefSunken),
-		label.PadX(4), label.PadY(4),
-	)
-	pack.Pack(flagLabel, pack.SideOpt(pack.Top), pack.PadY(10))
+	// Outer frame to hold three columns.
+	outer := frame.New(app, "outer")
+	pack.Pack(outer, pack.SideOpt(pack.Top), pack.Expand(true), pack.FillOpt(pack.FillBoth))
 
-	updateStatus := func() {
-		state := "down"
-		if flagVar.Get() {
-			state = "up"
-		}
-		statusLabel.Text = fmt.Sprintf("Flag: %s, Color: %s", state, colorVar.Get())
-		statusLabel.Display()
-	}
-
-	// Checkbutton for flag.
-	cb := checkbutton.New(app, "flagcb",
-		checkbutton.Text("Raise Flag"),
-		checkbutton.Var(flagVar),
-		checkbutton.Command(func() {
-			if flagVar.Get() {
-				flagLabel.Img = flagUp
-			} else {
-				flagLabel.Img = flagDown
-			}
-			flagLabel.Display()
-			updateStatus()
-		}),
-	)
-	pack.Pack(cb, pack.SideOpt(pack.Top), pack.PadY(5))
-
-	// Radiobutton group for colors.
-	colorFrame := frame.New(app, "colors",
+	// ── Left column: radiobuttons with images + indicators ──
+	leftFrame := frame.New(outer, "left",
 		frame.BorderWidth(2), frame.Relief(option.ReliefGroove),
 	)
-	pack.Pack(colorFrame, pack.SideOpt(pack.Top), pack.PadX(20), pack.PadY(10))
+	pack.Pack(leftFrame, pack.SideOpt(pack.Left), pack.PadX(10), pack.PadY(10), pack.Expand(true))
 
-	colorTitle := label.New(colorFrame, "ctitle", label.Text("Select Color"))
-	pack.Pack(colorTitle, pack.SideOpt(pack.Top), pack.PadY(5))
+	ltitle := label.New(leftFrame, "ltitle",
+		label.Text("Radiobuttons\nwith images"),
+		label.Anchor(option.AnchorCenter),
+	)
+	pack.Pack(ltitle, pack.SideOpt(pack.Top), pack.PadY(4))
+	// Use a string variable for radiobuttons (separate from flagVar).
+	rbVar := widget.NewVariable("down")
+	rbUp := radiobutton.New(leftFrame, "rb_up",
+		radiobutton.Text("Flag Up"),
+		radiobutton.Value("up"),
+		radiobutton.Var(rbVar),
+	)
+	rbDown := radiobutton.New(leftFrame, "rb_down",
+		radiobutton.Text("Flag Down"),
+		radiobutton.Value("down"),
+		radiobutton.Var(rbVar),
+	)
+	pack.Pack(rbUp, pack.SideOpt(pack.Top), pack.PadY(4), pack.Anchor(option.AnchorW))
+	pack.Pack(rbDown, pack.SideOpt(pack.Top), pack.PadY(4), pack.Anchor(option.AnchorW))
 
-	type colorDef struct {
-		name  string
-		image *tkimage.Photo
-	}
-	colorDefs := []colorDef{
-		{"red", redImg},
-		{"green", greenImg},
-		{"blue", blueImg},
-		{"yellow", yellowImg},
-	}
+	// ── Middle column: checkbutton with selectimage ──
+	midFrame := frame.New(outer, "mid",
+		frame.BorderWidth(2), frame.Relief(option.ReliefGroove),
+	)
+	pack.Pack(midFrame, pack.SideOpt(pack.Left), pack.PadX(10), pack.PadY(10), pack.Expand(true))
 
-	for _, cd := range colorDefs {
-		rb := radiobutton.New(colorFrame, "rb_"+cd.name,
-			radiobutton.Text(cd.name),
-			radiobutton.Value(cd.name),
-			radiobutton.Var(colorVar),
-			radiobutton.Command(updateStatus),
-		)
-		pack.Pack(rb, pack.SideOpt(pack.Top), pack.PadY(2),
-			pack.Anchor(option.AnchorW), pack.PadX(10))
-		_ = rb
-	}
+	mtitle := label.New(midFrame, "mtitle",
+		label.Text("Checkbutton\nselectimage"),
+		label.Anchor(option.AnchorCenter),
+	)
+	pack.Pack(mtitle, pack.SideOpt(pack.Top), pack.PadY(4))
+	// Middle checkbutton: flagDown normally, flagUp when selected; no indicator.
+	cbMid := checkbutton.New(midFrame, "cb_mid",
+		checkbutton.ImageOpt(flagDown),
+		checkbutton.SelectImageOpt(flagUp),
+		checkbutton.IndicatorOnOpt(false),
+		checkbutton.Var(flagVar),
+	)
+	pack.Pack(cbMid, pack.SideOpt(pack.Top), pack.PadY(8))
 
-	_ = statusLabel
-	_ = flagLabel
-	_ = cb
-	_ = colorTitle
+	// ── Right column: checkbutton changing background via selectcolor ──
+	rightFrame := frame.New(outer, "right",
+		frame.BorderWidth(2), frame.Relief(option.ReliefGroove),
+	)
+	pack.Pack(rightFrame, pack.SideOpt(pack.Left), pack.PadX(10), pack.PadY(10), pack.Expand(true))
+
+	rtitle := label.New(rightFrame, "rtitle",
+		label.Text("Checkbutton\ncolor squares"),
+		label.Anchor(option.AnchorCenter),
+	)
+	pack.Pack(rtitle, pack.SideOpt(pack.Top), pack.PadY(4))
+	// Right checkbutton: single color-square image, changes background on select.
+	colorVar := widget.NewVariable(false)
+	cbRight := checkbutton.New(rightFrame, "cb_right",
+		checkbutton.ImageOpt(redImg),
+		checkbutton.SelectImageOpt(greenImg),
+		checkbutton.IndicatorOnOpt(false),
+		checkbutton.Var(colorVar),
+		checkbutton.Text("Toggle"),
+	)
+	pack.Pack(cbRight, pack.SideOpt(pack.Top), pack.PadY(8))
+
+	_ = rbVar
+	_ = rbUp
+	_ = rbDown
+	_ = cbMid
+	_ = cbRight
+	_ = flagVar
+	_ = colorVar
 	app.Run()
 }

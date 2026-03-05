@@ -1,6 +1,8 @@
 package canvas
 
 import (
+	"image/color"
+
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/widget"
 )
@@ -110,6 +112,29 @@ func AnchorOpt(a option.Anchor) ItemOption {
 			it.anchor = a
 		case *ImageItem:
 			it.anchor = a
+		case *BitmapItem:
+			it.anchor = a
+		}
+		return nil
+	}
+}
+
+// BitmapForeground sets the foreground (bit=1) color for a BitmapItem.
+func BitmapForeground(r, g, b uint8) ItemOption {
+	return func(_ *Canvas, item Item) error {
+		if bi, ok := item.(*BitmapItem); ok {
+			bi.Foreground = color.RGBA{R: r, G: g, B: b, A: 255}
+		}
+		return nil
+	}
+}
+
+// BitmapBackground sets the background (bit=0) color for a BitmapItem.
+// Use A=0 for transparent (default).
+func BitmapBackground(r, g, b, a uint8) ItemOption {
+	return func(_ *Canvas, item Item) error {
+		if bi, ok := item.(*BitmapItem); ok {
+			bi.Background = color.RGBA{R: r, G: g, B: b, A: a}
 		}
 		return nil
 	}
