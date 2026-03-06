@@ -58,11 +58,8 @@ func (d *Dispatcher) Dispatch(ev *Event) {
 	}
 
 	d.mu.RLock()
-	// Copy slices under lock to avoid holding lock during handler execution.
-	windowHandlers := make([]registration, len(d.handlers[ev.Window]))
-	copy(windowHandlers, d.handlers[ev.Window])
-	globalHandlers := make([]registration, len(d.global))
-	copy(globalHandlers, d.global)
+	windowHandlers := d.handlers[ev.Window]
+	globalHandlers := d.global
 	d.mu.RUnlock()
 
 	for _, r := range windowHandlers {
