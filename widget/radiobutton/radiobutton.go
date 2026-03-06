@@ -4,6 +4,7 @@
 package radiobutton
 
 import (
+	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
@@ -27,24 +28,17 @@ type Radiobutton struct {
 	unsub    func()
 
 	// Indicator.
-	IndicatorOn    bool
-	TristateValue  string    // if non-empty and variable==TristateValue, show indeterminate dash
-	SelectColor    *colorRef // indicator fill when selected
+	IndicatorOn   bool
+	TristateValue string          // if non-empty and variable==TristateValue, show indeterminate dash
+	SelectColor   *color.ColorRef // indicator fill when selected
 
 	// Active colors.
-	ActiveBackground *colorRef
-	ActiveForeground *colorRef
+	ActiveBackground *color.ColorRef
+	ActiveForeground *color.ColorRef
 
 	textWidth  int
 	textHeight int
 	pressed    bool
-}
-
-type colorRef struct {
-	Pixel uint64
-	Red   uint16
-	Green uint16
-	Blue  uint16
 }
 
 // RadiobuttonOption configures a Radiobutton.
@@ -164,15 +158,15 @@ func New(parent widget.Caregiver, name string, opts ...RadiobuttonOption) *Radio
 
 	// Active colors.
 	if ac, err := app.ColorCache().Get(widget.DefActiveBackground); err == nil {
-		r.ActiveBackground = &colorRef{ac.Pixel, ac.Red, ac.Green, ac.Blue}
+		r.ActiveBackground = ac.Ref()
 	}
 	if af, err := app.ColorCache().Get(widget.DefActiveForeground); err == nil {
-		r.ActiveForeground = &colorRef{af.Pixel, af.Red, af.Green, af.Blue}
+		r.ActiveForeground = af.Ref()
 	}
 
 	// Select color.
 	if sc, err := app.ColorCache().Get("#b03060"); err == nil {
-		r.SelectColor = &colorRef{sc.Pixel, sc.Red, sc.Green, sc.Blue}
+		r.SelectColor = sc.Ref()
 	}
 
 	// Default variable.
@@ -245,12 +239,12 @@ func (r *Radiobutton) Display() {
 
 	// Choose colors based on state.
 	bgPixel := uint64(0)
-	var fgCol *colorRef
+	var fgCol *color.ColorRef
 	if r.Background != nil {
 		bgPixel = r.Background.Pixel
 	}
 	if r.Foreground != nil {
-		fgCol = &colorRef{r.Foreground.Pixel, r.Foreground.Red, r.Foreground.Green, r.Foreground.Blue}
+		fgCol = r.Foreground.Ref()
 	}
 
 	if r.State == widget.StateActive && r.ActiveBackground != nil {

@@ -3,6 +3,7 @@ package canvas
 import (
 	"math"
 
+	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/platform"
 )
 
@@ -10,8 +11,8 @@ import (
 type PolygonItem struct {
 	ItemBase
 	coords       []float64
-	fill         *colorRef
-	outline      *colorRef
+	fill         *color.ColorRef
+	outline      *color.ColorRef
 	outlineWidth int
 	dash         []byte
 	smooth       bool
@@ -25,7 +26,7 @@ func newPolygonItem(coords []float64, c *Canvas) *PolygonItem {
 		splineSteps:  12,
 	}
 	// Default: filled black, no outline.
-	item.fill = &colorRef{Pixel: 0x000000}
+	item.fill = &color.ColorRef{Pixel: 0x000000}
 	item.ItemBase.canvas = c
 	item.updateBBox()
 	return item

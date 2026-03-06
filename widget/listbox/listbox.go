@@ -3,6 +3,7 @@
 package listbox
 
 import (
+	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
@@ -30,25 +31,25 @@ type Listbox struct {
 	activeIndex int // active (focused) item, -1 = none
 
 	// Selection.
-	selected    map[int]bool
-	selectMode  SelectMode
-	selAnchor   int // selection anchor for extended mode
+	selected   map[int]bool
+	selectMode SelectMode
+	selAnchor  int // selection anchor for extended mode
 
 	// Layout.
-	lineHeight  int
-	inset       int
+	lineHeight int
+	inset      int
 
 	// Preferred dimensions.
 	PrefWidth  int // in characters
 	PrefHeight int // in lines
 
 	// Colors.
-	SelBg *colorRef
-	SelFg *colorRef
+	SelBg *color.ColorRef
+	SelFg *color.ColorRef
 
 	// Per-item colors (set via ItemConfigure).
-	itemFg map[int]*colorRef
-	itemBg map[int]*colorRef
+	itemFg map[int]*color.ColorRef
+	itemBg map[int]*color.ColorRef
 
 	// Scrollbar callbacks.
 	YScrollCmd func(first, last float64)
@@ -61,13 +62,6 @@ type Listbox struct {
 
 	// Text justification within items (left/center/right).
 	Justify option.Justify
-}
-
-type colorRef struct {
-	Pixel uint64
-	Red   uint16
-	Green uint16
-	Blue  uint16
 }
 
 // ListboxOption configures a Listbox.
@@ -120,8 +114,8 @@ func New(parent widget.Caregiver, name string, opts ...ListboxOption) *Listbox {
 
 	lb := &Listbox{
 		selected:    make(map[int]bool),
-		itemFg:      make(map[int]*colorRef),
-		itemBg:      make(map[int]*colorRef),
+		itemFg:      make(map[int]*color.ColorRef),
+		itemBg:      make(map[int]*color.ColorRef),
 		selectMode:  SelectBrowse,
 		activeIndex: -1,
 		selAnchor:   -1,
@@ -142,10 +136,10 @@ func New(parent widget.Caregiver, name string, opts ...ListboxOption) *Listbox {
 
 	// Selection colors.
 	if sel, err := app.ColorCache().Get("#3399ff"); err == nil {
-		lb.SelBg = &colorRef{sel.Pixel, sel.Red, sel.Green, sel.Blue}
+		lb.SelBg = sel.Ref()
 	}
 	if selfg, err := app.ColorCache().Get("#ffffff"); err == nil {
-		lb.SelFg = &colorRef{selfg.Pixel, selfg.Red, selfg.Green, selfg.Blue}
+		lb.SelFg = selfg.Ref()
 	}
 
 	for _, opt := range opts {
@@ -285,12 +279,12 @@ func (lb *Listbox) ItemConfigure(idx int, fg, bg string) {
 	if fg == "" {
 		delete(lb.itemFg, idx)
 	} else if col, err := lb.App.ColorCache().Get(fg); err == nil {
-		lb.itemFg[idx] = &colorRef{col.Pixel, col.Red, col.Green, col.Blue}
+		lb.itemFg[idx] = col.Ref()
 	}
 	if bg == "" {
 		delete(lb.itemBg, idx)
 	} else if col, err := lb.App.ColorCache().Get(bg); err == nil {
-		lb.itemBg[idx] = &colorRef{col.Pixel, col.Red, col.Green, col.Blue}
+		lb.itemBg[idx] = col.Ref()
 	}
 }
 

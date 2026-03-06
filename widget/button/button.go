@@ -4,6 +4,7 @@
 package button
 
 import (
+	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
@@ -27,25 +28,17 @@ type Button struct {
 	Compound widget.Compound
 
 	// State.
-	State     widget.State
+	State      widget.State
 	OverRelief option.Relief // relief when mouse is over button
 	OffRelief  option.Relief // relief when not pressed
 
 	// Active colors (used on hover).
-	ActiveBackground *colorRef
-	ActiveForeground *colorRef
+	ActiveBackground *color.ColorRef
+	ActiveForeground *color.ColorRef
 
 	textWidth  int
 	textHeight int
 	pressed    bool // button1 is held down
-}
-
-// colorRef holds a resolved color reference.
-type colorRef struct {
-	Pixel uint64
-	Red   uint16
-	Green uint16
-	Blue  uint16
 }
 
 // ButtonOption configures a Button.
@@ -136,9 +129,9 @@ func New(parent widget.Caregiver, name string, opts ...ButtonOption) *Button {
 	window.MakeWindowExist(w)
 
 	b := &Button{
-		Anchor:    option.AnchorCenter,
-		Justify:   option.JustifyCenter,
-		Underline: -1,
+		Anchor:     option.AnchorCenter,
+		Justify:    option.JustifyCenter,
+		Underline:  -1,
 		OverRelief: option.ReliefRaised,
 		OffRelief:  option.ReliefFlat,
 	}
@@ -153,10 +146,10 @@ func New(parent widget.Caregiver, name string, opts ...ButtonOption) *Button {
 
 	// Active colors.
 	if ac, err := app.ColorCache().Get(widget.DefActiveBackground); err == nil {
-		b.ActiveBackground = &colorRef{ac.Pixel, ac.Red, ac.Green, ac.Blue}
+		b.ActiveBackground = ac.Ref()
 	}
 	if af, err := app.ColorCache().Get(widget.DefActiveForeground); err == nil {
-		b.ActiveForeground = &colorRef{af.Pixel, af.Red, af.Green, af.Blue}
+		b.ActiveForeground = af.Ref()
 	}
 
 	for _, opt := range opts {
@@ -211,12 +204,12 @@ func (b *Button) Display() {
 
 	// Choose colors based on state.
 	bgPixel := uint64(0)
-	var fgCol *colorRef
+	var fgCol *color.ColorRef
 	if b.Background != nil {
 		bgPixel = b.Background.Pixel
 	}
 	if b.Foreground != nil {
-		fgCol = &colorRef{b.Foreground.Pixel, b.Foreground.Red, b.Foreground.Green, b.Foreground.Blue}
+		fgCol = b.Foreground.Ref()
 	}
 
 	if b.State == widget.StateActive && b.ActiveBackground != nil {
@@ -342,7 +335,7 @@ func compoundSize(c widget.Compound, img widget.WidgetImage, textW, textH int) (
 // drawCompoundButton draws image and text in compound mode for a button.
 func drawCompoundButton(b *Button, w *window.Window,
 	frameX, frameY, availW, availH int, bgPixel uint64,
-	fgCol *colorRef, pressOff int) {
+	fgCol *color.ColorRef, pressOff int) {
 
 	imgW := b.Img.Width()
 	imgH := b.Img.Height()

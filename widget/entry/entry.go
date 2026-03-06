@@ -3,6 +3,7 @@
 package entry
 
 import (
+	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/font"
 	"github.com/msorc/takigo/option"
@@ -16,8 +17,8 @@ type Entry struct {
 	widget.Base
 
 	// Text state.
-	text    []rune // the content
-	ShowChar rune  // 0 = normal, else password char (e.g. '*')
+	text     []rune // the content
+	ShowChar rune   // 0 = normal, else password char (e.g. '*')
 
 	// Cursor.
 	InsertPos int // rune index of cursor (0..len(text))
@@ -38,20 +39,20 @@ type Entry struct {
 
 	// Visual config.
 	InsertWidth int
-	SelBg       *colorRef
-	SelFg       *colorRef
-	InsertBg    *colorRef
+	SelBg       *color.ColorRef
+	SelFg       *color.ColorRef
+	InsertBg    *color.ColorRef
 	Anchor      option.Anchor
 	Justify     option.Justify
 	PrefWidth   int // preferred width in characters
 
 	// Placeholder.
-	Placeholder    string
-	PlaceholderFg  *colorRef
+	Placeholder   string
+	PlaceholderFg *color.ColorRef
 
 	// Validation.
 	// Validate is when to validate: "", "none", "key", "focus", "focusin", "focusout", "all".
-	Validate    string
+	Validate string
 	// ValidateCmd is called with the prospective new value; returns true to allow, false to reject.
 	ValidateCmd func(string) bool
 
@@ -65,13 +66,6 @@ type Entry struct {
 	// Scan state (middle-button pan).
 	scanMarkX     int
 	scanMarkIndex int
-}
-
-type colorRef struct {
-	Pixel uint64
-	Red   uint16
-	Green uint16
-	Blue  uint16
 }
 
 // EntryOption configures an Entry.
@@ -178,16 +172,16 @@ func New(parent widget.Caregiver, name string, opts ...EntryOption) *Entry {
 	}
 
 	if sel, err := app.ColorCache().Get("#3399ff"); err == nil {
-		e.SelBg = &colorRef{sel.Pixel, sel.Red, sel.Green, sel.Blue}
+		e.SelBg = sel.Ref()
 	}
 	if selfg, err := app.ColorCache().Get("#ffffff"); err == nil {
-		e.SelFg = &colorRef{selfg.Pixel, selfg.Red, selfg.Green, selfg.Blue}
+		e.SelFg = selfg.Ref()
 	}
 	if ins, err := app.ColorCache().Get("#000000"); err == nil {
-		e.InsertBg = &colorRef{ins.Pixel, ins.Red, ins.Green, ins.Blue}
+		e.InsertBg = ins.Ref()
 	}
 	if phfg, err := app.ColorCache().Get("#a3a3a3"); err == nil {
-		e.PlaceholderFg = &colorRef{phfg.Pixel, phfg.Red, phfg.Green, phfg.Blue}
+		e.PlaceholderFg = phfg.Ref()
 	}
 
 	for _, opt := range opts {
@@ -770,4 +764,3 @@ func isWordChar(r rune) bool {
 	return (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') ||
 		(r >= '0' && r <= '9') || r == '_'
 }
-

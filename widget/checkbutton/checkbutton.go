@@ -4,6 +4,7 @@
 package checkbutton
 
 import (
+	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
@@ -26,29 +27,21 @@ type Checkbutton struct {
 	unsub    func()
 
 	// Indicator.
-	IndicatorOn   bool      // whether to draw the indicator (default true)
-	Indeterminate bool      // shows a dash (partial/tri-state) instead of a checkmark
-	SelectColor   *colorRef // indicator fill color when selected
+	IndicatorOn   bool            // whether to draw the indicator (default true)
+	Indeterminate bool            // shows a dash (partial/tri-state) instead of a checkmark
+	SelectColor   *color.ColorRef // indicator fill color when selected
 
 	// Images (selectimage shown when checked; image shown otherwise).
 	Img       widget.WidgetImage
 	SelectImg widget.WidgetImage
 
 	// Active colors (used on hover).
-	ActiveBackground *colorRef
-	ActiveForeground *colorRef
+	ActiveBackground *color.ColorRef
+	ActiveForeground *color.ColorRef
 
 	textWidth  int
 	textHeight int
 	pressed    bool
-}
-
-// colorRef holds a resolved color reference.
-type colorRef struct {
-	Pixel uint64
-	Red   uint16
-	Green uint16
-	Blue  uint16
 }
 
 // CheckbuttonOption configures a Checkbutton.
@@ -164,15 +157,15 @@ func New(parent widget.Caregiver, name string, opts ...CheckbuttonOption) *Check
 
 	// Active colors.
 	if ac, err := app.ColorCache().Get(widget.DefActiveBackground); err == nil {
-		c.ActiveBackground = &colorRef{ac.Pixel, ac.Red, ac.Green, ac.Blue}
+		c.ActiveBackground = ac.Ref()
 	}
 	if af, err := app.ColorCache().Get(widget.DefActiveForeground); err == nil {
-		c.ActiveForeground = &colorRef{af.Pixel, af.Red, af.Green, af.Blue}
+		c.ActiveForeground = af.Ref()
 	}
 
 	// Select color (indicator fill when checked).
 	if sc, err := app.ColorCache().Get("#b03060"); err == nil {
-		c.SelectColor = &colorRef{sc.Pixel, sc.Red, sc.Green, sc.Blue}
+		c.SelectColor = sc.Ref()
 	}
 
 	// Default variable.
@@ -257,12 +250,12 @@ func (c *Checkbutton) Display() {
 
 	// Choose colors based on state.
 	bgPixel := uint64(0)
-	var fgCol *colorRef
+	var fgCol *color.ColorRef
 	if c.Background != nil {
 		bgPixel = c.Background.Pixel
 	}
 	if c.Foreground != nil {
-		fgCol = &colorRef{c.Foreground.Pixel, c.Foreground.Red, c.Foreground.Green, c.Foreground.Blue}
+		fgCol = c.Foreground.Ref()
 	}
 
 	if c.State == widget.StateActive && c.ActiveBackground != nil {

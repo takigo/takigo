@@ -3,6 +3,7 @@
 package scrollbar
 
 import (
+	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/option"
@@ -42,7 +43,7 @@ type Scrollbar struct {
 	dragOffset   int    // offset from thumb start during drag
 
 	// Visual config.
-	TroughColor *colorRef
+	TroughColor *color.ColorRef
 	Width       int // scrollbar width (perpendicular to orient)
 	ElementBW   int // element border width
 
@@ -60,13 +61,6 @@ const (
 	regionTroughBefore
 	regionTroughAfter
 )
-
-type colorRef struct {
-	Pixel uint64
-	Red   uint16
-	Green uint16
-	Blue  uint16
-}
 
 // ScrollbarOption configures a Scrollbar.
 type ScrollbarOption func(*Scrollbar)
@@ -106,7 +100,7 @@ func New(parent widget.Caregiver, name string, opts ...ScrollbarOption) *Scrollb
 
 	// Trough color.
 	if tc, err := app.ColorCache().Get("#c3c3c3"); err == nil {
-		s.TroughColor = &colorRef{tc.Pixel, tc.Red, tc.Green, tc.Blue}
+		s.TroughColor = tc.Ref()
 	}
 
 	for _, opt := range opts {

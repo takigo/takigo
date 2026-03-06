@@ -3,6 +3,7 @@ package canvas
 import (
 	"math"
 
+	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/font"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
@@ -14,7 +15,7 @@ type TextItem struct {
 	x, y       float64
 	text       string
 	font       font.Font
-	color      *colorRef
+	color      *color.ColorRef
 	anchor     option.Anchor
 	justify    option.Justify
 	wrapLength int     // 0 = no wrapping
@@ -77,7 +78,7 @@ func newTextItem(x, y float64, c *Canvas) *TextItem {
 		y:      y,
 		anchor: option.AnchorCenter,
 	}
-	item.color = &colorRef{Pixel: 0x000000}
+	item.color = &color.ColorRef{Pixel: 0x000000}
 	item.ItemBase.canvas = c
 
 	// Use default font.

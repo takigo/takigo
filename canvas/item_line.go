@@ -3,6 +3,7 @@ package canvas
 import (
 	"math"
 
+	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/platform"
 )
 
@@ -10,7 +11,7 @@ import (
 type LineItem struct {
 	ItemBase
 	coords      []float64
-	color       *colorRef
+	color       *color.ColorRef
 	width       int
 	dash        []byte
 	capStyle    int
@@ -35,7 +36,7 @@ func newLineItem(coords []float64, c *Canvas) *LineItem {
 		splineSteps: 12,
 	}
 	// Default color is black.
-	item.color = &colorRef{Pixel: 0x000000}
+	item.color = &color.ColorRef{Pixel: 0x000000}
 	item.ItemBase.canvas = c
 	item.updateBBox()
 	return item

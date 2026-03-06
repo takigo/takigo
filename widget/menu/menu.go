@@ -3,6 +3,7 @@
 package menu
 
 import (
+	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
@@ -14,7 +15,7 @@ import (
 type EntryType int
 
 const (
-	Command     EntryType = iota
+	Command EntryType = iota
 	Separator
 	Cascade
 	Checkbutton
@@ -29,9 +30,9 @@ type MenuEntry struct {
 	SubMenu  *Menu
 	Checked  bool
 	State    widget.State
-	AccelStr string               // accelerator text for display
-	Image    widget.WidgetImage   // optional image
-	Compound widget.Compound      // how to combine image and text
+	AccelStr string             // accelerator text for display
+	Image    widget.WidgetImage // optional image
+	Compound widget.Compound    // how to combine image and text
 }
 
 // Menu is a popup menu with a list of entries.
@@ -43,14 +44,14 @@ type Menu struct {
 	postedCascade *Menu
 
 	// Layout.
-	entryHeight  int
-	sepHeight    int
-	menuWidth    int
+	entryHeight   int
+	sepHeight     int
+	menuWidth     int
 	tearoffHeight int // height of tearoff grip area (0 if TearOff=false)
 
 	// Colors.
-	ActiveBg *colorRef
-	ActiveFg *colorRef
+	ActiveBg *color.ColorRef
+	ActiveFg *color.ColorRef
 
 	// State.
 	posted  bool
@@ -60,13 +61,6 @@ type Menu struct {
 	TearOff bool
 
 	app widget.AppContext
-}
-
-type colorRef struct {
-	Pixel uint64
-	Red   uint16
-	Green uint16
-	Blue  uint16
 }
 
 // MenuOption configures a Menu.
@@ -152,10 +146,10 @@ func New(parent widget.Caregiver, name string, opts ...MenuOption) *Menu {
 
 	// Default active colors.
 	if abg, err := app.ColorCache().Get("#3399ff"); err == nil {
-		m.ActiveBg = &colorRef{abg.Pixel, abg.Red, abg.Green, abg.Blue}
+		m.ActiveBg = abg.Ref()
 	}
 	if afg, err := app.ColorCache().Get("#ffffff"); err == nil {
-		m.ActiveFg = &colorRef{afg.Pixel, afg.Red, afg.Green, afg.Blue}
+		m.ActiveFg = afg.Ref()
 	}
 
 	for _, opt := range opts {
@@ -509,15 +503,15 @@ func (m *Menu) Display() {
 				0, 0, imgW, imgH, imgX, imgY, bgPx)
 		}
 
-		var fgCol *colorRef
+		var fgCol *color.ColorRef
 		if e.State == widget.StateDisabled {
 			if dfg, err := m.App.ColorCache().Get(widget.DefDisabledForeground); err == nil {
-				fgCol = &colorRef{dfg.Pixel, dfg.Red, dfg.Green, dfg.Blue}
+				fgCol = dfg.Ref()
 			}
 		} else if isActive && m.ActiveFg != nil {
 			fgCol = m.ActiveFg
 		} else if m.Foreground != nil {
-			fgCol = &colorRef{m.Foreground.Pixel, m.Foreground.Red, m.Foreground.Green, m.Foreground.Blue}
+			fgCol = m.Foreground.Ref()
 		}
 
 		if fgCol != nil {

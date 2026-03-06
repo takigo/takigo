@@ -3,6 +3,7 @@ package canvas
 import (
 	"math"
 
+	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/platform"
 )
 
@@ -13,8 +14,8 @@ type ArcItem struct {
 	start        float64    // start angle in degrees
 	extent       float64    // angular extent in degrees
 	style        ArcStyle
-	fill         *colorRef
-	outline      *colorRef
+	fill         *color.ColorRef
+	outline      *color.ColorRef
 	outlineWidth int
 	dash         []byte
 }
@@ -27,7 +28,7 @@ func newArcItem(x1, y1, x2, y2 float64, c *Canvas) *ArcItem {
 		style:        ArcStylePieslice,
 		outlineWidth: 1,
 	}
-	item.outline = &colorRef{Pixel: 0x000000}
+	item.outline = &color.ColorRef{Pixel: 0x000000}
 	item.ItemBase.canvas = c
 	item.updateBBox()
 	return item

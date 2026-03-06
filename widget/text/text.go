@@ -12,13 +12,7 @@ import (
 	"github.com/msorc/takigo/window"
 )
 
-// colorRef stores pre-resolved color components.
-type colorRef struct {
-	Pixel uint64
-	Red   uint16
-	Green uint16
-	Blue  uint16
-}
+// color.ColorRef stores pre-resolved color components.
 
 // embeddedWin records a window embedded at a text index position.
 type embeddedWin struct {
@@ -48,9 +42,9 @@ type TextWidget struct {
 	inset       int
 
 	// Colors.
-	selBg       *colorRef
-	selFg       *colorRef
-	insertColor *colorRef
+	selBg       *color.ColorRef
+	selFg       *color.ColorRef
+	insertColor *color.ColorRef
 
 	// Selection.
 	selAnchor Index // fixed end during selection drag
@@ -116,13 +110,13 @@ func New(parent widget.Caregiver, name string, opts ...TextOption) *TextWidget {
 
 	// Selection colors.
 	if sel, err := app.ColorCache().Get("#3399ff"); err == nil {
-		t.selBg = &colorRef{sel.Pixel, sel.Red, sel.Green, sel.Blue}
+		t.selBg = sel.Ref()
 	}
 	if selfg, err := app.ColorCache().Get("#ffffff"); err == nil {
-		t.selFg = &colorRef{selfg.Pixel, selfg.Red, selfg.Green, selfg.Blue}
+		t.selFg = selfg.Ref()
 	}
 	if ins, err := app.ColorCache().Get("#000000"); err == nil {
-		t.insertColor = &colorRef{ins.Pixel, ins.Red, ins.Green, ins.Blue}
+		t.insertColor = ins.Ref()
 	}
 
 	// Create the "sel" tag with highest priority.
@@ -189,13 +183,13 @@ func NewPeer(doc *Document, parent widget.Caregiver, name string, opts ...TextOp
 		t.UpdateBorder()
 	}
 	if sel, err := app.ColorCache().Get("#3399ff"); err == nil {
-		t.selBg = &colorRef{sel.Pixel, sel.Red, sel.Green, sel.Blue}
+		t.selBg = sel.Ref()
 	}
 	if selfg, err := app.ColorCache().Get("#ffffff"); err == nil {
-		t.selFg = &colorRef{selfg.Pixel, selfg.Red, selfg.Green, selfg.Blue}
+		t.selFg = selfg.Ref()
 	}
 	if ins, err := app.ColorCache().Get("#000000"); err == nil {
-		t.insertColor = &colorRef{ins.Pixel, ins.Red, ins.Green, ins.Blue}
+		t.insertColor = ins.Ref()
 	}
 
 	t.undoStack = NewUndoStack(0)

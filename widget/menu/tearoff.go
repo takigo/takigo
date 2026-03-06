@@ -1,6 +1,7 @@
 package menu
 
 import (
+	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/option"
@@ -22,10 +23,10 @@ type TearoffWindow struct {
 	sepHeight   int
 	menuWidth   int
 	activeIndex int
-	bg          *colorRef
-	fg          *colorRef
-	activeBg    *colorRef
-	activeFg    *colorRef
+	bg          *color.ColorRef
+	fg          *color.ColorRef
+	activeBg    *color.ColorRef
+	activeFg    *color.ColorRef
 	border      *draw.Border
 	borderWidth int
 	depth       int
@@ -139,11 +140,11 @@ func (m *Menu) Detach() {
 		depth:       d.Depth,
 	}
 	if m.Background != nil {
-		tw.bg = &colorRef{m.Background.Pixel, m.Background.Red, m.Background.Green, m.Background.Blue}
+		tw.bg = m.Background.Ref()
 		w.BackgroundPixel = m.Background.Pixel
 	}
 	if m.Foreground != nil {
-		tw.fg = &colorRef{m.Foreground.Pixel, m.Foreground.Red, m.Foreground.Green, m.Foreground.Blue}
+		tw.fg = m.Foreground.Ref()
 	}
 	if df, ok := m.Font.(platform.DrawableFont); ok {
 		tw.font = df
@@ -316,10 +317,10 @@ func (tw *TearoffWindow) display() {
 		textX := tw.borderWidth + 20
 		textY := yPos + (tw.entryHeight-fm.Linespace())/2 + fm.Ascent()
 
-		var fgCol *colorRef
+		var fgCol *color.ColorRef
 		if e.State == widget.StateDisabled {
 			if dfg, err := tw.app.ColorCache().Get(widget.DefDisabledForeground); err == nil {
-				fgCol = &colorRef{dfg.Pixel, dfg.Red, dfg.Green, dfg.Blue}
+				fgCol = dfg.Ref()
 			}
 		} else if isActive && tw.activeFg != nil {
 			fgCol = tw.activeFg
@@ -327,7 +328,7 @@ func (tw *TearoffWindow) display() {
 			fgCol = tw.fg
 		} else {
 			if col, err := tw.app.ColorCache().Get("#000000"); err == nil {
-				fgCol = &colorRef{col.Pixel, col.Red, col.Green, col.Blue}
+				fgCol = col.Ref()
 			}
 		}
 

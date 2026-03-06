@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 
+	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/option"
@@ -46,30 +47,23 @@ type Scale struct {
 	dragOffset int
 
 	// Colors.
-	TroughColor *colorRef
-}
-
-type colorRef struct {
-	Pixel uint64
-	Red   uint16
-	Green uint16
-	Blue  uint16
+	TroughColor *color.ColorRef
 }
 
 // ScaleOption configures a Scale.
 type ScaleOption func(*Scale)
 
-func OrientOpt(o Orient) ScaleOption    { return func(s *Scale) { s.Orient = o } }
-func FromOpt(v float64) ScaleOption     { return func(s *Scale) { s.From = v } }
-func ToOpt(v float64) ScaleOption       { return func(s *Scale) { s.To = v } }
-func ValueOpt(v float64) ScaleOption    { return func(s *Scale) { s.Value = v } }
-func ResolutionOpt(v float64) ScaleOption { return func(s *Scale) { s.Resolution = v } }
-func ShowValueOpt(b bool) ScaleOption   { return func(s *Scale) { s.ShowValue = b } }
-func LabelOpt(s string) ScaleOption     { return func(sc *Scale) { sc.Label = s } }
-func SliderLengthOpt(n int) ScaleOption { return func(s *Scale) { s.SliderLength = n } }
-func WidthOpt(w int) ScaleOption        { return func(s *Scale) { s.Width = w } }
-func TickIntervalOpt(v float64) ScaleOption { return func(s *Scale) { s.TickInterval = v } }
-func LengthOpt(n int) ScaleOption           { return func(s *Scale) { s.Length = n } }
+func OrientOpt(o Orient) ScaleOption          { return func(s *Scale) { s.Orient = o } }
+func FromOpt(v float64) ScaleOption           { return func(s *Scale) { s.From = v } }
+func ToOpt(v float64) ScaleOption             { return func(s *Scale) { s.To = v } }
+func ValueOpt(v float64) ScaleOption          { return func(s *Scale) { s.Value = v } }
+func ResolutionOpt(v float64) ScaleOption     { return func(s *Scale) { s.Resolution = v } }
+func ShowValueOpt(b bool) ScaleOption         { return func(s *Scale) { s.ShowValue = b } }
+func LabelOpt(s string) ScaleOption           { return func(sc *Scale) { sc.Label = s } }
+func SliderLengthOpt(n int) ScaleOption       { return func(s *Scale) { s.SliderLength = n } }
+func WidthOpt(w int) ScaleOption              { return func(s *Scale) { s.Width = w } }
+func TickIntervalOpt(v float64) ScaleOption   { return func(s *Scale) { s.TickInterval = v } }
+func LengthOpt(n int) ScaleOption             { return func(s *Scale) { s.Length = n } }
 func CommandOpt(fn func(float64)) ScaleOption { return func(s *Scale) { s.Command = fn } }
 
 func Background(name string) ScaleOption {
@@ -102,7 +96,7 @@ func New(parent widget.Caregiver, name string, opts ...ScaleOption) *Scale {
 	s.Relief = option.ReliefFlat
 
 	if tc, err := app.ColorCache().Get("#c3c3c3"); err == nil {
-		s.TroughColor = &colorRef{tc.Pixel, tc.Red, tc.Green, tc.Blue}
+		s.TroughColor = tc.Ref()
 	}
 
 	for _, opt := range opts {

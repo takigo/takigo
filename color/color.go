@@ -23,6 +23,20 @@ func (c *Color) RGBA() (r, g, b, a uint8) {
 	return uint8(c.Red >> 8), uint8(c.Green >> 8), uint8(c.Blue >> 8), 255
 }
 
+// Ref returns a lightweight copy of the color's pixel and RGB data.
+func (c *Color) Ref() *ColorRef {
+	return &ColorRef{Pixel: c.Pixel, Red: c.Red, Green: c.Green, Blue: c.Blue}
+}
+
+// ColorRef is a lightweight color reference storing pixel value and RGB components.
+// Used by widgets to store resolved color data without referencing the cache.
+type ColorRef struct {
+	Pixel uint64
+	Red   uint16
+	Green uint16
+	Blue  uint16
+}
+
 // Cache manages color allocations per display, caching by name and by value.
 type Cache struct {
 	mu      sync.RWMutex

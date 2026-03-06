@@ -1,7 +1,7 @@
 package canvas
 
 import (
-	"image/color"
+	imgcolor "image/color"
 
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/widget"
@@ -10,14 +10,6 @@ import (
 // ItemOption is a functional option for configuring canvas items.
 type ItemOption func(canvas *Canvas, item Item) error
 
-// colorRef holds a resolved color for an item.
-type colorRef struct {
-	Pixel uint64
-	Red   uint16
-	Green uint16
-	Blue  uint16
-}
-
 // FillColor sets the fill color of an item.
 func FillColor(name string) ItemOption {
 	return func(c *Canvas, item Item) error {
@@ -25,7 +17,7 @@ func FillColor(name string) ItemOption {
 		if err != nil {
 			return err
 		}
-		ref := &colorRef{Pixel: col.Pixel, Red: col.Red, Green: col.Green, Blue: col.Blue}
+		ref := col.Ref()
 		switch it := item.(type) {
 		case *RectOvalItem:
 			it.fill = ref
@@ -45,7 +37,7 @@ func OutlineColor(name string) ItemOption {
 		if err != nil {
 			return err
 		}
-		ref := &colorRef{Pixel: col.Pixel, Red: col.Red, Green: col.Green, Blue: col.Blue}
+		ref := col.Ref()
 		switch it := item.(type) {
 		case *RectOvalItem:
 			it.outline = ref
@@ -123,7 +115,7 @@ func AnchorOpt(a option.Anchor) ItemOption {
 func BitmapForeground(r, g, b uint8) ItemOption {
 	return func(_ *Canvas, item Item) error {
 		if bi, ok := item.(*BitmapItem); ok {
-			bi.Foreground = color.RGBA{R: r, G: g, B: b, A: 255}
+			bi.Foreground = imgcolor.RGBA{R: r, G: g, B: b, A: 255}
 		}
 		return nil
 	}
@@ -134,7 +126,7 @@ func BitmapForeground(r, g, b uint8) ItemOption {
 func BitmapBackground(r, g, b, a uint8) ItemOption {
 	return func(_ *Canvas, item Item) error {
 		if bi, ok := item.(*BitmapItem); ok {
-			bi.Background = color.RGBA{R: r, G: g, B: b, A: a}
+			bi.Background = imgcolor.RGBA{R: r, G: g, B: b, A: a}
 		}
 		return nil
 	}
@@ -184,7 +176,7 @@ func TextColor(name string) ItemOption {
 			return err
 		}
 		if it, ok := item.(*TextItem); ok {
-			it.color = &colorRef{Pixel: col.Pixel, Red: col.Red, Green: col.Green, Blue: col.Blue}
+			it.color = col.Ref()
 		}
 		return nil
 	}
@@ -244,7 +236,7 @@ func ArcStyleOpt(s ArcStyle) ItemOption {
 type ArrowMode int
 
 const (
-	ArrowNone  ArrowMode = iota
+	ArrowNone ArrowMode = iota
 	ArrowFirst
 	ArrowLast
 	ArrowBoth

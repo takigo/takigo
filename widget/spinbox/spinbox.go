@@ -7,6 +7,7 @@ import (
 	"math"
 	"strconv"
 
+	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/font"
 	"github.com/msorc/takigo/option"
@@ -52,9 +53,9 @@ type Spinbox struct {
 	PrefWidth   int
 
 	// Colors.
-	SelBg    *colorRef
-	SelFg    *colorRef
-	InsertBg *colorRef
+	SelBg    *color.ColorRef
+	SelFg    *color.ColorRef
+	InsertBg *color.ColorRef
 
 	// Interaction state.
 	HasFocus      bool
@@ -69,25 +70,18 @@ type Spinbox struct {
 	ScrollCmd func(first, last float64)
 }
 
-type colorRef struct {
-	Pixel uint64
-	Red   uint16
-	Green uint16
-	Blue  uint16
-}
-
 // SpinboxOption configures a Spinbox.
 type SpinboxOption func(*Spinbox)
 
-func FromOpt(v float64) SpinboxOption        { return func(s *Spinbox) { s.From = v } }
-func ToOpt(v float64) SpinboxOption          { return func(s *Spinbox) { s.To = v } }
-func IncrementOpt(v float64) SpinboxOption   { return func(s *Spinbox) { s.Increment = v } }
-func FormatOpt(f string) SpinboxOption       { return func(s *Spinbox) { s.Format = f } }
-func WrapOpt(b bool) SpinboxOption           { return func(s *Spinbox) { s.Wrap = b } }
-func ValuesOpt(v []string) SpinboxOption     { return func(s *Spinbox) { s.Values = v } }
+func FromOpt(v float64) SpinboxOption          { return func(s *Spinbox) { s.From = v } }
+func ToOpt(v float64) SpinboxOption            { return func(s *Spinbox) { s.To = v } }
+func IncrementOpt(v float64) SpinboxOption     { return func(s *Spinbox) { s.Increment = v } }
+func FormatOpt(f string) SpinboxOption         { return func(s *Spinbox) { s.Format = f } }
+func WrapOpt(b bool) SpinboxOption             { return func(s *Spinbox) { s.Wrap = b } }
+func ValuesOpt(v []string) SpinboxOption       { return func(s *Spinbox) { s.Values = v } }
 func CommandOpt(fn func(string)) SpinboxOption { return func(s *Spinbox) { s.Command = fn } }
-func WidthOpt(w int) SpinboxOption           { return func(s *Spinbox) { s.PrefWidth = w } }
-func ValidateOpt(v string) SpinboxOption     { return func(s *Spinbox) { s.Validate = v } }
+func WidthOpt(w int) SpinboxOption             { return func(s *Spinbox) { s.PrefWidth = w } }
+func ValidateOpt(v string) SpinboxOption       { return func(s *Spinbox) { s.Validate = v } }
 func ValidateCmdOpt(fn func(string) bool) SpinboxOption {
 	return func(s *Spinbox) { s.ValidateCmd = fn }
 }
@@ -131,13 +125,13 @@ func New(parent widget.Caregiver, name string, opts ...SpinboxOption) *Spinbox {
 		s.UpdateBorder()
 	}
 	if sel, err := app.ColorCache().Get("#3399ff"); err == nil {
-		s.SelBg = &colorRef{sel.Pixel, sel.Red, sel.Green, sel.Blue}
+		s.SelBg = sel.Ref()
 	}
 	if selfg, err := app.ColorCache().Get("#ffffff"); err == nil {
-		s.SelFg = &colorRef{selfg.Pixel, selfg.Red, selfg.Green, selfg.Blue}
+		s.SelFg = selfg.Ref()
 	}
 	if ins, err := app.ColorCache().Get("#000000"); err == nil {
-		s.InsertBg = &colorRef{ins.Pixel, ins.Red, ins.Green, ins.Blue}
+		s.InsertBg = ins.Ref()
 	}
 
 	for _, opt := range opts {

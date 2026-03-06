@@ -6,6 +6,7 @@ package menubutton
 import (
 	"unicode"
 
+	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/option"
@@ -36,8 +37,8 @@ type Menubutton struct {
 	Underline int // index of underlined character for Alt+letter, -1=none
 
 	// Active colors.
-	ActiveBg *colorRef
-	ActiveFg *colorRef
+	ActiveBg *color.ColorRef
+	ActiveFg *color.ColorRef
 
 	// State.
 	State widget.State
@@ -46,22 +47,15 @@ type Menubutton struct {
 	textHeight int
 }
 
-type colorRef struct {
-	Pixel uint64
-	Red   uint16
-	Green uint16
-	Blue  uint16
-}
-
 // MenubuttonOption configures a Menubutton.
 type MenubuttonOption func(*Menubutton)
 
-func Text(s string) MenubuttonOption      { return func(mb *Menubutton) { mb.Text = s } }
-func MenuOpt(m *menu.Menu) MenubuttonOption { return func(mb *Menubutton) { mb.Menu = m } }
+func Text(s string) MenubuttonOption            { return func(mb *Menubutton) { mb.Text = s } }
+func MenuOpt(m *menu.Menu) MenubuttonOption     { return func(mb *Menubutton) { mb.Menu = m } }
 func DirectionOpt(d Direction) MenubuttonOption { return func(mb *Menubutton) { mb.Direction = d } }
-func PadX(p int) MenubuttonOption           { return func(mb *Menubutton) { mb.PadX = p } }
-func PadY(p int) MenubuttonOption           { return func(mb *Menubutton) { mb.PadY = p } }
-func UnderlineOpt(i int) MenubuttonOption { return func(mb *Menubutton) { mb.Underline = i } }
+func PadX(p int) MenubuttonOption               { return func(mb *Menubutton) { mb.PadX = p } }
+func PadY(p int) MenubuttonOption               { return func(mb *Menubutton) { mb.PadY = p } }
+func UnderlineOpt(i int) MenubuttonOption       { return func(mb *Menubutton) { mb.Underline = i } }
 
 func Background(name string) MenubuttonOption {
 	return func(mb *Menubutton) {
@@ -101,10 +95,10 @@ func New(parent widget.Caregiver, name string, opts ...MenubuttonOption) *Menubu
 
 	// Active colors.
 	if ac, err := app.ColorCache().Get(widget.DefActiveBackground); err == nil {
-		mb.ActiveBg = &colorRef{ac.Pixel, ac.Red, ac.Green, ac.Blue}
+		mb.ActiveBg = ac.Ref()
 	}
 	if af, err := app.ColorCache().Get(widget.DefActiveForeground); err == nil {
-		mb.ActiveFg = &colorRef{af.Pixel, af.Red, af.Green, af.Blue}
+		mb.ActiveFg = af.Ref()
 	}
 
 	for _, opt := range opts {
@@ -176,12 +170,12 @@ func (mb *Menubutton) Display() {
 
 	// Choose colors based on state.
 	bgPixel := uint64(0)
-	var fgCol *colorRef
+	var fgCol *color.ColorRef
 	if mb.Background != nil {
 		bgPixel = mb.Background.Pixel
 	}
 	if mb.Foreground != nil {
-		fgCol = &colorRef{mb.Foreground.Pixel, mb.Foreground.Red, mb.Foreground.Green, mb.Foreground.Blue}
+		fgCol = mb.Foreground.Ref()
 	}
 	if mb.State == widget.StateActive && mb.ActiveBg != nil {
 		bgPixel = mb.ActiveBg.Pixel

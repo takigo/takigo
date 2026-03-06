@@ -3,6 +3,7 @@ package canvas
 import (
 	"math"
 
+	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/platform"
 )
 
@@ -11,8 +12,8 @@ type RectOvalItem struct {
 	ItemBase
 	typeName     string // "rectangle" or "oval"
 	coords       [4]float64
-	fill         *colorRef
-	outline      *colorRef
+	fill         *color.ColorRef
+	outline      *color.ColorRef
 	outlineWidth int
 	dash         []byte
 	fillGC       platform.GCID
@@ -26,7 +27,7 @@ func newRectOvalItem(typeName string, x1, y1, x2, y2 float64, c *Canvas) *RectOv
 		outlineWidth: 1,
 	}
 	// Default outline is black.
-	item.outline = &colorRef{Pixel: 0x000000}
+	item.outline = &color.ColorRef{Pixel: 0x000000}
 	item.ItemBase.canvas = c
 	item.updateBBox()
 	return item
