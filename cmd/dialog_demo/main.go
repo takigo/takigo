@@ -181,7 +181,7 @@ func main() {
 
 	testScrollbar := scrollbar.New(wheelFrame, "testscroll",
 		scrollbar.OrientOpt(scrollbar.Vertical),
-		scrollbar.CommandOpt(func(args ...interface{}) {
+		scrollbar.CommandOpt(func(args ...any) {
 			setStatus(fmt.Sprintf("Scrollbar: %v", args))
 		}),
 	)

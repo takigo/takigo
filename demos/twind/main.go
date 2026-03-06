@@ -38,7 +38,7 @@ func main() {
 
 	yscroll := ttk.NewScrollbar(txtFrame, "yscroll")
 	tw.YScrollCmd = func(first, last float64) { yscroll.Set(first, last) }
-	yscroll.Command = func(args ...interface{}) {
+	yscroll.Command = func(args ...any) {
 		if len(args) >= 2 {
 			action, _ := args[0].(string)
 			number, _ := args[1].(float64)

@@ -9,7 +9,7 @@ type HandlerFunc func(ev *EventData) bool
 // EventData wraps the raw event with additional binding-specific context.
 type EventData struct {
 	Type    int  // reserved for future use
-	RawEvent interface{} // *event.Event
+	RawEvent any // *event.Event
 }
 
 // binding associates a parsed pattern sequence with its handler.

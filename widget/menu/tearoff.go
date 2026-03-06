@@ -17,7 +17,7 @@ type TearoffWindow struct {
 	win         *window.Window
 	entries     []MenuEntry
 	font        interface{ platform.DrawableFont }
-	fontI       interface{} // the actual font.Font
+	fontI       any // the actual font.Font
 	app         widget.AppContext
 	entryHeight int
 	sepHeight   int

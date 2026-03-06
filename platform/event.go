@@ -3,7 +3,7 @@ package platform
 // RawEvent is a platform-neutral opaque wrapper around a raw event.
 // Each backend provides its own implementation.
 type RawEvent struct {
-	// Backend-specific data stored as interface{}.
+	// Backend-specific data stored as any.
 	// The X11 backend stores *xlib.RawEvent here.
 	Data any
 

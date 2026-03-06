@@ -68,7 +68,7 @@ func main() {
 	xscroll := scrollbar.New(app, "xscroll",
 		scrollbar.OrientOpt(scrollbar.Horizontal),
 		scrollbar.WidthOpt(14),
-		scrollbar.CommandOpt(func(args ...interface{}) {
+		scrollbar.CommandOpt(func(args ...any) {
 			if len(args) < 1 {
 				return
 			}
@@ -96,7 +96,7 @@ func main() {
 	yscroll := scrollbar.New(app, "yscroll",
 		scrollbar.OrientOpt(scrollbar.Vertical),
 		scrollbar.WidthOpt(14),
-		scrollbar.CommandOpt(func(args ...interface{}) {
+		scrollbar.CommandOpt(func(args ...any) {
 			if len(args) < 1 {
 				return
 			}

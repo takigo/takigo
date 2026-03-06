@@ -48,7 +48,7 @@ type Scrollbar struct {
 	ElementBW   int // element border width
 
 	// Command callback: called when user interacts.
-	Command func(args ...interface{})
+	Command func(args ...any)
 }
 
 type region int
@@ -76,7 +76,7 @@ func WidthOpt(w int) ScrollbarOption {
 }
 
 // CommandOpt sets the scroll command callback.
-func CommandOpt(fn func(args ...interface{})) ScrollbarOption {
+func CommandOpt(fn func(args ...any)) ScrollbarOption {
 	return func(s *Scrollbar) { s.Command = fn }
 }
 
