@@ -26,6 +26,7 @@ type key struct {
 // entry is a cached GC with a reference count.
 type entry struct {
 	gc       platform.GCID
+	key      key
 	refCount int
 }
 
@@ -73,7 +74,7 @@ func (p *Pool) Get(drawable platform.DrawableID, mask uint64, values *Values) pl
 	}
 	gc := p.server.CreateGC(drawable, mask, pv)
 
-	e := &entry{gc: gc, refCount: 1}
+	e := &entry{gc: gc, key: k, refCount: 1}
 	p.byValue[k] = e
 	p.byGC[gc] = e
 
@@ -94,13 +95,7 @@ func (p *Pool) Free(gc platform.GCID) {
 	if e.refCount <= 0 {
 		p.server.FreeGC(gc)
 		delete(p.byGC, gc)
-		// Remove from byValue map.
-		for k, v := range p.byValue {
-			if v == e {
-				delete(p.byValue, k)
-				break
-			}
-		}
+		delete(p.byValue, e.key)
 	}
 }
 

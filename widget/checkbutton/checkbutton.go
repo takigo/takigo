@@ -51,21 +51,21 @@ type colorRef struct {
 	Blue  uint16
 }
 
-// Option configures a Checkbutton.
-type Option func(*Checkbutton)
+// CheckbuttonOption configures a Checkbutton.
+type CheckbuttonOption func(*Checkbutton)
 
 // Text sets the checkbutton text.
-func Text(s string) Option {
+func Text(s string) CheckbuttonOption {
 	return func(c *Checkbutton) { c.Text = s }
 }
 
 // Command sets the callback invoked when toggled.
-func Command(fn func()) Option {
+func Command(fn func()) CheckbuttonOption {
 	return func(c *Checkbutton) { c.Command = fn }
 }
 
 // Var links the checkbutton to a boolean variable.
-func Var(v *widget.Variable[bool]) Option {
+func Var(v *widget.Variable[bool]) CheckbuttonOption {
 	return func(c *Checkbutton) {
 		if c.unsub != nil {
 			c.unsub()
@@ -78,7 +78,7 @@ func Var(v *widget.Variable[bool]) Option {
 }
 
 // Background sets the background color.
-func Background(name string) Option {
+func Background(name string) CheckbuttonOption {
 	return func(c *Checkbutton) {
 		col, err := c.App.ColorCache().Get(name)
 		if err == nil {
@@ -89,7 +89,7 @@ func Background(name string) Option {
 }
 
 // Foreground sets the text color.
-func Foreground(name string) Option {
+func Foreground(name string) CheckbuttonOption {
 	return func(c *Checkbutton) {
 		col, err := c.App.ColorCache().Get(name)
 		if err == nil {
@@ -99,7 +99,7 @@ func Foreground(name string) Option {
 }
 
 // FontOpt sets the font.
-func FontOpt(name string) Option {
+func FontOpt(name string) CheckbuttonOption {
 	return func(c *Checkbutton) {
 		f, err := c.App.FontRegistry().Get(name)
 		if err == nil {
@@ -109,34 +109,34 @@ func FontOpt(name string) Option {
 }
 
 // Anchor sets the text anchor.
-func Anchor(a option.Anchor) Option {
+func Anchor(a option.Anchor) CheckbuttonOption {
 	return func(c *Checkbutton) { c.Anchor = a }
 }
 
 // PadX sets horizontal padding.
 // Accepts int (pixels), float64 (rounded pixels), or string with unit suffix ("3p", "2m", "1c", "0.5i").
-func PadX(p any) Option {
+func PadX(p any) CheckbuttonOption {
 	return func(c *Checkbutton) { c.PadX = screenunit.Px(p) }
 }
 
 // PadY sets vertical padding.
 // Accepts int (pixels), float64 (rounded pixels), or string with unit suffix ("3p", "2m", "1c", "0.5i").
-func PadY(p any) Option {
+func PadY(p any) CheckbuttonOption {
 	return func(c *Checkbutton) { c.PadY = screenunit.Px(p) }
 }
 
 // ImageOpt sets the image shown in the normal (unselected) state.
-func ImageOpt(img widget.WidgetImage) Option {
+func ImageOpt(img widget.WidgetImage) CheckbuttonOption {
 	return func(c *Checkbutton) { c.Img = img }
 }
 
 // SelectImageOpt sets the image shown in the selected state.
-func SelectImageOpt(img widget.WidgetImage) Option {
+func SelectImageOpt(img widget.WidgetImage) CheckbuttonOption {
 	return func(c *Checkbutton) { c.SelectImg = img }
 }
 
 // IndicatorOnOpt sets whether the indicator (checkbox square) is drawn.
-func IndicatorOnOpt(on bool) Option {
+func IndicatorOnOpt(on bool) CheckbuttonOption {
 	return func(c *Checkbutton) { c.IndicatorOn = on }
 }
 
@@ -144,7 +144,7 @@ func IndicatorOnOpt(on bool) Option {
 const indicatorSize = 13
 
 // New creates a new Checkbutton widget as a child of parent.
-func New(parent widget.Caregiver, name string, opts ...Option) *Checkbutton {
+func New(parent widget.Caregiver, name string, opts ...CheckbuttonOption) *Checkbutton {
 	app := parent.AppContext()
 	w := window.NewChildWindow(parent.Window(), name, 0, 0, 1, 1)
 	window.MakeWindowExist(w)

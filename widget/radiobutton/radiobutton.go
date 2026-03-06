@@ -47,26 +47,26 @@ type colorRef struct {
 	Blue  uint16
 }
 
-// Option configures a Radiobutton.
-type Option func(*Radiobutton)
+// RadiobuttonOption configures a Radiobutton.
+type RadiobuttonOption func(*Radiobutton)
 
 // Text sets the radiobutton text.
-func Text(s string) Option {
+func Text(s string) RadiobuttonOption {
 	return func(r *Radiobutton) { r.Text = s }
 }
 
 // Value sets the value this radio represents.
-func Value(v string) Option {
+func Value(v string) RadiobuttonOption {
 	return func(r *Radiobutton) { r.Value = v }
 }
 
 // Command sets the callback invoked when selected.
-func Command(fn func()) Option {
+func Command(fn func()) RadiobuttonOption {
 	return func(r *Radiobutton) { r.Command = fn }
 }
 
 // Var links the radiobutton to a string variable (shared across group).
-func Var(v *widget.Variable[string]) Option {
+func Var(v *widget.Variable[string]) RadiobuttonOption {
 	return func(r *Radiobutton) {
 		if r.unsub != nil {
 			r.unsub()
@@ -79,7 +79,7 @@ func Var(v *widget.Variable[string]) Option {
 }
 
 // Background sets the background color.
-func Background(name string) Option {
+func Background(name string) RadiobuttonOption {
 	return func(r *Radiobutton) {
 		col, err := r.App.ColorCache().Get(name)
 		if err == nil {
@@ -90,7 +90,7 @@ func Background(name string) Option {
 }
 
 // Foreground sets the text color.
-func Foreground(name string) Option {
+func Foreground(name string) RadiobuttonOption {
 	return func(r *Radiobutton) {
 		col, err := r.App.ColorCache().Get(name)
 		if err == nil {
@@ -100,7 +100,7 @@ func Foreground(name string) Option {
 }
 
 // FontOpt sets the font.
-func FontOpt(name string) Option {
+func FontOpt(name string) RadiobuttonOption {
 	return func(r *Radiobutton) {
 		f, err := r.App.FontRegistry().Get(name)
 		if err == nil {
@@ -110,33 +110,33 @@ func FontOpt(name string) Option {
 }
 
 // Anchor sets the text anchor.
-func Anchor(a option.Anchor) Option {
+func Anchor(a option.Anchor) RadiobuttonOption {
 	return func(r *Radiobutton) { r.Anchor = a }
 }
 
 // TristateValueOpt sets the value that triggers an indeterminate (dash) display.
 // When the linked variable equals this value, the radiobutton shows a horizontal
 // dash instead of the dot, indicating a mixed/indeterminate state.
-func TristateValueOpt(v string) Option {
+func TristateValueOpt(v string) RadiobuttonOption {
 	return func(r *Radiobutton) { r.TristateValue = v }
 }
 
 // IndicatorOnOpt sets whether the circle indicator is shown.
 // When false the button renders like a toggle button: raised when
 // unselected, sunken when selected (matching Tk's -indicatoron 0).
-func IndicatorOnOpt(on bool) Option {
+func IndicatorOnOpt(on bool) RadiobuttonOption {
 	return func(r *Radiobutton) { r.IndicatorOn = on }
 }
 
 // PadX sets horizontal padding.
 // Accepts int (pixels), float64 (rounded pixels), or string with unit suffix ("3p", "2m", "1c", "0.5i").
-func PadX(p any) Option {
+func PadX(p any) RadiobuttonOption {
 	return func(r *Radiobutton) { r.PadX = screenunit.Px(p) }
 }
 
 // PadY sets vertical padding.
 // Accepts int (pixels), float64 (rounded pixels), or string with unit suffix ("3p", "2m", "1c", "0.5i").
-func PadY(p any) Option {
+func PadY(p any) RadiobuttonOption {
 	return func(r *Radiobutton) { r.PadY = screenunit.Px(p) }
 }
 
@@ -144,7 +144,7 @@ func PadY(p any) Option {
 const indicatorSize = 13
 
 // New creates a new Radiobutton widget.
-func New(parent widget.Caregiver, name string, opts ...Option) *Radiobutton {
+func New(parent widget.Caregiver, name string, opts ...RadiobuttonOption) *Radiobutton {
 	app := parent.AppContext()
 	w := window.NewChildWindow(parent.Window(), name, 0, 0, 1, 1)
 	window.MakeWindowExist(w)

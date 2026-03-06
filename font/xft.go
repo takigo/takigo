@@ -465,4 +465,10 @@ func (f *XftFont) Close() {
 	}
 	f.fallbackFonts = nil
 	f.fontByRune = nil
+	for _, rf := range f.rotatedVariants {
+		if rf != nil {
+			C.XftFontClose(dpy, rf)
+		}
+	}
+	f.rotatedVariants = nil
 }

@@ -21,16 +21,16 @@ type Labelframe struct {
 	textHeight int
 }
 
-// Option configures a Labelframe.
-type Option func(*Labelframe)
+// LabelframeOption configures a Labelframe.
+type LabelframeOption func(*Labelframe)
 
 // Text sets the label text.
-func Text(s string) Option {
+func Text(s string) LabelframeOption {
 	return func(lf *Labelframe) { lf.Text = s }
 }
 
 // Background sets the background color.
-func Background(name string) Option {
+func Background(name string) LabelframeOption {
 	return func(lf *Labelframe) {
 		col, err := lf.App.ColorCache().Get(name)
 		if err == nil {
@@ -41,27 +41,27 @@ func Background(name string) Option {
 }
 
 // BorderWidth sets the border width.
-func BorderWidth(w int) Option {
+func BorderWidth(w int) LabelframeOption {
 	return func(lf *Labelframe) { lf.BorderWidth = w }
 }
 
 // Relief sets the border relief.
-func Relief(r option.Relief) Option {
+func Relief(r option.Relief) LabelframeOption {
 	return func(lf *Labelframe) { lf.Relief = r }
 }
 
 // Width sets the requested width.
-func Width(w int) Option {
+func Width(w int) LabelframeOption {
 	return func(lf *Labelframe) { lf.Win.ReqWidth = w }
 }
 
 // Height sets the requested height.
-func Height(h int) Option {
+func Height(h int) LabelframeOption {
 	return func(lf *Labelframe) { lf.Win.ReqHeight = h }
 }
 
 // FontOpt sets the font.
-func FontOpt(name string) Option {
+func FontOpt(name string) LabelframeOption {
 	return func(lf *Labelframe) {
 		f, err := lf.App.FontRegistry().Get(name)
 		if err == nil {
@@ -71,12 +71,12 @@ func FontOpt(name string) Option {
 }
 
 // LabelAnchor sets where the label sits on the border.
-func LabelAnchor(a option.Anchor) Option {
+func LabelAnchor(a option.Anchor) LabelframeOption {
 	return func(lf *Labelframe) { lf.LabelAnchor = a }
 }
 
 // New creates a new Labelframe widget.
-func New(parent widget.Caregiver, name string, opts ...Option) *Labelframe {
+func New(parent widget.Caregiver, name string, opts ...LabelframeOption) *Labelframe {
 	app := parent.AppContext()
 	w := window.NewChildWindow(parent.Window(), name, 0, 0, 200, 200)
 	window.MakeWindowExist(w)
