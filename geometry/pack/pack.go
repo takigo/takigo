@@ -360,10 +360,13 @@ func (p *packer) computeSize() (int, int) {
 	return width, height
 }
 
-// xExpansion computes extra horizontal space for an expanding child.
-func xExpansion(entries []*packEntry, target *packEntry, cavityW int) int {
+// expansion computes extra space for an expanding child along one axis.
+// sideMatch returns true for entries packed on the same axis (Left/Right or Top/Bottom).
+// childNeed returns the space an entry requires along that axis.
+func expansion(entries []*packEntry, target *packEntry, cavity int,
+	sideMatch func(Side) bool, childNeed func(*packEntry) int) int {
+
 	numExpand := 0
-	minExpand := 0
 	found := false
 
 	for _, e := range entries {
@@ -373,55 +376,37 @@ func xExpansion(entries []*packEntry, target *packEntry, cavityW int) int {
 		if !found {
 			continue
 		}
-		if e.config.expand && (e.config.side == Left || e.config.side == Right) {
+		if !sideMatch(e.config.side) {
+			continue
+		}
+		cavity -= childNeed(e)
+		if e.config.expand {
 			numExpand++
-			childNeed := e.window.ReqWidth + 2*e.window.BorderWidth + e.config.iPadX*2 + e.config.padX*2
-			cavityW -= childNeed
-		} else if e.config.side == Left || e.config.side == Right {
-			childNeed := e.window.ReqWidth + 2*e.window.BorderWidth + e.config.iPadX*2 + e.config.padX*2
-			cavityW -= childNeed
 		}
 	}
 
-	if numExpand > 0 && cavityW > 0 {
-		minExpand = cavityW / numExpand
+	if numExpand > 0 && cavity > 0 {
+		return cavity / numExpand
 	}
-	if minExpand < 0 {
-		minExpand = 0
-	}
-	return minExpand
+	return 0
+}
+
+// xExpansion computes extra horizontal space for an expanding child.
+func xExpansion(entries []*packEntry, target *packEntry, cavityW int) int {
+	return expansion(entries, target, cavityW,
+		func(s Side) bool { return s == Left || s == Right },
+		func(e *packEntry) int {
+			return e.window.ReqWidth + 2*e.window.BorderWidth + e.config.iPadX*2 + e.config.padX*2
+		})
 }
 
 // yExpansion computes extra vertical space for an expanding child.
 func yExpansion(entries []*packEntry, target *packEntry, cavityH int) int {
-	numExpand := 0
-	minExpand := 0
-	found := false
-
-	for _, e := range entries {
-		if e == target {
-			found = true
-		}
-		if !found {
-			continue
-		}
-		if e.config.expand && (e.config.side == Top || e.config.side == Bottom) {
-			numExpand++
-			childNeed := e.window.ReqHeight + 2*e.window.BorderWidth + e.config.iPadY*2 + e.config.padY*2
-			cavityH -= childNeed
-		} else if e.config.side == Top || e.config.side == Bottom {
-			childNeed := e.window.ReqHeight + 2*e.window.BorderWidth + e.config.iPadY*2 + e.config.padY*2
-			cavityH -= childNeed
-		}
-	}
-
-	if numExpand > 0 && cavityH > 0 {
-		minExpand = cavityH / numExpand
-	}
-	if minExpand < 0 {
-		minExpand = 0
-	}
-	return minExpand
+	return expansion(entries, target, cavityH,
+		func(s Side) bool { return s == Top || s == Bottom },
+		func(e *packEntry) int {
+			return e.window.ReqHeight + 2*e.window.BorderWidth + e.config.iPadY*2 + e.config.padY*2
+		})
 }
 
 // anchorPosition computes the x,y position for a child within a frame

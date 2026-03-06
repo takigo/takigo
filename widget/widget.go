@@ -10,6 +10,7 @@ import (
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/font"
+	"github.com/msorc/takigo/image"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/window"
@@ -97,6 +98,7 @@ type AppContext interface {
 	ColorCache() *color.Cache
 	FontRegistry() *font.Registry
 	Server() platform.DisplayServer
+	ImageRegistry() *image.Registry
 	BindEngine() BindEngine
 	// RunNestedLoop processes events until done is closed.
 	// Used by modal dialogs to keep the event loop alive while blocking.
