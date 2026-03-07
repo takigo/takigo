@@ -50,8 +50,6 @@ func init() {
 // "See Code" / "Dismiss" buttons at the bottom (matching Tk's addSeeDismiss).
 // Calls os.Exit(1) on failure.
 func Setup(title string, width, height int, description string) *takigo.App {
-	_, callerFile, _, _ := runtime.Caller(1)
-
 	app, err := takigo.NewApp(takigo.Title(title), takigo.Size(width, height))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
@@ -73,7 +71,7 @@ func Setup(title string, width, height int, description string) *takigo.App {
 	pack.Pack(msg, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
 
 	// Button bar at bottom via AddSeeDismiss.
-	btnFrame := addSeeDismissWithFile(app, nil, callerFile)
+	btnFrame := AddSeeDismiss(app, nil)
 	pack.Pack(btnFrame, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	// Configure handler.
@@ -125,10 +123,7 @@ func PositionWindow(t *toplevel.Toplevel) {
 
 func AddSeeDismiss(parent widget.Caregiver, vars *DemoVars) *ttk.Frame {
 	_, callerFile, _, _ := runtime.Caller(1)
-	return addSeeDismissWithFile(parent, vars, callerFile)
-}
 
-func addSeeDismissWithFile(parent widget.Caregiver, vars *DemoVars, callerFile string) *ttk.Frame {
 	btnFrame := ttk.NewFrame(parent, "bottom_buttons")
 
 	sep := ttk.NewSeparator(btnFrame, "sep")

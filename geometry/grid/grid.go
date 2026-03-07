@@ -286,6 +286,11 @@ func Grid(children geometry.Elementer, opts ...GridOption) {
 	if !ok {
 		g = newGridder(parent)
 		gridders[parent] = g
+		parent.ConfigureCallback = func() {
+			if gg, ok2 := gridders[parent]; ok2 {
+				gg.arrange()
+			}
+		}
 	}
 
 	// Auto-assign row if not specified.
