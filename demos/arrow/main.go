@@ -4,20 +4,43 @@ package main
 
 import (
 	"fmt"
+	"os"
 
+	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/canvas"
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
+	"github.com/msorc/takigo/widget/frame"
+	"github.com/msorc/takigo/widget/label"
 )
 
 func main() {
-	app := demohelper.Setup("Arrowhead Editor", 550, 420,
-		"This widget allows you to experiment with different widths and arrowhead shapes for lines in canvases. To change the line width or the shape of the arrowhead, drag any of the three boxes attached to the oversized arrow. The arrows on the right give examples at normal scale. The text at the bottom shows the configuration options as you'd enter them for a canvas line item.")
+	app, err := takigo.NewApp(takigo.Title("Arrowhead Editor"),
+		takigo.Geometry("+300+300"),
+		takigo.IconName("arrow"),
+	)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
 
-	c := canvas.New(app, "arrows",
+	f := frame.New(app, "f")
+	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+
+	msg := label.New(f, "msg",
+		label.WrapLength("5i"),
+		label.JustifyOpt(option.JustifyLeft),
+		label.Text("This widget allows you to experiment with different widths and arrowhead shapes for lines in canvases. To change the line width or the shape of the arrowhead, drag any of the three boxes attached to the oversized arrow. The arrows on the right give examples at normal scale. The text at the bottom shows the configuration options as you'd enter them for a canvas line item."),
+	)
+	pack.Pack(msg, pack.SideOpt(pack.Top))
+
+	btns := demohelper.AddSeeDismiss(f, nil)
+	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
+
+	c := canvas.New(f, "arrows",
 		canvas.Background("white"),
 		canvas.Width(500),
 		canvas.Height(350),

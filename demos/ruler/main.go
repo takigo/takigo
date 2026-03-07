@@ -4,14 +4,18 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 
+	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/canvas"
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
+	"github.com/msorc/takigo/widget/frame"
+	"github.com/msorc/takigo/widget/label"
 )
 
 // Ruler geometry (pixels at ~38px/cm).
@@ -28,10 +32,29 @@ const (
 )
 
 func main() {
-	app := demohelper.Setup("Ruler Demonstration", 600, 220,
-		"This canvas widget shows a mock-up of a ruler. You can create tab stops by dragging them out of the well to the right of the ruler. You can also drag existing tab stops. If you drag a tab stop far enough up or down so that it turns dim, it will be deleted when you release the mouse button.")
+	app, err := takigo.NewApp(takigo.Title("Ruler Demonstration"),
+		takigo.Geometry("+300+300"),
+		takigo.IconName("ruler"),
+	)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
 
-	c := canvas.New(app, "ruler",
+	f := frame.New(app, "f")
+	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+
+	msg := label.New(f, "msg",
+		label.WrapLength("5i"),
+		label.JustifyOpt(option.JustifyLeft),
+		label.Text("This canvas widget shows a mock-up of a ruler. You can create tab stops by dragging them out of the well to the right of the ruler. You can also drag existing tab stops. If you drag a tab stop far enough up or down so that it turns dim, it will be deleted when you release the mouse button."),
+	)
+	pack.Pack(msg, pack.SideOpt(pack.Top))
+
+	btns := demohelper.AddSeeDismiss(f, nil)
+	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
+
+	c := canvas.New(f, "ruler",
 		canvas.Background("white"),
 		canvas.Width(560),
 		canvas.Height(100),

@@ -3,10 +3,16 @@
 package main
 
 import (
+	"fmt"
+	"os"
+
+	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/grid"
 	"github.com/msorc/takigo/geometry/pack"
+	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/widget/frame"
+	"github.com/msorc/takigo/widget/label"
 	"github.com/msorc/takigo/widget/listbox"
 	"github.com/msorc/takigo/widget/panedwindow"
 	"github.com/msorc/takigo/ttk"
@@ -14,11 +20,30 @@ import (
 )
 
 func main() {
-	app := demohelper.Setup("Vertical Paned Window Demonstration", 500, 450,
-		"The sash between the two scrolled windows below can be used to divide the area between them. Use the left mouse button to resize by moving the sash.")
+	app, err := takigo.NewApp(takigo.Title("Vertical Paned Window Demonstration"),
+		takigo.Geometry("+300+300"),
+		takigo.IconName("paned2"),
+	)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	f := frame.New(app, "f")
+	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+
+	msg := label.New(f, "msg",
+		label.WrapLength("4i"),
+		label.JustifyOpt(option.JustifyLeft),
+		label.Text("The sash between the two scrolled windows below can be used to divide the area between them. Use the left mouse button to resize by moving the sash."),
+	)
+	pack.Pack(msg, pack.SideOpt(pack.Top))
+
+	btns := demohelper.AddSeeDismiss(f, nil)
+	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	// Vertical paned window.
-	pw := panedwindow.New(app, "vpanes",
+	pw := panedwindow.New(f, "vpanes",
 		panedwindow.OrientOpt(panedwindow.Vertical),
 	)
 	pack.Pack(pw, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),

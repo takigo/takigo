@@ -4,22 +4,45 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 
+	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/canvas"
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/geometry/pack"
-	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/platform"
+	"github.com/msorc/takigo/widget/frame"
+	"github.com/msorc/takigo/widget/label"
 )
 
 func main() {
-	app := demohelper.Setup("Plot Demonstration", 550, 450,
-		"This window displays a canvas widget containing a simple 2-dimensional plot. You can doctor the data by dragging any of the points with mouse button 1.")
+	app, err := takigo.NewApp(takigo.Title("Plot Demonstration"),
+		takigo.Geometry("+300+300"),
+		takigo.IconName("Plot"),
+	)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	f := frame.New(app, "f")
+	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+
+	msg := label.New(f, "msg",
+		label.WrapLength("4i"),
+		label.JustifyOpt(option.JustifyLeft),
+		label.Text("This window displays a canvas widget containing a simple 2-dimensional plot. You can doctor the data by dragging any of the points with mouse button 1."),
+	)
+	pack.Pack(msg, pack.SideOpt(pack.Top))
+
+	btns := demohelper.AddSeeDismiss(f, nil)
+	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	// Canvas.
-	c := canvas.New(app, "plot",
+	c := canvas.New(f, "plot",
 		canvas.Background("white"),
 		canvas.Width(500),
 		canvas.Height(350),

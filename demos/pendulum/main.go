@@ -5,21 +5,44 @@ package main
 import (
 	"fmt"
 	"math"
+	"os"
 	"time"
 
+	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/canvas"
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/widget/frame"
+	"github.com/msorc/takigo/widget/label"
 )
 
 func main() {
-	app := demohelper.Setup("Pendulum Simulation", 820, 500, "This demonstration shows how animations can be linked to simulations of physical systems. In the left canvas is a graphical representation of a simple pendulum, and in the right canvas is a graph of the phase space of the system (angle vs angular velocity). The pendulum bob may be repositioned by clicking and dragging anywhere on the left canvas.")
+	app, err := takigo.NewApp(takigo.Title("Pendulum Simulation"),
+		takigo.Geometry("+300+300"),
+		takigo.IconName("pendulum"),
+	)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	f := frame.New(app, "f")
+	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+
+	msg := label.New(f, "msg",
+		label.WrapLength("4i"),
+		label.JustifyOpt(option.JustifyLeft),
+		label.Text("This demonstration shows how animations can be linked to simulations of physical systems. In the left canvas is a graphical representation of a simple pendulum, and in the right canvas is a graph of the phase space of the system (angle vs angular velocity). The pendulum bob may be repositioned by clicking and dragging anywhere on the left canvas."),
+	)
+	pack.Pack(msg, pack.SideOpt(pack.Top))
+
+	btns := demohelper.AddSeeDismiss(f, nil)
+	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	// Container frame to hold both canvases side by side.
-	container := frame.New(app, "container")
+	container := frame.New(f, "container")
 	pack.Pack(container, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true))
 
@@ -75,10 +98,10 @@ func main() {
 		canvas.OutlineColor("grey75"), canvas.OutlineWidth(1), canvas.Tags("x_axis"))
 	// Axis labels.
 	phaseCanvas.CreateText(phaseCX-3, 4,
-		canvas.TextOpt("δθ"), canvas.TextColor("black"),
+		canvas.TextOpt("\u03b4\u03b8"), canvas.TextColor("black"),
 		canvas.AnchorOpt(option.AnchorE), canvas.Tags("label_dtheta"))
 	phaseCanvas.CreateText(315, phaseCY+3,
-		canvas.TextOpt("θ"), canvas.TextColor("black"),
+		canvas.TextOpt("\u03b8"), canvas.TextColor("black"),
 		canvas.AnchorOpt(option.AnchorE), canvas.Tags("label_theta"))
 
 	// Pivot point on pendulum canvas.

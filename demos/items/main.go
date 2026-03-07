@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"runtime"
 
+	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/canvas"
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/event"
@@ -24,11 +25,30 @@ import (
 )
 
 func main() {
-	app := demohelper.Setup("Canvas Item Demonstration", 700, 550,
-		"This window contains a canvas widget with examples of the various kinds of items supported by canvases. The following operations are supported:\n  Left-button drag: moves item under pointer.\n  Middle-button drag: repositions view.\n  Right-button drag: strokes out area.")
+	app, err := takigo.NewApp(takigo.Title("Canvas Item Demonstration"),
+		takigo.Geometry("+300+300"),
+		takigo.IconName("Items"),
+	)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	f := frame.New(app, "f")
+	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+
+	msg := label.New(f, "msg",
+		label.WrapLength("5i"),
+		label.JustifyOpt(option.JustifyLeft),
+		label.Text("This window contains a canvas widget with examples of the various kinds of items supported by canvases. The following operations are supported:\n  Left-button drag: moves item under pointer.\n  Middle-button drag: repositions view.\n  Right-button drag: strokes out area."),
+	)
+	pack.Pack(msg, pack.SideOpt(pack.Top))
+
+	btns := demohelper.AddSeeDismiss(f, nil)
+	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	// Outer grid frame for canvas + scrollbars.
-	gf := frame.New(app, "gf")
+	gf := frame.New(f, "gf")
 	pack.Pack(gf, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true),
 		pack.PadX(10), pack.PadY(5))
 

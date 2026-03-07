@@ -3,26 +3,52 @@
 package main
 
 import (
+	"fmt"
+	"os"
+
+	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/dialog"
 	"github.com/msorc/takigo/geometry/pack"
+	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/ttk"
+	"github.com/msorc/takigo/widget/frame"
+	"github.com/msorc/takigo/widget/label"
 	"github.com/msorc/takigo/widget/text"
 )
 
 func main() {
-	app := demohelper.Setup("Text Demonstration - Basic Facilities", 550, 500,
-		"A text widget with scrollbar. Click to position cursor. Select by dragging. Ctrl+Z to undo.")
+	app, err := takigo.NewApp(takigo.Title("Text Demonstration - Basic Facilities"),
+		takigo.Geometry("+300+300"),
+		takigo.IconName("text"),
+	)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
 
-	tw := text.New(app, "text",
+	f := frame.New(app, "f")
+	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+
+	msg := label.New(f, "msg",
+		label.WrapLength("4i"),
+		label.JustifyOpt(option.JustifyLeft),
+		label.Text("A text widget with scrollbar. Click to position cursor. Select by dragging. Ctrl+Z to undo."),
+	)
+	pack.Pack(msg, pack.SideOpt(pack.Top))
+
+	btns := demohelper.AddSeeDismiss(f, nil)
+	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
+
+	tw := text.New(f, "text",
 		text.Height(30),
 		text.WrapModeOpt(text.WrapWord),
 		text.UndoOpt(true),
 		text.SetGridOpt(true),
 	)
 
-	yscroll := ttk.NewScrollbar(app, "scroll",
+	yscroll := ttk.NewScrollbar(f, "scroll",
 		ttk.ScrollbarOrientOpt(ttk.Vertical),
 		ttk.ScrollbarCommandOpt(func(args ...any) {
 			if len(args) < 1 {
@@ -49,7 +75,7 @@ func main() {
 	}
 
 	// Font Chooser button (matches Tcl's fontchooser toggle in button bar).
-	fontBtn := ttk.NewButton(app, "fontchooser",
+	fontBtn := ttk.NewButton(f, "fontchooser",
 		ttk.ButtonText("Font Chooser..."),
 		ttk.ButtonCommand(func() {
 			if f, ok := dialog.ChooseFont(app); ok {

@@ -3,36 +3,61 @@
 package main
 
 import (
+	"fmt"
+	"os"
+
+	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/dialog"
 	"github.com/msorc/takigo/geometry/grid"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/ttk"
+	"github.com/msorc/takigo/widget/frame"
+	"github.com/msorc/takigo/widget/label"
 	"github.com/msorc/takigo/widget/text"
 )
 
 func main() {
-	app := demohelper.Setup("Font Selection Dialog", 450, 300,
-		"Press the button below to choose a new font for the text shown in this window.")
+	app, err := takigo.NewApp(takigo.Title("Font Selection Dialog"),
+		takigo.Geometry("+300+300"),
+		takigo.IconName("fontchooser"),
+	)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
 
-	// Content frame (sunken border like the Tk original), packed into app.
-	f := ttk.NewFrame(app, "f",
+	f := frame.New(app, "f")
+	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+
+	msg := label.New(f, "msg",
+		label.WrapLength("4i"),
+		label.JustifyOpt(option.JustifyLeft),
+		label.Text("Press the button below to choose a new font for the text shown in this window."),
+	)
+	pack.Pack(msg, pack.SideOpt(pack.Top))
+
+	btns := demohelper.AddSeeDismiss(f, nil)
+	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
+
+	// Content frame (sunken border like the Tk original), packed into f.
+	cf := ttk.NewFrame(f, "cf",
 		ttk.FrameRelief(option.ReliefSunken),
 		ttk.FramePadding(ttk.Padding{Top: 2, Right: 2, Bottom: 2, Left: 2}),
 	)
-	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true),
+	pack.Pack(cf, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true),
 		pack.PadX(10), pack.PadY(5))
 
-	// Text widget + scrollbar in row 0 of f (grid layout inside f).
-	tw := text.New(f, "msg",
+	// Text widget + scrollbar in row 0 of cf (grid layout inside cf).
+	tw := text.New(cf, "msg",
 		text.Width(40),
 		text.Height(6),
 		text.WrapModeOpt(text.WrapWord),
 		text.BorderWidthOpt(0),
 	)
 
-	yscroll := ttk.NewScrollbar(f, "vs",
+	yscroll := ttk.NewScrollbar(cf, "vs",
 		ttk.ScrollbarOrientOpt(ttk.Vertical),
 		ttk.ScrollbarCommandOpt(func(args ...any) {
 			if len(args) < 1 {
@@ -60,8 +85,8 @@ func main() {
 
 	grid.Grid(tw, grid.Row(0), grid.Column(0), grid.Sticky(grid.NSEW))
 	grid.Grid(yscroll, grid.Row(0), grid.Column(1), grid.Sticky(grid.NS))
-	grid.ColumnConfigure(f, 0, grid.Weight(1))
-	grid.RowConfigure(f, 0, grid.Weight(1))
+	grid.ColumnConfigure(cf, 0, grid.Weight(1))
+	grid.RowConfigure(cf, 0, grid.Weight(1))
 
 	tw.Insert("end", "Press the buttons below to choose a new font for the "+
 		"text shown in this window.\n")
@@ -70,7 +95,7 @@ func main() {
 	currentFontDesc := ""
 
 	// "Set font ..." button — row 1, spans both columns, sticky east.
-	setFontBtn := ttk.NewButton(f, "font",
+	setFontBtn := ttk.NewButton(cf, "font",
 		ttk.ButtonText("Set font ..."),
 		ttk.ButtonCommand(func() {
 			opts := []dialog.FontOption{

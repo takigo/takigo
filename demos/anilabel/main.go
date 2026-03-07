@@ -3,11 +3,15 @@
 package main
 
 import (
+	"fmt"
+	"os"
 	"time"
 
+	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
 	"github.com/msorc/takigo/widget/labelframe"
 )
@@ -20,11 +24,30 @@ type scrollLabel struct {
 }
 
 func main() {
-	app := demohelper.Setup("Animated Labels", 500, 300,
-		"Four animated labels are displayed below; each of the labels on the left is animated by making the text message inside it appear to scroll, and the label on the right is animated by animating the image that it displays.")
+	app, err := takigo.NewApp(takigo.Title("Animated Labels"),
+		takigo.Geometry("+300+300"),
+		takigo.IconName("anilabel"),
+	)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	f := frame.New(app, "f")
+	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+
+	msg := label.New(f, "msg",
+		label.WrapLength("4i"),
+		label.JustifyOpt(option.JustifyLeft),
+		label.Text("Four animated labels are displayed below; each of the labels on the left is animated by making the text message inside it appear to scroll, and the label on the right is animated by animating the image that it displays."),
+	)
+	pack.Pack(msg, pack.SideOpt(pack.Top))
+
+	btns := demohelper.AddSeeDismiss(f, nil)
+	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	// Left labelframe: scrolling texts.
-	leftFrame := labelframe.New(app, "left",
+	leftFrame := labelframe.New(f, "left",
 		labelframe.Text("Scrolling Texts"),
 		labelframe.BorderWidth(2),
 		labelframe.Relief(option.ReliefGroove),
@@ -33,7 +56,7 @@ func main() {
 		pack.Expand(true))
 
 	// Right labelframe: GIF placeholder.
-	rightFrame := labelframe.New(app, "right",
+	rightFrame := labelframe.New(f, "right",
 		labelframe.Text("GIF Image"),
 		labelframe.BorderWidth(2),
 		labelframe.Relief(option.ReliefGroove),

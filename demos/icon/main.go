@@ -3,9 +3,12 @@
 package main
 
 import (
+	"fmt"
 	goimage "image"
 	"image/color"
+	"os"
 
+	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/pack"
 	tkimage "github.com/msorc/takigo/image"
@@ -62,15 +65,34 @@ func makeColorSquare(name string, c color.RGBA, sz int) *tkimage.Photo {
 }
 
 func main() {
-	app := demohelper.Setup("Iconic Button Demonstration", 500, 400,
-		"This window shows three ways of using bitmaps or images in "+
+	app, err := takigo.NewApp(takigo.Title("Iconic Button Demonstration"),
+		takigo.Geometry("+300+300"),
+		takigo.IconName("icon"),
+	)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	f := frame.New(app, "f")
+	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+
+	msg := label.New(f, "msg",
+		label.WrapLength("5i"),
+		label.JustifyOpt(option.JustifyLeft),
+		label.Text("This window shows three ways of using bitmaps or images in "+
 			"radiobuttons and checkbuttons. On the left are two "+
 			"radiobuttons, each of which displays a bitmap and an "+
 			"indicator. In the middle is a checkbutton that displays a "+
 			"different image depending on whether it is selected or not. "+
 			"On the right is a checkbutton that displays a single bitmap "+
 			"but changes its background color to indicate whether or not "+
-			"it is selected.")
+			"it is selected."),
+	)
+	pack.Pack(msg, pack.SideOpt(pack.Top))
+
+	btns := demohelper.AddSeeDismiss(f, nil)
+	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	// Create flag images.
 	flagUp := makeFlagImage("flag_up", true)
@@ -88,10 +110,10 @@ func main() {
 	flagVar := widget.NewVariable(false)
 
 	// Outer frame to hold three columns.
-	outer := frame.New(app, "outer")
+	outer := frame.New(f, "outer")
 	pack.Pack(outer, pack.SideOpt(pack.Top), pack.Expand(true), pack.FillOpt(pack.FillBoth))
 
-	// ── Left column: radiobuttons with images + indicators ──
+	// -- Left column: radiobuttons with images + indicators --
 	leftFrame := frame.New(outer, "left",
 		frame.BorderWidth(2), frame.Relief(option.ReliefGroove),
 	)
@@ -117,7 +139,7 @@ func main() {
 	pack.Pack(rbUp, pack.SideOpt(pack.Top), pack.PadY(4), pack.Anchor(option.AnchorW))
 	pack.Pack(rbDown, pack.SideOpt(pack.Top), pack.PadY(4), pack.Anchor(option.AnchorW))
 
-	// ── Middle column: checkbutton with selectimage ──
+	// -- Middle column: checkbutton with selectimage --
 	midFrame := frame.New(outer, "mid",
 		frame.BorderWidth(2), frame.Relief(option.ReliefGroove),
 	)
@@ -137,7 +159,7 @@ func main() {
 	)
 	pack.Pack(cbMid, pack.SideOpt(pack.Top), pack.PadY(8))
 
-	// ── Right column: checkbutton changing background via selectcolor ──
+	// -- Right column: checkbutton changing background via selectcolor --
 	rightFrame := frame.New(outer, "right",
 		frame.BorderWidth(2), frame.Relief(option.ReliefGroove),
 	)

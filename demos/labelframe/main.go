@@ -3,25 +3,51 @@
 package main
 
 import (
+	"fmt"
+	"os"
+
+	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/grid"
 	"github.com/msorc/takigo/geometry/pack"
+	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/checkbutton"
 	"github.com/msorc/takigo/widget/frame"
+	"github.com/msorc/takigo/widget/label"
 	"github.com/msorc/takigo/widget/labelframe"
 	"github.com/msorc/takigo/widget/radiobutton"
 )
 
 func main() {
-	app := demohelper.Setup("Labelframe Demonstration", 500, 300, "Labelframes are used to group related widgets together. The label may be either plain text or another widget.")
+	app, err := takigo.NewApp(takigo.Title("Labelframe Demonstration"),
+		takigo.Geometry("+300+300"),
+		takigo.IconName("labelframe"),
+	)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	f := frame.New(app, "f")
+	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+
+	msg := label.New(f, "msg",
+		label.WrapLength("4i"),
+		label.JustifyOpt(option.JustifyLeft),
+		label.Text("Labelframes are used to group related widgets together. The label may be either plain text or another widget."),
+	)
+	pack.Pack(msg, pack.SideOpt(pack.Top))
+
+	btns := demohelper.AddSeeDismiss(f, nil)
+	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	// Demo area frame — packs at bottom fill both expand.
-	f := frame.New(app, "f")
-	pack.Pack(f, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+	body := frame.New(f, "body")
+	pack.Pack(body, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	// Left labelframe: "Value" with radiobuttons 1-4.
-	lfValue := labelframe.New(f, "lf",
+	lfValue := labelframe.New(body, "lf",
 		labelframe.Text("Value"),
 	)
 	grid.Grid(lfValue, grid.Row(0), grid.Column(0), grid.PadX("2m"), grid.PadY("2m"))
@@ -39,7 +65,7 @@ func main() {
 
 	// Right labelframe: "Options" with checkbuttons.
 	// (Tcl uses a checkbutton as the labelwidget; we use plain text instead.)
-	lfOpts := labelframe.New(f, "lf2",
+	lfOpts := labelframe.New(body, "lf2",
 		labelframe.Text("Options"),
 	)
 	grid.Grid(lfOpts, grid.Row(0), grid.Column(1), grid.PadX("2m"), grid.PadY("2m"))
@@ -61,8 +87,8 @@ func main() {
 		_ = cb
 	}
 
-	grid.ColumnConfigure(f, 0, grid.Weight(1))
-	grid.ColumnConfigure(f, 1, grid.Weight(1))
+	grid.ColumnConfigure(body, 0, grid.Weight(1))
+	grid.ColumnConfigure(body, 1, grid.Weight(1))
 
 	_ = enableCb
 	_ = lfValue

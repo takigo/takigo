@@ -4,7 +4,9 @@ package main
 
 import (
 	"fmt"
+	"os"
 
+	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
@@ -14,14 +16,33 @@ import (
 )
 
 func main() {
-	app := demohelper.Setup("Themed Scale Demonstration", 400, 250,
-		"A label tied to a horizontal scale is displayed below. If you click or drag mouse button 1 in the scale, you can change the contents of the label; a callback command is used to couple the slider to both the text and the coloring of the label.")
+	app, err := takigo.NewApp(takigo.Title("Themed Scale Demonstration"),
+		takigo.Geometry("+300+300"),
+		takigo.IconName("ttkscale"),
+	)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	f := frame.New(app, "f")
+	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+
+	msg := label.New(f, "msg",
+		label.WrapLength("3.5i"),
+		label.JustifyOpt(option.JustifyLeft),
+		label.Text("A label tied to a horizontal scale is displayed below. If you click or drag mouse button 1 in the scale, you can change the contents of the label; a callback command is used to couple the slider to both the text and the coloring of the label."),
+	)
+	pack.Pack(msg, pack.SideOpt(pack.Top))
+
+	btns := demohelper.AddSeeDismiss(f, nil)
+	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	// Rainbow color list — use X11 named colors matching Tcl.
 	colorList := []string{"Red", "Orange", "Yellow", "Green", "Blue", "Violet"}
 
 	// Inner frame with border (matches Tcl's `ttk::frame $w.frame -borderwidth 7.5p`).
-	fr := frame.New(app, "frame",
+	fr := frame.New(f, "frame",
 		frame.BorderWidth(10), // 7.5p ≈ 10px
 	)
 	pack.Pack(fr, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))

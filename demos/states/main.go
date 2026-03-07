@@ -3,20 +3,24 @@
 package main
 
 import (
+	"fmt"
+	"os"
 	"strings"
 
+	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/frame"
+	"github.com/msorc/takigo/widget/label"
 	"github.com/msorc/takigo/widget/labelframe"
 	"github.com/msorc/takigo/widget/listbox"
 	"github.com/msorc/takigo/widget/radiobutton"
 	"github.com/msorc/takigo/ttk"
 )
 
-// justifyValues maps justification radio value → option.Justify.
+// justifyValues maps justification radio value -> option.Justify.
 var justifyValues = map[string]option.Justify{
 	"left":   option.JustifyLeft,
 	"center": option.JustifyCenter,
@@ -24,8 +28,27 @@ var justifyValues = map[string]option.Justify{
 }
 
 func main() {
-	app := demohelper.Setup("Listbox Demonstration (50 states)", 300, 400,
-		"A listbox containing the 50 states is displayed below, along with a scrollbar. You can scan the list either using the scrollbar or by scanning. To scan, press button 2 in the widget and drag up or down.")
+	app, err := takigo.NewApp(takigo.Title("Listbox Demonstration (50 states)"),
+		takigo.Geometry("+300+300"),
+		takigo.IconName("states"),
+	)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	f := frame.New(app, "f")
+	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+
+	msg := label.New(f, "msg",
+		label.WrapLength("4i"),
+		label.JustifyOpt(option.JustifyLeft),
+		label.Text("A listbox containing the 50 states is displayed below, along with a scrollbar. You can scan the list either using the scrollbar or by scanning. To scan, press button 2 in the widget and drag up or down."),
+	)
+	pack.Pack(msg, pack.SideOpt(pack.Top))
+
+	btns := demohelper.AddSeeDismiss(f, nil)
+	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	// lb is declared below; the command closure captures the pointer.
 	var lb *listbox.Listbox
@@ -33,7 +56,7 @@ func main() {
 	// "multi" is the tristatevalue: shown when selected items have mixed justifications.
 	justVar := widget.NewVariable("left")
 
-	justFrame := labelframe.New(app, "justif", labelframe.Text("Justification"))
+	justFrame := labelframe.New(f, "justif", labelframe.Text("Justification"))
 	for _, c := range []string{"Left", "Center", "Right"} {
 		val := strings.ToLower(c)
 		j := justifyValues[val]
@@ -54,7 +77,7 @@ func main() {
 	pack.Pack(justFrame, pack.SideOpt(pack.Top))
 
 	// Listbox frame with border.
-	lbFrame := frame.New(app, "frame",
+	lbFrame := frame.New(f, "frame",
 		frame.BorderWidth(19), // .5c ≈ 19px
 	)
 	pack.Pack(lbFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillY), pack.Expand(true))

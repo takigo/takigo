@@ -4,21 +4,43 @@ package main
 
 import (
 	"fmt"
+	"os"
 
+	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/canvas"
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
 )
 
 func main() {
-	app := demohelper.Setup("Floor Plan Demonstration", 650, 500,
-		"This window contains a canvas widget showing a floorplan. As the mouse moves over the active level, the room under the mouse lights up and its room number appears in the entry.")
+	app, err := takigo.NewApp(takigo.Title("Floor Plan Demonstration"),
+		takigo.Geometry("+300+300"),
+		takigo.IconName("Floorplan"),
+	)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	f := frame.New(app, "f")
+	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+
+	msg := label.New(f, "msg",
+		label.WrapLength("4i"),
+		label.JustifyOpt(option.JustifyLeft),
+		label.Text("This window contains a canvas widget showing a floorplan. As the mouse moves over the active level, the room under the mouse lights up and its room number appears in the entry."),
+	)
+	pack.Pack(msg, pack.SideOpt(pack.Top))
+
+	btns := demohelper.AddSeeDismiss(f, nil)
+	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	// Status label (bottom) — shows room under cursor.
-	statusLabel := label.New(app, "status",
+	statusLabel := label.New(f, "status",
 		label.Text(""),
 		label.Anchor(option.AnchorW),
 		label.PadX(10),
@@ -26,7 +48,7 @@ func main() {
 	pack.Pack(statusLabel, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	// Canvas.
-	c := canvas.New(app, "floor",
+	c := canvas.New(f, "floor",
 		canvas.Background("#f5f5dc"),
 		canvas.Width(600),
 		canvas.Height(380),

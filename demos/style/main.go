@@ -3,24 +3,49 @@
 package main
 
 import (
+	"fmt"
+	"os"
+
+	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/ttk"
+	"github.com/msorc/takigo/widget/frame"
+	"github.com/msorc/takigo/widget/label"
 	"github.com/msorc/takigo/widget/text"
 )
 
 func main() {
-	app := demohelper.Setup("Text Demonstration - Display Styles", 600, 550,
-		"This window shows text tags that control display styles. Tags are textual names applied to ranges of characters in a text widget, configuring those characters with various display styles.")
+	app, err := takigo.NewApp(takigo.Title("Text Demonstration - Display Styles"),
+		takigo.Geometry("+300+300"),
+		takigo.IconName("style"),
+	)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	f := frame.New(app, "f")
+	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+
+	msg := label.New(f, "msg",
+		label.WrapLength("4i"),
+		label.JustifyOpt(option.JustifyLeft),
+		label.Text("This window shows text tags that control display styles. Tags are textual names applied to ranges of characters in a text widget, configuring those characters with various display styles."),
+	)
+	pack.Pack(msg, pack.SideOpt(pack.Top))
+
+	btns := demohelper.AddSeeDismiss(f, nil)
+	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	// Scrollbar packed right, text fills rest (matches Tcl: pack $w.scroll -side right; pack $w.text).
-	yscroll := ttk.NewScrollbar(app, "scroll",
+	yscroll := ttk.NewScrollbar(f, "scroll",
 		ttk.ScrollbarOrientOpt(ttk.Vertical),
 		ttk.ScrollbarCommandOpt(func(args ...any) {}),
 	)
 
-	tw := text.New(app, "text",
+	tw := text.New(f, "text",
 		text.Width(70),
 		text.Height(32),
 		text.WrapModeOpt(text.WrapWord),

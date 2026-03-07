@@ -11,20 +11,16 @@ import (
 	"runtime"
 	"sort"
 
-	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/geometry"
 	"github.com/msorc/takigo/geometry/grid"
 	"github.com/msorc/takigo/geometry/pack"
 	tkimage "github.com/msorc/takigo/image"
-	"github.com/msorc/takigo/option"
-	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/ttk"
 	_ "github.com/msorc/takigo/ttk/clamtheme"
 	_ "github.com/msorc/takigo/ttk/defaulttheme"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/frame"
-	"github.com/msorc/takigo/widget/label"
 	"github.com/msorc/takigo/widget/labelframe"
 	"github.com/msorc/takigo/widget/scrollbar"
 	"github.com/msorc/takigo/widget/text"
@@ -44,65 +40,6 @@ func init() {
 	img = make(map[string]*tkimage.Photo)
 	img["view"] = makeViewIcon()
 	img["delete"] = makeDeleteIcon()
-}
-
-// Setup creates a standard demo window with a description label, and
-// "See Code" / "Dismiss" buttons at the bottom (matching Tk's addSeeDismiss).
-// Calls os.Exit(1) on failure.
-func Setup(title string, width, height int, description string) *takigo.App {
-	app, err := takigo.NewApp(takigo.Title(title), takigo.Size(width, height))
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-		os.Exit(1)
-	}
-
-	root := app.Root()
-	bgColor, _ := app.ColorCache().Get("#d9d9d9")
-	root.BackgroundPixel = bgColor.Pixel
-
-	// Description label.
-	msg := label.New(app, "msg",
-		label.Text(description),
-		label.Anchor(option.AnchorW),
-		label.WrapLength("4i"),
-		label.PadX(10),
-		label.PadY(5),
-	)
-	pack.Pack(msg, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
-
-	// Button bar at bottom via AddSeeDismiss.
-	btnFrame := AddSeeDismiss(app, nil)
-	pack.Pack(btnFrame, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
-
-	// Configure handler.
-	app.Dispatcher().Bind(root.PlatformID, event.StructureNotifyMask, func(ev *event.Event) {
-		if ev.Type == event.ConfigureType {
-			root.Width = ev.ConfigWidth
-			root.Height = ev.ConfigHeight
-			pack.ArrangeContainer(root)
-		}
-	})
-
-	// Expose handler.
-	app.Dispatcher().Bind(root.PlatformID, event.ExposureMask, func(ev *event.Event) {
-		if ev.ExposeCount > 0 {
-			return
-		}
-		d := root.Display.Server
-		gc := root.GC
-		d.SetForeground(gc, root.BackgroundPixel)
-		d.FillRectangle(root.Drawable(), gc, 0, 0, uint(root.Width), uint(root.Height))
-		d.Flush()
-	})
-
-	// Escape to quit.
-	app.Dispatcher().BindGlobal(event.KeyPressMask, func(ev *event.Event) {
-		if ev.KeySym == platform.XK_Escape {
-			app.Quit()
-		}
-	})
-
-	return app
 }
 
 // DemoDir returns the absolute path to a subdirectory under demos/.

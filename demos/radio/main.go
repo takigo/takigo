@@ -3,8 +3,11 @@
 package main
 
 import (
+	"fmt"
+	"os"
 	"strings"
 
+	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/grid"
 	"github.com/msorc/takigo/geometry/pack"
@@ -18,16 +21,35 @@ import (
 )
 
 func main() {
-	app := demohelper.Setup("Radiobutton Demonstration", 580, 400,
-		"Three groups of radiobuttons are displayed below. If you click on a button then the button will become selected exclusively among all the buttons in its group. A variable is associated with each group to indicate which of the group's buttons is selected.")
+	app, err := takigo.NewApp(takigo.Title("Radiobutton Demonstration"),
+		takigo.Geometry("+300+300"),
+		takigo.IconName("radio"),
+	)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	f := frame.New(app, "f")
+	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+
+	msg := label.New(f, "msg",
+		label.WrapLength("4i"),
+		label.JustifyOpt(option.JustifyLeft),
+		label.Text("Three groups of radiobuttons are displayed below. If you click on a button then the button will become selected exclusively among all the buttons in its group. A variable is associated with each group to indicate which of the group's buttons is selected."),
+	)
+	pack.Pack(msg, pack.SideOpt(pack.Top))
+
+	btns := demohelper.AddSeeDismiss(f, nil)
+	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	// Variables.
 	sizeVar := widget.NewVariable("12")
 	colorVar := widget.NewVariable("red")
 	alignVar := widget.NewVariable("left")
 
-	// Inner frame for grid layout (demohelper uses pack in app.Window()).
-	body := frame.New(app, "body")
+	// Inner frame for grid layout.
+	body := frame.New(f, "body")
 	pack.Pack(body, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	// Point Size group — spans 2 rows (matches Tcl: -rowspan 2).

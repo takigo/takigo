@@ -4,9 +4,11 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"runtime"
 
+	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/pack"
 	tkimage "github.com/msorc/takigo/image"
@@ -25,11 +27,30 @@ func demoImagesDir() string {
 }
 
 func main() {
-	app := demohelper.Setup("Menu Demonstration", 500, 400,
-		"This window contains a menubar with cascaded menus. You can post a menu from the keyboard by typing Alt+x, where \"x\" is the character underlined on the menu. You can then traverse among the menus using the arrow keys. When a menu is posted, you can invoke the current entry by typing space, or you can invoke any entry by typing its underlined character. If a menu entry has an accelerator, you can invoke the entry without posting the menu just by typing the accelerator.")
+	app, err := takigo.NewApp(takigo.Title("Menu Demonstration"),
+		takigo.Geometry("+300+300"),
+		takigo.IconName("menu"),
+	)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	f := frame.New(app, "f")
+	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+
+	msg := label.New(f, "msg",
+		label.WrapLength("4i"),
+		label.JustifyOpt(option.JustifyLeft),
+		label.Text("This window contains a menubar with cascaded menus. You can post a menu from the keyboard by typing Alt+x, where \"x\" is the character underlined on the menu. You can then traverse among the menus using the arrow keys. When a menu is posted, you can invoke the current entry by typing space, or you can invoke any entry by typing its underlined character. If a menu entry has an accelerator, you can invoke the entry without posting the menu just by typing the accelerator."),
+	)
+	pack.Pack(msg, pack.SideOpt(pack.Top))
+
+	btns := demohelper.AddSeeDismiss(f, nil)
+	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	// Status bar at the bottom.
-	statusBar := frame.New(app, "statusbar")
+	statusBar := frame.New(f, "statusbar")
 	statusLabel := label.New(statusBar, "status",
 		label.Text("    "),
 		label.Anchor(option.AnchorW),
@@ -46,7 +67,7 @@ func main() {
 	}
 
 	// Menu bar frame.
-	menuBar := frame.New(app, "menubar",
+	menuBar := frame.New(f, "menubar",
 		frame.Relief(option.ReliefRaised),
 		frame.BorderWidth(1),
 	)

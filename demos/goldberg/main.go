@@ -5,21 +5,43 @@ package main
 import (
 	"fmt"
 	"math"
+	"os"
 	"time"
 
+	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/canvas"
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/widget/button"
 	"github.com/msorc/takigo/widget/frame"
+	"github.com/msorc/takigo/widget/label"
 )
 
 func main() {
-	app := demohelper.Setup("Goldberg Machine", 640, 540,
-		"A simplified Rube Goldberg machine animation. Click Start to begin the chain reaction.\nA ball rolls down ramps, bounces off platforms, and lands in a funnel to hit the target star.")
+	app, err := takigo.NewApp(takigo.Title("Goldberg Machine"),
+		takigo.Geometry("+300+300"),
+		takigo.IconName("goldberg"),
+	)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
 
-	c := canvas.New(app, "goldberg",
+	f := frame.New(app, "f")
+	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+
+	msg := label.New(f, "msg",
+		label.WrapLength("4i"),
+		label.JustifyOpt(option.JustifyLeft),
+		label.Text("A simplified Rube Goldberg machine animation. Click Start to begin the chain reaction.\nA ball rolls down ramps, bounces off platforms, and lands in a funnel to hit the target star."),
+	)
+	pack.Pack(msg, pack.SideOpt(pack.Top))
+
+	btns := demohelper.AddSeeDismiss(f, nil)
+	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
+
+	c := canvas.New(f, "goldberg",
 		canvas.Background("#2c3e50"),
 		canvas.Width(600),
 		canvas.Height(400),
@@ -228,7 +250,7 @@ func main() {
 	}
 
 	// Button bar.
-	btnBar := frame.New(app, "btnbar")
+	btnBar := frame.New(f, "btnbar")
 	pack.Pack(btnBar, pack.SideOpt(pack.Top), pack.PadX(10), pack.PadY(5))
 
 	startBtn := button.New(btnBar, "start",

@@ -4,11 +4,14 @@ package main
 
 import (
 	"fmt"
+	"os"
 
+	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/dialog"
 	"github.com/msorc/takigo/geometry/grid"
 	"github.com/msorc/takigo/geometry/pack"
+	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/ttk"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/button"
@@ -18,8 +21,27 @@ import (
 )
 
 func main() {
-	app := demohelper.Setup("File Selection Dialogs", 500, 200,
-		"Enter a file name in the entry box or click on the \"Browse\" buttons to select a file name using the file selection dialog.")
+	app, err := takigo.NewApp(takigo.Title("File Selection Dialogs"),
+		takigo.Geometry("+300+300"),
+		takigo.IconName("filebox"),
+	)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	f := frame.New(app, "f")
+	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+
+	msg := label.New(f, "msg",
+		label.WrapLength("4i"),
+		label.JustifyOpt(option.JustifyLeft),
+		label.Text("Enter a file name in the entry box or click on the \"Browse\" buttons to select a file name using the file selection dialog."),
+	)
+	pack.Pack(msg, pack.SideOpt(pack.Top))
+
+	btns := demohelper.AddSeeDismiss(f, nil)
+	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	fileTypes := []dialog.FileType{
 		{Name: "Text files", Pattern: "*.txt"},
@@ -31,8 +53,8 @@ func main() {
 	}
 
 	// Grid frame for label + entry + browse button rows.
-	f := frame.New(app, "form")
-	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
+	form := frame.New(f, "form")
+	pack.Pack(form, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
 		pack.PadX("1c"))
 
 	rows := []struct {
@@ -47,13 +69,13 @@ func main() {
 		row := i
 		op := r.op
 
-		l := label.New(f, fmt.Sprintf("lab_%s", op),
+		l := label.New(form, fmt.Sprintf("lab_%s", op),
 			label.Text(r.label),
 		)
-		e := entry.New(f, fmt.Sprintf("ent_%s", op),
+		e := entry.New(form, fmt.Sprintf("ent_%s", op),
 			entry.Width(20),
 		)
-		b := button.New(f, fmt.Sprintf("but_%s", op),
+		b := button.New(form, fmt.Sprintf("but_%s", op),
 			button.Text("Browse ..."),
 		)
 
@@ -86,11 +108,11 @@ func main() {
 		grid.Grid(b, grid.Row(row), grid.Column(2), grid.PadY("3p"))
 	}
 
-	grid.ColumnConfigure(f, 1, grid.Weight(1))
+	grid.ColumnConfigure(form, 1, grid.Weight(1))
 
 	// X11: "Use Motif Style Dialog" checkbutton (matches Tcl's x11 windowingsystem check).
 	strictMotif := widget.NewVariable(false)
-	strictCb := ttk.NewCheckbutton(app, "strict",
+	strictCb := ttk.NewCheckbutton(f, "strict",
 		ttk.CheckbuttonText("Use Motif Style Dialog"),
 		ttk.CheckbuttonVar(strictMotif),
 	)

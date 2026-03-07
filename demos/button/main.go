@@ -3,17 +3,44 @@
 package main
 
 import (
+	"fmt"
+	"os"
+
+	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/pack"
+	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/widget/button"
+	"github.com/msorc/takigo/widget/frame"
+	"github.com/msorc/takigo/widget/label"
 )
 
 func main() {
-	app := demohelper.Setup("Button Demonstration", 400, 350,
-		"If you click on any of the four buttons below, the background "+
+	app, err := takigo.NewApp(takigo.Title("Button Demonstration"),
+		takigo.Geometry("+300+300"),
+		takigo.IconName("button"),
+	)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	f := frame.New(app, "f")
+	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+
+	msg := label.New(f, "msg",
+		label.WrapLength("4i"),
+		label.JustifyOpt(option.JustifyLeft),
+		label.Text("If you click on any of the four buttons below, the background "+
 			"of the button area will change to the color indicated in the "+
 			"button. You can press Tab to move among the buttons, then "+
-			"press Space to invoke the current button.")
+			"press Space to invoke the current button."),
+	)
+	pack.Pack(msg, pack.SideOpt(pack.Top))
+
+	btns := demohelper.AddSeeDismiss(f, nil)
+	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
+
 	root := app.Window()
 
 	// Color-changing function.
@@ -44,7 +71,7 @@ func main() {
 
 	for _, c := range colors {
 		colorVal := c.color
-		btn := button.New(app, "btn_"+c.text,
+		btn := button.New(f, "btn_"+c.text,
 			button.Text(c.text),
 			button.Command(func() { changeColor(colorVal) }),
 		)

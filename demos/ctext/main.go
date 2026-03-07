@@ -4,19 +4,42 @@ package main
 
 import (
 	"fmt"
+	"os"
 
+	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/canvas"
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/widget/frame"
+	"github.com/msorc/takigo/widget/label"
 )
 
 func main() {
-	app := demohelper.Setup("Canvas Text Demonstration", 550, 430,
-		"This window displays a string of text to demonstrate the text facilities of canvas widgets. You can click in the colored boxes to adjust the position of the text relative to its positioning point or change its justification.")
+	app, err := takigo.NewApp(takigo.Title("Canvas Text Demonstration"),
+		takigo.Geometry("+300+300"),
+		takigo.IconName("Text"),
+	)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
 
-	c := canvas.New(app, "canvas",
+	f := frame.New(app, "f")
+	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+
+	msg := label.New(f, "msg",
+		label.WrapLength("5i"),
+		label.JustifyOpt(option.JustifyLeft),
+		label.Text("This window displays a string of text to demonstrate the text facilities of canvas widgets. You can click in the colored boxes to adjust the position of the text relative to its positioning point or change its justification."),
+	)
+	pack.Pack(msg, pack.SideOpt(pack.Top))
+
+	btns := demohelper.AddSeeDismiss(f, nil)
+	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
+
+	c := canvas.New(f, "canvas",
 		canvas.Background("white"),
 		canvas.Width(500),
 		canvas.Height(350),
@@ -57,7 +80,7 @@ func main() {
 		})
 	}
 
-	// --- Anchor position selector (3×3 grid at top-left) ---
+	// --- Anchor position selector (3x3 grid at top-left) ---
 	// Box positions map to anchor directions.
 	anchorColor := "LightSkyBlue1"
 	bx, by := 50.0, 50.0

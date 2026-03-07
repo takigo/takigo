@@ -3,8 +3,11 @@
 package main
 
 import (
+	"fmt"
+	"os"
 	"strings"
 
+	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/grid"
 	"github.com/msorc/takigo/geometry/pack"
@@ -13,6 +16,7 @@ import (
 	_ "github.com/msorc/takigo/ttk/clamtheme"
 	_ "github.com/msorc/takigo/ttk/defaulttheme"
 	"github.com/msorc/takigo/widget/frame"
+	"github.com/msorc/takigo/widget/label"
 )
 
 type countryData struct {
@@ -40,13 +44,32 @@ var countries = []countryData{
 }
 
 func main() {
-	app := demohelper.Setup("Multi-Column List", 500, 400,
-		"One of the Ttk widgets is a tree widget, which can be configured to display multiple columns of informational data without displaying the tree itself. This is a simple way to build a listbox that has multiple columns. Clicking on the heading for a column will sort the data by that column. You can also change the width of the columns by dragging the boundary between them.")
+	app, err := takigo.NewApp(takigo.Title("Multi-Column List"),
+		takigo.Geometry("+300+300"),
+		takigo.IconName("mclist"),
+	)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	f := frame.New(app, "f")
+	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+
+	msg := label.New(f, "msg",
+		label.WrapLength("4i"),
+		label.JustifyOpt(option.JustifyLeft),
+		label.Text("One of the Ttk widgets is a tree widget, which can be configured to display multiple columns of informational data without displaying the tree itself. This is a simple way to build a listbox that has multiple columns. Clicking on the heading for a column will sort the data by that column. You can also change the width of the columns by dragging the boundary between them."),
+	)
+	pack.Pack(msg, pack.SideOpt(pack.Top))
+
+	btns := demohelper.AddSeeDismiss(f, nil)
+	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	ttk.SetCurrentTheme("clam")
 
 	// Container frame (grid layout for treeview + scrollbars).
-	tvFrame := frame.New(app, "container")
+	tvFrame := frame.New(f, "container")
 	pack.Pack(tvFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	tv := ttk.NewTreeview(tvFrame, "mclist",

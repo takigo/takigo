@@ -4,20 +4,42 @@ package main
 
 import (
 	"fmt"
+	"os"
 
+	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/dialog"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/widget/button"
+	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
 )
 
 func main() {
-	app := demohelper.Setup("Dialog with global grab", 400, 200,
-		"This dialog box uses a global grab. You will be prevented from interacting with anything on your display until you invoke one of the buttons below. This is almost always a bad idea; don't use global grabs unless you're truly desperate.")
+	app, err := takigo.NewApp(takigo.Title("Dialog with global grab"),
+		takigo.Geometry("+300+300"),
+		takigo.IconName("dialog2"),
+	)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
 
-	statusLabel := label.New(app, "status",
+	f := frame.New(app, "f")
+	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+
+	msg := label.New(f, "msg",
+		label.WrapLength("4i"),
+		label.JustifyOpt(option.JustifyLeft),
+		label.Text("This dialog box uses a global grab. You will be prevented from interacting with anything on your display until you invoke one of the buttons below. This is almost always a bad idea; don't use global grabs unless you're truly desperate."),
+	)
+	pack.Pack(msg, pack.SideOpt(pack.Top))
+
+	btns := demohelper.AddSeeDismiss(f, nil)
+	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
+
+	statusLabel := label.New(f, "status",
 		label.Text("Result: —"),
 		label.Anchor(option.AnchorW),
 		label.Background("#e8e8e8"),
@@ -25,7 +47,7 @@ func main() {
 	)
 	pack.Pack(statusLabel, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
-	btn := button.New(app, "btn",
+	btn := button.New(f, "btn",
 		button.Text("Show Dialog"),
 		button.Command(func() {
 			result := dialog.ShowMessage(app,

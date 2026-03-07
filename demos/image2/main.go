@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/geometry/grid"
@@ -25,14 +26,33 @@ import (
 )
 
 func main() {
-	app := demohelper.Setup("Image Demonstration #2", 550, 400,
-		"This demonstration allows you to view images using a Tk \"photo\" image. First type a directory name in the listbox, then type Return to load the directory into the listbox. Then double-click on a file name in the listbox to see that image.")
+	app, err := takigo.NewApp(takigo.Title("Image Demonstration #2"),
+		takigo.Geometry("+300+300"),
+		takigo.IconName("Image2"),
+	)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	f := frame.New(app, "f")
+	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+
+	msg := label.New(f, "msg",
+		label.WrapLength("4i"),
+		label.JustifyOpt(option.JustifyLeft),
+		label.Text("This demonstration allows you to view images using a Tk \"photo\" image. First type a directory name in the listbox, then type Return to load the directory into the listbox. Then double-click on a file name in the listbox to see that image."),
+	)
+	pack.Pack(msg, pack.SideOpt(pack.Top))
+
+	btns := demohelper.AddSeeDismiss(f, nil)
+	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	// Find demos/images directory relative to working directory.
 	imagesDir := findImagesDir()
 
 	// Middle frame.
-	mid := frame.New(app, "mid")
+	mid := frame.New(f, "mid")
 	pack.Pack(mid, pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	// --- "Directory:" labelframe ---

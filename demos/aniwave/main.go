@@ -5,18 +5,43 @@ package main
 import (
 	"fmt"
 	"math"
+	"os"
 	"time"
 
+	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/canvas"
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/pack"
+	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/widget/button"
+	"github.com/msorc/takigo/widget/frame"
+	"github.com/msorc/takigo/widget/label"
 )
 
 func main() {
-	app := demohelper.Setup("Animated Wave", 550, 350, "This demonstration contains a canvas widget with a line item inside it. The animation routines work by adjusting the coordinates list of the line.")
+	app, err := takigo.NewApp(takigo.Title("Animated Wave"),
+		takigo.Geometry("+300+300"),
+		takigo.IconName("aniwave"),
+	)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
 
-	c := canvas.New(app, "wave",
+	f := frame.New(app, "f")
+	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+
+	msg := label.New(f, "msg",
+		label.WrapLength("4i"),
+		label.JustifyOpt(option.JustifyLeft),
+		label.Text("This demonstration contains a canvas widget with a line item inside it. The animation routines work by adjusting the coordinates list of the line."),
+	)
+	pack.Pack(msg, pack.SideOpt(pack.Top))
+
+	btns := demohelper.AddSeeDismiss(f, nil)
+	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
+
+	c := canvas.New(f, "wave",
 		canvas.Background("black"),
 		canvas.Width(300),
 		canvas.Height(200),
@@ -63,7 +88,7 @@ func main() {
 	app.After(33*time.Millisecond, animate)
 
 	// Pause/Resume toggle button.
-	pauseBtn := button.New(app, "pause",
+	pauseBtn := button.New(f, "pause",
 		button.Text("Pause"),
 	)
 	pauseBtn.Command = func() {

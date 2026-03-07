@@ -5,25 +5,47 @@ package main
 import (
 	"fmt"
 	"math"
+	"os"
 
+	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/geometry/place"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/widget/button"
 	"github.com/msorc/takigo/widget/frame"
+	"github.com/msorc/takigo/widget/label"
 	"github.com/msorc/takigo/window"
 )
 
 func main() {
-	app := demohelper.Setup("15-Puzzle", 340, 400,
-		"A 15-puzzle appears below as a collection of buttons. Click "+
+	app, err := takigo.NewApp(takigo.Title("15-Puzzle"),
+		takigo.Geometry("+300+300"),
+		takigo.IconName("15-Puzzle"),
+	)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	f := frame.New(app, "f")
+	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+
+	msg := label.New(f, "msg",
+		label.WrapLength("4i"),
+		label.JustifyOpt(option.JustifyLeft),
+		label.Text("A 15-puzzle appears below as a collection of buttons. Click "+
 			"on any of the pieces next to the space, and that piece will "+
 			"slide over the space. Continue this until the pieces are "+
-			"arranged in numerical order from upper-left to lower-right.")
+			"arranged in numerical order from upper-left to lower-right."),
+	)
+	pack.Pack(msg, pack.SideOpt(pack.Top))
+
+	btns := demohelper.AddSeeDismiss(f, nil)
+	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	// Puzzle frame (matches Tcl: 90p ≈ 120px, pady 1c padx 1c).
-	puzzleFrame := frame.New(app, "puzzle",
+	puzzleFrame := frame.New(f, "puzzle",
 		frame.Width(120),
 		frame.Height(120),
 		frame.BorderWidth(2),

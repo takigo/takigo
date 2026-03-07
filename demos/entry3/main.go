@@ -3,30 +3,55 @@
 package main
 
 import (
+	"fmt"
+	"os"
 	"regexp"
 	"strconv"
 
+	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/focus"
 	"github.com/msorc/takigo/geometry/grid"
 	"github.com/msorc/takigo/geometry/pack"
+	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/widget/entry"
 	"github.com/msorc/takigo/widget/frame"
+	"github.com/msorc/takigo/widget/label"
 	"github.com/msorc/takigo/widget/labelframe"
 )
 
 var phoneRe = regexp.MustCompile(`^1?-?\(?[0-9]{0,3}\)?-?[0-9]{0,3}-?[0-9]{0,4}$`)
 
 func main() {
-	app := demohelper.Setup("Constrained Entry Demonstration", 500, 300,
-		"Four different entries are displayed below. You can add characters by pointing, clicking and typing, though each is constrained in what it will accept. The first only accepts integers or the empty string. The second only accepts strings with fewer than ten characters. The third accepts US phone numbers. The fourth is a password field that accepts up to eight characters, displaying them as asterisks.")
+	app, err := takigo.NewApp(takigo.Title("Constrained Entry Demonstration"),
+		takigo.Geometry("+300+300"),
+		takigo.IconName("entry3"),
+	)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	f := frame.New(app, "f")
+	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+
+	msg := label.New(f, "msg",
+		label.WrapLength("5i"),
+		label.JustifyOpt(option.JustifyLeft),
+		label.Text("Four different entries are displayed below. You can add characters by pointing, clicking and typing, though each is constrained in what it will accept. The first only accepts integers or the empty string. The second only accepts strings with fewer than ten characters. The third accepts US phone numbers. The fourth is a password field that accepts up to eight characters, displaying them as asterisks."),
+	)
+	pack.Pack(msg, pack.SideOpt(pack.Top))
+
+	btns := demohelper.AddSeeDismiss(f, nil)
+	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
+
 	root := app.Window()
 
 	focusMgr := focus.NewManager(app.Dispatcher(), app.Server())
 	focusMgr.BindTraversal(root)
 
 	// Middle frame to hold the 2x2 grid of labelframes (matches Tcl's $w.mid).
-	mid := frame.New(app, "mid")
+	mid := frame.New(f, "mid")
 	pack.Pack(mid, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	// Top-left: Integer Entry (only accepts integers or empty string).

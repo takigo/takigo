@@ -4,29 +4,52 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"sort"
 
+	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/font"
-	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/geometry/grid"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/ttk"
 	_ "github.com/msorc/takigo/ttk/clamtheme"
 	_ "github.com/msorc/takigo/ttk/defaulttheme"
+	"github.com/msorc/takigo/widget"
+	"github.com/msorc/takigo/widget/frame"
+	"github.com/msorc/takigo/widget/label"
 	"github.com/msorc/takigo/widget/menu"
 	"github.com/msorc/takigo/widget/text"
 )
 
 func main() {
-	app := demohelper.Setup("Toolbar Demonstration", 500, 350,
-		"This is a demonstration of how to do a toolbar that is styled correctly. The buttons are configured to be \"toolbar style\" buttons by telling them that they are to use the Toolbutton style. Below the toolbar is a text widget that shows messages when toolbar items are activated.")
+	app, err := takigo.NewApp(takigo.Title("Toolbar Demonstration"),
+		takigo.Geometry("+300+300"),
+		takigo.IconName("toolbar"),
+	)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	f := frame.New(app, "f")
+	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+
+	msg := label.New(f, "msg",
+		label.WrapLength("4i"),
+		label.JustifyOpt(option.JustifyLeft),
+		label.Text("This is a demonstration of how to do a toolbar that is styled correctly. The buttons are configured to be \"toolbar style\" buttons by telling them that they are to use the Toolbutton style. Below the toolbar is a text widget that shows messages when toolbar items are activated."),
+	)
+	pack.Pack(msg, pack.SideOpt(pack.Top))
+
+	btns := demohelper.AddSeeDismiss(f, nil)
+	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	ttk.SetCurrentTheme("clam")
 
-	// Inner frame (packs into app alongside demohelper's msg/btnframe).
-	main := ttk.NewFrame(app, "main")
+	// Inner frame (packs into f alongside msg/btnframe).
+	main := ttk.NewFrame(f, "main")
 	pack.Pack(main, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	// Toolbar frame (row 0 inside main).

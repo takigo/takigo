@@ -4,7 +4,9 @@ package main
 
 import (
 	"fmt"
+	"os"
 
+	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/focus"
 	"github.com/msorc/takigo/geometry/grid"
@@ -16,15 +18,34 @@ import (
 )
 
 func main() {
-	app := demohelper.Setup("Form Demonstration", 450, 280,
-		"This window contains a simple form where you can type in the various entries and use tabs to move circularly between the entries.")
+	app, err := takigo.NewApp(takigo.Title("Form Demonstration"),
+		takigo.Geometry("+300+300"),
+		takigo.IconName("form"),
+	)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
 	root := app.Window()
+
+	f := frame.New(app, "f")
+	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+
+	msg := label.New(f, "msg",
+		label.WrapLength("4i"),
+		label.JustifyOpt(option.JustifyLeft),
+		label.Text("This window contains a simple form where you can type in the various entries and use tabs to move circularly between the entries."),
+	)
+	pack.Pack(msg, pack.SideOpt(pack.Top))
+
+	btns := demohelper.AddSeeDismiss(f, nil)
+	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	focusMgr := focus.NewManager(app.Dispatcher(), app.Server())
 	focusMgr.BindTraversal(root)
 
 	// Form grid.
-	formFrame := frame.New(app, "form")
+	formFrame := frame.New(f, "form")
 	pack.Pack(formFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
 		pack.PadX(20), pack.PadY(10))
 

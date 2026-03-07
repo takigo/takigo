@@ -4,32 +4,56 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"sort"
 
+	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/grid"
 	"github.com/msorc/takigo/geometry/pack"
+	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/ttk"
 	_ "github.com/msorc/takigo/ttk/clamtheme"
 	_ "github.com/msorc/takigo/ttk/defaulttheme"
 	"github.com/msorc/takigo/widget"
+	"github.com/msorc/takigo/widget/frame"
+	"github.com/msorc/takigo/widget/label"
 	"github.com/msorc/takigo/widget/labelframe"
 )
 
 func main() {
-	app := demohelper.Setup("Simple Ttk Widgets", 750, 400,
-		"Ttk is the themed widget set. This is a Ttk themed label, "+
+	app, err := takigo.NewApp(takigo.Title("Simple Ttk Widgets"),
+		takigo.Geometry("+300+300"),
+		takigo.IconName("ttkbut"),
+	)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	f := frame.New(app, "f")
+	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+
+	msg := label.New(f, "msg",
+		label.WrapLength("4i"),
+		label.JustifyOpt(option.JustifyLeft),
+		label.Text("Ttk is the themed widget set. This is a Ttk themed label, "+
 			"and below are four groups of Ttk widgets in Ttk labelframes. "+
 			"The first group are buttons that set the current application "+
 			"theme when pressed. The second group contains two sets of "+
 			"checkbuttons, with a separator between the sets. The third "+
 			"group has a collection of linked radiobuttons. The fourth "+
-			"group has a collection of toggle switches.")
+			"group has a collection of toggle switches."),
+	)
+	pack.Pack(msg, pack.SideOpt(pack.Top))
+
+	btns := demohelper.AddSeeDismiss(f, nil)
+	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	ttk.SetCurrentTheme("clam")
 
 	// Container frame for the grid layout (matches Tcl's ttk::frame $w.f).
-	container := ttk.NewFrame(app, "container")
+	container := ttk.NewFrame(f, "container")
 	pack.Pack(container, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true))
 

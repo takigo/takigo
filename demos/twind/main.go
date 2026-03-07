@@ -4,7 +4,9 @@ package main
 
 import (
 	"fmt"
+	"os"
 
+	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
@@ -16,15 +18,34 @@ import (
 )
 
 func main() {
-	app := demohelper.Setup("Text Demonstration - Embedded Windows and Other Features", 650, 550,
-		"This window demonstrates a range of text widget features including embedded windows, word wrapping, and tag-based styling.")
+	app, err := takigo.NewApp(takigo.Title("Text Demonstration - Embedded Windows and Other Features"),
+		takigo.Geometry("+300+300"),
+		takigo.IconName("twind"),
+	)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	f := frame.New(app, "f")
+	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+
+	msg := label.New(f, "msg",
+		label.WrapLength("4i"),
+		label.JustifyOpt(option.JustifyLeft),
+		label.Text("This window demonstrates a range of text widget features including embedded windows, word wrapping, and tag-based styling."),
+	)
+	pack.Pack(msg, pack.SideOpt(pack.Top))
+
+	btns := demohelper.AddSeeDismiss(f, nil)
+	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	// Side control buttons.
-	ctrlFrame := frame.New(app, "ctrl")
+	ctrlFrame := frame.New(f, "ctrl")
 	pack.Pack(ctrlFrame, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY), pack.PadX(5), pack.PadY(5))
 
 	// Text widget with scrollbar.
-	txtFrame := frame.New(app, "txtframe")
+	txtFrame := frame.New(f, "txtframe")
 	pack.Pack(txtFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true), pack.PadX(5), pack.PadY(5))
 

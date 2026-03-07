@@ -4,26 +4,49 @@ package main
 
 import (
 	"fmt"
+	"os"
 
+	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/grid"
 	"github.com/msorc/takigo/geometry/pack"
+	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/ttk"
 	"github.com/msorc/takigo/widget/button"
 	"github.com/msorc/takigo/widget/frame"
+	"github.com/msorc/takigo/widget/label"
 	"github.com/msorc/takigo/widget/text"
 )
 
 func main() {
-	app := demohelper.Setup("Text Widget Peering Demonstration", 700, 500,
-		"A demonstration of the text peer facility. The two text widgets "+
+	app, err := takigo.NewApp(takigo.Title("Text Widget Peering Demonstration"),
+		takigo.Geometry("+300+300"),
+		takigo.IconName("textpeer"),
+	)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	f := frame.New(app, "f")
+	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+
+	msg := label.New(f, "msg",
+		label.WrapLength("4i"),
+		label.JustifyOpt(option.JustifyLeft),
+		label.Text("A demonstration of the text peer facility. The two text widgets "+
 			"below are peers of each other; they display and edit the same "+
 			"underlying document. Note that editing in one peer immediately "+
 			"updates the other. Each peer can show a different part of the "+
-			"document and has its own insert cursor and selection.")
+			"document and has its own insert cursor and selection."),
+	)
+	pack.Pack(msg, pack.SideOpt(pack.Top))
+
+	btns := demohelper.AddSeeDismiss(f, nil)
+	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	// Inner frame for grid layout.
-	w := frame.New(app, "w")
+	w := frame.New(f, "w")
 	pack.Pack(w, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	// Initial content.

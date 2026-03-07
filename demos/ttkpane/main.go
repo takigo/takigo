@@ -4,27 +4,51 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"time"
 
+	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/dialog"
 	"github.com/msorc/takigo/geometry/pack"
+	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/ttk"
 	_ "github.com/msorc/takigo/ttk/clamtheme"
 	_ "github.com/msorc/takigo/ttk/defaulttheme"
+	"github.com/msorc/takigo/widget/frame"
+	"github.com/msorc/takigo/widget/label"
 	"github.com/msorc/takigo/widget/labelframe"
 	"github.com/msorc/takigo/widget/panedwindow"
 	"github.com/msorc/takigo/widget/text"
 )
 
 func main() {
-	app := demohelper.Setup("Themed Nested Panes", 600, 400,
-		"This demonstration shows off a nested set of themed paned windows. Their sizes can be changed by grabbing the area between each contained pane and dragging the divider.")
+	app, err := takigo.NewApp(takigo.Title("Themed Nested Panes"),
+		takigo.Geometry("+300+300"),
+		takigo.IconName("ttkpane"),
+	)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	f := frame.New(app, "f")
+	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+
+	msg := label.New(f, "msg",
+		label.WrapLength("4i"),
+		label.JustifyOpt(option.JustifyLeft),
+		label.Text("This demonstration shows off a nested set of themed paned windows. Their sizes can be changed by grabbing the area between each contained pane and dragging the divider."),
+	)
+	pack.Pack(msg, pack.SideOpt(pack.Top))
+
+	btns := demohelper.AddSeeDismiss(f, nil)
+	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	ttk.SetCurrentTheme("clam")
 
 	// Outer horizontal panedwindow (matches Tcl's ttk::panedwindow -orient horizontal).
-	outer := ttk.NewPanedwindow(app, "outer",
+	outer := ttk.NewPanedwindow(f, "outer",
 		panedwindow.OrientOpt(panedwindow.Horizontal),
 	)
 	pack.Pack(outer, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))

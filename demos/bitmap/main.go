@@ -3,9 +3,12 @@
 package main
 
 import (
+	"fmt"
 	goimage "image"
 	"image/color"
+	"os"
 
+	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/pack"
 	tkimage "github.com/msorc/takigo/image"
@@ -15,8 +18,27 @@ import (
 )
 
 func main() {
-	app := demohelper.Setup("Bitmap Demonstration", 600, 350,
-		"This window displays all of the built-in bitmaps, along with the names you can use for them in scripts.")
+	app, err := takigo.NewApp(takigo.Title("Bitmap Demonstration"),
+		takigo.Geometry("+300+300"),
+		takigo.IconName("bitmap"),
+	)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	f := frame.New(app, "f")
+	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+
+	msg := label.New(f, "msg",
+		label.WrapLength("4i"),
+		label.JustifyOpt(option.JustifyLeft),
+		label.Text("This window displays all of the built-in bitmaps, along with the names you can use for them in scripts."),
+	)
+	pack.Pack(msg, pack.SideOpt(pack.Top))
+
+	btns := demohelper.AddSeeDismiss(f, nil)
+	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	fg := color.RGBA{R: 0, G: 0, B: 0, A: 255}
 	bg := color.RGBA{R: 255, G: 255, B: 255, A: 255}
@@ -87,7 +109,7 @@ func main() {
 	}
 
 	// Row 1: first 5 bitmaps.
-	row1 := frame.New(app, "row1")
+	row1 := frame.New(f, "row1")
 	pack.Pack(row1, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth))
 
 	for _, b := range bitmaps[:5] {
@@ -106,7 +128,7 @@ func main() {
 	}
 
 	// Row 2: last 5 bitmaps.
-	row2 := frame.New(app, "row2")
+	row2 := frame.New(f, "row2")
 	pack.Pack(row2, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth))
 
 	for _, b := range bitmaps[5:] {

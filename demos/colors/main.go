@@ -3,18 +3,43 @@
 package main
 
 import (
+	"fmt"
+	"os"
+
+	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/bind"
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/pack"
-	"github.com/msorc/takigo/widget/frame"
-	"github.com/msorc/takigo/widget/listbox"
+	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/ttk"
+	"github.com/msorc/takigo/widget/frame"
+	"github.com/msorc/takigo/widget/label"
+	"github.com/msorc/takigo/widget/listbox"
 )
 
 func main() {
-	app := demohelper.Setup("Colors", 350, 450,
-		"A listbox containing several color names is displayed below, along with a scrollbar. You can scan the list either using the scrollbar or by dragging in the listbox window with button 2 pressed. If you double-click button 1 on a color, then the application's color palette will be set to match that color.")
+	app, err := takigo.NewApp(takigo.Title("Colors"),
+		takigo.Geometry("+300+300"),
+		takigo.IconName("Listbox"),
+	)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
 	root := app.Window()
+
+	f := frame.New(app, "f")
+	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+
+	msg := label.New(f, "msg",
+		label.WrapLength("4i"),
+		label.JustifyOpt(option.JustifyLeft),
+		label.Text("A listbox containing several color names is displayed below, along with a scrollbar. You can scan the list either using the scrollbar or by dragging in the listbox window with button 2 pressed. If you double-click button 1 on a color, then the application's color palette will be set to match that color."),
+	)
+	pack.Pack(msg, pack.SideOpt(pack.Top))
+
+	btns := demohelper.AddSeeDismiss(f, nil)
+	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	// Color names (grouped by family).
 	colors := []string{
@@ -100,7 +125,7 @@ func main() {
 	}
 
 	// Listbox frame with border matching Tcl's `frame -borderwidth 7.5p`.
-	lbFrame := frame.New(app, "lbframe", frame.BorderWidth(10))
+	lbFrame := frame.New(f, "lbframe", frame.BorderWidth(10))
 	pack.Pack(lbFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillY), pack.Expand(true))
 
 	lb := listbox.New(lbFrame, "colors",

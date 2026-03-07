@@ -8,16 +8,37 @@ import (
 	"path/filepath"
 	"runtime"
 
+	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/pack"
 	tkimage "github.com/msorc/takigo/image"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
 )
 
 func main() {
-	app := demohelper.Setup("Image Demonstration #1", 500, 400,
-		"This demonstration displays two images, each in a separate label widget.")
+	app, err := takigo.NewApp(takigo.Title("Image Demonstration #1"),
+		takigo.Geometry("+300+300"),
+		takigo.IconName("Image1"),
+	)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	f := frame.New(app, "f")
+	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+
+	msg := label.New(f, "msg",
+		label.WrapLength("4i"),
+		label.JustifyOpt(option.JustifyLeft),
+		label.Text("This demonstration displays two images, each in a separate label widget."),
+	)
+	pack.Pack(msg, pack.SideOpt(pack.Top))
+
+	btns := demohelper.AddSeeDismiss(f, nil)
+	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	// Load the two earth images from demos/images/.
 	for _, info := range []struct {
@@ -38,7 +59,7 @@ func main() {
 		}
 		app.ImageRegistry().Register(photo)
 
-		l := label.New(app, "l_"+info.name,
+		l := label.New(f, "l_"+info.name,
 			label.ImageOpt(photo),
 			label.BorderWidth(1),
 			label.Relief(option.ReliefSunken),

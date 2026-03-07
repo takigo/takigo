@@ -3,25 +3,50 @@
 package main
 
 import (
+	"fmt"
+	"os"
 	"time"
 
+	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/grid"
 	"github.com/msorc/takigo/geometry/pack"
+	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/ttk"
 	_ "github.com/msorc/takigo/ttk/clamtheme"
 	_ "github.com/msorc/takigo/ttk/defaulttheme"
+	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
 	"github.com/msorc/takigo/widget/text"
 )
 
 func main() {
-	app := demohelper.Setup("Ttk Notebook Widget", 500, 350, "One of the Ttk widgets is the notebook widget, which provides a set of tabs that allow the selection of a group of panels, each with distinct content. Not only can the tabs be selected with the mouse, but they can also be switched between using Ctrl+Tab when the notebook page heading itself is selected. Note that the second tab is disabled, and cannot be selected.")
+	app, err := takigo.NewApp(takigo.Title("Ttk Notebook Widget"),
+		takigo.Geometry("+300+300"),
+		takigo.IconName("ttknote"),
+	)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	f := frame.New(app, "f")
+	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+
+	msg := label.New(f, "msg",
+		label.WrapLength("4i"),
+		label.JustifyOpt(option.JustifyLeft),
+		label.Text("One of the Ttk widgets is the notebook widget, which provides a set of tabs that allow the selection of a group of panels, each with distinct content. Not only can the tabs be selected with the mouse, but they can also be switched between using Ctrl+Tab when the notebook page heading itself is selected. Note that the second tab is disabled, and cannot be selected."),
+	)
+	pack.Pack(msg, pack.SideOpt(pack.Top))
+
+	btns := demohelper.AddSeeDismiss(f, nil)
+	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	ttk.SetCurrentTheme("clam")
 
 	// Notebook.
-	nb := ttk.NewNotebook(app, "nb")
+	nb := ttk.NewNotebook(f, "nb")
 	pack.Pack(nb, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true), pack.PadX("1.5p"), pack.PadY("3p"))
 

@@ -4,7 +4,9 @@ package main
 
 import (
 	"fmt"
+	"os"
 
+	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/dialog"
 	"github.com/msorc/takigo/geometry/pack"
@@ -17,16 +19,35 @@ import (
 )
 
 func main() {
-	app := demohelper.Setup("Message Boxes", 500, 400,
-		"Choose the icon and type option of the message box. Then press the "+
-			"\"Message Box\" button to see the message box.")
+	app, err := takigo.NewApp(takigo.Title("Message Boxes"),
+		takigo.Geometry("+300+300"),
+		takigo.IconName("messagebox"),
+	)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	f := frame.New(app, "f")
+	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+
+	msg := label.New(f, "msg",
+		label.WrapLength("4i"),
+		label.JustifyOpt(option.JustifyLeft),
+		label.Text("Choose the icon and type option of the message box. Then press the "+
+			"\"Message Box\" button to see the message box."),
+	)
+	pack.Pack(msg, pack.SideOpt(pack.Top))
+
+	btns := demohelper.AddSeeDismiss(f, nil)
+	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	// Icon selection (left column).
 	iconVar := widget.NewVariable("info")
 	typeVar := widget.NewVariable("ok")
 
 	// Left: Icon radios.
-	leftFrame := frame.New(app, "left")
+	leftFrame := frame.New(f, "left")
 	pack.Pack(leftFrame, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillY),
 		pack.Expand(true), pack.PadX(".5c"), pack.PadY(".5c"))
 
@@ -54,7 +75,7 @@ func main() {
 	}
 
 	// Right: Type radios.
-	rightFrame := frame.New(app, "right")
+	rightFrame := frame.New(f, "right")
 	pack.Pack(rightFrame, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillY),
 		pack.Expand(true), pack.PadX(".5c"), pack.PadY(".5c"))
 
@@ -82,7 +103,7 @@ func main() {
 	}
 
 	// Message Box button.
-	msgBtn := button.New(app, "msgbtn",
+	msgBtn := button.New(f, "msgbtn",
 		button.Text("Message Box"),
 		button.Command(func() {
 			iconMap := map[string]dialog.MessageType{

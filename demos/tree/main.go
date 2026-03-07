@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"sort"
 
+	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/grid"
 	"github.com/msorc/takigo/geometry/pack"
@@ -20,6 +21,7 @@ import (
 	_ "github.com/msorc/takigo/ttk/defaulttheme"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/frame"
+	"github.com/msorc/takigo/widget/label"
 )
 
 // makeFolderIcon creates a 16x16 yellow folder icon.
@@ -98,13 +100,32 @@ func makeFileIcon() *tkimage.Photo {
 }
 
 func main() {
-	app := demohelper.Setup("Directory Browser", 500, 400,
-		"Ttk is the new Tk themed widget set. One of the widgets it includes is a tree widget, which allows the user to browse a hierarchical data-set such as a filesystem. The tree widget not only allows for the tree part itself, but it also supports an arbitrary number of additional columns which can show additional data (in this case, the size of the files found in your filesystem). You can also change the width of the columns by dragging the boundary between them.")
+	app, err := takigo.NewApp(takigo.Title("Directory Browser"),
+		takigo.Geometry("+300+300"),
+		takigo.IconName("tree"),
+	)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	f := frame.New(app, "f")
+	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+
+	msg := label.New(f, "msg",
+		label.WrapLength("4i"),
+		label.JustifyOpt(option.JustifyLeft),
+		label.Text("Ttk is the new Tk themed widget set. One of the widgets it includes is a tree widget, which allows the user to browse a hierarchical data-set such as a filesystem. The tree widget not only allows for the tree part itself, but it also supports an arbitrary number of additional columns which can show additional data (in this case, the size of the files found in your filesystem). You can also change the width of the columns by dragging the boundary between them."),
+	)
+	pack.Pack(msg, pack.SideOpt(pack.Top))
+
+	btns := demohelper.AddSeeDismiss(f, nil)
+	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	ttk.SetCurrentTheme("clam")
 
 	// Dummy frame for grid layout of treeview + scrollbars.
-	tvFrame := frame.New(app, "tvframe")
+	tvFrame := frame.New(f, "tvframe")
 	pack.Pack(tvFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true))
 

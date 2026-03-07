@@ -4,33 +4,57 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 
+	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/pack"
+	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/ttk"
+	"github.com/msorc/takigo/widget/frame"
+	"github.com/msorc/takigo/widget/label"
 	"github.com/msorc/takigo/widget/text"
 )
 
 func main() {
-	app := demohelper.Setup("Text Demonstration - Tag Bindings", 550, 450,
-		"The same tag mechanism that controls display styles in text widgets can also be\n"+
+	app, err := takigo.NewApp(takigo.Title("Text Demonstration - Tag Bindings"),
+		takigo.Geometry("+300+300"),
+		takigo.IconName("bind"),
+	)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	f := frame.New(app, "f")
+	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+
+	msg := label.New(f, "msg",
+		label.WrapLength("4i"),
+		label.JustifyOpt(option.JustifyLeft),
+		label.Text("The same tag mechanism that controls display styles in text widgets can also be\n"+
 			"used to associate commands with regions of text, so that mouse or keyboard actions\n"+
 			"on the text cause particular actions to be invoked. In the text below the\n"+
 			"descriptions of the canvas demonstrations have been tagged. When you move the\n"+
 			"mouse over a demo description the description lights up, and when you press\n"+
-			"button 1 over a description then that particular demonstration is invoked.")
+			"button 1 over a description then that particular demonstration is invoked."),
+	)
+	pack.Pack(msg, pack.SideOpt(pack.Top))
 
-	tw := text.New(app, "hypertext",
+	btns := demohelper.AddSeeDismiss(f, nil)
+	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
+
+	tw := text.New(f, "hypertext",
 		text.Width(60),
 		text.Height(24),
 		text.WrapModeOpt(text.WrapWord),
 	)
 
-	yscroll := ttk.NewScrollbar(app, "yscroll",
+	yscroll := ttk.NewScrollbar(f, "yscroll",
 		ttk.ScrollbarOrientOpt(ttk.Vertical),
 		ttk.ScrollbarCommandOpt(func(args ...any) {
 			if len(args) < 1 {

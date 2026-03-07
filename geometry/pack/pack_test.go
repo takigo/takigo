@@ -93,8 +93,8 @@ func TestComputeSize(t *testing.T) {
 				{window: &window.Window{ReqWidth: 100, ReqHeight: 30}, config: packConfig{side: Top}},
 				{window: &window.Window{ReqWidth: 50, ReqHeight: 60}, config: packConfig{side: Left}},
 			},
-			wantW: 150, // 100 (top max) + 50 (left adds)
-			wantH: 60,  // max(30, 60)
+			wantW: 100, // max(top 100, left 50)
+			wantH: 90,  // top 30 + left 60
 		},
 		{
 			name: "with_padding",

@@ -4,24 +4,46 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 
+	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/canvas"
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/geometry/grid"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
-	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/ttk"
+	"github.com/msorc/takigo/widget/frame"
+	"github.com/msorc/takigo/widget/label"
 )
 
 func main() {
-	app := demohelper.Setup("Scrollable Canvas Demonstration", 550, 450,
-		"This window displays a canvas widget that can be scrolled by using the scrollbars or by dragging with button 2 in the canvas. If you click button 1 on one of the rectangles, its indices will be printed on stdout.")
+	app, err := takigo.NewApp(takigo.Title("Scrollable Canvas Demonstration"),
+		takigo.Geometry("+300+300"),
+		takigo.IconName("cscroll"),
+	)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	f := frame.New(app, "f")
+	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+
+	msg := label.New(f, "msg",
+		label.WrapLength("4i"),
+		label.JustifyOpt(option.JustifyLeft),
+		label.Text("This window displays a canvas widget that can be scrolled by using the scrollbars or by dragging with button 2 in the canvas. If you click button 1 on one of the rectangles, its indices will be printed on stdout."),
+	)
+	pack.Pack(msg, pack.SideOpt(pack.Top))
+
+	btns := demohelper.AddSeeDismiss(f, nil)
+	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	// Grid frame for canvas + scrollbars.
-	gridFrame := frame.New(app, "gridframe")
+	gridFrame := frame.New(f, "gridframe")
 	pack.Pack(gridFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true))
 

@@ -3,12 +3,17 @@
 package main
 
 import (
+	"fmt"
+	"os"
+
+	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/canvas"
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/widget/frame"
+	"github.com/msorc/takigo/widget/label"
 	"github.com/msorc/takigo/widget/scale"
 )
 
@@ -28,11 +33,30 @@ func setHeight(c *canvas.Canvas, value float64) {
 }
 
 func main() {
-	app := demohelper.Setup("Vertical Scale Demonstration", 400, 400,
-		"An arrow and a vertical scale are displayed below. If you click or drag mouse button 1 in the scale, you can change the size of the arrow.")
+	app, err := takigo.NewApp(takigo.Title("Vertical Scale Demonstration"),
+		takigo.Geometry("+300+300"),
+		takigo.IconName("vscale"),
+	)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	f := frame.New(app, "f")
+	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+
+	msg := label.New(f, "msg",
+		label.WrapLength("3.5i"),
+		label.JustifyOpt(option.JustifyLeft),
+		label.Text("An arrow and a vertical scale are displayed below. If you click or drag mouse button 1 in the scale, you can change the size of the arrow."),
+	)
+	pack.Pack(msg, pack.SideOpt(pack.Top))
+
+	btns := demohelper.AddSeeDismiss(f, nil)
+	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	// Middle frame with border (matches Tcl's `frame -borderwidth 7.5p`).
-	fr := frame.New(app, "frame",
+	fr := frame.New(f, "frame",
 		frame.BorderWidth(10), // 7.5p ≈ 10px
 	)
 	pack.Pack(fr, pack.SideOpt(pack.Top))

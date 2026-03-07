@@ -3,17 +3,42 @@
 package main
 
 import (
+	"fmt"
+	"os"
+
+	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/grid"
 	"github.com/msorc/takigo/geometry/pack"
-	"github.com/msorc/takigo/widget/frame"
-	"github.com/msorc/takigo/widget/listbox"
+	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/ttk"
+	"github.com/msorc/takigo/widget/frame"
+	"github.com/msorc/takigo/widget/label"
+	"github.com/msorc/takigo/widget/listbox"
 )
 
 func main() {
-	app := demohelper.Setup("Well-Known Sayings", 500, 350,
-		"The listbox below contains a collection of well-known sayings. You can scan the list using either of the scrollbars or by dragging in the listbox window with button 2 pressed.")
+	app, err := takigo.NewApp(takigo.Title("Well-Known Sayings"),
+		takigo.Geometry("+300+300"),
+		takigo.IconName("sayings"),
+	)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	f := frame.New(app, "f")
+	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+
+	msg := label.New(f, "msg",
+		label.WrapLength("4i"),
+		label.JustifyOpt(option.JustifyLeft),
+		label.Text("The listbox below contains a collection of well-known sayings. You can scan the list using either of the scrollbars or by dragging in the listbox window with button 2 pressed."),
+	)
+	pack.Pack(msg, pack.SideOpt(pack.Top))
+
+	btns := demohelper.AddSeeDismiss(f, nil)
+	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	// Sayings data — matches Tk's sayings.tcl exactly.
 	sayings := []string{
@@ -41,7 +66,7 @@ func main() {
 	}
 
 	// Frame using grid for listbox + scrollbar.
-	lbFrame := frame.New(app, "lbframe",
+	lbFrame := frame.New(f, "lbframe",
 		frame.BorderWidth(10),
 	)
 	pack.Pack(lbFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),

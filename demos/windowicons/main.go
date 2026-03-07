@@ -4,22 +4,48 @@ package main
 
 import (
 	"encoding/binary"
+	"fmt"
 	"image"
+	"os"
 	"path/filepath"
 	"runtime"
 
+	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/dialog"
 	"github.com/msorc/takigo/geometry/pack"
 	tkimage "github.com/msorc/takigo/image"
+	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/widget/button"
+	"github.com/msorc/takigo/widget/frame"
+	"github.com/msorc/takigo/widget/label"
 	"github.com/msorc/takigo/window"
 )
 
 func main() {
-	app := demohelper.Setup("Window Icon Demonstration", 400, 300,
-		"This demo sets the window icon using the _NET_WM_ICON\nX11 property. The icon should be visible in the window\nmanager's title bar and taskbar.")
+	app, err := takigo.NewApp(takigo.Title("Window Icon Demonstration"),
+		takigo.Geometry("+300+300"),
+		takigo.IconName("windowicons"),
+	)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	f := frame.New(app, "f")
+	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+
+	msg := label.New(f, "msg",
+		label.WrapLength("4i"),
+		label.JustifyOpt(option.JustifyLeft),
+		label.Text("This demo sets the window icon using the _NET_WM_ICON\nX11 property. The icon should be visible in the window\nmanager's title bar and taskbar."),
+	)
+	pack.Pack(msg, pack.SideOpt(pack.Top))
+
+	btns := demohelper.AddSeeDismiss(f, nil)
+	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
+
 	root := app.Window()
 
 	// Set window icon via _NET_WM_ICON using the Tk feather PNG.
@@ -35,25 +61,25 @@ func main() {
 	}
 
 	// Set icon button (matches Tcl's "Set Window Icon to Globe").
-	iconBtn := button.New(app, "seticon",
+	iconBtn := button.New(f, "seticon",
 		button.Text("Set Window Icon to Feather"),
 		button.Command(func() { setWindowIcon(root) }),
 	)
 	pack.Pack(iconBtn, pack.FillOpt(pack.FillX), pack.PadX("3p"))
 
-	badge3Btn := button.New(app, "badge3",
+	badge3Btn := button.New(f, "badge3",
 		button.Text("Set Badge to 3"),
 		button.Command(badgeMsg),
 	)
 	pack.Pack(badge3Btn, pack.FillOpt(pack.FillX), pack.PadX("3p"))
 
-	badge11Btn := button.New(app, "badge11",
+	badge11Btn := button.New(f, "badge11",
 		button.Text("Set Badge to 11"),
 		button.Command(badgeMsg),
 	)
 	pack.Pack(badge11Btn, pack.FillOpt(pack.FillX), pack.PadX("3p"))
 
-	resetBadgeBtn := button.New(app, "resetbadge",
+	resetBadgeBtn := button.New(f, "resetbadge",
 		button.Text("Reset Badge"),
 		button.Command(badgeMsg),
 	)
@@ -92,7 +118,7 @@ func setIconFromRGBA(win *window.Window, rgba *image.RGBA) {
 		for x := 0; x < w; x++ {
 			offset := (2 + y*w + x) * 4
 			r, g, b, a := rgba.At(x+rgba.Bounds().Min.X, y+rgba.Bounds().Min.Y).RGBA()
-			// Convert 16-bit → 8-bit and pack as ARGB.
+			// Convert 16-bit -> 8-bit and pack as ARGB.
 			binary.LittleEndian.PutUint32(data[offset:offset+4],
 				uint32(a>>8)<<24|uint32(r>>8)<<16|uint32(g>>8)<<8|uint32(b>>8))
 		}

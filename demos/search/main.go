@@ -7,41 +7,62 @@ import (
 	"os"
 	"strings"
 
+	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/pack"
+	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/ttk"
 	"github.com/msorc/takigo/widget/button"
 	"github.com/msorc/takigo/widget/entry"
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
-	"github.com/msorc/takigo/ttk"
 	"github.com/msorc/takigo/widget/text"
 )
 
 func main() {
-	app := demohelper.Setup("Text Demonstration - Search and Highlight", 600, 500,
-		"This window demonstrates how to use the tagging facilities in text "+
-			"widgets to implement a search/highlight mechanism.")
+	app, err := takigo.NewApp(takigo.Title("Text Demonstration - Search and Highlight"),
+		takigo.Geometry("+300+300"),
+		takigo.IconName("search"),
+	)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	f := frame.New(app, "f")
+	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+
+	msg := label.New(f, "msg",
+		label.WrapLength("4i"),
+		label.JustifyOpt(option.JustifyLeft),
+		label.Text("This window demonstrates how to use the tagging facilities in text "+
+			"widgets to implement a search/highlight mechanism."),
+	)
+	pack.Pack(msg, pack.SideOpt(pack.Top))
+
+	btns := demohelper.AddSeeDismiss(f, nil)
+	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	// File name row.
-	fileFrame := frame.New(app, "file")
+	fileFrame := frame.New(f, "file")
 	pack.Pack(fileFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
 
 	fileLabel := label.New(fileFrame, "label", label.Text("File name:"))
 	fileEntry := entry.New(fileFrame, "entry", entry.Width(40))
 
 	// Search string row.
-	searchFrame := frame.New(app, "string")
+	searchFrame := frame.New(f, "string")
 	pack.Pack(searchFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
 
 	searchLabel := label.New(searchFrame, "label", label.Text("Search string:"))
 	searchEntry := entry.New(searchFrame, "entry", entry.Width(40))
 
 	// Text widget + scrollbar.
-	scroll := ttk.NewScrollbar(app, "scroll",
+	scroll := ttk.NewScrollbar(f, "scroll",
 		ttk.ScrollbarOrientOpt(ttk.Vertical),
 	)
 
-	tw := text.New(app, "text",
+	tw := text.New(f, "text",
 		text.WrapModeOpt(text.WrapWord),
 	)
 

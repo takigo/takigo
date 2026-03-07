@@ -3,21 +3,46 @@
 package main
 
 import (
+	"fmt"
+	"os"
+
+	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/canvas"
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/dialog"
 	"github.com/msorc/takigo/geometry/pack"
+	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/widget/button"
 	"github.com/msorc/takigo/widget/frame"
+	"github.com/msorc/takigo/widget/label"
 	"github.com/msorc/takigo/widget/text"
 )
 
 func main() {
-	app := demohelper.Setup("Printing Demonstration", 700, 500,
-		"This demonstration showcases the print command. Clicking the buttons below prints the data from the canvas and text widgets using platform-native dialogs.")
+	app, err := takigo.NewApp(takigo.Title("Printing Demonstration"),
+		takigo.Geometry("+300+300"),
+		takigo.IconName("print"),
+	)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	f := frame.New(app, "f")
+	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+
+	msg := label.New(f, "msg",
+		label.WrapLength("4i"),
+		label.JustifyOpt(option.JustifyLeft),
+		label.Text("This demonstration showcases the print command. Clicking the buttons below prints the data from the canvas and text widgets using platform-native dialogs."),
+	)
+	pack.Pack(msg, pack.SideOpt(pack.Top))
+
+	btns := demohelper.AddSeeDismiss(f, nil)
+	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	// Button frame at the bottom.
-	btnFrame := frame.New(app, "f")
+	btnFrame := frame.New(f, "bf")
 	pack.Pack(btnFrame, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	printCanvasBtn := button.New(btnFrame, "c",
@@ -47,7 +72,7 @@ func main() {
 		pack.PadX("3p"))
 
 	// Content area: canvas left, text right.
-	m := frame.New(app, "m")
+	m := frame.New(f, "m")
 	pack.Pack(m, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true))
 
