@@ -502,8 +502,8 @@ func (t *TextWidget) renderToPixmap() {
 		}
 	}
 
-	// Draw cursor.
-	if t.hasFocus && t.cursorOn {
+	// Draw cursor (not in read-only mode).
+	if t.hasFocus && t.cursorOn && !t.readOnly {
 		t.drawCursor(d, gc, pxDrawable, dlines)
 	}
 }

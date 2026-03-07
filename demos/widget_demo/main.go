@@ -516,6 +516,19 @@ func addFormattedText(t *text.TextWidget, content string) {
 	isNL := true
 	demoCount := 0
 
+	// insertTagged inserts text at "end" and applies the given tags.
+	// Matches Tcl's `.t insert end "text" tagList` pattern.
+	insertTagged := func(s string, tags ...string) {
+		start := t.EndIndex()
+		t.Insert("end", s)
+		if len(tags) > 0 {
+			end := t.EndIndex()
+			for _, tag := range tags {
+				t.TagAdd(tag, start, end)
+			}
+		}
+	}
+
 	for _, line := range strings.Split(content, "\n") {
 		line = strings.TrimSpace(line)
 		if line == "" {
@@ -534,36 +547,24 @@ func addFormattedText(t *text.TextWidget, content string) {
 			switch {
 			case key == "title":
 				// .t insert end $title\n title \n normal
-				t.Insert("end", value+"\n")
-				end := t.EndIndex()
-				// Tag the title line (two lines back from end).
-				titleLine := fmt.Sprintf("%s - 2 lines linestart", end)
-				titleEnd := fmt.Sprintf("%s - 1 lines linestart", end)
-				t.TagAdd("title", titleLine, titleEnd)
+				insertTagged(value+"\n", "title")
+				insertTagged("\n")
 
 			case key == "subtitle":
 				// .t insert end "\n" {} $subtitle subtitle " \n " demospace
-				t.Insert("end", "\n")
-				subtitleStart := t.EndIndex()
-				// Adjust: EndIndex is after the newline, so the subtitle starts here.
-				t.Insert("end", value)
-				subtitleEnd := t.EndIndex()
-				t.TagAdd("subtitle", subtitleStart, subtitleEnd)
-				t.Insert("end", " \n ")
-				// Tag the demospace region.
-				t.TagAdd("demospace", subtitleEnd, t.EndIndex())
+				insertTagged("\n")
+				insertTagged(value, "subtitle")
+				insertTagged(" \n ", "demospace")
 				demoCount = 0
 
 			case strings.HasPrefix(key, "demo"):
 				// @@demo name	description
-				// key is "demo name" or just "demo" with name in value
 				nameParts := strings.Fields(key)
 				var demoName, description string
 				if len(nameParts) >= 2 {
 					demoName = nameParts[1]
 					description = value
 				} else {
-					// Fallback: name and desc both in value
 					vp := strings.SplitN(value, "\t", 2)
 					demoName = strings.TrimSpace(vp[0])
 					if len(vp) > 1 {
@@ -573,17 +574,18 @@ func addFormattedText(t *text.TextWidget, content string) {
 				demoCount++
 				demoText := fmt.Sprintf("%d. %s", demoCount, description)
 
-				linkStart := t.EndIndex()
-				t.Insert("end", demoText)
-				linkEnd := t.EndIndex()
-				t.TagAdd("demo", linkStart, linkEnd)
-				t.TagAdd("demo-"+demoName, linkStart, linkEnd)
-				t.Insert("end", " \n ")
-				t.TagAdd("demospace", linkStart, t.EndIndex())
+				// .t insert end "N. desc" {demo demo-name}
+				insertTagged(demoText, "demo", "demo-"+demoName)
+				// .t insert end " \n " demospace
+				insertTagged(" \n ", "demospace")
 
 			case key == "newline":
 				// .t insert end \n $style
-				t.Insert("end", "\n")
+				if style != "normal" {
+					insertTagged("\n", style)
+				} else {
+					insertTagged("\n")
+				}
 				isNL = true
 
 			case key == "bold":
@@ -594,21 +596,20 @@ func addFormattedText(t *text.TextWidget, content string) {
 			continue
 		}
 
-		// Plain text line.
+		// Plain text line — insert with current style tag.
+		// In Tcl: .t insert end " " $style (space) then .t insert end $line $style
 		if !isNL {
 			if style != "normal" {
-				t.Insert("end", " ")
-				// Tag the space with style.
+				insertTagged(" ", style)
 			} else {
 				t.Insert("end", " ")
 			}
 		}
 		isNL = false
-		start := t.EndIndex()
-		t.Insert("end", line)
 		if style != "normal" {
-			end := t.EndIndex()
-			t.TagAdd(style, start, end)
+			insertTagged(line, style)
+		} else {
+			t.Insert("end", line)
 		}
 	}
 }

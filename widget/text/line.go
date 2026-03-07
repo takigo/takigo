@@ -368,15 +368,27 @@ func (d *Document) adjustTagRangesInsert(idx Index, runes []rune) {
 
 	for i := range d.TagRanges {
 		tr := &d.TagRanges[i]
-		tr.Start = adjustIdxInsert(tr.Start, idx, newlineCount, lastLineLen)
-		tr.End = adjustIdxInsert(tr.End, idx, newlineCount, lastLineLen)
+		// Tag Start has right gravity: shifts when insert is at or after Start.
+		// Tag End has left gravity: shifts only when insert is strictly before End.
+		// This matches Tk's behavior where inserting at a tag's End does NOT
+		// expand the tag to cover the newly inserted text.
+		tr.Start = adjustIdxInsert(tr.Start, idx, newlineCount, lastLineLen, false)
+		tr.End = adjustIdxInsert(tr.End, idx, newlineCount, lastLineLen, true)
 	}
 }
 
-func adjustIdxInsert(pos, insertAt Index, newlines, lastLineLen int) Index {
+func adjustIdxInsert(pos, insertAt Index, newlines, lastLineLen int, leftGravity bool) Index {
 	cmp := Compare(pos, insertAt)
-	if cmp < 0 {
-		return pos
+	if leftGravity {
+		// Left gravity: don't shift when insert is at exact position.
+		if cmp <= 0 {
+			return pos
+		}
+	} else {
+		// Right gravity: shift when insert is at or after position.
+		if cmp < 0 {
+			return pos
+		}
 	}
 	if newlines == 0 {
 		if pos.Line == insertAt.Line {
