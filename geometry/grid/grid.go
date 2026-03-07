@@ -4,6 +4,7 @@ package grid
 
 import (
 	"github.com/msorc/takigo/geometry"
+	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/window"
@@ -21,6 +22,10 @@ const (
 	EW   = StickE | StickW
 )
 
+// maxElement limits grid dimensions to prevent denial of service.
+// Matches Tk's MAX_ELEMENT.
+const maxElement = 10000
+
 // GridOption configures a Grid call.
 type GridOption func(*gridConfig)
 
@@ -30,10 +35,12 @@ type gridConfig struct {
 	rowSpan    int
 	columnSpan int
 	sticky     int
-	padX       int
-	padY       int
-	iPadX      int
-	iPadY      int
+	padX       int // total horizontal padding (left + right)
+	padY       int // total vertical padding (top + bottom)
+	padLeft    int // left portion of padX
+	padTop     int // top portion of padY
+	iPadX      int // total internal horizontal padding (2× user value)
+	iPadY      int // total internal vertical padding (2× user value)
 }
 
 // Row sets the row.
@@ -51,21 +58,57 @@ func ColumnSpan(n int) GridOption { return func(c *gridConfig) { c.columnSpan = 
 // Sticky sets the sticky flags.
 func Sticky(s int) GridOption { return func(c *gridConfig) { c.sticky = s } }
 
-// PadX sets the exterior horizontal padding.
+// PadX sets the exterior horizontal padding (symmetric).
 // Accepts int (pixels), float64 (rounded pixels), or string with unit suffix ("3p", "2m", "1c", "0.5i").
-func PadX(p any) GridOption { return func(c *gridConfig) { c.padX = screenunit.Px(p) } }
+func PadX(p any) GridOption {
+	return func(c *gridConfig) {
+		v := screenunit.Px(p)
+		c.padX = v * 2
+		c.padLeft = v
+	}
+}
 
-// PadY sets the exterior vertical padding.
+// PadY sets the exterior vertical padding (symmetric).
 // Accepts int (pixels), float64 (rounded pixels), or string with unit suffix ("3p", "2m", "1c", "0.5i").
-func PadY(p any) GridOption { return func(c *gridConfig) { c.padY = screenunit.Px(p) } }
+func PadY(p any) GridOption {
+	return func(c *gridConfig) {
+		v := screenunit.Px(p)
+		c.padY = v * 2
+		c.padTop = v
+	}
+}
+
+// PadXPair sets asymmetric exterior horizontal padding.
+func PadXPair(left, right any) GridOption {
+	return func(c *gridConfig) {
+		l := screenunit.Px(left)
+		r := screenunit.Px(right)
+		c.padLeft = l
+		c.padX = l + r
+	}
+}
+
+// PadYPair sets asymmetric exterior vertical padding.
+func PadYPair(top, bottom any) GridOption {
+	return func(c *gridConfig) {
+		t := screenunit.Px(top)
+		b := screenunit.Px(bottom)
+		c.padTop = t
+		c.padY = t + b
+	}
+}
 
 // IPadX sets the interior horizontal padding.
 // Accepts int (pixels), float64 (rounded pixels), or string with unit suffix ("3p", "2m", "1c", "0.5i").
-func IPadX(p any) GridOption { return func(c *gridConfig) { c.iPadX = screenunit.Px(p) } }
+func IPadX(p any) GridOption {
+	return func(c *gridConfig) { c.iPadX = screenunit.Px(p) * 2 }
+}
 
 // IPadY sets the interior vertical padding.
 // Accepts int (pixels), float64 (rounded pixels), or string with unit suffix ("3p", "2m", "1c", "0.5i").
-func IPadY(p any) GridOption { return func(c *gridConfig) { c.iPadY = screenunit.Px(p) } }
+func IPadY(p any) GridOption {
+	return func(c *gridConfig) { c.iPadY = screenunit.Px(p) * 2 }
+}
 
 // SlotConfig holds configuration for a row or column.
 type SlotConfig struct {
@@ -86,7 +129,7 @@ func MinSize(n int) SlotOption { return func(c *SlotConfig) { c.MinSize = n } }
 // Weight sets the weight for distributing extra space.
 func Weight(n int) SlotOption { return func(c *SlotConfig) { c.Weight = n } }
 
-// SlotPad sets the padding for a row or column.
+// Pad sets the padding for a row or column.
 func Pad(n int) SlotOption { return func(c *SlotConfig) { c.Pad = screenunit.Px(n) } }
 
 // Uniform sets the uniform group name.
@@ -104,6 +147,18 @@ type gridder struct {
 	entries   []*gridEntry
 	rowConf   map[int]*SlotConfig
 	colConf   map[int]*SlotConfig
+	anchor    option.Anchor
+	propagate bool
+}
+
+func newGridder(container *window.Window) *gridder {
+	return &gridder{
+		container: container,
+		rowConf:   make(map[int]*SlotConfig),
+		colConf:   make(map[int]*SlotConfig),
+		anchor:    option.AnchorNW,
+		propagate: true,
+	}
 }
 
 // singleton manager instance.
@@ -207,6 +262,11 @@ func Grid(children geometry.Elementer, opts ...GridOption) {
 		cfg.columnSpan = 1
 	}
 
+	// Bounds check.
+	if cfg.row+cfg.rowSpan > maxElement || cfg.column+cfg.columnSpan > maxElement {
+		return
+	}
+
 	elements := children.GeometryElements()
 
 	// Find the first real widget to determine the parent.
@@ -224,11 +284,7 @@ func Grid(children geometry.Elementer, opts ...GridOption) {
 
 	g, ok := gridders[parent]
 	if !ok {
-		g = &gridder{
-			container: parent,
-			rowConf:   make(map[int]*SlotConfig),
-			colConf:   make(map[int]*SlotConfig),
-		}
+		g = newGridder(parent)
 		gridders[parent] = g
 	}
 
@@ -338,11 +394,7 @@ func RowConfigure(container window.Windower, row int, opts ...SlotOption) {
 	}
 	g, ok := gridders[w]
 	if !ok {
-		g = &gridder{
-			container: w,
-			rowConf:   make(map[int]*SlotConfig),
-			colConf:   make(map[int]*SlotConfig),
-		}
+		g = newGridder(w)
 		gridders[w] = g
 	}
 	g.rowConf[row] = &conf
@@ -358,15 +410,55 @@ func ColumnConfigure(container window.Windower, col int, opts ...SlotOption) {
 	}
 	g, ok := gridders[w]
 	if !ok {
-		g = &gridder{
-			container: w,
-			rowConf:   make(map[int]*SlotConfig),
-			colConf:   make(map[int]*SlotConfig),
-		}
+		g = newGridder(w)
 		gridders[w] = g
 	}
 	g.colConf[col] = &conf
 	g.arrange()
+}
+
+// SetAnchor sets the anchor for a grid container. The anchor controls where
+// an unweighted grid is placed within its container. Default is NW.
+func SetAnchor(container window.Windower, anchor option.Anchor) {
+	w := container.Window()
+	g, ok := gridders[w]
+	if !ok {
+		g = newGridder(w)
+		gridders[w] = g
+	}
+	g.anchor = anchor
+	g.arrange()
+}
+
+// GetAnchor returns the anchor for a grid container.
+func GetAnchor(container window.Windower) option.Anchor {
+	w := container.Window()
+	if g, ok := gridders[w]; ok {
+		return g.anchor
+	}
+	return option.AnchorNW
+}
+
+// SetPropagate controls whether the grid propagates geometry requests to
+// its container. Default is true.
+func SetPropagate(container window.Windower, propagate bool) {
+	w := container.Window()
+	g, ok := gridders[w]
+	if !ok {
+		g = newGridder(w)
+		gridders[w] = g
+	}
+	g.propagate = propagate
+	g.arrange()
+}
+
+// GetPropagate returns whether the grid propagates geometry requests.
+func GetPropagate(container window.Windower) bool {
+	w := container.Window()
+	if g, ok := gridders[w]; ok {
+		return g.propagate
+	}
+	return true
 }
 
 func (g *gridder) remove(child *window.Window) {
@@ -392,6 +484,418 @@ func (g *gridder) nextRow() int {
 	return maxRow
 }
 
+// binEntry tracks a spanning widget binned by its right/bottom edge.
+type binEntry struct {
+	size int
+	span int
+}
+
+// layoutSlot holds per-slot data during constraint resolution.
+type layoutSlot struct {
+	minSize   int
+	pad       int
+	weight    int
+	uniform   string
+	bins      []binEntry
+	minOffset int
+	maxOffset int
+}
+
+// resolveConstraints computes slot offsets for one dimension using Tk's
+// 6-step constraint resolution algorithm (tk/generic/tkGrid.c ResolveConstraints).
+// Returns the natural (required) size and cumulative slot offsets.
+func resolveConstraints(entries []*gridEntry, conf map[int]*SlotConfig, gridCount int, isColumn bool) (int, []int) {
+	if gridCount == 0 {
+		return 0, nil
+	}
+
+	// Layout with dummy slot at index 0.
+	layout := make([]layoutSlot, gridCount+1)
+
+	// Step 1: Copy slot constraints into layout.
+	for i := range gridCount {
+		li := i + 1
+		if c, ok := conf[i]; ok {
+			layout[li].minSize = c.MinSize
+			layout[li].weight = c.Weight
+			layout[li].pad = c.Pad
+			layout[li].uniform = c.Uniform
+		}
+	}
+
+	// Step 2: Process span=1 entries directly, bin span>1 entries by right edge.
+	for _, e := range entries {
+		child := e.window
+		cfg := &e.config
+		bw2 := 2 * child.BorderWidth
+
+		var size, span, slot int
+		if isColumn {
+			size = child.ReqWidth + bw2 + cfg.padX + cfg.iPadX
+			span = cfg.columnSpan
+			slot = cfg.column
+		} else {
+			size = child.ReqHeight + bw2 + cfg.padY + cfg.iPadY
+			span = cfg.rowSpan
+			slot = cfg.row
+		}
+
+		rightEdge := slot + span - 1
+		if rightEdge >= gridCount || rightEdge < 0 {
+			continue
+		}
+		li := rightEdge + 1
+
+		if span > 1 {
+			layout[li].bins = append(layout[li].bins, binEntry{size: size, span: span})
+		} else {
+			slotSize := size + layout[li].pad
+			if slotSize > layout[li].minSize {
+				layout[li].minSize = slotSize
+			}
+		}
+	}
+
+	// Step 2b: Uniform groups with weight normalization.
+	type uniformGroup struct {
+		name    string
+		minSize int
+	}
+	var groups []uniformGroup
+
+	for i := range gridCount {
+		li := i + 1
+		if layout[li].uniform == "" {
+			continue
+		}
+		weight := layout[li].weight
+		if weight <= 0 {
+			weight = 1
+		}
+		normalized := (layout[li].minSize + weight - 1) / weight
+
+		found := false
+		for g := range groups {
+			if groups[g].name == layout[li].uniform {
+				if normalized > groups[g].minSize {
+					groups[g].minSize = normalized
+				}
+				found = true
+				break
+			}
+		}
+		if !found {
+			groups = append(groups, uniformGroup{name: layout[li].uniform, minSize: normalized})
+		}
+	}
+
+	for _, ug := range groups {
+		for i := range gridCount {
+			li := i + 1
+			if layout[li].uniform != ug.name {
+				continue
+			}
+			weight := layout[li].weight
+			if weight <= 0 {
+				weight = 1
+			}
+			layout[li].minSize = ug.minSize * weight
+		}
+	}
+
+	// Step 3: Compute minimum offsets left→right.
+	offset := 0
+	for i := range gridCount {
+		li := i + 1
+		layout[li].minOffset = layout[li].minSize + offset
+		for _, be := range layout[li].bins {
+			startLi := li - be.span // may be 0 (dummy)
+			required := be.size + layout[startLi].minOffset
+			if required > layout[li].minOffset {
+				layout[li].minOffset = required
+			}
+		}
+		offset = layout[li].minOffset
+	}
+
+	requiredSize := offset
+
+	// Step 4: Compute maximum offsets right→left.
+	for i := 1; i <= gridCount; i++ {
+		layout[i].maxOffset = offset
+	}
+
+	for i := gridCount - 1; i > 0; {
+		li := i + 1
+		for _, be := range layout[li].bins {
+			startLi := li - be.span
+			require := offset - be.size
+			if startLi >= 1 && require < layout[startLi].maxOffset {
+				layout[startLi].maxOffset = require
+			}
+		}
+		offset -= layout[li].minSize
+		i--
+		li = i + 1
+		if layout[li].maxOffset < offset {
+			offset = layout[li].maxOffset
+		} else {
+			layout[li].maxOffset = offset
+		}
+	}
+
+	// Step 5: Multi-pass weighted distribution within unconstrained spans.
+	for start := 0; start < gridCount; {
+		startLi := start + 1
+		if layout[startLi].minOffset == layout[startLi].maxOffset {
+			start++
+			continue
+		}
+
+		end := start + 1
+		for end < gridCount {
+			endLi := end + 1
+			if layout[endLi].minOffset == layout[endLi].maxOffset {
+				break
+			}
+			end++
+		}
+		endLi := end + 1
+
+		totalWeight := 0
+		need := 0
+		for s := start; s <= end; s++ {
+			sli := s + 1
+			totalWeight += layout[sli].weight
+			need += layout[sli].minSize
+		}
+		have := layout[endLi].maxOffset - layout[startLi-1].minOffset
+
+		noWeights := false
+		if totalWeight == 0 {
+			noWeights = true
+			totalWeight = end - start + 1
+		}
+
+		// Iteratively find the right "have" that fits all maxOffset constraints.
+		var slot int
+		for {
+			prevMinOffset := layout[startLi-1].minOffset
+			prevGrow := 0
+			accWeight := 0
+
+			for slot = start; slot <= end; slot++ {
+				sli := slot + 1
+				w := 1
+				if !noWeights {
+					w = layout[sli].weight
+				}
+				accWeight += w
+				grow := (have - need) * accWeight / totalWeight - prevGrow
+				prevGrow += grow
+
+				if w > 0 && (prevMinOffset+layout[sli].minSize+grow) > layout[sli].maxOffset {
+					grow = layout[sli].maxOffset - layout[sli].minSize - prevMinOffset
+					newHave := grow * totalWeight / w
+					if newHave > totalWeight {
+						newHave = newHave / totalWeight * totalWeight
+					}
+					if newHave <= 0 {
+						newHave = (have - need) - 1
+						if newHave > 3*totalWeight {
+							newHave = newHave * 3 / 4
+						}
+						if newHave > totalWeight {
+							newHave = newHave / totalWeight * totalWeight
+						}
+						if newHave <= 0 {
+							newHave = 1
+						}
+					}
+					have = newHave + need
+					break
+				}
+				prevMinOffset += layout[sli].minSize + grow
+				if prevMinOffset < layout[sli].minOffset {
+					prevMinOffset = layout[sli].minOffset
+				}
+			}
+
+			if slot > end {
+				break
+			}
+		}
+
+		// Distribute the extra space.
+		prevGrow := 0
+		accWeight := 0
+		for slot := start; slot <= end; slot++ {
+			sli := slot + 1
+			w := 1
+			if !noWeights {
+				w = layout[sli].weight
+			}
+			accWeight += w
+			grow := (have - need) * accWeight / totalWeight - prevGrow
+			prevGrow += grow
+			layout[sli].minSize += grow
+			if layout[sli-1].minOffset+layout[sli].minSize > layout[sli].minOffset {
+				layout[sli].minOffset = layout[sli-1].minOffset + layout[sli].minSize
+			}
+		}
+
+		// Propagate maxOffset changes backward.
+		for slot := end; slot > start; slot-- {
+			sli := slot + 1
+			if layout[sli].maxOffset-layout[sli].minSize < layout[sli-1].maxOffset {
+				layout[sli-1].maxOffset = layout[sli].maxOffset - layout[sli].minSize
+			}
+		}
+
+		start = end + 1
+	}
+
+	// Step 6: Extract cumulative offsets.
+	offsets := make([]int, gridCount)
+	for i := range gridCount {
+		offsets[i] = layout[i+1].minOffset
+	}
+
+	return requiredSize, offsets
+}
+
+// adjustOffsets adjusts cumulative slot offsets to fit the available space.
+// Handles both growing (adding space via weights) and shrinking (removing
+// space down to configured minimums). Ports tk/generic/tkGrid.c AdjustOffsets.
+// Returns the actual used size.
+func adjustOffsets(size int, offsets []int, conf map[int]*SlotConfig) int {
+	slots := len(offsets)
+	if slots == 0 {
+		return 0
+	}
+
+	diff := size - offsets[slots-1]
+
+	if diff == 0 {
+		return size
+	}
+
+	// Compute total weight.
+	totalWeight := 0
+	for i := range slots {
+		if c, ok := conf[i]; ok && c.Weight > 0 {
+			totalWeight += c.Weight
+		}
+	}
+
+	if totalWeight == 0 {
+		return offsets[slots-1]
+	}
+
+	// Growing: distribute extra space cumulatively by weight.
+	if diff > 0 {
+		cumWeight := 0
+		for i := range slots {
+			if c, ok := conf[i]; ok && c.Weight > 0 {
+				cumWeight += c.Weight
+			}
+			offsets[i] += diff * cumWeight / totalWeight
+		}
+		return size
+	}
+
+	// Shrinking: compute minimum possible size.
+	// Weighted slots shrink to their configured minSize.
+	// Non-weighted slots keep their current size.
+	temp := make([]int, slots)
+	minTotal := 0
+	for i := range slots {
+		w := 0
+		ms := 0
+		if c, ok := conf[i]; ok {
+			w = c.Weight
+			ms = c.MinSize
+		}
+		if w > 0 {
+			temp[i] = ms
+		} else if i > 0 {
+			temp[i] = offsets[i] - offsets[i-1]
+		} else {
+			temp[i] = offsets[i]
+		}
+		minTotal += temp[i]
+	}
+
+	// If requested size <= minimum, set all to minimum.
+	if size <= minTotal {
+		off := 0
+		for i := range slots {
+			off += temp[i]
+			offsets[i] = off
+		}
+		return minTotal
+	}
+
+	// Iteratively remove space from weighted slots.
+	for diff < 0 {
+		// Find total weight for shrinkable slots.
+		totalWeight = 0
+		for i := range slots {
+			current := offsets[i]
+			if i > 0 {
+				current -= offsets[i-1]
+			}
+			ms := 0
+			if c, ok := conf[i]; ok {
+				ms = c.MinSize
+			}
+			if current > ms {
+				w := 0
+				if c, ok := conf[i]; ok {
+					w = c.Weight
+				}
+				totalWeight += w
+				temp[i] = w
+			} else {
+				temp[i] = 0
+			}
+		}
+		if totalWeight == 0 {
+			break
+		}
+
+		// Find maximum shrink this pass.
+		newDiff := diff
+		for i := range slots {
+			if temp[i] == 0 {
+				continue
+			}
+			current := offsets[i]
+			if i > 0 {
+				current -= offsets[i-1]
+			}
+			ms := 0
+			if c, ok := conf[i]; ok {
+				ms = c.MinSize
+			}
+			maxDiff := totalWeight * (ms - current) / temp[i]
+			if maxDiff > newDiff {
+				newDiff = maxDiff
+			}
+		}
+
+		// Distribute the shrink.
+		cumWeight := 0
+		for i := range slots {
+			cumWeight += temp[i]
+			offsets[i] += newDiff * cumWeight / totalWeight
+		}
+		diff -= newDiff
+	}
+
+	return size
+}
+
 // arrange performs the grid layout.
 func (g *gridder) arrange() {
 	container := g.container
@@ -399,7 +903,7 @@ func (g *gridder) arrange() {
 		return
 	}
 
-	// Find grid dimensions.
+	// Find grid dimensions from entries.
 	maxCol, maxRow := 0, 0
 	for _, e := range g.entries {
 		endCol := e.config.column + e.config.columnSpan
@@ -412,149 +916,43 @@ func (g *gridder) arrange() {
 		}
 	}
 
+	// Extend dimensions to include configured constraints.
+	for col := range g.colConf {
+		if col+1 > maxCol {
+			maxCol = col + 1
+		}
+	}
+	for row := range g.rowConf {
+		if row+1 > maxRow {
+			maxRow = row + 1
+		}
+	}
+
 	if maxCol == 0 || maxRow == 0 {
 		return
 	}
 
-	// Compute minimum column widths and row heights.
-	colWidths := make([]int, maxCol)
-	rowHeights := make([]int, maxRow)
+	// Resolve constraints for each dimension.
+	reqW, colOffsets := resolveConstraints(g.entries, g.colConf, maxCol, true)
+	reqH, rowOffsets := resolveConstraints(g.entries, g.rowConf, maxRow, false)
 
-	for _, e := range g.entries {
-		child := e.window
-		cfg := &e.config
-		bw2 := 2 * child.BorderWidth
-		childW := child.ReqWidth + bw2 + cfg.iPadX*2 + cfg.padX*2
-		childH := child.ReqHeight + bw2 + cfg.iPadY*2 + cfg.padY*2
+	totalReqW := reqW + container.InternalBorderLeft + container.InternalBorderRight
+	totalReqH := reqH + container.InternalBorderTop + container.InternalBorderBottom
 
-		// For span=1 items, contribute directly.
-		if cfg.columnSpan == 1 {
-			if childW > colWidths[cfg.column] {
-				colWidths[cfg.column] = childW
-			}
-		}
-		if cfg.rowSpan == 1 {
-			if childH > rowHeights[cfg.row] {
-				rowHeights[cfg.row] = childH
-			}
-		}
+	if !container.IsTopLevel() && g.propagate {
+		geometry.GeometryRequest(container, totalReqW, totalReqH)
 	}
 
-	// Apply slot configs (minimum sizes).
-	for col, conf := range g.colConf {
-		if col < maxCol && conf.MinSize > colWidths[col] {
-			colWidths[col] = conf.MinSize
-		}
-	}
-	for row, conf := range g.rowConf {
-		if row < maxRow && conf.MinSize > rowHeights[row] {
-			rowHeights[row] = conf.MinSize
-		}
-	}
-
-	// Apply uniform groups: all slots in the same group get the max minimum size.
-	uniformColGroups := map[string]int{}
-	for col, conf := range g.colConf {
-		if conf.Uniform != "" && col < maxCol {
-			if colWidths[col] > uniformColGroups[conf.Uniform] {
-				uniformColGroups[conf.Uniform] = colWidths[col]
-			}
-		}
-	}
-	for col, conf := range g.colConf {
-		if conf.Uniform != "" && col < maxCol {
-			if uniformColGroups[conf.Uniform] > colWidths[col] {
-				colWidths[col] = uniformColGroups[conf.Uniform]
-			}
-		}
-	}
-	uniformRowGroups := map[string]int{}
-	for row, conf := range g.rowConf {
-		if conf.Uniform != "" && row < maxRow {
-			if rowHeights[row] > uniformRowGroups[conf.Uniform] {
-				uniformRowGroups[conf.Uniform] = rowHeights[row]
-			}
-		}
-	}
-	for row, conf := range g.rowConf {
-		if conf.Uniform != "" && row < maxRow {
-			if uniformRowGroups[conf.Uniform] > rowHeights[row] {
-				rowHeights[row] = uniformRowGroups[conf.Uniform]
-			}
-		}
-	}
-
-	// Handle spanning widgets (distribute across spanned slots).
-	for _, e := range g.entries {
-		cfg := &e.config
-		if cfg.columnSpan > 1 {
-			child := e.window
-			bw2 := 2 * child.BorderWidth
-			needed := child.ReqWidth + bw2 + cfg.iPadX*2 + cfg.padX*2
-			current := 0
-			for c := cfg.column; c < cfg.column+cfg.columnSpan && c < maxCol; c++ {
-				current += colWidths[c]
-			}
-			if needed > current {
-				extra := needed - current
-				perCol := extra / cfg.columnSpan
-				for c := cfg.column; c < cfg.column+cfg.columnSpan && c < maxCol; c++ {
-					colWidths[c] += perCol
-				}
-			}
-		}
-		if cfg.rowSpan > 1 {
-			child := e.window
-			bw2 := 2 * child.BorderWidth
-			needed := child.ReqHeight + bw2 + cfg.iPadY*2 + cfg.padY*2
-			current := 0
-			for r := cfg.row; r < cfg.row+cfg.rowSpan && r < maxRow; r++ {
-				current += rowHeights[r]
-			}
-			if needed > current {
-				extra := needed - current
-				perRow := extra / cfg.rowSpan
-				for r := cfg.row; r < cfg.row+cfg.rowSpan && r < maxRow; r++ {
-					rowHeights[r] += perRow
-				}
-			}
-		}
-	}
-
-	// Compute total natural size.
-	totalW, totalH := 0, 0
-	for _, w := range colWidths {
-		totalW += w
-	}
-	for _, h := range rowHeights {
-		totalH += h
-	}
-
-	reqW := totalW + container.InternalBorderLeft + container.InternalBorderRight
-	reqH := totalH + container.InternalBorderTop + container.InternalBorderBottom
-
-	if !container.IsTopLevel() {
-		geometry.GeometryRequest(container, reqW, reqH)
-	}
-
-	// Distribute extra space via weights.
+	// Available space within internal borders.
 	availW := container.Width - container.InternalBorderLeft - container.InternalBorderRight
 	availH := container.Height - container.InternalBorderTop - container.InternalBorderBottom
-	distributeExtra(colWidths, g.colConf, availW-totalW)
-	distributeExtra(rowHeights, g.rowConf, availH-totalH)
 
-	// Compute offsets.
-	colOffsets := make([]int, maxCol+1)
-	colOffsets[0] = container.InternalBorderLeft
-	for c := range maxCol {
-		colOffsets[c+1] = colOffsets[c] + colWidths[c]
-	}
+	// Adjust offsets for actual available space (grow/shrink).
+	usedW := adjustOffsets(availW, colOffsets, g.colConf)
+	usedH := adjustOffsets(availH, rowOffsets, g.rowConf)
 
-	rowOffsets := make([]int, maxRow+1)
-	rowOffsets[0] = container.InternalBorderTop
-	for r := range maxRow {
-		rowOffsets[r+1] = rowOffsets[r] + rowHeights[r]
-	}
+	// Compute anchor-based start position.
+	startX, startY := computeAnchor(g.anchor, container, usedW, usedH)
 
 	// Position children.
 	for _, e := range g.entries {
@@ -562,13 +960,28 @@ func (g *gridder) arrange() {
 		cfg := &e.config
 		bw2 := 2 * child.BorderWidth
 
-		cavX := colOffsets[cfg.column] + cfg.padX
-		cavY := rowOffsets[cfg.row] + cfg.padY
-		cavW := colOffsets[min(cfg.column+cfg.columnSpan, maxCol)] - colOffsets[cfg.column] - cfg.padX*2
-		cavH := rowOffsets[min(cfg.row+cfg.rowSpan, maxRow)] - rowOffsets[cfg.row] - cfg.padY*2
+		col := cfg.column
+		row := cfg.row
+		endCol := min(col+cfg.columnSpan, maxCol) - 1
+		endRow := min(row+cfg.rowSpan, maxRow) - 1
 
-		childW := child.ReqWidth + bw2 + cfg.iPadX*2
-		childH := child.ReqHeight + bw2 + cfg.iPadY*2
+		// Slot span boundaries.
+		leftEdge := 0
+		if col > 0 && col-1 < len(colOffsets) {
+			leftEdge = colOffsets[col-1]
+		}
+		topEdge := 0
+		if row > 0 && row-1 < len(rowOffsets) {
+			topEdge = rowOffsets[row-1]
+		}
+
+		cavX := startX + leftEdge + cfg.padLeft
+		cavY := startY + topEdge + cfg.padTop
+		cavW := colOffsets[endCol] - leftEdge - cfg.padX
+		cavH := rowOffsets[endRow] - topEdge - cfg.padY
+
+		childW := child.ReqWidth + bw2 + cfg.iPadX
+		childH := child.ReqHeight + bw2 + cfg.iPadY
 
 		// Apply sticky.
 		x, y, w, h := applySticky(cfg.sticky, cavX, cavY, cavW, cavH, childW, childH)
@@ -591,35 +1004,6 @@ func (g *gridder) arrange() {
 				container.Display.Server.MapWindow(child.PlatformID)
 				child.Flags |= window.FlagMapped
 			}
-		}
-	}
-}
-
-// distributeExtra distributes extra space among weighted slots.
-func distributeExtra(sizes []int, conf map[int]*SlotConfig, extra int) {
-	if extra <= 0 {
-		return
-	}
-
-	totalWeight := 0
-	for i := range sizes {
-		if c, ok := conf[i]; ok && c.Weight > 0 {
-			totalWeight += c.Weight
-		}
-	}
-
-	if totalWeight == 0 {
-		return
-	}
-
-	cumWeight := 0
-	distributed := 0
-	for i := range sizes {
-		if c, ok := conf[i]; ok && c.Weight > 0 {
-			cumWeight += c.Weight
-			newDist := extra * cumWeight / totalWeight
-			sizes[i] += newDist - distributed
-			distributed = newDist
 		}
 	}
 }
@@ -655,6 +1039,32 @@ func applySticky(sticky, cavX, cavY, cavW, cavH, childW, childH int) (x, y, w, h
 	}
 
 	return x, y, w, h
+}
+
+// computeAnchor computes the start position for the grid within its container,
+// matching Tk's TkComputeAnchor behavior.
+func computeAnchor(anchor option.Anchor, container *window.Window, usedW, usedH int) (int, int) {
+	var x, y int
+
+	switch anchor {
+	case option.AnchorNW, option.AnchorW, option.AnchorSW:
+		x = container.InternalBorderLeft
+	case option.AnchorN, option.AnchorCenter, option.AnchorS:
+		x = (container.Width - usedW) / 2
+	default: // NE, E, SE
+		x = container.Width - container.InternalBorderRight - usedW
+	}
+
+	switch anchor {
+	case option.AnchorNW, option.AnchorN, option.AnchorNE:
+		y = container.InternalBorderTop
+	case option.AnchorW, option.AnchorCenter, option.AnchorE:
+		y = (container.Height - usedH) / 2
+	default: // SW, S, SE
+		y = container.Height - container.InternalBorderBottom - usedH
+	}
+
+	return x, y
 }
 
 // ArrangeAll triggers layout for all grid-managed containers.
