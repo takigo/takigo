@@ -95,6 +95,18 @@ func NewApp(opts ...AppOption) (*App, error) {
 		closeHandlers: make(map[platform.WindowID]func()),
 	}
 
+	// Handle ConfigureNotify on root window so geometry managers
+	// (pack/grid) re-layout when the window is resized.
+	dispatcher.Bind(root.PlatformID, event.StructureNotifyMask, func(ev *event.Event) {
+		if ev.Type == event.ConfigureType {
+			root.Width = ev.ConfigWidth
+			root.Height = ev.ConfigHeight
+			if root.ConfigureCallback != nil {
+				root.ConfigureCallback()
+			}
+		}
+	})
+
 	// Install bind engine as a global handler (fires after per-window handlers).
 	bindEng.Install(dispatcher)
 
