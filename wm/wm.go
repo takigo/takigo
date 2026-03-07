@@ -150,6 +150,9 @@ func Init(w *window.Window) *WmInfo {
 	// Set initial size hints.
 	info.updateSizeHints()
 
+	// Store on window for protocol dispatch (mirrors TkWindow.wmInfoPtr).
+	w.WmData = info
+
 	return info
 }
 

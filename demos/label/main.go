@@ -19,7 +19,10 @@ import (
 )
 
 func main() {
-	app, err := takigo.NewApp(takigo.Title("Label Demonstration"), takigo.Size(500, 500)) //, takigo.IconName("label"))
+	app, err := takigo.NewApp(takigo.Title("Label Demonstration"),
+		takigo.Geometry("+300+300"),
+		takigo.IconName("label"),
+	)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)

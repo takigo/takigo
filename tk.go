@@ -17,6 +17,7 @@ import (
 	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/window"
+	"github.com/msorc/takigo/wm"
 )
 
 // App is the top-level application, managing the display connection,
@@ -24,15 +25,13 @@ import (
 type App struct {
 	display    *window.Display
 	root       *window.Window
+	wmInfo     *wm.WmInfo
 	dispatcher *event.Dispatcher
 	loop       *event.Loop
 	colorCache *color.Cache
 	fontReg    *font.Registry
 	imageReg   *image.Registry
 	bindEng    *bind.Engine
-
-	// closeHandlers maps toplevel window IDs to their WM_DELETE_WINDOW handlers.
-	closeHandlers map[platform.WindowID]func()
 }
 
 // NewApp creates a new takigo application. It opens the X11 display,
@@ -68,7 +67,6 @@ func NewApp(opts ...AppOption) (*App, error) {
 	}
 
 	root := window.CreateMainWindow(d, 0, 0, cfg.width, cfg.height)
-	d.Server.StoreName(root.PlatformID, cfg.title)
 
 	// Initialize X Input Method for proper non-Latin keyboard handling.
 	d.Server.InitIM(root.PlatformID)
@@ -84,16 +82,35 @@ func NewApp(opts ...AppOption) (*App, error) {
 	bindEng := bind.NewEngine(d)
 
 	app := &App{
-		display:       d,
-		root:          root,
-		dispatcher:    dispatcher,
-		loop:          loop,
-		colorCache:    colors,
-		fontReg:       fontReg,
-		imageReg:      image.NewRegistry(),
-		bindEng:       bindEng,
-		closeHandlers: make(map[platform.WindowID]func()),
+		display:    d,
+		root:       root,
+		dispatcher: dispatcher,
+		loop:       loop,
+		colorCache: colors,
+		fontReg:    fontReg,
+		imageReg:   image.NewRegistry(),
+		bindEng:    bindEng,
 	}
+
+	// Initialize WM state for root window, same as Tk does for ".".
+	// This sets WM_CLASS, WM_HINTS, size hints, and WM_PROTOCOLS.
+	app.wmInfo = wm.Init(root)
+	app.wmInfo.SetTitle(cfg.title)
+
+	// Apply geometry string if provided (overrides Size).
+	if cfg.geometry != "" {
+		app.wmInfo.SetGeometry(cfg.geometry)
+	}
+
+	// Apply icon name if provided.
+	if cfg.iconName != "" {
+		app.wmInfo.SetIconName(cfg.iconName)
+	}
+
+	// Default close action: quit the application.
+	app.wmInfo.OnDeleteWindow(func() {
+		app.Quit()
+	})
 
 	// Handle ConfigureNotify on root window so geometry managers
 	// (pack/grid) re-layout when the window is resized.
@@ -110,23 +127,20 @@ func NewApp(opts ...AppOption) (*App, error) {
 	// Install bind engine as a global handler (fires after per-window handlers).
 	bindEng.Install(dispatcher)
 
-	// Handle WM_DELETE_WINDOW (window close button).
-	// For the root window, quit the app. For other toplevels (dialogs),
-	// look up their per-window handler via the toplevel registry.
+	// Route WM protocol messages (WM_DELETE_WINDOW, _NET_WM_PING, etc.)
+	// to the appropriate toplevel's WmInfo handler.
+	// This mirrors TkWmProtocolEventProc in tk/unix/tkUnixWm.c.
 	dispatcher.BindGlobal(event.ClientMessageMask, func(ev *event.Event) {
 		if ev.Type != event.ClientMessageType {
 			return
 		}
-		if platform.AtomID(ev.MessageData[0]) != d.WMDeleteWindow {
+		// Look up the window and dispatch via its WmInfo.
+		w := d.LookupWindow(ev.Window)
+		if w == nil {
 			return
 		}
-		if ev.Window == root.PlatformID {
-			app.Quit()
-			return
-		}
-		// For non-root windows, look up a registered close handler.
-		if fn, ok := app.closeHandlers[ev.Window]; ok {
-			fn()
+		if info, ok := w.WmData.(*wm.WmInfo); ok {
+			info.HandleClientMessage(ev.MessageType, ev.MessageData)
 		}
 	})
 
@@ -212,6 +226,12 @@ func (a *App) Server() platform.DisplayServer {
 	return a.display.Server
 }
 
+// WmInfo returns the root window's WM state, providing access to
+// title, geometry, size constraints, resizable, iconify, etc.
+func (a *App) WmInfo() *wm.WmInfo {
+	return a.wmInfo
+}
+
 // BindEngine returns the application's binding engine.
 func (a *App) BindEngine() widget.BindEngine {
 	return a.bindEng
@@ -229,13 +249,21 @@ func (a *App) RunNestedLoop(done <-chan struct{}) {
 }
 
 // RegisterCloseHandler registers a WM_DELETE_WINDOW handler for a toplevel window.
+// It routes through the window's WmInfo if available.
 func (a *App) RegisterCloseHandler(w platform.WindowID, fn func()) {
-	a.closeHandlers[w] = fn
+	win := a.display.LookupWindow(w)
+	if win == nil {
+		return
+	}
+	if info, ok := win.WmData.(*wm.WmInfo); ok {
+		info.OnDeleteWindow(fn)
+	}
 }
 
 // UnregisterCloseHandler removes a WM_DELETE_WINDOW handler.
 func (a *App) UnregisterCloseHandler(w platform.WindowID) {
-	delete(a.closeHandlers, w)
+	// No-op: WmInfo always has WM_DELETE_WINDOW in its protocol set.
+	// The handler can be overwritten via RegisterCloseHandler.
 }
 
 // DoWhenIdle schedules a function to run during the next idle phase.
@@ -261,6 +289,8 @@ type appConfig struct {
 	title       string
 	width       int
 	height      int
+	geometry    string
+	iconName    string
 }
 
 // DisplayName sets the X11 display name (e.g., ":0").
@@ -271,6 +301,16 @@ func DisplayName(name string) AppOption {
 // Title sets the window title.
 func Title(title string) AppOption {
 	return func(c *appConfig) { c.title = title }
+}
+
+// Geometry sets the root window geometry string (e.g. "800x600+100+50").
+func Geometry(geom string) AppOption {
+	return func(c *appConfig) { c.geometry = geom }
+}
+
+// IconName sets the icon name (WM_ICON_NAME / _NET_WM_ICON_NAME).
+func IconName(name string) AppOption {
+	return func(c *appConfig) { c.iconName = name }
 }
 
 // Size sets the initial window size.

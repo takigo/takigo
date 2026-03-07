@@ -74,6 +74,11 @@ type Window struct {
 	// Set by geometry managers (e.g. pack) to re-layout children.
 	ConfigureCallback func()
 
+	// WmData stores per-toplevel WM state (*wm.WmInfo) for toplevel windows.
+	// Typed as any to avoid circular imports between window and wm packages.
+	// Mirrors TkWindow.wmInfoPtr in Tk's C code.
+	WmData any
+
 	// BackgroundHook is called when a recursive background change is applied.
 	// Widgets register this to update their own Background field and pixel.
 	BackgroundHook func(colorName string)

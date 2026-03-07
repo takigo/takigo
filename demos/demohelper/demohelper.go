@@ -115,12 +115,6 @@ func DemoDir(name string) string {
 	return filepath.Join(demosRoot, name)
 }
 
-// PositionWindow sets the window position, matching Tk's positionWindow proc.
-// positionWindow $w → wm geometry $w +300+300
-func PositionWindow(t *toplevel.Toplevel) {
-	t.WmInfo.SetGeometry("+300+300")
-}
-
 func AddSeeDismiss(parent widget.Caregiver, vars *DemoVars) *ttk.Frame {
 	_, callerFile, _, _ := runtime.Caller(1)
 
