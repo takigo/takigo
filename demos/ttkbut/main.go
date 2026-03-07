@@ -148,11 +148,11 @@ func main() {
 		grid.Sticky(nwe), grid.PadX("3p"), grid.PadY("1.5p"))
 
 	// Equal column weights with uniform sizing.
-	grid.ColumnConfigure(container.Window(), 0, grid.SlotConfig{Weight: 1, Uniform: "yes"})
-	grid.ColumnConfigure(container.Window(), 1, grid.SlotConfig{Weight: 1, Uniform: "yes"})
-	grid.ColumnConfigure(container.Window(), 2, grid.SlotConfig{Weight: 1, Uniform: "yes"})
-	grid.ColumnConfigure(container.Window(), 3, grid.SlotConfig{Weight: 1, Uniform: "yes"})
-	grid.RowConfigure(container.Window(), 0, grid.SlotConfig{Weight: 1})
+	grid.ColumnConfigure(container, 0, grid.Weight(1), grid.Uniform("yes"))
+	grid.ColumnConfigure(container, 1, grid.Weight(1), grid.Uniform("yes"))
+	grid.ColumnConfigure(container, 2, grid.Weight(1), grid.Uniform("yes"))
+	grid.ColumnConfigure(container, 3, grid.Weight(1), grid.Uniform("yes"))
+	grid.RowConfigure(container, 0, grid.Weight(1))
 
 	_ = c1
 	_ = c2

@@ -65,7 +65,7 @@ func main() {
 			grid.Sticky(grid.EW), grid.PadY(0))
 	}
 
-	grid.ColumnConfigure(f.Window(), 1, grid.SlotConfig{Weight: 1})
+	grid.ColumnConfigure(f, 1, grid.Weight(1))
 
 	app.Run()
 }

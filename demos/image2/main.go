@@ -172,7 +172,7 @@ func main() {
 		grid.Sticky(grid.StickN|grid.StickW), grid.PadX("1m"), grid.PadY("1m"))
 	grid.Grid(imageLF, grid.Row(1), grid.Column(1),
 		grid.Sticky(grid.StickN|grid.StickW), grid.PadX("1m"), grid.PadY("1m"))
-	grid.ColumnConfigure(mid.Window(), 1, grid.SlotConfig{Weight: 1})
+	grid.ColumnConfigure(mid, 1, grid.Weight(1))
 
 	_ = imgLabel
 	app.Run()

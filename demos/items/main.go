@@ -79,8 +79,8 @@ func main() {
 	grid.Grid(c, grid.Row(0), grid.Column(0), grid.Sticky(grid.NSEW))
 	grid.Grid(yscroll, grid.Row(0), grid.Column(1), grid.Sticky(grid.NS))
 	grid.Grid(xscroll, grid.Row(1), grid.Column(0), grid.Sticky(grid.EW))
-	grid.RowConfigure(gf.Window(), 0, grid.SlotConfig{Weight: 1})
-	grid.ColumnConfigure(gf.Window(), 0, grid.SlotConfig{Weight: 1})
+	grid.RowConfigure(gf, 0, grid.Weight(1))
+	grid.ColumnConfigure(gf, 0, grid.Weight(1))
 
 	// Track original colors per item ID for hover restore.
 	type itemColors struct {

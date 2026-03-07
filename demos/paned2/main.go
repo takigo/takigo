@@ -148,8 +148,8 @@ func main() {
 	grid.Grid(tw, grid.Row(0), grid.Column(0), grid.Sticky(grid.NSEW))
 	grid.Grid(yscroll, grid.Row(0), grid.Column(1), grid.Sticky(grid.NSEW))
 	grid.Grid(xscroll, grid.Row(1), grid.Column(0), grid.Sticky(grid.NSEW))
-	grid.ColumnConfigure(bottomFrame.Window(), 0, grid.SlotConfig{Weight: 1})
-	grid.RowConfigure(bottomFrame.Window(), 0, grid.SlotConfig{Weight: 1})
+	grid.ColumnConfigure(bottomFrame, 0, grid.Weight(1))
+	grid.RowConfigure(bottomFrame, 0, grid.Weight(1))
 
 	tw.Insert("1.0", "This is just a normal text widget")
 

@@ -77,6 +77,21 @@ type SlotConfig struct {
 	Uniform string
 }
 
+// SlotOption configures a SlotConfig.
+type SlotOption func(*SlotConfig)
+
+// MinSize sets the minimum size for a row or column.
+func MinSize(n int) SlotOption { return func(c *SlotConfig) { c.MinSize = n } }
+
+// Weight sets the weight for distributing extra space.
+func Weight(n int) SlotOption { return func(c *SlotConfig) { c.Weight = n } }
+
+// SlotPad sets the padding for a row or column.
+func Pad(n int) SlotOption { return func(c *SlotConfig) { c.Pad = screenunit.Px(n) } }
+
+// Uniform sets the uniform group name.
+func Uniform(name string) SlotOption { return func(c *SlotConfig) { c.Uniform = name } }
+
 // gridEntry holds grid configuration for a single child.
 type gridEntry struct {
 	window *window.Window
@@ -121,14 +136,63 @@ func (m *gridManager) LostContentProc(content *window.Window) {
 	}
 }
 
-// Grid adds a child to its parent's grid layout.
-func Grid(child window.Windower, opts ...GridOption) {
-	w := child.Window()
-	parent := w.Parent
-	if parent == nil {
-		return
-	}
+// RelativePlacement represents Tk's grid relative placement shortcuts.
+// See tk/generic/tkGrid.c ConfigureContent and the "RELATIVE PLACEMENT"
+// section in the grid manual.
+type RelativePlacement int
 
+const (
+	// RelEmpty skips a column (Tk's "x").
+	RelEmpty RelativePlacement = iota
+	// RelLeft extends the previous widget one column to the right (Tk's "-").
+	RelLeft
+	// RelUp extends the widget above one row downward (Tk's "^").
+	RelUp
+)
+
+// relativeWidget is a dummy widget used as a sentinel in Grid calls.
+// It implements both window.Windower and geometry.Elementer so it can
+// appear inside geometry.Group or be passed directly to Grid.
+type relativeWidget struct {
+	placement RelativePlacement
+}
+
+// sentinel Window pointers for each relative placement type.
+var relSentinels [3]window.Window
+
+func (r *relativeWidget) Window() *window.Window {
+	return &relSentinels[r.placement]
+}
+
+func (r *relativeWidget) GeometryElements() []window.Windower {
+	return []window.Windower{r}
+}
+
+// Relative returns a dummy widget representing a relative placement shortcut.
+func Relative(rp RelativePlacement) *relativeWidget {
+	return &relativeWidget{placement: rp}
+}
+
+func isRelative(w *window.Window) (RelativePlacement, bool) {
+	for i := range relSentinels {
+		if w == &relSentinels[i] {
+			return RelativePlacement(i), true
+		}
+	}
+	return 0, false
+}
+
+// Grid adds children to their parent's grid layout.
+// Accepts a geometry.Elementer (e.g. geometry.Group) containing real widgets
+// and/or relative placement markers created by Relative().
+//
+// Relative placements (matching Tk's grid shortcuts):
+//   - Relative(RelEmpty): skip this column (Tk's "x")
+//   - Relative(RelLeft):  extend previous widget's columnSpan (Tk's "-")
+//   - Relative(RelUp):    extend widget above's rowSpan (Tk's "^")
+//
+// See tk/generic/tkGrid.c ConfigureContent.
+func Grid(children geometry.Elementer, opts ...GridOption) {
 	cfg := gridConfig{
 		rowSpan:    1,
 		columnSpan: 1,
@@ -143,7 +207,20 @@ func Grid(child window.Windower, opts ...GridOption) {
 		cfg.columnSpan = 1
 	}
 
-	geometry.ManageGeometry(w, mgr)
+	elements := children.GeometryElements()
+
+	// Find the first real widget to determine the parent.
+	var parent *window.Window
+	for _, elem := range elements {
+		w := elem.Window()
+		if _, rel := isRelative(w); !rel {
+			parent = w.Parent
+			break
+		}
+	}
+	if parent == nil {
+		return
+	}
 
 	g, ok := gridders[parent]
 	if !ok {
@@ -156,20 +233,86 @@ func Grid(child window.Windower, opts ...GridOption) {
 	}
 
 	// Auto-assign row if not specified.
-	if cfg.row == 0 && cfg.column == 0 {
-		cfg.row = g.nextRow()
+	row := cfg.row
+	if row == 0 && cfg.column == 0 {
+		row = g.nextRow()
 	}
 
-	// Update or add entry.
-	for _, e := range g.entries {
-		if e.window == w {
-			e.config = cfg
-			g.arrange()
-			return
+	// First pass: place real widgets, handle RelEmpty (x) and RelLeft (-).
+	// RelLeft increases the previous widget's columnSpan.
+	// See tk/generic/tkGrid.c lines 3162–3220.
+	col := cfg.column
+	var lastEntry *gridEntry
+	for _, elem := range elements {
+		w := elem.Window()
+		rp, rel := isRelative(w)
+		if rel {
+			switch rp {
+			case RelEmpty: // 'x' — skip column
+				col++
+				lastEntry = nil
+			case RelLeft: // '-' — extend previous widget
+				if lastEntry != nil {
+					lastEntry.config.columnSpan++
+				}
+				col++
+			case RelUp: // '^' — handled in second pass
+				col++
+			}
+			continue
 		}
+
+		// Count trailing RelLeft to compute default columnSpan.
+		ecfg := cfg
+		ecfg.row = row
+		ecfg.column = col
+
+		geometry.ManageGeometry(w, mgr)
+
+		// Update or add entry.
+		found := false
+		for _, e := range g.entries {
+			if e.window == w {
+				e.config = ecfg
+				found = true
+				lastEntry = e
+				break
+			}
+		}
+		if !found {
+			entry := &gridEntry{window: w, config: ecfg}
+			g.entries = append(g.entries, entry)
+			lastEntry = entry
+		}
+
+		col++
 	}
 
-	g.entries = append(g.entries, &gridEntry{window: w, config: cfg})
+	// Second pass: handle RelUp ('^') — extend rowSpan of widget above.
+	// See tk/generic/tkGrid.c lines 3480–3565.
+	col = cfg.column
+	for _, elem := range elements {
+		w := elem.Window()
+		rp, rel := isRelative(w)
+		if !rel {
+			col++
+			continue
+		}
+		if rp != RelUp {
+			col++
+			continue
+		}
+		// Find the widget in the row above at this column.
+		for _, e := range g.entries {
+			if e.config.column == col &&
+				e.config.row+e.config.rowSpan == row {
+				e.config.rowSpan++
+				break
+			}
+		}
+		col++
+	}
+
 	g.arrange()
 }
 
@@ -187,30 +330,40 @@ func Forget(child window.Windower) {
 }
 
 // RowConfigure sets configuration for a row.
-func RowConfigure(container *window.Window, row int, conf SlotConfig) {
-	g, ok := gridders[container]
+func RowConfigure(container window.Windower, row int, opts ...SlotOption) {
+	w := container.Window()
+	conf := SlotConfig{}
+	for _, opt := range opts {
+		opt(&conf)
+	}
+	g, ok := gridders[w]
 	if !ok {
 		g = &gridder{
-			container: container,
+			container: w,
 			rowConf:   make(map[int]*SlotConfig),
 			colConf:   make(map[int]*SlotConfig),
 		}
-		gridders[container] = g
+		gridders[w] = g
 	}
 	g.rowConf[row] = &conf
 	g.arrange()
 }
 
 // ColumnConfigure sets configuration for a column.
-func ColumnConfigure(container *window.Window, col int, conf SlotConfig) {
-	g, ok := gridders[container]
+func ColumnConfigure(container window.Windower, col int, opts ...SlotOption) {
+	w := container.Window()
+	conf := SlotConfig{}
+	for _, opt := range opts {
+		opt(&conf)
+	}
+	g, ok := gridders[w]
 	if !ok {
 		g = &gridder{
-			container: container,
+			container: w,
 			rowConf:   make(map[int]*SlotConfig),
 			colConf:   make(map[int]*SlotConfig),
 		}
-		gridders[container] = g
+		gridders[w] = g
 	}
 	g.colConf[col] = &conf
 	g.arrange()

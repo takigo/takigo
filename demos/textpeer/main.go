@@ -133,7 +133,7 @@ func main() {
 	addPeer()
 	addPeer()
 
-	grid.ColumnConfigure(w.Window(), 0, grid.SlotConfig{Weight: 1})
+	grid.ColumnConfigure(w, 0, grid.Weight(1))
 
 	app.Run()
 }

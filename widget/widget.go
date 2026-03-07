@@ -70,13 +70,13 @@ type Base struct {
 	Border *draw.Border
 
 	// Common visual options.
-	Background      *color.Color
-	Foreground      *color.Color
-	Font            font.Font
-	Relief          option.Relief
-	BorderWidth     int
-	HighlightWidth  int
-	PadX, PadY      int
+	Background     *color.Color
+	Foreground     *color.Color
+	Font           font.Font
+	Relief         option.Relief
+	BorderWidth    int
+	HighlightWidth int
+	PadX, PadY     int
 
 	// State.
 	NeedRedraw bool
@@ -93,6 +93,8 @@ type BindEngine interface {
 // AppContext provides the application services widgets need.
 // This avoids importing the top-level takigo package.
 type AppContext interface {
+	AppContext() AppContext
+	Window() *window.Window
 	Dispatcher() *event.Dispatcher
 	DoWhenIdle(fn func())
 	ColorCache() *color.Cache
@@ -109,11 +111,17 @@ type AppContext interface {
 	UnregisterCloseHandler(w platform.WindowID)
 	// After schedules a function to run after a delay.
 	After(d time.Duration, fn func())
+	Quit()
 }
 
 // Window returns the widget's underlying window.
 func (b *Base) Window() *window.Window {
 	return b.Win
+}
+
+// To be used by geometry managers as a geometry.Elementer
+func (b *Base) GeometryElements() []window.Windower {
+	return []window.Windower{b}
 }
 
 // AppContext returns the application context, satisfying the Caregiver interface.
@@ -176,4 +184,3 @@ func InitBase(b *Base, win *window.Window, app AppContext) {
 		}
 	}
 }
-

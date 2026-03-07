@@ -59,9 +59,9 @@ func main() {
 	)
 	grid.Grid(neatBtn, grid.Row(1), grid.Column(0), grid.PadY("1.5p"))
 	grid.Grid(neatLabel, grid.Row(1), grid.Column(1), grid.PadY("1.5p"))
-	grid.RowConfigure(page1.Window(), 1, grid.SlotConfig{Weight: 1})
-	grid.ColumnConfigure(page1.Window(), 0, grid.SlotConfig{Weight: 1})
-	grid.ColumnConfigure(page1.Window(), 1, grid.SlotConfig{Weight: 1})
+	grid.RowConfigure(page1, 1, grid.Weight(1))
+	grid.ColumnConfigure(page1, 0, grid.Weight(1))
+	grid.ColumnConfigure(page1, 1, grid.Weight(1))
 
 	nb.Add(page1.Window(), "Description")
 	nb.SetTabUnderline(0, 0) // Alt+D → Description tab

@@ -86,7 +86,7 @@ func main() {
 		grid.Grid(b, grid.Row(row), grid.Column(2), grid.PadY("3p"))
 	}
 
-	grid.ColumnConfigure(f.Window(), 1, grid.SlotConfig{Weight: 1})
+	grid.ColumnConfigure(f, 1, grid.Weight(1))
 
 	// X11: "Use Motif Style Dialog" checkbutton (matches Tcl's x11 windowingsystem check).
 	strictMotif := widget.NewVariable(false)

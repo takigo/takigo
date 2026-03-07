@@ -46,8 +46,8 @@ func main() {
 		text.Height(10),
 	)
 	grid.Grid(tw, grid.Row(2), grid.Column(0), grid.Sticky(grid.NSEW))
-	grid.RowConfigure(main.Window(), 2, grid.SlotConfig{Weight: 1})
-	grid.ColumnConfigure(main.Window(), 0, grid.SlotConfig{Weight: 1})
+	grid.RowConfigure(main, 2, grid.Weight(1))
+	grid.ColumnConfigure(main, 0, grid.Weight(1))
 
 	// Helper to append text to the output widget.
 	appendMsg := func(msg string) {

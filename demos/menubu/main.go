@@ -64,8 +64,8 @@ func main() {
 	)
 	pack.Pack(centerLabel, pack.PadX("18p"), pack.PadY("18p"))
 
-	grid.ColumnConfigure(body.Window(), 1, grid.SlotConfig{Weight: 1})
-	grid.RowConfigure(body.Window(), 1, grid.SlotConfig{Weight: 1})
+	grid.ColumnConfigure(body, 1, grid.Weight(1))
+	grid.RowConfigure(body, 1, grid.Weight(1))
 
 	_ = mbBelow
 	_ = mbLeft

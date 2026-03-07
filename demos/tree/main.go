@@ -229,8 +229,8 @@ func main() {
 	grid.Grid(tv, grid.Row(0), grid.Column(0), grid.Sticky(grid.NSEW))
 	grid.Grid(yscroll, grid.Row(0), grid.Column(1), grid.Sticky(grid.NS))
 	grid.Grid(xscroll, grid.Row(1), grid.Column(0), grid.Sticky(grid.EW))
-	grid.ColumnConfigure(tvFrame.Window(), 0, grid.SlotConfig{Weight: 1})
-	grid.RowConfigure(tvFrame.Window(), 0, grid.SlotConfig{Weight: 1})
+	grid.ColumnConfigure(tvFrame, 0, grid.Weight(1))
+	grid.RowConfigure(tvFrame, 0, grid.Weight(1))
 
 	first, last := tv.YVisibleRange()
 	yscroll.Set(first, last)

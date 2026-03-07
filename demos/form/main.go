@@ -45,7 +45,7 @@ func main() {
 		_ = l
 	}
 
-	grid.ColumnConfigure(formFrame.Window(), 1, grid.SlotConfig{Weight: 1})
+	grid.ColumnConfigure(formFrame, 1, grid.Weight(1))
 
 	_ = focusMgr
 	_ = entries

@@ -93,8 +93,8 @@ func main() {
 	grid.Grid(yscroll, grid.Row(0), grid.Column(1), grid.Sticky(grid.NS))
 	grid.Grid(xscroll, grid.Row(1), grid.Column(0), grid.Sticky(grid.EW))
 
-	grid.RowConfigure(gridFrame.Window(), 0, grid.SlotConfig{Weight: 1})
-	grid.ColumnConfigure(gridFrame.Window(), 0, grid.SlotConfig{Weight: 1})
+	grid.RowConfigure(gridFrame, 0, grid.Weight(1))
+	grid.ColumnConfigure(gridFrame, 0, grid.Weight(1))
 
 	// Create a 20x10 grid of rectangles, matching Tk's cscroll.tcl.
 	// Tk uses centimeter units: each cell is 2c x 2c with 3c spacing.

@@ -141,6 +141,11 @@ func (w *TtkWidget) Window() *window.Window {
 	return w.Win
 }
 
+// To be used by geometry managers as a geometry.Elementer
+func (w *TtkWidget) GeometryElements() []window.Windower {
+	return []window.Windower{w}
+}
+
 // AppContext returns the application context, satisfying the widget.Caregiver interface.
 func (w *TtkWidget) AppContext() widget.AppContext {
 	return w.App

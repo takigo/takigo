@@ -60,8 +60,8 @@ func main() {
 
 	grid.Grid(tw, grid.Row(0), grid.Column(0), grid.Sticky(grid.NSEW))
 	grid.Grid(yscroll, grid.Row(0), grid.Column(1), grid.Sticky(grid.NS))
-	grid.ColumnConfigure(f.Window(), 0, grid.SlotConfig{Weight: 1})
-	grid.RowConfigure(f.Window(), 0, grid.SlotConfig{Weight: 1})
+	grid.ColumnConfigure(f, 0, grid.Weight(1))
+	grid.RowConfigure(f, 0, grid.Weight(1))
 
 	tw.Insert("end", "Press the buttons below to choose a new font for the "+
 		"text shown in this window.\n")

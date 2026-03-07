@@ -5,6 +5,8 @@ package main
 import (
 	"fmt"
 	"os/exec"
+	"path/filepath"
+	"runtime"
 
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/pack"
@@ -109,4 +111,17 @@ func main() {
 // idxStr converts a text.Index to a "line.char" string for TagAdd.
 func idxStr(idx text.Index) string {
 	return fmt.Sprintf("%d.%d", idx.Line, idx.Char)
+}
+
+// DemoDir returns the absolute path to a demo directory by name,
+// relative to the demos/ root found via the caller's source file location.
+func DemoDir(name string) string {
+	_, file, _, ok := runtime.Caller(1)
+	if !ok {
+		return name
+	}
+	// Walk up from callers' source file to find the demos/ root.
+	// demos/demohelper/demohelper.go → demos/ is one level up.
+	demosRoot := filepath.Dir(filepath.Dir(file))
+	return filepath.Join(demosRoot, name)
 }

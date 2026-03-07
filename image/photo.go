@@ -139,6 +139,70 @@ func NewPhotoFromReader(name string, r io.Reader) (*Photo, error) {
 	return NewPhoto(name, rgba), nil
 }
 
+// CopyOption configures a NewPhotoFromPhoto call.
+type CopyOption func(*copyConfig)
+
+type copyConfig struct {
+	zoomX, zoomY float64
+}
+
+// Zoom sets the zoom factor for both axes.
+// Matches Tk's "imageName copy srcName -zoom x y".
+func Zoom(factor float64) CopyOption {
+	return func(c *copyConfig) {
+		c.zoomX = factor
+		c.zoomY = factor
+	}
+}
+
+// NewPhotoFromPhoto creates a new photo by copying (and optionally scaling)
+// an existing photo. Matches Tk's "destImage copy srcImage ?-zoom x y?".
+func NewPhotoFromPhoto(src *Photo, name string, opts ...CopyOption) *Photo {
+	cfg := copyConfig{zoomX: 1, zoomY: 1}
+	for _, opt := range opts {
+		opt(&cfg)
+	}
+	if cfg.zoomX <= 0 {
+		cfg.zoomX = 1
+	}
+	if cfg.zoomY <= 0 {
+		cfg.zoomY = 1
+	}
+
+	srcW := src.Width()
+	srcH := src.Height()
+	dstW := int(float64(srcW)*cfg.zoomX + 0.5)
+	dstH := int(float64(srcH)*cfg.zoomY + 0.5)
+	if dstW < 1 {
+		dstW = 1
+	}
+	if dstH < 1 {
+		dstH = 1
+	}
+
+	dst := goimage.NewRGBA(goimage.Rect(0, 0, dstW, dstH))
+	srcRGBA := src.rgba
+
+	// Nearest-neighbor scaling.
+	for y := range dstH {
+		srcY := int(float64(y) / cfg.zoomY)
+		if srcY >= srcH {
+			srcY = srcH - 1
+		}
+		for x := range dstW {
+			srcX := int(float64(x) / cfg.zoomX)
+			if srcX >= srcW {
+				srcX = srcW - 1
+			}
+			off := srcY*srcRGBA.Stride + srcX*4
+			dOff := y*dst.Stride + x*4
+			copy(dst.Pix[dOff:dOff+4], srcRGBA.Pix[off:off+4])
+		}
+	}
+
+	return NewPhoto(name, dst)
+}
+
 // Name returns the image's registered name.
 func (p *Photo) Name() string { return p.name }
 

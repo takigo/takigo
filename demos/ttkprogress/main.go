@@ -52,8 +52,8 @@ func main() {
 		grid.Sticky(grid.StickE), grid.PadX(padX), grid.PadY(padY))
 	grid.Grid(stopBtn, grid.Row(2), grid.Column(1),
 		grid.Sticky(grid.StickW), grid.PadX(padX), grid.PadY(padY))
-	grid.ColumnConfigure(f.Window(), 0, grid.SlotConfig{Weight: 1})
-	grid.ColumnConfigure(f.Window(), 1, grid.SlotConfig{Weight: 1})
+	grid.ColumnConfigure(f, 0, grid.Weight(1))
+	grid.ColumnConfigure(f, 1, grid.Weight(1))
 
 	// Determinate animation state.
 	var running bool

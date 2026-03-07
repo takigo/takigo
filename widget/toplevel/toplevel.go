@@ -27,6 +27,13 @@ func Title(s string) ToplevelOption {
 	}
 }
 
+// IconName sets the icon name (WM_ICON_NAME / _NET_WM_ICON_NAME).
+func IconName(s string) ToplevelOption {
+	return func(t *Toplevel) {
+		t.WmInfo.SetIconName(s)
+	}
+}
+
 // Background sets the background color.
 func Background(name string) ToplevelOption {
 	return func(t *Toplevel) {

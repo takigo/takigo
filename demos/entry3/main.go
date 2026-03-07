@@ -87,8 +87,8 @@ func main() {
 	grid.Grid(lf4, grid.Row(1), grid.Column(1), grid.Sticky(grid.EW), grid.PadX("3m"), grid.PadY("1m"))
 
 	// Make both columns expand equally.
-	grid.ColumnConfigure(mid.Window(), 0, grid.SlotConfig{Weight: 1})
-	grid.ColumnConfigure(mid.Window(), 1, grid.SlotConfig{Weight: 1})
+	grid.ColumnConfigure(mid, 0, grid.Weight(1))
+	grid.ColumnConfigure(mid, 1, grid.Weight(1))
 
 	_ = focusMgr
 	_ = e1

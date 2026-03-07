@@ -9,9 +9,12 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"sort"
 
 	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/event"
+	"github.com/msorc/takigo/geometry"
+	"github.com/msorc/takigo/geometry/grid"
 	"github.com/msorc/takigo/geometry/pack"
 	tkimage "github.com/msorc/takigo/image"
 	"github.com/msorc/takigo/option"
@@ -22,16 +25,31 @@ import (
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
+	"github.com/msorc/takigo/widget/labelframe"
 	"github.com/msorc/takigo/widget/scrollbar"
 	"github.com/msorc/takigo/widget/text"
 	"github.com/msorc/takigo/widget/toplevel"
+	"github.com/msorc/takigo/window"
 )
+
+var (
+	img map[string]*tkimage.Photo
+	// varsWindow is the single reusable "See Variables" toplevel (nil until first use).
+	varsWindow *toplevel.Toplevel
+)
+
+type DemoVars map[string]*widget.Variable[any]
+
+func init() {
+	img = make(map[string]*tkimage.Photo)
+	img["view"] = makeViewIcon()
+	img["delete"] = makeDeleteIcon()
+}
 
 // Setup creates a standard demo window with a description label, and
 // "See Code" / "Dismiss" buttons at the bottom (matching Tk's addSeeDismiss).
 // Calls os.Exit(1) on failure.
 func Setup(title string, width, height int, description string) *takigo.App {
-	// Capture the caller's source file for "See Code".
 	_, callerFile, _, _ := runtime.Caller(1)
 
 	app, err := takigo.NewApp(takigo.Title(title), takigo.Size(width, height))
@@ -44,7 +62,7 @@ func Setup(title string, width, height int, description string) *takigo.App {
 	bgColor, _ := app.ColorCache().Get("#d9d9d9")
 	root.BackgroundPixel = bgColor.Pixel
 
-	// Description label (classic label, same as Tk's "label $w.msg -wraplength 4i").
+	// Description label.
 	msg := label.New(app, "msg",
 		label.Text(description),
 		label.Anchor(option.AnchorW),
@@ -54,38 +72,9 @@ func Setup(title string, width, height int, description string) *takigo.App {
 	)
 	pack.Pack(msg, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
 
-	// Button bar at bottom — uses TTK widgets matching Tk's addSeeDismiss:
-	// ttk::frame, ttk::separator, ttk::button.
-	btnFrame := ttk.NewFrame(app, "btnframe")
+	// Button bar at bottom via AddSeeDismiss.
+	btnFrame := addSeeDismissWithFile(app, nil, callerFile)
 	pack.Pack(btnFrame, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
-
-	// ttk::separator.
-	sep := ttk.NewSeparator(btnFrame, "sep")
-	pack.Pack(sep, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(2))
-
-	// Create button icons.
-	viewIcon := makeViewIcon()
-	deleteIcon := makeDeleteIcon()
-	app.ImageRegistry().Register(viewIcon)
-	app.ImageRegistry().Register(deleteIcon)
-
-	// Pack buttons right-to-left so they appear right-aligned:
-	// Dismiss (rightmost), then See Code.
-	dismissBtn := ttk.NewButton(btnFrame, "dismiss",
-		ttk.ButtonText("Dismiss"),
-		ttk.ButtonImage(deleteIcon),
-		ttk.ButtonCompound(widget.CompoundLeft),
-		ttk.ButtonCommand(func() { app.Quit() }),
-	)
-	pack.Pack(dismissBtn, pack.SideOpt(pack.Right), pack.PadX(4), pack.PadY(4))
-
-	seeCodeBtn := ttk.NewButton(btnFrame, "seecode",
-		ttk.ButtonText("See Code"),
-		ttk.ButtonImage(viewIcon),
-		ttk.ButtonCompound(widget.CompoundLeft),
-		ttk.ButtonCommand(func() { showCode(app, callerFile) }),
-	)
-	pack.Pack(seeCodeBtn, pack.SideOpt(pack.Right), pack.PadX(4), pack.PadY(4))
 
 	// Configure handler.
 	app.Dispatcher().Bind(root.PlatformID, event.StructureNotifyMask, func(ev *event.Event) {
@@ -96,7 +85,7 @@ func Setup(title string, width, height int, description string) *takigo.App {
 		}
 	})
 
-	// Expose handler — reads root.BackgroundPixel so dynamic bg changes work.
+	// Expose handler.
 	app.Dispatcher().Bind(root.PlatformID, event.ExposureMask, func(ev *event.Event) {
 		if ev.ExposeCount > 0 {
 			return
@@ -116,6 +105,66 @@ func Setup(title string, width, height int, description string) *takigo.App {
 	})
 
 	return app
+}
+
+// DemoDir returns the absolute path to a subdirectory under demos/.
+func DemoDir(name string) string {
+	_, file, _, ok := runtime.Caller(1)
+	if !ok {
+		return name
+	}
+	demosRoot := filepath.Dir(filepath.Dir(file))
+	return filepath.Join(demosRoot, name)
+}
+
+// PositionWindow sets the window position, matching Tk's positionWindow proc.
+// positionWindow $w → wm geometry $w +300+300
+func PositionWindow(t *toplevel.Toplevel) {
+	t.WmInfo.SetGeometry("+300+300")
+}
+
+func AddSeeDismiss(parent widget.Caregiver, vars *DemoVars) *ttk.Frame {
+	_, callerFile, _, _ := runtime.Caller(1)
+	return addSeeDismissWithFile(parent, vars, callerFile)
+}
+
+func addSeeDismissWithFile(parent widget.Caregiver, vars *DemoVars, callerFile string) *ttk.Frame {
+	btnFrame := ttk.NewFrame(parent, "bottom_buttons")
+
+	sep := ttk.NewSeparator(btnFrame, "sep")
+	grid.Grid(sep, grid.ColumnSpan(4), grid.Row(0), grid.Sticky(grid.EW), grid.PadY("1.5p"))
+
+	dismissBtn := ttk.NewButton(btnFrame, "dismiss",
+		ttk.ButtonText("Dismiss"),
+		ttk.ButtonImage(img["delete"]),
+		ttk.ButtonCompound(widget.CompoundLeft),
+		ttk.ButtonCommand(func() { parent.AppContext().Quit() }),
+	)
+
+	codeBtn := ttk.NewButton(btnFrame, "code",
+		ttk.ButtonText("See Code"),
+		ttk.ButtonImage(img["view"]),
+		ttk.ButtonCompound(widget.CompoundLeft),
+		ttk.ButtonCommand(func() { showCode(parent.AppContext(), callerFile) }),
+	)
+
+	buttons := []window.Windower{grid.Relative(grid.RelEmpty), codeBtn, dismissBtn}
+
+	if vars != nil {
+		varBtn := ttk.NewButton(btnFrame, "vars",
+			ttk.ButtonText("See Variables"),
+			ttk.ButtonImage(img["view"]),
+			ttk.ButtonCompound(widget.CompoundLeft),
+			ttk.ButtonCommand(func() { showVars(parent.AppContext(), vars) }),
+		)
+		buttons = append(buttons, varBtn)
+		buttons[1], buttons[len(buttons)-1] = buttons[len(buttons)-1], buttons[1]
+	}
+
+	grid.Grid(geometry.Group(buttons), grid.PadX("3p"), grid.PadY("3p"))
+	grid.ColumnConfigure(btnFrame, 0, grid.Weight(1))
+
+	return btnFrame
 }
 
 // makeViewIcon creates a 16x16 magnifying glass icon (matches Tk's ::img::view).
@@ -182,7 +231,7 @@ var codeText *text.TextWidget
 
 // showCode opens (or raises) a toplevel window displaying the demo source.
 // Uses TTK widgets for the button bar (matching Tk's showCode proc).
-func showCode(app *takigo.App, srcFile string) {
+func showCode(app widget.AppContext, srcFile string) {
 	source, err := os.ReadFile(srcFile)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "See Code: %v\n", err)
@@ -271,20 +320,78 @@ func showCode(app *takigo.App, srcFile string) {
 	codeWindow.OnClose(func() { codeWindow.Hide() })
 }
 
-// NewFrame creates a plain frame as a child of the given parent.
-func NewFrame(parent widget.Caregiver, name string) *frame.Frame {
-	return frame.New(parent, name)
-}
-
-// DemoDir returns the absolute path to a demo directory by name,
-// relative to the demos/ root found via the caller's source file location.
-func DemoDir(name string) string {
-	_, file, _, ok := runtime.Caller(1)
-	if !ok {
-		return name
+// showVars opens a toplevel window displaying the current values of demo variables.
+// Matches Tk's showVars proc from tk/library/demos/widget.
+//
+//	proc showVars {w args} {
+//	    catch {destroy $w}
+//	    toplevel $w
+//	    wm title $w "Variable values"
+//	    ...
+//	}
+func showVars(app widget.AppContext, vars *DemoVars) {
+	// catch {destroy $w}
+	if varsWindow != nil && !varsWindow.Destroyed {
+		varsWindow.Destroy()
 	}
-	// Walk up from callers' source file to find the demos/ root.
-	// demos/demohelper/demohelper.go → demos/ is one level up.
-	demosRoot := filepath.Dir(filepath.Dir(file))
-	return filepath.Join(demosRoot, name)
+
+	// toplevel $w
+	// wm title $w "Variable values"
+	varsWindow = toplevel.New(app, "vars",
+		toplevel.Title("Variable values"),
+		toplevel.Background("#d9d9d9"),
+	)
+	varsWindow.Show()
+
+	varsRoot := varsWindow.Window()
+
+	b := ttk.NewFrame(varsWindow, "frame")
+	grid.Grid(b, grid.Sticky(grid.NSEW))
+
+	f := labelframe.New(b, "title", labelframe.Text("Variable values:"))
+
+	names := make([]string, 0, len(*vars))
+	for name := range *vars {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+
+	for row, name := range names {
+		v := (*vars)[name]
+		nameLabel := ttk.NewLabel(f, "n_"+name, ttk.LabelText(name+":"))
+		// TODO: textvariable support for live updates
+		valLabel := ttk.NewLabel(f, "v_"+name, ttk.LabelText(fmt.Sprintf("%v", v.Get())))
+		grid.Grid(nameLabel, grid.Column(0), grid.Row(row),
+			grid.PadX("1.5p"), grid.PadY("1.5p"), grid.Sticky(grid.StickW))
+		grid.Grid(valLabel, grid.Column(1), grid.Row(row),
+			grid.PadX("1.5p"), grid.PadY("1.5p"), grid.Sticky(grid.StickW))
+	}
+
+	okBtn := ttk.NewButton(b, "ok",
+		ttk.ButtonText("OK"),
+		ttk.ButtonCommand(func() { varsWindow.Destroy() }),
+	)
+
+	// TODO: bind $w <Return> [list $b.ok invoke]
+	// TODO: bind $w <Escape> [list $b.ok invoke]
+
+	grid.Grid(f, grid.Sticky(grid.NSEW), grid.PadX("3p"))
+	grid.Grid(okBtn, grid.Row(1), grid.Sticky(grid.StickE), grid.PadX("3p"), grid.PadY("3p"))
+
+	grid.ColumnConfigure(f.Window(), 1, grid.Weight(1))
+	grid.RowConfigure(f.Window(), 100, grid.Weight(1))
+	grid.ColumnConfigure(b.Window(), 0, grid.Weight(1))
+	grid.RowConfigure(b.Window(), 0, grid.Weight(1))
+	grid.ColumnConfigure(varsRoot, 0, grid.Weight(1))
+	grid.RowConfigure(varsRoot, 0, grid.Weight(1))
+
+	app.Dispatcher().Bind(varsRoot.PlatformID, event.StructureNotifyMask, func(ev *event.Event) {
+		if ev.Type == event.ConfigureType {
+			varsRoot.Width = ev.ConfigWidth
+			varsRoot.Height = ev.ConfigHeight
+			grid.ArrangeContainer(varsRoot)
+		}
+	})
+
+	varsWindow.OnClose(func() { varsWindow.Destroy() })
 }

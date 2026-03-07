@@ -82,8 +82,8 @@ func main() {
 	// Grid layout: listbox row 0 col 0, yscroll row 0 col 1.
 	grid.Grid(lb, grid.Row(0), grid.Column(0), grid.Sticky(grid.NSEW))
 	grid.Grid(yscroll, grid.Row(0), grid.Column(1), grid.Sticky(grid.NS))
-	grid.RowConfigure(lbFrame.Window(), 0, grid.SlotConfig{Weight: 1})
-	grid.ColumnConfigure(lbFrame.Window(), 0, grid.SlotConfig{Weight: 1})
+	grid.RowConfigure(lbFrame, 0, grid.Weight(1))
+	grid.ColumnConfigure(lbFrame, 0, grid.Weight(1))
 
 	first, last := lb.YVisibleRange()
 	yscroll.Set(first, last)
