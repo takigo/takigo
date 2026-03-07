@@ -114,14 +114,12 @@ func (m *packManager) LostContentProc(content *window.Window) {
 	}
 }
 
-// Pack adds a child to its parent's pack layout.
-func Pack(child window.Windower, opts ...PackOption) {
-	w := child.Window()
-	parent := w.Parent
-	if parent == nil {
-		return
-	}
-
+// Pack adds children to their parent's pack layout.
+// Accepts a geometry.Elementer (e.g. geometry.Group) containing one or more
+// widgets. All widgets receive the same options, matching Tk's
+// "pack configure .w1 .w2 .w3 -side left" behavior.
+// See tk/generic/tkPack.c ConfigureContent.
+func Pack(children geometry.Elementer, opts ...PackOption) {
 	cfg := packConfig{
 		side:   Top,
 		fill:   FillNone,
@@ -131,32 +129,45 @@ func Pack(child window.Windower, opts ...PackOption) {
 		opt(&cfg)
 	}
 
-	geometry.ManageGeometry(w, mgr)
+	elements := children.GeometryElements()
 
-	p, ok := packers[parent]
-	if !ok {
-		p = &packer{container: parent}
-		packers[parent] = p
-		// Register configure callback so container re-layouts
-		// when resized by external forces (e.g. PanedWindow).
-		parent.ConfigureCallback = func() {
-			if pp, ok2 := packers[parent]; ok2 {
-				pp.arrange()
+	for _, elem := range elements {
+		w := elem.Window()
+		parent := w.Parent
+		if parent == nil {
+			continue
+		}
+
+		geometry.ManageGeometry(w, mgr)
+
+		p, ok := packers[parent]
+		if !ok {
+			p = &packer{container: parent}
+			packers[parent] = p
+			// Register configure callback so container re-layouts
+			// when resized by external forces (e.g. PanedWindow).
+			parent.ConfigureCallback = func() {
+				if pp, ok2 := packers[parent]; ok2 {
+					pp.arrange()
+				}
 			}
 		}
-	}
 
-	// Update or add entry.
-	for _, e := range p.entries {
-		if e.window == w {
-			e.config = cfg
-			p.arrange()
-			return
+		// Update or add entry.
+		found := false
+		for _, e := range p.entries {
+			if e.window == w {
+				e.config = cfg
+				found = true
+				break
+			}
 		}
-	}
+		if !found {
+			p.entries = append(p.entries, &packEntry{window: w, config: cfg})
+		}
 
-	p.entries = append(p.entries, &packEntry{window: w, config: cfg})
-	p.arrange()
+		p.arrange()
+	}
 }
 
 // Forget removes a child from pack management.
