@@ -24,12 +24,28 @@ var (
 	screenWidthMM = 508 // ~96 DPI: 1920 / (25.4 * 96) * 1000 ≈ 508mm
 )
 
-// SetScreenDPI configures the DPI used for unit conversion.
-// Called once during App initialization from X11 screen metrics.
-func SetScreenDPI(widthPx, widthMM int) {
+// SetScreenDPI configures the screen dimensions used for unit conversion.
+// widthPx and widthMM are the raw X11 screen dimensions.
+// xftDPI is the Xft.dpi value from X resources (0 if not set).
+//
+// When xftDPI is set, widthMM is rewritten to match the configured DPI,
+// mirroring Tk's ScalingCmd (tkCmds.c:1316) which does:
+//
+//	scalingFactor = xftDPI / 72
+//	WidthMMOfScreen = (25.4/72) / scalingFactor * WidthOfScreen
+//	                = WidthOfScreen * 25.4 / xftDPI
+//
+// This ensures that "4i" converts to exactly 4 * xftDPI pixels.
+func SetScreenDPI(widthPx, widthMM int, xftDPI float64) {
 	if widthPx > 0 && widthMM > 0 {
 		screenWidthPx = widthPx
 		screenWidthMM = widthMM
+	}
+	if xftDPI > 0 && screenWidthPx > 0 {
+		screenWidthMM = int(math.Round(float64(screenWidthPx) * 25.4 / xftDPI))
+		if screenWidthMM <= 0 {
+			screenWidthMM = 1
+		}
 	}
 }
 
@@ -40,10 +56,21 @@ func DPI() float64 {
 }
 
 // ScalingFactor returns the ratio of actual DPI to the standard 96 DPI baseline.
-// Returns 1.0 at 96 DPI (no scaling needed), 1.5 at 144 DPI, 2.0 at 192 DPI, etc.
-// Matches Tk's $tk::scalingPct / 100 formula.
+// Returns 1.0 at 96 DPI, 1.5 at 144 DPI, 2.0 at 192 DPI, etc.
 func ScalingFactor() float64 {
 	return DPI() / 96.0
+}
+
+// ScalingPct returns the scaling percentage rounded to the nearest multiple
+// of 25 that is at least 100, matching Tk's ::tk::scalingPct (scaling.tcl).
+// Returns 100 at 96 DPI, 150 at 144 DPI, 200 at 192 DPI, etc.
+func ScalingPct() int {
+	pct := DPI() / 96.0 * 100.0
+	scalingPct := 100
+	for pct >= float64(scalingPct)+12.5 {
+		scalingPct += 25
+	}
+	return scalingPct
 }
 
 // Px converts a Tk-style screen distance to pixels.

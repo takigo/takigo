@@ -200,8 +200,19 @@ func (p *packer) arrange() {
 	maxHeight += container.InternalBorderTop + container.InternalBorderBottom
 
 	if container.ReqWidth != maxWidth || container.ReqHeight != maxHeight {
-		// Don't propagate for top-level windows — they use their actual size.
-		if !container.IsTopLevel() {
+		if container.IsTopLevel() {
+			// For toplevel windows, resize the X window to fit content.
+			// This matches Tk's Tk_GeometryRequest which calls XResizeWindow
+			// for toplevels so the window manager adjusts the window size.
+			container.ReqWidth = maxWidth
+			container.ReqHeight = maxHeight
+			container.Width = maxWidth
+			container.Height = maxHeight
+			if container.PlatformID != platform.WindowID(0) {
+				container.Display.Server.ResizeWindow(container.PlatformID,
+					uint(maxWidth), uint(maxHeight))
+			}
+		} else {
 			geometry.GeometryRequest(container, maxWidth, maxHeight)
 		}
 	}
@@ -332,8 +343,14 @@ func (p *packer) arrange() {
 }
 
 // computeSize calculates the minimum container size needed for all children.
+//
+// Top/Bottom children accumulate height; Left/Right children accumulate width.
+// For the cross-axis, Left/Right children need cavity space AFTER Top/Bottom
+// children consume theirs, so their max height is added to the Top/Bottom sum
+// (not max'd). This matches how pass 2 allocates cavity space.
 func (p *packer) computeSize() (int, int) {
-	var width, height int
+	var tbWidth, tbHeight int
+	var lrWidth, lrMaxHeight int
 
 	for _, e := range p.entries {
 		cfg := &e.config
@@ -345,17 +362,23 @@ func (p *packer) computeSize() (int, int) {
 
 		switch cfg.side {
 		case Top, Bottom:
-			height += childH
-			if childW > width {
-				width = childW
+			tbHeight += childH
+			if childW > tbWidth {
+				tbWidth = childW
 			}
 		case Left, Right:
-			width += childW
-			if childH > height {
-				height = childH
+			lrWidth += childW
+			if childH > lrMaxHeight {
+				lrMaxHeight = childH
 			}
 		}
 	}
+
+	width := tbWidth
+	if lrWidth > width {
+		width = lrWidth
+	}
+	height := tbHeight + lrMaxHeight
 
 	return width, height
 }

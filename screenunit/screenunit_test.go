@@ -35,8 +35,8 @@ func TestPxBareString(t *testing.T) {
 func TestPxWithUnits(t *testing.T) {
 	// Set known DPI: 96 DPI = 2540mm wide at 9600px
 	// This gives us exactly 9600/2540 ≈ 3.7795 pixels per mm
-	SetScreenDPI(9600, 2540)
-	defer SetScreenDPI(1920, 508) // restore
+	SetScreenDPI(9600, 2540, 0)
+	defer SetScreenDPI(1920, 508, 0) // restore
 
 	pxPerMM := 9600.0 / 2540.0
 
@@ -67,8 +67,8 @@ func TestPxWithUnits(t *testing.T) {
 }
 
 func TestPx72PointsEqualsOneInch(t *testing.T) {
-	SetScreenDPI(9600, 2540)
-	defer SetScreenDPI(1920, 508)
+	SetScreenDPI(9600, 2540, 0)
+	defer SetScreenDPI(1920, 508, 0)
 
 	pts := Px("72p")
 	inch := Px("1i")
@@ -78,8 +78,8 @@ func TestPx72PointsEqualsOneInch(t *testing.T) {
 }
 
 func TestPx1cEquals10m(t *testing.T) {
-	SetScreenDPI(9600, 2540)
-	defer SetScreenDPI(1920, 508)
+	SetScreenDPI(9600, 2540, 0)
+	defer SetScreenDPI(1920, 508, 0)
 
 	cm := Px("1c")
 	mm := Px("10m")
@@ -112,11 +112,11 @@ func TestPxPanicsOnInvalid(t *testing.T) {
 
 func TestSetScreenDPIIgnoresInvalid(t *testing.T) {
 	old := screenWidthPx
-	SetScreenDPI(0, 500)
+	SetScreenDPI(0, 500, 0)
 	if screenWidthPx != old {
 		t.Error("SetScreenDPI should ignore zero widthPx")
 	}
-	SetScreenDPI(1920, 0)
+	SetScreenDPI(1920, 0, 0)
 	if screenWidthPx != old {
 		t.Error("SetScreenDPI should ignore zero widthMM")
 	}

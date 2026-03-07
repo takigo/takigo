@@ -65,7 +65,10 @@ func main() {
 
 	ousterhout, err := image.NewPhotoFromFile("ousterhout", findImage("ouster.png"))
 	if err == nil {
-		ousterhout2 := image.NewPhotoFromPhoto(ousterhout, "ousterhout2", image.Zoom(screenunit.ScalingFactor()))
+		// Zoom by integer scaling factor, matching Tk's: -zoom [expr {$tk::scalingPct / 100}]
+		// At 144 DPI scalingPct=150, 150/100=1 (integer division), so no zoom.
+		// At 192 DPI scalingPct=200, 200/100=2, so 2x zoom.
+		ousterhout2 := image.NewPhotoFromPhoto(ousterhout, "ousterhout2", image.Zoom(float64(screenunit.ScalingPct()/100)))
 
 		picture := label.New(right, "picture",
 			label.ImageOpt(ousterhout2),

@@ -218,15 +218,14 @@ func (l *Label) computeGeometry() {
 		m := l.Font.Metrics()
 		lines := l.textLines()
 		l.textHeight = len(lines) * m.Linespace()
+		// Measure actual width of wrapped/unwrapped text lines.
+		// Tk's Tk_ComputeTextLayout returns the actual text width,
+		// not the wrapLength, so the label only requests what it needs.
 		l.textWidth = 0
-		if l.WrapLen > 0 {
-			l.textWidth = l.WrapLen
-		} else {
-			for _, line := range lines {
-				w := l.Font.MeasureString(line)
-				if w > l.textWidth {
-					l.textWidth = w
-				}
+		for _, line := range lines {
+			w := l.Font.MeasureString(line)
+			if w > l.textWidth {
+				l.textWidth = w
 			}
 		}
 	} else {

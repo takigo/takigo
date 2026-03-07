@@ -114,3 +114,14 @@ func (d *Display) Flush() {
 func (d *Display) Pending() int {
 	return int(C.XPending(d.ptr))
 }
+
+// ResourceManagerString returns the RESOURCE_MANAGER property from
+// the root window, where xrdb stores settings like Xft.dpi.
+// Returns empty string if no property is set.
+func (d *Display) ResourceManagerString() string {
+	cs := C.XResourceManagerString(d.ptr)
+	if cs == nil {
+		return ""
+	}
+	return C.GoString(cs)
+}

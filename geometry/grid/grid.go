@@ -944,8 +944,23 @@ func (g *gridder) arrange() {
 	totalReqW := reqW + container.InternalBorderLeft + container.InternalBorderRight
 	totalReqH := reqH + container.InternalBorderTop + container.InternalBorderBottom
 
-	if !container.IsTopLevel() && g.propagate {
-		geometry.GeometryRequest(container, totalReqW, totalReqH)
+	if g.propagate {
+		if container.IsTopLevel() {
+			// For toplevel windows, resize the X window to fit content.
+			// Matches Tk's Tk_GeometryRequest which calls XResizeWindow.
+			if container.ReqWidth != totalReqW || container.ReqHeight != totalReqH {
+				container.ReqWidth = totalReqW
+				container.ReqHeight = totalReqH
+				container.Width = totalReqW
+				container.Height = totalReqH
+				if container.PlatformID != platform.WindowID(0) {
+					container.Display.Server.ResizeWindow(container.PlatformID,
+						uint(totalReqW), uint(totalReqH))
+				}
+			}
+		} else {
+			geometry.GeometryRequest(container, totalReqW, totalReqH)
+		}
 	}
 
 	// Available space within internal borders.

@@ -5,6 +5,8 @@ package takigo
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/msorc/takigo/bind"
@@ -57,8 +59,11 @@ func NewApp(opts ...AppOption) (*App, error) {
 	x11platform.InitPredefinedAtoms()
 
 	// Configure screen unit conversion from actual screen metrics.
+	// Read Xft.dpi from X resources and adjust WidthMM to match,
+	// mirroring Tk's ScalingCmd (tkCmds.c:1316).
 	defScreen := server.DefaultScreen()
-	screenunit.SetScreenDPI(server.ScreenWidth(defScreen), server.ScreenWidthMM(defScreen))
+	xftDPI := parseXftDPI(server.XlibDisplay().ResourceManagerString())
+	screenunit.SetScreenDPI(server.ScreenWidth(defScreen), server.ScreenWidthMM(defScreen), xftDPI)
 
 	d, err := window.NewDisplay(server)
 	if err != nil {
@@ -319,4 +324,27 @@ func Size(width, height int) AppOption {
 		c.width = width
 		c.height = height
 	}
+}
+
+// parseXftDPI extracts the Xft.dpi value from an X RESOURCE_MANAGER string.
+// Returns 0 if not found. The string is newline-separated "key:\tvalue" pairs.
+func parseXftDPI(resources string) float64 {
+	for _, line := range strings.Split(resources, "\n") {
+		line = strings.TrimSpace(line)
+		idx := strings.Index(line, ":")
+		if idx < 0 {
+			continue
+		}
+		key := strings.TrimSpace(line[:idx])
+		if !strings.EqualFold(key, "Xft.dpi") {
+			continue
+		}
+		val := strings.TrimSpace(line[idx+1:])
+		dpi, err := strconv.ParseFloat(val, 64)
+		if err != nil || dpi <= 0 {
+			continue
+		}
+		return dpi
+	}
+	return 0
 }
