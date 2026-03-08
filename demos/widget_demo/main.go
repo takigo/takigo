@@ -391,6 +391,8 @@ var categories = []category{
 		{"dialog1", "A dialog box with a local grab"},
 		{"dialog2", "A dialog box with a global grab"},
 		{"windowicons", "Window icons and badges"},
+		{"msgwidget", "Message widget with aspect-ratio wrapping"},
+		{"square", "A draggable square widget"},
 	}},
 }
 
@@ -493,6 +495,8 @@ button to see the Go code that created the demonstration.
 @@demo dialog1	A dialog box with a local grab
 @@demo dialog2	A dialog box with a global grab
 @@demo windowicons	Window icons and badges
+@@demo msgwidget	Message widget with aspect-ratio wrapping
+@@demo square	A draggable square widget
 `
 
 // addFormattedText populates a text widget from the formatted content string,

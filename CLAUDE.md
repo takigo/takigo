@@ -74,6 +74,8 @@ Tests requiring X11 use `internal/testutil.RequireDisplay(t)` and `NewTestApp(t)
 | `widget/menu/` | `tk/generic/tkMenu.c`, `tk/generic/tkMenuDraw.c`, `tk/unix/tkUnixMenu.c` | Popup/tearoff menu (override-redirect + grab) |
 | `widget/menubutton/` | `tk/generic/tkMenubutton.c`, `tk/unix/tkUnixMenubu.c` | Button that posts associated menu |
 | `widget/labelframe/` | `tk/generic/tkFrame.c` (labelframe portion) | Frame with text label in border gap |
+| `widget/message/` | `tk/generic/tkMessage.c` | Multi-line text with aspect-ratio-based word wrapping |
+| `widget/square/` | `tk/generic/tkSquare.c` | Demo widget: movable/resizable square with double-buffering |
 | `widget/text/` | `tk/generic/tkText*.c` (6 files) | Multi-line text editor: Document model, marks, tags, undo/redo, wrapping, selection, display engine |
 | `canvas/` | `tk/generic/tkCanvas.c`, `tk/generic/tkCanv*.c`, `tk/generic/tkRectOval.c` | 2D drawing surface: rect/oval/line/polygon/arc/text/image/bitmap/window items, scrolling, tags, per-item events |
 
@@ -141,4 +143,4 @@ Tests requiring X11 use `internal/testutil.RequireDisplay(t)` and `NewTestApp(t)
 - **Double buffering** — canvas, text, and TTK widgets render to pixmap, then CopyArea to window
 - **Circular import avoidance** — interfaces defined in `window/` (GeomManager) and `widget/` (AppContext, BindEngine, TextProvider, WidgetImage) to break dependency cycles
 - **TTK themes** — registered via blank-import `init()` (e.g., `_ "github.com/msorc/takigo/ttk/defaulttheme"`)
-- **C files not ported** — `tkStubInit.c`/`tkStubLib.c` (stubs mechanism), `tkConsole.c`, `tkTest.c`, `tkSquare.c`, PostScript output (`tkCanvPs.c`), `tkMessage.c`, `tkOldConfig.c`
+- **C files not ported** — `tkStubInit.c`/`tkStubLib.c` (stubs mechanism), `tkConsole.c`, `tkTest.c`, PostScript output (`tkCanvPs.c`), `tkOldConfig.c`

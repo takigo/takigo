@@ -10,7 +10,7 @@ This document lists the Tk functionalities that have not yet been translated fro
 
 **Description:** A demo/example widget that displays a movable/resizable square. Used primarily as an example of widget implementation. Not included in standard wish, but available in tktest.
 
-**Status:** Not implemented in takigo.
+**Status:** Implemented in `widget/square/square.go`. Demo in `demos/square/`.
 
 **Key Features:**
 - Movable/resizable square within a widget
@@ -26,7 +26,7 @@ This document lists the Tk functionalities that have not yet been translated fro
 
 **Description:** A message widget that displays multi-line text with automatic line wrapping based on aspect ratio.
 
-**Status:** Not implemented in takigo.
+**Status:** Implemented in `widget/message/message.go`. Demo in `demos/msgwidget/`.
 
 **Key Features:**
 - Multi-line text display with word wrapping
@@ -173,8 +173,8 @@ TSpinbox
 
 | Feature | File(s) | Priority | Dependencies |
 |---------|---------|----------|--------------|
-| tkSquare | tkSquare.c | Low | None |
-| tkMessage | tkMessage.c | Medium | None |
+| ~~tkSquare~~ | ~~tkSquare.c~~ | ~~Low~~ | ~~Done~~ |
+| ~~tkMessage~~ | ~~tkMessage.c~~ | ~~Medium~~ | ~~Done~~ |
 | tkUnixPrint | tkUnixPrint.c | Medium | libcups |
 | tkUnixEmbed | tkUnixEmbed.c | Medium | None |
 | tkIcu | tkIcu.c | Low | libicu |
