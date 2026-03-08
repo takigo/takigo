@@ -9,7 +9,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"sort"
 
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/geometry"
@@ -34,7 +33,7 @@ var (
 	varsWindow *toplevel.Toplevel
 )
 
-type DemoVars map[string]*widget.Variable[any]
+type DemoVars[T comparable] map[string]*widget.Variable[T]
 
 func init() {
 	img = make(map[string]*tkimage.Photo)
@@ -52,7 +51,7 @@ func DemoDir(name string) string {
 	return filepath.Join(demosRoot, name)
 }
 
-func AddSeeDismiss(parent widget.Caregiver, vars *DemoVars) *ttk.Frame {
+func AddSeeDismiss[T comparable](parent widget.Caregiver, vars *DemoVars[T]) *ttk.Frame {
 	_, callerFile, _, _ := runtime.Caller(1)
 
 	btnFrame := ttk.NewFrame(parent, "bottom_buttons")
@@ -83,8 +82,7 @@ func AddSeeDismiss(parent widget.Caregiver, vars *DemoVars) *ttk.Frame {
 			ttk.ButtonCompound(widget.CompoundLeft),
 			ttk.ButtonCommand(func() { showVars(parent.AppContext(), vars) }),
 		)
-		buttons = append(buttons, varBtn)
-		buttons[1], buttons[len(buttons)-1] = buttons[len(buttons)-1], buttons[1]
+		buttons = []window.Windower{grid.Relative(grid.RelEmpty), varBtn, codeBtn, dismissBtn}
 	}
 
 	grid.Grid(geometry.Group(buttons), grid.PadX("3p"), grid.PadY("3p"))
@@ -255,7 +253,7 @@ func showCode(app widget.AppContext, srcFile string) {
 //	    wm title $w "Variable values"
 //	    ...
 //	}
-func showVars(app widget.AppContext, vars *DemoVars) {
+func showVars[T comparable](app widget.AppContext, vars *DemoVars[T]) {
 	// catch {destroy $w}
 	if varsWindow != nil && !varsWindow.Destroyed {
 		varsWindow.Destroy()
@@ -265,7 +263,6 @@ func showVars(app widget.AppContext, vars *DemoVars) {
 	// wm title $w "Variable values"
 	varsWindow = toplevel.New(app, "vars",
 		toplevel.Title("Variable values"),
-		toplevel.Background("#d9d9d9"),
 	)
 	varsWindow.Show()
 
@@ -280,16 +277,13 @@ func showVars(app widget.AppContext, vars *DemoVars) {
 	for name := range *vars {
 		names = append(names, name)
 	}
-	sort.Strings(names)
 
 	for row, name := range names {
 		v := (*vars)[name]
 		nameLabel := ttk.NewLabel(f, "n_"+name, ttk.LabelText(name+":"))
 		// TODO: textvariable support for live updates
 		valLabel := ttk.NewLabel(f, "v_"+name, ttk.LabelText(fmt.Sprintf("%v", v.Get())))
-		grid.Grid(nameLabel, grid.Column(0), grid.Row(row),
-			grid.PadX("1.5p"), grid.PadY("1.5p"), grid.Sticky(grid.StickW))
-		grid.Grid(valLabel, grid.Column(1), grid.Row(row),
+		grid.Grid(geometry.Group{nameLabel, valLabel}, grid.Column(0), grid.Row(row),
 			grid.PadX("1.5p"), grid.PadY("1.5p"), grid.Sticky(grid.StickW))
 	}
 
@@ -304,20 +298,12 @@ func showVars(app widget.AppContext, vars *DemoVars) {
 	grid.Grid(f, grid.Sticky(grid.NSEW), grid.PadX("3p"))
 	grid.Grid(okBtn, grid.Row(1), grid.Sticky(grid.StickE), grid.PadX("3p"), grid.PadY("3p"))
 
-	grid.ColumnConfigure(f.Window(), 1, grid.Weight(1))
-	grid.RowConfigure(f.Window(), 100, grid.Weight(1))
-	grid.ColumnConfigure(b.Window(), 0, grid.Weight(1))
-	grid.RowConfigure(b.Window(), 0, grid.Weight(1))
+	grid.ColumnConfigure(f, 1, grid.Weight(1))
+	grid.RowConfigure(f, 100, grid.Weight(1))
+	grid.ColumnConfigure(b, 0, grid.Weight(1))
+	grid.RowConfigure(b, 0, grid.Weight(1))
 	grid.ColumnConfigure(varsRoot, 0, grid.Weight(1))
 	grid.RowConfigure(varsRoot, 0, grid.Weight(1))
-
-	app.Dispatcher().Bind(varsRoot.PlatformID, event.StructureNotifyMask, func(ev *event.Event) {
-		if ev.Type == event.ConfigureType {
-			varsRoot.Width = ev.ConfigWidth
-			varsRoot.Height = ev.ConfigHeight
-			grid.ArrangeContainer(varsRoot)
-		}
-	})
 
 	varsWindow.OnClose(func() { varsWindow.Destroy() })
 }

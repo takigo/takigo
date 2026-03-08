@@ -8,6 +8,7 @@ import (
 
 	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/demos/demohelper"
+	"github.com/msorc/takigo/geometry"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/widget"
@@ -41,16 +42,22 @@ func main() {
 	)
 	pack.Pack(msg, pack.SideOpt(pack.Top))
 
-	btns := demohelper.AddSeeDismiss(f, nil)
+	vars := make(demohelper.DemoVars[bool])
+
+	btns := demohelper.AddSeeDismiss(f, &vars)
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	// Variables for the three sub-checkbuttons.
 	wipers := widget.NewVariable(false)
 	brakes := widget.NewVariable(false)
 	sober := widget.NewVariable(false)
-
 	// Variable for the master "Safety Check" button.
 	safety := widget.NewVariable(false)
+
+	vars["wipers"] = wipers
+	vars["brakes"] = brakes
+	vars["sober"] = sober
+	vars["safety"] = safety
 
 	// Guard against recursive updates.
 	inCheck := false
@@ -120,25 +127,17 @@ func main() {
 		checkbutton.Var(wipers),
 		checkbutton.Command(updateMaster),
 	)
-	pack.Pack(cb1, pack.SideOpt(pack.Top), pack.PadY("1.5p"), pack.Anchor(option.AnchorW), pack.PadX("12p"))
-
 	cb2 := checkbutton.New(f, "brakes",
 		checkbutton.Text("Brakes OK"),
 		checkbutton.Var(brakes),
 		checkbutton.Command(updateMaster),
 	)
-	pack.Pack(cb2, pack.SideOpt(pack.Top), pack.PadY("1.5p"), pack.Anchor(option.AnchorW), pack.PadX("12p"))
-
 	cb3 := checkbutton.New(f, "sober",
 		checkbutton.Text("Driver Sober"),
 		checkbutton.Var(sober),
 		checkbutton.Command(updateMaster),
 	)
-	pack.Pack(cb3, pack.SideOpt(pack.Top), pack.PadY("1.5p"), pack.Anchor(option.AnchorW), pack.PadX("12p"))
+	pack.Pack(geometry.Group{cb1, cb2, cb3}, pack.SideOpt(pack.Top), pack.PadY("1.5p"), pack.Anchor(option.AnchorW), pack.PadX("12p"))
 
-	_ = cb0
-	_ = cb1
-	_ = cb2
-	_ = cb3
 	app.Run()
 }
