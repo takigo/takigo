@@ -44,7 +44,7 @@ func main() {
 
 	vars := make(demohelper.DemoVars[bool])
 
-	btns := demohelper.AddSeeDismiss(f, &vars)
+	btns := demohelper.AddVarsSeeDismiss(f, &vars)
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	// Variables for the three sub-checkbuttons.

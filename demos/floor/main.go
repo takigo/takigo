@@ -88,7 +88,7 @@ func main() {
 	)
 	pack.Pack(msg, pack.SideOpt(pack.Top))
 
-	btns := demohelper.AddSeeDismiss(app, nil)
+	btns := demohelper.AddSeeDismiss(app)
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	f := frame.New(app, "frame")

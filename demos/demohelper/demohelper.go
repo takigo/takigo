@@ -51,8 +51,25 @@ func DemoDir(name string) string {
 	return filepath.Join(demosRoot, name)
 }
 
-func AddSeeDismiss[T comparable](parent widget.Caregiver, vars *DemoVars[T]) *ttk.Frame {
-	_, callerFile, _, _ := runtime.Caller(1)
+func AddVarsSeeDismiss[T comparable](parent widget.Caregiver, vars *DemoVars[T]) *ttk.Frame {
+	varFunc := func(f *ttk.Frame) *ttk.Button {
+		return ttk.NewButton(f, "vars",
+			ttk.ButtonText("See Variables"),
+			ttk.ButtonImage(img["view"]),
+			ttk.ButtonCompound(widget.CompoundLeft),
+			ttk.ButtonCommand(func() { showVars(parent.AppContext(), vars) }),
+		)
+	}
+
+	return AddBottomButtons(parent, varFunc)
+}
+
+func AddSeeDismiss(parent widget.Caregiver) *ttk.Frame {
+	return AddBottomButtons(parent, func(*ttk.Frame) *ttk.Button { return nil })
+}
+
+func AddBottomButtons(parent widget.Caregiver, varsFunc func(*ttk.Frame) *ttk.Button) *ttk.Frame {
+	_, callerFile, _, _ := runtime.Caller(2)
 
 	btnFrame := ttk.NewFrame(parent, "bottom_buttons")
 
@@ -75,14 +92,9 @@ func AddSeeDismiss[T comparable](parent widget.Caregiver, vars *DemoVars[T]) *tt
 
 	buttons := []window.Windower{grid.Relative(grid.RelEmpty), codeBtn, dismissBtn}
 
-	if vars != nil {
-		varBtn := ttk.NewButton(btnFrame, "vars",
-			ttk.ButtonText("See Variables"),
-			ttk.ButtonImage(img["view"]),
-			ttk.ButtonCompound(widget.CompoundLeft),
-			ttk.ButtonCommand(func() { showVars(parent.AppContext(), vars) }),
-		)
-		buttons = []window.Windower{grid.Relative(grid.RelEmpty), varBtn, codeBtn, dismissBtn}
+	varsButton := varsFunc(btnFrame)
+	if varsButton != nil {
+		buttons = []window.Windower{grid.Relative(grid.RelEmpty), varsButton, codeBtn, dismissBtn}
 	}
 
 	grid.Grid(geometry.Group(buttons), grid.PadX("3p"), grid.PadY("3p"))
