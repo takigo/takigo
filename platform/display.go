@@ -132,6 +132,9 @@ type Drawer interface {
 	// ClearWindow clears the entire window.
 	ClearWindow(w WindowID)
 
+	// SetWindowBackground sets the background pixel attribute of a window.
+	SetWindowBackground(w WindowID, pixel uint64)
+
 	// ClearArea clears a rectangular area.
 	ClearArea(w WindowID, x, y int, width, height uint, exposures bool)
 

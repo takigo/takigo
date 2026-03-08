@@ -62,6 +62,11 @@ func (d *Display) CreateSimpleWindow(parent Window, x, y int, width, height, bor
 	return Window(w)
 }
 
+// SetWindowBackground sets the background pixel of a window.
+func (d *Display) SetWindowBackground(w Window, pixel uint64) {
+	C.XSetWindowBackground(d.ptr, C.Window(w), C.ulong(pixel))
+}
+
 // DestroyWindow destroys an X11 window.
 func (d *Display) DestroyWindow(w Window) {
 	C.XDestroyWindow(d.ptr, C.Window(w))

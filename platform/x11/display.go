@@ -135,6 +135,10 @@ func (s *X11Display) DrawArc(drawable platform.DrawableID, gc platform.GCID, x, 
 
 func (s *X11Display) ClearWindow(w platform.WindowID) { s.dpy.ClearWindow(xlib.Window(w)) }
 
+func (s *X11Display) SetWindowBackground(w platform.WindowID, pixel uint64) {
+	s.dpy.SetWindowBackground(xlib.Window(w), pixel)
+}
+
 func (s *X11Display) ClearArea(w platform.WindowID, x, y int, width, height uint, exposures bool) {
 	s.dpy.ClearArea(xlib.Window(w), x, y, width, height, exposures)
 }

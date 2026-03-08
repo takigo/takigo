@@ -92,8 +92,9 @@ func ApplyBackgroundRecursive(w *Window, colorName string) {
 	if w.BackgroundHook != nil {
 		w.BackgroundHook(colorName)
 	}
-	// Trigger a redraw via expose event on mapped windows.
+	// Update X11 window background attribute and trigger a redraw.
 	if w.PlatformID != 0 && w.Flags&FlagMapped != 0 && w.Width > 0 && w.Height > 0 {
+		w.Display.Server.SetWindowBackground(w.PlatformID, w.BackgroundPixel)
 		w.Display.Server.ClearArea(w.PlatformID, 0, 0, uint(w.Width), uint(w.Height), true)
 	}
 	for _, child := range w.Children {

@@ -41,21 +41,21 @@ func main() {
 	btns := demohelper.AddSeeDismiss(f, nil)
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
-	root := app.Window()
-
-	// Color-changing function.
+	// Color-changing function: change the frame and label backgrounds.
+	// Buttons keep their own default background (matching Tk's behavior).
 	changeColor := func(colorName string) {
-		c, err := app.ColorCache().Get(colorName)
-		if err != nil {
-			return
+		frame.Background(colorName)(f)
+		if f.Background != nil {
+			f.Win.BackgroundPixel = f.Background.Pixel
+			f.Window().Display.Server.SetWindowBackground(f.Window().PlatformID, f.Background.Pixel)
 		}
-		root.BackgroundPixel = c.Pixel
-		di := root.Display.Server
-		gc := root.GC
-		di.SetForeground(gc, c.Pixel)
-		di.FillRectangle(root.Drawable(), gc, 0, 0, uint(root.Width), uint(root.Height))
-		di.Flush()
-		pack.ArrangeContainer(root)
+		f.Display()
+		label.Background(colorName)(msg)
+		if msg.Background != nil {
+			msg.Win.BackgroundPixel = msg.Background.Pixel
+			msg.Window().Display.Server.SetWindowBackground(msg.Window().PlatformID, msg.Background.Pixel)
+		}
+		msg.Display()
 	}
 
 	// Color buttons — match Tk's button.tcl (X11 named colors, width 10).
@@ -70,10 +70,9 @@ func main() {
 	}
 
 	for _, c := range colors {
-		colorVal := c.color
 		btn := button.New(f, "btn_"+c.text,
 			button.Text(c.text),
-			button.Command(func() { changeColor(colorVal) }),
+			button.Command(func() { changeColor(c.color) }),
 		)
 		pack.Pack(btn, pack.SideOpt(pack.Top), pack.Expand(true), pack.PadY("1.5p"))
 	}

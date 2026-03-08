@@ -70,13 +70,15 @@ type Base struct {
 	Border *draw.Border
 
 	// Common visual options.
-	Background     *color.Color
-	Foreground     *color.Color
-	Font           font.Font
-	Relief         option.Relief
-	BorderWidth    int
-	HighlightWidth int
-	PadX, PadY     int
+	Background          *color.Color
+	Foreground          *color.Color
+	HighlightBackground *color.Color
+	HighlightColor      *color.Color
+	Font                font.Font
+	Relief              option.Relief
+	BorderWidth         int
+	HighlightWidth      int
+	PadX, PadY          int
 
 	// State.
 	NeedRedraw bool
@@ -157,6 +159,48 @@ func (b *Base) DrawBackground() {
 	}
 }
 
+// DrawHighlightBorder draws the focus highlight ring around the widget.
+// When the widget has focus, HighlightColor is used; otherwise HighlightBackground.
+// The padding parameter specifies pixels of padding outside the highlight ring
+// (used by buttons with default rings).
+func (b *Base) DrawHighlightBorder(focused bool, padding int) {
+	w := b.Win
+	if w.PlatformID == 0 || b.HighlightWidth <= 0 {
+		return
+	}
+
+	d := w.Display.Server
+	gc := w.GC
+
+	var pixel uint64
+	if focused && b.HighlightColor != nil {
+		pixel = b.HighlightColor.Pixel
+	} else if b.HighlightBackground != nil {
+		pixel = b.HighlightBackground.Pixel
+	} else {
+		return
+	}
+	d.SetForeground(gc, pixel)
+
+	hlw := b.HighlightWidth
+	ww := w.Width
+	wh := w.Height
+	drawable := w.Drawable()
+
+	// Top
+	d.FillRectangle(drawable, gc, padding, padding,
+		uint(ww-2*padding), uint(hlw))
+	// Bottom
+	d.FillRectangle(drawable, gc, padding, wh-hlw-padding,
+		uint(ww-2*padding), uint(hlw))
+	// Left
+	d.FillRectangle(drawable, gc, padding, padding+hlw,
+		uint(hlw), uint(wh-2*hlw-2*padding))
+	// Right
+	d.FillRectangle(drawable, gc, ww-hlw-padding, padding+hlw,
+		uint(hlw), uint(wh-2*hlw-2*padding))
+}
+
 // InitBase initializes common widget fields with defaults.
 func InitBase(b *Base, win *window.Window, app AppContext) {
 	b.Win = win
@@ -169,6 +213,8 @@ func InitBase(b *Base, win *window.Window, app AppContext) {
 	cache := app.ColorCache()
 	b.Background, _ = cache.Get(DefBackground)
 	b.Foreground, _ = cache.Get(DefForeground)
+	b.HighlightBackground, _ = cache.Get(DefHighlightBg)
+	b.HighlightColor, _ = cache.Get(DefHighlightColor)
 	b.UpdateBorder()
 
 	// Get default font.
