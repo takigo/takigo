@@ -469,6 +469,7 @@ func (t *TextWidget) YView(line int) {
 	}
 	t.topLine = line
 	t.topCharOffset = 0
+	t.clampScrollPosition()
 	t.notifyYScrollbar()
 	t.Display()
 }
@@ -493,6 +494,7 @@ func (t *TextWidget) YViewMoveTo(fraction float64) {
 		if dlCount+len(dls) > targetDL {
 			t.topLine = l
 			t.topCharOffset = targetDL - dlCount
+			t.clampScrollPosition()
 			t.notifyYScrollbar()
 			t.Display()
 			return
@@ -502,6 +504,7 @@ func (t *TextWidget) YViewMoveTo(fraction float64) {
 	// Past end.
 	t.topLine = t.doc.LineCount()
 	t.topCharOffset = 0
+	t.clampScrollPosition()
 	t.notifyYScrollbar()
 	t.Display()
 }
@@ -517,6 +520,7 @@ func (t *TextWidget) YViewScroll(count int, pages bool) {
 	}
 
 	t.scrollByDisplayLines(count)
+	t.clampScrollPosition()
 	t.notifyYScrollbar()
 	t.Display()
 }
@@ -739,6 +743,42 @@ func (t *TextWidget) scrollDownToShow(idx Index) {
 			break
 		}
 		t.scrollByDisplayLines(1)
+	}
+}
+
+// clampScrollPosition ensures the view doesn't scroll past the end of content.
+// The last line of content should not scroll above the bottom of the viewport.
+func (t *TextWidget) clampScrollPosition() {
+	totalDL := t.totalDisplayLines()
+	visLines := (t.Win.Height - 2*t.inset) / t.lineHeight()
+	if visLines < 1 {
+		visLines = 1
+	}
+	if totalDL <= visLines {
+		// All content fits — reset to top.
+		t.topLine = 1
+		t.topCharOffset = 0
+		return
+	}
+	// Maximum top display line: totalDL - visLines.
+	maxTopDL := totalDL - visLines
+	topDL := t.computeDisplayLinesBefore(t.topLine, t.topCharOffset)
+	if topDL > maxTopDL {
+		// Walk through lines to find the logical line at maxTopDL.
+		availWidth := t.Win.Width - 2*t.inset
+		dlCount := 0
+		for l := 1; l <= t.doc.LineCount(); l++ {
+			p := t.resolveLineProps(l)
+			dls := t.wrapLine(l, availWidth, p.lm1, p.lm2, p.rm)
+			if dlCount+len(dls) > maxTopDL {
+				t.topLine = l
+				t.topCharOffset = maxTopDL - dlCount
+				return
+			}
+			dlCount += len(dls)
+		}
+		t.topLine = t.doc.LineCount()
+		t.topCharOffset = 0
 	}
 }
 

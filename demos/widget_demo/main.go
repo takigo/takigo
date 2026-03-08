@@ -30,7 +30,7 @@ import (
 
 func main() {
 	// wm title . "Widget Demonstration"
-	app, err := takigo.NewApp(takigo.Title("Widget Demonstration"), takigo.Size(800, 600))
+	app, err := takigo.NewApp(takigo.Title("Widget Demonstration"))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
@@ -118,12 +118,28 @@ func main() {
 	// pack .s -in .textFrame -side right -fill y
 	pack.Pack(s, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
 
-	// text .t -yscrollcommand {.s set} -wrap word -width 70 -height 30
+	// set textheight 30
+	// catch { set textheight [expr {
+	//     ([winfo screenheight .] * 0.7) /
+	//     [font metrics mainFont -displayof . -linespace]
+	// }]}
+	textHeight := 30
+	mainFont, err := app.FontRegistry().Get("Sans 10")
+	if err == nil {
+		screen := app.Root().Display.Screen
+		screenH := app.Server().ScreenHeight(screen)
+		linespace := mainFont.Metrics().Linespace()
+		if linespace > 0 {
+			textHeight = (screenH * 7 / 10) / linespace
+		}
+	}
+
+	// text .t -yscrollcommand {.s set} -wrap word -width 70 -height $textheight
 	//     -font mainFont -setgrid 1 -highlightthickness 0
 	//     -padx 3p -pady 1.5p -takefocus 0
 	t := text.New(textFrame, "t",
 		text.WrapModeOpt(text.WrapWord),
-		text.Width(70), text.Height(30),
+		text.Width(70), text.Height(textHeight),
 		text.FontOpt("Sans 10"),
 		// TODO: text.SetGrid(true), text.HighlightThickness(0),
 		// TODO: text.TakeFocus(false)

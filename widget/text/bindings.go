@@ -60,10 +60,12 @@ func bindText(t *TextWidget, app widget.AppContext) {
 			t.Display()
 		case 4: // mouse wheel up
 			t.scrollByDisplayLines(-3)
+			t.clampScrollPosition()
 			t.notifyYScrollbar()
 			t.Display()
 		case 5: // mouse wheel down
 			t.scrollByDisplayLines(3)
+			t.clampScrollPosition()
 			t.notifyYScrollbar()
 			t.Display()
 		}
@@ -149,6 +151,7 @@ func bindText(t *TextWidget, app widget.AppContext) {
 			}
 			moveCursor(t, pos, shift)
 			t.scrollByDisplayLines(-visLines)
+			t.clampScrollPosition()
 			t.notifyYScrollbar()
 
 		case platform.XK_Next: // PageDown
@@ -162,6 +165,7 @@ func bindText(t *TextWidget, app widget.AppContext) {
 			}
 			moveCursor(t, pos, shift)
 			t.scrollByDisplayLines(visLines)
+			t.clampScrollPosition()
 			t.notifyYScrollbar()
 
 		case platform.XK_Return:
