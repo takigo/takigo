@@ -13,9 +13,7 @@ import (
 	"strings"
 
 	"github.com/msorc/takigo"
-	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/cursor"
-	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
@@ -101,13 +99,9 @@ func main() {
 		pack.Expand(true), pack.FillOpt(pack.FillBoth))
 
 	// ttk::sizegrip .statusBar.foo
-	// TODO: ttk::sizegrip widget — using frame with custom draw as workaround
-	grip := frame.New(statusBar, "foo",
-		frame.Width(15), frame.Height(15),
-	)
-	// pack .statusBar.foo -side left -padx 1.5p
+	grip := ttk.NewSizegrip(statusBar, "foo")
+	// pack .statusBar.foo -side right -padx 1.5p
 	pack.Pack(grip, pack.SideOpt(pack.Right), pack.PadX("1.5p"))
-	drawSizegrip(app, grip, bgColor)
 
 	// pack .statusBar -side bottom -fill x -pady 1.5p
 	pack.Pack(statusBar, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX),
@@ -614,53 +608,3 @@ func addFormattedText(t *text.TextWidget, content string) {
 	}
 }
 
-// drawSizegrip sets up expose handling for a frame that draws diagonal
-// resize grip lines, matching Tk's ttkElements.c SizegripDraw algorithm.
-func drawSizegrip(app *takigo.App, grip *frame.Frame, bg *color.Color) {
-	border := draw.NewBorder(bg.Red, bg.Green, bg.Blue)
-
-	app.Dispatcher().Bind(grip.Window().PlatformID, event.ExposureMask, func(ev *event.Event) {
-		if ev.ExposeCount > 0 {
-			return
-		}
-		w := grip.Window()
-		d := w.Display.Server
-		gc := w.GC
-
-		// Fill background.
-		d.SetForeground(gc, bg.Pixel)
-		d.FillRectangle(w.Drawable(), gc, 0, 0, uint(w.Width), uint(w.Height))
-
-		// Tk algorithm: gripSize=15, gripCount=3,
-		// gripThickness = gripSize*3/(gripCount*5) = 3,
-		// gripSpace = gripSize/3 - gripThickness = 2.
-		gripCount := 3
-		gripSize := w.Height
-		if w.Width < gripSize {
-			gripSize = w.Width
-		}
-		gripThickness := gripSize * 3 / (gripCount * 5)
-		gripSpace := gripSize/3 - gripThickness
-
-		x1 := w.Width - 1
-		y1 := w.Height - 1
-		x2 := x1
-		y2 := y1
-
-		for g := 0; g < gripCount; g++ {
-			x1 -= gripSpace
-			y2 -= gripSpace
-			for i := 1; i < gripThickness; i++ {
-				d.SetForeground(gc, border.DarkPixel)
-				d.DrawLine(w.Drawable(), gc, x1, y1, x2, y2)
-				x1--
-				y2--
-			}
-			d.SetForeground(gc, border.LightPixel)
-			d.DrawLine(w.Drawable(), gc, x1, y1, x2, y2)
-			x1--
-			y2--
-		}
-		d.Flush()
-	})
-}

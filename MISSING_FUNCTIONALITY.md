@@ -122,7 +122,7 @@ This document lists the Tk functionalities that have not yet been translated fro
 
 **Description:** Themed spinbox widget (ttk::spinbox).
 
-**Status:** Partially implemented. takigo has classic `widget/spinbox/` but NOT the TTK version.
+**Status:** Implemented in `ttk/spinbox.go`. Demo updated in `demos/ttkspin/`.
 
 **Key Differences (TTK vs Classic):**
 
@@ -151,7 +151,7 @@ TSpinbox
 
 **Description:** A grip handle in the lower-right corner of a window for interactive resizing.
 
-**Status:** Not implemented. takigo demo manually draws grip lines.
+**Status:** Implemented in `ttk/sizegrip.go`. Widget demo updated to use `ttk.NewSizegrip`.
 
 **Key Features:**
 - Widget class: `TSizegrip`
@@ -165,7 +165,7 @@ TSpinbox
 - `SizegripSize` - Calculates grip handle size
 - `SizegripDraw` - Draws diagonal grip lines
 
-**takigo Current State:** `demos/widget_demo/main.go` has `drawSegrip()` function that manually draws grip lines on a Frame - not a real widget.
+**takigo Current State:** Widget demo now uses `ttk.NewSizegrip` widget with interactive resize support.
 
 ---
 
@@ -179,5 +179,5 @@ TSpinbox
 | tkUnixEmbed | tkUnixEmbed.c | Medium | None |
 | tkIcu | tkIcu.c | Low | libicu |
 | tkAccessibility | tkUnixAccessibility.c | Low | libatk, libatk-bridge |
-| TTK Spinbox | ttkEntry.c, spinbox.tcl | Medium | None |
-| TTK Sizegrip | ttkSeparator.c, ttkElements.c, sizegrip.tcl | Medium | None |
+| ~~TTK Spinbox~~ | ~~ttkEntry.c, spinbox.tcl~~ | ~~Medium~~ | ~~Done~~ |
+| ~~TTK Sizegrip~~ | ~~ttkSeparator.c, ttkElements.c, sizegrip.tcl~~ | ~~Medium~~ | ~~Done~~ |

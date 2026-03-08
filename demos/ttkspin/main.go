@@ -1,4 +1,4 @@
-// Demo: Spinboxes with integer, float, and string values.
+// Demo: Themed Spinboxes with integer, float, and string values.
 // Ported from Tk's ttkspin.tcl demo.
 package main
 
@@ -12,9 +12,11 @@ import (
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/screenunit"
+	"github.com/msorc/takigo/ttk"
+	_ "github.com/msorc/takigo/ttk/clamtheme"
+	_ "github.com/msorc/takigo/ttk/defaulttheme"
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
-	"github.com/msorc/takigo/widget/spinbox"
 )
 
 func main() {
@@ -44,13 +46,13 @@ func main() {
 	padY := screenunit.Px("3p")
 
 	// Integer spinbox (1-10).
-	s1 := spinbox.New(f, "s1",
-		spinbox.FromOpt(1),
-		spinbox.ToOpt(10),
-		spinbox.IncrementOpt(1),
-		spinbox.WidthOpt(10),
-		spinbox.ValidateOpt("key"),
-		spinbox.ValidateCmdOpt(func(s string) bool {
+	s1 := ttk.NewSpinbox(f, "s1",
+		ttk.SpinboxFrom(1),
+		ttk.SpinboxTo(10),
+		ttk.SpinboxIncrement(1),
+		ttk.SpinboxWidth(10),
+		ttk.SpinboxValidate("key"),
+		ttk.SpinboxValidateCmd(func(s string) bool {
 			if s == "" {
 				return true
 			}
@@ -58,29 +60,29 @@ func main() {
 			return err == nil
 		}),
 	)
-	s1.SetText("1")
+	s1.Set("1")
 	pack.Pack(s1, pack.SideOpt(pack.Top), pack.PadX(padX), pack.PadY(padY))
 
 	// Float spinbox (0-3 step 0.5).
-	s2 := spinbox.New(f, "s2",
-		spinbox.FromOpt(0),
-		spinbox.ToOpt(3),
-		spinbox.IncrementOpt(0.5),
-		spinbox.FormatOpt("%05.2f"),
-		spinbox.WidthOpt(10),
+	s2 := ttk.NewSpinbox(f, "s2",
+		ttk.SpinboxFrom(0),
+		ttk.SpinboxTo(3),
+		ttk.SpinboxIncrement(0.5),
+		ttk.SpinboxFormat("%05.2f"),
+		ttk.SpinboxWidth(10),
 	)
-	s2.SetText("00.00")
+	s2.Set("00.00")
 	pack.Pack(s2, pack.SideOpt(pack.Top), pack.PadX(padX), pack.PadY(padY))
 
 	// Values spinbox (Australian cities).
-	s3 := spinbox.New(f, "s3",
-		spinbox.ValuesOpt([]string{
+	s3 := ttk.NewSpinbox(f, "s3",
+		ttk.SpinboxValues([]string{
 			"Canberra", "Sydney", "Melbourne", "Perth",
 			"Adelaide", "Brisbane", "Hobart", "Darwin", "Alice Springs",
 		}),
-		spinbox.WidthOpt(10),
+		ttk.SpinboxWidth(10),
 	)
-	s3.SetText("Canberra")
+	s3.Set("Canberra")
 	pack.Pack(s3, pack.SideOpt(pack.Top), pack.PadX(padX), pack.PadY(padY))
 
 	_ = s1

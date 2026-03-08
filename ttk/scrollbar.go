@@ -179,18 +179,25 @@ func (s *Scrollbar) Display() {
 	d.SetForeground(gc, troughColor)
 	d.FillRectangle(w.Drawable(), gc, 0, 0, uint(width), uint(height))
 
+	// Arrow padding (matches Tk's ArrowPadding = {3,3,3,3}).
+	arrowPad := 3
+
 	if s.Orient == Vertical {
 		// Arrow 1 (up).
 		d.SetForeground(gc, bgColor)
 		d.FillRectangle(w.Drawable(), gc, 0, 0, uint(width), uint(arrowSize))
 		draw.Draw3DRectangle(d, w.Drawable(), gc, border,
 			0, 0, width, arrowSize, 1, option.ReliefRaised)
+		drawScrollArrow(d, w.Drawable(), gc, 0x000000,
+			arrowPad, arrowPad, width-2*arrowPad, arrowSize-2*arrowPad, arrowUp)
 
 		// Arrow 2 (down).
 		d.SetForeground(gc, bgColor)
 		d.FillRectangle(w.Drawable(), gc, 0, height-arrowSize, uint(width), uint(arrowSize))
 		draw.Draw3DRectangle(d, w.Drawable(), gc, border,
 			0, height-arrowSize, width, arrowSize, 1, option.ReliefRaised)
+		drawScrollArrow(d, w.Drawable(), gc, 0x000000,
+			arrowPad, height-arrowSize+arrowPad, width-2*arrowPad, arrowSize-2*arrowPad, arrowDown)
 
 		// Thumb.
 		if s.thumbEnd > s.thumbStart {
@@ -206,12 +213,16 @@ func (s *Scrollbar) Display() {
 		d.FillRectangle(w.Drawable(), gc, 0, 0, uint(arrowSize), uint(height))
 		draw.Draw3DRectangle(d, w.Drawable(), gc, border,
 			0, 0, arrowSize, height, 1, option.ReliefRaised)
+		drawScrollArrow(d, w.Drawable(), gc, 0x000000,
+			arrowPad, arrowPad, arrowSize-2*arrowPad, height-2*arrowPad, arrowLeft)
 
 		// Arrow 2 (right).
 		d.SetForeground(gc, bgColor)
 		d.FillRectangle(w.Drawable(), gc, width-arrowSize, 0, uint(arrowSize), uint(height))
 		draw.Draw3DRectangle(d, w.Drawable(), gc, border,
 			width-arrowSize, 0, arrowSize, height, 1, option.ReliefRaised)
+		drawScrollArrow(d, w.Drawable(), gc, 0x000000,
+			width-arrowSize+arrowPad, arrowPad, arrowSize-2*arrowPad, height-2*arrowPad, arrowRight)
 
 		// Thumb.
 		if s.thumbEnd > s.thumbStart {
@@ -365,4 +376,71 @@ func bindTtkScrollbar(s *Scrollbar, app widget.AppContext) {
 			s.Command("moveto", fraction)
 		}
 	})
+}
+
+// Arrow directions for scrollbar arrows.
+const (
+	arrowUp = iota
+	arrowDown
+	arrowLeft
+	arrowRight
+)
+
+// drawScrollArrow draws a filled triangle arrow inside the given box.
+// Matches Tk's ArrowPoints + TtkFillArrow algorithm.
+func drawScrollArrow(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID,
+	fgColor uint64, bx, by, bw, bh, direction int) {
+
+	if bw <= 0 || bh <= 0 {
+		return
+	}
+
+	var points [4]platform.Point
+	switch direction {
+	case arrowUp:
+		h := (bw - 1) / 2
+		cx := bx + h
+		cy := by
+		if bh <= h {
+			h = bh - 1
+		}
+		points[0] = platform.Point{X: int16(cx), Y: int16(cy)}
+		points[1] = platform.Point{X: int16(cx - h), Y: int16(cy + h)}
+		points[2] = platform.Point{X: int16(cx + h), Y: int16(cy + h)}
+	case arrowDown:
+		h := (bw - 1) / 2
+		cx := bx + h
+		cy := by + bh - 1
+		if bh <= h {
+			h = bh - 1
+		}
+		points[0] = platform.Point{X: int16(cx), Y: int16(cy)}
+		points[1] = platform.Point{X: int16(cx - h), Y: int16(cy - h)}
+		points[2] = platform.Point{X: int16(cx + h), Y: int16(cy - h)}
+	case arrowLeft:
+		h := (bh - 1) / 2
+		cx := bx
+		cy := by + h
+		if bw <= h {
+			h = bw - 1
+		}
+		points[0] = platform.Point{X: int16(cx), Y: int16(cy)}
+		points[1] = platform.Point{X: int16(cx + h), Y: int16(cy - h)}
+		points[2] = platform.Point{X: int16(cx + h), Y: int16(cy + h)}
+	case arrowRight:
+		h := (bh - 1) / 2
+		cx := bx + bw - 1
+		cy := by + h
+		if bw <= h {
+			h = bw - 1
+		}
+		points[0] = platform.Point{X: int16(cx), Y: int16(cy)}
+		points[1] = platform.Point{X: int16(cx - h), Y: int16(cy - h)}
+		points[2] = platform.Point{X: int16(cx - h), Y: int16(cy + h)}
+	}
+	points[3] = points[0]
+
+	d.SetForeground(gc, fgColor)
+	d.FillPolygon(drawable, gc, points[:3], platform.PolygonConvex, platform.CoordModeOrigin)
+	d.DrawLines(drawable, gc, points[:4], platform.CoordModeOrigin)
 }

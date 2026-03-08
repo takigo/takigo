@@ -199,6 +199,16 @@ func init() {
 	hScrollbar.Defaults["-troughcolor"] = uint64(0xc3c3c3)
 	hScrollbar.Defaults["-borderwidth"] = 1
 
+	// TSpinbox style.
+	tspinbox := theme.GetStyle("TSpinbox")
+	tspinbox.Defaults["-background"] = uint64(0xd9d9d9)
+	tspinbox.Defaults["-foreground"] = uint64(0x000000)
+	tspinbox.Defaults["-fieldbackground"] = uint64(0xffffff)
+
+	// TSizegrip style.
+	tsizegrip := theme.GetStyle("TSizegrip")
+	tsizegrip.Defaults["-background"] = uint64(0xd9d9d9)
+
 	// Progressbar styles.
 	hProgress := theme.GetStyle("Horizontal.TProgressbar")
 	hProgress.Defaults["-troughcolor"] = uint64(0xc3c3c3)
