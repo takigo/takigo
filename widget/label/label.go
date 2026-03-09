@@ -3,8 +3,10 @@
 package label
 
 import (
+	gocolor "image/color"
 	"strings"
 
+	"github.com/msorc/takigo/bitmap"
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/option"
@@ -28,6 +30,10 @@ type Label struct {
 	Img      widget.WidgetImage
 	Compound widget.Compound
 
+	// TextVariable linkage — when set, the variable's value overrides Text.
+	TextVar *widget.Variable[string]
+	unsub   func()
+
 	textWidth  int
 	textHeight int
 }
@@ -38,6 +44,23 @@ type LabelOption func(*Label)
 // Text sets the label text.
 func Text(s string) LabelOption {
 	return func(l *Label) { l.Text = s }
+}
+
+// TextVariable links the label's text to a string variable.
+// When the variable changes, the label text updates automatically.
+func TextVariable(v *widget.Variable[string]) LabelOption {
+	return func(l *Label) {
+		if l.unsub != nil {
+			l.unsub()
+		}
+		l.TextVar = v
+		l.Text = v.Get()
+		l.unsub = v.OnChange(func(_, new string) {
+			l.Text = new
+			l.computeGeometry()
+			l.Display()
+		})
+	}
 }
 
 // Background sets the background color.
@@ -111,6 +134,27 @@ func ImageOpt(img widget.WidgetImage) LabelOption {
 // CompoundOpt sets how text and image are combined.
 func CompoundOpt(c widget.Compound) LabelOption {
 	return func(l *Label) { l.Compound = c }
+}
+
+// Bitmap sets a built-in bitmap by name (e.g. "questhead", "error", "info").
+// The bitmap is rendered in the label's foreground color on a transparent background.
+func Bitmap(name string) LabelOption {
+	return func(l *Label) {
+		fg := gocolor.RGBA{0, 0, 0, 255}
+		if l.Foreground != nil {
+			fg = gocolor.RGBA{
+				uint8(l.Foreground.Red >> 8),
+				uint8(l.Foreground.Green >> 8),
+				uint8(l.Foreground.Blue >> 8),
+				255,
+			}
+		}
+		bg := gocolor.RGBA{0, 0, 0, 0} // transparent
+		photo := bitmap.Get(name, fg, bg)
+		if photo != nil {
+			l.Img = photo
+		}
+	}
 }
 
 // Width sets the requested width (in characters, approximately).

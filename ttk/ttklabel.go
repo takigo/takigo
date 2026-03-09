@@ -14,6 +14,10 @@ type Label struct {
 	Font     font.Font
 	Img      widget.WidgetImage
 	Compound widget.Compound
+
+	// TextVariable linkage — when set, the variable's value overrides Text.
+	TextVar *widget.Variable[string]
+	unsub   func()
 }
 
 // GetText implements TextProvider.
@@ -34,6 +38,22 @@ type LabelOption func(*Label)
 // LabelText sets the label text.
 func LabelText(s string) LabelOption {
 	return func(l *Label) { l.Text = s }
+}
+
+// LabelTextVariable links the label's text to a string variable.
+// When the variable changes, the label text updates automatically.
+func LabelTextVariable(v *widget.Variable[string]) LabelOption {
+	return func(l *Label) {
+		if l.unsub != nil {
+			l.unsub()
+		}
+		l.TextVar = v
+		l.Text = v.Get()
+		l.unsub = v.OnChange(func(_, new string) {
+			l.Text = new
+			l.Display()
+		})
+	}
 }
 
 // LabelForeground sets the text color (pixel value) in the style.
