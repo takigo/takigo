@@ -294,7 +294,9 @@ func showVars[T comparable](app widget.AppContext, vars *DemoVars[T]) {
 		v := (*vars)[name]
 		nameLabel := ttk.NewLabel(f, "n_"+name, ttk.LabelText(name+":"))
 		// TODO: textvariable support for live updates
-		valLabel := ttk.NewLabel(f, "v_"+name, ttk.LabelText(fmt.Sprintf("%v", v.Get())))
+		valLabel := ttk.NewLabel(f, "v_"+name,
+			ttk.LabelText(fmt.Sprintf("%v", v.Get())),
+		)
 		grid.Grid(geometry.Group{nameLabel, valLabel}, grid.Column(0), grid.Row(row),
 			grid.PadX("1.5p"), grid.PadY("1.5p"), grid.Sticky(grid.StickW))
 	}

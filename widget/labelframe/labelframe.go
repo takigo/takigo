@@ -7,6 +7,7 @@ import (
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/window"
 )
@@ -75,6 +76,18 @@ func LabelAnchor(a option.Anchor) LabelframeOption {
 	return func(lf *Labelframe) { lf.LabelAnchor = a }
 }
 
+// PadX sets internal horizontal padding.
+// Accepts int (pixels), float64 (rounded pixels), or string with unit suffix ("1.5p", "2m", etc.).
+func PadX(p any) LabelframeOption {
+	return func(lf *Labelframe) { lf.PadX = screenunit.Px(p) }
+}
+
+// PadY sets internal vertical padding.
+// Accepts int (pixels), float64 (rounded pixels), or string with unit suffix ("1.5p", "2m", etc.).
+func PadY(p any) LabelframeOption {
+	return func(lf *Labelframe) { lf.PadY = screenunit.Px(p) }
+}
+
 // New creates a new Labelframe widget.
 func New(parent widget.Caregiver, name string, opts ...LabelframeOption) *Labelframe {
 	app := parent.AppContext()
@@ -137,14 +150,18 @@ func (lf *Labelframe) computeTextSize() {
 func (lf *Labelframe) updateInternalBorder() {
 	w := lf.Win
 	bw := lf.BorderWidth
-	labelH := 0
+	// Tk C: bWidthTop = borderWidth + (labelReqHeight - borderWidth) = labelReqHeight
+	// The full label height replaces the top border width, since the label
+	// sits centered on the border and the content area starts below it.
+	topBorder := bw
 	if lf.Text != "" && lf.textHeight > 0 {
-		labelH = lf.textHeight/2 + 2
+		topBorder = lf.textHeight
 	}
-	w.InternalBorderLeft = bw
-	w.InternalBorderRight = bw
-	w.InternalBorderTop = bw + labelH
-	w.InternalBorderBottom = bw
+	// Tk C: padX/padY are added to all four internal borders.
+	w.InternalBorderLeft = bw + lf.PadX
+	w.InternalBorderRight = bw + lf.PadX
+	w.InternalBorderTop = topBorder + lf.PadY
+	w.InternalBorderBottom = bw + lf.PadY
 }
 
 // Display draws the labelframe.
