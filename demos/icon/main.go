@@ -20,6 +20,7 @@ import (
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
 	"github.com/msorc/takigo/widget/radiobutton"
+	"github.com/msorc/takigo/geometry"
 )
 
 func main() {
@@ -54,16 +55,12 @@ func main() {
 
 	// Load XBM images.
 	black := color.RGBA{R: 0, G: 0, B: 0, A: 255}
-	white := color.RGBA{R: 255, G: 255, B: 255, A: 255}
+	white := color.RGBA{R: 255, G: 255, B: 255, A: 0}
 
 	flagup, _ := tkimage.NewPhotoFromXBMFile("flagup", findImage("flagup.xbm"), black, white)
 	flagdown, _ := tkimage.NewPhotoFromXBMFile("flagdown", findImage("flagdown.xbm"), black, white)
 	lettersImg, _ := tkimage.NewPhotoFromXBMFile("letters", findImage("letters.xbm"), black, white)
 	noletterImg, _ := tkimage.NewPhotoFromXBMFile("noletter", findImage("noletter.xbm"), black, white)
-	app.ImageRegistry().Register(flagup)
-	app.ImageRegistry().Register(flagdown)
-	app.ImageRegistry().Register(lettersImg)
-	app.ImageRegistry().Register(noletterImg)
 
 	// frame $w.frame -borderwidth 7.5p
 	fr := frame.New(f, "frame",
@@ -79,13 +76,14 @@ func main() {
 	)
 	// $w.frame.b1 configure -selectcolor [$w.frame.b1 cget -background]
 	// (set selectcolor to background so it's invisible when selected)
-	b1.SelectColor = nil
+	b1.SelectColor = b1.Background.Ref()
 
 	// checkbutton $w.frame.b2 -bitmap letters -indicatoron 0 -selectcolor SeaGreen1
 	b2 := checkbutton.New(fr, "b2",
 		checkbutton.ImageOpt(lettersImg),
 		checkbutton.IndicatorOnOpt(false),
 	)
+
 	if sc, err := app.ColorCache().Get("SeaGreen1"); err == nil {
 		b2.SelectColor = sc.Ref()
 	}
@@ -94,12 +92,10 @@ func main() {
 	left := frame.New(fr, "left")
 
 	// pack $w.frame.left $w.frame.b1 $w.frame.b2 -side left -expand yes -padx 5m
-	pack.Pack(left, pack.SideOpt(pack.Left), pack.Expand(true), pack.PadX("5m"))
-	pack.Pack(b1, pack.SideOpt(pack.Left), pack.Expand(true), pack.PadX("5m"))
-	pack.Pack(b2, pack.SideOpt(pack.Left), pack.Expand(true), pack.PadX("5m"))
+	pack.Pack(geometry.Group{left, b1, b2}, pack.SideOpt(pack.Left), pack.Expand(true), pack.PadX("5m"))
 
 	// radiobutton $w.frame.left.b3 -bitmap letters -variable letters -value full
-	lettersVar := widget.NewVariable("full")
+	lettersVar := widget.NewVariable("letters")
 	b3 := radiobutton.New(left, "b3",
 		radiobutton.ImageOpt(lettersImg),
 		radiobutton.Var(lettersVar),
@@ -111,13 +107,8 @@ func main() {
 		radiobutton.Var(lettersVar),
 		radiobutton.Value("empty"),
 	)
-	// pack $w.frame.left.b3 $w.frame.left.b4 -side top -expand yes
-	pack.Pack(b3, pack.SideOpt(pack.Top), pack.Expand(true))
-	pack.Pack(b4, pack.SideOpt(pack.Top), pack.Expand(true))
+	pack.Pack(geometry.Group{b3, b4}, pack.SideOpt(pack.Top), pack.Expand(true))
 
-	_ = b1
-	_ = b2
-	_ = lettersVar
 	app.Run()
 }
 

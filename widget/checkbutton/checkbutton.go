@@ -210,7 +210,7 @@ func (c *Checkbutton) computeGeometry() {
 		contentW = c.textWidth
 		contentH = c.textHeight
 	}
-	if c.IndicatorOn && img == nil {
+	if c.IndicatorOn {
 		contentW += indicatorSize + 4 // indicator + gap
 		if indicatorSize > contentH {
 			contentH = indicatorSize
@@ -268,18 +268,38 @@ func (c *Checkbutton) Display() {
 		fgCol = c.ActiveForeground
 	}
 
+	// In toggle mode, use select color as background when selected.
+	if !c.IndicatorOn && selected && c.SelectColor != nil {
+		bgPixel = c.SelectColor.Pixel
+	}
+
 	// Fill background.
 	d.SetForeground(gc, bgPixel)
 	d.FillRectangle(w.Drawable(), gc, 0, 0, uint(w.Width), uint(w.Height))
 
 	// Draw border (inset by highlight width so highlight ring is outermost).
-	if c.Border != nil && c.BorderWidth > 0 {
-		hlw := c.HighlightWidth
+	hlw := c.HighlightWidth
+	if !c.IndicatorOn {
+		// Toggle button mode: raised or sunken relief based on selection.
+		btnRelief := option.ReliefRaised
+		if selected {
+			btnRelief = option.ReliefSunken
+		}
+		bw := 2
+		border := c.Border
+		if border == nil {
+			border = draw.NewBorderFromPixel(bgPixel)
+		}
+		draw.Draw3DRectangle(d, w.Drawable(), gc, border, hlw, hlw, w.Width-2*hlw, w.Height-2*hlw, bw, btnRelief)
+	} else if c.Border != nil && c.BorderWidth > 0 {
 		draw.Draw3DRectangle(d, w.Drawable(), gc, c.Border,
 			hlw, hlw, w.Width-2*hlw, w.Height-2*hlw, c.BorderWidth, c.Relief)
 	}
 
 	inset := c.BorderWidth + c.HighlightWidth
+	if !c.IndicatorOn {
+		inset = 2 + c.HighlightWidth
+	}
 	availW := w.Width - 2*inset - 2*c.PadX
 	availH := w.Height - 2*inset - 2*c.PadY
 	frameX := inset + c.PadX
@@ -335,7 +355,7 @@ func (c *Checkbutton) Display() {
 	if img != nil {
 		imgW := img.Width()
 		imgH := img.Height()
-		imgX := frameX + (availW-imgW)/2
+		imgX := frameX + indW + (availW-indW-imgW)/2
 		imgY := frameY + (availH-imgH)/2
 		if photo, ok := img.(interface {
 			Draw(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID,

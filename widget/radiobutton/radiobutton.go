@@ -222,7 +222,7 @@ func (r *Radiobutton) computeGeometry() {
 		contentW = r.textWidth
 		contentH = r.textHeight
 	}
-	if r.IndicatorOn && r.Img == nil {
+	if r.IndicatorOn {
 		contentW += indicatorSize + 4
 		if indicatorSize > contentH {
 			contentH = indicatorSize
@@ -353,7 +353,7 @@ func (r *Radiobutton) Display() {
 	if r.Img != nil {
 		imgW := r.Img.Width()
 		imgH := r.Img.Height()
-		imgX := frameX + (availW-imgW)/2
+		imgX := frameX + indW + (availW-indW-imgW)/2
 		imgY := frameY + (availH-imgH)/2
 		if photo, ok := r.Img.(interface {
 			Draw(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID,
