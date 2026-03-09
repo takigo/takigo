@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/msorc/takigo"
+	"github.com/msorc/takigo/bind"
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
@@ -47,14 +48,22 @@ func main() {
 	fileFrame := frame.New(f, "file")
 	pack.Pack(fileFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
 
-	fileLabel := label.New(fileFrame, "label", label.Text("File name:"))
+	fileLabel := label.New(fileFrame, "label",
+		label.Text("File name:"),
+		label.Width(13),
+		label.Anchor(option.AnchorW),
+	)
 	fileEntry := entry.New(fileFrame, "entry", entry.Width(40))
 
 	// Search string row.
 	searchFrame := frame.New(f, "string")
 	pack.Pack(searchFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
 
-	searchLabel := label.New(searchFrame, "label", label.Text("Search string:"))
+	searchLabel := label.New(searchFrame, "label",
+		label.Text("Search string:"),
+		label.Width(13),
+		label.Anchor(option.AnchorW),
+	)
 	searchEntry := entry.New(searchFrame, "entry", entry.Width(40))
 
 	// Text widget + scrollbar.
@@ -141,6 +150,18 @@ func main() {
 		}),
 	)
 
+	// Bind Return key on entries.
+	eng := app.BindEng()
+	eng.Bind(fileEntry.Window().PathName, "<Return>", func(ev *bind.EventData) bool {
+		textLoadFile(fileEntry.GetText())
+		app.FocusManager().SetFocus(searchEntry.Window())
+		return true
+	})
+	eng.Bind(searchEntry.Window().PathName, "<Return>", func(ev *bind.EventData) bool {
+		textSearch(searchEntry.GetText())
+		return true
+	})
+
 	// Pack file row.
 	pack.Pack(fileLabel, pack.SideOpt(pack.Left))
 	pack.Pack(fileEntry, pack.SideOpt(pack.Left))
@@ -160,6 +181,11 @@ func main() {
 
 	// Initial text matches Tcl's description.
 	tw.Insert("1.0", "This window demonstrates how to use the tagging facilities in text\nwidgets to implement a searching mechanism.  First, type a file name\nin the top entry, then type <Return> or click on \"Load File\".  Then\ntype a string in the lower entry and type <Return> or click on\n\"Load File\".  This will cause all of the instances of the string to\nbe tagged with the tag \"search\", and it will arrange for the tag's\ndisplay attributes to change to make all of the strings blink.")
+
+	// Initial focus on file entry.
+	app.After(0, func() {
+		app.FocusManager().SetFocus(fileEntry.Window())
+	})
 
 	_ = fileLabel
 	_ = searchLabel

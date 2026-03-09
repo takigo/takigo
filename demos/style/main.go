@@ -12,7 +12,6 @@ import (
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/ttk"
 	"github.com/msorc/takigo/widget/frame"
-	"github.com/msorc/takigo/widget/label"
 	"github.com/msorc/takigo/widget/text"
 )
 
@@ -28,13 +27,6 @@ func main() {
 
 	f := frame.New(app, "f")
 	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
-
-	msg := label.New(f, "msg",
-		label.WrapLength("4i"),
-		label.JustifyOpt(option.JustifyLeft),
-		label.Text("This window shows text tags that control display styles. Tags are textual names applied to ranges of characters in a text widget, configuring those characters with various display styles."),
-	)
-	pack.Pack(msg, pack.SideOpt(pack.Top))
 
 	btns := demohelper.AddSeeDismiss(f)
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))

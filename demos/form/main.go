@@ -1,4 +1,4 @@
-// Demo: Simple form with labeled entries using grid layout.
+// Demo: Simple form with labeled entries using pack layout.
 // Ported from Tk's form.tcl demo.
 package main
 
@@ -8,7 +8,6 @@ import (
 
 	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/demos/demohelper"
-	"github.com/msorc/takigo/geometry/grid"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/widget/entry"
@@ -38,30 +37,38 @@ func main() {
 	btns := demohelper.AddSeeDismiss(f)
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
-	// Form grid.
-	formFrame := frame.New(f, "form")
-	pack.Pack(formFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
-		pack.PadX(20), pack.PadY(10))
+	// Form rows using pack layout (matching Tcl's per-row frames).
+	// Tcl only labels 3 of 5 rows: Name, Address, Phone.
+	labels := []string{"Name:", "Address:", "", "", "Phone:"}
 
-	fields := []string{"Name:", "Address:", "City:", "State:", "Phone:"}
-	entries := make([]*entry.Entry, len(fields))
+	var firstEntry *entry.Entry
+	for i, labelText := range labels {
+		row := frame.New(f, fmt.Sprintf("f%d", i+1),
+			frame.BorderWidth(2),
+		)
+		e := entry.New(row, "entry",
+			entry.Width(40),
+		)
+		l := label.New(row, "label")
+		if labelText != "" {
+			l.Text = labelText
+			l.Display()
+		}
+		pack.Pack(e, pack.SideOpt(pack.Right))
+		pack.Pack(l, pack.SideOpt(pack.Left))
+		pack.Pack(row, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
 
-	for i, fieldName := range fields {
-		l := label.New(formFrame, fmt.Sprintf("l%d", i),
-			label.Text(fieldName),
-			label.Anchor(option.AnchorE),
-		)
-		e := entry.New(formFrame, fmt.Sprintf("e%d", i),
-			entry.Width(30),
-		)
-		grid.Grid(l, grid.Row(i), grid.Column(0), grid.Sticky(grid.StickE), grid.PadX(5), grid.PadY(4))
-		grid.Grid(e, grid.Row(i), grid.Column(1), grid.Sticky(grid.EW), grid.PadX(5), grid.PadY(4))
-		entries[i] = e
-		_ = l
+		if i == 0 {
+			firstEntry = e
+		}
 	}
 
-	grid.ColumnConfigure(formFrame, 1, grid.Weight(1))
+	// Set focus to first entry.
+	if firstEntry != nil {
+		app.After(0, func() {
+			app.FocusManager().SetFocus(firstEntry.Window())
+		})
+	}
 
-	_ = entries
 	app.Run()
 }

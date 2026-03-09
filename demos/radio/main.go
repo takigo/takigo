@@ -62,6 +62,7 @@ func main() {
 			radiobutton.Text("Point Size "+s),
 			radiobutton.Value(s),
 			radiobutton.Var(sizeVar),
+			radiobutton.TristateValueOpt("multi"),
 		)
 		pack.Pack(rb, pack.SideOpt(pack.Top), pack.PadY("1.5p"),
 			pack.Anchor(option.AnchorW), pack.FillOpt(pack.FillX))
@@ -73,10 +74,19 @@ func main() {
 		grid.PadX(".5c"), grid.PadY(".5c"))
 
 	for _, c := range []string{"Red", "Green", "Blue", "Yellow", "Orange", "Purple"} {
-		rb := radiobutton.New(colorFrame, "color_"+strings.ToLower(c),
+		colorName := strings.ToLower(c)
+		rb := radiobutton.New(colorFrame, "color_"+colorName,
 			radiobutton.Text(c),
-			radiobutton.Value(strings.ToLower(c)),
+			radiobutton.Value(colorName),
 			radiobutton.Var(colorVar),
+			radiobutton.TristateValueOpt("multi"),
+			radiobutton.Command(func() {
+				col, err := app.ColorCache().Get(colorName)
+				if err == nil {
+					colorFrame.Foreground = col
+					colorFrame.Display()
+				}
+			}),
 		)
 		pack.Pack(rb, pack.SideOpt(pack.Top), pack.PadY("1.5p"), pack.FillOpt(pack.FillX))
 	}

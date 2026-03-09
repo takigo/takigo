@@ -42,7 +42,7 @@ func main() {
 	btns := demohelper.AddSeeDismiss(f)
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
-	// Demo area frame — packs at bottom fill both expand.
+	// Demo area frame.
 	body := frame.New(f, "body")
 	pack.Pack(body, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
@@ -63,14 +63,18 @@ func main() {
 		_ = rb
 	}
 
-	// Right labelframe: "Options" with checkbuttons.
-	// (Tcl uses a checkbutton as the labelwidget; we use plain text instead.)
+	// Right labelframe: checkbutton controls enable/disable of options.
+	// Tcl uses the checkbutton as the labelwidget; we use it as first child
+	// since labelwidget API is not available.
 	lfOpts := labelframe.New(body, "lf2",
 		labelframe.Text("Options"),
 	)
 	grid.Grid(lfOpts, grid.Row(0), grid.Column(1), grid.PadX("2m"), grid.PadY("2m"))
 
+	// Option checkbuttons.
+	var optionCbs []*checkbutton.Checkbutton
 	enableVar := widget.NewVariable(false)
+
 	enableCb := checkbutton.New(lfOpts, "cb",
 		checkbutton.Text("Use this option."),
 		checkbutton.Var(enableVar),
@@ -84,7 +88,25 @@ func main() {
 			checkbutton.Var(v),
 		)
 		pack.Pack(cb, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY("1.5p"))
-		_ = cb
+		optionCbs = append(optionCbs, cb)
+	}
+
+	// Enable/disable callback — toggle option checkbuttons.
+	enableCb.Command = func() {
+		for _, cb := range optionCbs {
+			if enableVar.Get() {
+				cb.State = widget.StateNormal
+			} else {
+				cb.State = widget.StateDisabled
+			}
+			cb.Display()
+		}
+	}
+
+	// Initially disable all option checkbuttons.
+	for _, cb := range optionCbs {
+		cb.State = widget.StateDisabled
+		cb.Display()
 	}
 
 	grid.ColumnConfigure(body, 0, grid.Weight(1))

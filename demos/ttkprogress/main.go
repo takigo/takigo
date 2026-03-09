@@ -16,7 +16,6 @@ import (
 	"github.com/msorc/takigo/ttk"
 	_ "github.com/msorc/takigo/ttk/clamtheme"
 	_ "github.com/msorc/takigo/ttk/defaulttheme"
-	"github.com/msorc/takigo/widget/button"
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
 )
@@ -60,13 +59,11 @@ func main() {
 		ttk.ProgressbarMode(ttk.ProgressIndeterminate),
 	)
 
-	startBtn := button.New(body, "start",
-		button.Text("Start Progress"),
-		button.PadX(padX), button.PadY(padY),
+	startBtn := ttk.NewButton(body, "start",
+		ttk.ButtonText("Start Progress"),
 	)
-	stopBtn := button.New(body, "stop",
-		button.Text("Stop Progress"),
-		button.PadX(padX), button.PadY(padY),
+	stopBtn := ttk.NewButton(body, "stop",
+		ttk.ButtonText("Stop Progress"),
 	)
 
 	// Grid layout: bars span 2 columns; start sticky-e, stop sticky-w.
@@ -81,33 +78,12 @@ func main() {
 	grid.ColumnConfigure(body, 0, grid.Weight(1))
 	grid.ColumnConfigure(body, 1, grid.Weight(1))
 
-	// Determinate animation state.
-	var running bool
-	progress := 0.0
-	var step func()
-	step = func() {
-		if !running {
-			return
-		}
-		progress += 2
-		if progress > 100 {
-			progress = 0
-		}
-		detPbar.SetValue(progress)
-		app.After(50*time.Millisecond, step)
-	}
-
 	startBtn.Command = func() {
-		if running {
-			return
-		}
-		running = true
-		progress = 0
-		step()
+		detPbar.Start(50 * time.Millisecond)
 		indPbar.Start(30 * time.Millisecond)
 	}
 	stopBtn.Command = func() {
-		running = false
+		detPbar.Stop()
 		indPbar.Stop()
 	}
 

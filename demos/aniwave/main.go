@@ -4,7 +4,6 @@ package main
 
 import (
 	"fmt"
-	"math"
 	"os"
 	"time"
 
@@ -13,13 +12,12 @@ import (
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
-	"github.com/msorc/takigo/widget/button"
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
 )
 
 func main() {
-	app, err := takigo.NewApp(takigo.Title("Animated Wave"),
+	app, err := takigo.NewApp(takigo.Title("Animated Wave Demonstration"),
 		takigo.Geometry("+300+300"),
 		takigo.IconName("aniwave"),
 	)
@@ -49,61 +47,60 @@ func main() {
 	pack.Pack(c, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true), pack.PadX("7.5p"), pack.PadY("7.5p"))
 
-	// Initial wave.
-	phase := 0.0
-	wavePoints := 100
-
-	makeWaveCoords := func(p float64) []float64 {
-		coords := make([]float64, wavePoints*2)
-		for i := range wavePoints {
-			x := float64(i) * 300 / float64(wavePoints-1)
-			y := 100 + 60*math.Sin(2*math.Pi*float64(i)/float64(wavePoints)+p)
-			coords[i*2] = x
-			coords[i*2+1] = y
-		}
-		return coords
+	// Build initial wave coordinates matching Tcl:
+	// x from -10 to 300 step 5, each y=100, then spike at end (305,0) (310,200).
+	var waveCoords []float64
+	for x := -10; x <= 300; x += 5 {
+		waveCoords = append(waveCoords, float64(x), 100)
 	}
+	waveCoords = append(waveCoords, 305, 0, 310, 200)
 
-	waveID := c.CreateLine(makeWaveCoords(0),
-		canvas.OutlineColor("#00ff00"), canvas.OutlineWidth(2), canvas.Smooth(true))
+	waveID := c.CreateLine(waveCoords,
+		canvas.OutlineColor("green"), canvas.OutlineWidth(1), canvas.Smooth(true),
+		canvas.Tags("wave"))
 
-	// Second wave (different color/phase).
-	wave2ID := c.CreateLine(makeWaveCoords(math.Pi/3),
-		canvas.OutlineColor("#ff6600"), canvas.OutlineWidth(2), canvas.Smooth(true))
+	direction := "left"
 
-	// Animation state.
-	running := true
-
-	// Animation loop.
-	var animate func()
-	animate = func() {
-		if !running {
-			return
-		}
-		phase += 0.1
-		c.SetItemCoords(fmt.Sprintf("%d", waveID), makeWaveCoords(phase))
-		c.SetItemCoords(fmt.Sprintf("%d", wave2ID), makeWaveCoords(phase+math.Pi/3))
-		app.After(33*time.Millisecond, animate)
-	}
-	app.After(33*time.Millisecond, animate)
-
-	// Pause/Resume toggle button.
-	pauseBtn := button.New(f, "pause",
-		button.Text("Pause"),
-	)
-	pauseBtn.Command = func() {
-		if running {
-			running = false
-			pauseBtn.Text = "Resume"
-			pauseBtn.Display()
-		} else {
-			running = true
-			pauseBtn.Text = "Pause"
-			pauseBtn.Display()
-			animate()
+	// basicMotion shifts y-values one position left or right through the array.
+	basicMotion := func() {
+		n := len(waveCoords)
+		old := make([]float64, n)
+		copy(old, waveCoords)
+		for i := 1; i < n; i += 2 {
+			if direction == "left" {
+				if i+2 >= n {
+					waveCoords[i] = old[1]
+				} else {
+					waveCoords[i] = old[i+2]
+				}
+			} else {
+				if i-2 < 0 {
+					waveCoords[i] = old[n-1]
+				} else {
+					waveCoords[i] = old[i-2]
+				}
+			}
 		}
 	}
-	pack.Pack(pauseBtn, pack.SideOpt(pack.Top), pack.PadY("3p"))
+
+	// reverser detects when peak moves off-screen and reverses direction.
+	reverser := func() {
+		if waveCoords[1] < 10 {
+			direction = "right"
+		} else if waveCoords[len(waveCoords)-1] < 10 {
+			direction = "left"
+		}
+	}
+
+	// Animation loop: shift coordinates and update canvas.
+	var move func()
+	move = func() {
+		basicMotion()
+		reverser()
+		c.SetItemCoords(fmt.Sprintf("%d", waveID), waveCoords)
+		app.After(10*time.Millisecond, move)
+	}
+	app.After(10*time.Millisecond, move)
 
 	app.Run()
 }

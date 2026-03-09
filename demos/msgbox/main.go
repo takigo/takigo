@@ -19,7 +19,7 @@ import (
 )
 
 func main() {
-	app, err := takigo.NewApp(takigo.Title("Message Boxes"),
+	app, err := takigo.NewApp(takigo.Title("Message Box Demonstration"),
 		takigo.Geometry("+300+300"),
 		takigo.IconName("messagebox"),
 	)
@@ -132,10 +132,25 @@ func main() {
 				dialog.MsgButtons(typeMap[typ]),
 			)
 
+			// Map result to button name.
+			resultName := map[dialog.DialogResult]string{
+				dialog.ResultOK:     "ok",
+				dialog.ResultCancel: "cancel",
+				dialog.ResultYes:    "yes",
+				dialog.ResultNo:     "no",
+				dialog.ResultAbort:  "abort",
+				dialog.ResultRetry:  "retry",
+				dialog.ResultIgnore: "ignore",
+			}
+			name := resultName[result]
+			if name == "" {
+				name = "unknown"
+			}
+
 			// Show result in a follow-up info dialog.
 			dialog.ShowMessage(app,
 				dialog.MsgTitle("Result"),
-				dialog.MsgMessage(fmt.Sprintf("You pressed button %d.", result)),
+				dialog.MsgMessage(fmt.Sprintf("You have selected \"%s\".", name)),
 				dialog.MsgType(dialog.MsgInfo),
 				dialog.MsgButtons(dialog.BtnOK),
 			)

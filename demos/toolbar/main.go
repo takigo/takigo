@@ -110,7 +110,6 @@ func main() {
 	exMenu.AddCommand("Example", func() { appendMsg("Example") })
 
 	menuBtn := ttk.NewMenubutton(toolbar, "menu",
-		ttk.MenubuttonStyleOpt("TMenubutton.Toolbutton"),
 		ttk.MenubuttonText("Menu"),
 		ttk.MenubuttonMenu(exMenu),
 	)

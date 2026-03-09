@@ -98,27 +98,7 @@ func main() {
 	lb = listbox.New(lbFrame, "list",
 		listbox.Items(states...),
 		listbox.Height(12),
-		listbox.SelectModeOpt(listbox.SelectExtended),
 	)
-
-	// Update justVar based on selection: "multi" if multiple items selected, else reflect current justify.
-	lb.SelectCmd = func() {
-		sel := lb.Selection()
-		if len(sel) <= 1 {
-			// Single or no selection: reflect actual listbox justify setting.
-			switch lb.Justify {
-			case option.JustifyCenter:
-				justVar.Set("center")
-			case option.JustifyRight:
-				justVar.Set("right")
-			default:
-				justVar.Set("left")
-			}
-		} else {
-			// Multiple items selected: show indeterminate state.
-			justVar.Set("multi")
-		}
-	}
 
 	yscroll := ttk.NewScrollbar(lbFrame, "scroll",
 		ttk.ScrollbarOrientOpt(ttk.Vertical),

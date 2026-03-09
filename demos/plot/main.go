@@ -5,8 +5,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"strconv"
-
 	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/canvas"
 	"github.com/msorc/takigo/demos/demohelper"
@@ -99,42 +97,14 @@ func main() {
 		return plotBottom - v/250*(plotBottom-plotTop)
 	}
 
-	// Draw connecting line.
-	lineCoords := make([]float64, len(dataX)*2)
-	for i := range dataX {
-		lineCoords[i*2] = toPixelX(dataX[i])
-		lineCoords[i*2+1] = toPixelY(dataY[i])
-	}
-	lineID := c.CreateLine(lineCoords,
-		canvas.OutlineColor("#3498db"), canvas.OutlineWidth(2),
-		canvas.Tags("dataline"))
-	lineIDStr := strconv.FormatInt(lineID, 10)
-
 	// Draw data points as small filled circles.
 	ptSize := 5.0
-	pointIDs := make([]int64, len(dataX))
 	for i := range dataX {
 		px := toPixelX(dataX[i])
 		py := toPixelY(dataY[i])
-		pointIDs[i] = c.CreateOval(px-ptSize, py-ptSize, px+ptSize, py+ptSize,
+		c.CreateOval(px-ptSize, py-ptSize, px+ptSize, py+ptSize,
 			canvas.FillColor("SkyBlue2"), canvas.OutlineColor("black"), canvas.OutlineWidth(1),
 			canvas.Tags("point"))
-	}
-
-	// updateLine rebuilds the connecting line coordinates from current point positions.
-	updateLine := func() {
-		coords := make([]float64, 0, len(pointIDs)*2)
-		for _, pid := range pointIDs {
-			pidStr := strconv.FormatInt(pid, 10)
-			oc := c.ItemCoords(pidStr)
-			if len(oc) >= 4 {
-				// Oval coords are x1,y1,x2,y2; center is midpoint.
-				cx := (oc[0] + oc[2]) / 2
-				cy := (oc[1] + oc[3]) / 2
-				coords = append(coords, cx, cy)
-			}
-		}
-		c.SetItemCoords(lineIDStr, coords)
 	}
 
 	// Drag state.
@@ -168,8 +138,8 @@ func main() {
 		c.DeleteTag("selected", "selected")
 	})
 
-	// B1-Motion on point: drag the selected point and update the line.
-	c.BindItem("point", event.MotionMask, func(ev *event.Event) {
+	// B1-Motion on canvas: drag the selected point (matches Tcl's bind $c <B1-Motion>).
+	app.Dispatcher().Bind(c.Win.PlatformID, event.MotionMask, func(ev *event.Event) {
 		if ev.State&platform.Button1Mask == 0 {
 			return
 		}
@@ -178,7 +148,6 @@ func main() {
 		c.Move("selected", dx, dy)
 		lastX = ev.X
 		lastY = ev.Y
-		updateLine()
 	})
 
 	app.Run()

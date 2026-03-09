@@ -42,6 +42,9 @@ func main() {
 	)
 	pack.Pack(msg, pack.SideOpt(pack.Top))
 
+	msgSep := ttk.NewSeparator(f, "msgSep")
+	pack.Pack(msgSep, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
+
 	btns := demohelper.AddSeeDismiss(f)
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
@@ -76,7 +79,7 @@ func main() {
 		ttk.ButtonCommand(func() {
 			dialog.ShowMessage(app,
 				dialog.MsgTitle("Button Pressed"),
-				dialog.MsgMessage("That hurt..."),
+				dialog.MsgMessage("Ouch!\nThat hurt..."),
 				dialog.MsgType(dialog.MsgInfo),
 			)
 		}),
