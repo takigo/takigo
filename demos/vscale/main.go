@@ -30,6 +30,12 @@ func setHeight(c *canvas.Canvas, value float64) {
 	}
 	c.SetItemCoords("poly", coords)
 	c.SetItemCoords("line", coords)
+
+	// Apply DPI scaling (matches Tk's $tk::scalingPct / 100.0).
+	if sf := screenunit.ScalingFactor(); sf != 1.0 {
+		c.Scale("poly", 0, 0, sf, sf)
+		c.Scale("line", 0, 0, sf, sf)
+	}
 }
 
 func main() {
@@ -48,9 +54,9 @@ func main() {
 	msg := label.New(f, "msg",
 		label.WrapLength("3.5i"),
 		label.JustifyOpt(option.JustifyLeft),
-		label.Text("An arrow and a vertical scale are displayed below. If you click or drag mouse button 1 in the scale, you can change the size of the arrow."),
+		label.Text("An arrow and a vertical scale are displayed below.  If you click or drag mouse button 1 in the scale, you can change the size of the arrow."),
 	)
-	pack.Pack(msg, pack.SideOpt(pack.Top))
+	pack.Pack(msg, pack.SideOpt(pack.Top), pack.PadX(".5c"))
 
 	btns := demohelper.AddSeeDismiss(f)
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
@@ -63,8 +69,8 @@ func main() {
 
 	// Canvas for arrow display.
 	c := canvas.New(fr, "canvas",
-		canvas.Width(50),
-		canvas.Height(300),
+		canvas.Width(50),  // 37.5p ≈ 50px
+		canvas.Height(50), // 37.5p ≈ 50px
 		canvas.BorderWidthOpt(0),
 		canvas.HighlightWidthOpt(0),
 	)
@@ -76,7 +82,7 @@ func main() {
 		canvas.OutlineColor("black"), canvas.Tags("line"))
 
 	// Vertical scale: 0-250, matching Tcl's -tickinterval 50 -length 213p.
-	sc := scale.New(fr, "vscale",
+	sc := scale.New(fr, "scale",
 		scale.OrientOpt(scale.Vertical),
 		scale.FromOpt(0),
 		scale.ToOpt(250),
@@ -91,11 +97,8 @@ func main() {
 	pack.Pack(sc, pack.SideOpt(pack.Left), pack.Anchor(option.AnchorNE))
 	pack.Pack(c, pack.SideOpt(pack.Left), pack.Anchor(option.AnchorNW), pack.FillOpt(pack.FillY))
 
-	// Set initial arrow and apply DPI scaling (matches Tk's $tk::scalingPct / 100.0).
+	// Set initial arrow size.
 	setHeight(c, 75)
-	if sf := screenunit.ScalingFactor(); sf != 1.0 {
-		c.Scale("all", 0, 0, 1.0, sf)
-	}
 
 	app.Run()
 }

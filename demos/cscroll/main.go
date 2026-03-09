@@ -1,4 +1,4 @@
-// Demo: Scrollable canvas grid.
+// Demo: Simple canvas that can be scrolled in two dimensions.
 // Ported from Tk's cscroll.tcl demo.
 package main
 
@@ -35,7 +35,7 @@ func main() {
 	msg := label.New(f, "msg",
 		label.WrapLength("4i"),
 		label.JustifyOpt(option.JustifyLeft),
-		label.Text("This window displays a canvas widget that can be scrolled by using the scrollbars or by dragging with button 2 in the canvas. If you click button 1 on one of the rectangles, its indices will be printed on stdout."),
+		label.Text("This window displays a canvas widget that can be scrolled by using the scrollbars, by dragging with button 2 in the canvas, or by using a mouse wheel.  If you click button 1 on one of the rectangles, its indices will be printed on stdout."),
 	)
 	pack.Pack(msg, pack.SideOpt(pack.Top))
 
@@ -43,20 +43,19 @@ func main() {
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	// Grid frame for canvas + scrollbars.
-	gridFrame := frame.New(f, "gridframe")
-	pack.Pack(gridFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
-		pack.Expand(true))
+	gf := frame.New(f, "grid")
+	pack.Pack(gf, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
+		pack.Expand(true), pack.PadX(1), pack.PadY(1))
 
 	// Tk uses centimeter coordinates: scrollregion {-11c -11c 50c 20c}
 	// 1c ~ 37.8px. We approximate: -416 -416 1890 756.
-	c := canvas.New(gridFrame, "cscroll",
-		canvas.Background("white"),
-		canvas.Width(400),
-		canvas.Height(300),
+	c := canvas.New(gf, "c",
+		canvas.ReliefOpt(option.ReliefSunken),
+		canvas.BorderWidthOpt(2),
 		canvas.ScrollRegion(-416, -416, 1890, 756),
 	)
 
-	yscroll := ttk.NewScrollbar(gridFrame, "yscroll",
+	vscroll := ttk.NewScrollbar(gf, "vscroll",
 		ttk.ScrollbarOrientOpt(ttk.Vertical),
 		ttk.ScrollbarCommandOpt(func(args ...any) {
 			if len(args) < 1 {
@@ -79,7 +78,7 @@ func main() {
 		}),
 	)
 
-	xscroll := ttk.NewScrollbar(gridFrame, "xscroll",
+	hscroll := ttk.NewScrollbar(gf, "hscroll",
 		ttk.ScrollbarOrientOpt(ttk.Horizontal),
 		ttk.ScrollbarCommandOpt(func(args ...any) {
 			if len(args) < 1 {
@@ -104,19 +103,19 @@ func main() {
 
 	c.Configure(
 		canvas.YScrollCommand(func(first, last float64) {
-			yscroll.Set(first, last)
+			vscroll.Set(first, last)
 		}),
 		canvas.XScrollCommand(func(first, last float64) {
-			xscroll.Set(first, last)
+			hscroll.Set(first, last)
 		}),
 	)
 
-	grid.Grid(c, grid.Row(0), grid.Column(0), grid.Sticky(grid.NSEW))
-	grid.Grid(yscroll, grid.Row(0), grid.Column(1), grid.Sticky(grid.NS))
-	grid.Grid(xscroll, grid.Row(1), grid.Column(0), grid.Sticky(grid.EW))
+	grid.Grid(c, grid.Row(0), grid.Column(0), grid.Sticky(grid.NSEW), grid.PadX(1), grid.PadY(1))
+	grid.Grid(vscroll, grid.Row(0), grid.Column(1), grid.Sticky(grid.NSEW), grid.PadX(1), grid.PadY(1))
+	grid.Grid(hscroll, grid.Row(1), grid.Column(0), grid.Sticky(grid.NSEW), grid.PadX(1), grid.PadY(1))
 
-	grid.RowConfigure(gridFrame, 0, grid.Weight(1))
-	grid.ColumnConfigure(gridFrame, 0, grid.Weight(1))
+	grid.RowConfigure(gf, 0, grid.Weight(1), grid.MinSize(0))
+	grid.ColumnConfigure(gf, 0, grid.Weight(1), grid.MinSize(0))
 
 	// Create a 20x10 grid of rectangles, matching Tk's cscroll.tcl.
 	// Tk uses centimeter units: each cell is 2c x 2c with 3c spacing.
@@ -138,13 +137,10 @@ func main() {
 
 			rectID := c.CreateRectangle(x, y, x+cellPx, y+cellPx,
 				canvas.FillColor(bg),
-				canvas.OutlineColor("black"),
-				canvas.OutlineWidth(1),
 				canvas.Tags("rect"))
 
 			c.CreateText(x+cellPx/2, y+cellPx/2,
 				canvas.TextOpt(label),
-				canvas.FontOpt("Sans 9"),
 				canvas.AnchorOpt(option.AnchorCenter),
 				canvas.Tags("text"))
 

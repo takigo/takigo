@@ -24,7 +24,7 @@ type scrollLabel struct {
 }
 
 func main() {
-	app, err := takigo.NewApp(takigo.Title("Animated Labels"),
+	app, err := takigo.NewApp(takigo.Title("Animated Label Demonstration"),
 		takigo.Geometry("+300+300"),
 		takigo.IconName("anilabel"),
 	)
@@ -49,8 +49,6 @@ func main() {
 	// Left labelframe: scrolling texts.
 	leftFrame := labelframe.New(f, "left",
 		labelframe.Text("Scrolling Texts"),
-		labelframe.BorderWidth(2),
-		labelframe.Relief(option.ReliefGroove),
 	)
 	pack.Pack(leftFrame, pack.SideOpt(pack.Left), pack.PadX("7.5p"), pack.PadY("7.5p"),
 		pack.Expand(true))
@@ -58,8 +56,6 @@ func main() {
 	// Right labelframe: GIF placeholder.
 	rightFrame := labelframe.New(f, "right",
 		labelframe.Text("GIF Image"),
-		labelframe.BorderWidth(2),
-		labelframe.Relief(option.ReliefGroove),
 	)
 	pack.Pack(rightFrame, pack.SideOpt(pack.Left), pack.PadX("7.5p"), pack.PadY("7.5p"),
 		pack.Expand(true))
@@ -67,29 +63,28 @@ func main() {
 	// Three scrolling labels with different messages and speeds,
 	// matching the Tk original's l1 (slow, ridge), l2 (fast, groove), l3 (flat, long text).
 	type labelSpec struct {
-		name    string
-		text    string
-		relief  option.Relief
-		millis  int
-		fixedW  bool
+		name   string
+		text   string
+		relief option.Relief
+		millis int
+		width  int // -width in chars; 0 means omit
 	}
 	specs := []labelSpec{
-		{"l1", "* Slow Animation *", option.ReliefRidge, 300, false},
-		{"l2", "* Fast Animation *", option.ReliefGroove, 80, false},
-		{"l3", "This is a longer scrolling text in a widget that will not show the whole message at once. ", option.ReliefFlat, 150, false},
+		{"l1", "* Slow Animation *", option.ReliefRidge, 300, 0},
+		{"l2", "* Fast Animation *", option.ReliefGroove, 80, 0},
+		{"l3", "This is a longer scrolling text in a widget that will not show the whole message at once. ", option.ReliefFlat, 150, 18},
 	}
 
 	var scrollLabels []*scrollLabel
 	for _, spec := range specs {
 		opts := []label.LabelOption{
 			label.Text(spec.text),
-			label.Anchor(option.AnchorW),
 			label.FontOpt("Courier 12"),
 			label.BorderWidth(4),
 			label.Relief(spec.relief),
 		}
-		if spec.fixedW {
-			opts = append(opts, label.Width(180))
+		if spec.width > 0 {
+			opts = append(opts, label.Width(spec.width))
 		}
 		l := label.New(leftFrame, spec.name, opts...)
 		pack.Pack(l, pack.SideOpt(pack.Top), pack.Expand(true),
@@ -119,7 +114,7 @@ func main() {
 	}
 
 	// Placeholder label in right frame for animated GIF.
-	gifPlaceholder := label.New(rightFrame, "gif",
+	gifPlaceholder := label.New(rightFrame, "l",
 		label.Text("(Animated GIF\nnot supported)"),
 		label.BorderWidth(0),
 	)

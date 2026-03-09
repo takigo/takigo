@@ -1,4 +1,5 @@
-// Demo: Scrollable sayings listbox with vertical scrollbar.
+// Demo: Listbox that can be scrolled both horizontally and vertically,
+// displaying a collection of well-known sayings.
 // Ported from Tk's sayings.tcl demo.
 package main
 
@@ -18,7 +19,7 @@ import (
 )
 
 func main() {
-	app, err := takigo.NewApp(takigo.Title("Well-Known Sayings"),
+	app, err := takigo.NewApp(takigo.Title("Listbox Demonstration (well-known sayings)"),
 		takigo.Geometry("+300+300"),
 		takigo.IconName("sayings"),
 	)
@@ -33,7 +34,7 @@ func main() {
 	msg := label.New(f, "msg",
 		label.WrapLength("4i"),
 		label.JustifyOpt(option.JustifyLeft),
-		label.Text("The listbox below contains a collection of well-known sayings. You can scan the list using either of the scrollbars or by dragging in the listbox window with button 2 pressed."),
+		label.Text("The listbox below contains a collection of well-known sayings.  You can scan the list using either of the scrollbars or by dragging in the listbox window with button 2 pressed."),
 	)
 	pack.Pack(msg, pack.SideOpt(pack.Top))
 
@@ -66,13 +67,13 @@ func main() {
 	}
 
 	// Frame using grid for listbox + scrollbar.
-	lbFrame := frame.New(f, "lbframe",
-		frame.BorderWidth(10),
+	lbFrame := frame.New(f, "frame",
+		frame.BorderWidth(10), // 7.5p ≈ 10px
 	)
 	pack.Pack(lbFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true), pack.PadX("1c"))
 
-	lb := listbox.New(lbFrame, "sayings",
+	lb := listbox.New(lbFrame, "list",
 		listbox.Items(sayings...),
 		listbox.Width(20),
 		listbox.Height(10),
@@ -106,7 +107,7 @@ func main() {
 
 	// Grid layout: listbox row 0 col 0, yscroll row 0 col 1.
 	grid.Grid(lb, grid.Row(0), grid.Column(0), grid.Sticky(grid.NSEW))
-	grid.Grid(yscroll, grid.Row(0), grid.Column(1), grid.Sticky(grid.NS))
+	grid.Grid(yscroll, grid.Row(0), grid.Column(1), grid.Sticky(grid.NSEW))
 	grid.RowConfigure(lbFrame, 0, grid.Weight(1))
 	grid.ColumnConfigure(lbFrame, 0, grid.Weight(1))
 

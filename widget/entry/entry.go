@@ -81,6 +81,16 @@ func Placeholder(s string) EntryOption {
 	return func(e *Entry) { e.Placeholder = s }
 }
 
+// PlaceholderForeground sets the placeholder text color.
+func PlaceholderForeground(name string) EntryOption {
+	return func(e *Entry) {
+		col, err := e.App.ColorCache().Get(name)
+		if err == nil {
+			e.PlaceholderFg = col.Ref()
+		}
+	}
+}
+
 // Show sets the password character (0 = normal display).
 func Show(ch rune) EntryOption {
 	return func(e *Entry) { e.ShowChar = ch }

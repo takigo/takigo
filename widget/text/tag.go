@@ -54,9 +54,13 @@ type TagRange struct {
 // TagOption configures a Tag.
 type TagOption func(cache *color.Cache, reg *font.Registry, tag *Tag)
 
-// TagForeground sets the tag's foreground color.
+// TagForeground sets the tag's foreground color. Pass "" to clear.
 func TagForeground(name string) TagOption {
 	return func(cache *color.Cache, reg *font.Registry, tag *Tag) {
+		if name == "" {
+			tag.Foreground = nil
+			return
+		}
 		if col, err := cache.Get(name); err == nil {
 			tag.Foreground = col
 		}

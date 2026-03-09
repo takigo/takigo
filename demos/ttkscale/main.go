@@ -1,4 +1,4 @@
-// Demo: Scale with label feedback.
+// Demo: Horizontal scale with label feedback.
 // Ported from Tk's ttkscale.tcl demo.
 package main
 
@@ -33,7 +33,7 @@ func main() {
 		label.JustifyOpt(option.JustifyLeft),
 		label.Text("A label tied to a horizontal scale is displayed below. If you click or drag mouse button 1 in the scale, you can change the contents of the label; a callback command is used to couple the slider to both the text and the coloring of the label."),
 	)
-	pack.Pack(msg, pack.SideOpt(pack.Top))
+	pack.Pack(msg, pack.SideOpt(pack.Top), pack.PadX(".5c"))
 
 	btns := demohelper.AddSeeDismiss(f)
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
@@ -48,38 +48,36 @@ func main() {
 	pack.Pack(fr, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
 
 	// Color label display — packed first (label before scale, matching Tcl).
-	valueLabel := label.New(fr, "label",
-		label.Text("Color: Red"),
-		label.Foreground("Red"),
-		label.Anchor(option.AnchorW),
-	)
-	pack.Pack(valueLabel, pack.SideOpt(pack.Top))
+	valueLabel := label.New(fr, "label")
+
+	// Command callback to update label text and color from scale value.
+	updateLabel := func(v float64) {
+		idx := int(v)
+		if idx < 0 {
+			idx = 0
+		}
+		if idx >= len(colorList) {
+			idx = len(colorList) - 1
+		}
+		c := colorList[idx]
+		valueLabel.Text = fmt.Sprintf("Color: %s", c)
+		col, err := app.ColorCache().Get(c)
+		if err == nil {
+			valueLabel.Foreground = col
+		}
+		valueLabel.Display()
+	}
 
 	sc := scale.New(fr, "scale",
 		scale.OrientOpt(scale.Horizontal),
 		scale.FromOpt(0),
 		scale.ToOpt(5),
-		scale.ValueOpt(0),
-		scale.CommandOpt(func(v float64) {
-			idx := int(v)
-			if idx < 0 {
-				idx = 0
-			}
-			if idx >= len(colorList) {
-				idx = len(colorList) - 1
-			}
-			c := colorList[idx]
-			valueLabel.Text = fmt.Sprintf("Color: %s", c)
-			col, err := app.ColorCache().Get(c)
-			if err == nil {
-				valueLabel.Foreground = col
-			}
-			valueLabel.Display()
-		}),
+		scale.CommandOpt(updateLabel),
 	)
-	pack.Pack(sc, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
+	// Trigger initial label text (matches Tcl's "$w.frame.scale set 0").
+	updateLabel(0)
+	pack.Pack(valueLabel)
+	pack.Pack(sc)
 
-	_ = valueLabel
-	_ = sc
 	app.Run()
 }

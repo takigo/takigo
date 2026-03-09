@@ -32,6 +32,9 @@ type Radiobutton struct {
 	TristateValue string          // if non-empty and variable==TristateValue, show indeterminate dash
 	SelectColor   *color.ColorRef // indicator fill when selected
 
+	// Image (displayed instead of text when set).
+	Img widget.WidgetImage
+
 	// Active colors.
 	ActiveBackground *color.ColorRef
 	ActiveForeground *color.ColorRef
@@ -129,6 +132,11 @@ func PadX(p any) RadiobuttonOption {
 	return func(r *Radiobutton) { r.PadX = screenunit.Px(p) }
 }
 
+// ImageOpt sets the image displayed by the radiobutton (replaces text).
+func ImageOpt(img widget.WidgetImage) RadiobuttonOption {
+	return func(r *Radiobutton) { r.Img = img }
+}
+
 // PadY sets vertical padding.
 // Accepts int (pixels), float64 (rounded pixels), or string with unit suffix ("3p", "2m", "1c", "0.5i").
 func PadY(p any) RadiobuttonOption {
@@ -205,9 +213,16 @@ func (r *Radiobutton) computeGeometry() {
 		bw = 2 // button-mode always uses 2px border
 	}
 	inset := bw + r.HighlightWidth
-	contentW := r.textWidth
-	contentH := r.textHeight
-	if r.IndicatorOn {
+
+	var contentW, contentH int
+	if r.Img != nil {
+		contentW = r.Img.Width()
+		contentH = r.Img.Height()
+	} else {
+		contentW = r.textWidth
+		contentH = r.textHeight
+	}
+	if r.IndicatorOn && r.Img == nil {
 		contentW += indicatorSize + 4
 		if indicatorSize > contentH {
 			contentH = indicatorSize
@@ -334,8 +349,19 @@ func (r *Radiobutton) Display() {
 		}
 	}
 
-	// Draw text.
-	if r.Font != nil && r.Text != "" && fgCol != nil {
+	// Draw image (if set) or text.
+	if r.Img != nil {
+		imgW := r.Img.Width()
+		imgH := r.Img.Height()
+		imgX := frameX + (availW-imgW)/2
+		imgY := frameY + (availH-imgH)/2
+		if photo, ok := r.Img.(interface {
+			Draw(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID,
+				depth int, imgX, imgY, w, h, dstX, dstY int, bgPixel uint64)
+		}); ok {
+			photo.Draw(d, w.Drawable(), gc, w.Depth, 0, 0, imgW, imgH, imgX, imgY, bgPixel)
+		}
+	} else if r.Font != nil && r.Text != "" && fgCol != nil {
 		textX := frameX + indW
 		textY := frameY + (availH-r.textHeight)/2
 		remainW := availW - indW

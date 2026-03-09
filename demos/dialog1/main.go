@@ -1,4 +1,4 @@
-// Demo: Modal dialog with local grab.
+// Demo: A dialog box with a local grab.
 // Ported from Tk's dialog1.tcl demo.
 package main
 
@@ -71,7 +71,5 @@ func main() {
 	pack.Pack(btn, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
 		pack.PadX(30), pack.PadY(10))
 
-	_ = btn
-	_ = statusLabel
 	app.Run()
 }

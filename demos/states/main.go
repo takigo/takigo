@@ -47,9 +47,6 @@ func main() {
 	)
 	pack.Pack(msg, pack.SideOpt(pack.Top))
 
-	btns := demohelper.AddSeeDismiss(f)
-	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
-
 	// lb is declared below; the command closure captures the pointer.
 	var lb *listbox.Listbox
 
@@ -75,6 +72,9 @@ func main() {
 		pack.Pack(rb, pack.SideOpt(pack.Left), pack.PadY("1.5p"), pack.FillOpt(pack.FillX))
 	}
 	pack.Pack(justFrame, pack.SideOpt(pack.Top))
+
+	btns := demohelper.AddSeeDismiss(f)
+	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	// Listbox frame with border.
 	lbFrame := frame.New(f, "frame",
@@ -132,7 +132,5 @@ func main() {
 	first, last := lb.YVisibleRange()
 	yscroll.Set(first, last)
 
-	_ = justVar
-	_ = justFrame
 	app.Run()
 }

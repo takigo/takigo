@@ -54,13 +54,12 @@ func main() {
 	btns := demohelper.AddSeeDismiss(f)
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
-	c := canvas.New(f, "ruler",
+	c := canvas.New(f, "c",
 		canvas.Background("white"),
-		canvas.Width(560),
-		canvas.Height(100),
+		canvas.Width(562),  // 14.8c
+		canvas.Height(95),  // 2.5c
 	)
-	pack.Pack(c, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
-		pack.PadX(10), pack.PadY(10))
+	pack.Pack(c, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
 
 	// mkTab creates a downward-pointing triangle polygon at (x, y) apex.
 	mkTab := func(x, y float64, tags ...string) int64 {
@@ -101,11 +100,11 @@ func main() {
 
 	// Well rectangle (source of new tabs).
 	c.CreateRectangle(wellLeft, wellTop, wellRight, rulerTop,
-		canvas.FillColor("lightgray"), canvas.OutlineColor("gray"),
-		canvas.OutlineWidth(1), canvas.Tags("well"))
+		canvas.FillColor("white"),
+		canvas.Tags("well"))
 
 	// Well tab (the prototype tab in the well).
-	wellTabID := mkTab((wellLeft+wellRight)/2, wellTop+3, "well", "welltab")
+	wellTabID := mkTab((wellLeft+wellRight)/2, 24.7, "well", "welltab")
 	_ = wellTabID
 
 	// Drag state.

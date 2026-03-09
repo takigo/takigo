@@ -12,6 +12,7 @@ import (
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
 )
@@ -39,13 +40,12 @@ func main() {
 	btns := demohelper.AddSeeDismiss(f)
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
-	c := canvas.New(f, "wave",
+	c := canvas.New(f, "c",
 		canvas.Background("black"),
-		canvas.Width(300),
-		canvas.Height(200),
+		canvas.Width(screenunit.Px("225p")),
+		canvas.Height(screenunit.Px("150p")),
 	)
-	pack.Pack(c, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
-		pack.Expand(true), pack.PadX("7.5p"), pack.PadY("7.5p"))
+	pack.Pack(c, pack.PadX("7.5p"), pack.PadY("7.5p"), pack.Expand(true))
 
 	// Build initial wave coordinates matching Tcl:
 	// x from -10 to 300 step 5, each y=100, then spike at end (305,0) (310,200).

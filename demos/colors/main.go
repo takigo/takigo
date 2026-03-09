@@ -18,7 +18,7 @@ import (
 )
 
 func main() {
-	app, err := takigo.NewApp(takigo.Title("Colors"),
+	app, err := takigo.NewApp(takigo.Title("Listbox Demonstration (colors)"),
 		takigo.Geometry("+300+300"),
 		takigo.IconName("Listbox"),
 	)
@@ -34,7 +34,7 @@ func main() {
 	msg := label.New(f, "msg",
 		label.WrapLength("4i"),
 		label.JustifyOpt(option.JustifyLeft),
-		label.Text("A listbox containing several color names is displayed below, along with a scrollbar. You can scan the list either using the scrollbar or by dragging in the listbox window with button 2 pressed. If you double-click button 1 on a color, then the application's color palette will be set to match that color."),
+		label.Text("A listbox containing several color names is displayed below, along with a scrollbar.  You can scan the list either using the scrollbar or by dragging in the listbox window with button 2 pressed.  If you double-click button 1 on a color, then the application's color palette will be set to match that color"),
 	)
 	pack.Pack(msg, pack.SideOpt(pack.Top))
 
@@ -125,16 +125,16 @@ func main() {
 	}
 
 	// Listbox frame with border matching Tcl's `frame -borderwidth 7.5p`.
-	lbFrame := frame.New(f, "lbframe", frame.BorderWidth(10))
+	lbFrame := frame.New(f, "frame", frame.BorderWidth(10))
 	pack.Pack(lbFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillY), pack.Expand(true))
 
-	lb := listbox.New(lbFrame, "colors",
+	lb := listbox.New(lbFrame, "list",
 		listbox.Items(colors...),
 		listbox.Width(20),
 		listbox.Height(16),
 	)
 
-	yscroll := ttk.NewScrollbar(lbFrame, "yscroll",
+	yscroll := ttk.NewScrollbar(lbFrame, "scroll",
 		ttk.ScrollbarOrientOpt(ttk.Vertical),
 		ttk.ScrollbarCommandOpt(func(args ...any) {
 			if len(args) < 1 {
@@ -160,8 +160,8 @@ func main() {
 		yscroll.Set(first, last)
 	}
 
-	pack.Pack(yscroll, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
-	pack.Pack(lb, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+	pack.Pack(lb, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillY), pack.Expand(true))
+	pack.Pack(yscroll, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillY), pack.Expand(true))
 
 	first, last := lb.YVisibleRange()
 	yscroll.Set(first, last)

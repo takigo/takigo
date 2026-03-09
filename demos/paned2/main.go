@@ -1,4 +1,4 @@
-// Demo: Vertical paned window with text and listbox.
+// Demo: Paned window that separates two windows vertically.
 // Ported from Tk's paned2.tcl demo.
 package main
 
@@ -35,7 +35,7 @@ func main() {
 	msg := label.New(f, "msg",
 		label.WrapLength("4i"),
 		label.JustifyOpt(option.JustifyLeft),
-		label.Text("The sash between the two scrolled windows below can be used to divide the area between them. Use the left mouse button to resize by moving the sash."),
+		label.Text("The sash between the two scrolled windows below can be used to divide the area between them.  Use the left mouse button to resize without redrawing by just moving the sash, and use the middle mouse button to resize opaquely (always redrawing the windows in each position.)"),
 	)
 	pack.Pack(msg, pack.SideOpt(pack.Top))
 
@@ -43,7 +43,7 @@ func main() {
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	// Vertical paned window.
-	pw := panedwindow.New(f, "vpanes",
+	pw := panedwindow.New(f, "pane",
 		panedwindow.OrientOpt(panedwindow.Vertical),
 	)
 	pack.Pack(pw, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
@@ -51,7 +51,7 @@ func main() {
 
 	// Top pane: listbox with vertical scrollbar.
 	topFrame := frame.New(pw, "top")
-	lb := listbox.New(topFrame, "widgetlist",
+	lb := listbox.New(topFrame, "list",
 		listbox.Items(
 			"List of Tk Widgets",
 			"button",
@@ -75,7 +75,7 @@ func main() {
 		),
 	)
 
-	lbScroll := ttk.NewScrollbar(topFrame, "lbscroll",
+	lbScroll := ttk.NewScrollbar(topFrame, "scr",
 		ttk.ScrollbarOrientOpt(ttk.Vertical),
 		ttk.ScrollbarCommandOpt(func(args ...any) {
 			if len(args) < 1 {
@@ -105,7 +105,7 @@ func main() {
 	lb.ItemConfigure(0, "#d9d9d9", "#000000")
 
 	pack.Pack(lbScroll, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
-	pack.Pack(lb, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+	pack.Pack(lb, pack.FillOpt(pack.FillBoth), pack.Expand(true))
 	pw.Add(topFrame.Window(), 100)
 
 	// Bottom pane: text widget with x+y scrollbars (grid layout).
@@ -117,7 +117,7 @@ func main() {
 		text.WrapModeOpt(text.WrapNone),
 	)
 
-	yscroll := ttk.NewScrollbar(bottomFrame, "yscroll",
+	yscroll := ttk.NewScrollbar(bottomFrame, "yscr",
 		ttk.ScrollbarOrientOpt(ttk.Vertical),
 		ttk.ScrollbarCommandOpt(func(args ...any) {
 			if len(args) < 1 {
@@ -143,7 +143,7 @@ func main() {
 		yscroll.Set(first, last)
 	}
 
-	xscroll := ttk.NewScrollbar(bottomFrame, "xscroll",
+	xscroll := ttk.NewScrollbar(bottomFrame, "xscr",
 		ttk.ScrollbarOrientOpt(ttk.Horizontal),
 		ttk.ScrollbarCommandOpt(func(args ...any) {
 			if len(args) < 1 {

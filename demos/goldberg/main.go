@@ -1938,6 +1938,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
+	app.WmInfo().SetResizable(false, false)
 
 	// Control buttons — pack first so they get space before the canvas expands.
 	ctrl := frame.New(app, "ctrl")

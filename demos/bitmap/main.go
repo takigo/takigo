@@ -1,4 +1,4 @@
-// Demo: Built-in bitmap patterns displayed as generated images.
+// Demo: Displays all of Tk's built-in bitmaps.
 // Ported from Tk's bitmap.tcl demo.
 package main
 
@@ -108,43 +108,35 @@ func main() {
 		app.ImageRegistry().Register(b.photo)
 	}
 
-	// Row 1: first 5 bitmaps.
-	row1 := frame.New(f, "row1")
+	container := frame.New(f, "frame")
+
+	// bitmapRow 0: first 5 bitmaps.
+	row0 := frame.New(container, "0")
+	pack.Pack(row0, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth))
+
+	for i, b := range bitmaps[:5] {
+		col := frame.New(row0, fmt.Sprintf("%d", i))
+		pack.Pack(col, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.PadY(".25c"), pack.PadX(".25c"))
+		nl := label.New(col, "label", label.Text(b.name), label.Width(9))
+		il := label.New(col, "bitmap", label.ImageOpt(b.photo))
+		pack.Pack(nl, pack.SideOpt(pack.Bottom))
+		pack.Pack(il, pack.SideOpt(pack.Bottom))
+	}
+
+	// bitmapRow 1: last 5 bitmaps.
+	row1 := frame.New(container, "1")
 	pack.Pack(row1, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth))
 
-	for _, b := range bitmaps[:5] {
-		col := frame.New(row1, "col_"+b.name)
-		pack.Pack(col, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.PadX(".25c"), pack.PadY(".25c"))
-		il := label.New(col, "img_"+b.name,
-			label.ImageOpt(b.photo),
-			label.BorderWidth(2), label.Relief(option.ReliefGroove),
-			label.PadX(4), label.PadY(4),
-		)
-		pack.Pack(il, pack.SideOpt(pack.Top))
-		nl := label.New(col, "name_"+b.name, label.Text(b.name))
-		pack.Pack(nl, pack.SideOpt(pack.Top))
-		_ = il
-		_ = nl
+	for i, b := range bitmaps[5:] {
+		col := frame.New(row1, fmt.Sprintf("%d", i))
+		pack.Pack(col, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.PadY(".25c"), pack.PadX(".25c"))
+		nl := label.New(col, "label", label.Text(b.name), label.Width(9))
+		il := label.New(col, "bitmap", label.ImageOpt(b.photo))
+		pack.Pack(nl, pack.SideOpt(pack.Bottom))
+		pack.Pack(il, pack.SideOpt(pack.Bottom))
 	}
 
-	// Row 2: last 5 bitmaps.
-	row2 := frame.New(f, "row2")
-	pack.Pack(row2, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth))
-
-	for _, b := range bitmaps[5:] {
-		col := frame.New(row2, "col_"+b.name)
-		pack.Pack(col, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.PadX(".25c"), pack.PadY(".25c"))
-		il := label.New(col, "img_"+b.name,
-			label.ImageOpt(b.photo),
-			label.BorderWidth(2), label.Relief(option.ReliefGroove),
-			label.PadX(4), label.PadY(4),
-		)
-		pack.Pack(il, pack.SideOpt(pack.Top))
-		nl := label.New(col, "name_"+b.name, label.Text(b.name))
-		pack.Pack(nl, pack.SideOpt(pack.Top))
-		_ = il
-		_ = nl
-	}
+	pack.Pack(container, pack.SideOpt(pack.Top), pack.Expand(true), pack.FillOpt(pack.FillBoth))
 
 	app.Run()
 }

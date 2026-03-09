@@ -1,4 +1,4 @@
-// Demo: Basic text editing with scrollbar.
+// Demo: Text widget with basic editing facilities.
 // Ported from Tk's text.tcl demo.
 package main
 
@@ -10,11 +10,9 @@ import (
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/dialog"
 	"github.com/msorc/takigo/geometry/pack"
-	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/ttk"
 	"github.com/msorc/takigo/widget/frame"
-	"github.com/msorc/takigo/widget/label"
 	"github.com/msorc/takigo/widget/text"
 )
 
@@ -31,19 +29,12 @@ func main() {
 	f := frame.New(app, "f")
 	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
-	msg := label.New(f, "msg",
-		label.WrapLength("4i"),
-		label.JustifyOpt(option.JustifyLeft),
-		label.Text("A text widget with scrollbar. Click to position cursor. Select by dragging. Ctrl+Z to undo."),
-	)
-	pack.Pack(msg, pack.SideOpt(pack.Top))
-
 	btns := demohelper.AddSeeDismiss(f)
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	tw := text.New(f, "text",
 		text.Height(30),
-		text.WrapModeOpt(text.WrapWord),
+		text.WrapModeOpt(text.WrapChar),
 		text.UndoOpt(true),
 		text.SetGridOpt(true),
 	)
@@ -74,9 +65,8 @@ func main() {
 		yscroll.Set(first, last)
 	}
 
-	// Font Chooser button (matches Tcl's fontchooser toggle in button bar).
 	fontBtn := ttk.NewButton(f, "fontchooser",
-		ttk.ButtonText("Font Chooser..."),
+		ttk.ButtonText("Show Font Dialog"),
 		ttk.ButtonCommand(func() {
 			if f, ok := dialog.ChooseFont(app); ok {
 				if parsed, err := app.FontRegistry().Get(f); err == nil {
@@ -96,7 +86,7 @@ func main() {
 		app.Server().SetInputFocus(tw.Window().PlatformID, platform.RevertToParent, platform.CurrentTime)
 	})
 
-	// Insert sample text matching Tk's text.tcl (7-item list).
+	// Insert sample text matching Tk's text.tcl.
 	tw.Insert("1.0", `This window is a text widget.  It displays one or more lines of text
 and allows you to edit the text.  Here is a summary of the things you
 can do to a text widget:
@@ -140,9 +130,12 @@ cursor.  Control-t transposes the two characters on either side of the
 insertion cursor.  Control-z undoes the last editing action performed,
 and Control-Shift-z redoes undone edits.
 
-7. Resize the window.  Also, if you make the window narrow you can see
-that long lines automatically wrap around onto additional lines so that
-all the information is always visible.`)
+7. Resize the window.  This widget has been configured with the "setGrid"
+option on, so that if you resize the window it will always resize to an
+even number of characters high and wide.  Also, if you make the window
+narrow you can see that long lines automatically wrap around onto
+additional lines so that all the information is always visible.`)
+	tw.MarkSet("insert", "1.0")
 
 	app.Run()
 }

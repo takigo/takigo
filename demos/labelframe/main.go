@@ -1,4 +1,4 @@
-// Demo: Labelframes with text labels containing check/radio buttons.
+// Demo: Toplevel window containing several labelframe widgets.
 // Ported from Tk's labelframe.tcl demo.
 package main
 
@@ -43,12 +43,14 @@ func main() {
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	// Demo area frame.
-	body := frame.New(f, "body")
+	body := frame.New(f, "f")
 	pack.Pack(body, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	// Left labelframe: "Value" with radiobuttons 1-4.
-	lfValue := labelframe.New(body, "lf",
+	lfValue := labelframe.New(body, "f",
 		labelframe.Text("Value"),
+		labelframe.PadX("1.5p"),
+		labelframe.PadY("1.5p"),
 	)
 	grid.Grid(lfValue, grid.Row(0), grid.Column(0), grid.PadX("2m"), grid.PadY("2m"))
 
@@ -66,8 +68,9 @@ func main() {
 	// Right labelframe: checkbutton controls enable/disable of options.
 	// Tcl uses the checkbutton as the labelwidget; we use it as first child
 	// since labelwidget API is not available.
-	lfOpts := labelframe.New(body, "lf2",
-		labelframe.Text("Options"),
+	lfOpts := labelframe.New(body, "f2",
+		labelframe.PadX("1.5p"),
+		labelframe.PadY("1.5p"),
 	)
 	grid.Grid(lfOpts, grid.Row(0), grid.Column(1), grid.PadX("2m"), grid.PadY("2m"))
 
@@ -78,12 +81,13 @@ func main() {
 	enableCb := checkbutton.New(lfOpts, "cb",
 		checkbutton.Text("Use this option."),
 		checkbutton.Var(enableVar),
+		checkbutton.PadX(0),
 	)
 	pack.Pack(enableCb, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY("1.5p"))
 
-	for _, s := range []string{"Option1", "Option2", "Option3"} {
+	for i, s := range []string{"Option1", "Option2", "Option3"} {
 		v := widget.NewVariable(false)
-		cb := checkbutton.New(lfOpts, "opt_"+s,
+		cb := checkbutton.New(lfOpts, fmt.Sprintf("b%d", i),
 			checkbutton.Text(s),
 			checkbutton.Var(v),
 		)

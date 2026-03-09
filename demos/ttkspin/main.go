@@ -9,9 +9,9 @@ import (
 
 	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/demos/demohelper"
+	"github.com/msorc/takigo/geometry"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
-	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/ttk"
 	_ "github.com/msorc/takigo/ttk/clamtheme"
 	_ "github.com/msorc/takigo/ttk/defaulttheme"
@@ -42,14 +42,10 @@ func main() {
 	btns := demohelper.AddSeeDismiss(f)
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
-	padX := screenunit.Px("7.5p")
-	padY := screenunit.Px("3p")
-
 	// Integer spinbox (1-10).
 	s1 := ttk.NewSpinbox(f, "s1",
 		ttk.SpinboxFrom(1),
 		ttk.SpinboxTo(10),
-		ttk.SpinboxIncrement(1),
 		ttk.SpinboxWidth(10),
 		ttk.SpinboxValidate("key"),
 		ttk.SpinboxValidateCmd(func(s string) bool {
@@ -61,7 +57,6 @@ func main() {
 		}),
 	)
 	s1.Set("1")
-	pack.Pack(s1, pack.SideOpt(pack.Top), pack.PadX(padX), pack.PadY(padY))
 
 	// Float spinbox (0-3 step 0.5).
 	s2 := ttk.NewSpinbox(f, "s2",
@@ -72,7 +67,6 @@ func main() {
 		ttk.SpinboxWidth(10),
 	)
 	s2.Set("00.00")
-	pack.Pack(s2, pack.SideOpt(pack.Top), pack.PadX(padX), pack.PadY(padY))
 
 	// Values spinbox (Australian cities).
 	s3 := ttk.NewSpinbox(f, "s3",
@@ -83,10 +77,9 @@ func main() {
 		ttk.SpinboxWidth(10),
 	)
 	s3.Set("Canberra")
-	pack.Pack(s3, pack.SideOpt(pack.Top), pack.PadX(padX), pack.PadY(padY))
 
-	_ = s1
-	_ = s2
-	_ = s3
+	pack.Pack(geometry.Group{s1, s2, s3}, pack.SideOpt(pack.Top),
+		pack.PadY("3p"), pack.PadX("7.5p"))
+
 	app.Run()
 }

@@ -18,7 +18,7 @@ import (
 )
 
 func main() {
-	app, err := takigo.NewApp(takigo.Title("Arrowhead Editor"),
+	app, err := takigo.NewApp(takigo.Title("Arrowhead Editor Demonstration"),
 		takigo.Geometry("+300+300"),
 		takigo.IconName("arrow"),
 	)
@@ -40,13 +40,13 @@ func main() {
 	btns := demohelper.AddSeeDismiss(f)
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
-	c := canvas.New(f, "arrows",
-		canvas.Background("white"),
+	c := canvas.New(f, "c",
 		canvas.Width(500),
 		canvas.Height(350),
+		canvas.ReliefOpt(option.ReliefSunken),
+		canvas.BorderWidthOpt(2),
 	)
-	pack.Pack(c, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
-		pack.Expand(true), pack.PadX(10), pack.PadY(5))
+	pack.Pack(c, pack.Expand(true), pack.FillOpt(pack.FillBoth))
 
 	// Arrow parameters (mutable state shared by closures).
 	a := 8.0    // arrowhead length along shaft
@@ -80,7 +80,8 @@ func main() {
 			x2 - 10*a, y,
 			xtip, y - deltaY,
 			x2, y,
-		}, canvas.OutlineColor("black"), canvas.OutlineWidth(1))
+		}, canvas.OutlineColor("black"), canvas.OutlineWidth(1),
+			canvas.CapStyleOpt(platform.CapRound), canvas.JoinStyleOpt(platform.JoinRound))
 
 		// Control boxes.
 		c.CreateRectangle(x2-10*a-bs, y-bs, x2-10*a+bs, y+bs,
@@ -155,11 +156,11 @@ func main() {
 		c.CreateText(x1, 310,
 			canvas.TextOpt(fmt.Sprintf("-width  %.0f", w)),
 			canvas.AnchorOpt(option.AnchorW),
-			canvas.FontOpt("Helvetica 14"))
+			canvas.FontOpt("Helvetica 18"))
 		c.CreateText(x1, 330,
 			canvas.TextOpt(fmt.Sprintf("-arrowshape  {%.0f  %.0f  %.0f}", a, b, cc)),
 			canvas.AnchorOpt(option.AnchorW),
-			canvas.FontOpt("Helvetica 14"))
+			canvas.FontOpt("Helvetica 18"))
 	}
 
 	redraw()

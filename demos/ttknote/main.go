@@ -11,6 +11,7 @@ import (
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/grid"
 	"github.com/msorc/takigo/geometry/pack"
+	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/ttk"
 	_ "github.com/msorc/takigo/ttk/clamtheme"
 	_ "github.com/msorc/takigo/ttk/defaulttheme"
@@ -38,13 +39,13 @@ func main() {
 	ttk.SetCurrentTheme("clam")
 
 	// Notebook.
-	nb := ttk.NewNotebook(f, "nb")
+	nb := ttk.NewNotebook(f, "note")
 	pack.Pack(nb, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true), pack.PadX("1.5p"), pack.PadY("3p"))
 
 	// Tab 1: Description with "Neat!" button (ttk::frame, grid layout).
-	page1 := ttk.NewFrame(nb, "page1")
-	descLabel := label.New(page1, "desc",
+	page1 := ttk.NewFrame(nb, "msg")
+	descLabel := label.New(page1, "m",
 		label.Text("Ttk is the new Tk themed widget set. One of the widgets "+
 			"it includes is the notebook widget, which provides a set "+
 			"of tabs that allow the selection of a group of panels, "+
@@ -55,15 +56,17 @@ func main() {
 			"selected. Note that the second tab is disabled, and "+
 			"cannot be selected."),
 		label.WrapLength("4i"),
+		label.JustifyOpt(option.JustifyLeft),
+		label.Anchor(option.AnchorN),
 	)
 	grid.Grid(descLabel, grid.Row(0), grid.Column(0), grid.ColumnSpan(2),
 		grid.Sticky(grid.StickN+grid.EW), grid.PadY("1.5p"))
 
-	neatLabel := label.New(page1, "neat",
-		label.Text(""),
+	neatLabel := ttk.NewLabel(page1, "l",
+		ttk.LabelText(""),
 	)
 
-	neatBtn := ttk.NewButton(page1, "neatbtn",
+	neatBtn := ttk.NewButton(page1, "b",
 		ttk.ButtonText("Neat!"),
 		ttk.ButtonCommand(func() {
 			neatLabel.Text = "Yeah, I know..."
@@ -74,30 +77,30 @@ func main() {
 			})
 		}),
 	)
-	grid.Grid(neatBtn, grid.Row(1), grid.Column(0), grid.PadY("1.5p"))
-	grid.Grid(neatLabel, grid.Row(1), grid.Column(1), grid.PadY("1.5p"))
+	grid.Grid(neatBtn, grid.Row(1), grid.Column(0), grid.PadYPair("1.5p", "3p"))
+	grid.Grid(neatLabel, grid.Row(1), grid.Column(1), grid.PadYPair("1.5p", "3p"))
 	grid.RowConfigure(page1, 1, grid.Weight(1))
-	grid.ColumnConfigure(page1, 0, grid.Weight(1))
-	grid.ColumnConfigure(page1, 1, grid.Weight(1))
+	grid.ColumnConfigure(page1, 0, grid.Weight(1), grid.Uniform("1"))
+	grid.ColumnConfigure(page1, 1, grid.Weight(1), grid.Uniform("1"))
 
 	nb.Add(page1.Window(), "Description")
 	nb.SetTabUnderline(0, 0) // Alt+D → Description tab
 
 	// Tab 2: Disabled tab (ttk::frame).
-	page2 := ttk.NewFrame(nb, "page2")
+	page2 := ttk.NewFrame(nb, "disabled")
 	nb.Add(page2.Window(), "Disabled")
 	nb.SetTabState(1, ttk.StateDisabled)
 
 	// Tab 3: Text editor with scrollbar (ttk::frame).
-	page3 := ttk.NewFrame(nb, "page3")
+	page3 := ttk.NewFrame(nb, "editor")
 
-	tw := text.New(page3, "editor",
+	tw := text.New(page3, "t",
 		text.Width(40),
 		text.Height(10),
 		text.WrapModeOpt(text.WrapChar),
 	)
 
-	yscroll := ttk.NewScrollbar(page3, "yscroll",
+	yscroll := ttk.NewScrollbar(page3, "s",
 		ttk.ScrollbarOrientOpt(ttk.Vertical),
 		ttk.ScrollbarCommandOpt(func(args ...any) {
 			if len(args) < 1 {

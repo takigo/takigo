@@ -1,4 +1,4 @@
-// Demo: TTK toolbar with buttons, separator, menubutton, and combobox.
+// Demo: TTK toolbar with styled buttons, checkbutton, menubutton, and combobox.
 // Ported from Tk's toolbar.tcl demo.
 package main
 
@@ -12,7 +12,6 @@ import (
 	"github.com/msorc/takigo/font"
 	"github.com/msorc/takigo/geometry/grid"
 	"github.com/msorc/takigo/geometry/pack"
-	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/ttk"
 	_ "github.com/msorc/takigo/ttk/clamtheme"
 	_ "github.com/msorc/takigo/ttk/defaulttheme"
@@ -36,41 +35,35 @@ func main() {
 	f := frame.New(app, "f")
 	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
-	msg := label.New(f, "msg",
-		label.WrapLength("4i"),
-		label.JustifyOpt(option.JustifyLeft),
-		label.Text("This is a demonstration of how to do a toolbar that is styled correctly. The buttons are configured to be \"toolbar style\" buttons by telling them that they are to use the Toolbutton style. Below the toolbar is a text widget that shows messages when toolbar items are activated."),
-	)
-	pack.Pack(msg, pack.SideOpt(pack.Top))
-
-	btns := demohelper.AddSeeDismiss(f)
-	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
-
 	ttk.SetCurrentTheme("clam")
 
-	// Inner frame (packs into f alongside msg/btnframe).
-	main := ttk.NewFrame(f, "main")
-	pack.Pack(main, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+	// Toolbar frame (classic frame, matching Tcl's "Must be a frame!").
+	toolbar := frame.New(f, "toolbar")
+	grid.Grid(toolbar, grid.Sticky(grid.EW))
 
-	// Toolbar frame (row 0 inside main).
-	toolbar := ttk.NewFrame(main, "toolbar",
-		ttk.FrameBorderWidth(1),
-		ttk.FrameRelief(option.ReliefRaised),
+	// Separator below toolbar.
+	sep := ttk.NewSeparator(f, "sep")
+	grid.Grid(sep, grid.Sticky(grid.EW))
+
+	// Description label.
+	msg := label.New(f, "msg",
+		label.WrapLength("4i"),
+		label.Text("This is a demonstration of how to do a toolbar that is styled correctly. The buttons are configured to be \"toolbar style\" buttons by telling them that they are to use the Toolbutton style. Below the toolbar is a text widget that shows messages when toolbar items are activated."),
 	)
-	grid.Grid(toolbar, grid.Row(0), grid.Column(0), grid.Sticky(grid.EW))
+	grid.Grid(msg, grid.Sticky(grid.EW))
 
-	// Separator below toolbar (row 1).
-	sep0 := ttk.NewSeparator(main, "toolsep", ttk.SeparatorOrient(ttk.Horizontal))
-	grid.Grid(sep0, grid.Row(1), grid.Column(0), grid.Sticky(grid.EW))
-
-	// Text widget for output messages, no scrollbar (row 2, expands).
-	tw := text.New(main, "txt",
+	// Text widget for output messages.
+	tw := text.New(f, "txt",
 		text.Width(40),
 		text.Height(10),
 	)
-	grid.Grid(tw, grid.Row(2), grid.Column(0), grid.Sticky(grid.NSEW))
-	grid.RowConfigure(main, 2, grid.Weight(1))
-	grid.ColumnConfigure(main, 0, grid.Weight(1))
+	grid.Grid(tw, grid.Sticky(grid.NSEW))
+	grid.RowConfigure(f, 3, grid.Weight(1))
+	grid.ColumnConfigure(f, 0, grid.Weight(1))
+
+	// See Code / Dismiss buttons.
+	btns := demohelper.AddSeeDismiss(f)
+	grid.Grid(btns, grid.Sticky(grid.EW))
 
 	// Helper to append text to the output widget.
 	appendMsg := func(msg string) {
@@ -86,9 +79,8 @@ func main() {
 		ttk.ButtonText("Button"),
 		ttk.ButtonCommand(func() { appendMsg("Button Pressed") }),
 	)
-	pack.Pack(btnNew, pack.SideOpt(pack.Left), pack.PadX("1.5p"), pack.PadY("3p"))
 
-	// Check button (TTK checkbutton).
+	// Check button (TTK checkbutton, Tcl uses -style Toolbutton but not available in Go).
 	checkVar := widget.NewVariable(false)
 	checkBtn := ttk.NewCheckbutton(toolbar, "check",
 		ttk.CheckbuttonText("Check"),
@@ -97,14 +89,9 @@ func main() {
 			appendMsg(fmt.Sprintf("check is %v", checkVar.Get()))
 		}),
 	)
-	pack.Pack(checkBtn, pack.SideOpt(pack.Left), pack.PadX("1.5p"), pack.PadY("3p"))
 
-	// Vertical separator.
-	sep := ttk.NewSeparator(toolbar, "sep", ttk.SeparatorOrient(ttk.Vertical))
-	pack.Pack(sep, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillY), pack.PadX("1.5p"), pack.PadY("3p"))
-
-	// Menubutton with example commands (Toolbutton style).
-	exMenu := menu.New(app, "exmenu", menu.TearOffOpt(true))
+	// Menubutton with example commands.
+	exMenu := menu.New(app, "m", menu.TearOffOpt(true))
 	exMenu.AddCommand("Just", func() { appendMsg("Just") })
 	exMenu.AddCommand("An", func() { appendMsg("An") })
 	exMenu.AddCommand("Example", func() { appendMsg("Example") })
@@ -113,7 +100,6 @@ func main() {
 		ttk.MenubuttonText("Menu"),
 		ttk.MenubuttonMenu(exMenu),
 	)
-	pack.Pack(menuBtn, pack.SideOpt(pack.Left), pack.PadX("1.5p"), pack.PadY("3p"))
 
 	// Font family combobox.
 	families := font.ListFamilies()
@@ -129,13 +115,17 @@ func main() {
 			}
 		}),
 	)
-	pack.Pack(combo, pack.SideOpt(pack.Left), pack.PadX("1.5p"), pack.PadY("3p"))
 
-	_ = sep0
-	_ = btnNew
-	_ = checkBtn
+	// Grid toolbar items (matching Tcl's single grid line).
+	grid.Grid(btnNew, grid.Row(0), grid.Column(0),
+		grid.PadX("1.5p"), grid.PadY("3p"), grid.Sticky(grid.NS))
+	grid.Grid(checkBtn, grid.Row(0), grid.Column(1),
+		grid.PadX("1.5p"), grid.PadY("3p"), grid.Sticky(grid.NS))
+	grid.Grid(menuBtn, grid.Row(0), grid.Column(2),
+		grid.PadX("1.5p"), grid.PadY("3p"), grid.Sticky(grid.NS))
+	grid.Grid(combo, grid.Row(0), grid.Column(3),
+		grid.PadX("1.5p"), grid.PadY("3p"), grid.Sticky(grid.NS))
+
 	_ = sep
-	_ = menuBtn
-	_ = combo
 	app.Run()
 }

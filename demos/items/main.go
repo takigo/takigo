@@ -1,4 +1,4 @@
-// Demo: All canvas item types showcase.
+// Demo: Canvas widget with examples of the various canvas item types.
 // Ported from Tk's items.tcl demo.
 package main
 
@@ -18,6 +18,7 @@ import (
 	tkimage "github.com/msorc/takigo/image"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/ttk"
 	"github.com/msorc/takigo/widget/button"
 	"github.com/msorc/takigo/widget/frame"
@@ -40,7 +41,7 @@ func main() {
 	msg := label.New(f, "msg",
 		label.WrapLength("5i"),
 		label.JustifyOpt(option.JustifyLeft),
-		label.Text("This window contains a canvas widget with examples of the various kinds of items supported by canvases. The following operations are supported:\n  Left-button drag: moves item under pointer.\n  Middle-button drag: repositions view.\n  Right-button drag: strokes out area."),
+		label.Text("This window contains a canvas widget with examples of the various kinds of items supported by canvases.  The following operations are supported:\n  Left-Button drag:\tmoves item under pointer.\n  Middle-Button drag:\trepositions view.\n  Right-Button drag:\tstrokes out area.\n  Ctrl+f:\t\tprints items under area."),
 	)
 	pack.Pack(msg, pack.SideOpt(pack.Top))
 
@@ -48,16 +49,16 @@ func main() {
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	// Outer grid frame for canvas + scrollbars.
-	gf := frame.New(f, "gf")
-	pack.Pack(gf, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true),
-		pack.PadX(10), pack.PadY(5))
+	gf := frame.New(f, "frame")
+	pack.Pack(gf, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	// Canvas with scroll region covering all sections including images, bitmaps, and windows.
-	c := canvas.New(gf, "items",
-		canvas.Background("white"),
-		canvas.Width(660),
-		canvas.Height(420),
-		canvas.ScrollRegion(0, 0, 660, 800),
+	c := canvas.New(gf, "c",
+		canvas.Width(screenunit.Px("15c")),
+		canvas.Height(screenunit.Px("10c")),
+		canvas.ScrollRegion(0, 0, screenunit.Px("30c"), screenunit.Px("24c")),
+		canvas.ReliefOpt(option.ReliefSunken),
+		canvas.BorderWidthOpt(2),
 	)
 
 	scrollCmd := func(viewFunc func(n int, pages bool), moveFunc func(f float64)) func(args ...any) {
@@ -82,11 +83,11 @@ func main() {
 		}
 	}
 
-	yscroll := ttk.NewScrollbar(gf, "yscroll",
+	yscroll := ttk.NewScrollbar(gf, "vscroll",
 		ttk.ScrollbarOrientOpt(ttk.Vertical),
 		ttk.ScrollbarCommandOpt(scrollCmd(c.YViewScroll, c.YViewMoveTo)),
 	)
-	xscroll := ttk.NewScrollbar(gf, "xscroll",
+	xscroll := ttk.NewScrollbar(gf, "hscroll",
 		ttk.ScrollbarOrientOpt(ttk.Horizontal),
 		ttk.ScrollbarCommandOpt(scrollCmd(c.XViewScroll, c.XViewMoveTo)),
 	)
@@ -97,10 +98,10 @@ func main() {
 
 	// Grid layout: canvas(0,0), yscroll(0,1), xscroll(1,0).
 	grid.Grid(c, grid.Row(0), grid.Column(0), grid.Sticky(grid.NSEW))
-	grid.Grid(yscroll, grid.Row(0), grid.Column(1), grid.Sticky(grid.NS))
-	grid.Grid(xscroll, grid.Row(1), grid.Column(0), grid.Sticky(grid.EW))
-	grid.RowConfigure(gf, 0, grid.Weight(1))
-	grid.ColumnConfigure(gf, 0, grid.Weight(1))
+	grid.Grid(yscroll, grid.Row(0), grid.Column(1), grid.Sticky(grid.NSEW))
+	grid.Grid(xscroll, grid.Row(1), grid.Column(0), grid.Sticky(grid.NSEW))
+	grid.RowConfigure(gf, 0, grid.Weight(1), grid.MinSize(0))
+	grid.ColumnConfigure(gf, 0, grid.Weight(1), grid.MinSize(0))
 
 	// Track original colors per item ID for hover restore.
 	type itemColors struct {

@@ -1,4 +1,4 @@
-// Demo: TTK frame with nested paned windows and live timezone clocks.
+// Demo: Ttk pane with some content.
 // Ported from Tk's ttkpane.tcl demo.
 package main
 
@@ -48,38 +48,36 @@ func main() {
 	btns := demohelper.AddSeeDismiss(f)
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
-	ttk.SetCurrentTheme("clam")
-
 	// Outer horizontal panedwindow (matches Tcl's ttk::panedwindow -orient horizontal).
 	outer := ttk.NewPanedwindow(f, "outer",
 		panedwindow.OrientOpt(panedwindow.Horizontal),
 	)
-	pack.Pack(outer, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	// Left inner vertical panedwindow.
-	inLeft := ttk.NewPanedwindow(outer, "inleft",
+	inLeft := ttk.NewPanedwindow(outer, "inLeft",
 		panedwindow.OrientOpt(panedwindow.Vertical),
 	)
 	outer.Add(inLeft.Window(), 200)
 
 	// Right inner vertical panedwindow.
-	inRight := ttk.NewPanedwindow(outer, "inright",
+	inRight := ttk.NewPanedwindow(outer, "inRight",
 		panedwindow.OrientOpt(panedwindow.Vertical),
 	)
 	outer.Add(inRight.Window(), 200)
 
 	// --- Left top pane: Button ---
-	buttonLF := labelframe.New(inLeft, "buttonlf",
+	topLF := labelframe.New(inLeft, "top",
 		labelframe.Text("Button"),
 	)
-	inLeft.Add(buttonLF.Window(), 80)
+	inLeft.Add(topLF.Window(), 80)
 
-	pressBtn := ttk.NewButton(buttonLF, "pressbtn",
+	pressBtn := ttk.NewButton(topLF, "b",
 		ttk.ButtonText("Press Me"),
 		ttk.ButtonCommand(func() {
 			dialog.ShowMessage(app,
 				dialog.MsgTitle("Button Pressed"),
-				dialog.MsgMessage("Ouch!\nThat hurt..."),
+				dialog.MsgMessage("Ouch!"),
+				dialog.MsgDetail("That hurt..."),
 				dialog.MsgType(dialog.MsgInfo),
 			)
 		}),
@@ -87,10 +85,10 @@ func main() {
 	pack.Pack(pressBtn, pack.PadX("1.5p"), pack.PadY("3p"))
 
 	// --- Left bottom pane: Clocks ---
-	clocksLF := labelframe.New(inLeft, "clockslf",
+	botLF := labelframe.New(inLeft, "bot",
 		labelframe.Text("Clocks"),
 	)
-	inLeft.Add(clocksLF.Window(), 200)
+	inLeft.Add(botLF.Window(), 200)
 
 	// Timezone data matching Tcl's testzones list.
 	type zoneInfo struct {
@@ -124,18 +122,18 @@ func main() {
 
 		// Separator between entries (matches Tcl's ttk::separator s$i for i > 0).
 		if i > 0 {
-			sep := ttk.NewSeparator(clocksLF, fmt.Sprintf("s%d", i))
+			sep := ttk.NewSeparator(botLF, fmt.Sprintf("s%d", i))
 			pack.Pack(sep, pack.FillOpt(pack.FillX))
 		}
 
 		// City name label.
-		cityLbl := ttk.NewLabel(clocksLF, fmt.Sprintf("l%d", i),
+		cityLbl := ttk.NewLabel(botLF, fmt.Sprintf("l%d", i),
 			ttk.LabelText(z.city),
 		)
 		pack.Pack(cityLbl, pack.FillOpt(pack.FillX))
 
 		// Time label (updated every second).
-		timeLbl := ttk.NewLabel(clocksLF, fmt.Sprintf("t%d", i),
+		timeLbl := ttk.NewLabel(botLF, fmt.Sprintf("t%d", i),
 			ttk.LabelText("--:--:--"),
 		)
 		pack.Pack(timeLbl, pack.FillOpt(pack.FillX))
@@ -156,32 +154,32 @@ func main() {
 	app.After(0, updateClocks)
 
 	// --- Right top pane: Progress ---
-	progressLF := labelframe.New(inRight, "progresslf",
+	rightTopLF := labelframe.New(inRight, "top",
 		labelframe.Text("Progress"),
 	)
-	inRight.Add(progressLF.Window(), 80)
+	inRight.Add(rightTopLF.Window(), 80)
 
-	progress := ttk.NewProgressbar(progressLF, "progress",
+	progress := ttk.NewProgressbar(rightTopLF, "progress",
 		ttk.ProgressbarMode(ttk.ProgressIndeterminate),
 	)
 	pack.Pack(progress, pack.FillOpt(pack.FillBoth), pack.Expand(true))
 	progress.Start(50 * time.Millisecond)
 
 	// --- Right bottom pane: Text ---
-	textLF := labelframe.New(inRight, "textlf",
+	rightBotLF := labelframe.New(inRight, "bot",
 		labelframe.Text("Text"),
 	)
-	inRight.Add(textLF.Window(), 120)
+	inRight.Add(rightBotLF.Window(), 120)
 
 	// Text starts empty (matches Tcl original which has no initial content).
-	txt := text.New(textLF, "txt",
+	txt := text.New(rightBotLF, "txt",
 		text.Width(30),
 		text.WrapModeOpt(text.WrapWord),
 		text.Background("white"),
 		text.BorderWidthOpt(0),
 	)
 
-	sb := ttk.NewScrollbar(textLF, "sb",
+	sb := ttk.NewScrollbar(rightBotLF, "sb",
 		ttk.ScrollbarOrientOpt(ttk.Vertical),
 		ttk.ScrollbarCommandOpt(func(args ...any) {
 			if len(args) < 1 {
@@ -211,6 +209,8 @@ func main() {
 	pack.Pack(sb, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
 	pack.Pack(txt, pack.FillOpt(pack.FillBoth), pack.Expand(true),
 		pack.PadX("1.5p"), pack.PadY("1.5p"))
+
+	pack.Pack(outer, pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	_ = pressBtn
 	_ = progress

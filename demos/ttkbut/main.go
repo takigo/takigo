@@ -1,4 +1,5 @@
-// Demo: TTK buttons, checkbuttons, radiobuttons, separator, and toggleswitch.
+// Demo: Simple Ttk widgets, such as labels, labelframes, buttons, checkbuttons,
+// radiobuttons, a separator and a toggleswitch.
 // Ported from Tk's ttkbut.tcl demo.
 package main
 
@@ -37,7 +38,7 @@ func main() {
 	msg := label.New(f, "msg",
 		label.WrapLength("4i"),
 		label.JustifyOpt(option.JustifyLeft),
-		label.Text("Ttk is the themed widget set. This is a Ttk themed label, "+
+		label.Text("Ttk is the new Tk themed widget set. This is a Ttk themed label, "+
 			"and below are four groups of Ttk widgets in Ttk labelframes. "+
 			"The first group are all buttons that set the current application "+
 			"theme when pressed. The second group contains two sets of "+
@@ -47,12 +48,10 @@ func main() {
 			"themed widgets in this toplevel, except that labelframe and its "+
 			"children, are in the disabled state."),
 	)
-	pack.Pack(msg, pack.SideOpt(pack.Top))
+	pack.Pack(msg, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
 
 	btns := demohelper.AddSeeDismiss(f)
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
-
-	ttk.SetCurrentTheme("clam")
 
 	// Container frame for the grid layout.
 	container := ttk.NewFrame(f, "container")
@@ -69,16 +68,15 @@ func main() {
 
 	themes := ttk.ThemeNames()
 	sort.Strings(themes)
-	for i, theme := range themes {
+	for _, theme := range themes {
 		themeName := theme
-		btn := ttk.NewButton(btnFrame, fmt.Sprintf("theme%d", i),
+		btn := ttk.NewButton(btnFrame, themeName,
 			ttk.ButtonText(themeName),
 			ttk.ButtonCommand(func() {
 				ttk.SetCurrentTheme(themeName)
 			}),
 		)
-		pack.Pack(btn, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
-			pack.PadY("1.5p"))
+		pack.Pack(btn, pack.PadY("1.5p"))
 		ttkWidgets = append(ttkWidgets, &btn.TtkWidget)
 	}
 
@@ -153,7 +151,6 @@ func main() {
 		ttk.LabelText("Enable/disable widgets"),
 	)
 	togSwitch := ttk.NewToggleswitch(togFrame, "sw",
-		ttk.ToggleswitchText(""),
 		ttk.ToggleswitchVar(enabled),
 		ttk.ToggleswitchCommand(func() {
 			for _, w := range ttkWidgets {

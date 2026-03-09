@@ -117,7 +117,7 @@ func main() {
 		label.JustifyOpt(option.JustifyLeft),
 		label.Text("Ttk is the new Tk themed widget set. One of the widgets it includes is a tree widget, which allows the user to browse a hierarchical data-set such as a filesystem. The tree widget not only allows for the tree part itself, but it also supports an arbitrary number of additional columns which can show additional data (in this case, the size of the files found in your filesystem). You can also change the width of the columns by dragging the boundary between them."),
 	)
-	pack.Pack(msg, pack.SideOpt(pack.Top))
+	pack.Pack(msg, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
 
 	btns := demohelper.AddSeeDismiss(f)
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
@@ -125,7 +125,7 @@ func main() {
 	ttk.SetCurrentTheme("clam")
 
 	// Dummy frame for grid layout of treeview + scrollbars.
-	tvFrame := frame.New(f, "tvframe")
+	tvFrame := frame.New(f, "dummy")
 	pack.Pack(tvFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true))
 
@@ -179,8 +179,13 @@ func main() {
 				}
 			}
 
+			displayName := name
+			if entry.IsDir() {
+				displayName = name + "/"
+			}
+
 			childID := tv.Insert(parentID, -1,
-				ttk.ItemText(name),
+				ttk.ItemText(displayName),
 				ttk.ItemValues(sizeStr),
 				ttk.ItemID(fullPath),
 				ttk.ItemImage(icon),
@@ -206,12 +211,8 @@ func main() {
 		}
 	}
 
-	// Start with home directory.
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		homeDir = "/"
-	}
-	populateDir("", homeDir)
+	// Start with root directory (matches Tcl's [file volumes] on Unix).
+	populateDir("", "/")
 
 	// Vertical scrollbar.
 	yscroll := ttk.NewScrollbar(tvFrame, "vsb",
@@ -248,8 +249,8 @@ func main() {
 
 	// Grid layout: treeview row 0 col 0, yscroll row 0 col 1, xscroll row 1 col 0.
 	grid.Grid(tv, grid.Row(0), grid.Column(0), grid.Sticky(grid.NSEW))
-	grid.Grid(yscroll, grid.Row(0), grid.Column(1), grid.Sticky(grid.NS))
-	grid.Grid(xscroll, grid.Row(1), grid.Column(0), grid.Sticky(grid.EW))
+	grid.Grid(yscroll, grid.Row(0), grid.Column(1), grid.Sticky(grid.NSEW))
+	grid.Grid(xscroll, grid.Row(1), grid.Column(0), grid.Sticky(grid.NSEW))
 	grid.ColumnConfigure(tvFrame, 0, grid.Weight(1))
 	grid.RowConfigure(tvFrame, 0, grid.Weight(1))
 

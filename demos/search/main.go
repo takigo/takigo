@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/bind"
@@ -72,7 +73,7 @@ func main() {
 	)
 
 	tw := text.New(f, "text",
-		text.WrapModeOpt(text.WrapWord),
+		text.SetGridOpt(true),
 	)
 
 	scroll.Command = func(args ...any) {
@@ -176,11 +177,22 @@ func main() {
 	pack.Pack(scroll, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
 	pack.Pack(tw, pack.Expand(true), pack.FillOpt(pack.FillBoth))
 
-	// Configure search highlight tag.
-	tw.TagConfigure("search", text.TagForeground("white"), text.TagBackground("#ce5555"))
+	// Set up display styles for text highlighting (blinking toggle).
+	var textToggle func()
+	textToggle = func() {
+		tw.TagConfigure("search", text.TagForeground("white"), text.TagBackground("#ce5555"))
+		tw.Display()
+		app.After(800*time.Millisecond, func() {
+			tw.TagConfigure("search", text.TagForeground(""), text.TagBackground(""))
+			tw.Display()
+			app.After(200*time.Millisecond, textToggle)
+		})
+	}
+	textToggle()
 
 	// Initial text matches Tcl's description.
 	tw.Insert("1.0", "This window demonstrates how to use the tagging facilities in text\nwidgets to implement a searching mechanism.  First, type a file name\nin the top entry, then type <Return> or click on \"Load File\".  Then\ntype a string in the lower entry and type <Return> or click on\n\"Load File\".  This will cause all of the instances of the string to\nbe tagged with the tag \"search\", and it will arrange for the tag's\ndisplay attributes to change to make all of the strings blink.")
+	tw.MarkSet("insert", "0.0")
 
 	// Initial focus on file entry.
 	app.After(0, func() {

@@ -1,4 +1,4 @@
-// Demo: Color picker dialog.
+// Demo: This demonstration script prompts the user to select a color.
 // Ported from Tk's clrpick.tcl demo.
 package main
 
@@ -9,6 +9,7 @@ import (
 	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/dialog"
+	"github.com/msorc/takigo/geometry"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/widget/button"
@@ -18,7 +19,7 @@ import (
 )
 
 func main() {
-	app, err := takigo.NewApp(takigo.Title("Color Picker"),
+	app, err := takigo.NewApp(takigo.Title("Color Selection Dialog"),
 		takigo.Geometry("+300+300"),
 		takigo.IconName("colors"),
 	)
@@ -84,8 +85,7 @@ func main() {
 		}
 	}
 
-	pack.Pack(backBtn, pack.SideOpt(pack.Top), pack.Anchor(0), pack.PadY("2m"))
-	pack.Pack(foreBtn, pack.SideOpt(pack.Top), pack.Anchor(0), pack.PadY("2m"))
+	pack.Pack(geometry.Group{backBtn, foreBtn}, pack.SideOpt(pack.Top), pack.Anchor(option.AnchorCenter), pack.PadY("2m"))
 
 	app.Run()
 }

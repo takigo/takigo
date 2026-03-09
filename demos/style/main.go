@@ -40,6 +40,7 @@ func main() {
 	tw := text.New(f, "text",
 		text.Width(70),
 		text.Height(32),
+		text.SetGridOpt(true),
 		text.WrapModeOpt(text.WrapWord),
 		text.FontOpt("Courier 12"),
 	)
@@ -68,7 +69,7 @@ func main() {
 	}
 
 	pack.Pack(yscroll, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
-	pack.Pack(tw, pack.SideOpt(pack.Left), pack.Expand(true), pack.FillOpt(pack.FillBoth))
+	pack.Pack(tw, pack.Expand(true), pack.FillOpt(pack.FillBoth))
 
 	// Configure display style tags matching Tcl's style.tcl.
 	tw.TagConfigure("bold", text.TagFont("Courier 12 bold italic"))
@@ -97,8 +98,6 @@ func main() {
 	)
 	tw.TagConfigure("raised", text.TagRelief(option.ReliefRaised), text.TagBorderWidth(1))
 	tw.TagConfigure("sunken", text.TagRelief(option.ReliefSunken), text.TagBorderWidth(1))
-	tw.TagConfigure("ridge", text.TagRelief(option.ReliefRidge), text.TagBorderWidth(2))
-	tw.TagConfigure("groove", text.TagRelief(option.ReliefGroove), text.TagBorderWidth(2))
 
 	// Insert content matching Tcl's style.tcl (inline tag segments).
 	// ins inserts text at end and optionally applies tags to the inserted range.
@@ -138,20 +137,27 @@ func main() {
 	ins("  You can ")
 	ins("draw lines through", "overstrike")
 	ins(" ranges of text.\n")
-	ins("\n5. Justification.", "big")
+	ins("\n5. 3-D effects.", "big")
+	ins("  You can arrange for the background to be drawn\nwith a border that makes characters appear either ")
+	ins("raised", "raised")
+	ins(" or ")
+	ins("sunken", "sunken")
+	ins(".\n")
+	ins("\n6. Justification.", "big")
 	ins(" You can arrange for lines to be displayed\n")
 	ins("left-justified,\n")
 	ins("right-justified, or\n", "right")
 	ins("centered.\n", "center")
-	ins("\n6. Superscripts and subscripts.", "big")
+	ins("\n7. Superscripts and subscripts.", "big")
 	ins(" You can control the vertical\n")
 	ins("position of text to generate superscript effects like 10")
 	ins("n", "super")
 	ins(" or\nsubscript effects like X")
 	ins("i", "sub")
 	ins(".\n")
-	ins("\n7. Margins.", "big")
-	ins(" You can control the amount of extra space left on\neach side of the text:\n")
+	ins("\n8. Margins.", "big")
+	ins(" You can control the amount of extra space left")
+	ins(" on\neach side of the text:\n")
 	ins("This paragraph is an example of the use of ", "margins")
 	ins("margins.  It consists of a single line of text ", "margins")
 	ins("that wraps around on the screen.  There are two ", "margins")
@@ -161,7 +167,7 @@ func main() {
 	ins("occur because of wrapping.  There is also a ", "margins")
 	ins("separate specification for the right margin, ", "margins")
 	ins("which is used to choose wrap points for lines.\n", "margins")
-	ins("\n8. Spacing.", "big")
+	ins("\n9. Spacing.", "big")
 	ins(" You can control the spacing of lines with three\n")
 	ins("separate parameters.  \"Spacing1\" tells how much ")
 	ins("extra space to leave\nabove a line, \"spacing3\" ")
@@ -177,22 +183,11 @@ func main() {
 	ins("which results in relatively large gaps between ", "spacing")
 	ins("the paragraphs.  Spacing2 is set to 2 points, ", "spacing")
 	ins("which results in just a bit of extra space ", "spacing")
-	ins("within a paragraph.  Spacing3 isn't used ", "spacing")
+	ins("within a pararaph.  Spacing3 isn't used ", "spacing")
 	ins("in this example.\n", "spacing")
 	ins("To see where the space is, select ranges of ", "spacing")
 	ins("text within these paragraphs.  The selection ", "spacing")
 	ins("highlight will cover the extra space.", "spacing")
-	ins("\n9. Borders.", "big")
-	ins(" You can give text a 3D border using the -relief\n")
-	ins("option on tags.  For example, words can appear ")
-	ins("raised", "raised")
-	ins(", ")
-	ins("sunken", "sunken")
-	ins(",\n")
-	ins("ridge", "ridge")
-	ins(", or ")
-	ins("groove", "groove")
-	ins(".\n")
 
 	text.ReadOnly(true)(tw)
 

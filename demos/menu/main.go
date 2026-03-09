@@ -1,4 +1,4 @@
-// Demo: Menu bar with cascading submenus.
+// Demo: Menus and cascaded menus using menubars.
 // Ported from Tk's menu.tcl demo.
 package main
 
@@ -42,7 +42,7 @@ func main() {
 	msg := label.New(f, "msg",
 		label.WrapLength("4i"),
 		label.JustifyOpt(option.JustifyLeft),
-		label.Text("This window contains a menubar with cascaded menus. You can post a menu from the keyboard by typing Alt+x, where \"x\" is the character underlined on the menu. You can then traverse among the menus using the arrow keys. When a menu is posted, you can invoke the current entry by typing space, or you can invoke any entry by typing its underlined character. If a menu entry has an accelerator, you can invoke the entry without posting the menu just by typing the accelerator."),
+		label.Text("This window contains a menubar with cascaded menus.  You can post a menu from the keyboard by typing Alt+x, where \"x\" is the character underlined on the menu.  You can then traverse among the menus using the arrow keys.  When a menu is posted, you can invoke the current entry by typing space, or you can invoke any entry by typing its underlined character.  If a menu entry has an accelerator, you can invoke the entry without posting the menu just by typing the accelerator. The rightmost menu can be torn off into a palette by selecting the first item in the menu."),
 	)
 	pack.Pack(msg, pack.SideOpt(pack.Top))
 
@@ -50,11 +50,12 @@ func main() {
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	// Status bar at the bottom.
-	statusBar := frame.New(f, "statusbar")
-	statusLabel := label.New(statusBar, "status",
+	statusBar := frame.New(f, "statusBar")
+	statusLabel := label.New(statusBar, "label",
 		label.Text("    "),
 		label.Anchor(option.AnchorW),
 		label.Relief(option.ReliefSunken),
+		label.BorderWidth(1),
 		label.Background("#e8e8e8"),
 		label.PadX(5), label.PadY(2),
 	)
@@ -74,7 +75,7 @@ func main() {
 	pack.Pack(menuBar, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
 
 	// ── File menu ──
-	fileMenu := menu.New(app, "filemenu", menu.TearOffOpt(true))
+	fileMenu := menu.New(app, "filemenu")
 	fileMenu.AddCommand("Open...", func() { setStatus("File > Open") })
 	fileMenu.AddCommand("New", func() { setStatus("File > New") })
 	fileMenu.AddCommand("Save", func() { setStatus("File > Save") })
@@ -143,11 +144,15 @@ func main() {
 
 	// Radio buttons submenu.
 	radioMenu := menu.New(app, "radiomenu")
-	radioMenu.AddRadiobutton("10 point", true, func() { setStatus("Cascades > Radio > 10 point") })
-	radioMenu.AddRadiobutton("14 point", false, func() { setStatus("Cascades > Radio > 14 point") })
+	radioMenu.AddRadiobutton("10 point", false, func() { setStatus("Cascades > Radio > 10 point") })
+	radioMenu.AddRadiobutton("14 point", true, func() { setStatus("Cascades > Radio > 14 point") })
 	radioMenu.AddRadiobutton("18 point", false, func() { setStatus("Cascades > Radio > 18 point") })
 	radioMenu.AddRadiobutton("24 point", false, func() { setStatus("Cascades > Radio > 24 point") })
 	radioMenu.AddRadiobutton("32 point", false, func() { setStatus("Cascades > Radio > 32 point") })
+	radioMenu.AddSeparator()
+	radioMenu.AddRadiobutton("Roman", false, func() { setStatus("Cascades > Radio > Roman") })
+	radioMenu.AddRadiobutton("Bold", true, func() { setStatus("Cascades > Radio > Bold") })
+	radioMenu.AddRadiobutton("Italic", false, func() { setStatus("Cascades > Radio > Italic") })
 	radioMenu.AddSeparator()
 	radioMenu.AddCommand("Show current values", func() {
 		entries := radioMenu.Entries()
@@ -175,6 +180,7 @@ func main() {
 		"Another entry",
 		"Does nothing",
 		"Does almost nothing",
+		"Does almost nothing also",
 		"Make life meaningful",
 	} {
 		lbl := item
@@ -217,7 +223,7 @@ func main() {
 	pack.Pack(iconsMb, pack.SideOpt(pack.Left))
 
 	// ── Colors menu ──
-	colorsMenu := menu.New(app, "colorsmenu")
+	colorsMenu := menu.New(app, "colorsmenu", menu.TearOffOpt(true))
 	for _, color := range []string{"red", "orange", "yellow", "green", "blue"} {
 		c := color
 		colorsMenu.AddCommand(c, func() {

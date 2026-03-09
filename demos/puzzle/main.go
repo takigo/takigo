@@ -1,4 +1,4 @@
-// Demo: 15-puzzle game using buttons and place geometry.
+// Demo: 15-puzzle game using a collection of buttons.
 // Ported from Tk's puzzle.tcl demo.
 package main
 
@@ -19,7 +19,7 @@ import (
 )
 
 func main() {
-	app, err := takigo.NewApp(takigo.Title("15-Puzzle"),
+	app, err := takigo.NewApp(takigo.Title("15-Puzzle Demonstration"),
 		takigo.Geometry("+300+300"),
 		takigo.IconName("15-Puzzle"),
 	)
@@ -34,9 +34,9 @@ func main() {
 	msg := label.New(f, "msg",
 		label.WrapLength("4i"),
 		label.JustifyOpt(option.JustifyLeft),
-		label.Text("A 15-puzzle appears below as a collection of buttons. Click "+
+		label.Text("A 15-puzzle appears below as a collection of buttons.  Click "+
 			"on any of the pieces next to the space, and that piece will "+
-			"slide over the space. Continue this until the pieces are "+
+			"slide over the space.  Continue this until the pieces are "+
 			"arranged in numerical order from upper-left to lower-right."),
 	)
 	pack.Pack(msg, pack.SideOpt(pack.Top))
@@ -45,7 +45,7 @@ func main() {
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	// Puzzle frame (matches Tcl: 90p ≈ 120px, pady 1c padx 1c).
-	puzzleFrame := frame.New(f, "puzzle",
+	puzzleFrame := frame.New(f, "frame",
 		frame.Width(120),
 		frame.Height(120),
 		frame.BorderWidth(2),
@@ -103,10 +103,12 @@ func main() {
 
 			piecePos[num] = pos{col, row}
 			n := num // capture
-			btn := button.New(puzzleFrame, fmt.Sprintf("p%d", num),
+			btn := button.New(puzzleFrame, fmt.Sprintf("%d", num),
 				button.Text(fmt.Sprintf("%d", num)),
+				button.BorderWidth(0),
 				button.Command(func() { tryMove(n) }),
 			)
+			btn.HighlightWidth = 0
 			placePiece(btn.Window(), col, row)
 			buttons = append(buttons, btn)
 			btnMap[num] = btn

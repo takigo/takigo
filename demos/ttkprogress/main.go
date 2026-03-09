@@ -1,4 +1,4 @@
-// Demo: TTK Progressbar with determinate and indeterminate modes.
+// Demo: This demonstration script creates several progress bar widgets.
 // Ported from Tk's ttkprogress.tcl demo.
 package main
 
@@ -21,7 +21,7 @@ import (
 )
 
 func main() {
-	app, err := takigo.NewApp(takigo.Title("Progressbar Demonstration"),
+	app, err := takigo.NewApp(takigo.Title("Progress Bar Demonstration"),
 		takigo.Geometry("+300+300"),
 		takigo.IconName("ttkprogress"),
 	)
@@ -38,7 +38,7 @@ func main() {
 		label.JustifyOpt(option.JustifyLeft),
 		label.Text("Below are two progress bars. The top one is a \"determinate\" progress bar, which is used for showing how far through a defined task the program has got. The bottom one is an \"indeterminate\" progress bar, which is used to show that the program is busy but does not know how long for. Both are run here in self-animated mode, which can be turned on and off using the buttons underneath."),
 	)
-	pack.Pack(msg, pack.SideOpt(pack.Top))
+	pack.Pack(msg, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
 
 	btns := demohelper.AddSeeDismiss(f)
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
@@ -87,7 +87,5 @@ func main() {
 		indPbar.Stop()
 	}
 
-	_ = startBtn
-	_ = stopBtn
 	app.Run()
 }

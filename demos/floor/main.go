@@ -81,22 +81,23 @@ func main() {
 		os.Exit(1)
 	}
 
-	msg := label.New(app, "msg",
+	f := frame.New(app, "f")
+	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+
+	msg := label.New(f, "msg",
 		label.WrapLength("8i"),
 		label.JustifyOpt(option.JustifyLeft),
 		label.Text("This window contains a canvas widget showing the floorplan of Digital Equipment Corporation's Western Research Laboratory. It has three levels. At any given time one of the levels is active, meaning that you can see its room structure. To activate a level, click the left mouse button anywhere on it. As the mouse moves over the active level, the room under the mouse lights up and its room number appears in the \"Room:\" entry. You can also type a room number in the entry and the room will light up."),
 	)
 	pack.Pack(msg, pack.SideOpt(pack.Top))
 
-	btns := demohelper.AddSeeDismiss(app)
+	btns := demohelper.AddSeeDismiss(f)
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
-	f := frame.New(app, "frame")
-	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+	contentFrame := frame.New(f, "frame")
 
 	// Canvas in sunken frame.
-	f1 := frame.New(f, "f1", frame.BorderWidth(2), frame.Relief(option.ReliefSunken))
-	//set c [canvas $f1.c -highlightthickness 0 -xscrollcommand [list $h set] -yscrollcommand [list $v set]]
+	f1 := frame.New(contentFrame, "f1", frame.BorderWidth(2), frame.Relief(option.ReliefSunken))
 	c := canvas.New(f1, "c", canvas.HighlightWidthOpt(0))
 	pack.Pack(c, pack.Expand(true), pack.FillOpt(pack.FillBoth))
 
@@ -123,11 +124,11 @@ func main() {
 		}
 	}
 
-	v := ttk.NewScrollbar(f, "vscroll",
+	v := ttk.NewScrollbar(contentFrame, "vscroll",
 		ttk.ScrollbarOrientOpt(ttk.Vertical),
 		ttk.ScrollbarCommandOpt(scrollCmd(c.YViewScroll, c.YViewMoveTo)),
 	)
-	h := ttk.NewScrollbar(f, "hscroll",
+	h := ttk.NewScrollbar(contentFrame, "hscroll",
 		ttk.ScrollbarOrientOpt(ttk.Horizontal),
 		ttk.ScrollbarCommandOpt(scrollCmd(c.XViewScroll, c.XViewMoveTo)),
 	)
@@ -139,9 +140,9 @@ func main() {
 	grid.Grid(f1, grid.PadX(1), grid.PadY(1), grid.Row(0), grid.Column(0), grid.RowSpan(1), grid.ColumnSpan(1), grid.Sticky(grid.NSEW))
 	grid.Grid(v, grid.PadX(1), grid.PadY(1), grid.Row(0), grid.Column(1), grid.RowSpan(1), grid.ColumnSpan(1), grid.Sticky(grid.NSEW))
 	grid.Grid(h, grid.PadX(1), grid.PadY(1), grid.Row(1), grid.Column(0), grid.RowSpan(1), grid.ColumnSpan(1), grid.Sticky(grid.NSEW))
-	grid.RowConfigure(f, 0, grid.Weight(1), grid.MinSize(0))
-	grid.ColumnConfigure(f, 0, grid.Weight(1), grid.MinSize(0))
-	pack.Pack(f, pack.Expand(true), pack.FillOpt(pack.FillBoth), pack.PadX(1), pack.PadY(1))
+	grid.RowConfigure(contentFrame, 0, grid.Weight(1), grid.MinSize(0))
+	grid.ColumnConfigure(contentFrame, 0, grid.Weight(1), grid.MinSize(0))
+	pack.Pack(contentFrame, pack.Expand(true), pack.FillOpt(pack.FillBoth), pack.PadX(1), pack.PadY(1))
 
 	// Entry widget for room display/input.
 	var highlightedID int64

@@ -1,4 +1,4 @@
-// Demo: TTK Combobox with editable, readonly, and disabled states.
+// Demo: Several combobox widgets.
 // Ported from Tk's combo.tcl demo.
 package main
 
@@ -8,8 +8,10 @@ import (
 
 	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/demos/demohelper"
+	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/ttk"
 	_ "github.com/msorc/takigo/ttk/clamtheme"
 	_ "github.com/msorc/takigo/ttk/defaulttheme"
@@ -36,16 +38,14 @@ func main() {
 		label.JustifyOpt(option.JustifyLeft),
 		label.Text("Three different combo-boxes are displayed below. You can add characters to the first one by pointing, clicking and typing, just as with an entry; pressing Return will cause the current value to be added to the list that is selectable from the drop-down list, and you can choose other values by pressing the Down key, using the arrow keys to pick another one, and pressing Return again. The second combo-box is fixed to a particular value, and cannot be modified at all. The third one only allows you to select values from its drop-down list of Australian cities."),
 	)
-	pack.Pack(msg, pack.SideOpt(pack.Top))
+	pack.Pack(msg, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
 
 	btns := demohelper.AddSeeDismiss(f)
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
-	ttk.SetCurrentTheme("clam")
-
 	// Inner frame (matches Tcl's ttk::frame $w.f).
-	body := ttk.NewFrame(f, "body")
-	pack.Pack(body, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+	body := ttk.NewFrame(f, "f")
+	pack.Pack(body, pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	cities := []string{
 		"Canberra", "Sydney", "Melbourne", "Perth",
@@ -80,11 +80,23 @@ func main() {
 	)
 	pack.Pack(roCombo, pack.PadY("3p"), pack.PadX("7.5p"))
 
-	_ = editFrame
-	_ = editCombo
-	_ = disFrame
+	// Bind Return on editable combobox: add current value to dropdown list.
+	app.Dispatcher().Bind(editCombo.Win.PlatformID, event.KeyPressMask, func(ev *event.Event) {
+		if ev.KeySym == platform.XK_Return {
+			cur := editCombo.Get()
+			if cur == "" {
+				return
+			}
+			for _, v := range editCombo.Values {
+				if v == cur {
+					return
+				}
+			}
+			editCombo.Values = append(editCombo.Values, cur)
+		}
+	})
+
 	_ = disCombo
-	_ = roFrame
 	_ = roCombo
 	app.Run()
 }

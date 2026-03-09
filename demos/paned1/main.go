@@ -1,4 +1,4 @@
-// Demo: Horizontal paned window with colored panes.
+// Demo: Paned window that separates two windows horizontally.
 // Ported from Tk's paned1.tcl demo.
 package main
 
@@ -31,7 +31,7 @@ func main() {
 	msg := label.New(f, "msg",
 		label.WrapLength("4i"),
 		label.JustifyOpt(option.JustifyLeft),
-		label.Text("The sash between the two coloured windows below can be used to divide the area between them. Use the left mouse button to resize by moving the sash."),
+		label.Text("The sash between the two coloured windows below can be used to divide the area between them.  Use the left mouse button to resize without redrawing by just moving the sash, and use the middle mouse button to resize opaquely (always redrawing the windows in each position.)"),
 	)
 	pack.Pack(msg, pack.SideOpt(pack.Top))
 
@@ -39,9 +39,7 @@ func main() {
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	// Paned window.
-	pw := panedwindow.New(f, "panes",
-		panedwindow.OrientOpt(panedwindow.Horizontal),
-	)
+	pw := panedwindow.New(f, "pane")
 	pack.Pack(pw, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true), pack.PadX("2m"), pack.PadY("1.5p"))
 
@@ -58,9 +56,6 @@ func main() {
 	)
 	pw.Add(leftLabel.Window(), 150)
 	pw.Add(rightLabel.Window(), 150)
-
-	_ = leftLabel
-	_ = rightLabel
 
 	app.Run()
 }

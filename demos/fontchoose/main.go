@@ -1,4 +1,4 @@
-// Demo: Font chooser dialog.
+// Demo: Show off the stock font selector dialog.
 // Ported from Tk's fontchoose.tcl demo.
 package main
 
@@ -14,7 +14,6 @@ import (
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/ttk"
 	"github.com/msorc/takigo/widget/frame"
-	"github.com/msorc/takigo/widget/label"
 	"github.com/msorc/takigo/widget/text"
 )
 
@@ -31,23 +30,11 @@ func main() {
 	f := frame.New(app, "f")
 	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
-	msg := label.New(f, "msg",
-		label.WrapLength("4i"),
-		label.JustifyOpt(option.JustifyLeft),
-		label.Text("Press the button below to choose a new font for the text shown in this window."),
-	)
-	pack.Pack(msg, pack.SideOpt(pack.Top))
-
-	btns := demohelper.AddSeeDismiss(f)
-	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
-
-	// Content frame (sunken border like the Tk original), packed into f.
-	cf := ttk.NewFrame(f, "cf",
+	// Content frame (sunken border like the Tk original).
+	cf := ttk.NewFrame(f, "f",
 		ttk.FrameRelief(option.ReliefSunken),
-		ttk.FramePadding(ttk.Padding{Top: 2, Right: 2, Bottom: 2, Left: 2}),
+		ttk.FramePadding(ttk.Padding{Left: 2, Top: 2, Right: 2, Bottom: 2}),
 	)
-	pack.Pack(cf, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true),
-		pack.PadX(10), pack.PadY(5))
 
 	// Text widget + scrollbar in row 0 of cf (grid layout inside cf).
 	tw := text.New(cf, "msg",
@@ -83,11 +70,6 @@ func main() {
 		yscroll.Set(first, last)
 	}
 
-	grid.Grid(tw, grid.Row(0), grid.Column(0), grid.Sticky(grid.NSEW))
-	grid.Grid(yscroll, grid.Row(0), grid.Column(1), grid.Sticky(grid.NS))
-	grid.ColumnConfigure(cf, 0, grid.Weight(1))
-	grid.RowConfigure(cf, 0, grid.Weight(1))
-
 	tw.Insert("end", "Press the buttons below to choose a new font for the "+
 		"text shown in this window.\n")
 
@@ -115,7 +97,22 @@ func main() {
 			}
 		}),
 	)
+
+	grid.Grid(tw, grid.Row(0), grid.Column(0), grid.Sticky(grid.NSEW))
+	grid.Grid(yscroll, grid.Row(0), grid.Column(1), grid.Sticky(grid.NSEW))
 	grid.Grid(setFontBtn, grid.Row(1), grid.Column(0), grid.ColumnSpan(2), grid.Sticky(grid.StickE))
+	grid.ColumnConfigure(cf, 0, grid.Weight(1))
+	grid.RowConfigure(cf, 0, grid.Weight(1))
+
+	// See Code / Dismiss buttons.
+	btns := demohelper.AddSeeDismiss(f)
+
+	// Outer grid layout matching Tcl.
+	grid.Grid(cf, grid.Sticky(grid.NSEW))
+	grid.Grid(btns, grid.Sticky(grid.EW))
+	grid.ColumnConfigure(f, 0, grid.Weight(1))
+	grid.RowConfigure(f, 0, grid.Weight(1))
+	grid.SetPropagate(cf, false)
 
 	_ = yscroll
 	_ = setFontBtn

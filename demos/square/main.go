@@ -1,5 +1,5 @@
 // Demo: Square widget with drag-to-move interaction.
-// Demonstrates the custom square widget from tkSquare.c.
+// Ported from Tk's square demo.
 package main
 
 import (

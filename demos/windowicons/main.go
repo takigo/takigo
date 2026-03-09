@@ -1,5 +1,5 @@
-// Demo: Setting a window icon via the _NET_WM_ICON X11 property.
-// Ported from Tk's windowicons.tcl demo (simplified to EWMH icon).
+// Demo: Showcases the wm iconphoto and wm iconbadge commands.
+// Ported from Tk's windowicons.tcl demo.
 package main
 
 import (
@@ -15,18 +15,16 @@ import (
 	"github.com/msorc/takigo/dialog"
 	"github.com/msorc/takigo/geometry/pack"
 	tkimage "github.com/msorc/takigo/image"
-	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
+	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/button"
 	"github.com/msorc/takigo/widget/frame"
-	"github.com/msorc/takigo/widget/label"
 	"github.com/msorc/takigo/window"
 )
 
 func main() {
 	app, err := takigo.NewApp(takigo.Title("Window Icon Demonstration"),
 		takigo.Geometry("+300+300"),
-		takigo.IconName("windowicons"),
 	)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
@@ -36,19 +34,13 @@ func main() {
 	f := frame.New(app, "f")
 	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
-	msg := label.New(f, "msg",
-		label.WrapLength("4i"),
-		label.JustifyOpt(option.JustifyLeft),
-		label.Text("This demo sets the window icon using the _NET_WM_ICON\nX11 property. The icon should be visible in the window\nmanager's title bar and taskbar."),
-	)
-	pack.Pack(msg, pack.SideOpt(pack.Top))
-
 	btns := demohelper.AddSeeDismiss(f)
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	root := app.Window()
 
-	// Set window icon via _NET_WM_ICON using the Tk feather PNG.
+	// Load the Tk feather icon for both the button image and _NET_WM_ICON.
+	iconPhoto := loadIconPhoto()
 	setWindowIcon(root)
 
 	// Badge buttons (badge is not supported on X11, show info dialog).
@@ -60,26 +52,34 @@ func main() {
 		)
 	}
 
-	// Set icon button (matches Tcl's "Set Window Icon to Globe").
-	iconBtn := button.New(f, "seticon",
+	// Set icon button with image (matches Tcl's $w.i).
+	var iconBtnOpts []button.ButtonOption
+	iconBtnOpts = append(iconBtnOpts,
 		button.Text("Set Window Icon to Feather"),
 		button.Command(func() { setWindowIcon(root) }),
 	)
+	if iconPhoto != nil {
+		iconBtnOpts = append(iconBtnOpts,
+			button.ImageOpt(iconPhoto),
+			button.CompoundOpt(widget.CompoundTop),
+		)
+	}
+	iconBtn := button.New(f, "i", iconBtnOpts...)
 	pack.Pack(iconBtn, pack.FillOpt(pack.FillX), pack.PadX("3p"))
 
-	badge3Btn := button.New(f, "badge3",
+	badge3Btn := button.New(f, "b",
 		button.Text("Set Badge to 3"),
 		button.Command(badgeMsg),
 	)
 	pack.Pack(badge3Btn, pack.FillOpt(pack.FillX), pack.PadX("3p"))
 
-	badge11Btn := button.New(f, "badge11",
+	badge11Btn := button.New(f, "e",
 		button.Text("Set Badge to 11"),
 		button.Command(badgeMsg),
 	)
 	pack.Pack(badge11Btn, pack.FillOpt(pack.FillX), pack.PadX("3p"))
 
-	resetBadgeBtn := button.New(f, "resetbadge",
+	resetBadgeBtn := button.New(f, "f",
 		button.Text("Reset Badge"),
 		button.Command(badgeMsg),
 	)
@@ -92,6 +92,16 @@ func main() {
 func demoImagesDir() string {
 	_, file, _, _ := runtime.Caller(0)
 	return filepath.Join(filepath.Dir(file), "..", "images")
+}
+
+// loadIconPhoto loads the Tk feather PNG as a Photo for use as a button image.
+func loadIconPhoto() *tkimage.Photo {
+	imgPath := filepath.Join(demoImagesDir(), "Tk_feather.png")
+	photo, err := tkimage.NewPhotoFromFile("icon", imgPath)
+	if err != nil {
+		return nil
+	}
+	return photo
 }
 
 // setWindowIcon sets the Tk feather icon via _NET_WM_ICON.

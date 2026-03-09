@@ -1,4 +1,4 @@
-// Demo: Knight's tour visualization on canvas.
+// Demo: Calculate a Knight's tour of a chessboard.
 // Ported from Tk's knightstour.tcl demo.
 package main
 
@@ -104,13 +104,6 @@ func main() {
 	f := frame.New(app, "f")
 	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
-	msg := label.New(f, "msg",
-		label.WrapLength("4i"),
-		label.JustifyOpt(option.JustifyLeft),
-		label.Text(fmt.Sprintf("Knight's tour on a %dx%d board. Click a square to set the starting position, then click Start.", boardSize, boardSize)),
-	)
-	pack.Pack(msg, pack.SideOpt(pack.Top))
-
 	btns := demohelper.AddSeeDismiss(f)
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
@@ -122,7 +115,7 @@ func main() {
 	)
 	pack.Pack(statusLabel, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
-	c := canvas.New(f, "board",
+	c := canvas.New(f, "c",
 		canvas.Background("white"),
 		canvas.Width(400),
 		canvas.Height(400),
@@ -175,10 +168,10 @@ func main() {
 	highlightStart()
 
 	// Button bar.
-	btnFrame := frame.New(f, "buttons")
+	btnFrame := frame.New(f, "tf")
 	pack.Pack(btnFrame, pack.SideOpt(pack.Top), pack.PadX(10), pack.PadY(5))
 
-	startBtn := button.New(btnFrame, "start",
+	startBtn := button.New(btnFrame, "b1",
 		button.Text("Start"),
 		button.PadX(10), button.PadY(4),
 	)
@@ -199,14 +192,14 @@ func main() {
 
 	// Repeat checkbutton.
 	repeatVar := widget.NewVariable(false)
-	repeatChk := checkbutton.New(btnFrame, "repeat",
+	repeatChk := checkbutton.New(btnFrame, "cc",
 		checkbutton.Text("Repeat"),
 		checkbutton.Var(repeatVar),
 	)
 	pack.Pack(repeatChk, pack.SideOpt(pack.Left), pack.PadX(4))
 
 	// Speed slider.
-	speedScale := scale.New(f, "speed",
+	speedScale := scale.New(f, "sc",
 		scale.OrientOpt(scale.Horizontal),
 		scale.FromOpt(50),
 		scale.ToOpt(800),

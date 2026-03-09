@@ -1,4 +1,4 @@
-// Demo: File open/save dialogs.
+// Demo: File selection dialogs.
 // Ported from Tk's filebox.tcl demo.
 package main
 
@@ -13,8 +13,9 @@ import (
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/ttk"
+	_ "github.com/msorc/takigo/ttk/clamtheme"
+	_ "github.com/msorc/takigo/ttk/defaulttheme"
 	"github.com/msorc/takigo/widget"
-	"github.com/msorc/takigo/widget/button"
 	"github.com/msorc/takigo/widget/entry"
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
@@ -53,9 +54,8 @@ func main() {
 	}
 
 	// Grid frame for label + entry + browse button rows.
-	form := frame.New(f, "form")
-	pack.Pack(form, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
-		pack.PadX("1c"))
+	form := ttk.NewFrame(f, "f")
+	pack.Pack(form, pack.FillOpt(pack.FillX), pack.PadX("1c"))
 
 	rows := []struct {
 		label string
@@ -69,14 +69,14 @@ func main() {
 		row := i
 		op := r.op
 
-		l := label.New(form, fmt.Sprintf("lab_%s", op),
-			label.Text(r.label),
+		l := ttk.NewLabel(form, fmt.Sprintf("lab_%s", op),
+			ttk.LabelText(r.label),
 		)
 		e := entry.New(form, fmt.Sprintf("ent_%s", op),
 			entry.Width(20),
 		)
-		b := button.New(form, fmt.Sprintf("but_%s", op),
-			button.Text("Browse ..."),
+		b := ttk.NewButton(form, fmt.Sprintf("but_%s", op),
+			ttk.ButtonText("Browse ..."),
 		)
 
 		// Wire up the browse button command to open the appropriate dialog
@@ -87,12 +87,10 @@ func main() {
 			var ok bool
 			if op == "open" {
 				path, ok = dialog.OpenFile(app,
-					dialog.FileTitle("Open File"),
 					dialog.FileTypes(fileTypes...),
 				)
 			} else {
 				path, ok = dialog.SaveFile(app,
-					dialog.FileTitle("Save File"),
 					dialog.FileTypes(fileTypes...),
 				)
 			}
@@ -105,7 +103,7 @@ func main() {
 
 		grid.Grid(l, grid.Row(row), grid.Column(0), grid.Sticky(grid.StickW), grid.PadY("3p"))
 		grid.Grid(e, grid.Row(row), grid.Column(1), grid.Sticky(grid.EW), grid.PadX("3p"), grid.PadY("3p"))
-		grid.Grid(b, grid.Row(row), grid.Column(2), grid.PadY("3p"))
+		grid.Grid(b, grid.Row(row), grid.Column(2), grid.Sticky(grid.StickW), grid.PadY("3p"))
 	}
 
 	grid.ColumnConfigure(form, 1, grid.Weight(1))
@@ -116,8 +114,7 @@ func main() {
 		ttk.CheckbuttonText("Use Motif Style Dialog"),
 		ttk.CheckbuttonVar(strictMotif),
 	)
-	pack.Pack(strictCb, pack.SideOpt(pack.Top))
-	_ = strictCb
+	pack.Pack(strictCb)
 
 	app.Run()
 }

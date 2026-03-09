@@ -1,4 +1,4 @@
-// Demo: Image viewer — browse and select images from a directory.
+// Demo: Simple collection of widgets to select and view images in a Tk label.
 // Ported from Tk's image2.tcl demo.
 package main
 
@@ -10,8 +10,8 @@ import (
 	"strings"
 
 	"github.com/msorc/takigo"
+	"github.com/msorc/takigo/bind"
 	"github.com/msorc/takigo/demos/demohelper"
-	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/geometry/grid"
 	"github.com/msorc/takigo/geometry/pack"
 	tkimage "github.com/msorc/takigo/image"
@@ -103,7 +103,8 @@ func main() {
 		pack.PadX(0), pack.PadY("2m"))
 
 	// --- "File:" labelframe ---
-	fileLF := labelframe.New(mid, "f", labelframe.Text("File:"))
+	fileLF := labelframe.New(mid, "f", labelframe.Text("File:"),
+		labelframe.PadX("2m"), labelframe.PadY("2m"))
 	lb = listbox.New(fileLF, "list",
 		listbox.Width(20),
 		listbox.Height(10),
@@ -132,7 +133,14 @@ func main() {
 	)
 	lb.YScrollCmd = func(first, last float64) { yscroll.Set(first, last) }
 	pack.Pack(lb, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillY), pack.Expand(true))
-	pack.Pack(yscroll, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillY))
+	pack.Pack(yscroll, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillY), pack.Expand(true))
+
+	// Bind Return on entry to load directory.
+	eng := app.BindEng()
+	eng.Bind(dirEntry.Window().PathName, "<Return>", func(_ *bind.EventData) bool {
+		loadDir(dirEntry.GetText())
+		return true
+	})
 
 	// Pre-load initial file list from images directory.
 	loadDir(imagesDir)
@@ -147,10 +155,7 @@ func main() {
 
 	// Double-click on listbox loads the image.
 	var currentPhotoName string
-	app.Dispatcher().Bind(lb.Window().PlatformID, event.ButtonPressMask, func(ev *event.Event) {
-		if ev.Button != 1 {
-			return
-		}
+	eng.Bind(lb.Window().PathName, "<Double-Button-1>", func(_ *bind.EventData) bool {
 		app.DoWhenIdle(func() {
 			sel := lb.Selection()
 			if len(sel) == 0 {
@@ -183,6 +188,7 @@ func main() {
 			imgLabel.Img = photo
 			imgLabel.Display()
 		})
+		return true
 	})
 
 	// Grid: dir spans 2 cols row 0; f and image on row 1 (matches Tcl's grid layout).

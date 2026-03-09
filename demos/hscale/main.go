@@ -1,4 +1,4 @@
-// Demo: Horizontal scale controlling a canvas arrow length.
+// Demo: This demonstration script shows an example with a horizontal scale.
 // Ported from Tk's hscale.tcl demo.
 package main
 
@@ -33,9 +33,9 @@ func main() {
 	msg := label.New(f, "msg",
 		label.WrapLength("3.5i"),
 		label.JustifyOpt(option.JustifyLeft),
-		label.Text("An arrow and a horizontal scale are displayed below. If you click or drag mouse button 1 in the scale, you can change the length of the arrow."),
+		label.Text("An arrow and a horizontal scale are displayed below.  If you click or drag mouse button 1 in the scale, you can change the length of the arrow."),
 	)
-	pack.Pack(msg, pack.SideOpt(pack.Top))
+	pack.Pack(msg, pack.SideOpt(pack.Top), pack.PadX(".5c"))
 
 	btns := demohelper.AddSeeDismiss(f)
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
@@ -48,8 +48,8 @@ func main() {
 
 	// Canvas for arrow display.
 	c := canvas.New(fr, "canvas",
-		canvas.Width(300),
-		canvas.Height(50),
+		canvas.Width(50),  // 37.5p
+		canvas.Height(50), // 37.5p
 		canvas.BorderWidthOpt(0),
 		canvas.HighlightWidthOpt(0),
 	)
@@ -67,16 +67,20 @@ func main() {
 		if x2 < 21 {
 			x2 = 21
 		}
-		// Polygon: shaft rectangle + triangular arrowhead, closed.
 		coords := []float64{
 			20, 15, 20, 35, x2, 35, x2, 45, width, 25, x2, 5, x2, 15, 20, 15,
 		}
 		c.SetItemCoords("poly", coords)
 		c.SetItemCoords("line", coords)
+
+		if sf := screenunit.ScalingFactor(); sf != 1.0 {
+			c.Scale("poly", 0, 0, sf, sf)
+			c.Scale("line", 0, 0, sf, sf)
+		}
 	}
 
 	// Horizontal scale: 0-250, matching Tcl's -tickinterval 50 -length 213p.
-	sc := scale.New(fr, "hscale",
+	sc := scale.New(fr, "scale",
 		scale.OrientOpt(scale.Horizontal),
 		scale.FromOpt(0),
 		scale.ToOpt(250),
@@ -91,11 +95,8 @@ func main() {
 	pack.Pack(c, pack.SideOpt(pack.Top), pack.Expand(true), pack.Anchor(option.AnchorS), pack.FillOpt(pack.FillX), pack.PadX("12p"))
 	pack.Pack(sc, pack.SideOpt(pack.Bottom), pack.Expand(true), pack.Anchor(option.AnchorN))
 
-	// Set initial arrow and apply DPI scaling (matches Tk's $tk::scalingPct / 100.0).
+	// Set initial arrow.
 	setWidth(75)
-	if sf := screenunit.ScalingFactor(); sf != 1.0 {
-		c.Scale("all", 0, 0, sf, 1.0)
-	}
 
 	app.Run()
 }

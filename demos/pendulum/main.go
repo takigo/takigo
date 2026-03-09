@@ -1,4 +1,4 @@
-// Demo: Pendulum physics simulation on canvas with phase space graph.
+// Demo: Pendulum animation linked to simulation of physical system.
 // Ported from Tk's pendulum.tcl demo.
 package main
 
@@ -16,10 +16,12 @@ import (
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
+	"github.com/msorc/takigo/widget/labelframe"
+	"github.com/msorc/takigo/widget/panedwindow"
 )
 
 func main() {
-	app, err := takigo.NewApp(takigo.Title("Pendulum Simulation"),
+	app, err := takigo.NewApp(takigo.Title("Pendulum Animation Demonstration"),
 		takigo.Geometry("+300+300"),
 		takigo.IconName("pendulum"),
 	)
@@ -34,39 +36,41 @@ func main() {
 	msg := label.New(f, "msg",
 		label.WrapLength("4i"),
 		label.JustifyOpt(option.JustifyLeft),
-		label.Text("This demonstration shows how animations can be linked to simulations of physical systems. In the left canvas is a graphical representation of a simple pendulum, and in the right canvas is a graph of the phase space of the system (angle vs angular velocity). The pendulum bob may be repositioned by clicking and dragging anywhere on the left canvas."),
+		label.Text("This demonstration shows how Tk can be used to carry out animations that are linked to simulations of physical systems. In the left canvas is a graphical representation of the physical system itself, a simple pendulum, and in the right canvas is a graph of the phase space of the system, which is a plot of the angle (relative to the vertical) against the angular velocity. The pendulum bob may be repositioned by clicking and dragging anywhere on the left canvas."),
 	)
 	pack.Pack(msg, pack.SideOpt(pack.Top))
 
 	btns := demohelper.AddSeeDismiss(f)
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
-	// Container frame to hold both canvases side by side.
-	container := frame.New(f, "container")
-	pack.Pack(container, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
-		pack.Expand(true))
+	// Panedwindow with two labelframes (matches Tcl structure).
+	pw := panedwindow.New(f, "p")
+	pack.Pack(pw, pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
-	// Left canvas: pendulum visualization (matches Tcl: 240p x 150p ≈ 320x200).
-	pendulumCanvas := canvas.New(container, "pendulum",
+	l1 := labelframe.New(pw, "l1", labelframe.Text("Pendulum Simulation"))
+	l2 := labelframe.New(pw, "l2", labelframe.Text("Phase Space"))
+	pw.Add(l1.Window(), 1)
+	pw.Add(l2.Window(), 1)
+
+	// Left canvas: pendulum visualization.
+	pendulumCanvas := canvas.New(l1, "c",
 		canvas.Background("white"),
 		canvas.Width(320),
 		canvas.Height(200),
 		canvas.BorderWidthOpt(2),
 		canvas.ReliefOpt(option.ReliefSunken),
 	)
-	pack.Pack(pendulumCanvas, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth),
-		pack.Expand(true))
+	pack.Pack(pendulumCanvas, pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	// Right canvas: phase space graph.
-	phaseCanvas := canvas.New(container, "phase",
+	phaseCanvas := canvas.New(l2, "k",
 		canvas.Background("white"),
 		canvas.Width(320),
 		canvas.Height(200),
 		canvas.BorderWidthOpt(2),
 		canvas.ReliefOpt(option.ReliefSunken),
 	)
-	pack.Pack(phaseCanvas, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth),
-		pack.Expand(true))
+	pack.Pack(phaseCanvas, pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	// Pendulum parameters (scaled to match Tcl: 120p pivot height, 111p length).
 	pivotX, pivotY := 160.0, 24.0

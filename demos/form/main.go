@@ -32,7 +32,7 @@ func main() {
 		label.JustifyOpt(option.JustifyLeft),
 		label.Text("This window contains a simple form where you can type in the various entries and use tabs to move circularly between the entries."),
 	)
-	pack.Pack(msg, pack.SideOpt(pack.Top))
+	pack.Pack(msg, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
 
 	btns := demohelper.AddSeeDismiss(f)
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))

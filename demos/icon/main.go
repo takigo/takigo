@@ -1,68 +1,26 @@
-// Demo: Iconic buttons with checkbuttons and radiobuttons using images.
+// Demo: Iconic buttons that display bitmaps instead of text.
 // Ported from Tk's icon.tcl demo.
 package main
 
 import (
 	"fmt"
-	goimage "image"
 	"image/color"
 	"os"
+	"path/filepath"
+	"runtime"
 
 	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/pack"
 	tkimage "github.com/msorc/takigo/image"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/checkbutton"
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
 	"github.com/msorc/takigo/widget/radiobutton"
 )
-
-func makeFlagImage(name string, up bool) *tkimage.Photo {
-	const w, h = 40, 40
-	img := goimage.NewRGBA(goimage.Rect(0, 0, w, h))
-	bg := color.RGBA{R: 220, G: 220, B: 220, A: 255}
-	pole := color.RGBA{R: 80, G: 60, B: 40, A: 255}
-	flag := color.RGBA{R: 200, G: 40, B: 40, A: 255}
-	for y := range h {
-		for x := range w {
-			img.SetRGBA(x, y, bg)
-		}
-	}
-	// Pole.
-	for y := 4; y < h-2; y++ {
-		img.SetRGBA(8, y, pole)
-		img.SetRGBA(9, y, pole)
-	}
-	// Flag (raised: near top; lowered: near bottom).
-	fy := 4
-	if !up {
-		fy = 20
-	}
-	for y := fy; y < fy+14; y++ {
-		for x := 10; x < 30; x++ {
-			img.SetRGBA(x, y, flag)
-		}
-	}
-	return tkimage.NewPhoto(name, img)
-}
-
-func makeColorSquare(name string, c color.RGBA, sz int) *tkimage.Photo {
-	img := goimage.NewRGBA(goimage.Rect(0, 0, sz, sz))
-	border := color.RGBA{R: 0, G: 0, B: 0, A: 255}
-	for y := range sz {
-		for x := range sz {
-			if x < 2 || x >= sz-2 || y < 2 || y >= sz-2 {
-				img.SetRGBA(x, y, border)
-			} else {
-				img.SetRGBA(x, y, c)
-			}
-		}
-	}
-	return tkimage.NewPhoto(name, img)
-}
 
 func main() {
 	app, err := takigo.NewApp(takigo.Title("Iconic Button Demonstration"),
@@ -81,10 +39,10 @@ func main() {
 		label.WrapLength("5i"),
 		label.JustifyOpt(option.JustifyLeft),
 		label.Text("This window shows three ways of using bitmaps or images in "+
-			"radiobuttons and checkbuttons. On the left are two "+
+			"radiobuttons and checkbuttons.  On the left are two "+
 			"radiobuttons, each of which displays a bitmap and an "+
-			"indicator. In the middle is a checkbutton that displays a "+
-			"different image depending on whether it is selected or not. "+
+			"indicator.  In the middle is a checkbutton that displays a "+
+			"different image depending on whether it is selected or not.  "+
 			"On the right is a checkbutton that displays a single bitmap "+
 			"but changes its background color to indicate whether or not "+
 			"it is selected."),
@@ -94,99 +52,85 @@ func main() {
 	btns := demohelper.AddSeeDismiss(f)
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
-	// Create flag images.
-	flagUp := makeFlagImage("flag_up", true)
-	flagDown := makeFlagImage("flag_down", false)
-	app.ImageRegistry().Register(flagUp)
-	app.ImageRegistry().Register(flagDown)
+	// Load XBM images.
+	black := color.RGBA{R: 0, G: 0, B: 0, A: 255}
+	white := color.RGBA{R: 255, G: 255, B: 255, A: 255}
 
-	// Create color square images.
-	redImg := makeColorSquare("sq_red", color.RGBA{R: 220, G: 40, B: 40, A: 255}, 30)
-	greenImg := makeColorSquare("sq_green", color.RGBA{R: 40, G: 180, B: 40, A: 255}, 30)
-	app.ImageRegistry().Register(redImg)
-	app.ImageRegistry().Register(greenImg)
+	flagup, _ := tkimage.NewPhotoFromXBMFile("flagup", findImage("flagup.xbm"), black, white)
+	flagdown, _ := tkimage.NewPhotoFromXBMFile("flagdown", findImage("flagdown.xbm"), black, white)
+	lettersImg, _ := tkimage.NewPhotoFromXBMFile("letters", findImage("letters.xbm"), black, white)
+	noletterImg, _ := tkimage.NewPhotoFromXBMFile("noletter", findImage("noletter.xbm"), black, white)
+	app.ImageRegistry().Register(flagup)
+	app.ImageRegistry().Register(flagdown)
+	app.ImageRegistry().Register(lettersImg)
+	app.ImageRegistry().Register(noletterImg)
 
-	// Shared variable.
-	flagVar := widget.NewVariable(false)
-
-	// Outer frame to hold three columns.
-	outer := frame.New(f, "outer")
-	pack.Pack(outer, pack.SideOpt(pack.Top), pack.Expand(true), pack.FillOpt(pack.FillBoth))
-
-	// -- Left column: radiobuttons with images + indicators --
-	leftFrame := frame.New(outer, "left",
-		frame.BorderWidth(2), frame.Relief(option.ReliefGroove),
+	// frame $w.frame -borderwidth 7.5p
+	fr := frame.New(f, "frame",
+		frame.BorderWidth(screenunit.Px("7.5p")),
 	)
-	pack.Pack(leftFrame, pack.SideOpt(pack.Left), pack.PadX(10), pack.PadY(10), pack.Expand(true))
+	pack.Pack(fr, pack.SideOpt(pack.Top))
 
-	ltitle := label.New(leftFrame, "ltitle",
-		label.Text("Radiobuttons\nwith images"),
-		label.Anchor(option.AnchorCenter),
-	)
-	pack.Pack(ltitle, pack.SideOpt(pack.Top), pack.PadY(4))
-	// Use a string variable for radiobuttons (separate from flagVar).
-	rbVar := widget.NewVariable("down")
-	rbUp := radiobutton.New(leftFrame, "rb_up",
-		radiobutton.Text("Flag Up"),
-		radiobutton.Value("up"),
-		radiobutton.Var(rbVar),
-	)
-	rbDown := radiobutton.New(leftFrame, "rb_down",
-		radiobutton.Text("Flag Down"),
-		radiobutton.Value("down"),
-		radiobutton.Var(rbVar),
-	)
-	pack.Pack(rbUp, pack.SideOpt(pack.Top), pack.PadY(4), pack.Anchor(option.AnchorW))
-	pack.Pack(rbDown, pack.SideOpt(pack.Top), pack.PadY(4), pack.Anchor(option.AnchorW))
-
-	// -- Middle column: checkbutton with selectimage --
-	midFrame := frame.New(outer, "mid",
-		frame.BorderWidth(2), frame.Relief(option.ReliefGroove),
-	)
-	pack.Pack(midFrame, pack.SideOpt(pack.Left), pack.PadX(10), pack.PadY(10), pack.Expand(true))
-
-	mtitle := label.New(midFrame, "mtitle",
-		label.Text("Checkbutton\nselectimage"),
-		label.Anchor(option.AnchorCenter),
-	)
-	pack.Pack(mtitle, pack.SideOpt(pack.Top), pack.PadY(4))
-	// Middle checkbutton: flagDown normally, flagUp when selected; no indicator.
-	cbMid := checkbutton.New(midFrame, "cb_mid",
-		checkbutton.ImageOpt(flagDown),
-		checkbutton.SelectImageOpt(flagUp),
+	// checkbutton $w.frame.b1 -image flagdown -selectimage flagup -indicatoron 0
+	b1 := checkbutton.New(fr, "b1",
+		checkbutton.ImageOpt(flagdown),
+		checkbutton.SelectImageOpt(flagup),
 		checkbutton.IndicatorOnOpt(false),
-		checkbutton.Var(flagVar),
 	)
-	pack.Pack(cbMid, pack.SideOpt(pack.Top), pack.PadY(8))
+	// $w.frame.b1 configure -selectcolor [$w.frame.b1 cget -background]
+	// (set selectcolor to background so it's invisible when selected)
+	b1.SelectColor = nil
 
-	// -- Right column: checkbutton changing background via selectcolor --
-	rightFrame := frame.New(outer, "right",
-		frame.BorderWidth(2), frame.Relief(option.ReliefGroove),
-	)
-	pack.Pack(rightFrame, pack.SideOpt(pack.Left), pack.PadX(10), pack.PadY(10), pack.Expand(true))
-
-	rtitle := label.New(rightFrame, "rtitle",
-		label.Text("Checkbutton\ncolor squares"),
-		label.Anchor(option.AnchorCenter),
-	)
-	pack.Pack(rtitle, pack.SideOpt(pack.Top), pack.PadY(4))
-	// Right checkbutton: single color-square image, changes background on select.
-	colorVar := widget.NewVariable(false)
-	cbRight := checkbutton.New(rightFrame, "cb_right",
-		checkbutton.ImageOpt(redImg),
-		checkbutton.SelectImageOpt(greenImg),
+	// checkbutton $w.frame.b2 -bitmap letters -indicatoron 0 -selectcolor SeaGreen1
+	b2 := checkbutton.New(fr, "b2",
+		checkbutton.ImageOpt(lettersImg),
 		checkbutton.IndicatorOnOpt(false),
-		checkbutton.Var(colorVar),
-		checkbutton.Text("Toggle"),
 	)
-	pack.Pack(cbRight, pack.SideOpt(pack.Top), pack.PadY(8))
+	if sc, err := app.ColorCache().Get("SeaGreen1"); err == nil {
+		b2.SelectColor = sc.Ref()
+	}
 
-	_ = rbVar
-	_ = rbUp
-	_ = rbDown
-	_ = cbMid
-	_ = cbRight
-	_ = flagVar
-	_ = colorVar
+	// frame $w.frame.left
+	left := frame.New(fr, "left")
+
+	// pack $w.frame.left $w.frame.b1 $w.frame.b2 -side left -expand yes -padx 5m
+	pack.Pack(left, pack.SideOpt(pack.Left), pack.Expand(true), pack.PadX("5m"))
+	pack.Pack(b1, pack.SideOpt(pack.Left), pack.Expand(true), pack.PadX("5m"))
+	pack.Pack(b2, pack.SideOpt(pack.Left), pack.Expand(true), pack.PadX("5m"))
+
+	// radiobutton $w.frame.left.b3 -bitmap letters -variable letters -value full
+	lettersVar := widget.NewVariable("full")
+	b3 := radiobutton.New(left, "b3",
+		radiobutton.ImageOpt(lettersImg),
+		radiobutton.Var(lettersVar),
+		radiobutton.Value("full"),
+	)
+	// radiobutton $w.frame.left.b4 -bitmap noletter -variable letters -value empty
+	b4 := radiobutton.New(left, "b4",
+		radiobutton.ImageOpt(noletterImg),
+		radiobutton.Var(lettersVar),
+		radiobutton.Value("empty"),
+	)
+	// pack $w.frame.left.b3 $w.frame.left.b4 -side top -expand yes
+	pack.Pack(b3, pack.SideOpt(pack.Top), pack.Expand(true))
+	pack.Pack(b4, pack.SideOpt(pack.Top), pack.Expand(true))
+
+	_ = b1
+	_ = b2
+	_ = lettersVar
 	app.Run()
+}
+
+// findImage locates an image in the demos/images/ directory.
+func findImage(name string) string {
+	_, file, _, ok := runtime.Caller(0)
+	if !ok {
+		return ""
+	}
+	demosRoot := filepath.Dir(filepath.Dir(file))
+	path := filepath.Join(demosRoot, "images", name)
+	if _, err := os.Stat(path); err == nil {
+		return path
+	}
+	return ""
 }

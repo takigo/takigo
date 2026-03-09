@@ -1,4 +1,4 @@
-// Demo: Multi-column sortable list using TTK Treeview.
+// Demo: Multi-column listbox using a Ttk tree widget.
 // Ported from Tk's mclist.tcl demo.
 package main
 
@@ -59,9 +59,9 @@ func main() {
 	msg := label.New(f, "msg",
 		label.WrapLength("4i"),
 		label.JustifyOpt(option.JustifyLeft),
-		label.Text("One of the Ttk widgets is a tree widget, which can be configured to display multiple columns of informational data without displaying the tree itself. This is a simple way to build a listbox that has multiple columns. Clicking on the heading for a column will sort the data by that column. You can also change the width of the columns by dragging the boundary between them."),
+		label.Text("Ttk is the new Tk themed widget set. One of the widgets it includes is a tree widget, which can be configured to display multiple columns of informational data without displaying the tree itself. This is a simple way to build a listbox that has multiple columns. Clicking on the heading for a column will sort the data by that column. You can also change the width of the columns by dragging the boundary between them."),
 	)
-	pack.Pack(msg, pack.SideOpt(pack.Top))
+	pack.Pack(msg, pack.FillOpt(pack.FillX))
 
 	btns := demohelper.AddSeeDismiss(f)
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
@@ -69,10 +69,10 @@ func main() {
 	ttk.SetCurrentTheme("clam")
 
 	// Container frame (grid layout for treeview + scrollbars).
-	tvFrame := frame.New(f, "container")
-	pack.Pack(tvFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+	tvFrame := ttk.NewFrame(f, "container")
+	pack.Pack(tvFrame, pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
-	tv := ttk.NewTreeview(tvFrame, "mclist",
+	tv := ttk.NewTreeview(tvFrame, "tree",
 		ttk.TreeviewColumns("country", "capital", "currency"),
 		ttk.TreeviewShow("headings"),
 	)
@@ -80,7 +80,7 @@ func main() {
 	// Configure columns.
 	tv.ColumnConfigure("country", ttk.ColWidth(180))
 	tv.ColumnConfigure("capital", ttk.ColWidth(180))
-	tv.ColumnConfigure("currency", ttk.ColWidth(80), ttk.ColAnchor(option.AnchorCenter))
+	tv.ColumnConfigure("currency", ttk.ColWidth(80))
 
 	// Sort state tracker.
 	sortReverse := map[string]bool{}
@@ -120,9 +120,9 @@ func main() {
 	}
 
 	// Configure headings.
-	tv.HeadingConfigure("country", ttk.HeadText("Country"), ttk.HeadCommand(makeSortCmd("country")))
-	tv.HeadingConfigure("capital", ttk.HeadText("Capital"), ttk.HeadCommand(makeSortCmd("capital")))
-	tv.HeadingConfigure("currency", ttk.HeadText("Currency"), ttk.HeadCommand(makeSortCmd("currency")))
+	tv.HeadingConfigure("country", ttk.HeadText("Country"), ttk.HeadAnchor(option.AnchorW), ttk.HeadCommand(makeSortCmd("country")))
+	tv.HeadingConfigure("capital", ttk.HeadText("Capital"), ttk.HeadAnchor(option.AnchorW), ttk.HeadCommand(makeSortCmd("capital")))
+	tv.HeadingConfigure("currency", ttk.HeadText("Currency"), ttk.HeadAnchor(option.AnchorW), ttk.HeadCommand(makeSortCmd("currency")))
 
 	// Insert data.
 	for _, c := range countries {

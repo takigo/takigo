@@ -1,4 +1,4 @@
-// Demo: Photo images in labels.
+// Demo: This demonstration script displays two image widgets.
 // Ported from Tk's image1.tcl demo.
 package main
 
@@ -42,10 +42,10 @@ func main() {
 
 	// Load the two earth images from demos/images/.
 	for _, info := range []struct {
-		name, file string
+		name, file, labelName string
 	}{
-		{"image1a", "earth.gif"},
-		{"image1b", "earthris.gif"},
+		{"image1a", "earth.gif", "l1"},
+		{"image1b", "earthris.gif", "l2"},
 	} {
 		path := findImage(info.file)
 		if path == "" {
@@ -59,13 +59,12 @@ func main() {
 		}
 		app.ImageRegistry().Register(photo)
 
-		l := label.New(f, "l_"+info.name,
+		l := label.New(f, info.labelName,
 			label.ImageOpt(photo),
 			label.BorderWidth(1),
 			label.Relief(option.ReliefSunken),
 		)
 		pack.Pack(l, pack.SideOpt(pack.Top), pack.PadX(".5m"), pack.PadY(".5m"))
-		_ = l
 	}
 
 	app.Run()

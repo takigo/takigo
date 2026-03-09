@@ -1,4 +1,4 @@
-// Demo: Two text widgets sharing the same logical document (true peering).
+// Demo: A pair of text widgets that can edit a single logical buffer.
 // Ported from Tk's textpeer.tcl demo.
 package main
 
@@ -10,11 +10,9 @@ import (
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/grid"
 	"github.com/msorc/takigo/geometry/pack"
-	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/ttk"
 	"github.com/msorc/takigo/widget/button"
 	"github.com/msorc/takigo/widget/frame"
-	"github.com/msorc/takigo/widget/label"
 	"github.com/msorc/takigo/widget/text"
 )
 
@@ -31,69 +29,52 @@ func main() {
 	f := frame.New(app, "f")
 	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
-	msg := label.New(f, "msg",
-		label.WrapLength("4i"),
-		label.JustifyOpt(option.JustifyLeft),
-		label.Text("A demonstration of the text peer facility. The two text widgets "+
-			"below are peers of each other; they display and edit the same "+
-			"underlying document. Note that editing in one peer immediately "+
-			"updates the other. Each peer can show a different part of the "+
-			"document and has its own insert cursor and selection."),
-	)
-	pack.Pack(msg, pack.SideOpt(pack.Top))
+	count := 0
 
-	btns := demohelper.AddSeeDismiss(f)
-	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
+	// Define a widget that we peer from; it won't ever be shown.
+	count++
+	first := text.New(f, fmt.Sprintf("text%d", count))
+	first.Insert("end", "This is a coupled pair of text widgets; they are peers to "+
+		"each other. They have the same underlying data model, but "+
+		"can show different locations, have different current edit "+
+		"locations, and have different selections. You can also "+
+		"create additional peers of any of these text widgets using "+
+		"the Make Peer button beside the text widget to clone, and "+
+		"delete a particular peer widget using the Delete Peer "+
+		"button.")
+	sharedDoc := first.Doc()
 
-	// Inner frame for grid layout.
-	w := frame.New(f, "w")
-	pack.Pack(w, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+	// peerWidgets holds references for cleanup.
+	type peerInfo struct {
+		tw   *text.TextWidget
+		sb   *ttk.Scrollbar
+		make *button.Button
+		kill *button.Button
+	}
+	peers := make(map[int]*peerInfo)
 
-	// Initial content.
-	content := "This is a coupled pair of text widgets; they are peers to " +
-		"each other. They share the same underlying data model, so " +
-		"editing in one immediately updates the other. Each peer can " +
-		"show a different location in the document, and each has its " +
-		"own insert cursor and selection.\n\nTry editing in either widget!"
+	var makeClone func()
 
-	// peerWidgets holds all current peer TextWidgets.
-	var peerWidgets []*text.TextWidget
-	peerCount := 0
-
-	// doc will be set after creating the first widget.
-	var sharedDoc *text.Document
-
-	// removePeer removes the peer at peerIdx from the frame and list.
-	var removePeer func(tw *text.TextWidget)
-
-	// addPeer adds a new peer row using the shared document.
-	var addPeer func()
-
-	addPeer = func() {
-		peerCount++
-		idx := peerCount
-
-		var tw *text.TextWidget
-		if sharedDoc == nil {
-			// Primary widget — owns the document.
-			tw = text.New(w, fmt.Sprintf("text%d", idx),
-				text.Height(10),
-				text.WrapModeOpt(text.WrapWord),
-			)
-			sharedDoc = tw.Doc()
-			tw.Insert("1.0", content)
-		} else {
-			// Peer widget — shares the document.
-			tw = text.NewPeer(sharedDoc, w, fmt.Sprintf("text%d", idx),
-				text.Height(10),
-				text.WrapModeOpt(text.WrapWord),
-			)
+	killClone := func(idx int) {
+		if p, ok := peers[idx]; ok {
+			app.Server().UnmapWindow(p.tw.Win.PlatformID)
+			app.Server().UnmapWindow(p.sb.Win.PlatformID)
+			app.Server().UnmapWindow(p.make.Win.PlatformID)
+			app.Server().UnmapWindow(p.kill.Win.PlatformID)
+			delete(peers, idx)
 		}
-		peerWidgets = append(peerWidgets, tw)
+	}
 
-		row := (idx - 1) * 2
+	makeClone = func() {
+		count++
+		idx := count
 
-		sb := ttk.NewScrollbar(w, fmt.Sprintf("sb%d", idx),
+		tw := text.NewPeer(sharedDoc, f, fmt.Sprintf("text%d", idx),
+			text.Height(10),
+			text.WrapModeOpt(text.WrapWord),
+		)
+
+		sb := ttk.NewScrollbar(f, fmt.Sprintf("sb%d", idx),
 			ttk.ScrollbarOrientOpt(ttk.Vertical),
 			ttk.ScrollbarCommandOpt(func(args ...any) {
 				if len(args) < 1 {
@@ -102,8 +83,8 @@ func main() {
 				switch args[0] {
 				case "moveto":
 					if len(args) >= 2 {
-						if f, ok := args[1].(float64); ok {
-							tw.YViewMoveTo(f)
+						if fv, ok := args[1].(float64); ok {
+							tw.YViewMoveTo(fv)
 						}
 					}
 				case "scroll":
@@ -117,46 +98,42 @@ func main() {
 		)
 		tw.YScrollCmd = func(first, last float64) { sb.Set(first, last) }
 
-		makeBtn := button.New(w, fmt.Sprintf("clone%d", idx),
+		makeBtn := button.New(f, fmt.Sprintf("clone%d", idx),
 			button.Text("Make Peer"),
-			button.Command(addPeer),
+			button.Command(makeClone),
 		)
-		deleteBtn := button.New(w, fmt.Sprintf("kill%d", idx),
+		killBtn := button.New(f, fmt.Sprintf("kill%d", idx),
 			button.Text("Delete Peer"),
-			button.Command(func() { removePeer(tw) }),
+			button.Command(func() { killClone(idx) }),
 		)
 
+		peers[idx] = &peerInfo{tw: tw, sb: sb, make: makeBtn, kill: killBtn}
+
+		row := idx * 2
 		grid.Grid(tw, grid.Row(row), grid.Column(0), grid.RowSpan(2),
 			grid.Sticky(grid.NSEW))
 		grid.Grid(sb, grid.Row(row), grid.Column(1), grid.RowSpan(2),
-			grid.Sticky(grid.NS))
+			grid.Sticky(grid.NSEW))
 		grid.Grid(makeBtn, grid.Row(row), grid.Column(2),
 			grid.Sticky(grid.StickN+grid.EW))
-		grid.Grid(deleteBtn, grid.Row(row+1), grid.Column(2),
+		grid.Grid(killBtn, grid.Row(row+1), grid.Column(2),
 			grid.Sticky(grid.StickN+grid.EW))
-	}
-
-	removePeer = func(tw *text.TextWidget) {
-		// Don't remove if only one peer left.
-		if len(peerWidgets) <= 1 {
-			return
-		}
-		// Remove from list.
-		for i, p := range peerWidgets {
-			if p == tw {
-				peerWidgets = append(peerWidgets[:i], peerWidgets[i+1:]...)
-				break
-			}
-		}
-		// Destroy the widget's window (unmap + free resources).
-		app.Server().UnmapWindow(tw.Win.PlatformID)
+		grid.RowConfigure(f, row+1, grid.Weight(1))
 	}
 
 	// Create two initial peers.
-	addPeer()
-	addPeer()
+	makeClone()
+	makeClone()
 
-	grid.ColumnConfigure(w, 0, grid.Weight(1))
+	// Destroy the hidden first text widget.
+	app.Server().UnmapWindow(first.Win.PlatformID)
+
+	// See Code / Dismiss buttons.
+	btns := demohelper.AddSeeDismiss(f)
+	grid.Grid(btns, grid.Row(5000), grid.Column(0), grid.ColumnSpan(3),
+		grid.Sticky(grid.EW))
+
+	grid.ColumnConfigure(f, 0, grid.Weight(1))
 
 	app.Run()
 }

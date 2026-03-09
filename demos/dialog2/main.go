@@ -1,4 +1,4 @@
-// Demo: Modal dialog with global grab.
+// Demo: Dialog box with a global grab.
 // Ported from Tk's dialog2.tcl demo.
 package main
 
@@ -32,7 +32,7 @@ func main() {
 	msg := label.New(f, "msg",
 		label.WrapLength("4i"),
 		label.JustifyOpt(option.JustifyLeft),
-		label.Text("This dialog box uses a global grab. You will be prevented from interacting with anything on your display until you invoke one of the buttons below. This is almost always a bad idea; don't use global grabs unless you're truly desperate."),
+		label.Text("This dialog box uses a global grab. If you are using an X11 window manager you will be prevented from interacting with anything on your display until you invoke one of the buttons below. This is almost always a bad idea; don't use global grabs with X11 unless you're truly desperate."),
 	)
 	pack.Pack(msg, pack.SideOpt(pack.Top))
 
@@ -52,11 +52,7 @@ func main() {
 		button.Command(func() {
 			result := dialog.ShowMessage(app,
 				dialog.MsgTitle("Dialog with global grab"),
-				dialog.MsgMessage("This dialog box uses a global grab. If you are using an X11\n"+
-					"window manager you will be prevented from interacting with\n"+
-					"anything on your display until you invoke one of the buttons\n"+
-					"below. This is almost always a bad idea; don't use global grabs\n"+
-					"with X11 unless you're truly desperate."),
+				dialog.MsgMessage("This dialog box uses a global grab. If you are using an X11 window manager you will be prevented from interacting with anything on your display until you invoke one of the buttons below. This is almost always a bad idea; don't use global grabs with X11 unless you're truly desperate."),
 				dialog.MsgType(dialog.MsgWarning),
 				dialog.MsgButtons(dialog.BtnOKCancel),
 			)
@@ -71,7 +67,5 @@ func main() {
 	pack.Pack(btn, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
 		pack.PadX(30), pack.PadY(10))
 
-	_ = btn
-	_ = statusLabel
 	app.Run()
 }

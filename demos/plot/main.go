@@ -32,7 +32,7 @@ func main() {
 	msg := label.New(f, "msg",
 		label.WrapLength("4i"),
 		label.JustifyOpt(option.JustifyLeft),
-		label.Text("This window displays a canvas widget containing a simple 2-dimensional plot. You can doctor the data by dragging any of the points with mouse button 1."),
+		label.Text("This window displays a canvas widget containing a simple 2-dimensional plot.  You can doctor the data by dragging any of the points with mouse button 1."),
 	)
 	pack.Pack(msg, pack.SideOpt(pack.Top))
 
@@ -40,47 +40,47 @@ func main() {
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	// Canvas.
-	c := canvas.New(f, "plot",
+	c := canvas.New(f, "c",
 		canvas.Background("white"),
-		canvas.Width(500),
-		canvas.Height(350),
+		canvas.Width(450),  // 337.5p
+		canvas.Height(300), // 225p
 		canvas.ReliefOpt(option.ReliefRaised),
 	)
 	pack.Pack(c, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
 
-	// Plot area dimensions.
+	// Plot area dimensions (in pixels at 96 DPI, matching Tcl point values).
 	const (
-		plotLeft   = 60
-		plotRight  = 480
-		plotTop    = 40
-		plotBottom = 310
+		plotLeft   = 100 // 75p
+		plotRight  = 400 // 300p
+		plotTop    = 50  // 37.5p
+		plotBottom = 250 // 187.5p
 	)
 
 	// Draw axes.
 	c.CreateLine([]float64{plotLeft, plotBottom, plotRight, plotBottom},
-		canvas.OutlineColor("black"), canvas.OutlineWidth(2))
+		canvas.OutlineColor("black"), canvas.OutlineWidth(2)) // 1.5p
 	c.CreateLine([]float64{plotLeft, plotBottom, plotLeft, plotTop},
-		canvas.OutlineColor("black"), canvas.OutlineWidth(2))
+		canvas.OutlineColor("black"), canvas.OutlineWidth(2)) // 1.5p
 
-	// Title.
-	c.CreateText(float64(plotLeft+plotRight)/2, float64(plotTop-20),
+	// Title (168.75p = 225px, 15p = 20px).
+	c.CreateText(225, 20,
 		canvas.TextOpt("A Simple Plot"), canvas.AnchorOpt(option.AnchorCenter),
 		canvas.FontOpt("Helvetica 16"), canvas.FillColor("brown"))
 
 	// Tick marks and labels — x: 0-100 every 10, y: 0-250 every 50.
 	for i := 0; i <= 10; i++ {
-		x := plotLeft + i*(plotRight-plotLeft)/10
-		c.CreateLine([]float64{float64(x), float64(plotBottom), float64(x), float64(plotBottom + 5)},
-			canvas.OutlineColor("black"))
-		c.CreateText(float64(x), float64(plotBottom+12),
+		x := plotLeft + i*30 // 22.5p step = 30px
+		c.CreateLine([]float64{float64(x), plotBottom, float64(x), plotBottom - 5},
+			canvas.OutlineColor("black"), canvas.OutlineWidth(2)) // 1.5p
+		c.CreateText(float64(x), plotBottom+4, // 190.5p = 254px
 			canvas.TextOpt(fmt.Sprintf("%d", i*10)),
 			canvas.AnchorOpt(option.AnchorN), canvas.FontOpt("Helvetica 16"))
 	}
 	for i := 0; i <= 5; i++ {
 		y := plotBottom - i*(plotBottom-plotTop)/5
-		c.CreateLine([]float64{float64(plotLeft - 5), float64(y), float64(plotLeft), float64(y)},
-			canvas.OutlineColor("black"))
-		c.CreateText(float64(plotLeft-10), float64(y),
+		c.CreateLine([]float64{plotLeft, float64(y), plotLeft + 5, float64(y)},
+			canvas.OutlineColor("black"), canvas.OutlineWidth(2)) // 1.5p
+		c.CreateText(plotLeft-4, float64(y), // 72p = 96px
 			canvas.TextOpt(fmt.Sprintf("%d.0", i*50)),
 			canvas.AnchorOpt(option.AnchorE), canvas.FontOpt("Helvetica 16"))
 	}
@@ -89,16 +89,18 @@ func main() {
 	dataX := []float64{9, 15, 24.75, 24, 45.75, 56.25, 73.5}
 	dataY := []float64{42, 70.5, 73.5, 90, 135, 120, 167.25}
 
-	// Convert data to pixel coordinates (x: 0-100, y: 0-250).
+	// Convert data to pixel coordinates.
+	// Tcl: x_pt = 75 + 2.25*dataX, y_pt = 187.5 - 0.6*dataY (in points).
+	// At 96 DPI (1p = 4/3 px): x_px = 100 + 3*dataX, y_px = 250 - 0.8*dataY.
 	toPixelX := func(v float64) float64 {
-		return plotLeft + v/100*(plotRight-plotLeft)
+		return plotLeft + 3*v
 	}
 	toPixelY := func(v float64) float64 {
-		return plotBottom - v/250*(plotBottom-plotTop)
+		return plotBottom - 0.8*v
 	}
 
-	// Draw data points as small filled circles.
-	ptSize := 5.0
+	// Draw data points as small filled circles (4.5p radius = 6px).
+	ptSize := 6.0
 	for i := range dataX {
 		px := toPixelX(dataX[i])
 		py := toPixelY(dataY[i])

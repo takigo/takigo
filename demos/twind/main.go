@@ -1,4 +1,4 @@
-// Demo: Text widget with embedded windows, tags, and styles.
+// Demo: Text widget with embedded windows.
 // Ported from Tk's twind.tcl demo.
 package main
 
@@ -13,14 +13,13 @@ import (
 	"github.com/msorc/takigo/ttk"
 	"github.com/msorc/takigo/widget/button"
 	"github.com/msorc/takigo/widget/frame"
-	"github.com/msorc/takigo/widget/label"
 	"github.com/msorc/takigo/widget/text"
 )
 
 func main() {
 	app, err := takigo.NewApp(takigo.Title("Text Demonstration - Embedded Windows and Other Features"),
 		takigo.Geometry("+300+300"),
-		takigo.IconName("twind"),
+		takigo.IconName("Embedded Windows"),
 	)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
@@ -30,36 +29,26 @@ func main() {
 	f := frame.New(app, "f")
 	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
-	msg := label.New(f, "msg",
-		label.WrapLength("4i"),
-		label.JustifyOpt(option.JustifyLeft),
-		label.Text("This window demonstrates a range of text widget features including embedded windows, word wrapping, and tag-based styling."),
-	)
-	pack.Pack(msg, pack.SideOpt(pack.Top))
-
 	btns := demohelper.AddSeeDismiss(f)
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
-	// Side control buttons.
-	ctrlFrame := frame.New(f, "ctrl")
-	pack.Pack(ctrlFrame, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY), pack.PadX(5), pack.PadY(5))
+	// Frame with sunken border to hold the text widget (matches $w.f).
+	tf := frame.New(f, "tf",
+		frame.BorderWidth(1),
+		frame.Relief(option.ReliefSunken),
+	)
 
-	// Text widget with scrollbar.
-	txtFrame := frame.New(f, "txtframe")
-	pack.Pack(txtFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
-		pack.Expand(true), pack.PadX(5), pack.PadY(5))
-
-	tw := text.New(txtFrame, "tw",
+	tw := text.New(tf, "text",
 		text.Width(70), text.Height(35),
 		text.WrapModeOpt(text.WrapWord),
-		text.UndoOpt(true),
 		text.BorderWidthOpt(0),
 	)
 	tw.HighlightWidth = 0
+	pack.Pack(tw, pack.Expand(true), pack.FillOpt(pack.FillBoth))
 
-	yscroll := ttk.NewScrollbar(txtFrame, "yscroll")
-	tw.YScrollCmd = func(first, last float64) { yscroll.Set(first, last) }
-	yscroll.Command = func(args ...any) {
+	scroll := ttk.NewScrollbar(f, "scroll")
+	tw.YScrollCmd = func(first, last float64) { scroll.Set(first, last) }
+	scroll.Command = func(args ...any) {
 		if len(args) >= 2 {
 			action, _ := args[0].(string)
 			number, _ := args[1].(float64)
@@ -77,8 +66,8 @@ func main() {
 			}
 		}
 	}
-	pack.Pack(yscroll, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
-	pack.Pack(tw, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+	pack.Pack(scroll, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
+	pack.Pack(tf, pack.Expand(true), pack.FillOpt(pack.FillBoth))
 
 	// Configure tags matching twind.tcl.
 	tw.TagConfigure("center",
@@ -94,139 +83,141 @@ func main() {
 		text.TagSpacing2(0),
 		text.TagSpacing3(0),
 	)
-	tw.TagConfigure("bold", text.TagFont("Sans Bold 11"))
-	tw.TagConfigure("italic", text.TagFont("Sans Italic 11"))
-	tw.TagConfigure("big", text.TagFont("Sans Bold 14"))
-	tw.TagConfigure("red", text.TagForeground("#cc0000"))
-	tw.TagConfigure("blue", text.TagForeground("#0044cc"))
-	tw.TagConfigure("underline", text.TagUnderline(true))
 
-	// Helper: insert text and tag the inserted range.
-	ins := func(s string, tags ...string) {
-		start := tw.EndIndex()
-		tw.Insert("end", s)
-		if len(tags) > 0 {
-			end := tw.EndIndex()
-			for _, tag := range tags {
-				tw.TagAdd(tag, start, end)
-			}
-		}
-	}
-
-	ins("Text Widget Features\n", "big", "center")
-	ins("\n")
-
-	ins("A text widget can contain many different kinds of items, ")
-	ins("both active and passive.  It can lay these out in various ")
-	ins("ways, with wrapping, tabs, centering, etc.  In addition, ")
-	ins("when the contents are too big for the window, smooth ")
-	ins("scrolling in all directions is provided.\n\n")
-
-	ins("A text widget can contain other widgets embedded in ")
-	ins("it.  These are called \"embedded windows\", ")
-	ins("and they can consist of arbitrary widgets.  ")
-	ins("For example, here are two embedded buttons — click ")
-	ins("Turn On", "bold")
-	ins(" to enable horizontal scrolling and ")
-	ins("Turn Off", "bold")
-	ins(" to disable it and restore word wrapping:\n")
-
-	// Embedded "Turn On" button.
-	turnOnLine := tw.EndIndex()
-	ins("\n", "buttons")
-	turnOnBtn := button.New(tw, "turnon",
+	// Create Turn On / Turn Off buttons (matching $t.on / $t.off).
+	onBtn := button.New(tw, "on",
 		button.Text("Turn On"),
-		button.Command(func() { tw.SetWrapMode(text.WrapNone) }),
-		button.PadX(6), button.PadY(2),
+		button.Command(func() {
+			// Create horizontal scrollbar and set wrap=none.
+			tw.SetWrapMode(text.WrapNone)
+		}),
 	)
-	tw.WindowCreate(turnOnLine, turnOnBtn.Window())
-
-	// Embedded "Turn Off" button.
-	turnOffLine := tw.EndIndex()
-	ins("\n", "buttons")
-	turnOffBtn := button.New(tw, "turnoff",
+	offBtn := button.New(tw, "off",
 		button.Text("Turn Off"),
-		button.Command(func() { tw.SetWrapMode(text.WrapWord) }),
-		button.PadX(6), button.PadY(2),
+		button.Command(func() {
+			tw.SetWrapMode(text.WrapWord)
+		}),
 	)
-	tw.WindowCreate(turnOffLine, turnOffBtn.Window())
 
-	ins("\n")
+	tw.Insert("end", "A text widget can contain many different kinds of items, ")
+	tw.Insert("end", "both active and passive.  It can lay these out in various ")
+	tw.Insert("end", "ways, with wrapping, tabs, centering, etc.  In addition, ")
+	tw.Insert("end", "when the contents are too big for the window, smooth ")
+	tw.Insert("end", "scrolling in all directions is provided.\n\n")
 
-	ins("You may find it useful to put embedded windows in ")
-	ins("a text without any actual text.  In this case the ")
-	ins("text widget acts like a geometry manager.  For ")
-	ins("example, here are buttons to change the background ")
-	ins("color of the text widget:\n")
+	tw.Insert("end", "A text widget can contain other widgets embedded ")
+	tw.Insert("end", "it.  These are called \"embedded windows\", ")
+	tw.Insert("end", "and they can consist of arbitrary widgets.  ")
+	tw.Insert("end", "For example, here are two embedded button ")
+	tw.Insert("end", "widgets.  You can click on the first button to ")
+	tw.WindowCreate(tw.EndIndex(), onBtn.Window())
+	tw.Insert("end", " horizontal scrolling, which also turns off ")
+	tw.Insert("end", "word wrapping.  Or, you can click on the second ")
+	tw.Insert("end", "button to\n")
+	tw.WindowCreate(tw.EndIndex(), offBtn.Window())
+	tw.Insert("end", " horizontal scrolling and turn back on word wrapping.\n\n")
 
-	// Color buttons embedded in the text widget.
-	type colorEntry struct {
-		name string
-		hex  string
+	tw.Insert("end", "You may also find it useful to put embedded windows in ")
+	tw.Insert("end", "a text without any actual text.  In this case the ")
+	tw.Insert("end", "text widget acts like a geometry manager.  For ")
+	tw.Insert("end", "example, here is a collection of buttons laid out ")
+	tw.Insert("end", "neatly into rows by the text widget.  These buttons ")
+	tw.Insert("end", "can be used to change the background color of the ")
+	tw.Insert("end", "text widget (\"Default\" restores the color to ")
+	tw.Insert("end", "its default).  If you click on the button labeled ")
+	tw.Insert("end", "\"Short\", it changes to a longer string so that ")
+	tw.Insert("end", "you can see how the text widget automatically ")
+	tw.Insert("end", "changes the layout.  Click on the button again ")
+	tw.Insert("end", "to restore the short string.\n")
+
+	// Default button (matches $t.default).
+	defaultBtnLine := tw.EndIndex()
+	tw.Insert("end", "\n")
+	defaultBtn := button.New(tw, "default",
+		button.Text("Default"),
+		button.Command(func() {
+			text.Background("#ffffff")(tw)
+			tw.Display()
+		}),
+	)
+	tw.WindowCreate(defaultBtnLine, defaultBtn.Window())
+
+	// Color buttons (matches Tcl's color list).
+	colors := []string{
+		"AntiqueWhite3", "Bisque1", "Bisque2", "Bisque3", "Bisque4",
+		"SlateBlue3", "RoyalBlue1", "SteelBlue2", "DeepSkyBlue3", "LightBlue1",
+		"DarkSlateGray1", "Aquamarine2", "DarkSeaGreen2", "SeaGreen1",
+		"Yellow1", "IndianRed1", "IndianRed2", "Tan1", "Tan4",
 	}
-	colors := []colorEntry{
-		{"Default", "#ffffff"},
-		{"AntiqueWhite3", "#cdc0b0"},
-		{"Bisque1", "#ffe4c4"},
-		{"SlateBlue3", "#6959cd"},
-		{"RoyalBlue1", "#4169e1"},
-		{"Aquamarine2", "#76eec6"},
-		{"Yellow1", "#ffff00"},
-		{"IndianRed1", "#ff6a6a"},
-		{"SeaGreen1", "#54ff9f"},
-	}
-	for i, ce := range colors {
-		name := fmt.Sprintf("clr%d", i)
-		hex := ce.hex
+	for i, c := range colors {
+		name := fmt.Sprintf("color%d", i+1)
+		colorName := c
 		btnLine := tw.EndIndex()
-		ins("\n", "buttons")
+		tw.Insert("end", "\n")
 		clrBtn := button.New(tw, name,
-			button.Text(ce.name),
+			button.Text(colorName),
 			button.Command(func() {
-				text.Background(hex)(tw)
+				text.Background(colorName)(tw)
 				tw.Display()
 			}),
-			button.PadX(4), button.PadY(1),
 		)
 		tw.WindowCreate(btnLine, clrBtn.Window())
 	}
-	ins("\n")
 
-	ins("Centered text with spacing:\n")
-	ins("This line uses the 'center' tag — centered with 5m spacing above and below.\n", "center")
-	ins("Back to normal left-justified text.\n")
+	// Tag the color buttons section.
+	tagStart := defaultBtnLine
+	tagEnd := tw.EndIndex()
+	tw.TagAdd("buttons", tagStart, tagEnd)
 
-	text.ReadOnly(true)(tw)
+	// Border, highlight, and padding buttons (matches $t.bigB etc.).
+	tw.Insert("end", "\nYou can also change the usual border width and ")
+	tw.Insert("end", "highlightthickness and padding.\n")
 
-	// Control buttons.
-	ctrlLabel := label.New(ctrlFrame, "ctrllabel",
-		label.Text("Actions:"), label.Anchor(option.AnchorW))
-	pack.Pack(ctrlLabel, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(5))
+	normalBorder := tw.BorderWidth
+	normalHighlight := tw.HighlightWidth
 
-	undoBtn := button.New(ctrlFrame, "undo",
-		button.Text("Undo"),
+	bigBBtn := button.New(tw, "bigB",
+		button.Text("Big borders"),
 		button.Command(func() {
-			text.ReadOnly(false)(tw)
-			tw.Edit("undo")
-			text.ReadOnly(true)(tw)
+			tw.BorderWidth = 12
+			tw.UpdateBorder()
+			tw.Display()
 		}),
-		button.PadX(8), button.PadY(3),
 	)
-	pack.Pack(undoBtn, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(3))
+	tw.WindowCreate(tw.EndIndex(), bigBBtn.Window())
 
-	redoBtn := button.New(ctrlFrame, "redo",
-		button.Text("Redo"),
+	smallBBtn := button.New(tw, "smallB",
+		button.Text("Small borders"),
 		button.Command(func() {
-			text.ReadOnly(false)(tw)
-			tw.Edit("redo")
-			text.ReadOnly(true)(tw)
+			tw.BorderWidth = normalBorder
+			tw.UpdateBorder()
+			tw.Display()
 		}),
-		button.PadX(8), button.PadY(3),
 	)
-	pack.Pack(redoBtn, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(3))
+	tw.WindowCreate(tw.EndIndex(), smallBBtn.Window())
 
-	_ = ctrlLabel
-	_ = undoBtn
-	_ = redoBtn
+	bigHBtn := button.New(tw, "bigH",
+		button.Text("Big highlight"),
+		button.Command(func() {
+			tw.HighlightWidth = 12
+			tw.Display()
+		}),
+	)
+	tw.WindowCreate(tw.EndIndex(), bigHBtn.Window())
+
+	smallHBtn := button.New(tw, "smallH",
+		button.Text("Small highlight"),
+		button.Command(func() {
+			tw.HighlightWidth = normalHighlight
+			tw.Display()
+		}),
+	)
+	tw.WindowCreate(tw.EndIndex(), smallHBtn.Window())
+
+	_ = bigBBtn
+	_ = smallBBtn
+	_ = bigHBtn
+	_ = smallHBtn
+
 	app.Run()
 }
