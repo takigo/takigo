@@ -15,6 +15,7 @@ type FocusableChecker func(w *window.Window) bool
 type Manager struct {
 	dispatcher *event.Dispatcher
 	display    platform.DisplayServer
+	winDisplay *window.Display // for LookupWindow from event IDs
 
 	// Per-toplevel focus: which widget last had focus in each toplevel.
 	toplevelFocus map[*window.Window]*window.Window
@@ -30,10 +31,11 @@ type Manager struct {
 }
 
 // NewManager creates a new focus manager.
-func NewManager(dispatcher *event.Dispatcher, display platform.DisplayServer) *Manager {
+func NewManager(dispatcher *event.Dispatcher, display platform.DisplayServer, winDisplay *window.Display) *Manager {
 	m := &Manager{
 		dispatcher:    dispatcher,
 		display:       display,
+		winDisplay:    winDisplay,
 		toplevelFocus: make(map[*window.Window]*window.Window),
 		IsFocusable: func(w *window.Window) bool {
 			return w.Flags&window.FlagFocusable != 0 && w.PlatformID != platform.WindowID(0)
@@ -124,8 +126,13 @@ func (m *Manager) HandleFocusOut(w *window.Window) {
 }
 
 // FocusNext moves focus to the next focusable widget (Tab key).
-func (m *Manager) FocusNext() {
+// eventWin is the window that received the key event; used to find the
+// toplevel when no widget currently has focus.
+func (m *Manager) FocusNext(eventWin *window.Window) {
 	current := m.focusWin
+	if current == nil {
+		current = eventWin
+	}
 	if current == nil {
 		return
 	}
@@ -141,8 +148,13 @@ func (m *Manager) FocusNext() {
 }
 
 // FocusPrev moves focus to the previous focusable widget (Shift-Tab).
-func (m *Manager) FocusPrev() {
+// eventWin is the window that received the key event; used to find the
+// toplevel when no widget currently has focus.
+func (m *Manager) FocusPrev(eventWin *window.Window) {
 	current := m.focusWin
+	if current == nil {
+		current = eventWin
+	}
 	if current == nil {
 		return
 	}
@@ -235,10 +247,16 @@ func (m *Manager) HandleDestroyWindow(w *window.Window) {
 // Uses a global binding so it works regardless of which widget has focus.
 func (m *Manager) BindTraversal(w *window.Window) {
 	m.dispatcher.BindGlobal(event.KeyPressMask, func(ev *event.Event) {
+		// Look up the window that received the event so we can find
+		// the toplevel even when no widget has focus yet.
+		var eventWin *window.Window
+		if m.winDisplay != nil {
+			eventWin = m.winDisplay.LookupWindow(ev.Window)
+		}
 		if ev.KeySym == platform.XK_Tab {
-			m.FocusNext()
+			m.FocusNext(eventWin)
 		} else if ev.KeySym == platform.XK_ISO_Left_Tab {
-			m.FocusPrev()
+			m.FocusPrev(eventWin)
 		}
 	})
 }

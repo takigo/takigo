@@ -8,7 +8,6 @@ import (
 
 	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/demos/demohelper"
-	"github.com/msorc/takigo/focus"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/ttk"
@@ -39,11 +38,6 @@ func main() {
 
 	btns := demohelper.AddSeeDismiss(f)
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
-
-	root := app.Window()
-
-	focusMgr := focus.NewManager(app.Dispatcher(), app.Server())
-	focusMgr.BindTraversal(root)
 
 	// Container frame with border (matches Tcl's `frame -borderwidth 7.5p`).
 	fr := frame.New(f, "frame",
@@ -108,7 +102,6 @@ func main() {
 
 	e3 := makeEntry("e3", "", "Enter text here")
 
-	_ = focusMgr
 	_ = e1
 	_ = e2
 	_ = e3

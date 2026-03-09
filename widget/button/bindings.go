@@ -3,6 +3,7 @@ package button
 
 import (
 	"github.com/msorc/takigo/event"
+	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/widget"
 )
 
@@ -73,6 +74,13 @@ func bindButton(b *Button, app widget.AppContext) {
 			if ev.X >= 0 && ev.X < w.Width && ev.Y >= 0 && ev.Y < w.Height {
 				b.Invoke()
 			}
+		}
+	})
+
+	// Space key → invoke (matches Tk's "bind Button <space>" binding).
+	app.Dispatcher().Bind(w.PlatformID, event.KeyPressMask, func(ev *event.Event) {
+		if ev.KeySym == platform.XK_space {
+			b.Invoke()
 		}
 	})
 }

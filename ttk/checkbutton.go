@@ -59,6 +59,8 @@ func NewCheckbutton(parent widget.Caregiver, name string, opts ...CheckbuttonOpt
 	win := window.NewChildWindow(parent.Window(), name, 0, 0, 1, 1)
 	window.MakeWindowExist(win)
 
+	win.Flags |= window.FlagFocusable
+
 	c := &Checkbutton{}
 	c.Font, _ = app.FontRegistry().Get(font.TkDefaultFont)
 
@@ -243,6 +245,13 @@ func bindTtkCheckbutton(c *Checkbutton, app widget.AppContext) {
 			if wasPressed && ev.X >= 0 && ev.X < win.Width && ev.Y >= 0 && ev.Y < win.Height {
 				c.Toggle()
 			}
+		}
+	})
+
+	// Space key → toggle.
+	app.Dispatcher().Bind(win.PlatformID, event.KeyPressMask, func(ev *event.Event) {
+		if ev.KeySym == platform.XK_space {
+			c.Toggle()
 		}
 	})
 }

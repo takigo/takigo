@@ -12,6 +12,7 @@ import (
 	"github.com/msorc/takigo/bind"
 	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/event"
+	"github.com/msorc/takigo/focus"
 	"github.com/msorc/takigo/font"
 	"github.com/msorc/takigo/image"
 	"github.com/msorc/takigo/platform"
@@ -34,6 +35,7 @@ type App struct {
 	fontReg    *font.Registry
 	imageReg   *image.Registry
 	bindEng    *bind.Engine
+	focusMgr   *focus.Manager
 }
 
 // NewApp creates a new takigo application. It opens the X11 display,
@@ -131,6 +133,13 @@ func NewApp(opts ...AppOption) (*App, error) {
 
 	// Install bind engine as a global handler (fires after per-window handlers).
 	bindEng.Install(dispatcher)
+
+	// Set up global focus manager with Tab/Shift-Tab traversal,
+	// matching Tk's "bind all <<NextWindow>>" / "bind all <<PrevWindow>>"
+	// from tk.tcl.
+	focusMgr := focus.NewManager(dispatcher, server, d)
+	focusMgr.BindTraversal(root)
+	app.focusMgr = focusMgr
 
 	// Route WM protocol messages (WM_DELETE_WINDOW, _NET_WM_PING, etc.)
 	// to the appropriate toplevel's WmInfo handler.
@@ -245,6 +254,11 @@ func (a *App) BindEngine() widget.BindEngine {
 // BindEng returns the full bind.Engine for direct access.
 func (a *App) BindEng() *bind.Engine {
 	return a.bindEng
+}
+
+// FocusManager returns the application's focus manager.
+func (a *App) FocusManager() *focus.Manager {
+	return a.focusMgr
 }
 
 // RunNestedLoop processes events until done is closed.

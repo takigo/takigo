@@ -3,6 +3,7 @@ package ttk
 import (
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/font"
+	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/window"
 )
@@ -77,6 +78,9 @@ func NewButton(parent widget.Caregiver, name string, opts ...ButtonOption) *Butt
 
 	b := &Button{}
 	b.Font, _ = app.FontRegistry().Get(font.TkDefaultFont)
+
+	// Buttons are focusable via Tab traversal.
+	win.Flags |= window.FlagFocusable
 
 	InitTtkWidget(&b.TtkWidget, win, app, "TButton")
 
@@ -171,6 +175,13 @@ func bindTtkButton(b *Button, app widget.AppContext) {
 			if wasPressed && ev.X >= 0 && ev.X < win.Width && ev.Y >= 0 && ev.Y < win.Height {
 				b.Invoke()
 			}
+		}
+	})
+
+	// Space key → invoke (matches Tk's "bind TButton <Key-space>" binding).
+	app.Dispatcher().Bind(win.PlatformID, event.KeyPressMask, func(ev *event.Event) {
+		if ev.KeySym == platform.XK_space {
+			b.Invoke()
 		}
 	})
 }

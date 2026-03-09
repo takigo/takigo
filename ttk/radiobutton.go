@@ -62,6 +62,8 @@ func NewRadiobutton(parent widget.Caregiver, name string, opts ...RadiobuttonOpt
 	win := window.NewChildWindow(parent.Window(), name, 0, 0, 1, 1)
 	window.MakeWindowExist(win)
 
+	win.Flags |= window.FlagFocusable
+
 	r := &Radiobutton{}
 	r.Font, _ = app.FontRegistry().Get(font.TkDefaultFont)
 	r.Variable = widget.NewVariable("")
@@ -231,6 +233,13 @@ func bindTtkRadiobutton(r *Radiobutton, app widget.AppContext) {
 			if wasPressed && ev.X >= 0 && ev.X < win.Width && ev.Y >= 0 && ev.Y < win.Height {
 				r.Select()
 			}
+		}
+	})
+
+	// Space key → select.
+	app.Dispatcher().Bind(win.PlatformID, event.KeyPressMask, func(ev *event.Event) {
+		if ev.KeySym == platform.XK_space {
+			r.Select()
 		}
 	})
 }

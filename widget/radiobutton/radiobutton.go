@@ -39,6 +39,7 @@ type Radiobutton struct {
 	textWidth  int
 	textHeight int
 	pressed    bool
+	HasFocus   bool
 }
 
 // RadiobuttonOption configures a Radiobutton.
@@ -142,6 +143,8 @@ func New(parent widget.Caregiver, name string, opts ...RadiobuttonOption) *Radio
 	app := parent.AppContext()
 	w := window.NewChildWindow(parent.Window(), name, 0, 0, 1, 1)
 	window.MakeWindowExist(w)
+
+	w.Flags |= window.FlagFocusable
 
 	r := &Radiobutton{
 		Anchor:      option.AnchorW,
@@ -258,7 +261,8 @@ func (r *Radiobutton) Display() {
 	d.SetForeground(gc, bgPixel)
 	d.FillRectangle(w.Drawable(), gc, 0, 0, uint(w.Width), uint(w.Height))
 
-	// Draw border.
+	// Draw border (inset by highlight width so highlight ring is outermost).
+	hlw := r.HighlightWidth
 	if !r.IndicatorOn {
 		// When indicator is off, render as a toggle button: raised or sunken.
 		btnRelief := option.ReliefRaised
@@ -270,10 +274,10 @@ func (r *Radiobutton) Display() {
 		if border == nil {
 			border = draw.NewBorderFromPixel(bgPixel)
 		}
-		draw.Draw3DRectangle(d, w.Drawable(), gc, border, 0, 0, w.Width, w.Height, bw, btnRelief)
+		draw.Draw3DRectangle(d, w.Drawable(), gc, border, hlw, hlw, w.Width-2*hlw, w.Height-2*hlw, bw, btnRelief)
 	} else if r.Border != nil && r.BorderWidth > 0 {
 		draw.Draw3DRectangle(d, w.Drawable(), gc, r.Border,
-			0, 0, w.Width, w.Height, r.BorderWidth, r.Relief)
+			hlw, hlw, w.Width-2*hlw, w.Height-2*hlw, r.BorderWidth, r.Relief)
 	}
 
 	inset := r.BorderWidth + r.HighlightWidth
@@ -348,6 +352,8 @@ func (r *Radiobutton) Display() {
 				fgCol.Pixel, fgCol.Red, fgCol.Green, fgCol.Blue)
 		}
 	}
+
+	r.DrawHighlightBorder(r.HasFocus, 0)
 
 	d.Flush()
 }

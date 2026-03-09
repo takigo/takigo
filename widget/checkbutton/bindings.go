@@ -3,6 +3,7 @@ package checkbutton
 
 import (
 	"github.com/msorc/takigo/event"
+	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/widget"
 )
 
@@ -65,6 +66,19 @@ func bindCheckbutton(c *Checkbutton, app widget.AppContext) {
 			if ev.X >= 0 && ev.X < w.Width && ev.Y >= 0 && ev.Y < w.Height {
 				c.Toggle()
 			}
+		}
+	})
+
+	// FocusIn/FocusOut — track focus state and redraw highlight.
+	app.Dispatcher().Bind(w.PlatformID, event.FocusChangeMask, func(ev *event.Event) {
+		c.HasFocus = ev.Type == event.FocusInType
+		c.Display()
+	})
+
+	// Space key → toggle.
+	app.Dispatcher().Bind(w.PlatformID, event.KeyPressMask, func(ev *event.Event) {
+		if ev.KeySym == platform.XK_space {
+			c.Toggle()
 		}
 	})
 }

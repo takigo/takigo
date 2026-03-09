@@ -8,7 +8,6 @@ import (
 
 	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/demos/demohelper"
-	"github.com/msorc/takigo/focus"
 	"github.com/msorc/takigo/geometry/grid"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
@@ -26,8 +25,6 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
-	root := app.Window()
-
 	f := frame.New(app, "f")
 	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
@@ -40,9 +37,6 @@ func main() {
 
 	btns := demohelper.AddSeeDismiss(f)
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
-
-	focusMgr := focus.NewManager(app.Dispatcher(), app.Server())
-	focusMgr.BindTraversal(root)
 
 	// Form grid.
 	formFrame := frame.New(f, "form")
@@ -68,7 +62,6 @@ func main() {
 
 	grid.ColumnConfigure(formFrame, 1, grid.Weight(1))
 
-	_ = focusMgr
 	_ = entries
 	app.Run()
 }

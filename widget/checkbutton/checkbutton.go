@@ -42,6 +42,7 @@ type Checkbutton struct {
 	textWidth  int
 	textHeight int
 	pressed    bool
+	HasFocus   bool
 }
 
 // CheckbuttonOption configures a Checkbutton.
@@ -141,6 +142,8 @@ func New(parent widget.Caregiver, name string, opts ...CheckbuttonOption) *Check
 	app := parent.AppContext()
 	w := window.NewChildWindow(parent.Window(), name, 0, 0, 1, 1)
 	window.MakeWindowExist(w)
+
+	w.Flags |= window.FlagFocusable
 
 	c := &Checkbutton{
 		Anchor:      option.AnchorW,
@@ -269,10 +272,11 @@ func (c *Checkbutton) Display() {
 	d.SetForeground(gc, bgPixel)
 	d.FillRectangle(w.Drawable(), gc, 0, 0, uint(w.Width), uint(w.Height))
 
-	// Draw border.
+	// Draw border (inset by highlight width so highlight ring is outermost).
 	if c.Border != nil && c.BorderWidth > 0 {
+		hlw := c.HighlightWidth
 		draw.Draw3DRectangle(d, w.Drawable(), gc, c.Border,
-			0, 0, w.Width, w.Height, c.BorderWidth, c.Relief)
+			hlw, hlw, w.Width-2*hlw, w.Height-2*hlw, c.BorderWidth, c.Relief)
 	}
 
 	inset := c.BorderWidth + c.HighlightWidth
@@ -357,6 +361,8 @@ func (c *Checkbutton) Display() {
 				fgCol.Pixel, fgCol.Red, fgCol.Green, fgCol.Blue)
 		}
 	}
+
+	c.DrawHighlightBorder(c.HasFocus, 0)
 
 	d.Flush()
 }

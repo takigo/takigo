@@ -6,6 +6,7 @@ package button
 import (
 	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/draw"
+	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/screenunit"
@@ -39,6 +40,7 @@ type Button struct {
 	textWidth  int
 	textHeight int
 	pressed    bool // button1 is held down
+	HasFocus   bool // whether button currently has keyboard focus
 }
 
 // ButtonOption configures a Button.
@@ -137,11 +139,11 @@ func New(parent widget.Caregiver, name string, opts ...ButtonOption) *Button {
 	}
 	widget.InitBase(&b.Base, w, app)
 
-	// Button-specific defaults.
+	// Button-specific defaults (Tk: padx=3m, pady=1m, borderwidth=1, highlightthickness=1).
 	b.BorderWidth = widget.DefBorderWidth
 	b.Relief = option.ReliefRaised
-	b.PadX = 3
-	b.PadY = 1
+	b.PadX = screenunit.Px("3m")
+	b.PadY = screenunit.Px("1m")
 	b.HighlightWidth = 1
 
 	// Active colors.
@@ -151,6 +153,9 @@ func New(parent widget.Caregiver, name string, opts ...ButtonOption) *Button {
 	if af, err := app.ColorCache().Get(widget.DefActiveForeground); err == nil {
 		b.ActiveForeground = af.Ref()
 	}
+
+	// Buttons are focusable via Tab traversal.
+	w.Flags |= window.FlagFocusable
 
 	for _, opt := range opts {
 		opt(b)
@@ -166,6 +171,16 @@ func New(parent widget.Caregiver, name string, opts ...ButtonOption) *Button {
 
 	// Bind events.
 	bindButton(b, app)
+
+	// FocusIn/FocusOut — track focus state and redraw highlight.
+	app.Dispatcher().Bind(w.PlatformID, event.FocusChangeMask, func(ev *event.Event) {
+		if ev.Type == event.FocusInType {
+			b.HasFocus = true
+		} else {
+			b.HasFocus = false
+		}
+		b.Display()
+	})
 
 	return b
 }
@@ -238,8 +253,9 @@ func (b *Button) Display() {
 		}
 	}
 	if border != nil && b.BorderWidth > 0 {
+		hlw := b.HighlightWidth
 		draw.Draw3DRectangle(d, w.Drawable(), gc, border,
-			0, 0, w.Width, w.Height, b.BorderWidth, relief)
+			hlw, hlw, w.Width-2*hlw, w.Height-2*hlw, b.BorderWidth, relief)
 	}
 
 	// Draw content (image and/or text).
@@ -278,6 +294,9 @@ func (b *Button) Display() {
 				fgCol.Pixel, fgCol.Red, fgCol.Green, fgCol.Blue)
 		}
 	}
+
+	// Draw focus highlight ring.
+	b.DrawHighlightBorder(b.HasFocus, 0)
 
 	d.Flush()
 }

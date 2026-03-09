@@ -9,7 +9,6 @@ import (
 
 	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/event"
-	"github.com/msorc/takigo/focus"
 	"github.com/msorc/takigo/geometry/pack"
 	tkimage "github.com/msorc/takigo/image"
 	"github.com/msorc/takigo/platform"
@@ -63,10 +62,6 @@ func main() {
 	root := app.Root()
 	bgColor, _ := app.ColorCache().Get("#d9d9d9")
 	root.BackgroundPixel = bgColor.Pixel
-
-	// Focus manager.
-	focusMgr := focus.NewManager(app.Dispatcher(), app.Server())
-	focusMgr.BindTraversal(root)
 
 	// Title.
 	titleLabel := label.New(app, "title",
@@ -270,7 +265,6 @@ func main() {
 
 	_ = titleLabel
 	_ = statusLabel
-	_ = focusMgr
 	_ = imgLabel
 	_ = imgBtn
 	_ = scaleLabel

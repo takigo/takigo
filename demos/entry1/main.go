@@ -8,7 +8,6 @@ import (
 
 	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/demos/demohelper"
-	"github.com/msorc/takigo/focus"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/widget/entry"
@@ -39,11 +38,6 @@ func main() {
 	btns := demohelper.AddSeeDismiss(f)
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
-	root := app.Window()
-
-	focusMgr := focus.NewManager(app.Dispatcher(), app.Server())
-	focusMgr.BindTraversal(root)
-
 	// Entry 1: pre-populated.
 	e1 := entry.New(f, "e1",
 		entry.Text("Initial value"),
@@ -67,7 +61,6 @@ func main() {
 	pack.Pack(e3, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
 		pack.PadX("7.5p"), pack.PadY("3p"))
 
-	_ = focusMgr
 	_ = e1
 	_ = e2
 	_ = e3

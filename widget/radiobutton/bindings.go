@@ -3,6 +3,7 @@ package radiobutton
 
 import (
 	"github.com/msorc/takigo/event"
+	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/widget"
 )
 
@@ -65,6 +66,19 @@ func bindRadiobutton(r *Radiobutton, app widget.AppContext) {
 			if ev.X >= 0 && ev.X < w.Width && ev.Y >= 0 && ev.Y < w.Height {
 				r.Select()
 			}
+		}
+	})
+
+	// FocusIn/FocusOut — track focus state and redraw highlight.
+	app.Dispatcher().Bind(w.PlatformID, event.FocusChangeMask, func(ev *event.Event) {
+		r.HasFocus = ev.Type == event.FocusInType
+		r.Display()
+	})
+
+	// Space key → select.
+	app.Dispatcher().Bind(w.PlatformID, event.KeyPressMask, func(ev *event.Event) {
+		if ev.KeySym == platform.XK_space {
+			r.Select()
 		}
 	})
 }

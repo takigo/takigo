@@ -10,7 +10,6 @@ import (
 
 	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/demos/demohelper"
-	"github.com/msorc/takigo/focus"
 	"github.com/msorc/takigo/geometry/grid"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
@@ -44,11 +43,6 @@ func main() {
 
 	btns := demohelper.AddSeeDismiss(f)
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
-
-	root := app.Window()
-
-	focusMgr := focus.NewManager(app.Dispatcher(), app.Server())
-	focusMgr.BindTraversal(root)
 
 	// Middle frame to hold the 2x2 grid of labelframes (matches Tcl's $w.mid).
 	mid := frame.New(f, "mid")
@@ -115,7 +109,6 @@ func main() {
 	grid.ColumnConfigure(mid, 0, grid.Weight(1))
 	grid.ColumnConfigure(mid, 1, grid.Weight(1))
 
-	_ = focusMgr
 	_ = e1
 	_ = e2
 	_ = e3
