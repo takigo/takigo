@@ -20,6 +20,10 @@ type Manager struct {
 	// Per-toplevel focus: which widget last had focus in each toplevel.
 	toplevelFocus map[*window.Window]*window.Window
 
+	// toplevelReady tracks toplevels that have received a real X FocusIn event,
+	// meaning the WM has made them viewable. SetInputFocus is only safe once ready.
+	toplevelReady map[*window.Window]bool
+
 	// Currently focused widget on the display.
 	focusWin *window.Window
 
@@ -37,6 +41,7 @@ func NewManager(dispatcher *event.Dispatcher, display platform.DisplayServer, wi
 		display:       display,
 		winDisplay:    winDisplay,
 		toplevelFocus: make(map[*window.Window]*window.Window),
+		toplevelReady: make(map[*window.Window]bool),
 		IsFocusable: func(w *window.Window) bool {
 			return w.Flags&window.FlagFocusable != 0 && w.PlatformID != platform.WindowID(0)
 		},
@@ -86,20 +91,24 @@ func (m *Manager) SetFocus(w *window.Window) {
 	})
 
 	// Tell X to direct keyboard input to this widget's window.
-	// Only if the toplevel is mapped — X11 requires the target
-	// to be viewable, otherwise SetInputFocus returns BadMatch.
-	if tl != nil && tl.IsMapped() && w.PlatformID != platform.WindowID(0) {
+	// Only safe after a real X FocusIn has confirmed the toplevel is viewable;
+	// calling SetInputFocus before the WM maps the window causes BadMatch.
+	if tl != nil && m.toplevelReady[tl] && w.PlatformID != platform.WindowID(0) {
 		m.display.SetInputFocus(w.PlatformID, platform.RevertToParent, platform.CurrentTime)
 	}
 }
 
-// HandleFocusIn processes an X FocusIn event on a toplevel.
-// It restores focus to the last focused widget within that toplevel.
+// HandleFocusIn processes a real X FocusIn event on a window.
+// It marks the toplevel as viewable (WM has mapped it) and restores
+// focus to the last focused widget within that toplevel.
 func (m *Manager) HandleFocusIn(w *window.Window) {
 	tl := findToplevel(w)
 	if tl == nil {
 		tl = w
 	}
+
+	// Mark toplevel as ready — X confirms it is now viewable.
+	m.toplevelReady[tl] = true
 
 	// Restore the remembered focus widget for this toplevel.
 	if remembered, ok := m.toplevelFocus[tl]; ok && remembered != nil {
@@ -232,13 +241,14 @@ func (m *Manager) HandleDestroyWindow(w *window.Window) {
 		}
 	}
 
-	// Clean up toplevel focus entries.
+	// Clean up toplevel focus and ready entries.
 	for tl, fw := range m.toplevelFocus {
 		if fw == w {
 			m.toplevelFocus[tl] = tl // reset to toplevel
 		}
 		if tl == w {
 			delete(m.toplevelFocus, tl)
+			delete(m.toplevelReady, tl)
 		}
 	}
 }

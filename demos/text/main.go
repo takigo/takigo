@@ -10,7 +10,6 @@ import (
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/dialog"
 	"github.com/msorc/takigo/geometry/pack"
-	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/ttk"
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/text"
@@ -83,7 +82,7 @@ func main() {
 
 	// Set initial focus and insert position.
 	app.After(0, func() {
-		app.Server().SetInputFocus(tw.Window().PlatformID, platform.RevertToParent, platform.CurrentTime)
+		app.FocusManager().SetFocus(tw.Window())
 	})
 
 	// Insert sample text matching Tk's text.tcl.

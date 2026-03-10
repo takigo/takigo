@@ -141,6 +141,22 @@ func NewApp(opts ...AppOption) (*App, error) {
 	focusMgr.BindTraversal(root)
 	app.focusMgr = focusMgr
 
+	// Route real X FocusIn events on toplevels to the focus manager.
+	// This marks the toplevel as viewable (WM has confirmed it), which
+	// allows SetInputFocus to be called safely on child widgets.
+	// Only process FocusIn (not FocusOut) to avoid interfering with
+	// synthetic FocusOut events dispatched internally by SetFocus.
+	dispatcher.BindGlobal(event.FocusChangeMask, func(ev *event.Event) {
+		if ev.Type != event.FocusInType {
+			return
+		}
+		w := d.LookupWindow(ev.Window)
+		if w == nil || !w.IsTopLevel() {
+			return
+		}
+		focusMgr.HandleFocusIn(w)
+	})
+
 	// Route WM protocol messages (WM_DELETE_WINDOW, _NET_WM_PING, etc.)
 	// to the appropriate toplevel's WmInfo handler.
 	// This mirrors TkWmProtocolEventProc in tk/unix/tkUnixWm.c.
