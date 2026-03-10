@@ -29,6 +29,13 @@ func GeometryRequest(w *window.Window, reqWidth, reqHeight int) {
 	if reqHeight < 1 {
 		reqHeight = 1
 	}
+	// Enforce minimum requested size (Tk_SetMinimumRequestSize).
+	if w.MinReqWidth > 0 && reqWidth < w.MinReqWidth {
+		reqWidth = w.MinReqWidth
+	}
+	if w.MinReqHeight > 0 && reqHeight < w.MinReqHeight {
+		reqHeight = w.MinReqHeight
+	}
 
 	if w.ReqWidth == reqWidth && w.ReqHeight == reqHeight {
 		return

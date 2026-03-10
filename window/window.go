@@ -47,6 +47,8 @@ type Window struct {
 	BorderWidth   int
 	ReqWidth      int // requested width
 	ReqHeight     int // requested height
+	MinReqWidth   int // minimum requested width (Tk_SetMinimumRequestSize)
+	MinReqHeight  int // minimum requested height
 
 	// Internal borders (area where children cannot be placed).
 	InternalBorderLeft   int

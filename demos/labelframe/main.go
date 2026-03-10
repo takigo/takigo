@@ -65,9 +65,7 @@ func main() {
 		_ = rb
 	}
 
-	// Right labelframe: checkbutton controls enable/disable of options.
-	// Tcl uses the checkbutton as the labelwidget; we use it as first child
-	// since labelwidget API is not available.
+	// Right labelframe: checkbutton as labelwidget controls enable/disable of options.
 	lfOpts := labelframe.New(body, "f2",
 		labelframe.PadX("1.5p"),
 		labelframe.PadY("1.5p"),
@@ -83,7 +81,8 @@ func main() {
 		checkbutton.Var(enableVar),
 		checkbutton.PadX(0),
 	)
-	pack.Pack(enableCb, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY("1.5p"))
+	// Use checkbutton as the labelwidget (like Tcl's -labelwidget).
+	lfOpts.SetLabelWidget(enableCb)
 
 	for i, s := range []string{"Option1", "Option2", "Option3"} {
 		v := widget.NewVariable(false)

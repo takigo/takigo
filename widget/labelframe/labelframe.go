@@ -17,9 +17,12 @@ type Labelframe struct {
 	widget.Base
 	Text        string
 	LabelAnchor option.Anchor // where the label sits on the border (default NW)
+	LabelWidget widget.Widget // optional widget to use as the label instead of text
 
 	textWidth  int
 	textHeight int
+	labelWidth int // effective label width (text or widget)
+	labelHeight int // effective label height (text or widget)
 }
 
 // LabelframeOption configures a Labelframe.
@@ -74,6 +77,13 @@ func FontOpt(name string) LabelframeOption {
 // LabelAnchor sets where the label sits on the border.
 func LabelAnchor(a option.Anchor) LabelframeOption {
 	return func(lf *Labelframe) { lf.LabelAnchor = a }
+}
+
+// LabelWidgetOpt sets a widget to use as the label instead of text.
+// The widget should be a child of the labelframe. When set, the widget
+// is positioned on the border where the text label would normally go.
+func LabelWidgetOpt(w widget.Widget) LabelframeOption {
+	return func(lf *Labelframe) { lf.LabelWidget = w }
 }
 
 // PadX sets internal horizontal padding.
@@ -145,6 +155,15 @@ func (lf *Labelframe) computeTextSize() {
 		lf.textWidth = 0
 		lf.textHeight = 0
 	}
+	// Compute effective label dimensions (widget takes priority over text).
+	if lf.LabelWidget != nil {
+		lw := lf.LabelWidget.Window()
+		lf.labelWidth = lw.ReqWidth
+		lf.labelHeight = lw.ReqHeight
+	} else {
+		lf.labelWidth = lf.textWidth
+		lf.labelHeight = lf.textHeight
+	}
 }
 
 func (lf *Labelframe) updateInternalBorder() {
@@ -154,14 +173,25 @@ func (lf *Labelframe) updateInternalBorder() {
 	// The full label height replaces the top border width, since the label
 	// sits centered on the border and the content area starts below it.
 	topBorder := bw
-	if lf.Text != "" && lf.textHeight > 0 {
-		topBorder = lf.textHeight
+	if lf.labelHeight > 0 {
+		topBorder = lf.labelHeight
 	}
 	// Tk C: padX/padY are added to all four internal borders.
 	w.InternalBorderLeft = bw + lf.PadX
 	w.InternalBorderRight = bw + lf.PadX
 	w.InternalBorderTop = topBorder + lf.PadY
 	w.InternalBorderBottom = bw + lf.PadY
+
+	// Tk C: Tk_SetMinimumRequestSize — ensure the frame is wide/tall enough
+	// to fit the label. For top/bottom anchors (N/NW/NE/S/SW/SE), add
+	// padding = 2*(borderWidth + LABELMARGIN) to the label width.
+	if lf.labelWidth > 0 {
+		const labelMargin = 4
+		padding := 2 * (bw + labelMargin)
+		w.MinReqWidth = lf.labelWidth + padding + 3
+	} else {
+		w.MinReqWidth = 0
+	}
 }
 
 // Display draws the labelframe.
@@ -187,7 +217,9 @@ func (lf *Labelframe) Display() {
 	d.FillRectangle(w.Drawable(), gc, 0, 0, uint(w.Width), uint(w.Height))
 
 	bw := lf.BorderWidth
-	hasLabel := lf.Font != nil && lf.Text != "" && lf.textHeight > 0
+	hasTextLabel := lf.LabelWidget == nil && lf.Font != nil && lf.Text != "" && lf.textHeight > 0
+	hasWidgetLabel := lf.LabelWidget != nil && lf.labelHeight > 0
+	hasLabel := hasTextLabel || hasWidgetLabel
 
 	if bw > 0 && lf.Relief != option.ReliefFlat {
 		border := lf.Border
@@ -203,8 +235,8 @@ func (lf *Labelframe) Display() {
 		}
 	}
 
-	// Draw label text.
-	if hasLabel && lf.Foreground != nil {
+	// Draw label text (only when no label widget).
+	if hasTextLabel && lf.Foreground != nil {
 		labelX := lf.labelX()
 		labelY := 0 // label top is at y=0
 		m := lf.Font.Metrics()
@@ -215,10 +247,19 @@ func (lf *Labelframe) Display() {
 		}
 	}
 
+	// Position label widget on the border.
+	if hasWidgetLabel {
+		lw := lf.LabelWidget.Window()
+		labelX := lf.labelX()
+		labelY := 0
+		d.MoveResizeWindow(lw.PlatformID, labelX, labelY, uint(lf.labelWidth), uint(lf.labelHeight))
+		d.MapWindow(lw.PlatformID)
+	}
+
 	d.Flush()
 }
 
-// labelX returns the x position for the label text.
+// labelX returns the x position for the label.
 func (lf *Labelframe) labelX() int {
 	bw := lf.BorderWidth
 	gap := 8 // gap from border edge to label
@@ -226,9 +267,9 @@ func (lf *Labelframe) labelX() int {
 	case option.AnchorNW, option.AnchorW, option.AnchorSW:
 		return bw + gap
 	case option.AnchorNE, option.AnchorE, option.AnchorSE:
-		return lf.Win.Width - bw - gap - lf.textWidth
+		return lf.Win.Width - bw - gap - lf.labelWidth
 	default: // center
-		return (lf.Win.Width - lf.textWidth) / 2
+		return (lf.Win.Width - lf.labelWidth) / 2
 	}
 }
 
@@ -237,10 +278,10 @@ func (lf *Labelframe) drawBorderWithGap(d platform.DisplayServer, gc platform.GC
 	w := lf.Win
 	labelX := lf.labelX()
 	gapLeft := labelX - 4
-	gapRight := labelX + lf.textWidth + 4
+	gapRight := labelX + lf.labelWidth + 4
 
 	// The border frame is offset down by half the label height.
-	frameY := lf.textHeight / 2
+	frameY := lf.labelHeight / 2
 	frameH := w.Height - frameY
 
 	// Draw left, right, bottom borders normally.
@@ -315,6 +356,19 @@ func (lf *Labelframe) Configure(opts ...option.Option) {
 		lf.Win.BackgroundPixel = lf.Background.Pixel
 	}
 	lf.Display()
+}
+
+// SetLabelWidget sets a widget as the label after construction.
+// This is needed when the label widget is a child of the labelframe itself.
+func (lf *Labelframe) SetLabelWidget(w widget.Widget) {
+	lf.LabelWidget = w
+	lf.computeTextSize()
+	lf.updateInternalBorder()
+	lf.Display()
+	// Notify geometry manager that internal borders changed.
+	if lf.Win.ConfigureCallback != nil {
+		lf.Win.ConfigureCallback()
+	}
 }
 
 // Destroy cleans up the labelframe.
