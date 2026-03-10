@@ -19,6 +19,9 @@ type Labelframe struct {
 	LabelAnchor option.Anchor // where the label sits on the border (default NW)
 	LabelWidget widget.Widget // optional widget to use as the label instead of text
 
+	// Disabled state — when true, title text is drawn in gray.
+	Disabled bool
+
 	textWidth  int
 	textHeight int
 	labelWidth int // effective label width (text or widget)
@@ -242,8 +245,14 @@ func (lf *Labelframe) Display() {
 		m := lf.Font.Metrics()
 		baseline := labelY + m.Ascent
 		if df, ok := lf.Font.(platform.DrawableFont); ok {
+			fgPixel := lf.Foreground.Pixel
+			fgR, fgG, fgB := lf.Foreground.Red, lf.Foreground.Green, lf.Foreground.Blue
+			if lf.Disabled {
+				fgPixel = 0xa3a3a3
+				fgR, fgG, fgB = 0xa300, 0xa300, 0xa300
+			}
 			df.DrawString(w.Drawable(), labelX, baseline, lf.Text,
-				lf.Foreground.Pixel, lf.Foreground.Red, lf.Foreground.Green, lf.Foreground.Blue)
+				fgPixel, fgR, fgG, fgB)
 		}
 	}
 

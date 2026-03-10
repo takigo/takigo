@@ -14,13 +14,21 @@ import (
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/ttk"
+	_ "github.com/msorc/takigo/ttk/alttheme"
 	_ "github.com/msorc/takigo/ttk/clamtheme"
+	_ "github.com/msorc/takigo/ttk/classictheme"
 	_ "github.com/msorc/takigo/ttk/defaulttheme"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
 	"github.com/msorc/takigo/widget/labelframe"
 )
+
+// ttkRef tracks a TTK widget with its concrete Display method.
+type ttkRef struct {
+	tw      *ttk.TtkWidget
+	display func()
+}
 
 func main() {
 	app, err := takigo.NewApp(takigo.Title("Simple Ttk Widgets"),
@@ -53,13 +61,21 @@ func main() {
 	btns := demohelper.AddSeeDismiss(f)
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
+	// Get the bottom bar TTK buttons (See Code, Dismiss) for toggling.
+	bottomButtons := demohelper.BottomButtons()
+
 	// Container frame for the grid layout.
 	container := ttk.NewFrame(f, "container")
 	pack.Pack(container, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true))
 
-	// Collect all TTK widgets for enable/disable toggling.
-	var ttkWidgets []*ttk.TtkWidget
+	// Collect all TTK widgets for enable/disable toggling and theme refresh.
+	var ttkWidgets []ttkRef
+
+	// Add bottom bar buttons to TTK widget tracking.
+	for _, btn := range bottomButtons {
+		ttkWidgets = append(ttkWidgets, ttkRef{&btn.TtkWidget, btn.Display})
+	}
 
 	// -- Group 1: Buttons (theme switchers) --
 	btnFrame := labelframe.New(container, "buttons",
@@ -74,10 +90,14 @@ func main() {
 			ttk.ButtonText(themeName),
 			ttk.ButtonCommand(func() {
 				ttk.SetCurrentTheme(themeName)
+				for _, ref := range ttkWidgets {
+					ref.tw.RefreshTheme()
+					ref.display()
+				}
 			}),
 		)
 		pack.Pack(btn, pack.PadY("1.5p"))
-		ttkWidgets = append(ttkWidgets, &btn.TtkWidget)
+		ttkWidgets = append(ttkWidgets, ttkRef{&btn.TtkWidget, btn.Display})
 	}
 
 	// -- Group 2: Checkbuttons --
@@ -100,10 +120,14 @@ func main() {
 	)
 	pack.Pack(c1, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY("1.5p"))
 	pack.Pack(c2, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY("1.5p"))
-	ttkWidgets = append(ttkWidgets, &c1.TtkWidget, &c2.TtkWidget)
+	ttkWidgets = append(ttkWidgets,
+		ttkRef{&c1.TtkWidget, c1.Display},
+		ttkRef{&c2.TtkWidget, c2.Display},
+	)
 
 	sep := ttk.NewSeparator(chkFrame, "sep")
 	pack.Pack(sep, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY("1.5p"))
+	ttkWidgets = append(ttkWidgets, ttkRef{&sep.TtkWidget, sep.TtkWidget.Display})
 
 	c3 := ttk.NewCheckbutton(chkFrame, "c3",
 		ttk.CheckbuttonText("Basil"),
@@ -115,7 +139,10 @@ func main() {
 	)
 	pack.Pack(c3, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY("1.5p"))
 	pack.Pack(c4, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY("1.5p"))
-	ttkWidgets = append(ttkWidgets, &c3.TtkWidget, &c4.TtkWidget)
+	ttkWidgets = append(ttkWidgets,
+		ttkRef{&c3.TtkWidget, c3.Display},
+		ttkRef{&c4.TtkWidget, c4.Display},
+	)
 
 	// -- Group 3: Radiobuttons --
 	radFrame := labelframe.New(container, "radios",
@@ -137,7 +164,7 @@ func main() {
 		)
 		pack.Pack(r, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
 			pack.PadX("3p"), pack.PadY("1.5p"))
-		ttkWidgets = append(ttkWidgets, &r.TtkWidget)
+		ttkWidgets = append(ttkWidgets, ttkRef{&r.TtkWidget, r.Display})
 	}
 
 	// -- Group 4: Toggleswitch (enable/disable all widgets) --
@@ -147,19 +174,32 @@ func main() {
 
 	enabled := widget.NewVariable(true)
 
+	// Classic widgets to disable (msg label, labelframes).
+	classicLabelframes := []*labelframe.Labelframe{btnFrame, chkFrame, radFrame}
+
 	togLabel := ttk.NewLabel(togFrame, "l",
 		ttk.LabelText("Enable/disable widgets"),
 	)
 	togSwitch := ttk.NewToggleswitch(togFrame, "sw",
 		ttk.ToggleswitchVar(enabled),
 		ttk.ToggleswitchCommand(func() {
-			for _, w := range ttkWidgets {
-				if enabled.Get() {
-					w.State &^= ttk.StateDisabled
+			disabled := !enabled.Get()
+			// Toggle TTK widgets.
+			for _, ref := range ttkWidgets {
+				if disabled {
+					ref.tw.State |= ttk.StateDisabled
 				} else {
-					w.State |= ttk.StateDisabled
+					ref.tw.State &^= ttk.StateDisabled
 				}
-				w.Display()
+				ref.display()
+			}
+			// Toggle classic label.
+			msg.Disabled = disabled
+			msg.Display()
+			// Toggle classic labelframes.
+			for _, lf := range classicLabelframes {
+				lf.Disabled = disabled
+				lf.Display()
 			}
 		}),
 	)
@@ -183,7 +223,6 @@ func main() {
 	grid.ColumnConfigure(container, 2, grid.Weight(1), grid.Uniform("yes"))
 	grid.RowConfigure(container, 1, grid.Weight(1))
 
-	_ = sep
 	_ = togLabel
 	_ = togSwitch
 	app.Run()

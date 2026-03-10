@@ -4,6 +4,7 @@ import (
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/font"
+	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/window"
@@ -46,6 +47,11 @@ func RadiobuttonVar(v *widget.Variable[string]) RadiobuttonOption {
 		}
 		r.Variable = v
 		r.unsub = v.OnChange(func(_, _ string) {
+			if r.Variable.Get() == r.Value {
+				r.State |= StateSelected
+			} else {
+				r.State &^= StateSelected
+			}
 			r.Display()
 		})
 	}
@@ -75,6 +81,11 @@ func NewRadiobutton(parent widget.Caregiver, name string, opts ...RadiobuttonOpt
 		opt(r)
 	}
 
+	// Sync initial selected state from variable.
+	if r.Variable != nil && r.Variable.Get() == r.Value {
+		r.State |= StateSelected
+	}
+
 	r.computeSize()
 	bindTtkRadiobutton(r, app)
 	return r
@@ -82,13 +93,19 @@ func NewRadiobutton(parent widget.Caregiver, name string, opts ...RadiobuttonOpt
 
 func (r *Radiobutton) computeSize() {
 	w := r.Win
-	indW := ttkRadioIndicatorSize + 4
+	indSize := ttkRadioIndicatorSize
+	if r.Context != nil && r.Context.Style != nil {
+		if sz := LookupInt(r.Context.Style, "-indicatorsize", r.State, 0); sz > 0 {
+			indSize = sz
+		}
+	}
+	indW := indSize + 4
 	textW, textH := 0, 0
 	if r.Font != nil && r.Text != "" {
 		textW = r.Font.MeasureString(r.Text)
 		textH = r.Font.Metrics().Linespace()
 	}
-	h := max(textH, ttkRadioIndicatorSize)
+	h := max(textH, indSize)
 	w.ReqWidth = indW + textW + 8
 	w.ReqHeight = h + 6
 }
@@ -130,32 +147,115 @@ func (r *Radiobutton) Display() {
 	d.SetForeground(gc, bgColor)
 	d.FillRectangle(win.Drawable(), gc, 0, 0, uint(width), uint(height))
 
-	border := draw.NewBorderFromPixel(bgColor)
+	// Determine indicator style from style options.
+	indSize := ttkRadioIndicatorSize
+	hasClamStyle := false
+	var upperBorderColor, lowerBorderColor uint64
+	if r.Context != nil && r.Context.Style != nil {
+		if sz := LookupInt(r.Context.Style, "-indicatorsize", r.State, 0); sz > 0 {
+			indSize = sz
+		}
+		if v, ok := r.Context.Style.Lookup("-upperbordercolor", r.State); ok {
+			if uc, ok2 := v.(uint64); ok2 {
+				upperBorderColor = uc
+				hasClamStyle = true
+			}
+		}
+		if v, ok := r.Context.Style.Lookup("-lowerbordercolor", r.State); ok {
+			if lc, ok2 := v.(uint64); ok2 {
+				lowerBorderColor = lc
+			}
+		}
+	}
 
 	selected := r.Selected()
 
 	// Indicator (circle).
 	indX := 3
-	indSize := ttkRadioIndicatorSize
 	indY := (height - indSize) / 2
 
-	// White fill for indicator circle.
-	d.SetForeground(gc, uint64(0xffffff))
-	d.FillArc(win.Drawable(), gc, indX, indY, uint(indSize), uint(indSize), 0, 360*64)
+	// Indicator fill and color.
+	indFill := uint64(0xffffff)
+	indColor := fgColor
+	if r.Context != nil && r.Context.Style != nil {
+		indFill = LookupColor(r.Context.Style, "-indicatorbackground", r.State, indFill)
+		indColor = LookupColor(r.Context.Style, "-indicatorcolor", r.State, fgColor)
+	}
+	if r.State&StateDisabled != 0 {
+		indFill = bgColor
+	}
 
-	// Border arcs around circle.
-	d.SetForeground(gc, border.DarkPixel)
-	d.DrawArc(win.Drawable(), gc, indX, indY, uint(indSize-1), uint(indSize-1), 45*64, 180*64)
-	d.SetForeground(gc, border.LightPixel)
-	d.DrawArc(win.Drawable(), gc, indX, indY, uint(indSize-1), uint(indSize-1), 225*64, 180*64)
+	// Check for classic Motif indicator style: -indicatorrelief set in style.
+	hasClassicStyle := false
+	classicRelief := option.ReliefFlat
+	if r.Context != nil && r.Context.Style != nil {
+		if v, ok := r.Context.Style.Lookup("-indicatorrelief", r.State); ok {
+			if rel, ok2 := v.(option.Relief); ok2 {
+				classicRelief = rel
+				hasClassicStyle = true
+			}
+		}
+	}
 
-	// Inner dot when selected.
-	if selected {
-		dotSize := indSize - 6
-		dotX := indX + 3
-		dotY := indY + 3
-		d.SetForeground(gc, fgColor)
-		d.FillArc(win.Drawable(), gc, dotX, dotY, uint(dotSize), uint(dotSize), 0, 360*64)
+	if hasClassicStyle {
+		// Classic Motif style: 3D raised/sunken diamond; relief encodes selected state.
+		border := draw.NewBorderFromPixel(bgColor)
+		radius := indSize / 2
+		pts := []draw.Point{
+			{X: indX, Y: indY + radius},
+			{X: indX + radius, Y: indY + indSize - 1},
+			{X: indX + indSize - 1, Y: indY + radius},
+			{X: indX + radius, Y: indY},
+		}
+		d.SetForeground(gc, indFill)
+		draw.FillPolygon(d, win.Drawable(), gc, pts)
+		if r.State&StateDisabled == 0 {
+			drawDiamond3DRadio(d, win.Drawable(), gc, border, pts, 2, classicRelief)
+		}
+	} else if hasClamStyle {
+		// Clam style: flat two-color circle border.
+		// Outer circle with gradient effect (upper-left = darkest, lower-right = dark).
+		d.SetForeground(gc, upperBorderColor)
+		d.FillArc(win.Drawable(), gc, indX, indY, uint(indSize), uint(indSize), 0, 360*64)
+
+		// Draw lower-right half in lighter color for gradient effect.
+		d.SetForeground(gc, lowerBorderColor)
+		d.FillArc(win.Drawable(), gc, indX, indY, uint(indSize), uint(indSize), 225*64, 180*64)
+
+		// Inner fill circle (1px border).
+		d.SetForeground(gc, indFill)
+		d.FillArc(win.Drawable(), gc, indX+1, indY+1, uint(indSize-2), uint(indSize-2), 0, 360*64)
+
+		// Inner dot when selected.
+		if selected {
+			dotSize := indSize / 2
+			dotX := indX + (indSize-dotSize)/2
+			dotY := indY + (indSize-dotSize)/2
+			d.SetForeground(gc, fgColor)
+			d.FillArc(win.Drawable(), gc, dotX, dotY, uint(dotSize), uint(dotSize), 0, 360*64)
+		}
+	} else {
+		// Default style: 3D arc border.
+		border := draw.NewBorderFromPixel(bgColor)
+		d.SetForeground(gc, indFill)
+		d.FillArc(win.Drawable(), gc, indX, indY, uint(indSize), uint(indSize), 0, 360*64)
+
+		// Border arcs around circle (flat when disabled).
+		if r.State&StateDisabled == 0 {
+			d.SetForeground(gc, border.DarkPixel)
+			d.DrawArc(win.Drawable(), gc, indX, indY, uint(indSize-1), uint(indSize-1), 45*64, 180*64)
+			d.SetForeground(gc, border.LightPixel)
+			d.DrawArc(win.Drawable(), gc, indX, indY, uint(indSize-1), uint(indSize-1), 225*64, 180*64)
+		}
+
+		// Inner dot when selected.
+		if selected {
+			dotSize := indSize - 6
+			dotX := indX + 3
+			dotY := indY + 3
+			d.SetForeground(gc, indColor)
+			d.FillArc(win.Drawable(), gc, dotX, dotY, uint(dotSize), uint(dotSize), 0, 360*64)
+		}
 	}
 
 	// Text label.
@@ -189,6 +289,7 @@ func (r *Radiobutton) Select() {
 	if r.State&StateDisabled != 0 {
 		return
 	}
+	r.State |= StateSelected
 	if r.Variable != nil {
 		r.Variable.Set(r.Value)
 	}
@@ -218,6 +319,21 @@ func bindTtkRadiobutton(r *Radiobutton, app widget.AppContext) {
 		}
 	})
 
+	// Enter → redraw with hover state (bindTtkCommon updates state; we just redisplay).
+	app.Dispatcher().Bind(win.PlatformID, event.EnterMask, func(ev *event.Event) {
+		r.Display()
+	})
+
+	// Leave → redraw without hover state.
+	app.Dispatcher().Bind(win.PlatformID, event.LeaveMask, func(ev *event.Event) {
+		r.Display()
+	})
+
+	// Focus → redraw to show/hide focus ring.
+	app.Dispatcher().Bind(win.PlatformID, event.FocusChangeMask, func(ev *event.Event) {
+		r.Display()
+	})
+
 	// Button1 press → +StatePressed.
 	app.Dispatcher().Bind(win.PlatformID, event.ButtonPressMask, func(ev *event.Event) {
 		if ev.Button == 1 {
@@ -242,6 +358,35 @@ func bindTtkRadiobutton(r *Radiobutton, app widget.AppContext) {
 			r.Select()
 		}
 	})
+}
+
+// drawDiamond3DRadio draws 3D shaded edges for a diamond indicator.
+// Points order: left, bottom, right, top.
+func drawDiamond3DRadio(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID,
+	border *draw.Border, pts []draw.Point, bw int, relief option.Relief) {
+	var lightPx, darkPx uint64
+	switch relief {
+	case option.ReliefRaised, option.ReliefRidge:
+		lightPx = border.LightPixel
+		darkPx = border.DarkPixel
+	case option.ReliefSunken, option.ReliefGroove:
+		lightPx = border.DarkPixel
+		darkPx = border.LightPixel
+	default:
+		lightPx = border.BgPixel
+		darkPx = border.BgPixel
+	}
+	left, bottom, right, top := pts[0], pts[1], pts[2], pts[3]
+	for i := range bw {
+		// Upper half: top→left and top→right (light for raised).
+		d.SetForeground(gc, lightPx)
+		d.DrawLine(drawable, gc, top.X, top.Y+i, left.X+i, left.Y)
+		d.DrawLine(drawable, gc, top.X, top.Y+i, right.X-i, right.Y)
+		// Lower half: bottom→left and bottom→right (dark for raised).
+		d.SetForeground(gc, darkPx)
+		d.DrawLine(drawable, gc, bottom.X, bottom.Y-i, left.X+i, left.Y)
+		d.DrawLine(drawable, gc, bottom.X, bottom.Y-i, right.X-i, right.Y)
+	}
 }
 
 // Destroy cleans up the radiobutton.

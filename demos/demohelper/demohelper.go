@@ -31,7 +31,15 @@ var (
 	img map[string]*tkimage.Photo
 	// varsWindow is the single reusable "See Variables" toplevel (nil until first use).
 	varsWindow *toplevel.Toplevel
+	// lastBottomButtons stores buttons created by the most recent AddBottomButtons call.
+	lastBottomButtons []*ttk.Button
 )
+
+// BottomButtons returns the TTK buttons created by the most recent
+// AddSeeDismiss or AddBottomButtons call.
+func BottomButtons() []*ttk.Button {
+	return lastBottomButtons
+}
 
 type DemoVars[T comparable] map[string]*widget.Variable[T]
 
@@ -91,10 +99,12 @@ func AddBottomButtons(parent widget.Caregiver, varsFunc func(*ttk.Frame) *ttk.Bu
 	)
 
 	buttons := []window.Windower{grid.Relative(grid.RelEmpty), codeBtn, dismissBtn}
+	lastBottomButtons = []*ttk.Button{codeBtn, dismissBtn}
 
 	varsButton := varsFunc(btnFrame)
 	if varsButton != nil {
 		buttons = []window.Windower{grid.Relative(grid.RelEmpty), varsButton, codeBtn, dismissBtn}
+		lastBottomButtons = []*ttk.Button{varsButton, codeBtn, dismissBtn}
 	}
 
 	grid.Grid(geometry.Group(buttons), grid.PadX("3p"), grid.PadY("3p"))

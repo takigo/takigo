@@ -97,13 +97,19 @@ func NewCheckbutton(parent widget.Caregiver, name string, opts ...CheckbuttonOpt
 
 func (c *Checkbutton) computeSize() {
 	w := c.Win
-	indW := ttkIndicatorSize + 4
+	indSize := ttkIndicatorSize
+	if c.Context != nil && c.Context.Style != nil {
+		if sz := LookupInt(c.Context.Style, "-indicatorsize", c.State, 0); sz > 0 {
+			indSize = sz
+		}
+	}
+	indW := indSize + 4
 	textW, textH := 0, 0
 	if c.Font != nil && c.Text != "" {
 		textW = c.Font.MeasureString(c.Text)
 		textH = c.Font.Metrics().Linespace()
 	}
-	h := max(textH, ttkIndicatorSize)
+	h := max(textH, indSize)
 	w.ReqWidth = indW + textW + 8
 	w.ReqHeight = h + 6
 }
@@ -137,31 +143,119 @@ func (c *Checkbutton) Display() {
 	d.SetForeground(gc, bgColor)
 	d.FillRectangle(win.Drawable(), gc, 0, 0, uint(width), uint(height))
 
-	border := draw.NewBorderFromPixel(bgColor)
+	// Determine indicator style from style options.
+	indSize := ttkIndicatorSize
+	hasClamStyle := false
+	var upperBorderColor, lowerBorderColor uint64
+	if c.Context != nil && c.Context.Style != nil {
+		if sz := LookupInt(c.Context.Style, "-indicatorsize", c.State, 0); sz > 0 {
+			indSize = sz
+		}
+		if v, ok := c.Context.Style.Lookup("-upperbordercolor", c.State); ok {
+			if uc, ok2 := v.(uint64); ok2 {
+				upperBorderColor = uc
+				hasClamStyle = true
+			}
+		}
+		if v, ok := c.Context.Style.Lookup("-lowerbordercolor", c.State); ok {
+			if lc, ok2 := v.(uint64); ok2 {
+				lowerBorderColor = lc
+			}
+		}
+	}
 
 	// Indicator (checkbox square).
 	indX := 3
-	indSize := ttkIndicatorSize
 	indY := (height - indSize) / 2
 
-	// White fill for checkbox.
-	d.SetForeground(gc, uint64(0xffffff))
-	d.FillRectangle(win.Drawable(), gc, indX+2, indY+2,
-		uint(indSize-4), uint(indSize-4))
+	// Indicator fill and color.
+	indFill := uint64(0xffffff)
+	indColor := fgColor
+	if c.Context != nil && c.Context.Style != nil {
+		indFill = LookupColor(c.Context.Style, "-indicatorbackground", c.State, indFill)
+		indColor = LookupColor(c.Context.Style, "-indicatorcolor", c.State, fgColor)
+	}
+	if c.State&StateDisabled != 0 {
+		indFill = bgColor
+	}
 
-	// Sunken border around checkbox.
-	draw.Draw3DRectangle(d, win.Drawable(), gc, border,
-		indX, indY, indSize, indSize, 2, option.ReliefSunken)
+	// Check for classic Motif indicator style: -indicatorrelief set in style.
+	hasClassicStyle := false
+	classicRelief := option.ReliefFlat
+	if c.Context != nil && c.Context.Style != nil {
+		if v, ok := c.Context.Style.Lookup("-indicatorrelief", c.State); ok {
+			if r, ok2 := v.(option.Relief); ok2 {
+				classicRelief = r
+				hasClassicStyle = true
+			}
+		}
+	}
 
-	// Checkmark when selected.
-	if c.selected {
-		d.SetForeground(gc, fgColor)
-		cx := indX + 3
-		cy := indY + indSize/2
-		d.DrawLine(win.Drawable(), gc, cx, cy, cx+2, cy+3)
-		d.DrawLine(win.Drawable(), gc, cx+1, cy, cx+3, cy+3)
-		d.DrawLine(win.Drawable(), gc, cx+2, cy+3, cx+7, cy-2)
-		d.DrawLine(win.Drawable(), gc, cx+3, cy+3, cx+8, cy-2)
+	if hasClassicStyle {
+		// Classic Motif style: 3D raised/sunken square; relief encodes on/off state.
+		border := draw.NewBorderFromPixel(bgColor)
+		d.SetForeground(gc, indFill)
+		d.FillRectangle(win.Drawable(), gc, indX, indY, uint(indSize), uint(indSize))
+		if c.State&StateDisabled == 0 {
+			draw.Draw3DRectangle(d, win.Drawable(), gc, border,
+				indX, indY, indSize, indSize, 2, classicRelief)
+		}
+	} else if hasClamStyle {
+		// Clam style: 1px flat border (upper-left = darkest, lower-right = dark), white fill.
+		d.SetForeground(gc, indFill)
+		d.FillRectangle(win.Drawable(), gc, indX+1, indY+1,
+			uint(indSize-2), uint(indSize-2))
+
+		// Top + left border line.
+		d.SetForeground(gc, upperBorderColor)
+		d.DrawLine(win.Drawable(), gc, indX, indY, indX+indSize-1, indY)
+		d.DrawLine(win.Drawable(), gc, indX, indY, indX, indY+indSize-1)
+
+		// Bottom + right border line.
+		d.SetForeground(gc, lowerBorderColor)
+		d.DrawLine(win.Drawable(), gc, indX, indY+indSize-1, indX+indSize-1, indY+indSize-1)
+		d.DrawLine(win.Drawable(), gc, indX+indSize-1, indY, indX+indSize-1, indY+indSize-1)
+
+		// X mark when selected.
+		if c.selected {
+			d.SetForeground(gc, fgColor)
+			// Cross from (5,5) to (11,11) and (11,5) to (5,11) in 16px space.
+			// Scale relative to indSize.
+			x0 := indX + indSize*5/16
+			y0 := indY + indSize*5/16
+			x1 := indX + indSize*11/16
+			y1 := indY + indSize*11/16
+			// Draw thick X (2px wide).
+			d.DrawLine(win.Drawable(), gc, x0, y0, x1, y1)
+			d.DrawLine(win.Drawable(), gc, x0+1, y0, x1+1, y1)
+			d.DrawLine(win.Drawable(), gc, x0, y0+1, x1, y1+1)
+			d.DrawLine(win.Drawable(), gc, x1, y0, x0, y1)
+			d.DrawLine(win.Drawable(), gc, x1-1, y0, x0-1, y1)
+			d.DrawLine(win.Drawable(), gc, x1, y0+1, x0, y1+1)
+		}
+	} else {
+		// Default style: 3D sunken border, checkmark.
+		border := draw.NewBorderFromPixel(bgColor)
+		d.SetForeground(gc, indFill)
+		d.FillRectangle(win.Drawable(), gc, indX+2, indY+2,
+			uint(indSize-4), uint(indSize-4))
+
+		// Sunken border around checkbox (flat when disabled).
+		if c.State&StateDisabled == 0 {
+			draw.Draw3DRectangle(d, win.Drawable(), gc, border,
+				indX, indY, indSize, indSize, 2, option.ReliefSunken)
+		}
+
+		// Checkmark when selected.
+		if c.selected {
+			d.SetForeground(gc, indColor)
+			cx := indX + 3
+			cy := indY + indSize/2
+			d.DrawLine(win.Drawable(), gc, cx, cy, cx+2, cy+3)
+			d.DrawLine(win.Drawable(), gc, cx+1, cy, cx+3, cy+3)
+			d.DrawLine(win.Drawable(), gc, cx+2, cy+3, cx+7, cy-2)
+			d.DrawLine(win.Drawable(), gc, cx+3, cy+3, cx+8, cy-2)
+		}
 	}
 
 	// Text label.
@@ -228,6 +322,21 @@ func bindTtkCheckbutton(c *Checkbutton, app widget.AppContext) {
 			win.Height = ev.ConfigHeight
 			c.Display()
 		}
+	})
+
+	// Enter → redraw with hover state (bindTtkCommon updates state; we just redisplay).
+	app.Dispatcher().Bind(win.PlatformID, event.EnterMask, func(ev *event.Event) {
+		c.Display()
+	})
+
+	// Leave → redraw without hover state.
+	app.Dispatcher().Bind(win.PlatformID, event.LeaveMask, func(ev *event.Event) {
+		c.Display()
+	})
+
+	// Focus → redraw to show/hide focus ring.
+	app.Dispatcher().Bind(win.PlatformID, event.FocusChangeMask, func(ev *event.Event) {
+		c.Display()
 	})
 
 	// Button1 press → +StatePressed.

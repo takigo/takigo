@@ -128,6 +128,25 @@ func (e *LabelElement) Size(state State) (int, int, Padding) {
 		th = f.Metrics().Linespace()
 	}
 
+	// Check -width style option (in characters).
+	// Negative width means minimum width: abs(width) average characters.
+	// Positive width means exact width.
+	if f != nil && e.ctx.Style != nil {
+		if styleWidth := LookupInt(e.ctx.Style, "-width", state, 0); styleWidth != 0 {
+			avgCharWidth := f.MeasureString("0")
+			if styleWidth < 0 {
+				// Minimum width.
+				minW := -styleWidth * avgCharWidth
+				if tw < minW {
+					tw = minW
+				}
+			} else {
+				// Exact width.
+				tw = styleWidth * avgCharWidth
+			}
+		}
+	}
+
 	w, h := compoundSize(compound, img, tw, th)
 	return w, h, Padding{}
 }
@@ -248,6 +267,85 @@ func compoundSize(c widget.Compound, img widget.WidgetImage, textW, textH int) (
 		return max(imgW, textW), max(imgH, textH)
 	default:
 		return imgW, imgH
+	}
+}
+
+// --- FieldElement ---
+
+// FieldElement draws an inset field background for entry/combobox/spinbox widgets.
+type FieldElement struct {
+	ctx *DrawContext
+}
+
+func NewFieldElementFactory(ctx *DrawContext) Element {
+	return &FieldElement{ctx: ctx}
+}
+
+func (e *FieldElement) Size(state State) (int, int, Padding) {
+	bw := LookupInt(e.ctx.Style, "-borderwidth", state, 2)
+	return 0, 0, UniformPadding(bw)
+}
+
+func (e *FieldElement) Draw(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID, box Box, state State) {
+	fieldBg := LookupColor(e.ctx.Style, "-fieldbackground", state, 0xffffff)
+	bw := LookupInt(e.ctx.Style, "-borderwidth", state, 2)
+	bg := LookupColor(e.ctx.Style, "-background", state, 0xd9d9d9)
+
+	// Fill field background.
+	d.SetForeground(gc, fieldBg)
+	d.FillRectangle(drawable, gc, box.X, box.Y, uint(box.Width), uint(box.Height))
+
+	// Sunken border.
+	if bw > 0 {
+		border := draw.NewBorderFromPixel(bg)
+		draw.Draw3DRectangle(d, drawable, gc, border, box.X, box.Y, box.Width, box.Height, bw, option.ReliefSunken)
+	}
+
+	// Focus ring inside border.
+	if state&StateFocus != 0 {
+		focusColor := LookupColor(e.ctx.Style, "-focuscolor", state, 0x4a6984)
+		d.SetForeground(gc, focusColor)
+		d.DrawRectangle(drawable, gc, box.X+bw-1, box.Y+bw-1,
+			uint(box.Width-2*bw+1), uint(box.Height-2*bw+1))
+	}
+}
+
+// --- MenubuttonIndicatorElement ---
+
+// MenubuttonIndicatorElement draws a small downward-pointing arrow for TMenubutton.
+type MenubuttonIndicatorElement struct {
+	ctx *DrawContext
+}
+
+func NewMenubuttonIndicatorElementFactory(ctx *DrawContext) Element {
+	return &MenubuttonIndicatorElement{ctx: ctx}
+}
+
+func (e *MenubuttonIndicatorElement) Size(state State) (int, int, Padding) {
+	// Compact arrow: 11px wide, fills height, with 4px left margin.
+	return 11 + 4, 0, Padding{}
+}
+
+func (e *MenubuttonIndicatorElement) Draw(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID, box Box, state State) {
+	fg := LookupColor(e.ctx.Style, "-foreground", state, 0x000000)
+	if state&StateDisabled != 0 {
+		fg = LookupColor(e.ctx.Style, "-foreground", StateDisabled, 0xa3a3a3)
+	}
+
+	// Draw a small centered downward triangle.
+	aw := 7 // arrow width (odd for symmetric look)
+	ah := 4 // arrow height
+	ax := box.X + 4 + (box.Width-4-aw)/2
+	ay := box.Y + (box.Height-ah)/2
+
+	d.SetForeground(gc, fg)
+	for i := range ah {
+		x0 := ax + i
+		x1 := ax + aw - 1 - i
+		y := ay + i
+		if x0 <= x1 {
+			d.DrawLine(drawable, gc, x0, y, x1, y)
+		}
 	}
 }
 

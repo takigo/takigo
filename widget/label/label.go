@@ -30,6 +30,9 @@ type Label struct {
 	Img      widget.WidgetImage
 	Compound widget.Compound
 
+	// Disabled state — when true, text is drawn in gray.
+	Disabled bool
+
 	// TextVariable linkage — when set, the variable's value overrides Text.
 	TextVar *widget.Variable[string]
 	unsub   func()
@@ -320,13 +323,25 @@ func (l *Label) Display() {
 	hasImg := l.Img != nil
 	hasText := l.Font != nil && l.Text != "" && l.Foreground != nil
 
+	// Resolve effective foreground color (gray when disabled).
+	fgPixel := uint64(0)
+	var fgR, fgG, fgB uint16
+	if l.Foreground != nil {
+		fgPixel = l.Foreground.Pixel
+		fgR, fgG, fgB = l.Foreground.Red, l.Foreground.Green, l.Foreground.Blue
+	}
+	if l.Disabled {
+		fgPixel = 0xa3a3a3
+		fgR, fgG, fgB = 0xa300, 0xa300, 0xa300
+	}
+
 	bgPixel := uint64(0)
 	if l.Background != nil {
 		bgPixel = l.Background.Pixel
 	}
 
 	if hasImg && hasText && l.Compound != widget.CompoundNone {
-		drawCompound(l, w, frameX, frameY, availW, availH, bgPixel)
+		drawCompound(l, w, frameX, frameY, availW, availH, bgPixel, fgPixel, fgR, fgG, fgB)
 	} else if hasImg {
 		// Image only.
 		imgW := l.Img.Width()
@@ -355,7 +370,7 @@ func (l *Label) Display() {
 					}
 				}
 				df.DrawString(w.Drawable(), lx, baseline, line,
-					l.Foreground.Pixel, l.Foreground.Red, l.Foreground.Green, l.Foreground.Blue)
+					fgPixel, fgR, fgG, fgB)
 			}
 		}
 	}
@@ -416,7 +431,8 @@ func compoundSize(c widget.Compound, img widget.WidgetImage, textW, textH int) (
 
 // drawCompound draws image and text in compound mode.
 func drawCompound(l *Label, w *window.Window,
-	frameX, frameY, availW, availH int, bgPixel uint64) {
+	frameX, frameY, availW, availH int, bgPixel uint64,
+	fgPixel uint64, fgR, fgG, fgB uint16) {
 
 	imgW := l.Img.Width()
 	imgH := l.Img.Height()
@@ -464,7 +480,7 @@ func drawCompound(l *Label, w *window.Window,
 		baseline := textY + m.Ascent
 		if df, ok := l.Font.(platform.DrawableFont); ok {
 			df.DrawString(w.Drawable(), textX, baseline, l.Text,
-				l.Foreground.Pixel, l.Foreground.Red, l.Foreground.Green, l.Foreground.Blue)
+				fgPixel, fgR, fgG, fgB)
 		}
 	}
 }

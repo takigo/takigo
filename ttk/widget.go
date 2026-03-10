@@ -17,6 +17,10 @@ type TtkWidget struct {
 	StyleName string
 	Context   *DrawContext
 
+	// LabelFactory is set by widgets that use a bound label element (Button, Label, Menubutton).
+	// Used by RefreshTheme to rebuild the layout with the correct label provider.
+	LabelFactory ElementFactory
+
 	// Double-buffering pixmap.
 	pixmap  platform.PixmapID
 	pixmapW int
@@ -121,6 +125,35 @@ func (w *TtkWidget) ChangeState(set, clear State) {
 	if w.State != old {
 		w.Display()
 	}
+}
+
+// RefreshTheme updates the widget to use the current global theme.
+// It re-resolves the style, rebuilds the layout, and updates the window background.
+// Callers should call Display() afterwards (the concrete widget's Display, not TtkWidget's).
+func (w *TtkWidget) RefreshTheme() {
+	theme := CurrentTheme()
+	if theme == nil {
+		return
+	}
+	w.Theme = theme
+
+	style := theme.ResolveStyle(w.StyleName)
+	w.Context.Style = style
+
+	tmpl := theme.GetLayout(w.StyleName)
+	if tmpl != nil {
+		if w.LabelFactory != nil {
+			w.Layout = newLayoutWithLabel(tmpl, theme, w.Context, style, w.LabelFactory)
+		} else {
+			w.Layout = NewLayout(tmpl, theme, w.Context, style)
+		}
+	} else {
+		w.Layout = nil
+	}
+
+	// Update window background from new style.
+	bg := LookupColor(style, "-background", 0, 0xd9d9d9)
+	w.Win.BackgroundPixel = bg
 }
 
 // Destroy frees resources and destroys the window.

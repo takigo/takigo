@@ -90,6 +90,7 @@ func NewMenubutton(parent widget.Caregiver, name string, opts ...MenubuttonOptio
 	// Bind label element to this widget.
 	if mb.Theme != nil {
 		labelFactory := NewLabelElementFactory(mb)
+		mb.LabelFactory = labelFactory
 		tmpl := mb.Theme.GetLayout("TMenubutton")
 		if tmpl != nil {
 			ctx := &DrawContext{

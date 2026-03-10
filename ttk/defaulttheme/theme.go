@@ -17,19 +17,34 @@ func init() {
 	theme.RegisterElement("focus", ttk.NewFocusElementFactory)
 	theme.RegisterElement("separator.h", ttk.NewSeparatorElementFactory(ttk.Horizontal))
 	theme.RegisterElement("separator.v", ttk.NewSeparatorElementFactory(ttk.Vertical))
+	theme.RegisterElement("field", ttk.NewFieldElementFactory)
+	theme.RegisterElement("Menubutton.indicator", ttk.NewMenubuttonIndicatorElementFactory)
 	// Note: "label" is registered per-widget via NewLabelElementFactory.
 
 	// Root style "." defaults.
 	root := theme.GetStyle(".")
 	root.Defaults["-background"] = uint64(0xd9d9d9)
 	root.Defaults["-foreground"] = uint64(0x000000)
-	root.Defaults["-borderwidth"] = 2
+	root.Defaults["-borderwidth"] = 1
 	root.Defaults["-focuscolor"] = uint64(0x000000)
+
+	// Disabled foreground for all widgets.
+	root.Maps["-foreground"] = ttk.StateMap[any]{
+		{Spec: ttk.StateSpec{OnBits: ttk.StateDisabled}, Value: uint64(0xa3a3a3)},
+	}
 
 	// TFrame style.
 	tframe := theme.GetStyle("TFrame")
 	tframe.Defaults["-relief"] = option.ReliefFlat
 	tframe.Defaults["-borderwidth"] = 0
+
+	// TCheckbutton style.
+	tcheckbutton := theme.GetStyle("TCheckbutton")
+	tcheckbutton.Defaults["-indicatorcolor"] = uint64(0x4a6984)
+
+	// TRadiobutton style.
+	tradiobutton := theme.GetStyle("TRadiobutton")
+	tradiobutton.Defaults["-indicatorcolor"] = uint64(0x4a6984)
 
 	// TLabel style.
 	tlabel := theme.GetStyle("TLabel")
@@ -40,32 +55,29 @@ func init() {
 	// TButton style.
 	tbutton := theme.GetStyle("TButton")
 	tbutton.Defaults["-padding"] = ttk.Padding{Left: 8, Top: 4, Right: 8, Bottom: 4}
+	tbutton.Defaults["-width"] = -9
 	tbutton.Defaults["-relief"] = option.ReliefRaised
-	tbutton.Defaults["-borderwidth"] = 2
 
-	// State maps for button relief.
+	// Relief: sunken when pressed and not disabled (Tcl: {!disabled pressed} sunken).
 	tbutton.Maps["-relief"] = ttk.StateMap[any]{
-		{Spec: ttk.StateSpec{OnBits: ttk.StatePressed}, Value: option.ReliefSunken},
-		{Spec: ttk.StateSpec{OnBits: ttk.StateDisabled}, Value: option.ReliefFlat},
+		{Spec: ttk.StateSpec{OnBits: ttk.StatePressed, OffBits: ttk.StateDisabled}, Value: option.ReliefSunken},
 	}
 
-	// State maps for button background.
-	tbutton.Maps["-background"] = ttk.StateMap[any]{
-		{Spec: ttk.StateSpec{OnBits: ttk.StateHover}, Value: uint64(0xececec)},
-	}
-
-	// Toolbutton style: flat by default, raised on hover, sunken on press.
+	// Toolbutton style: flat by default, raised on hover, sunken on press/select.
 	// Used by toolbar buttons and styled menubuttons.
+	// Matches Tcl: disabled flat, selected sunken, pressed sunken, active raised.
 	toolbutton := theme.GetStyle("Toolbutton")
 	toolbutton.Defaults["-padding"] = ttk.Padding{Left: 8, Top: 4, Right: 8, Bottom: 4}
 	toolbutton.Defaults["-relief"] = option.ReliefFlat
 	toolbutton.Defaults["-borderwidth"] = 2
 	toolbutton.Maps["-relief"] = ttk.StateMap[any]{
+		{Spec: ttk.StateSpec{OnBits: ttk.StateDisabled}, Value: option.ReliefFlat},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateSelected}, Value: option.ReliefSunken},
 		{Spec: ttk.StateSpec{OnBits: ttk.StatePressed}, Value: option.ReliefSunken},
 		{Spec: ttk.StateSpec{OnBits: ttk.StateHover}, Value: option.ReliefRaised},
-		{Spec: ttk.StateSpec{OnBits: ttk.StateDisabled}, Value: option.ReliefFlat},
 	}
 	toolbutton.Maps["-background"] = ttk.StateMap[any]{
+		{Spec: ttk.StateSpec{OnBits: ttk.StatePressed}, Value: uint64(0xc3c3c3)},
 		{Spec: ttk.StateSpec{OnBits: ttk.StateHover}, Value: uint64(0xececec)},
 	}
 
@@ -75,11 +87,13 @@ func init() {
 	tmbToolbutton.Defaults["-relief"] = option.ReliefFlat
 	tmbToolbutton.Defaults["-borderwidth"] = 2
 	tmbToolbutton.Maps["-relief"] = ttk.StateMap[any]{
+		{Spec: ttk.StateSpec{OnBits: ttk.StateDisabled}, Value: option.ReliefFlat},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateSelected}, Value: option.ReliefSunken},
 		{Spec: ttk.StateSpec{OnBits: ttk.StatePressed}, Value: option.ReliefSunken},
 		{Spec: ttk.StateSpec{OnBits: ttk.StateHover}, Value: option.ReliefRaised},
-		{Spec: ttk.StateSpec{OnBits: ttk.StateDisabled}, Value: option.ReliefFlat},
 	}
 	tmbToolbutton.Maps["-background"] = ttk.StateMap[any]{
+		{Spec: ttk.StateSpec{OnBits: ttk.StatePressed}, Value: uint64(0xc3c3c3)},
 		{Spec: ttk.StateSpec{OnBits: ttk.StateHover}, Value: uint64(0xececec)},
 	}
 
@@ -142,22 +156,15 @@ func init() {
 	tmenubutton := theme.GetStyle("TMenubutton")
 	tmenubutton.Defaults["-padding"] = ttk.Padding{Left: 8, Top: 4, Right: 8, Bottom: 4}
 	tmenubutton.Defaults["-relief"] = option.ReliefRaised
-	tmenubutton.Defaults["-borderwidth"] = 2
-	tmenubutton.Maps["-relief"] = ttk.StateMap[any]{
-		{Spec: ttk.StateSpec{OnBits: ttk.StatePressed}, Value: option.ReliefSunken},
-		{Spec: ttk.StateSpec{OnBits: ttk.StateDisabled}, Value: option.ReliefFlat},
-	}
-	tmenubutton.Maps["-background"] = ttk.StateMap[any]{
-		{Spec: ttk.StateSpec{OnBits: ttk.StateHover}, Value: uint64(0xececec)},
-	}
 
-	// TMenubutton layout: border → focus → padding → label
+	// TMenubutton layout: border → focus → [indicator(right) + padding → label]
 	theme.RegisterLayout("TMenubutton",
 		ttk.L("background", ttk.Expand|ttk.FillF,
 			ttk.L("border", ttk.Expand|ttk.FillF|ttk.Border,
 				ttk.L("focus", ttk.Expand|ttk.FillF,
-					ttk.L("padding", ttk.Expand|ttk.FillF,
-						ttk.L("label", ttk.Expand|ttk.FillF))))))
+					ttk.L("Menubutton.indicator", ttk.PackRight),
+					ttk.L("padding", ttk.FillXF,
+						ttk.L("label", 0))))))
 
 	// TNotebook style.
 	tnotebook := theme.GetStyle("TNotebook")

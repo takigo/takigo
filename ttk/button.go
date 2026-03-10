@@ -87,6 +87,7 @@ func NewButton(parent widget.Caregiver, name string, opts ...ButtonOption) *Butt
 	// Bind label element to this widget.
 	if b.Theme != nil {
 		labelFactory := NewLabelElementFactory(b)
+		b.LabelFactory = labelFactory
 		tmpl := b.Theme.GetLayout("TButton")
 		if tmpl != nil {
 			ctx := &DrawContext{

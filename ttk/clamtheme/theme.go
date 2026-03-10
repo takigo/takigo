@@ -10,13 +10,15 @@ import (
 	_ "github.com/msorc/takigo/ttk/defaulttheme" // ensure default theme init runs first
 )
 
-// Clam theme colors.
+// Clam theme colors (from clamTheme.tcl).
 const (
-	frameColor uint64 = 0xdcdad5
-	darkColor  uint64 = 0xcfcdc8
-	darkerColor uint64 = 0xbab5ab
+	frameColor   uint64 = 0xdcdad5
+	darkColor    uint64 = 0xcfcdc8
+	darkerColor  uint64 = 0xbab5ab
 	darkestColor uint64 = 0x9e9a91
-	lightColor uint64 = 0xffffff
+	lighterColor uint64 = 0xeeebe7
+	lightColor   uint64 = 0xffffff
+	disabledFg   uint64 = 0x999999
 )
 
 func init() {
@@ -26,11 +28,23 @@ func init() {
 
 	theme := ttk.NewTheme("clam", defaultTheme)
 
-	// Override root background.
+	// Override root style.
 	root := theme.GetStyle(".")
 	root.Defaults["-background"] = frameColor
 	root.Defaults["-foreground"] = uint64(0x000000)
 	root.Defaults["-borderwidth"] = 2
+	root.Defaults["-bordercolor"] = darkestColor
+	root.Defaults["-darkcolor"] = darkColor
+	root.Defaults["-lightcolor"] = lighterColor
+	root.Defaults["-troughcolor"] = darkerColor
+
+	root.Maps["-background"] = ttk.StateMap[any]{
+		{Spec: ttk.StateSpec{OnBits: ttk.StateDisabled}, Value: frameColor},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateActive}, Value: lighterColor},
+	}
+	root.Maps["-foreground"] = ttk.StateMap[any]{
+		{Spec: ttk.StateSpec{OnBits: ttk.StateDisabled}, Value: disabledFg},
+	}
 
 	// Clam border element.
 	theme.RegisterElement("border", newClamBorderFactory)
@@ -46,33 +60,33 @@ func init() {
 	tframe.Defaults["-relief"] = option.ReliefFlat
 	tframe.Defaults["-borderwidth"] = 0
 
-	// TButton style overrides.
+	// TButton style overrides (matches clamTheme.tcl).
+	// Clam buttons keep raised relief even when disabled — no relief map.
 	tbutton := theme.GetStyle("TButton")
 	tbutton.Defaults["-padding"] = ttk.Padding{Left: 8, Top: 4, Right: 8, Bottom: 4}
 	tbutton.Defaults["-relief"] = option.ReliefRaised
 	tbutton.Defaults["-borderwidth"] = 2
 	tbutton.Maps["-background"] = ttk.StateMap[any]{
+		{Spec: ttk.StateSpec{OnBits: ttk.StateDisabled}, Value: frameColor},
 		{Spec: ttk.StateSpec{OnBits: ttk.StatePressed}, Value: darkerColor},
-		{Spec: ttk.StateSpec{OnBits: ttk.StateHover}, Value: uint64(0xececec)},
-	}
-	tbutton.Maps["-relief"] = ttk.StateMap[any]{
-		{Spec: ttk.StateSpec{OnBits: ttk.StatePressed}, Value: option.ReliefSunken},
-		{Spec: ttk.StateSpec{OnBits: ttk.StateDisabled}, Value: option.ReliefFlat},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateActive}, Value: lighterColor},
 	}
 
-	// Toolbutton style for clam.
+	// Toolbutton style for clam (matches clamTheme.tcl).
 	toolbutton := theme.GetStyle("Toolbutton")
 	toolbutton.Defaults["-padding"] = ttk.Padding{Left: 8, Top: 4, Right: 8, Bottom: 4}
 	toolbutton.Defaults["-relief"] = option.ReliefFlat
 	toolbutton.Defaults["-borderwidth"] = 2
-	toolbutton.Maps["-background"] = ttk.StateMap[any]{
-		{Spec: ttk.StateSpec{OnBits: ttk.StatePressed}, Value: darkerColor},
-		{Spec: ttk.StateSpec{OnBits: ttk.StateHover}, Value: uint64(0xececec)},
-	}
 	toolbutton.Maps["-relief"] = ttk.StateMap[any]{
-		{Spec: ttk.StateSpec{OnBits: ttk.StatePressed}, Value: option.ReliefSunken},
-		{Spec: ttk.StateSpec{OnBits: ttk.StateHover}, Value: option.ReliefRaised},
 		{Spec: ttk.StateSpec{OnBits: ttk.StateDisabled}, Value: option.ReliefFlat},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateSelected}, Value: option.ReliefSunken},
+		{Spec: ttk.StateSpec{OnBits: ttk.StatePressed}, Value: option.ReliefSunken},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateActive}, Value: option.ReliefRaised},
+	}
+	toolbutton.Maps["-background"] = ttk.StateMap[any]{
+		{Spec: ttk.StateSpec{OnBits: ttk.StateDisabled}, Value: frameColor},
+		{Spec: ttk.StateSpec{OnBits: ttk.StatePressed}, Value: darkerColor},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateActive}, Value: lighterColor},
 	}
 
 	// TMenubutton.Toolbutton for clam.
@@ -80,14 +94,16 @@ func init() {
 	tmbToolbutton.Defaults["-padding"] = ttk.Padding{Left: 8, Top: 4, Right: 8, Bottom: 4}
 	tmbToolbutton.Defaults["-relief"] = option.ReliefFlat
 	tmbToolbutton.Defaults["-borderwidth"] = 2
-	tmbToolbutton.Maps["-background"] = ttk.StateMap[any]{
-		{Spec: ttk.StateSpec{OnBits: ttk.StatePressed}, Value: darkerColor},
-		{Spec: ttk.StateSpec{OnBits: ttk.StateHover}, Value: uint64(0xececec)},
-	}
 	tmbToolbutton.Maps["-relief"] = ttk.StateMap[any]{
-		{Spec: ttk.StateSpec{OnBits: ttk.StatePressed}, Value: option.ReliefSunken},
-		{Spec: ttk.StateSpec{OnBits: ttk.StateHover}, Value: option.ReliefRaised},
 		{Spec: ttk.StateSpec{OnBits: ttk.StateDisabled}, Value: option.ReliefFlat},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateSelected}, Value: option.ReliefSunken},
+		{Spec: ttk.StateSpec{OnBits: ttk.StatePressed}, Value: option.ReliefSunken},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateActive}, Value: option.ReliefRaised},
+	}
+	tmbToolbutton.Maps["-background"] = ttk.StateMap[any]{
+		{Spec: ttk.StateSpec{OnBits: ttk.StateDisabled}, Value: frameColor},
+		{Spec: ttk.StateSpec{OnBits: ttk.StatePressed}, Value: darkerColor},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateActive}, Value: lighterColor},
 	}
 
 	// TSeparator styles.
@@ -112,12 +128,12 @@ func init() {
 		{Spec: ttk.StateSpec{OnBits: ttk.StateHover}, Value: uint64(0xececec)},
 	}
 
-	// TScrollbar styles.
+	// TScrollbar styles — troughcolor matches Tcl clam's $colors(-darker).
 	vScrollbar := theme.GetStyle("Vertical.TScrollbar")
-	vScrollbar.Defaults["-troughcolor"] = uint64(0xc3c3c3)
+	vScrollbar.Defaults["-troughcolor"] = darkerColor
 
 	hScrollbar := theme.GetStyle("Horizontal.TScrollbar")
-	hScrollbar.Defaults["-troughcolor"] = uint64(0xc3c3c3)
+	hScrollbar.Defaults["-troughcolor"] = darkerColor
 
 	// TSpinbox style.
 	tspinbox := theme.GetStyle("TSpinbox")
@@ -129,14 +145,34 @@ func init() {
 	tsizegrip := theme.GetStyle("TSizegrip")
 	tsizegrip.Defaults["-background"] = frameColor
 
-	// Progressbar styles.
+	// Progressbar styles — troughcolor matches Tcl clam's $colors(-darker).
 	hProgress := theme.GetStyle("Horizontal.TProgressbar")
-	hProgress.Defaults["-troughcolor"] = uint64(0xc3c3c3)
+	hProgress.Defaults["-troughcolor"] = darkerColor
 	hProgress.Defaults["-barcolor"] = uint64(0x4a6984)
 
 	vProgress := theme.GetStyle("Vertical.TProgressbar")
-	vProgress.Defaults["-troughcolor"] = uint64(0xc3c3c3)
+	vProgress.Defaults["-troughcolor"] = darkerColor
 	vProgress.Defaults["-barcolor"] = uint64(0x4a6984)
+
+	// TCheckbutton style — clam-style flat indicators.
+	tcheckbutton := theme.GetStyle("TCheckbutton")
+	tcheckbutton.Defaults["-indicatorsize"] = 16
+	tcheckbutton.Defaults["-upperbordercolor"] = darkestColor
+	tcheckbutton.Defaults["-lowerbordercolor"] = darkColor
+	tcheckbutton.Defaults["-indicatorbackground"] = lightColor
+	tcheckbutton.Maps["-indicatorbackground"] = ttk.StateMap[any]{
+		{Spec: ttk.StateSpec{OnBits: ttk.StateDisabled}, Value: frameColor},
+	}
+
+	// TRadiobutton style — clam-style flat indicators.
+	tradiobutton := theme.GetStyle("TRadiobutton")
+	tradiobutton.Defaults["-indicatorsize"] = 16
+	tradiobutton.Defaults["-upperbordercolor"] = darkestColor
+	tradiobutton.Defaults["-lowerbordercolor"] = darkColor
+	tradiobutton.Defaults["-indicatorbackground"] = lightColor
+	tradiobutton.Maps["-indicatorbackground"] = ttk.StateMap[any]{
+		{Spec: ttk.StateSpec{OnBits: ttk.StateDisabled}, Value: frameColor},
+	}
 
 	ttk.RegisterTheme(theme)
 }

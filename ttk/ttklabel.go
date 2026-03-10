@@ -104,6 +104,7 @@ func NewLabel(parent widget.Caregiver, name string, opts ...LabelOption) *Label 
 	// Register a label element factory bound to this specific widget.
 	if l.Theme != nil {
 		labelFactory := NewLabelElementFactory(l)
+		l.LabelFactory = labelFactory
 		// Recreate layout with bound label element.
 		tmpl := l.Theme.GetLayout("TLabel")
 		if tmpl != nil {
