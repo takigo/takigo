@@ -154,11 +154,23 @@ func bindTreeview(tv *Treeview, app widget.AppContext) {
 					tv.SetItemOpen(hit.itemID, !item.Open)
 				}
 			case hitTree, hitCell:
-				// Select item.
+				// Select item; detect double-click to toggle open.
 				if hit.itemID != "" {
+					isDouble := hit.itemID == tv.lastClickItem &&
+						ev.Time-tv.lastClickTime < 500
+					tv.lastClickTime = ev.Time
+					tv.lastClickItem = hit.itemID
 					tv.handleSelect(hit.itemID, hit.dispIdx, ev.State)
 					tv.focus = hit.itemID
 					tv.Display()
+					if isDouble {
+						if item := tv.items[hit.itemID]; item != nil && len(item.Children) > 0 {
+							tv.SetItemOpen(hit.itemID, !item.Open)
+						}
+						if tv.OnDoubleClick != nil {
+							tv.OnDoubleClick(hit.itemID)
+						}
+					}
 				}
 			}
 		} else if ev.Button == 4 {

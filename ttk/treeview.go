@@ -6,6 +6,7 @@ import (
 
 	"github.com/msorc/takigo/font"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/window"
 )
@@ -99,10 +100,15 @@ type Treeview struct {
 	// Grid mode.
 	Stripe bool // draw alternating row stripe
 
+	// Double-click tracking.
+	lastClickTime platform.Timestamp
+	lastClickItem string
+
 	// Callbacks.
-	OnOpen   func(id string)
-	OnClose  func(id string)
-	OnSelect func()
+	OnOpen        func(id string)
+	OnClose       func(id string)
+	OnSelect      func()
+	OnDoubleClick func(id string)
 }
 
 // TreeviewOption configures a Treeview.
