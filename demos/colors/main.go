@@ -15,6 +15,7 @@ import (
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
 	"github.com/msorc/takigo/widget/listbox"
+	"github.com/msorc/takigo/window"
 )
 
 func main() {
@@ -166,22 +167,14 @@ func main() {
 	first, last := lb.YVisibleRange()
 	yscroll.Set(first, last)
 
-	// Double-click to change background via bind engine.
+	// Double-click to change background via bind engine (mirrors tk_setPalette).
 	eng := app.BindEng()
+	eng.RegisterWindow(lb.Window(), "Listbox")
 	eng.Bind(lb.Window().PathName, "<Double-Button-1>", func(_ *bind.EventData) bool {
 		sel := lb.Selection()
 		if len(sel) > 0 {
 			colorName := colors[sel[0]]
-			c, err := app.ColorCache().Get(colorName)
-			if err == nil {
-				root.BackgroundPixel = c.Pixel
-				di := root.Display.Server
-				gc := root.GC
-				di.SetForeground(gc, c.Pixel)
-				di.FillRectangle(root.Drawable(), gc, 0, 0, uint(root.Width), uint(root.Height))
-				di.Flush()
-				pack.ArrangeContainer(root)
-			}
+			window.ApplyBackgroundRecursive(root, colorName)
 		}
 		return true
 	})
