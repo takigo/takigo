@@ -114,6 +114,9 @@ func (tv *Treeview) Display() {
 		}
 	}
 
+	// Stripe color: slightly darker than field background.
+	stripeBg := darkenFieldColor(fieldBg, 13)
+
 	// --- Draw items ---
 	visRows := tv.visibleRows()
 	for i := 0; i < visRows; i++ {
@@ -129,9 +132,12 @@ func (tv *Treeview) Display() {
 		isSelected := tv.selection[item.ID]
 		isFocused := tv.focus == item.ID
 
-		// Selection highlight.
+		// Selection highlight or alternating stripe.
 		if isSelected {
 			d.SetForeground(gc, selBg)
+			d.FillRectangle(pixDrawable, gc, 0, rowY, uint(width), uint(tv.rowHeight))
+		} else if tv.Stripe && idx%2 == 1 {
+			d.SetForeground(gc, stripeBg)
 			d.FillRectangle(pixDrawable, gc, 0, rowY, uint(width), uint(tv.rowHeight))
 		}
 
@@ -196,18 +202,26 @@ func (tv *Treeview) Display() {
 		}
 	}
 
-	// Draw column separator lines in item area.
-	if itemAreaH > 0 {
-		sepColor := LookupColor(tv.Context.Style, "-bordercolor", tv.State, 0xd9d9d9)
+	// Draw column separator lines in item area (only for columns with Separator set).
+	hasSep := false
+	for _, col := range tv.columns {
+		if col.Separator {
+			hasSep = true
+			break
+		}
+	}
+	if itemAreaH > 0 && hasSep {
+		sepColor := LookupColor(tv.Context.Style, "-bordercolor", tv.State, 0xa0a0a0)
 		d.SetForeground(gc, sepColor)
 		colX := 0
 		if tv.showTree {
 			colX += tv.treeColumnWidth
-			d.DrawLine(pixDrawable, gc, colX-1, itemAreaY, colX-1, height)
 		}
 		for _, col := range tv.columns {
 			colX += col.Width
-			d.DrawLine(pixDrawable, gc, colX-1, itemAreaY, colX-1, height)
+			if col.Separator {
+				d.DrawLine(pixDrawable, gc, colX-1, itemAreaY, colX-1, height)
+			}
 		}
 	}
 
@@ -314,6 +328,29 @@ func (tv *Treeview) drawSortIndicator(d platform.DisplayServer, drawable platfor
 		}
 		draw.FillPolygon(d, drawable, gc, points)
 	}
+}
+
+// darkenFieldColor reduces each RGB channel of a pixel color by amount, clamping to 0.
+func darkenFieldColor(pixel uint64, amount uint64) uint64 {
+	r := (pixel >> 16) & 0xFF
+	g := (pixel >> 8) & 0xFF
+	b := pixel & 0xFF
+	if r > amount {
+		r -= amount
+	} else {
+		r = 0
+	}
+	if g > amount {
+		g -= amount
+	} else {
+		g = 0
+	}
+	if b > amount {
+		b -= amount
+	} else {
+		b = 0
+	}
+	return (r << 16) | (g << 8) | b
 }
 
 func colorToRGB16(pixel uint64) (uint16, uint16, uint16) {

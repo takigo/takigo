@@ -38,6 +38,7 @@ type TreeColumn struct {
 	MinWidth       int           // default 20
 	Anchor         option.Anchor // cell text alignment (default W)
 	Stretch        bool          // auto-resize (default true)
+	Separator      bool          // draw vertical separator line after this column
 	HeadingText    string
 	HeadingAnchor  option.Anchor // default Center
 	HeadingCommand func()
@@ -94,6 +95,9 @@ type Treeview struct {
 
 	// Sort indicator.
 	sortInd *sortIndicator
+
+	// Grid mode.
+	Stripe bool // draw alternating row stripe
 
 	// Callbacks.
 	OnOpen   func(id string)
@@ -505,6 +509,9 @@ func ColAnchor(a option.Anchor) ColumnOption { return func(c *TreeColumn) { c.An
 // ColStretch sets whether the column stretches.
 func ColStretch(b bool) ColumnOption { return func(c *TreeColumn) { c.Stretch = b } }
 
+// ColSeparatorOpt sets whether a vertical separator line is drawn after this column.
+func ColSeparatorOpt(b bool) ColumnOption { return func(c *TreeColumn) { c.Separator = b } }
+
 // ColumnConfigure configures a data column by ID.
 func (tv *Treeview) ColumnConfigure(id string, opts ...ColumnOption) {
 	col := tv.findColumn(id)
@@ -567,6 +574,21 @@ func (tv *Treeview) SetSortIndicator(columnID string, reverse bool) {
 // ClearSortIndicator removes the sort indicator.
 func (tv *Treeview) ClearSortIndicator() {
 	tv.sortInd = nil
+	tv.Display()
+}
+
+// SetStripe enables or disables alternating row stripe shading.
+func (tv *Treeview) SetStripe(enabled bool) {
+	tv.Stripe = enabled
+	tv.Display()
+}
+
+// SetColSeparator enables or disables the vertical separator line for a column.
+func (tv *Treeview) SetColSeparator(id string, enabled bool) {
+	col := tv.findColumn(id)
+	if col != nil {
+		col.Separator = enabled
+	}
 	tv.Display()
 }
 

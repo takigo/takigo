@@ -15,6 +15,7 @@ import (
 	"github.com/msorc/takigo/ttk"
 	_ "github.com/msorc/takigo/ttk/clamtheme"
 	_ "github.com/msorc/takigo/ttk/defaulttheme"
+	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
 )
@@ -66,6 +67,16 @@ func main() {
 	btns := demohelper.AddSeeDismiss(f)
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
+	// Grid checkbox — added to btns frame in the expanding column (row 1, col 0).
+	// Toggling enables alternating row stripes and per-column separator lines,
+	// matching the Tcl mclist.tcl demo's tglGrid proc.
+	gridVar := widget.NewVariable(false)
+	gridCb := ttk.NewCheckbutton(btns, "cb1",
+		ttk.CheckbuttonText("Grid"),
+		ttk.CheckbuttonVar(gridVar),
+	)
+	grid.Grid(gridCb, grid.Row(1), grid.Column(0), grid.Sticky(grid.StickW), grid.PadX("3p"))
+
 	ttk.SetCurrentTheme("clam")
 
 	// Container frame (grid layout for treeview + scrollbars).
@@ -81,6 +92,15 @@ func main() {
 	tv.ColumnConfigure("country", ttk.ColWidth(180))
 	tv.ColumnConfigure("capital", ttk.ColWidth(180))
 	tv.ColumnConfigure("currency", ttk.ColWidth(80))
+
+	// Wire Grid checkbox command now that tv exists.
+	gridCb.Command = func() {
+		enabled := gridVar.Get()
+		tv.SetStripe(enabled)
+		for _, col := range []string{"country", "capital", "currency"} {
+			tv.SetColSeparator(col, enabled)
+		}
+	}
 
 	// Sort state tracker.
 	sortReverse := map[string]bool{}
