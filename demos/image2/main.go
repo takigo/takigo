@@ -4,18 +4,20 @@ package main
 
 import (
 	"fmt"
+	_ "image/jpeg" // register JPEG decoder
 	"os"
 	"path/filepath"
 	"sort"
-	"strings"
 
 	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/bind"
 	"github.com/msorc/takigo/demos/demohelper"
+	"github.com/msorc/takigo/dialog"
 	"github.com/msorc/takigo/geometry/grid"
 	"github.com/msorc/takigo/geometry/pack"
 	tkimage "github.com/msorc/takigo/image"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/button"
 	"github.com/msorc/takigo/widget/entry"
 	"github.com/msorc/takigo/widget/frame"
@@ -48,8 +50,15 @@ func main() {
 	btns := demohelper.AddSeeDismiss(f)
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
+	// Icon label at bottom (shows icon for selected image).
+	iconLabel := label.New(f, "label",
+		label.Text("Icon for Selected Image"),
+		label.Relief(option.ReliefGroove),
+	)
+	pack.Pack(iconLabel, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+
 	// Find demos/images directory relative to working directory.
-	imagesDir := findImagesDir()
+	dirName := findImagesDir()
 
 	// Middle frame.
 	mid := frame.New(f, "mid")
@@ -58,11 +67,13 @@ func main() {
 	// --- "Directory:" labelframe ---
 	dirLF := labelframe.New(mid, "dir", labelframe.Text("Directory:"))
 	dirEntry := entry.New(dirLF, "e", entry.Width(30))
-	dirEntry.SetText(imagesDir)
+	dirEntry.SetText(dirName)
 
 	var lb *listbox.Listbox
 
-	loadDir := func(dir string) {
+	// loadDir reloads the directory listbox from the directory named in the entry.
+	loadDir := func() {
+		dir := dirEntry.GetText()
 		entries, err := os.ReadDir(dir)
 		if err != nil {
 			return
@@ -72,15 +83,11 @@ func main() {
 		if n > 0 {
 			lb.Delete(0, n-1)
 		}
+		// List all files (matching Tcl's glob -type f).
 		var files []string
 		for _, de := range entries {
 			if !de.IsDir() {
-				name := de.Name()
-				ext := strings.ToLower(filepath.Ext(name))
-				switch ext {
-				case ".gif", ".png", ".ppm", ".jpg", ".jpeg":
-					files = append(files, name)
-				}
+				files = append(files, de.Name())
 			}
 		}
 		sort.Strings(files)
@@ -89,13 +96,23 @@ func main() {
 		}
 	}
 
-	// "Select Dir." button loads the directory typed in the entry.
+	// selectAndLoadDir pops up a directory chooser dialog and reloads the list.
+	selectAndLoadDir := func() {
+		dir, ok := dialog.ChooseDirectory(f,
+			dialog.DirTitle("Select a directory"),
+			dialog.DirInitialDir(dirEntry.GetText()),
+			dialog.DirMustExist(true),
+		)
+		if ok {
+			dirEntry.SetText(dir)
+			loadDir()
+		}
+	}
+
 	selectDirBtn := button.New(dirLF, "b",
 		button.Text("Select Dir."),
 		button.PadX("2m"), button.PadY(0),
-		button.Command(func() {
-			loadDir(dirEntry.GetText())
-		}),
+		button.Command(selectAndLoadDir),
 	)
 	pack.Pack(dirEntry, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth),
 		pack.PadX("2m"), pack.PadY("2m"), pack.Expand(true))
@@ -135,15 +152,19 @@ func main() {
 	pack.Pack(lb, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillY), pack.Expand(true))
 	pack.Pack(yscroll, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillY), pack.Expand(true))
 
-	// Bind Return on entry to load directory.
+	// Register widgets with the bind engine so bindings work.
 	eng := app.BindEng()
+	eng.RegisterWindow(dirEntry.Window(), "Entry")
+	eng.RegisterWindow(lb.Window(), "Listbox")
+
+	// Bind Return on entry to load directory.
 	eng.Bind(dirEntry.Window().PathName, "<Return>", func(_ *bind.EventData) bool {
-		loadDir(dirEntry.GetText())
+		loadDir()
 		return true
 	})
 
 	// Pre-load initial file list from images directory.
-	loadDir(imagesDir)
+	loadDir()
 
 	// --- "Image:" labelframe ---
 	imageLF := labelframe.New(mid, "image", labelframe.Text("Image:"))
@@ -155,6 +176,7 @@ func main() {
 
 	// Double-click on listbox loads the image.
 	var currentPhotoName string
+	var currentIconName string
 	eng.Bind(lb.Window().PathName, "<Double-Button-1>", func(_ *bind.EventData) bool {
 		app.DoWhenIdle(func() {
 			sel := lb.Selection()
@@ -166,27 +188,48 @@ func main() {
 				return
 			}
 			filename := items[sel[0]]
-			path := filepath.Join(dirEntry.GetText(), filename)
+			dir := dirEntry.GetText()
+			path := filepath.Join(dir, filename)
 
-			// Free previous photo.
+			// Free previous photos.
 			if currentPhotoName != "" {
 				app.ImageRegistry().Unregister(currentPhotoName)
 			}
+			if currentIconName != "" {
+				app.ImageRegistry().Unregister(currentIconName)
+			}
 
 			photoName := fmt.Sprintf("img2a_%s", filename)
-			photo, err := tkimage.NewPhotoFromFile(photoName, path)
+			newPhoto, err := tkimage.NewPhotoFromFile(photoName, path)
 			if err != nil {
-				imgLabel.Text = fmt.Sprintf("Cannot load:\n%s", filename)
-				imgLabel.Img = nil
-				imgLabel.Display()
+				// Mark the file as not loadable with red background.
+				lb.ItemConfigure(sel[0], "", "#c00000")
 				return
 			}
-			app.ImageRegistry().Register(photo)
-			currentPhotoName = photo.Name()
+			app.ImageRegistry().Register(newPhoto)
+			currentPhotoName = newPhoto.Name()
 
+			// Show the full image in the "Image:" labelframe.
 			imgLabel.Text = ""
-			imgLabel.Img = photo
-			imgLabel.Display()
+			imgLabel.SetImage(newPhoto)
+
+			// Create a 48px thumbnail for the icon label (approximates
+			// Tcl's "tk fileicon $filename 48").
+			const iconSize = 48
+			w, h := newPhoto.Width(), newPhoto.Height()
+			if w > 0 && h > 0 {
+				scale := float64(iconSize) / float64(max(w, h))
+				if scale > 1 {
+					scale = 1 // don't upscale small images
+				}
+				iconName := fmt.Sprintf("img2a_icon_%s", filename)
+				thumb := tkimage.NewPhotoFromPhoto(newPhoto, iconName, tkimage.Zoom(scale))
+				app.ImageRegistry().Register(thumb)
+				currentIconName = thumb.Name()
+
+				iconLabel.Compound = widget.CompoundTop
+				iconLabel.SetImage(thumb)
+			}
 		})
 		return true
 	})
@@ -200,7 +243,6 @@ func main() {
 		grid.Sticky(grid.StickN|grid.StickW), grid.PadX("1m"), grid.PadY("1m"))
 	grid.ColumnConfigure(mid, 1, grid.Weight(1))
 
-	_ = imgLabel
 	app.Run()
 }
 

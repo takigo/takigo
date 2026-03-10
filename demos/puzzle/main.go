@@ -46,8 +46,8 @@ func main() {
 
 	// Puzzle frame (matches Tcl: 90p ≈ 120px, pady 1c padx 1c).
 	puzzleFrame := frame.New(f, "frame",
-		frame.Width(120),
-		frame.Height(120),
+		frame.Width(240),
+		frame.Height(240),
 		frame.BorderWidth(2),
 		frame.Relief(option.ReliefSunken),
 		frame.Background("#4a6984"),
