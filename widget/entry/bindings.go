@@ -112,7 +112,44 @@ func bindEntry(e *Entry, app widget.AppContext) {
 				}
 			}
 
+		case platform.XK_Insert:
+			// Ctrl+Insert: copy; Shift+Insert: paste.
+			if ctrl {
+				if e.SelFirst >= 0 {
+					sel := string(e.text[e.SelFirst:e.SelLast])
+					e.App.Clipboard().Set(e.Win.PlatformID, sel, platform.Timestamp(ev.Time))
+				}
+			} else if shift {
+				e.App.Clipboard().Get(e.Win.PlatformID, platform.Timestamp(ev.Time), func(text string) {
+					if text == "" {
+						return
+					}
+					var prospective string
+					if e.SelFirst >= 0 {
+						prospective = string(e.text[:e.SelFirst]) + text + string(e.text[e.SelLast:])
+					} else {
+						prospective = string(e.text[:e.InsertPos]) + text + string(e.text[e.InsertPos:])
+					}
+					if e.tryEdit(prospective) {
+						if e.SelFirst >= 0 {
+							e.DeleteSelection()
+						}
+						e.InsertChars(e.InsertPos, text)
+					}
+				})
+			}
+
 		case platform.XK_Delete:
+			// Shift+Delete: cut selection.
+			if shift && e.SelFirst >= 0 {
+				sel := string(e.text[e.SelFirst:e.SelLast])
+				e.App.Clipboard().Set(e.Win.PlatformID, sel, platform.Timestamp(ev.Time))
+				prospective := string(e.text[:e.SelFirst]) + string(e.text[e.SelLast:])
+				if e.tryEdit(prospective) {
+					e.DeleteSelection()
+				}
+				return
+			}
 			if e.SelFirst >= 0 {
 				prospective := string(e.text[:e.SelFirst]) + string(e.text[e.SelLast:])
 				if e.tryEdit(prospective) {
@@ -194,19 +231,69 @@ func moveCursor(e *Entry, newPos int, shift bool) {
 // handleCtrlKey handles control key combinations.
 func handleCtrlKey(e *Entry, ev *event.Event) {
 	switch ev.KeySym {
-	case platform.KeySym(0x0061): // XK_a
-		// Select all.
-		e.SelectAll()
-		e.Display()
+	case platform.XK_a: // Ctrl+A: move to start of field (Emacs)
+		moveCursor(e, 0, false)
 
-	case platform.KeySym(0x006b): // XK_k
-		// Kill to end of line.
+	case platform.XK_e: // Ctrl+E: move to end of field (Emacs)
+		moveCursor(e, len(e.text), false)
+
+	case platform.XK_b: // Ctrl+B: move back one char (Emacs)
+		moveCursor(e, e.InsertPos-1, false)
+
+	case platform.XK_f: // Ctrl+F: move forward one char (Emacs)
+		moveCursor(e, e.InsertPos+1, false)
+
+	case platform.XK_c: // Ctrl+C: copy selection
+		if e.SelFirst >= 0 {
+			sel := string(e.text[e.SelFirst:e.SelLast])
+			e.App.Clipboard().Set(e.Win.PlatformID, sel, platform.Timestamp(ev.Time))
+		}
+
+	case platform.XK_x: // Ctrl+X: cut selection
+		if e.SelFirst >= 0 {
+			sel := string(e.text[e.SelFirst:e.SelLast])
+			e.App.Clipboard().Set(e.Win.PlatformID, sel, platform.Timestamp(ev.Time))
+			prospective := string(e.text[:e.SelFirst]) + string(e.text[e.SelLast:])
+			if e.tryEdit(prospective) {
+				e.DeleteSelection()
+			}
+		}
+
+	case platform.XK_v: // Ctrl+V: paste from clipboard
+		e.App.Clipboard().Get(e.Win.PlatformID, platform.Timestamp(ev.Time), func(text string) {
+			if text == "" {
+				return
+			}
+			var prospective string
+			if e.SelFirst >= 0 {
+				prospective = string(e.text[:e.SelFirst]) + text + string(e.text[e.SelLast:])
+			} else {
+				prospective = string(e.text[:e.InsertPos]) + text + string(e.text[e.InsertPos:])
+			}
+			if e.tryEdit(prospective) {
+				if e.SelFirst >= 0 {
+					e.DeleteSelection()
+				}
+				e.InsertChars(e.InsertPos, text)
+			}
+		})
+
+	case platform.XK_w: // Ctrl+W: cut selection (Emacs kill-region)
+		if e.SelFirst >= 0 {
+			sel := string(e.text[e.SelFirst:e.SelLast])
+			e.App.Clipboard().Set(e.Win.PlatformID, sel, platform.Timestamp(ev.Time))
+			prospective := string(e.text[:e.SelFirst]) + string(e.text[e.SelLast:])
+			if e.tryEdit(prospective) {
+				e.DeleteSelection()
+			}
+		}
+
+	case platform.XK_k: // Ctrl+K: kill to end of field
 		if e.InsertPos < len(e.text) {
 			e.DeleteChars(e.InsertPos, len(e.text)-e.InsertPos)
 		}
 
-	case platform.KeySym(0x0064): // XK_d
-		// Delete forward.
+	case platform.XK_d: // Ctrl+D: delete char forward
 		if e.InsertPos < len(e.text) {
 			e.DeleteChars(e.InsertPos, 1)
 		}

@@ -445,6 +445,10 @@ func (t *TextWidget) renderToPixmap() {
 		}
 
 		xOffset := t.inset + dl.leftMargin + justifyOffset - t.xOffset
+
+		// Draw selection highlight once per display line, before any text.
+		t.drawSelectionHighlight(d, gc, pxDrawable, dl, xOffset)
+
 		for _, seg := range segments {
 			segX := xOffset + seg.x
 			segBaseY := baseY - seg.offset
@@ -454,9 +458,6 @@ func (t *TextWidget) renderToPixmap() {
 				d.SetForeground(gc, seg.bg.Pixel)
 				d.FillRectangle(pxDrawable, gc, segX, t.inset+dl.y, uint(seg.width), uint(dl.height))
 			}
-
-			// Draw selection highlight.
-			t.drawSelectionHighlight(d, gc, pxDrawable, dl, seg, segX, xOffset)
 
 			// Draw text.
 			df := drawableFont
@@ -508,9 +509,9 @@ func (t *TextWidget) renderToPixmap() {
 	}
 }
 
-// drawSelectionHighlight draws selection highlight for a segment if applicable.
+// drawSelectionHighlight draws the selection highlight for a display line if applicable.
 func (t *TextWidget) drawSelectionHighlight(d platform.DisplayServer, gc platform.GCID, drawable platform.DrawableID,
-	dl displayLine, seg textSegment, segX, xOffset int) {
+	dl displayLine, xOffset int) {
 	selRanges := t.doc.TagRangesFor("sel")
 	if len(selRanges) == 0 || t.selBg == nil {
 		return

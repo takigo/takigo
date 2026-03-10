@@ -18,6 +18,8 @@ type Manager struct {
 	data map[platform.AtomID]string // selection atom → content
 	// Owner window for each selection.
 	owners map[platform.AtomID]platform.WindowID
+	// pendingGet stores callbacks waiting for async SelectionNotify responses.
+	pendingGet map[platform.WindowID]func(string)
 
 	// Atoms.
 	clipboard platform.AtomID
@@ -32,6 +34,7 @@ func NewManager(server platform.DisplayServer, dispatcher *event.Dispatcher) *Ma
 		dispatcher: dispatcher,
 		data:       make(map[platform.AtomID]string),
 		owners:     make(map[platform.AtomID]platform.WindowID),
+		pendingGet: make(map[platform.WindowID]func(string)),
 		clipboard:  server.InternAtom("CLIPBOARD", false),
 		utf8str:    server.InternAtom("UTF8_STRING", false),
 		targets:    server.InternAtom("TARGETS", false),
@@ -134,6 +137,42 @@ func (m *Manager) ReadProperty(w platform.WindowID, property platform.AtomID) st
 // ClipboardAtom returns the CLIPBOARD atom.
 func (m *Manager) ClipboardAtom() platform.AtomID {
 	return m.clipboard
+}
+
+// RequestWithCallback retrieves CLIPBOARD content. If we own it locally the
+// callback is invoked synchronously. Otherwise an async XConvertSelection
+// request is sent; the caller must handle SelectionNotify and call
+// HandleSelectionNotify to deliver the result.
+func (m *Manager) RequestWithCallback(requestor platform.WindowID, time platform.Timestamp, callback func(string)) {
+	m.mu.Lock()
+	content, ok := m.data[m.clipboard]
+	if ok {
+		m.mu.Unlock()
+		callback(content)
+		return
+	}
+	m.pendingGet[requestor] = callback
+	m.mu.Unlock()
+	m.Request(m.clipboard, requestor, time)
+}
+
+// HandleSelectionNotify is called when a SelectionNotify event arrives for a
+// window that previously called RequestWithCallback. It reads the property,
+// fires the pending callback, and returns true if a callback was pending.
+func (m *Manager) HandleSelectionNotify(requestor platform.WindowID, property platform.AtomID) bool {
+	m.mu.Lock()
+	cb := m.pendingGet[requestor]
+	delete(m.pendingGet, requestor)
+	m.mu.Unlock()
+	if cb == nil {
+		return false
+	}
+	var text string
+	if property != 0 {
+		text = m.ReadProperty(requestor, property)
+	}
+	cb(text)
+	return true
 }
 
 // UTF8StringAtom returns the UTF8_STRING atom.

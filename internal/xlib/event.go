@@ -77,6 +77,25 @@ static Window xevent_destroy_window(XEvent *ev) { return ev->xdestroywindow.wind
 static Window xevent_map_window(XEvent *ev) { return ev->xmap.window; }
 static Window xevent_unmap_window(XEvent *ev) { return ev->xunmap.window; }
 
+// Selection request event accessors.
+static Window xevent_selreq_owner(XEvent *ev)    { return ev->xselectionrequest.owner; }
+static Window xevent_selreq_requestor(XEvent *ev){ return ev->xselectionrequest.requestor; }
+static Atom   xevent_selreq_selection(XEvent *ev){ return ev->xselectionrequest.selection; }
+static Atom   xevent_selreq_target(XEvent *ev)   { return ev->xselectionrequest.target; }
+static Atom   xevent_selreq_property(XEvent *ev) { return ev->xselectionrequest.property; }
+static Time   xevent_selreq_time(XEvent *ev)     { return ev->xselectionrequest.time; }
+
+// Selection clear event accessors.
+static Window xevent_selclr_window(XEvent *ev)   { return ev->xselectionclear.window; }
+static Atom   xevent_selclr_selection(XEvent *ev){ return ev->xselectionclear.selection; }
+
+// Selection notify event accessors (sent to the requestor).
+static Window xevent_selnot_requestor(XEvent *ev){ return ev->xselection.requestor; }
+static Atom   xevent_selnot_selection(XEvent *ev){ return ev->xselection.selection; }
+static Atom   xevent_selnot_target(XEvent *ev)   { return ev->xselection.target; }
+static Atom   xevent_selnot_property(XEvent *ev) { return ev->xselection.property; }
+static Time   xevent_selnot_time(XEvent *ev)     { return ev->xselection.time; }
+
 // Property event accessors.
 static Window xevent_property_window(XEvent *ev) { return ev->xproperty.window; }
 static Atom xevent_property_atom(XEvent *ev) { return ev->xproperty.atom; }
@@ -384,5 +403,61 @@ type FocusEvent struct {
 func (e *RawEvent) ParseFocusEvent() FocusEvent {
 	return FocusEvent{
 		EventWindow: Window(C.xevent_focus_window(&e.ev)),
+	}
+}
+
+// SelectionRequestEvent holds data from a SelectionRequest event.
+type SelectionRequestEvent struct {
+	Owner     Window
+	Requestor Window
+	Selection Atom
+	Target    Atom
+	Property  Atom
+	Time      Time
+}
+
+// ParseSelectionRequestEvent extracts SelectionRequest event data.
+func (e *RawEvent) ParseSelectionRequestEvent() SelectionRequestEvent {
+	return SelectionRequestEvent{
+		Owner:     Window(C.xevent_selreq_owner(&e.ev)),
+		Requestor: Window(C.xevent_selreq_requestor(&e.ev)),
+		Selection: Atom(C.xevent_selreq_selection(&e.ev)),
+		Target:    Atom(C.xevent_selreq_target(&e.ev)),
+		Property:  Atom(C.xevent_selreq_property(&e.ev)),
+		Time:      Time(C.xevent_selreq_time(&e.ev)),
+	}
+}
+
+// SelectionClearEvent holds data from a SelectionClear event.
+type SelectionClearEvent struct {
+	Window    Window
+	Selection Atom
+}
+
+// ParseSelectionClearEvent extracts SelectionClear event data.
+func (e *RawEvent) ParseSelectionClearEvent() SelectionClearEvent {
+	return SelectionClearEvent{
+		Window:    Window(C.xevent_selclr_window(&e.ev)),
+		Selection: Atom(C.xevent_selclr_selection(&e.ev)),
+	}
+}
+
+// SelectionNotifyEvent holds data from a SelectionNotify event.
+type SelectionNotifyEvent struct {
+	Requestor Window
+	Selection Atom
+	Target    Atom
+	Property  Atom
+	Time      Time
+}
+
+// ParseSelectionNotifyEvent extracts SelectionNotify event data.
+func (e *RawEvent) ParseSelectionNotifyEvent() SelectionNotifyEvent {
+	return SelectionNotifyEvent{
+		Requestor: Window(C.xevent_selnot_requestor(&e.ev)),
+		Selection: Atom(C.xevent_selnot_selection(&e.ev)),
+		Target:    Atom(C.xevent_selnot_target(&e.ev)),
+		Property:  Atom(C.xevent_selnot_property(&e.ev)),
+		Time:      Time(C.xevent_selnot_time(&e.ev)),
 	}
 }

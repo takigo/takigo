@@ -15,9 +15,11 @@ import (
 	"github.com/msorc/takigo/focus"
 	"github.com/msorc/takigo/font"
 	"github.com/msorc/takigo/image"
+	"github.com/msorc/takigo/internal/xlib"
 	"github.com/msorc/takigo/platform"
 	x11platform "github.com/msorc/takigo/platform/x11"
 	"github.com/msorc/takigo/screenunit"
+	"github.com/msorc/takigo/selection"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/window"
 	"github.com/msorc/takigo/wm"
@@ -36,6 +38,7 @@ type App struct {
 	imageReg   *image.Registry
 	bindEng    *bind.Engine
 	focusMgr   *focus.Manager
+	selMgr     *selection.Manager
 }
 
 // NewApp creates a new takigo application. It opens the X11 display,
@@ -88,6 +91,8 @@ func NewApp(opts ...AppOption) (*App, error) {
 
 	bindEng := bind.NewEngine(d)
 
+	selMgr := selection.NewManager(server, dispatcher)
+
 	app := &App{
 		display:    d,
 		root:       root,
@@ -97,7 +102,34 @@ func NewApp(opts ...AppOption) (*App, error) {
 		fontReg:    fontReg,
 		imageReg:   image.NewRegistry(),
 		bindEng:    bindEng,
+		selMgr:     selMgr,
 	}
+
+	// Handle X11 selection events (clipboard serve + async paste response).
+	loop.SetRawEventHandler(func(raw *platform.RawEvent) {
+		xev, ok := raw.Data.(*xlib.RawEvent)
+		if !ok {
+			return
+		}
+		switch raw.EventType {
+		case platform.SelectionRequestEvent:
+			req := xev.ParseSelectionRequestEvent()
+			selMgr.HandleSelectionRequest(
+				platform.WindowID(req.Requestor),
+				platform.AtomID(req.Selection),
+				platform.AtomID(req.Target),
+				platform.AtomID(req.Property),
+				platform.Timestamp(req.Time))
+		case platform.SelectionClearEvent:
+			clr := xev.ParseSelectionClearEvent()
+			selMgr.HandleSelectionClear(platform.AtomID(clr.Selection))
+		case platform.SelectionNotifyEvent:
+			ntf := xev.ParseSelectionNotifyEvent()
+			selMgr.HandleSelectionNotify(
+				platform.WindowID(ntf.Requestor),
+				platform.AtomID(ntf.Property))
+		}
+	})
 
 	// Initialize WM state for root window, same as Tk does for ".".
 	// This sets WM_CLASS, WM_HINTS, size hints, and WM_PROTOCOLS.
@@ -270,6 +302,24 @@ func (a *App) BindEngine() widget.BindEngine {
 // BindEng returns the full bind.Engine for direct access.
 func (a *App) BindEng() *bind.Engine {
 	return a.bindEng
+}
+
+// Clipboard returns the application's clipboard manager.
+func (a *App) Clipboard() widget.ClipboardManager {
+	return &appClipboard{mgr: a.selMgr}
+}
+
+// appClipboard adapts selection.Manager to widget.ClipboardManager.
+type appClipboard struct {
+	mgr *selection.Manager
+}
+
+func (c *appClipboard) Set(owner platform.WindowID, text string, time platform.Timestamp) {
+	c.mgr.OwnClipboard(owner, text, time)
+}
+
+func (c *appClipboard) Get(requestor platform.WindowID, time platform.Timestamp, callback func(string)) {
+	c.mgr.RequestWithCallback(requestor, time, callback)
 }
 
 // FocusManager returns the application's focus manager.

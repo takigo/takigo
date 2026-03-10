@@ -208,7 +208,46 @@ func bindText(t *TextWidget, app widget.AppContext) {
 				}
 			}
 
+		case platform.XK_Insert:
+			// Ctrl+Insert: copy; Shift+Insert: paste.
+			if ctrl {
+				if sel := t.GetSelection(); sel != "" {
+					t.App.Clipboard().Set(t.Win.PlatformID, sel, platform.Timestamp(ev.Time))
+				}
+			} else if shift {
+				if t.readOnly {
+					return
+				}
+				t.App.Clipboard().Get(t.Win.PlatformID, platform.Timestamp(ev.Time), func(text string) {
+					if text == "" {
+						return
+					}
+					t.undoStack.Separator()
+					t.deleteSelection()
+					insertAt := t.doc.Marks["insert"].Pos
+					endIdx := t.doc.Insert(insertAt, text)
+					if t.undoEnabled {
+						t.undoStack.RecordInsert(insertAt, endIdx, text)
+					}
+					t.doc.MarkSet("insert", endIdx)
+					t.seeInsert()
+					t.notifyYScrollbar()
+					t.Display()
+				})
+			}
+
 		case platform.XK_Delete:
+			// Shift+Delete: cut selection.
+			if shift && !t.readOnly {
+				if sel := t.GetSelection(); sel != "" {
+					t.App.Clipboard().Set(t.Win.PlatformID, sel, platform.Timestamp(ev.Time))
+					t.deleteSelection()
+					t.seeInsert()
+					t.notifyYScrollbar()
+					t.Display()
+				}
+				return
+			}
 			if t.readOnly {
 				return
 			}
@@ -250,9 +289,7 @@ func bindText(t *TextWidget, app widget.AppContext) {
 
 		default:
 			if ctrl {
-				if !t.readOnly {
-					handleCtrlKey(t, ev)
-				}
+				handleCtrlKey(t, ev)
 				return
 			}
 			if t.readOnly {
@@ -302,12 +339,118 @@ func moveCursor(t *TextWidget, newPos Index, shift bool) {
 // handleCtrlKey handles Ctrl key combinations.
 func handleCtrlKey(t *TextWidget, ev *event.Event) {
 	switch ev.KeySym {
-	case platform.XK_a:
-		t.SelectAll()
+	// --- Navigation (work in read-only mode too) ---
+	case platform.XK_a: // Ctrl+A: move to line start (Emacs)
+		pos := t.doc.Marks["insert"].Pos
+		moveCursor(t, LineStart(pos.Line), ev.State&platform.ShiftMask != 0)
+	case platform.XK_e: // Ctrl+E: move to line end (Emacs)
+		pos := t.doc.Marks["insert"].Pos
+		moveCursor(t, LineEnd(pos.Line, t.doc), ev.State&platform.ShiftMask != 0)
+	case platform.XK_b: // Ctrl+B: move back one char (Emacs)
+		pos := t.doc.Marks["insert"].Pos
+		moveCursor(t, Backward(pos, 1, t.doc), ev.State&platform.ShiftMask != 0)
+	case platform.XK_f: // Ctrl+F: move forward one char (Emacs)
+		pos := t.doc.Marks["insert"].Pos
+		moveCursor(t, Forward(pos, 1, t.doc), ev.State&platform.ShiftMask != 0)
+	case platform.XK_p: // Ctrl+P: move up one line (Emacs)
+		pos := t.doc.Marks["insert"].Pos
+		moveCursor(t, UpLine(pos, t.doc), ev.State&platform.ShiftMask != 0)
+	case platform.XK_n: // Ctrl+N: move down one line (Emacs)
+		pos := t.doc.Marks["insert"].Pos
+		moveCursor(t, DownLine(pos, t.doc), ev.State&platform.ShiftMask != 0)
+
+	// --- Clipboard (work in read-only mode for copy) ---
+	case platform.XK_c: // Ctrl+C: copy selection
+		if sel := t.GetSelection(); sel != "" {
+			t.App.Clipboard().Set(t.Win.PlatformID, sel, platform.Timestamp(ev.Time))
+		}
+	case platform.XK_x: // Ctrl+X: cut selection
+		if t.readOnly {
+			return
+		}
+		if sel := t.GetSelection(); sel != "" {
+			t.App.Clipboard().Set(t.Win.PlatformID, sel, platform.Timestamp(ev.Time))
+			t.deleteSelection()
+			t.seeInsert()
+			t.notifyYScrollbar()
+			t.Display()
+		}
+	case platform.XK_v: // Ctrl+V: paste from clipboard
+		if t.readOnly {
+			return
+		}
+		t.App.Clipboard().Get(t.Win.PlatformID, platform.Timestamp(ev.Time), func(text string) {
+			if text == "" {
+				return
+			}
+			t.undoStack.Separator()
+			t.deleteSelection()
+			insertAt := t.doc.Marks["insert"].Pos
+			endIdx := t.doc.Insert(insertAt, text)
+			if t.undoEnabled {
+				t.undoStack.RecordInsert(insertAt, endIdx, text)
+			}
+			t.doc.MarkSet("insert", endIdx)
+			t.seeInsert()
+			t.notifyYScrollbar()
+			t.Display()
+		})
+
+	// --- Editing (blocked in read-only mode) ---
+	case platform.XK_d: // Ctrl+D: delete char forward (Emacs)
+		if t.readOnly {
+			return
+		}
+		pos := t.doc.Marks["insert"].Pos
+		if Compare(pos, t.doc.EndIndex()) < 0 {
+			nextPos := Forward(pos, 1, t.doc)
+			text := t.doc.Get(pos, nextPos)
+			t.doc.Delete(pos, nextPos)
+			if t.undoEnabled {
+				t.undoStack.RecordDelete(pos, nextPos, text)
+			}
+			t.notifyYScrollbar()
+			t.Display()
+		}
+	case platform.XK_k: // Ctrl+K: kill to end of line (Emacs)
+		if t.readOnly {
+			return
+		}
+		pos := t.doc.Marks["insert"].Pos
+		lineEnd := LineEnd(pos.Line, t.doc)
+		if Compare(pos, lineEnd) == 0 {
+			// At end of line: delete the newline joining with next line.
+			if pos.Line < t.doc.LineCount() {
+				nextPos := Index{Line: pos.Line + 1, Char: 0}
+				text := t.doc.Get(pos, nextPos)
+				t.doc.Delete(pos, nextPos)
+				if t.undoEnabled {
+					t.undoStack.RecordDelete(pos, nextPos, text)
+				}
+			}
+		} else {
+			text := t.doc.Get(pos, lineEnd)
+			t.doc.Delete(pos, lineEnd)
+			if t.undoEnabled {
+				t.undoStack.RecordDelete(pos, lineEnd, text)
+			}
+		}
+		t.notifyYScrollbar()
 		t.Display()
-	case platform.XK_z:
+	case platform.XK_w: // Ctrl+W: cut selection (Emacs kill-region)
+		if t.readOnly {
+			return
+		}
+		if sel := t.GetSelection(); sel != "" {
+			t.App.Clipboard().Set(t.Win.PlatformID, sel, platform.Timestamp(ev.Time))
+			t.deleteSelection()
+			t.seeInsert()
+			t.notifyYScrollbar()
+			t.Display()
+		}
+	case platform.XK_z: // Ctrl+Z: undo
 		t.Edit("undo")
-	case platform.XK_y:
+	case platform.XK_y: // Ctrl+Y: redo
 		t.Edit("redo")
 	}
 }

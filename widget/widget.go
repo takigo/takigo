@@ -92,6 +92,16 @@ type BindEngine interface {
 	UnregisterWindow(w *window.Window)
 }
 
+// ClipboardManager provides clipboard read/write for widgets.
+type ClipboardManager interface {
+	// Set stores text as the CLIPBOARD owner.
+	Set(owner platform.WindowID, text string, time platform.Timestamp)
+	// Get retrieves clipboard text. If this process owns the clipboard the
+	// callback is called immediately; otherwise an async X11 request is sent
+	// and the callback fires when the SelectionNotify arrives.
+	Get(requestor platform.WindowID, time platform.Timestamp, callback func(string))
+}
+
 // AppContext provides the application services widgets need.
 // This avoids importing the top-level takigo package.
 type AppContext interface {
@@ -114,6 +124,8 @@ type AppContext interface {
 	// After schedules a function to run after a delay.
 	After(d time.Duration, fn func())
 	Quit()
+	// Clipboard returns the application clipboard manager.
+	Clipboard() ClipboardManager
 }
 
 // Window returns the widget's underlying window.

@@ -23,6 +23,10 @@ type Loop struct {
 
 	// Pending idle callbacks (coalesced).
 	idleQueue []func()
+
+	// rawHandler is called for every raw event before type conversion.
+	// Used to handle event types (e.g. selection) not routed through Dispatcher.
+	rawHandler func(*platform.RawEvent)
 }
 
 // NewLoop creates a new event loop for the given display server.
@@ -57,6 +61,9 @@ func (l *Loop) Run() {
 			if l.server.FilterEvent(raw) {
 				continue
 			}
+			if l.rawHandler != nil {
+				l.rawHandler(raw)
+			}
 			ev := FromRawEventIM(raw, l.parser, l.hasIM)
 			if ev.Type != 0 {
 				l.dispatcher.Dispatch(&ev)
@@ -75,6 +82,13 @@ func (l *Loop) Run() {
 			l.server.Flush()
 		}
 	}
+}
+
+// SetRawEventHandler installs a handler called for every raw event before
+// type conversion. Use it for event types not routed through the Dispatcher
+// (e.g. X11 selection events).
+func (l *Loop) SetRawEventHandler(h func(*platform.RawEvent)) {
+	l.rawHandler = h
 }
 
 // Quit stops the event loop.
@@ -132,6 +146,9 @@ func (l *Loop) RunNested(done <-chan struct{}) {
 		case raw := <-l.eventCh:
 			if l.server.FilterEvent(raw) {
 				continue
+			}
+			if l.rawHandler != nil {
+				l.rawHandler(raw)
 			}
 			ev := FromRawEventIM(raw, l.parser, l.hasIM)
 			if ev.Type != 0 {
