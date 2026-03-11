@@ -316,15 +316,27 @@ func (m *Menu) Post(x, y int) {
 	m.posted = true
 	m.activeIndex = -1
 
+	// Sync so the X server has processed MapRaised before GrabPointer:
+	// XGrabPointer requires the grab window to be viewable.
+	d.Sync(false)
+
 	// Grab pointer only (not keyboard). This ensures clicks outside the menu
 	// are caught and close the menu, while WM passive key grabs remain active.
 	// Keyboard events reach the menu via SetInputFocus instead of a keyboard grab.
-	d.GrabPointer(w.PlatformID, false,
-		uint(platform.ButtonPressMask|platform.ButtonReleaseMask|platform.PointerMotionMask|platform.EnterWindowMask|platform.LeaveWindowMask),
+	const grabMask = uint(platform.ButtonPressMask | platform.ButtonReleaseMask |
+		platform.PointerMotionMask | platform.EnterWindowMask | platform.LeaveWindowMask)
+	ret := d.GrabPointer(w.PlatformID, false, grabMask,
 		platform.GrabModeAsync, platform.GrabModeAsync,
 		platform.WindowID(0), platform.CursorID(0), platform.CurrentTime)
+	if ret != platform.GrabSuccess {
+		// Grab failed (another client holds the grab); retry once after a flush.
+		d.Sync(false)
+		ret = d.GrabPointer(w.PlatformID, false, grabMask,
+			platform.GrabModeAsync, platform.GrabModeAsync,
+			platform.WindowID(0), platform.CursorID(0), platform.CurrentTime)
+	}
+	m.grabbed = ret == platform.GrabSuccess
 	d.SetInputFocus(w.PlatformID, platform.RevertToParent, platform.CurrentTime)
-	m.grabbed = true
 
 	m.Display()
 }

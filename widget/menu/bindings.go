@@ -91,12 +91,14 @@ func bindMenu(m *Menu, app widget.AppContext) {
 	})
 
 	// Button press outside menu → unpost.
+	// Use absolute RootX/RootY so the check works regardless of grab owner_events mode.
 	app.Dispatcher().Bind(w.PlatformID, event.ButtonPressMask, func(ev *event.Event) {
-		// If click is outside menu bounds, unpost.
-		if ev.X < 0 || ev.X >= w.Width || ev.Y < 0 || ev.Y >= w.Height {
+		if ev.RootX < m.screenX || ev.RootX >= m.screenX+w.Width ||
+			ev.RootY < m.screenY || ev.RootY >= m.screenY+w.Height {
 			m.Unpost()
 		}
 	})
+
 
 	// Keyboard.
 	app.Dispatcher().Bind(w.PlatformID, event.KeyPressMask, func(ev *event.Event) {
