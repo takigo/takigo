@@ -5,6 +5,7 @@ package menu
 import (
 	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/draw"
+	"github.com/msorc/takigo/font"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/widget"
@@ -24,18 +25,28 @@ const (
 
 // MenuEntry represents a single entry in a menu.
 type MenuEntry struct {
-	Type      EntryType
-	Label     string
-	Command   func()
-	SubMenu   *Menu
-	Checked   bool
-	State     widget.State
-	AccelStr  string             // accelerator text for display
-	Underline int               // index of char to underline for keyboard nav; -1 = none
-	Image     widget.WidgetImage // optional image
-	Compound  widget.Compound    // how to combine image and text
-	Fg        *color.ColorRef   // per-entry foreground (nil = use menu default)
-	Bg        *color.ColorRef   // per-entry background (nil = use menu default)
+	Type        EntryType
+	Label       string
+	Command     func()
+	SubMenu     *Menu
+	Checked     bool
+	State       widget.State
+	AccelStr    string              // accelerator text for display
+	Underline   int                // index of char to underline for keyboard nav; -1 = none
+	Image       widget.WidgetImage // optional image
+	SelectImage widget.WidgetImage // image shown when entry is active/highlighted
+	Compound    widget.Compound    // how to combine image and text
+	Fg          *color.ColorRef    // per-entry foreground (nil = use menu default)
+	Bg          *color.ColorRef    // per-entry background (nil = use menu default)
+	ColumnBreak bool               // start a new column before this entry
+	HideMargin  bool               // suppress check/radio indicator margin
+}
+
+// colData holds layout data for one column in a multi-column menu.
+type colData struct {
+	entries []int // indices into Menu.entries
+	x       int   // left x of this column
+	width   int   // pixel width
 }
 
 // Menu is a popup menu with a list of entries.
@@ -52,6 +63,7 @@ type Menu struct {
 	sepHeight     int
 	menuWidth     int
 	tearoffHeight int // height of tearoff grip area (0 if TearOff=false)
+	cols          []colData
 
 	// Colors.
 	ActiveBg *color.ColorRef
@@ -254,6 +266,22 @@ func (m *Menu) AddCommandImage(label string, img widget.WidgetImage, compound wi
 	})
 }
 
+// AddImageSwatch adds an image-only entry for a palette/grid menu.
+// img is drawn normally; selectImg is drawn when the entry is active.
+// columnBreak starts a new column before this entry.
+func (m *Menu) AddImageSwatch(img, selectImg widget.WidgetImage, columnBreak bool, command func()) {
+	m.entries = append(m.entries, MenuEntry{
+		Type:        Command,
+		Image:       img,
+		SelectImage: selectImg,
+		ColumnBreak: columnBreak,
+		HideMargin:  true,
+		Compound:    widget.CompoundNone,
+		Command:     command,
+		Underline:   -1,
+	})
+}
+
 // AddCommandBg adds a command entry with per-entry foreground and background colors.
 // Pass empty string for fg/bg to use menu defaults.
 func (m *Menu) AddCommandBg(label, fg, bg string, command func()) {
@@ -385,6 +413,12 @@ func (m *Menu) IsPosted() bool {
 	return m.posted
 }
 
+// PrepareGeometry computes the menu's required size without posting it.
+// Call before reading Win.ReqWidth / Win.ReqHeight to position the menu.
+func (m *Menu) PrepareGeometry() {
+	m.computeGeometry()
+}
+
 func (m *Menu) computeGeometry() {
 	if m.Font == nil {
 		return
@@ -394,7 +428,6 @@ func (m *Menu) computeGeometry() {
 	m.entryHeight = fm.Linespace() + 6
 	m.sepHeight = 6
 
-	// Tearoff grip area.
 	if m.TearOff {
 		m.tearoffHeight = 10
 	} else {
@@ -406,73 +439,187 @@ func (m *Menu) computeGeometry() {
 		if e.Image != nil && e.Image.Height()+6 > m.entryHeight {
 			m.entryHeight = e.Image.Height() + 6
 		}
-	}
-
-	maxWidth := 0
-	totalHeight := 2*m.BorderWidth + m.tearoffHeight
-
-	for _, e := range m.entries {
-		if e.Type == Separator {
-			totalHeight += m.sepHeight
-		} else {
-			totalHeight += m.entryHeight
-			// Width: image + text (or image alone when CompoundNone and image set).
-			var w int
-			if e.Image != nil && e.Compound == widget.CompoundNone && e.Label == "" {
-				w = e.Image.Width()
-			} else {
-				w = m.Font.MeasureString(e.Label)
-				if e.Image != nil {
-					w += e.Image.Width() + 4
-				}
-			}
-			// Add space for check indicator and cascade arrow.
-			w += 40
-			if e.AccelStr != "" {
-				w += m.Font.MeasureString(e.AccelStr) + 20
-			}
-			if w > maxWidth {
-				maxWidth = w
-			}
+		if e.SelectImage != nil && e.SelectImage.Height()+6 > m.entryHeight {
+			m.entryHeight = e.SelectImage.Height() + 6
 		}
 	}
 
-	m.menuWidth = maxWidth + 2*m.BorderWidth
-	if m.menuWidth < 60 {
-		m.menuWidth = 60
+	// Build columns.
+	m.cols = m.buildColumns()
+
+	if len(m.cols) <= 1 {
+		// Single-column layout.
+		maxWidth := 0
+		totalHeight := 2*m.BorderWidth + m.tearoffHeight
+		for _, e := range m.entries {
+			if e.Type == Separator {
+				totalHeight += m.sepHeight
+			} else {
+				totalHeight += m.entryHeight
+				w := m.entryContentWidth(e)
+				if w > maxWidth {
+					maxWidth = w
+				}
+			}
+		}
+		m.menuWidth = maxWidth + 2*m.BorderWidth
+		if m.menuWidth < 60 {
+			m.menuWidth = 60
+		}
+		w := m.Win
+		w.Width = m.menuWidth
+		w.Height = totalHeight
+		w.ReqWidth = m.menuWidth
+		w.ReqHeight = totalHeight
+		// Store single-column data.
+		m.cols[0].x = m.BorderWidth
+		m.cols[0].width = m.menuWidth - 2*m.BorderWidth
+		return
 	}
 
+	// Multi-column layout.
+	x := m.BorderWidth
+	maxColHeight := 0
+	for ci := range m.cols {
+		col := &m.cols[ci]
+		col.x = x
+		maxW := 0
+		colH := 0
+		for _, idx := range col.entries {
+			e := m.entries[idx]
+			w := m.entryContentWidth(e)
+			if w > maxW {
+				maxW = w
+			}
+			if e.Type == Separator {
+				colH += m.sepHeight
+			} else {
+				colH += m.entryHeight
+			}
+		}
+		col.width = maxW
+		if colH > maxColHeight {
+			maxColHeight = colH
+		}
+		x += maxW
+	}
+
+	totalWidth := x + m.BorderWidth
+	if totalWidth < 60 {
+		totalWidth = 60
+	}
+	totalHeight := 2*m.BorderWidth + m.tearoffHeight + maxColHeight
+	m.menuWidth = totalWidth
+
 	w := m.Win
-	w.Width = m.menuWidth
+	w.Width = totalWidth
 	w.Height = totalHeight
-	w.ReqWidth = m.menuWidth
+	w.ReqWidth = totalWidth
 	w.ReqHeight = totalHeight
 }
 
-// entryAtY returns the entry index at pixel y, -1 for separator/nothing,
-// or -2 for the tearoff grip region.
-func (m *Menu) entryAtY(y int) int {
+func (m *Menu) buildColumns() []colData {
+	if len(m.entries) == 0 {
+		return []colData{{}}
+	}
+	var cols []colData
+	cur := colData{}
+	for i, e := range m.entries {
+		if e.ColumnBreak && i > 0 && len(cur.entries) > 0 {
+			cols = append(cols, cur)
+			cur = colData{}
+		}
+		cur.entries = append(cur.entries, i)
+	}
+	cols = append(cols, cur)
+	return cols
+}
+
+func (m *Menu) entryContentWidth(e MenuEntry) int {
+	if e.HideMargin {
+		if e.Image != nil {
+			return e.Image.Width() + 4
+		}
+		if e.SelectImage != nil {
+			return e.SelectImage.Width() + 4
+		}
+		return 20
+	}
+	var w int
+	if e.Image != nil && e.Compound == widget.CompoundNone && e.Label == "" {
+		w = e.Image.Width()
+	} else {
+		w = m.Font.MeasureString(e.Label)
+		if e.Image != nil {
+			w += e.Image.Width() + 4
+		}
+	}
+	w += 40
+	if e.AccelStr != "" {
+		w += m.Font.MeasureString(e.AccelStr) + 20
+	}
+	return w
+}
+
+// entryAt returns the entry index at pixel (x, y). Returns -1 for separator/nothing,
+// -2 for tearoff grip region.
+func (m *Menu) entryAt(x, y int) int {
 	offset := m.BorderWidth
 	if m.TearOff {
 		if y >= offset && y < offset+m.tearoffHeight {
-			return -2 // tearoff region
+			return -2
 		}
 		offset += m.tearoffHeight
 	}
-	for i, e := range m.entries {
+
+	if len(m.cols) <= 1 {
+		// Single-column: use y only.
+		for i, e := range m.entries {
+			var h int
+			if e.Type == Separator {
+				h = m.sepHeight
+			} else {
+				h = m.entryHeight
+			}
+			if y >= offset && y < offset+h {
+				if e.Type == Separator {
+					return -1
+				}
+				return i
+			}
+			offset += h
+		}
+		return -1
+	}
+
+	// Multi-column: find column by x.
+	var col *colData
+	for i := range m.cols {
+		c := &m.cols[i]
+		if x >= c.x && x < c.x+c.width {
+			col = c
+			break
+		}
+	}
+	if col == nil {
+		return -1
+	}
+	yPos := offset
+	for _, idx := range col.entries {
+		e := m.entries[idx]
 		var h int
 		if e.Type == Separator {
 			h = m.sepHeight
 		} else {
 			h = m.entryHeight
 		}
-		if y >= offset && y < offset+h {
+		if y >= yPos && y < yPos+h {
 			if e.Type == Separator {
 				return -1
 			}
-			return i
+			return idx
 		}
-		offset += h
+		yPos += h
 	}
 	return -1
 }
@@ -522,17 +669,16 @@ func (m *Menu) Display() {
 	}
 
 	fm := m.Font.Metrics()
-	yPos := m.BorderWidth
+	yStart := m.BorderWidth
 
 	// Draw tearoff grip (dashed line).
 	if m.TearOff {
 		isActive := m.activeIndex == -2
 		if isActive && m.ActiveBg != nil {
 			d.SetForeground(gc, m.ActiveBg.Pixel)
-			d.FillRectangle(w.Drawable(), gc, m.BorderWidth, yPos,
+			d.FillRectangle(w.Drawable(), gc, m.BorderWidth, yStart,
 				uint(w.Width-2*m.BorderWidth), uint(m.tearoffHeight))
 		}
-		// Dashed line: alternating segments.
 		var dashColor uint64 = d.BlackPixel(0)
 		if m.Foreground != nil {
 			dashColor = m.Foreground.Pixel
@@ -542,17 +688,29 @@ func (m *Menu) Display() {
 		}
 		d.SetForeground(gc, dashColor)
 		cx := m.BorderWidth + 4
-		cy := yPos + m.tearoffHeight/2
+		cy := yStart + m.tearoffHeight/2
 		for cx+8 < w.Width-m.BorderWidth {
 			d.FillRectangle(w.Drawable(), gc, cx, cy-1, 6, 2)
 			cx += 10
 		}
-		yPos += m.tearoffHeight
+		yStart += m.tearoffHeight
 	}
+
+	if len(m.cols) <= 1 {
+		m.displaySingleColumn(d, gc, df, fm, yStart)
+	} else {
+		m.displayMultiColumn(d, gc, yStart)
+	}
+
+	d.Flush()
+}
+
+func (m *Menu) displaySingleColumn(d platform.DisplayServer, gc platform.GCID, df platform.DrawableFont, fm font.Metrics, yStart int) {
+	w := m.Win
+	yPos := yStart
 
 	for i, e := range m.entries {
 		if e.Type == Separator {
-			// Draw separator line.
 			sepY := yPos + m.sepHeight/2
 			if m.Border != nil {
 				draw.Draw3DRectangle(d, w.Drawable(), gc, m.Border,
@@ -565,7 +723,6 @@ func (m *Menu) Display() {
 
 		isActive := i == m.activeIndex && e.State != widget.StateDisabled
 
-		// Per-entry or active background fill.
 		if isActive && m.ActiveBg != nil {
 			d.SetForeground(gc, m.ActiveBg.Pixel)
 			d.FillRectangle(w.Drawable(), gc, m.BorderWidth, yPos,
@@ -576,22 +733,22 @@ func (m *Menu) Display() {
 				uint(w.Width-2*m.BorderWidth), uint(m.entryHeight))
 		}
 
-		// Text and image.
 		textX := m.BorderWidth + 20
+		if e.HideMargin {
+			textX = m.BorderWidth + 2
+		}
 		textY := yPos + (m.entryHeight-fm.Linespace())/2 + fm.Ascent
 
-		// Draw image if present.
-		if e.Image != nil {
-			imgW := e.Image.Width()
-			imgH := e.Image.Height()
+		img := e.Image
+		if isActive && e.SelectImage != nil {
+			img = e.SelectImage
+		}
+		if img != nil {
+			imgW := img.Width()
+			imgH := img.Height()
 			imgY := yPos + (m.entryHeight-imgH)/2
-			var imgX int
-			if e.Compound == widget.CompoundNone && e.Label == "" {
-				// Image only — center where text would be.
-				imgX = textX
-			} else {
-				// Image left of text.
-				imgX = textX
+			imgX := textX
+			if e.Compound != widget.CompoundNone || e.Label != "" {
 				textX += imgW + 4
 			}
 			bgPx := uint64(0xD9D9D9)
@@ -600,7 +757,7 @@ func (m *Menu) Display() {
 			} else if m.Background != nil {
 				bgPx = m.Background.Pixel
 			}
-			e.Image.Draw(d, w.Drawable(), w.GC, w.Depth,
+			img.Draw(d, w.Drawable(), w.GC, w.Depth,
 				0, 0, imgW, imgH, imgX, imgY, bgPx)
 		}
 
@@ -618,21 +775,19 @@ func (m *Menu) Display() {
 		}
 
 		if fgCol != nil {
-			// Check/Radio indicator.
-			if e.Type == Checkbutton && e.Checked {
-				df.DrawString(w.Drawable(), m.BorderWidth+4, textY, "\u2713",
-					fgCol.Pixel, fgCol.Red, fgCol.Green, fgCol.Blue)
-			} else if e.Type == Radiobutton && e.Checked {
-				df.DrawString(w.Drawable(), m.BorderWidth+4, textY, "\u25cf",
-					fgCol.Pixel, fgCol.Red, fgCol.Green, fgCol.Blue)
+			if !e.HideMargin {
+				if e.Type == Checkbutton && e.Checked {
+					df.DrawString(w.Drawable(), m.BorderWidth+4, textY, "\u2713",
+						fgCol.Pixel, fgCol.Red, fgCol.Green, fgCol.Blue)
+				} else if e.Type == Radiobutton && e.Checked {
+					df.DrawString(w.Drawable(), m.BorderWidth+4, textY, "\u25cf",
+						fgCol.Pixel, fgCol.Red, fgCol.Green, fgCol.Blue)
+				}
 			}
 
-			// Label (skip if image-only).
 			if e.Label != "" {
 				df.DrawString(w.Drawable(), textX, textY, e.Label,
 					fgCol.Pixel, fgCol.Red, fgCol.Green, fgCol.Blue)
-
-				// Underline for keyboard mnemonic.
 				runes := []rune(e.Label)
 				if e.Underline >= 0 && e.Underline < len(runes) {
 					prefix := string(runes[:e.Underline])
@@ -645,7 +800,6 @@ func (m *Menu) Display() {
 				}
 			}
 
-			// Accelerator text.
 			if e.AccelStr != "" {
 				accelW := m.Font.MeasureString(e.AccelStr)
 				accelX := w.Width - m.BorderWidth - accelW - 8
@@ -653,7 +807,6 @@ func (m *Menu) Display() {
 					fgCol.Pixel, fgCol.Red, fgCol.Green, fgCol.Blue)
 			}
 
-			// Cascade arrow.
 			if e.Type == Cascade {
 				arrowX := w.Width - m.BorderWidth - 14
 				df.DrawString(w.Drawable(), arrowX, textY, "\u25b6",
@@ -663,8 +816,50 @@ func (m *Menu) Display() {
 
 		yPos += m.entryHeight
 	}
+}
 
-	d.Flush()
+func (m *Menu) displayMultiColumn(d platform.DisplayServer, gc platform.GCID, yStart int) {
+	w := m.Win
+
+	for _, col := range m.cols {
+		yPos := yStart
+		for _, idx := range col.entries {
+			e := m.entries[idx]
+			if e.Type == Separator {
+				yPos += m.sepHeight
+				continue
+			}
+
+			isActive := idx == m.activeIndex && e.State != widget.StateDisabled
+
+			if isActive && m.ActiveBg != nil {
+				d.SetForeground(gc, m.ActiveBg.Pixel)
+				d.FillRectangle(w.Drawable(), gc, col.x, yPos, uint(col.width), uint(m.entryHeight))
+			} else if !isActive && e.Bg != nil {
+				d.SetForeground(gc, e.Bg.Pixel)
+				d.FillRectangle(w.Drawable(), gc, col.x, yPos, uint(col.width), uint(m.entryHeight))
+			}
+
+			img := e.Image
+			if isActive && e.SelectImage != nil {
+				img = e.SelectImage
+			}
+			if img != nil {
+				imgW := img.Width()
+				imgH := img.Height()
+				imgX := col.x + (col.width-imgW)/2
+				imgY := yPos + (m.entryHeight-imgH)/2
+				bgPx := uint64(0xD9D9D9)
+				if m.Background != nil {
+					bgPx = m.Background.Pixel
+				}
+				img.Draw(d, w.Drawable(), w.GC, w.Depth,
+					0, 0, imgW, imgH, imgX, imgY, bgPx)
+			}
+
+			yPos += m.entryHeight
+		}
+	}
 }
 
 // activate sets the active entry and redraws.

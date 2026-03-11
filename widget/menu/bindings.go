@@ -31,13 +31,13 @@ func bindMenu(m *Menu, app widget.AppContext) {
 	// since the menu was posted (so the first ButtonRelease is not spuriously ignored).
 	app.Dispatcher().Bind(w.PlatformID, event.MotionMask, func(ev *event.Event) {
 		m.motionSincePost = true
-		idx := m.entryAtY(ev.Y)
+		idx := m.entryAt(ev.X, ev.Y)
 		m.activate(idx)
 	})
 
 	// Enter → activate.
 	app.Dispatcher().Bind(w.PlatformID, event.EnterMask, func(ev *event.Event) {
-		idx := m.entryAtY(ev.Y)
+		idx := m.entryAt(ev.X, ev.Y)
 		m.activate(idx)
 	})
 
@@ -78,7 +78,7 @@ func bindMenu(m *Menu, app widget.AppContext) {
 			// First release with no motion: stay open (click-to-open mode).
 			return
 		}
-		idx := m.entryAtY(ev.Y)
+		idx := m.entryAt(ev.X, ev.Y)
 		if idx == -2 {
 			// Tearoff grip clicked — detach the menu.
 			m.Detach()

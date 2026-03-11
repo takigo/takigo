@@ -36,6 +36,7 @@ type Menubutton struct {
 	Anchor      option.Anchor
 	Underline   int  // index of underlined character for Alt+letter, -1=none
 	IndicatorOn bool // whether to draw the dropdown arrow indicator
+	OptionMenu  bool // draw a horizontal rectangle indicator instead of triangle
 
 	// Active colors.
 	ActiveBg *color.ColorRef
@@ -58,6 +59,7 @@ func PadX(p int) MenubuttonOption               { return func(mb *Menubutton) { 
 func PadY(p int) MenubuttonOption               { return func(mb *Menubutton) { mb.PadY = p } }
 func UnderlineOpt(i int) MenubuttonOption        { return func(mb *Menubutton) { mb.Underline = i } }
 func IndicatorOnOpt(on bool) MenubuttonOption   { return func(mb *Menubutton) { mb.IndicatorOn = on } }
+func OptionMenuOpt(on bool) MenubuttonOption    { return func(mb *Menubutton) { mb.OptionMenu = on } }
 
 func Background(name string) MenubuttonOption {
 	return func(mb *Menubutton) {
@@ -124,7 +126,11 @@ func (mb *Menubutton) computeGeometry() {
 	}
 	mb.textWidth = mb.Font.MeasureString(mb.Text)
 	if mb.IndicatorOn {
-		mb.textWidth += 12 // space for dropdown arrow
+		if mb.OptionMenu {
+			mb.textWidth += 18 // space for option-menu rectangle indicator
+		} else {
+			mb.textWidth += 12 // space for dropdown arrow
+		}
 	}
 	m := mb.Font.Metrics()
 	mb.textHeight = m.Linespace()
@@ -140,6 +146,9 @@ func (mb *Menubutton) PostMenu() {
 	if mb.Menu == nil || mb.Menu.IsPosted() {
 		return
 	}
+
+	// Ensure menu size is current before we use it to compute position.
+	mb.Menu.PrepareGeometry()
 
 	win := mb.Win
 	d := win.Display.Server
@@ -225,17 +234,38 @@ func (mb *Menubutton) Display() {
 				d.DrawLine(w.Drawable(), gc, ulX, ulY, ulX+ulW, ulY)
 			}
 
-			// Draw dropdown indicator triangle.
+			// Draw indicator.
 			if mb.IndicatorOn {
-				triX := w.Width - inset - mb.PadX - 10
-				triY := textY - m.Ascent/2
-				df.DrawString(w.Drawable(), triX, triY+m.Ascent, "\u25bc",
-					fgCol.Pixel, fgCol.Red, fgCol.Green, fgCol.Blue)
+				if mb.OptionMenu {
+					// Horizontal rectangle indicator (option-menu style).
+					rectW := 10
+					rectH := 3
+					rectX := w.Width - inset - mb.PadX - rectW - 4
+					rectY := textY - m.Ascent/2 - rectH/2
+					d.SetForeground(gc, fgCol.Pixel)
+					d.FillRectangle(w.Drawable(), gc, rectX, rectY, uint(rectW), uint(rectH))
+				} else {
+					// Dropdown triangle.
+					triX := w.Width - inset - mb.PadX - 10
+					triY := textY - m.Ascent/2
+					df.DrawString(w.Drawable(), triX, triY+m.Ascent, "\u25bc",
+						fgCol.Pixel, fgCol.Red, fgCol.Green, fgCol.Blue)
+				}
 			}
 		}
 	}
 
 	d.Flush()
+}
+
+// SetText changes the button label and requests a re-layout if the size changed.
+func (mb *Menubutton) SetText(text string) {
+	mb.Text = text
+	mb.computeGeometry()
+	if mb.Win.GeomManager != nil {
+		mb.Win.GeomManager.RequestProc(mb.Win)
+	}
+	mb.Display()
 }
 
 // Configure applies options.
