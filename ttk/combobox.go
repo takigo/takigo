@@ -1,9 +1,11 @@
 package ttk
 
 import (
+	"github.com/msorc/takigo/cursor"
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/font"
+	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/window"
@@ -31,11 +33,19 @@ type Combobox struct {
 	Font      font.Font
 	Command   func(value string) // called when value changes
 
+	// Text selection.
+	selFirst  int    // -1 = no selection
+	selLast   int
+	selAnchor int
+	selBg     uint64 // selection highlight background
+	selFg     uint64 // selection text foreground
+
 	// Dropdown state.
-	dropWin  *window.Window
-	dropSel  int
-	dropOpen bool
-	grabbed  bool
+	dropWin      *window.Window
+	dropSel      int
+	dropOpen     bool
+	grabbed      bool
+	arrowPressed bool
 
 	// Layout.
 	arrowWidth int
@@ -77,6 +87,10 @@ func NewCombobox(parent widget.Caregiver, name string, opts ...ComboboxOption) *
 		insetX:     4,
 		insetY:     2,
 		dropSel:    -1,
+		selFirst:   -1,
+		selLast:    -1,
+		selBg:      0x3399ff,
+		selFg:      0xffffff,
 	}
 
 	c.Font, _ = app.FontRegistry().Get(font.TkDefaultFont)
@@ -100,7 +114,11 @@ func NewCombobox(parent widget.Caregiver, name string, opts ...ComboboxOption) *
 		c.ChangeState(StateReadonly, 0)
 	}
 
-	win.SetCursor(152) // XC_xterm — I-beam cursor for text entry
+	if c.CbState == ComboNormal {
+		win.SetCursor(cursor.XTerm)
+	} else {
+		win.SetCursor(cursor.LeftPtr)
+	}
 	bindCombobox(c, app)
 
 	return c
@@ -115,6 +133,7 @@ func (c *Combobox) Get() string {
 func (c *Combobox) Set(s string) {
 	c.text = []rune(s)
 	c.insertPos = len(c.text)
+	c.clearSelection()
 	c.Display()
 	if c.Command != nil {
 		c.Command(s)
@@ -161,27 +180,24 @@ func (c *Combobox) Display() {
 		fieldBg = bg
 	}
 
-	// Fill entry area.
+	// Fill entry area with field background.
 	d.SetForeground(gc, fieldBg)
 	d.FillRectangle(pixDrawable, gc, 0, 0, uint(width), uint(height))
 
-	// Draw border.
-	border := draw.NewBorderFromPixel(bg)
-	d.SetForeground(gc, uint64(0x9e9a91))
-	d.DrawLine(pixDrawable, gc, 0, 0, width-1, 0)
-	d.DrawLine(pixDrawable, gc, 0, 0, 0, height-1)
-	d.SetForeground(gc, border.LightPixel)
-	d.DrawLine(pixDrawable, gc, 0, height-1, width-1, height-1)
-	d.DrawLine(pixDrawable, gc, width-1, 0, width-1, height-1)
-
-	// Arrow button area.
+	// Arrow button area: fill with bg and draw 3D relief (sunken when pressed).
 	arrowX := width - c.arrowWidth
+	border := draw.NewBorderFromPixel(bg)
 	d.SetForeground(gc, bg)
-	d.FillRectangle(pixDrawable, gc, arrowX, 1, uint(c.arrowWidth-1), uint(height-2))
+	d.FillRectangle(pixDrawable, gc, arrowX, 0, uint(c.arrowWidth), uint(height))
+	btnRelief := option.ReliefRaised
+	if c.arrowPressed {
+		btnRelief = option.ReliefSunken
+	}
+	draw.Draw3DRectangle(d, pixDrawable, gc, border, arrowX, 0, c.arrowWidth, height, 2, btnRelief)
 
-	// Draw separator line.
+	// Flat outer border around the whole widget.
 	d.SetForeground(gc, uint64(0x9e9a91))
-	d.DrawLine(pixDrawable, gc, arrowX, 1, arrowX, height-2)
+	d.DrawRectangle(pixDrawable, gc, 0, 0, uint(width-1), uint(height-1))
 
 	// Draw arrow.
 	arrowCX := arrowX + c.arrowWidth/2
@@ -191,19 +207,78 @@ func (c *Combobox) Display() {
 		d.DrawLine(pixDrawable, gc, arrowCX-3+row, arrowCY-2+row, arrowCX+3-row, arrowCY-2+row)
 	}
 
-	// Draw text.
-	if c.Font != nil && len(c.text) > 0 {
-		textStr := string(c.text)
+	// Draw text (with optional selection highlight).
+	textX := c.insetX + 1
+	if c.Font != nil {
 		m := c.Font.Metrics()
-		textX := c.insetX + 1
 		textY := (height-m.Linespace())/2 + m.Ascent
+		hasSel := c.State&StateFocus != 0 && c.selFirst >= 0 && c.selLast > c.selFirst
 
-		if df, ok := c.Font.(platform.DrawableFont); ok {
-			r := uint16((fg >> 16) & 0xFF) << 8
-			g := uint16((fg >> 8) & 0xFF) << 8
-			b := uint16((fg) & 0xFF) << 8
-			df.DrawString(pixDrawable, textX, textY, textStr, fg, r, g, b)
+		// Selection highlight rectangle.
+		if hasSel && len(c.text) > 0 {
+			sf := c.selFirst
+			sl := c.selLast
+			if sf > len(c.text) {
+				sf = len(c.text)
+			}
+			if sl > len(c.text) {
+				sl = len(c.text)
+			}
+			selStartX := textX + c.Font.MeasureString(string(c.text[:sf]))
+			selEndX := textX + c.Font.MeasureString(string(c.text[:sl]))
+			if selStartX < textX {
+				selStartX = textX
+			}
+			if selEndX > arrowX-1 {
+				selEndX = arrowX - 1
+			}
+			if selEndX > selStartX {
+				d.SetForeground(gc, c.selBg)
+				d.FillRectangle(pixDrawable, gc, selStartX, c.insetY,
+					uint(selEndX-selStartX), uint(m.Linespace()))
+			}
 		}
+
+		// Draw text in segments: before selection / selection / after selection.
+		if df, ok := c.Font.(platform.DrawableFont); ok {
+			drawSeg := func(start, end int, clr uint64) {
+				if start >= end || end > len(c.text) || start < 0 {
+					return
+				}
+				seg := string(c.text[start:end])
+				segX := textX + c.Font.MeasureString(string(c.text[:start]))
+				r := uint16((clr >> 16) & 0xFF) << 8
+				g := uint16((clr >> 8) & 0xFF) << 8
+				b := uint16((clr) & 0xFF) << 8
+				df.DrawString(pixDrawable, segX, textY, seg, clr, r, g, b)
+			}
+			if hasSel && len(c.text) > 0 {
+				sf := c.selFirst
+				sl := c.selLast
+				if sf > len(c.text) {
+					sf = len(c.text)
+				}
+				if sl > len(c.text) {
+					sl = len(c.text)
+				}
+				drawSeg(0, sf, fg)
+				drawSeg(sf, sl, c.selFg)
+				drawSeg(sl, len(c.text), fg)
+			} else if len(c.text) > 0 {
+				drawSeg(0, len(c.text), fg)
+			}
+		}
+	}
+
+	// Draw insertion cursor when focused and editable.
+	if c.State&StateFocus != 0 && c.CbState == ComboNormal {
+		textX := c.insetX + 1
+		cursorX := textX
+		if c.Font != nil && c.insertPos > 0 {
+			cursorX = textX + c.Font.MeasureString(string(c.text[:c.insertPos]))
+		}
+		d.SetForeground(gc, fg)
+		d.DrawLine(pixDrawable, gc, cursorX, c.insetY, cursorX, height-c.insetY-1)
 	}
 
 	// Copy to window.
@@ -417,6 +492,202 @@ func (c *Combobox) displayDropdown() {
 	d.Flush()
 }
 
+// clearSelection removes the text selection.
+func (c *Combobox) clearSelection() {
+	c.selFirst = -1
+	c.selLast = -1
+}
+
+// deleteSelection deletes the selected text and clears the selection.
+func (c *Combobox) deleteSelection() {
+	if c.selFirst < 0 {
+		return
+	}
+	c.text = append(c.text[:c.selFirst], c.text[c.selLast:]...)
+	if c.insertPos > c.selFirst {
+		c.insertPos = c.selFirst
+	}
+	c.clearSelection()
+}
+
+// closestGap returns the rune index of the nearest insertion gap at pixel x.
+func (c *Combobox) closestGap(x int) int {
+	if c.Font == nil {
+		return 0
+	}
+	textX := c.insetX + 1
+	xInLayout := x - textX
+	if xInLayout <= 0 {
+		return 0
+	}
+	idx := comboRuneAtPixel(c.Font, c.text, xInLayout)
+	if idx >= len(c.text) {
+		return len(c.text)
+	}
+	charStart := c.Font.MeasureString(string(c.text[:idx]))
+	charEnd := c.Font.MeasureString(string(c.text[:idx+1]))
+	if xInLayout >= (charStart+charEnd)/2 {
+		return idx + 1
+	}
+	return idx
+}
+
+// comboRuneAtPixel finds the rune index at a given pixel offset using binary search.
+func comboRuneAtPixel(f font.Font, runes []rune, targetX int) int {
+	if targetX <= 0 || len(runes) == 0 {
+		return 0
+	}
+	lo, hi := 0, len(runes)
+	for lo < hi {
+		mid := (lo + hi) / 2
+		if f.MeasureString(string(runes[:mid+1])) <= targetX {
+			lo = mid + 1
+		} else {
+			hi = mid
+		}
+	}
+	return lo
+}
+
+// comboWordStart returns the rune index of the word start at or before pos.
+func comboWordStart(text []rune, pos int) int {
+	if pos <= 0 {
+		return 0
+	}
+	if pos > len(text) {
+		pos = len(text)
+	}
+	i := pos - 1
+	for i > 0 && !comboIsWordChar(text[i]) {
+		i--
+	}
+	for i > 0 && comboIsWordChar(text[i-1]) {
+		i--
+	}
+	return i
+}
+
+// comboWordEnd returns the rune index past the word end at or after pos.
+func comboWordEnd(text []rune, pos int) int {
+	i := pos
+	for i < len(text) && comboIsWordChar(text[i]) {
+		i++
+	}
+	for i < len(text) && !comboIsWordChar(text[i]) {
+		i++
+	}
+	return i
+}
+
+func comboIsWordChar(r rune) bool {
+	return (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') ||
+		(r >= '0' && r <= '9') || r == '_'
+}
+
+// comboMoveCursor moves the cursor, optionally extending the selection.
+func comboMoveCursor(c *Combobox, newPos int, shift bool) {
+	if newPos < 0 {
+		newPos = 0
+	}
+	if newPos > len(c.text) {
+		newPos = len(c.text)
+	}
+	if shift {
+		if c.selFirst < 0 {
+			c.selAnchor = c.insertPos
+		}
+		if newPos < c.selAnchor {
+			c.selFirst = newPos
+			c.selLast = c.selAnchor
+		} else {
+			c.selFirst = c.selAnchor
+			c.selLast = newPos
+		}
+		if c.selFirst == c.selLast {
+			c.clearSelection()
+		}
+	} else {
+		c.clearSelection()
+	}
+	c.insertPos = newPos
+	c.Display()
+}
+
+// comboHandleCtrl handles Ctrl+key combinations for the editable combobox.
+func comboHandleCtrl(c *Combobox, app widget.AppContext, ev *event.Event) {
+	win := c.Win
+	switch ev.KeySym {
+	case platform.XK_a: // Ctrl+A: select all
+		if len(c.text) > 0 {
+			c.selFirst = 0
+			c.selLast = len(c.text)
+			c.selAnchor = 0
+			c.insertPos = len(c.text)
+			c.Display()
+		}
+	case platform.XK_e: // Ctrl+E: move to end (Emacs)
+		comboMoveCursor(c, len(c.text), false)
+	case platform.XK_b: // Ctrl+B: back one char (Emacs)
+		comboMoveCursor(c, c.insertPos-1, false)
+	case platform.XK_f: // Ctrl+F: forward one char (Emacs)
+		comboMoveCursor(c, c.insertPos+1, false)
+	case platform.XK_c: // Ctrl+C: copy
+		if c.selFirst >= 0 {
+			app.Clipboard().Set(win.PlatformID, string(c.text[c.selFirst:c.selLast]), ev.Time)
+		}
+	case platform.XK_x: // Ctrl+X: cut
+		if c.selFirst >= 0 {
+			app.Clipboard().Set(win.PlatformID, string(c.text[c.selFirst:c.selLast]), ev.Time)
+			c.deleteSelection()
+			c.Display()
+		}
+	case platform.XK_v: // Ctrl+V: paste
+		app.Clipboard().Get(win.PlatformID, ev.Time, func(text string) {
+			if text == "" {
+				return
+			}
+			if c.selFirst >= 0 {
+				c.deleteSelection()
+			}
+			runes := []rune(text)
+			newText := make([]rune, 0, len(c.text)+len(runes))
+			newText = append(newText, c.text[:c.insertPos]...)
+			newText = append(newText, runes...)
+			newText = append(newText, c.text[c.insertPos:]...)
+			c.text = newText
+			c.insertPos += len(runes)
+			c.Display()
+		})
+	case platform.XK_w: // Ctrl+W: cut selection (Emacs kill-region)
+		if c.selFirst >= 0 {
+			app.Clipboard().Set(win.PlatformID, string(c.text[c.selFirst:c.selLast]), ev.Time)
+			c.deleteSelection()
+			c.Display()
+		}
+	case platform.XK_k: // Ctrl+K: kill to end
+		if c.insertPos < len(c.text) {
+			c.clearSelection()
+			c.text = c.text[:c.insertPos]
+			c.Display()
+		}
+	case platform.XK_d: // Ctrl+D: delete char forward
+		if c.insertPos < len(c.text) {
+			c.text = append(c.text[:c.insertPos], c.text[c.insertPos+1:]...)
+			c.Display()
+		}
+	}
+}
+
+// updateCursor sets the cursor shape based on mouse x position and combobox state.
+func (c *Combobox) updateCursor(x int) {
+	arrowX := c.Win.Width - c.arrowWidth
+	if x >= arrowX || c.CbState != ComboNormal {
+		c.Win.SetCursor(cursor.LeftPtr)
+	} else {
+		c.Win.SetCursor(cursor.XTerm)
+	}
+}
+
 func bindCombobox(c *Combobox, app widget.AppContext) {
 	win := c.Win
 
@@ -437,6 +708,26 @@ func bindCombobox(c *Combobox, app widget.AppContext) {
 
 	app.Dispatcher().Bind(win.PlatformID, event.EnterMask, func(ev *event.Event) {
 		c.ChangeState(StateHover|StateActive, 0)
+		c.updateCursor(ev.X)
+	})
+
+	app.Dispatcher().Bind(win.PlatformID, event.MotionMask, func(ev *event.Event) {
+		c.updateCursor(ev.X)
+		if ev.State&platform.Button1Mask != 0 && c.CbState == ComboNormal && c.State&StateFocus != 0 {
+			pos := c.closestGap(ev.X)
+			if pos < c.selAnchor {
+				c.selFirst = pos
+				c.selLast = c.selAnchor
+			} else {
+				c.selFirst = c.selAnchor
+				c.selLast = pos
+			}
+			if c.selFirst == c.selLast {
+				c.clearSelection()
+			}
+			c.insertPos = pos
+			c.Display()
+		}
 	})
 
 	app.Dispatcher().Bind(win.PlatformID, event.LeaveMask, func(ev *event.Event) {
@@ -451,61 +742,125 @@ func bindCombobox(c *Combobox, app widget.AppContext) {
 		if ev.Button == 1 {
 			arrowX := win.Width - c.arrowWidth
 			if ev.X >= arrowX || c.CbState == ComboReadonly {
+				c.arrowPressed = true
+				c.Display()
 				if c.dropOpen {
 					c.closeDropdown()
 				} else {
 					c.openDropdown()
 				}
+			} else {
+				// Clicked entry area: take X11 focus, position cursor at click.
+				// SetInputFocus alone is not enough: if X11 focus never left (because
+				// the previous click was on a non-focusable widget), no FocusIn fires.
+				app.Server().SetInputFocus(win.PlatformID, platform.RevertToParent, platform.CurrentTime)
+				c.State |= StateFocus
+				c.insertPos = c.closestGap(ev.X)
+				c.selAnchor = c.insertPos
+				c.clearSelection()
+				c.Display()
 			}
 		}
 	})
 
-	// Key events for editable combobox.
+	app.Dispatcher().Bind(win.PlatformID, event.ButtonReleaseMask, func(ev *event.Event) {
+		if ev.Button == 1 && c.arrowPressed {
+			c.arrowPressed = false
+			c.Display()
+		}
+	})
+
+	// Key events for editable combobox (mirrors entry/bindings.go).
 	app.Dispatcher().Bind(win.PlatformID, event.KeyPressMask, func(ev *event.Event) {
 		if c.State&StateDisabled != 0 || c.CbState != ComboNormal {
 			return
 		}
-		ks := ev.KeySym
-		switch {
-		case ks == platform.XK_BackSpace:
-			if c.insertPos > 0 {
+		shift := ev.State&platform.ShiftMask != 0
+		ctrl := ev.State&platform.ControlMask != 0
+
+		switch ev.KeySym {
+		case platform.XK_Left:
+			if ctrl {
+				comboMoveCursor(c, comboWordStart(c.text, c.insertPos), shift)
+			} else {
+				comboMoveCursor(c, c.insertPos-1, shift)
+			}
+		case platform.XK_Right:
+			if ctrl {
+				comboMoveCursor(c, comboWordEnd(c.text, c.insertPos), shift)
+			} else {
+				comboMoveCursor(c, c.insertPos+1, shift)
+			}
+		case platform.XK_Home:
+			comboMoveCursor(c, 0, shift)
+		case platform.XK_End:
+			comboMoveCursor(c, len(c.text), shift)
+
+		case platform.XK_BackSpace:
+			if c.selFirst >= 0 {
+				c.deleteSelection()
+			} else if c.insertPos > 0 {
 				c.text = append(c.text[:c.insertPos-1], c.text[c.insertPos:]...)
 				c.insertPos--
-				c.Display()
 			}
-		case ks == platform.XK_Delete:
-			if c.insertPos < len(c.text) {
+			c.Display()
+
+		case platform.XK_Delete:
+			if shift && c.selFirst >= 0 {
+				app.Clipboard().Set(win.PlatformID, string(c.text[c.selFirst:c.selLast]), ev.Time)
+				c.deleteSelection()
+			} else if c.selFirst >= 0 {
+				c.deleteSelection()
+			} else if c.insertPos < len(c.text) {
 				c.text = append(c.text[:c.insertPos], c.text[c.insertPos+1:]...)
-				c.Display()
 			}
-		case ks == platform.XK_Left:
-			if c.insertPos > 0 {
-				c.insertPos--
-				c.Display()
-			}
-		case ks == platform.XK_Right:
-			if c.insertPos < len(c.text) {
-				c.insertPos++
-				c.Display()
-			}
-		case ks == platform.XK_Home:
-			c.insertPos = 0
 			c.Display()
-		case ks == platform.XK_End:
-			c.insertPos = len(c.text)
-			c.Display()
-		default:
-			if ev.Str != "" {
-				r := []rune(ev.Str)
-				if len(r) == 1 && r[0] >= 32 {
-					newText := make([]rune, 0, len(c.text)+1)
+
+		case platform.XK_Insert:
+			if ctrl && c.selFirst >= 0 {
+				app.Clipboard().Set(win.PlatformID, string(c.text[c.selFirst:c.selLast]), ev.Time)
+			} else if shift {
+				app.Clipboard().Get(win.PlatformID, ev.Time, func(text string) {
+					if text == "" {
+						return
+					}
+					if c.selFirst >= 0 {
+						c.deleteSelection()
+					}
+					runes := []rune(text)
+					newText := make([]rune, 0, len(c.text)+len(runes))
 					newText = append(newText, c.text[:c.insertPos]...)
-					newText = append(newText, r[0])
+					newText = append(newText, runes...)
 					newText = append(newText, c.text[c.insertPos:]...)
 					c.text = newText
-					c.insertPos++
+					c.insertPos += len(runes)
 					c.Display()
+				})
+			}
+
+		default:
+			if ctrl {
+				comboHandleCtrl(c, app, ev)
+				return
+			}
+			insertStr := ev.Str
+			if insertStr == "" {
+				if r := platform.KeySymToRune(ev.KeySym); r > 0 {
+					insertStr = string(r)
 				}
+			}
+			if insertStr != "" && insertStr[0] >= 32 {
+				if c.selFirst >= 0 {
+					c.deleteSelection()
+				}
+				runes := []rune(insertStr)
+				newText := make([]rune, 0, len(c.text)+len(runes))
+				newText = append(newText, c.text[:c.insertPos]...)
+				newText = append(newText, runes...)
+				newText = append(newText, c.text[c.insertPos:]...)
+				c.text = newText
+				c.insertPos += len(runes)
+				c.Display()
 			}
 		}
 	})
@@ -514,9 +869,29 @@ func bindCombobox(c *Combobox, app widget.AppContext) {
 	app.Dispatcher().Bind(win.PlatformID, event.FocusChangeMask, func(ev *event.Event) {
 		if ev.Type == event.FocusInType {
 			c.ChangeState(StateFocus, 0)
+			c.Display()
 		} else if ev.Type == event.FocusOutType {
 			c.ChangeState(0, StateFocus)
+			c.clearSelection()
 			c.closeDropdown()
+			c.Display()
 		}
+	})
+
+	// Hide cursor when user clicks any other window (non-focusable widgets don't
+	// call SetInputFocus, so FocusOut never fires for those clicks).
+	app.Dispatcher().BindGlobal(event.ButtonPressMask, func(ev *event.Event) {
+		if c.State&StateFocus == 0 || c.CbState != ComboNormal {
+			return
+		}
+		if ev.Window == win.PlatformID {
+			return
+		}
+		if c.dropWin != nil && ev.Window == c.dropWin.PlatformID {
+			return
+		}
+		c.State &^= StateFocus
+		c.clearSelection()
+		c.Display()
 	})
 }
