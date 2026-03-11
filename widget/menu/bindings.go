@@ -94,7 +94,7 @@ func bindMenu(m *Menu, app widget.AppContext) {
 			}
 
 		default:
-			// Letter navigation: match first character of entry labels.
+			// Letter navigation: match underlined character (or first char as fallback).
 			r := platform.KeySymToRune(ks)
 			if r <= 0 {
 				return
@@ -112,7 +112,17 @@ func bindMenu(m *Menu, app widget.AppContext) {
 				if e.Type == Separator || e.State == widget.StateDisabled {
 					continue
 				}
-				if len(e.Label) > 0 && unicode.ToLower(rune(e.Label[0])) == r {
+				runes := []rune(e.Label)
+				if len(runes) == 0 {
+					continue
+				}
+				var matchRune rune
+				if e.Underline >= 0 && e.Underline < len(runes) {
+					matchRune = unicode.ToLower(runes[e.Underline])
+				} else {
+					matchRune = unicode.ToLower(runes[0])
+				}
+				if matchRune == r {
 					m.invoke(idx)
 					return
 				}

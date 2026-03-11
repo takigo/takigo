@@ -24,17 +24,18 @@ const (
 
 // MenuEntry represents a single entry in a menu.
 type MenuEntry struct {
-	Type     EntryType
-	Label    string
-	Command  func()
-	SubMenu  *Menu
-	Checked  bool
-	State    widget.State
-	AccelStr string             // accelerator text for display
-	Image    widget.WidgetImage // optional image
-	Compound widget.Compound    // how to combine image and text
-	Fg       *color.ColorRef   // per-entry foreground (nil = use menu default)
-	Bg       *color.ColorRef   // per-entry background (nil = use menu default)
+	Type      EntryType
+	Label     string
+	Command   func()
+	SubMenu   *Menu
+	Checked   bool
+	State     widget.State
+	AccelStr  string             // accelerator text for display
+	Underline int               // index of char to underline for keyboard nav; -1 = none
+	Image     widget.WidgetImage // optional image
+	Compound  widget.Compound    // how to combine image and text
+	Fg        *color.ColorRef   // per-entry foreground (nil = use menu default)
+	Bg        *color.ColorRef   // per-entry background (nil = use menu default)
 }
 
 // Menu is a popup menu with a list of entries.
@@ -169,33 +170,67 @@ func New(parent widget.Caregiver, name string, opts ...MenuOption) *Menu {
 // AddCommand adds a command entry to the menu.
 func (m *Menu) AddCommand(label string, command func()) {
 	m.entries = append(m.entries, MenuEntry{
-		Type:    Command,
-		Label:   label,
-		Command: command,
+		Type:      Command,
+		Label:     label,
+		Command:   command,
+		Underline: -1,
+	})
+}
+
+// AddCommandUL adds a command entry with a specific underline index for keyboard navigation.
+func (m *Menu) AddCommandUL(label string, underline int, command func()) {
+	m.entries = append(m.entries, MenuEntry{
+		Type:      Command,
+		Label:     label,
+		Command:   command,
+		Underline: underline,
 	})
 }
 
 // AddSeparator adds a separator entry.
 func (m *Menu) AddSeparator() {
-	m.entries = append(m.entries, MenuEntry{Type: Separator})
+	m.entries = append(m.entries, MenuEntry{Type: Separator, Underline: -1})
 }
 
 // AddCascade adds a cascade entry with a submenu.
 func (m *Menu) AddCascade(label string, subMenu *Menu) {
 	m.entries = append(m.entries, MenuEntry{
-		Type:    Cascade,
-		Label:   label,
-		SubMenu: subMenu,
+		Type:      Cascade,
+		Label:     label,
+		SubMenu:   subMenu,
+		Underline: -1,
+	})
+}
+
+// AddCascadeUL adds a cascade entry with a specific underline index.
+func (m *Menu) AddCascadeUL(label string, underline int, subMenu *Menu) {
+	m.entries = append(m.entries, MenuEntry{
+		Type:      Cascade,
+		Label:     label,
+		SubMenu:   subMenu,
+		Underline: underline,
 	})
 }
 
 // AddCommandAccel adds a command entry with accelerator display text.
 func (m *Menu) AddCommandAccel(label string, accel string, command func()) {
 	m.entries = append(m.entries, MenuEntry{
-		Type:     Command,
-		Label:    label,
-		AccelStr: accel,
-		Command:  command,
+		Type:      Command,
+		Label:     label,
+		AccelStr:  accel,
+		Command:   command,
+		Underline: -1,
+	})
+}
+
+// AddCommandAccelUL adds a command entry with accelerator text and underline index.
+func (m *Menu) AddCommandAccelUL(label string, accel string, underline int, command func()) {
+	m.entries = append(m.entries, MenuEntry{
+		Type:      Command,
+		Label:     label,
+		AccelStr:  accel,
+		Command:   command,
+		Underline: underline,
 	})
 }
 
@@ -203,11 +238,12 @@ func (m *Menu) AddCommandAccel(label string, accel string, command func()) {
 // compound controls how the image and label are combined (CompoundLeft = image left of text).
 func (m *Menu) AddCommandImage(label string, img widget.WidgetImage, compound widget.Compound, command func()) {
 	m.entries = append(m.entries, MenuEntry{
-		Type:     Command,
-		Label:    label,
-		Image:    img,
-		Compound: compound,
-		Command:  command,
+		Type:      Command,
+		Label:     label,
+		Image:     img,
+		Compound:  compound,
+		Command:   command,
+		Underline: -1,
 	})
 }
 
@@ -215,9 +251,10 @@ func (m *Menu) AddCommandImage(label string, img widget.WidgetImage, compound wi
 // Pass empty string for fg/bg to use menu defaults.
 func (m *Menu) AddCommandBg(label, fg, bg string, command func()) {
 	e := MenuEntry{
-		Type:    Command,
-		Label:   label,
-		Command: command,
+		Type:      Command,
+		Label:     label,
+		Command:   command,
+		Underline: -1,
 	}
 	if fg != "" {
 		if col, err := m.App.ColorCache().Get(fg); err == nil {
@@ -235,10 +272,11 @@ func (m *Menu) AddCommandBg(label, fg, bg string, command func()) {
 // AddCheckbutton adds a checkbutton entry.
 func (m *Menu) AddCheckbutton(label string, checked bool, command func()) {
 	m.entries = append(m.entries, MenuEntry{
-		Type:    Checkbutton,
-		Label:   label,
-		Checked: checked,
-		Command: command,
+		Type:      Checkbutton,
+		Label:     label,
+		Checked:   checked,
+		Command:   command,
+		Underline: -1,
 	})
 }
 
@@ -246,10 +284,11 @@ func (m *Menu) AddCheckbutton(label string, checked bool, command func()) {
 // but is displayed with a radio-style indicator when checked.
 func (m *Menu) AddRadiobutton(label string, checked bool, command func()) {
 	m.entries = append(m.entries, MenuEntry{
-		Type:    Radiobutton,
-		Label:   label,
-		Checked: checked,
-		Command: command,
+		Type:      Radiobutton,
+		Label:     label,
+		Checked:   checked,
+		Command:   command,
+		Underline: -1,
 	})
 }
 
@@ -559,6 +598,18 @@ func (m *Menu) Display() {
 			if e.Label != "" {
 				df.DrawString(w.Drawable(), textX, textY, e.Label,
 					fgCol.Pixel, fgCol.Red, fgCol.Green, fgCol.Blue)
+
+				// Underline for keyboard mnemonic.
+				runes := []rune(e.Label)
+				if e.Underline >= 0 && e.Underline < len(runes) {
+					prefix := string(runes[:e.Underline])
+					ch := string(runes[e.Underline])
+					ulX := textX + m.Font.MeasureString(prefix)
+					ulW := m.Font.MeasureString(ch)
+					ulY := textY + 2
+					d.SetForeground(gc, fgCol.Pixel)
+					d.DrawLine(w.Drawable(), gc, ulX, ulY, ulX+ulW, ulY)
+				}
 			}
 
 			// Accelerator text.

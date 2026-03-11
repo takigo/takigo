@@ -343,6 +343,20 @@ func (tw *TearoffWindow) display() {
 			if e.Label != "" {
 				df.DrawString(w.Drawable(), textX, textY, e.Label,
 					fgCol.Pixel, fgCol.Red, fgCol.Green, fgCol.Blue)
+
+				// Underline for keyboard mnemonic.
+				runes := []rune(e.Label)
+				if e.Underline >= 0 && e.Underline < len(runes) {
+					if ms, ok := tw.fontI.(interface{ MeasureString(string) int }); ok {
+						prefix := string(runes[:e.Underline])
+						ch := string(runes[e.Underline])
+						ulX := textX + ms.MeasureString(prefix)
+						ulW := ms.MeasureString(ch)
+						ulY := textY + 2
+						d.SetForeground(gc, fgCol.Pixel)
+						d.DrawLine(w.Drawable(), gc, ulX, ulY, ulX+ulW, ulY)
+					}
+				}
 			}
 			if e.AccelStr != "" {
 				accelW := 0

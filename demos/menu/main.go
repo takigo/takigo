@@ -90,6 +90,7 @@ func main() {
 		menubutton.Text("File"),
 		menubutton.MenuOpt(fileMenu),
 		menubutton.IndicatorOnOpt(false),
+		menubutton.UnderlineOpt(0),
 	)
 	pack.Pack(fileMb, pack.SideOpt(pack.Left))
 
@@ -98,7 +99,8 @@ func main() {
 	basicMenu.AddCommand("Long entry that does nothing", nil)
 	for _, letter := range []string{"A", "B", "C", "D", "E", "F"} {
 		l := letter
-		basicMenu.AddCommandAccel(fmt.Sprintf("Print letter \"%s\"", l), "Meta+"+l, func() {
+		// -underline 14: "Print letter \"X\"" → index 14 is the letter character.
+		basicMenu.AddCommandAccelUL(fmt.Sprintf("Print letter \"%s\"", l), "Meta+"+l, 14, func() {
 			setStatus(fmt.Sprintf("Basic > Print letter \"%s\"", l))
 		})
 	}
@@ -107,16 +109,18 @@ func main() {
 		menubutton.Text("Basic"),
 		menubutton.MenuOpt(basicMenu),
 		menubutton.IndicatorOnOpt(false),
+		menubutton.UnderlineOpt(0),
 	)
 	pack.Pack(basicMb, pack.SideOpt(pack.Left))
 
 	// ── Cascades menu ──
 	cascadeMenu := menu.New(app, "cascademenu")
 
-	cascadeMenu.AddCommandAccel("Print hello", "Meta+H", func() {
+	// -underline 6: "Print hello" → index 6 = 'h'; "Print goodbye" → index 6 = 'g'.
+	cascadeMenu.AddCommandAccelUL("Print hello", "Meta+H", 6, func() {
 		setStatus("Cascades > Print hello")
 	})
-	cascadeMenu.AddCommandAccel("Print goodbye", "Meta+G", func() {
+	cascadeMenu.AddCommandAccelUL("Print goodbye", "Meta+G", 6, func() {
 		setStatus("Cascades > Print goodbye")
 	})
 
@@ -142,7 +146,7 @@ func main() {
 		setStatus(msg)
 	})
 
-	cascadeMenu.AddCascade("Check buttons", checkMenu)
+	cascadeMenu.AddCascadeUL("Check buttons", 0, checkMenu)
 
 	// Radio buttons submenu.
 	radioMenu := menu.New(app, "radiomenu")
@@ -167,12 +171,13 @@ func main() {
 		setStatus(msg)
 	})
 
-	cascadeMenu.AddCascade("Radio buttons", radioMenu)
+	cascadeMenu.AddCascadeUL("Radio buttons", 0, radioMenu)
 
 	cascadeMb := menubutton.New(menuBar, "cascademb",
 		menubutton.Text("Cascades"),
 		menubutton.MenuOpt(cascadeMenu),
 		menubutton.IndicatorOnOpt(false),
+		menubutton.UnderlineOpt(0),
 	)
 	pack.Pack(cascadeMb, pack.SideOpt(pack.Left))
 
@@ -194,6 +199,7 @@ func main() {
 		menubutton.Text("Icons"),
 		menubutton.MenuOpt(iconsMenu),
 		menubutton.IndicatorOnOpt(false),
+		menubutton.UnderlineOpt(0),
 	)
 	pack.Pack(iconsMb, pack.SideOpt(pack.Left))
 
@@ -226,6 +232,7 @@ func main() {
 		menubutton.Text("More"),
 		menubutton.MenuOpt(moreMenu),
 		menubutton.IndicatorOnOpt(false),
+		menubutton.UnderlineOpt(0),
 	)
 	pack.Pack(moreMb, pack.SideOpt(pack.Left))
 
@@ -242,6 +249,7 @@ func main() {
 		menubutton.Text("Colors"),
 		menubutton.MenuOpt(colorsMenu),
 		menubutton.IndicatorOnOpt(false),
+		menubutton.UnderlineOpt(1), // 'o' in Colors, matching Tcl's -underline 1
 	)
 	pack.Pack(colorsMb, pack.SideOpt(pack.Left))
 
