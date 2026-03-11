@@ -166,6 +166,12 @@ type GCManager interface {
 
 	// SetLineAttributes sets line drawing attributes.
 	SetLineAttributes(gc GCID, lineWidth uint, lineStyle, capStyle, joinStyle int)
+
+	// SetFillStyle sets the fill style of a GC (FillSolid, FillStippled, etc.).
+	SetFillStyle(gc GCID, fillStyle int)
+
+	// SetStipple sets the stipple pixmap (depth-1 bitmap) for a GC.
+	SetStipple(gc GCID, stipple PixmapID)
 }
 
 // PixmapManager manages offscreen pixmaps.
@@ -175,6 +181,9 @@ type PixmapManager interface {
 
 	// FreePixmap frees a pixmap.
 	FreePixmap(pixmap PixmapID)
+
+	// CreateBitmapFromData creates a depth-1 pixmap from XBM-format bit data.
+	CreateBitmapFromData(drawable DrawableID, bits []byte, width, height uint) PixmapID
 }
 
 // EventSource provides raw event access.
@@ -306,6 +315,12 @@ type InputMethodManager interface {
 
 	// HasIM returns true if input method was initialized.
 	HasIM() bool
+
+	// SetICFocus notifies the input method that the given window gained focus.
+	SetICFocus(w WindowID)
+
+	// UnsetICFocus notifies the input method that a window lost focus.
+	UnsetICFocus()
 }
 
 // Predefined atom IDs — backends must map these appropriately.

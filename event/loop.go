@@ -58,17 +58,7 @@ func (l *Loop) Run() {
 			return
 
 		case raw := <-l.eventCh:
-			if l.server.FilterEvent(raw) {
-				continue
-			}
-			if l.rawHandler != nil {
-				l.rawHandler(raw)
-			}
-			ev := FromRawEventIM(raw, l.parser, l.hasIM)
-			if ev.Type != 0 {
-				l.dispatcher.Dispatch(&ev)
-			}
-			l.server.Flush()
+			l.handleRaw(raw)
 
 		case fn := <-l.idleCh:
 			l.idleQueue = append(l.idleQueue, fn)
@@ -82,6 +72,29 @@ func (l *Loop) Run() {
 			l.server.Flush()
 		}
 	}
+}
+
+// handleRaw processes one raw event: filters, converts, manages IC focus, and dispatches.
+func (l *Loop) handleRaw(raw *platform.RawEvent) {
+	if l.server.FilterEvent(raw) {
+		return
+	}
+	if l.rawHandler != nil {
+		l.rawHandler(raw)
+	}
+	ev := FromRawEventIM(raw, l.parser, l.hasIM)
+	if ev.Type != 0 {
+		if l.hasIM {
+			switch ev.Type {
+			case FocusInType:
+				l.server.SetICFocus(ev.Window)
+			case FocusOutType:
+				l.server.UnsetICFocus()
+			}
+		}
+		l.dispatcher.Dispatch(&ev)
+	}
+	l.server.Flush()
 }
 
 // SetRawEventHandler installs a handler called for every raw event before
@@ -144,17 +157,7 @@ func (l *Loop) RunNested(done <-chan struct{}) {
 			return
 
 		case raw := <-l.eventCh:
-			if l.server.FilterEvent(raw) {
-				continue
-			}
-			if l.rawHandler != nil {
-				l.rawHandler(raw)
-			}
-			ev := FromRawEventIM(raw, l.parser, l.hasIM)
-			if ev.Type != 0 {
-				l.dispatcher.Dispatch(&ev)
-			}
-			l.server.Flush()
+			l.handleRaw(raw)
 
 		case fn := <-l.idleCh:
 			l.idleQueue = append(l.idleQueue, fn)

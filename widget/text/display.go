@@ -6,6 +6,7 @@ import (
 	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/font"
+	"github.com/msorc/takigo/internal/xlib"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
 )
@@ -56,6 +57,8 @@ type textSegment struct {
 	width      int
 	fg         *color.Color
 	bg         *color.Color
+	bgStipple  platform.PixmapID // depth-1 stipple bitmap for background (0 = none)
+	fgStipple  platform.PixmapID // depth-1 stipple bitmap for foreground (0 = none)
 	font       font.Font
 	underline  bool
 	overstrike bool
@@ -333,6 +336,7 @@ func (t *TextWidget) segmentsForRange(lineIdx, startChar, endChar int) []textSeg
 		// Resolve attributes at this position.
 		fg := t.Foreground
 		var bg *color.Color
+		var bgStipple, fgStipple platform.PixmapID
 		f := t.Font
 		underline := false
 		overstrike := false
@@ -348,6 +352,12 @@ func (t *TextWidget) segmentsForRange(lineIdx, startChar, endChar int) []textSeg
 			}
 			if tag.Background != nil {
 				bg = tag.Background
+			}
+			if tag.BgStipple != "" {
+				bgStipple = t.stipplePixmap(tag.BgStipple)
+			}
+			if tag.FgStipple != "" {
+				fgStipple = t.stipplePixmap(tag.FgStipple)
 			}
 			if tag.Font != nil {
 				f = tag.Font
@@ -377,6 +387,8 @@ func (t *TextWidget) segmentsForRange(lineIdx, startChar, endChar int) []textSeg
 			width:      segWidth,
 			fg:         fg,
 			bg:         bg,
+			bgStipple:  bgStipple,
+			fgStipple:  fgStipple,
 			font:       f,
 			underline:  underline,
 			overstrike: overstrike,
@@ -456,7 +468,21 @@ func (t *TextWidget) renderToPixmap() {
 			// Draw background if set.
 			if seg.bg != nil {
 				d.SetForeground(gc, seg.bg.Pixel)
+				if seg.bgStipple != 0 {
+					d.SetStipple(gc, seg.bgStipple)
+					d.SetFillStyle(gc, xlib.FillStippled)
+					d.FillRectangle(pxDrawable, gc, segX, t.inset+dl.y, uint(seg.width), uint(dl.height))
+					d.SetFillStyle(gc, xlib.FillSolid)
+				} else {
+					d.FillRectangle(pxDrawable, gc, segX, t.inset+dl.y, uint(seg.width), uint(dl.height))
+				}
+			} else if seg.bgStipple != 0 {
+				// Stipple with no explicit background color: use black dots on normal bg.
+				d.SetForeground(gc, 0)
+				d.SetStipple(gc, seg.bgStipple)
+				d.SetFillStyle(gc, xlib.FillStippled)
 				d.FillRectangle(pxDrawable, gc, segX, t.inset+dl.y, uint(seg.width), uint(dl.height))
+				d.SetFillStyle(gc, xlib.FillSolid)
 			}
 
 			// Draw text.
@@ -559,13 +585,36 @@ func (t *TextWidget) drawCursor(d platform.DisplayServer, gc platform.GCID, draw
 		if insertPos.Char < dl.startChar || insertPos.Char > dl.endChar {
 			continue
 		}
-		lineText := t.doc.Lines[dl.logicalLine-1].Text
-		cursorChars := insertPos.Char - dl.startChar
-		var cursorX int
-		if cursorChars > 0 && dl.startChar+cursorChars <= len(lineText) {
-			cursorX = t.Font.MeasureString(string(lineText[dl.startChar : dl.startChar+cursorChars]))
+		// Compute justifyOffset the same way renderToPixmap does.
+		justifyOffset := 0
+		if dl.justify != option.JustifyLeft {
+			lineSegs := t.segmentsForRange(dl.logicalLine, dl.startChar, dl.endChar)
+			totalW := 0
+			for _, seg := range lineSegs {
+				totalW += seg.width
+			}
+			availW := t.Win.Width - 2*t.inset - dl.leftMargin - dl.rightMargin
+			switch dl.justify {
+			case option.JustifyCenter:
+				justifyOffset = (availW - totalW) / 2
+				if justifyOffset < 0 {
+					justifyOffset = 0
+				}
+			case option.JustifyRight:
+				justifyOffset = availW - totalW
+				if justifyOffset < 0 {
+					justifyOffset = 0
+				}
+			}
 		}
-		cursorX += t.inset + dl.leftMargin - t.xOffset
+
+		cursorX := t.inset + dl.leftMargin + justifyOffset - t.xOffset
+		if insertPos.Char > dl.startChar {
+			segs := t.segmentsForRange(dl.logicalLine, dl.startChar, insertPos.Char)
+			for _, seg := range segs {
+				cursorX += seg.width
+			}
+		}
 
 		d.SetForeground(gc, t.insertColor.Pixel)
 		d.FillRectangle(drawable, gc,
@@ -594,39 +643,83 @@ func (t *TextWidget) indexFromPixel(x, y int) Index {
 		dl = &dlines[len(dlines)-1]
 	}
 
-	lineText := t.doc.Lines[dl.logicalLine-1].Text
-	segText := lineText[dl.startChar:dl.endChar]
-	xInContent := x - t.inset - dl.leftMargin + t.xOffset
-
-	if len(segText) == 0 || t.Font == nil {
+	if t.Font == nil {
 		return Index{Line: dl.logicalLine, Char: dl.startChar}
 	}
 
-	lo, hi := 0, len(segText)
-	for lo < hi {
-		mid := (lo + hi) / 2
-		w := t.Font.MeasureString(string(segText[:mid+1]))
-		if w <= xInContent {
-			lo = mid + 1
-		} else {
-			hi = mid
+	segments := t.segmentsForRange(dl.logicalLine, dl.startChar, dl.endChar)
+
+	// Compute justifyOffset the same way renderToPixmap does.
+	justifyOffset := 0
+	if dl.justify != option.JustifyLeft {
+		totalW := 0
+		for _, seg := range segments {
+			totalW += seg.width
+		}
+		availW := t.Win.Width - 2*t.inset - dl.leftMargin - dl.rightMargin
+		switch dl.justify {
+		case option.JustifyCenter:
+			justifyOffset = (availW - totalW) / 2
+			if justifyOffset < 0 {
+				justifyOffset = 0
+			}
+		case option.JustifyRight:
+			justifyOffset = availW - totalW
+			if justifyOffset < 0 {
+				justifyOffset = 0
+			}
 		}
 	}
 
-	charIdx := lo
-	if charIdx < len(segText) {
-		var charStart int
-		if charIdx > 0 {
-			charStart = t.Font.MeasureString(string(segText[:charIdx]))
-		}
-		charEnd := t.Font.MeasureString(string(segText[:charIdx+1]))
-		mid := (charStart + charEnd) / 2
-		if xInContent >= mid {
-			charIdx++
-		}
+	// x position relative to the start of the line's text content.
+	xInContent := x - t.inset - dl.leftMargin - justifyOffset + t.xOffset
+
+	if len(segments) == 0 {
+		return Index{Line: dl.logicalLine, Char: dl.startChar}
 	}
 
-	return Index{Line: dl.logicalLine, Char: dl.startChar + charIdx}
+	// Walk segments, finding the one that contains the click, then binary-search
+	// within that segment using its actual font.
+	runeOffset := 0
+	for si, seg := range segments {
+		segRunes := []rune(seg.text)
+		isLast := si == len(segments)-1
+
+		if xInContent < seg.x+seg.width || isLast {
+			if xInContent <= seg.x {
+				return Index{Line: dl.logicalLine, Char: dl.startChar + runeOffset}
+			}
+			xInSeg := xInContent - seg.x
+			f := seg.font
+			if f == nil {
+				f = t.Font
+			}
+			lo, hi := 0, len(segRunes)
+			for lo < hi {
+				mid := (lo + hi) / 2
+				if f.MeasureString(string(segRunes[:mid+1])) <= xInSeg {
+					lo = mid + 1
+				} else {
+					hi = mid
+				}
+			}
+			charIdx := lo
+			if charIdx < len(segRunes) {
+				var charStart int
+				if charIdx > 0 {
+					charStart = f.MeasureString(string(segRunes[:charIdx]))
+				}
+				charEnd := f.MeasureString(string(segRunes[:charIdx+1]))
+				if xInSeg >= (charStart+charEnd)/2 {
+					charIdx++
+				}
+			}
+			return Index{Line: dl.logicalLine, Char: dl.startChar + runeOffset + charIdx}
+		}
+		runeOffset += len(segRunes)
+	}
+
+	return Index{Line: dl.logicalLine, Char: dl.endChar}
 }
 
 // computeTotalHeight returns the total pixel height of all lines including spacing.

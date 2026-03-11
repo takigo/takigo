@@ -180,6 +180,14 @@ func (s *X11Display) SetLineAttributes(gc platform.GCID, lineWidth uint, lineSty
 	s.dpy.SetLineAttributes(toXGC(gc), lineWidth, lineStyle, capStyle, joinStyle)
 }
 
+func (s *X11Display) SetFillStyle(gc platform.GCID, fillStyle int) {
+	s.dpy.SetFillStyle(toXGC(gc), fillStyle)
+}
+
+func (s *X11Display) SetStipple(gc platform.GCID, stipple platform.PixmapID) {
+	s.dpy.SetStipple(toXGC(gc), xlib.Pixmap(stipple))
+}
+
 // --- PixmapManager ---
 
 func (s *X11Display) CreatePixmap(drawable platform.DrawableID, width, height, depth uint) platform.PixmapID {
@@ -187,6 +195,10 @@ func (s *X11Display) CreatePixmap(drawable platform.DrawableID, width, height, d
 }
 
 func (s *X11Display) FreePixmap(pixmap platform.PixmapID) { s.dpy.FreePixmap(xlib.Pixmap(pixmap)) }
+
+func (s *X11Display) CreateBitmapFromData(drawable platform.DrawableID, bits []byte, width, height uint) platform.PixmapID {
+	return platform.PixmapID(s.dpy.CreateBitmapFromData(xlib.Drawable(drawable), bits, width, height))
+}
 
 // --- EventSource ---
 
@@ -376,6 +388,8 @@ func (s *X11Display) SetIconName(w platform.WindowID, name string) {
 
 func (s *X11Display) InitIM(root platform.WindowID) { s.dpy.InitIM(xlib.Window(root)) }
 func (s *X11Display) HasIM() bool                   { return s.dpy.HasIM() }
+func (s *X11Display) SetICFocus(w platform.WindowID) { s.dpy.SetICFocus(xlib.Window(w)) }
+func (s *X11Display) UnsetICFocus()                 { s.dpy.UnsetICFocus() }
 
 // Verify that X11Display implements platform.DisplayServer at compile time.
 var _ platform.DisplayServer = (*X11Display)(nil)

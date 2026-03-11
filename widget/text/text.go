@@ -76,6 +76,9 @@ type TextWidget struct {
 	pixmapW, pixmapH int
 	displayValid     bool
 	redrawPending    bool
+
+	// Stipple pixmap cache: name → depth-1 Pixmap.
+	stippleCache map[string]platform.PixmapID
 }
 
 // New creates a new TextWidget.

@@ -2,8 +2,10 @@ package xlib
 
 /*
 #include <X11/Xlib.h>
+#include <X11/Xutil.h>
 */
 import "C"
+import "unsafe"
 
 // GCValues holds GC configuration values.
 type GCValues struct {
@@ -50,4 +52,20 @@ func (d *Display) SetBackground(gc GC, pixel uint64) {
 func (d *Display) SetLineAttributes(gc GC, lineWidth uint, lineStyle, capStyle, joinStyle int) {
 	C.XSetLineAttributes(d.ptr, C.GC(gc), C.uint(lineWidth),
 		C.int(lineStyle), C.int(capStyle), C.int(joinStyle))
+}
+
+// SetFillStyle sets the fill style of a GC (FillSolid, FillStippled, etc.).
+func (d *Display) SetFillStyle(gc GC, fillStyle int) {
+	C.XSetFillStyle(d.ptr, C.GC(gc), C.int(fillStyle))
+}
+
+// SetStipple sets the stipple pixmap (depth-1 bitmap) for a GC.
+func (d *Display) SetStipple(gc GC, stipple Pixmap) {
+	C.XSetStipple(d.ptr, C.GC(gc), C.Pixmap(stipple))
+}
+
+// CreateBitmapFromData creates a depth-1 pixmap from XBM-format bit data.
+func (d *Display) CreateBitmapFromData(drawable Drawable, bits []byte, width, height uint) Pixmap {
+	return Pixmap(C.XCreateBitmapFromData(d.ptr, C.Drawable(drawable),
+		(*C.char)(unsafe.Pointer(&bits[0])), C.uint(width), C.uint(height)))
 }

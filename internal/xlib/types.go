@@ -142,6 +142,20 @@ const (
 	GXcopy = C.GXcopy
 )
 
+// Additional GC value mask constants (from X11/X.h; values are 1<<N).
+const (
+	GCFillStyle = 1 << 8  // 256
+	GCStipple   = 1 << 10 // 1024
+)
+
+// Fill style constants (from X11/X.h).
+const (
+	FillSolid          = 0
+	FillTiled          = 1
+	FillStippled       = 2
+	FillOpaqueStippled = 3
+)
+
 // Line style constants (from X11/X.h).
 const (
 	LineSolid      = 0

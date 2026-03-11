@@ -137,6 +137,22 @@ static XIC create_ic(XIM im, Window w) {
         NULL);
 }
 
+// XSetICFocus / XUnsetICFocus wrappers.
+static void set_ic_focus(XIC ic) {
+    if (ic) XSetICFocus(ic);
+}
+static void unset_ic_focus(XIC ic) {
+    if (ic) XUnsetICFocus(ic);
+}
+// set_ic_focus_window updates the XIC's XNFocusWindow and calls XSetICFocus.
+// This tells the IM which actual window has focus (important for Xutf8LookupString
+// to correctly process events from the focused widget window, not the root window).
+static void set_ic_focus_window(XIC ic, Window w) {
+    if (!ic) return;
+    XSetICValues(ic, XNFocusWindow, w, NULL);
+    XSetICFocus(ic);
+}
+
 // XFilterEvent wrapper.
 static int filter_event(XEvent *ev) {
     return XFilterEvent(ev, None);
@@ -172,6 +188,24 @@ func (d *Display) InitIM(root Window) {
 // HasIM returns true if XIM/XIC was successfully initialized.
 func (d *Display) HasIM() bool {
 	return d.xic != nil
+}
+
+// SetICFocus notifies the input method that input focus has moved to the
+// given window. Must be called on FocusIn events.
+// Passing the actual focused widget window (not just the root) allows
+// Xutf8LookupString to correctly process key events from that window.
+func (d *Display) SetICFocus(w Window) {
+	if d.xic != nil {
+		C.set_ic_focus_window(d.xic, C.Window(w))
+	}
+}
+
+// UnsetICFocus notifies the input method that the client window has lost
+// focus. Must be called on FocusOut events.
+func (d *Display) UnsetICFocus() {
+	if d.xic != nil {
+		C.unset_ic_focus(d.xic)
+	}
 }
 
 // FilterEvent returns true if the event was consumed by the input method.

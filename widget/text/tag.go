@@ -42,6 +42,10 @@ type Tag struct {
 	ReliefSet bool
 	// BorderWidth is the border thickness in pixels used with Relief.
 	BorderWidth int
+	// BgStipple is the name of a stipple pattern for the background (e.g. "gray12", "gray50").
+	BgStipple string
+	// FgStipple is the name of a stipple pattern for the foreground (e.g. "gray50").
+	FgStipple string
 }
 
 // TagRange associates a tag name with a half-open index range [Start, End).
@@ -224,5 +228,19 @@ func TagRelief(r option.Relief) TagOption {
 func TagBorderWidth(n int) TagOption {
 	return func(cache *color.Cache, reg *font.Registry, tag *Tag) {
 		tag.BorderWidth = n
+	}
+}
+
+// TagBgStipple sets the background stipple pattern name (e.g. "gray12", "gray50").
+func TagBgStipple(name string) TagOption {
+	return func(cache *color.Cache, reg *font.Registry, tag *Tag) {
+		tag.BgStipple = name
+	}
+}
+
+// TagFgStipple sets the foreground stipple pattern name (e.g. "gray50").
+func TagFgStipple(name string) TagOption {
+	return func(cache *color.Cache, reg *font.Registry, tag *Tag) {
+		tag.FgStipple = name
 	}
 }
