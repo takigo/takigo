@@ -64,7 +64,7 @@ func bindMenu(m *Menu, app widget.AppContext) {
 		if ev.FocusDetail == focusDetailInferior || ev.FocusDetail == focusDetailPointer {
 			return
 		}
-		m.Unpost()
+		m.unpostChain()
 	})
 
 	// Button release → invoke.
@@ -85,8 +85,8 @@ func bindMenu(m *Menu, app widget.AppContext) {
 		} else if idx >= 0 {
 			m.invoke(idx)
 		} else {
-			// Click outside entries — unpost.
-			m.Unpost()
+			// Click outside entries — unpost entire chain.
+			m.unpostChain()
 		}
 	})
 
@@ -96,7 +96,7 @@ func bindMenu(m *Menu, app widget.AppContext) {
 	app.Dispatcher().Bind(w.PlatformID, event.ButtonPressMask, func(ev *event.Event) {
 		if ev.RootX < m.screenX || ev.RootX >= m.screenX+w.Width ||
 			ev.RootY < m.screenY || ev.RootY >= m.screenY+w.Height {
-			m.Unpost()
+			m.unpostChain()
 		}
 	})
 
@@ -123,7 +123,7 @@ func bindMenu(m *Menu, app widget.AppContext) {
 			ev.RootY >= m.screenY && ev.RootY < m.screenY+w.Height {
 			return
 		}
-		m.Unpost()
+		m.unpostChain()
 	})
 
 

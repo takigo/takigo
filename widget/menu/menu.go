@@ -304,6 +304,15 @@ func (m *Menu) Entries() []MenuEntry {
 	return m.entries
 }
 
+// PostFromButton maps the menu at screen coordinates (x, y) and arranges
+// for the BindGlobal handler to ignore the ButtonPress that triggered this
+// call (so the click that opens the menu doesn't also immediately close it).
+// Call this instead of Post() when the caller is in a ButtonPress handler.
+func (m *Menu) PostFromButton(x, y int) {
+	m.skipGlobalButtonPress = true
+	m.Post(x, y)
+}
+
 // Post maps the menu at screen coordinates (x, y).
 func (m *Menu) Post(x, y int) {
 	m.computeGeometry()
@@ -326,9 +335,8 @@ func (m *Menu) Post(x, y int) {
 	// windows are still delivered normally (hover effects, cursor shapes).
 	// Only clicks outside all client windows are redirected to the grab window.
 	// Keyboard events reach the menu via SetInputFocus (no keyboard grab).
-	// We set skipGlobalButtonPress so the BindGlobal handler ignores the very
-	// first ButtonPress (the click that caused Post() to be called).
-	m.skipGlobalButtonPress = true
+	// skipGlobalButtonPress may have been set by PostFromButton() to skip the
+	// ButtonPress event that caused this Post() call; leave it as-is here.
 	const grabMask = uint(platform.ButtonPressMask | platform.ButtonReleaseMask)
 	ret := d.GrabPointer(w.PlatformID, true, grabMask,
 		platform.GrabModeAsync, platform.GrabModeAsync,

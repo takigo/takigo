@@ -157,7 +157,7 @@ func (mb *Menubutton) PostMenu() {
 		x, y = d.TranslateCoordinates(win.PlatformID, win.Display.RootWindow, 0, 0)
 		x -= mb.Menu.Win.ReqWidth
 	}
-	mb.Menu.Post(x, y)
+	mb.Menu.PostFromButton(x, y)
 }
 
 // Display draws the menubutton.
