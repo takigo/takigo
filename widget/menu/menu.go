@@ -59,6 +59,8 @@ type Menu struct {
 	// State.
 	posted  bool
 	grabbed bool
+	screenX int // absolute screen X set by Post()
+	screenY int // absolute screen Y set by Post()
 
 	// TearOff enables a tearoff grip at the top of the menu.
 	TearOff bool
@@ -303,6 +305,8 @@ func (m *Menu) Post(x, y int) {
 	w := m.Win
 	d := w.Display.Server
 
+	m.screenX = x
+	m.screenY = y
 	d.MoveResizeWindow(w.PlatformID, x, y, uint(w.Width), uint(w.Height))
 	d.MapRaised(w.PlatformID)
 	m.posted = true
@@ -695,11 +699,11 @@ func (m *Menu) postCascade(index int) {
 		m.postedCascade.Unpost()
 	}
 
-	// Position submenu to the right of this entry.
+	// Position submenu to the right of this entry, using stored screen coords.
 	w := m.Win
 	entryY := m.entryY(index)
-	subX := w.X + w.Width
-	subY := w.Y + entryY
+	subX := m.screenX + w.Width
+	subY := m.screenY + entryY
 
 	// Transfer grab temporarily.
 	d := w.Display.Server
