@@ -69,6 +69,8 @@ static Time xevent_crossing_time(XEvent *ev) { return ev->xcrossing.time; }
 
 // Focus event accessors.
 static Window xevent_focus_window(XEvent *ev) { return ev->xfocus.window; }
+static int    xevent_focus_mode(XEvent *ev)   { return ev->xfocus.mode; }
+static int    xevent_focus_detail(XEvent *ev) { return ev->xfocus.detail; }
 
 // Destroy event accessor.
 static Window xevent_destroy_window(XEvent *ev) { return ev->xdestroywindow.window; }
@@ -397,12 +399,16 @@ func (e *RawEvent) ParseDestroyEvent() DestroyEvent {
 // FocusEvent holds focus in/out event data.
 type FocusEvent struct {
 	EventWindow Window
+	Mode        int // NotifyNormal=0, NotifyGrab=1, NotifyUngrab=2, NotifyWhileGrabbed=3
+	Detail      int // NotifyAncestor=0, NotifyVirtual=1, NotifyInferior=2, NotifyNonlinear=3, ...
 }
 
 // ParseFocusEvent extracts focus event data.
 func (e *RawEvent) ParseFocusEvent() FocusEvent {
 	return FocusEvent{
 		EventWindow: Window(C.xevent_focus_window(&e.ev)),
+		Mode:        int(C.xevent_focus_mode(&e.ev)),
+		Detail:      int(C.xevent_focus_detail(&e.ev)),
 	}
 }
 

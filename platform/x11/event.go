@@ -143,6 +143,8 @@ func (p *X11EventParser) ParseFocusEvent(ev *platform.RawEvent) platform.FocusEv
 	f := raw.ParseFocusEvent()
 	return platform.FocusEvent{
 		EventWindow: platform.WindowID(f.EventWindow),
+		Mode:        f.Mode,
+		Detail:      f.Detail,
 	}
 }
 

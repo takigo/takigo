@@ -83,7 +83,23 @@ type DestroyEvent struct {
 // FocusEvent holds parsed focus event data.
 type FocusEvent struct {
 	EventWindow WindowID
+	Mode        int // NotifyNormal=0, NotifyGrab=1, NotifyUngrab=2, NotifyWhileGrabbed=3
+	Detail      int // NotifyAncestor=0,NotifyVirtual=1,NotifyInferior=2,NotifyNonlinear=3,...
 }
+
+// Focus mode constants.
+const (
+	FocusModeNormal       = 0
+	FocusModeGrab         = 1
+	FocusModeUngrab       = 2
+	FocusModeWhileGrabbed = 3
+)
+
+// Focus detail constants.
+const (
+	FocusDetailInferior = 2 // focus moved to a child window — not a real app focus-loss
+	FocusDetailPointer  = 5 // pointer-driven focus change (synthetic, can be ignored)
+)
 
 // PropertyEvent holds parsed property event data.
 type PropertyEvent struct {

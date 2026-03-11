@@ -57,11 +57,12 @@ type Menu struct {
 	ActiveFg *color.ColorRef
 
 	// State.
-	posted          bool
-	grabbed         bool
-	motionSincePost bool // true once pointer moves after Post(); gates first ButtonRelease
-	screenX         int  // absolute screen X set by Post()
-	screenY         int  // absolute screen Y set by Post()
+	posted             bool
+	grabbed            bool
+	motionSincePost    bool // true once pointer moves after Post(); gates first ButtonRelease
+	suppressFocusOut   bool // set briefly when we ourselves call SetInputFocus for a cascade
+	screenX            int  // absolute screen X set by Post()
+	screenY            int  // absolute screen Y set by Post()
 
 	// TearOff enables a tearoff grip at the top of the menu.
 	TearOff bool
@@ -107,7 +108,8 @@ func New(parent widget.Caregiver, name string, opts ...MenuOption) *Menu {
 				platform.EnterWindowMask |
 				platform.LeaveWindowMask |
 				platform.ExposureMask |
-				platform.StructureNotifyMask),
+				platform.StructureNotifyMask |
+				platform.FocusChangeMask),
 	}
 
 	xwin := d.Server.CreateWindow(
@@ -707,6 +709,9 @@ func (m *Menu) postCascade(index int) {
 	subY := m.screenY + entryY
 
 	// Transfer pointer grab to submenu.
+	// Suppress the FocusOut that fires on this menu when SetInputFocus moves
+	// focus to the submenu — we don't want to unpost the parent in that case.
+	m.suppressFocusOut = true
 	d := w.Display.Server
 	if m.grabbed {
 		d.UngrabPointer(platform.CurrentTime)

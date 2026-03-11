@@ -32,6 +32,10 @@ type Event struct {
 	MessageType platform.AtomID
 	MessageData [5]int64
 
+	// Focus events
+	FocusMode   int // platform.FocusModeNormal etc.
+	FocusDetail int // platform.FocusDetailInferior etc.
+
 	// Timestamp (when available)
 	Time platform.Timestamp
 }
@@ -116,11 +120,15 @@ func FromRawEventIM(raw *platform.RawEvent, parser platform.EventParser, hasIM b
 		f := parser.ParseFocusEvent(raw)
 		ev.Type = FocusInType
 		ev.Window = f.EventWindow
+		ev.FocusMode = f.Mode
+		ev.FocusDetail = f.Detail
 
 	case platform.FocusOutEvent:
 		f := parser.ParseFocusEvent(raw)
 		ev.Type = FocusOutType
 		ev.Window = f.EventWindow
+		ev.FocusMode = f.Mode
+		ev.FocusDetail = f.Detail
 
 	case platform.ExposeEvent_:
 		e := parser.ParseExposeEvent(raw)

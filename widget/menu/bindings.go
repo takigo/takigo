@@ -9,6 +9,13 @@ import (
 	"github.com/msorc/takigo/widget"
 )
 
+// Focus mode / detail constants (mirrors platform package values for readability).
+const (
+	focusModeNormal   = platform.FocusModeNormal
+	focusDetailInferior = platform.FocusDetailInferior
+	focusDetailPointer  = platform.FocusDetailPointer
+)
+
 func bindMenu(m *Menu, app widget.AppContext) {
 	w := m.Win
 
@@ -37,6 +44,27 @@ func bindMenu(m *Menu, app widget.AppContext) {
 	// Leave → deactivate.
 	app.Dispatcher().Bind(w.PlatformID, event.LeaveMask, func(ev *event.Event) {
 		m.activate(-1)
+	})
+
+	// FocusOut → unpost when focus leaves to another application.
+	// Ignored when: triggered by us posting a cascade submenu (suppressFocusOut),
+	// or when it's a pointer/inferior detail (synthetic / child-window focus).
+	app.Dispatcher().Bind(w.PlatformID, event.FocusChangeMask, func(ev *event.Event) {
+		if ev.Type != event.FocusOutType {
+			return
+		}
+		if m.suppressFocusOut {
+			m.suppressFocusOut = false
+			return
+		}
+		// Ignore grab-induced and synthetic focus changes.
+		if ev.FocusMode != focusModeNormal {
+			return
+		}
+		if ev.FocusDetail == focusDetailInferior || ev.FocusDetail == focusDetailPointer {
+			return
+		}
+		m.Unpost()
 	})
 
 	// Button release → invoke.
