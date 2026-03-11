@@ -57,10 +57,11 @@ type Menu struct {
 	ActiveFg *color.ColorRef
 
 	// State.
-	posted  bool
-	grabbed bool
-	screenX int // absolute screen X set by Post()
-	screenY int // absolute screen Y set by Post()
+	posted          bool
+	grabbed         bool
+	motionSincePost bool // true once pointer moves after Post(); gates first ButtonRelease
+	screenX         int  // absolute screen X set by Post()
+	screenY         int  // absolute screen Y set by Post()
 
 	// TearOff enables a tearoff grip at the top of the menu.
 	TearOff bool
@@ -307,19 +308,20 @@ func (m *Menu) Post(x, y int) {
 
 	m.screenX = x
 	m.screenY = y
+	m.motionSincePost = false
 	d.MoveResizeWindow(w.PlatformID, x, y, uint(w.Width), uint(w.Height))
 	d.MapRaised(w.PlatformID)
 	m.posted = true
 	m.activeIndex = -1
 
-	// Grab pointer and keyboard with owner_events=false so all pointer
-	// events go to the menu window. This ensures clicks outside the menu
-	// (including inside other app windows) are caught and close the menu.
+	// Grab pointer only (not keyboard). This ensures clicks outside the menu
+	// are caught and close the menu, while WM passive key grabs remain active.
+	// Keyboard events reach the menu via SetInputFocus instead of a keyboard grab.
 	d.GrabPointer(w.PlatformID, false,
 		uint(platform.ButtonPressMask|platform.ButtonReleaseMask|platform.PointerMotionMask|platform.EnterWindowMask|platform.LeaveWindowMask),
 		platform.GrabModeAsync, platform.GrabModeAsync,
 		platform.WindowID(0), platform.CursorID(0), platform.CurrentTime)
-	d.GrabKeyboard(w.PlatformID, false, platform.GrabModeAsync, platform.GrabModeAsync, platform.CurrentTime)
+	d.SetInputFocus(w.PlatformID, platform.RevertToParent, platform.CurrentTime)
 	m.grabbed = true
 
 	m.Display()
@@ -342,7 +344,6 @@ func (m *Menu) Unpost() {
 
 	if m.grabbed {
 		d.UngrabPointer(platform.CurrentTime)
-		d.UngrabKeyboard(platform.CurrentTime)
 		m.grabbed = false
 	}
 
@@ -705,11 +706,10 @@ func (m *Menu) postCascade(index int) {
 	subX := m.screenX + w.Width
 	subY := m.screenY + entryY
 
-	// Transfer grab temporarily.
+	// Transfer pointer grab to submenu.
 	d := w.Display.Server
 	if m.grabbed {
 		d.UngrabPointer(platform.CurrentTime)
-		d.UngrabKeyboard(platform.CurrentTime)
 		m.grabbed = false
 	}
 

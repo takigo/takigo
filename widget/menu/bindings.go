@@ -20,8 +20,10 @@ func bindMenu(m *Menu, app widget.AppContext) {
 		m.Display()
 	})
 
-	// Motion → activate entry under pointer.
+	// Motion → activate entry under pointer; also marks that pointer has moved
+	// since the menu was posted (so the first ButtonRelease is not spuriously ignored).
 	app.Dispatcher().Bind(w.PlatformID, event.MotionMask, func(ev *event.Event) {
+		m.motionSincePost = true
 		idx := m.entryAtY(ev.Y)
 		m.activate(idx)
 	})
@@ -38,8 +40,14 @@ func bindMenu(m *Menu, app widget.AppContext) {
 	})
 
 	// Button release → invoke.
+	// Ignore the very first release after posting (the button-up from the
+	// click that opened the menu) unless the pointer has moved since then.
 	app.Dispatcher().Bind(w.PlatformID, event.ButtonReleaseMask, func(ev *event.Event) {
 		if ev.Button != 1 {
+			return
+		}
+		if !m.motionSincePost {
+			// First release with no motion: stay open (click-to-open mode).
 			return
 		}
 		idx := m.entryAtY(ev.Y)
