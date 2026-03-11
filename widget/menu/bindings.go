@@ -91,12 +91,39 @@ func bindMenu(m *Menu, app widget.AppContext) {
 	})
 
 	// Button press outside menu → unpost.
-	// Use absolute RootX/RootY so the check works regardless of grab owner_events mode.
+	// With owner_events=true, clicks outside all client windows are still routed
+	// here (grab window). Use RootX/RootY to confirm the click is truly outside.
 	app.Dispatcher().Bind(w.PlatformID, event.ButtonPressMask, func(ev *event.Event) {
 		if ev.RootX < m.screenX || ev.RootX >= m.screenX+w.Width ||
 			ev.RootY < m.screenY || ev.RootY >= m.screenY+w.Height {
 			m.Unpost()
 		}
+	})
+
+	// BindGlobal: close menu when user clicks any other widget inside our app.
+	// With owner_events=true, clicks on our own widgets are delivered normally,
+	// so the per-window handler above never fires for them.  BindGlobal fills
+	// this gap.  We skip the very first ButtonPress (the click that opened the
+	// menu) via skipGlobalButtonPress, and ignore clicks on the menu itself or
+	// on an active cascade submenu.
+	app.Dispatcher().BindGlobal(event.ButtonPressMask, func(ev *event.Event) {
+		if !m.posted {
+			return
+		}
+		if m.skipGlobalButtonPress {
+			m.skipGlobalButtonPress = false
+			return
+		}
+		// If a cascade is posted, let it handle its own closure.
+		if m.postedCascade != nil && m.postedCascade.IsPosted() {
+			return
+		}
+		// Don't unpost if the click is within our own menu window.
+		if ev.RootX >= m.screenX && ev.RootX < m.screenX+w.Width &&
+			ev.RootY >= m.screenY && ev.RootY < m.screenY+w.Height {
+			return
+		}
+		m.Unpost()
 	})
 
 

@@ -45,6 +45,7 @@ type Menu struct {
 	entries       []MenuEntry
 	activeIndex   int // -1 = none; -2 = tearoff region
 	postedCascade *Menu
+	parent        *Menu // non-nil when this menu is posted as a cascade of parent
 
 	// Layout.
 	entryHeight   int
@@ -57,12 +58,13 @@ type Menu struct {
 	ActiveFg *color.ColorRef
 
 	// State.
-	posted             bool
-	grabbed            bool
-	motionSincePost    bool // true once pointer moves after Post(); gates first ButtonRelease
-	suppressFocusOut   bool // set briefly when we ourselves call SetInputFocus for a cascade
-	screenX            int  // absolute screen X set by Post()
-	screenY            int  // absolute screen Y set by Post()
+	posted                bool
+	grabbed               bool
+	motionSincePost       bool // true once pointer moves after Post(); gates first ButtonRelease
+	suppressFocusOut      bool // set briefly when we ourselves call SetInputFocus for a cascade
+	skipGlobalButtonPress bool // skip the first BindGlobal ButtonPress (the click that opened us)
+	screenX               int  // absolute screen X set by Post()
+	screenY               int  // absolute screen Y set by Post()
 
 	// TearOff enables a tearoff grip at the top of the menu.
 	TearOff bool
@@ -320,18 +322,21 @@ func (m *Menu) Post(x, y int) {
 	// XGrabPointer requires the grab window to be viewable.
 	d.Sync(false)
 
-	// Grab pointer only (not keyboard). This ensures clicks outside the menu
-	// are caught and close the menu, while WM passive key grabs remain active.
-	// Keyboard events reach the menu via SetInputFocus instead of a keyboard grab.
-	const grabMask = uint(platform.ButtonPressMask | platform.ButtonReleaseMask |
-		platform.PointerMotionMask | platform.EnterWindowMask | platform.LeaveWindowMask)
-	ret := d.GrabPointer(w.PlatformID, false, grabMask,
+	// Grab pointer with owner_events=true so that events over our own client
+	// windows are still delivered normally (hover effects, cursor shapes).
+	// Only clicks outside all client windows are redirected to the grab window.
+	// Keyboard events reach the menu via SetInputFocus (no keyboard grab).
+	// We set skipGlobalButtonPress so the BindGlobal handler ignores the very
+	// first ButtonPress (the click that caused Post() to be called).
+	m.skipGlobalButtonPress = true
+	const grabMask = uint(platform.ButtonPressMask | platform.ButtonReleaseMask)
+	ret := d.GrabPointer(w.PlatformID, true, grabMask,
 		platform.GrabModeAsync, platform.GrabModeAsync,
 		platform.WindowID(0), platform.CursorID(0), platform.CurrentTime)
 	if ret != platform.GrabSuccess {
 		// Grab failed (another client holds the grab); retry once after a flush.
 		d.Sync(false)
-		ret = d.GrabPointer(w.PlatformID, false, grabMask,
+		ret = d.GrabPointer(w.PlatformID, true, grabMask,
 			platform.GrabModeAsync, platform.GrabModeAsync,
 			platform.WindowID(0), platform.CursorID(0), platform.CurrentTime)
 	}
@@ -364,6 +369,7 @@ func (m *Menu) Unpost() {
 	d.UnmapWindow(w.PlatformID)
 	m.posted = false
 	m.activeIndex = -1
+	m.parent = nil
 }
 
 // IsPosted returns whether the menu is currently posted.
@@ -662,6 +668,15 @@ func (m *Menu) activate(index int) {
 	m.Display()
 }
 
+// unpostChain unposts this menu and all ancestor menus in the cascade chain.
+func (m *Menu) unpostChain() {
+	root := m
+	for root.parent != nil {
+		root = root.parent
+	}
+	root.Unpost()
+}
+
 // invoke invokes the active entry.
 func (m *Menu) invoke(index int) {
 	if index < 0 || index >= len(m.entries) {
@@ -674,13 +689,13 @@ func (m *Menu) invoke(index int) {
 
 	switch e.Type {
 	case Command:
-		m.Unpost()
+		m.unpostChain()
 		if e.Command != nil {
 			e.Command()
 		}
 	case Checkbutton:
 		e.Checked = !e.Checked
-		m.Unpost()
+		m.unpostChain()
 		if e.Command != nil {
 			e.Command()
 		}
@@ -692,7 +707,7 @@ func (m *Menu) invoke(index int) {
 			}
 		}
 		e.Checked = true
-		m.Unpost()
+		m.unpostChain()
 		if e.Command != nil {
 			e.Command()
 		}
@@ -730,6 +745,7 @@ func (m *Menu) postCascade(index int) {
 		m.grabbed = false
 	}
 
+	e.SubMenu.parent = m
 	e.SubMenu.Post(subX, subY)
 	m.postedCascade = e.SubMenu
 }
