@@ -30,11 +30,12 @@ const (
 type Menubutton struct {
 	widget.Base
 
-	Text      string
-	Menu      *menu.Menu
-	Direction Direction
-	Anchor    option.Anchor
-	Underline int // index of underlined character for Alt+letter, -1=none
+	Text        string
+	Menu        *menu.Menu
+	Direction   Direction
+	Anchor      option.Anchor
+	Underline   int  // index of underlined character for Alt+letter, -1=none
+	IndicatorOn bool // whether to draw the dropdown arrow indicator
 
 	// Active colors.
 	ActiveBg *color.ColorRef
@@ -55,7 +56,8 @@ func MenuOpt(m *menu.Menu) MenubuttonOption     { return func(mb *Menubutton) { 
 func DirectionOpt(d Direction) MenubuttonOption { return func(mb *Menubutton) { mb.Direction = d } }
 func PadX(p int) MenubuttonOption               { return func(mb *Menubutton) { mb.PadX = p } }
 func PadY(p int) MenubuttonOption               { return func(mb *Menubutton) { mb.PadY = p } }
-func UnderlineOpt(i int) MenubuttonOption       { return func(mb *Menubutton) { mb.Underline = i } }
+func UnderlineOpt(i int) MenubuttonOption        { return func(mb *Menubutton) { mb.Underline = i } }
+func IndicatorOnOpt(on bool) MenubuttonOption   { return func(mb *Menubutton) { mb.IndicatorOn = on } }
 
 func Background(name string) MenubuttonOption {
 	return func(mb *Menubutton) {
@@ -83,9 +85,10 @@ func New(parent widget.Caregiver, name string, opts ...MenubuttonOption) *Menubu
 	window.MakeWindowExist(w)
 
 	mb := &Menubutton{
-		Direction: Below,
-		Anchor:    option.AnchorCenter,
-		Underline: -1,
+		Direction:   Below,
+		Anchor:      option.AnchorCenter,
+		Underline:   -1,
+		IndicatorOn: true,
 	}
 	widget.InitBase(&mb.Base, w, app)
 	mb.BorderWidth = widget.DefBorderWidth
@@ -119,8 +122,10 @@ func (mb *Menubutton) computeGeometry() {
 	if mb.Font == nil {
 		return
 	}
-	// Add space for indicator triangle.
-	mb.textWidth = mb.Font.MeasureString(mb.Text) + 12
+	mb.textWidth = mb.Font.MeasureString(mb.Text)
+	if mb.IndicatorOn {
+		mb.textWidth += 12 // space for dropdown arrow
+	}
 	m := mb.Font.Metrics()
 	mb.textHeight = m.Linespace()
 
@@ -221,10 +226,12 @@ func (mb *Menubutton) Display() {
 			}
 
 			// Draw dropdown indicator triangle.
-			triX := w.Width - inset - mb.PadX - 10
-			triY := textY - m.Ascent/2
-			df.DrawString(w.Drawable(), triX, triY+m.Ascent, "\u25bc",
-				fgCol.Pixel, fgCol.Red, fgCol.Green, fgCol.Blue)
+			if mb.IndicatorOn {
+				triX := w.Width - inset - mb.PadX - 10
+				triY := textY - m.Ascent/2
+				df.DrawString(w.Drawable(), triX, triY+m.Ascent, "\u25bc",
+					fgCol.Pixel, fgCol.Red, fgCol.Green, fgCol.Blue)
+			}
 		}
 	}
 

@@ -33,6 +33,8 @@ type MenuEntry struct {
 	AccelStr string             // accelerator text for display
 	Image    widget.WidgetImage // optional image
 	Compound widget.Compound    // how to combine image and text
+	Fg       *color.ColorRef   // per-entry foreground (nil = use menu default)
+	Bg       *color.ColorRef   // per-entry background (nil = use menu default)
 }
 
 // Menu is a popup menu with a list of entries.
@@ -207,6 +209,27 @@ func (m *Menu) AddCommandImage(label string, img widget.WidgetImage, compound wi
 		Compound: compound,
 		Command:  command,
 	})
+}
+
+// AddCommandBg adds a command entry with per-entry foreground and background colors.
+// Pass empty string for fg/bg to use menu defaults.
+func (m *Menu) AddCommandBg(label, fg, bg string, command func()) {
+	e := MenuEntry{
+		Type:    Command,
+		Label:   label,
+		Command: command,
+	}
+	if fg != "" {
+		if col, err := m.App.ColorCache().Get(fg); err == nil {
+			e.Fg = col.Ref()
+		}
+	}
+	if bg != "" {
+		if col, err := m.App.ColorCache().Get(bg); err == nil {
+			e.Bg = col.Ref()
+		}
+	}
+	m.entries = append(m.entries, e)
 }
 
 // AddCheckbutton adds a checkbutton entry.
@@ -470,9 +493,13 @@ func (m *Menu) Display() {
 
 		isActive := i == m.activeIndex && e.State != widget.StateDisabled
 
-		// Active highlight.
+		// Per-entry or active background fill.
 		if isActive && m.ActiveBg != nil {
 			d.SetForeground(gc, m.ActiveBg.Pixel)
+			d.FillRectangle(w.Drawable(), gc, m.BorderWidth, yPos,
+				uint(w.Width-2*m.BorderWidth), uint(m.entryHeight))
+		} else if !isActive && e.Bg != nil {
+			d.SetForeground(gc, e.Bg.Pixel)
 			d.FillRectangle(w.Drawable(), gc, m.BorderWidth, yPos,
 				uint(w.Width-2*m.BorderWidth), uint(m.entryHeight))
 		}
@@ -496,7 +523,9 @@ func (m *Menu) Display() {
 				textX += imgW + 4
 			}
 			bgPx := uint64(0xD9D9D9)
-			if m.Background != nil {
+			if e.Bg != nil {
+				bgPx = e.Bg.Pixel
+			} else if m.Background != nil {
 				bgPx = m.Background.Pixel
 			}
 			e.Image.Draw(d, w.Drawable(), w.GC, w.Depth,
@@ -510,6 +539,8 @@ func (m *Menu) Display() {
 			}
 		} else if isActive && m.ActiveFg != nil {
 			fgCol = m.ActiveFg
+		} else if e.Fg != nil {
+			fgCol = e.Fg
 		} else if m.Foreground != nil {
 			fgCol = m.Foreground.Ref()
 		}

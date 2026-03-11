@@ -39,6 +39,29 @@ func main() {
 	f := frame.New(app, "f")
 	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
+	// Status bar at the very bottom (packed first so it stays below btns).
+	statusBar := frame.New(f, "statusBar")
+	statusLabel := label.New(statusBar, "label",
+		label.Text("    "),
+		label.Anchor(option.AnchorW),
+		label.Relief(option.ReliefSunken),
+		label.BorderWidth(1),
+		label.FontOpt("Helvetica 10"),
+		label.PadX(2),
+	)
+	pack.Pack(statusLabel, pack.SideOpt(pack.Left), pack.Expand(true), pack.FillOpt(pack.FillBoth), pack.PadX(2))
+	pack.Pack(statusBar, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX), pack.PadY(2))
+
+	btns := demohelper.AddSeeDismiss(f)
+	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
+
+	// Menu bar frame — packed top first so it appears above the message.
+	menuBar := frame.New(f, "menubar",
+		frame.Relief(option.ReliefRaised),
+		frame.BorderWidth(1),
+	)
+	pack.Pack(menuBar, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
+
 	msg := label.New(f, "msg",
 		label.WrapLength("4i"),
 		label.JustifyOpt(option.JustifyLeft),
@@ -46,33 +69,10 @@ func main() {
 	)
 	pack.Pack(msg, pack.SideOpt(pack.Top))
 
-	btns := demohelper.AddSeeDismiss(f)
-	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
-
-	// Status bar at the bottom.
-	statusBar := frame.New(f, "statusBar")
-	statusLabel := label.New(statusBar, "label",
-		label.Text("    "),
-		label.Anchor(option.AnchorW),
-		label.Relief(option.ReliefSunken),
-		label.BorderWidth(1),
-		label.Background("#e8e8e8"),
-		label.PadX(5), label.PadY(2),
-	)
-	pack.Pack(statusLabel, pack.SideOpt(pack.Left), pack.Expand(true), pack.FillOpt(pack.FillBoth), pack.PadX(2))
-	pack.Pack(statusBar, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX), pack.PadY(2))
-
 	setStatus := func(s string) {
 		statusLabel.Text = s
 		statusLabel.Display()
 	}
-
-	// Menu bar frame.
-	menuBar := frame.New(f, "menubar",
-		frame.Relief(option.ReliefRaised),
-		frame.BorderWidth(1),
-	)
-	pack.Pack(menuBar, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
 
 	// ── File menu ──
 	fileMenu := menu.New(app, "filemenu")
@@ -89,6 +89,7 @@ func main() {
 	fileMb := menubutton.New(menuBar, "filemb",
 		menubutton.Text("File"),
 		menubutton.MenuOpt(fileMenu),
+		menubutton.IndicatorOnOpt(false),
 	)
 	pack.Pack(fileMb, pack.SideOpt(pack.Left))
 
@@ -105,6 +106,7 @@ func main() {
 	basicMb := menubutton.New(menuBar, "basicmb",
 		menubutton.Text("Basic"),
 		menubutton.MenuOpt(basicMenu),
+		menubutton.IndicatorOnOpt(false),
 	)
 	pack.Pack(basicMb, pack.SideOpt(pack.Left))
 
@@ -170,8 +172,30 @@ func main() {
 	cascadeMb := menubutton.New(menuBar, "cascademb",
 		menubutton.Text("Cascades"),
 		menubutton.MenuOpt(cascadeMenu),
+		menubutton.IndicatorOnOpt(false),
 	)
 	pack.Pack(cascadeMb, pack.SideOpt(pack.Left))
+
+	// ── Icons menu ── (matches Tcl's menu.tcl order: before More)
+	iconsMenu := menu.New(app, "iconsmenu")
+
+	// Try to load earthmenu.png for image-only entry.
+	earthImg, earthErr := tkimage.NewPhotoFromFile("earthmenu", filepath.Join(demoImagesDir(), "earthmenu.png"))
+	if earthErr == nil {
+		app.ImageRegistry().Register(earthImg)
+		iconsMenu.AddCommandImage("", earthImg, widget.CompoundNone, func() {
+			setStatus("Icons > Earth image (image-only entry)")
+		})
+	} else {
+		iconsMenu.AddCommand("(earthmenu.png not found)", nil)
+	}
+
+	iconsMb := menubutton.New(menuBar, "iconsmb",
+		menubutton.Text("Icons"),
+		menubutton.MenuOpt(iconsMenu),
+		menubutton.IndicatorOnOpt(false),
+	)
+	pack.Pack(iconsMb, pack.SideOpt(pack.Left))
 
 	// ── More menu ──
 	moreMenu := menu.New(app, "moremenu")
@@ -188,45 +212,28 @@ func main() {
 			setStatus(fmt.Sprintf("More > %s", lbl))
 		})
 	}
+	moreMenu.AddCommand("\U0001f60d Make friends", func() {
+		setStatus("More > Make friends")
+	})
+	// Compound entry: image + text (matching Tcl's entryconfigure -image lilearth -compound left).
+	if earthErr == nil {
+		moreMenu.AddCommandImage("Does almost nothing also (image)", earthImg, widget.CompoundLeft, func() {
+			setStatus("More > Does almost nothing also (image)")
+		})
+	}
 
 	moreMb := menubutton.New(menuBar, "moremb",
 		menubutton.Text("More"),
 		menubutton.MenuOpt(moreMenu),
+		menubutton.IndicatorOnOpt(false),
 	)
 	pack.Pack(moreMb, pack.SideOpt(pack.Left))
 
-	// ── Icons menu ── (demonstrates image menu items, matching Tk's menu.tcl)
-	iconsMenu := menu.New(app, "iconsmenu")
-
-	// Try to load earthmenu.png for image-only entry.
-	earthImg, earthErr := tkimage.NewPhotoFromFile("earthmenu", filepath.Join(demoImagesDir(), "earthmenu.png"))
-	if earthErr == nil {
-		app.ImageRegistry().Register(earthImg)
-		iconsMenu.AddCommandImage("", earthImg, widget.CompoundNone, func() {
-			setStatus("Icons > Earth image (image-only entry)")
-		})
-	}
-	// Image + text (compound left).
-	if earthErr == nil {
-		iconsMenu.AddCommandImage("Image with text", earthImg, widget.CompoundLeft, func() {
-			setStatus("Icons > Image with text")
-		})
-	} else {
-		iconsMenu.AddCommand("(earthmenu.png not found)", nil)
-	}
-	iconsMenu.AddCommand("Plain text entry", func() { setStatus("Icons > Plain text") })
-
-	iconsMb := menubutton.New(menuBar, "iconsmb",
-		menubutton.Text("Icons"),
-		menubutton.MenuOpt(iconsMenu),
-	)
-	pack.Pack(iconsMb, pack.SideOpt(pack.Left))
-
-	// ── Colors menu ──
+	// ── Colors menu ── (tearoff enabled; per-entry colored backgrounds)
 	colorsMenu := menu.New(app, "colorsmenu", menu.TearOffOpt(true))
-	for _, color := range []string{"red", "orange", "yellow", "green", "blue"} {
-		c := color
-		colorsMenu.AddCommand(c, func() {
+	for _, clr := range []string{"red", "orange", "yellow", "green", "blue"} {
+		c := clr
+		colorsMenu.AddCommandBg(c, "black", c, func() {
 			setStatus(fmt.Sprintf("Colors > %s", c))
 		})
 	}
@@ -234,6 +241,7 @@ func main() {
 	colorsMb := menubutton.New(menuBar, "colorsmb",
 		menubutton.Text("Colors"),
 		menubutton.MenuOpt(colorsMenu),
+		menubutton.IndicatorOnOpt(false),
 	)
 	pack.Pack(colorsMb, pack.SideOpt(pack.Left))
 
@@ -241,8 +249,8 @@ func main() {
 	_ = fileMb
 	_ = basicMb
 	_ = cascadeMb
-	_ = moreMb
 	_ = iconsMb
+	_ = moreMb
 	_ = colorsMb
 	app.Run()
 }
