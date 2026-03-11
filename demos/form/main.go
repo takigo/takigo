@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/msorc/takigo"
+	"github.com/msorc/takigo/bind"
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
@@ -49,11 +50,7 @@ func main() {
 		e := entry.New(row, "entry",
 			entry.Width(40),
 		)
-		l := label.New(row, "label")
-		if labelText != "" {
-			l.Text = labelText
-			l.Display()
-		}
+		l := label.New(row, "label", label.Text(labelText))
 		pack.Pack(e, pack.SideOpt(pack.Right))
 		pack.Pack(l, pack.SideOpt(pack.Left))
 		pack.Pack(row, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
@@ -62,6 +59,13 @@ func main() {
 			firstEntry = e
 		}
 	}
+
+	// Bind Return to dismiss the window (matching Tcl: bind $w <Return> "destroy $w").
+	eng := app.BindEng()
+	eng.Bind(app.Window().PathName, "<Return>", func(_ *bind.EventData) bool {
+		app.Quit()
+		return true
+	})
 
 	// Set focus to first entry.
 	if firstEntry != nil {
