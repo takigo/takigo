@@ -119,10 +119,32 @@ func (l *LineItem) Display(d platform.DisplayServer, drawable platform.DrawableI
 	}
 	d.SetLineAttributes(gc, uint(l.width), lineStyle, l.capStyle, l.joinStyle)
 
-	// Get display coords.
-	displayCoords := l.coords
+	// Get display coords (copy so we can shorten endpoints for arrowheads).
+	displayCoords := append([]float64{}, l.coords...)
 	if l.smooth && len(l.coords) >= 6 {
 		displayCoords = generateBezierSpline(l.coords, false, l.splineSteps)
+	}
+
+	// Shorten line endpoints to the arrowhead notch position (arrowShapeA),
+	// so the thick shaft doesn't poke through the filled arrowhead polygon.
+	if (l.arrow == ArrowFirst || l.arrow == ArrowBoth) && len(displayCoords) >= 4 {
+		dx0 := displayCoords[2] - displayCoords[0]
+		dy0 := displayCoords[3] - displayCoords[1]
+		seg := math.Sqrt(dx0*dx0 + dy0*dy0)
+		if seg > 0.001 {
+			displayCoords[0] += (dx0 / seg) * l.arrowShapeA
+			displayCoords[1] += (dy0 / seg) * l.arrowShapeA
+		}
+	}
+	if (l.arrow == ArrowLast || l.arrow == ArrowBoth) && len(displayCoords) >= 4 {
+		n := len(displayCoords)
+		dx0 := displayCoords[n-2] - displayCoords[n-4]
+		dy0 := displayCoords[n-1] - displayCoords[n-3]
+		seg := math.Sqrt(dx0*dx0 + dy0*dy0)
+		if seg > 0.001 {
+			displayCoords[n-2] -= (dx0 / seg) * l.arrowShapeA
+			displayCoords[n-1] -= (dy0 / seg) * l.arrowShapeA
+		}
 	}
 
 	points := make([]platform.Point, len(displayCoords)/2)
@@ -181,17 +203,21 @@ func (l *LineItem) drawArrow(d platform.DisplayServer, drawable platform.Drawabl
 	px := -uy
 	py := ux
 
-	a := l.arrowShapeA
-	c := l.arrowShapeC
+	a := l.arrowShapeA // notch distance (closer to tip)
+	b := l.arrowShapeB // wing distance (further from tip)
+	c := l.arrowShapeC // halfwidth
 
-	// Arrow polygon: tip, left, right (3 points).
+	// Tk-style 4-point arrowhead: tip → left_wing → notch → right_wing.
+	// Wings are at distance b from tip; notch is at distance a (a < b gives
+	// the classic concave-back arrowhead shape).
 	arrowPoints := []platform.Point{
 		{X: int16(tipX) - int16(originX), Y: int16(tipY) - int16(originY)},
-		{X: int16(tipX-ux*a+px*c) - int16(originX), Y: int16(tipY-uy*a+py*c) - int16(originY)},
-		{X: int16(tipX-ux*a-px*c) - int16(originX), Y: int16(tipY-uy*a-py*c) - int16(originY)},
+		{X: int16(tipX-ux*b+px*c) - int16(originX), Y: int16(tipY-uy*b+py*c) - int16(originY)},
+		{X: int16(tipX-ux*a) - int16(originX), Y: int16(tipY-uy*a) - int16(originY)},
+		{X: int16(tipX-ux*b-px*c) - int16(originX), Y: int16(tipY-uy*b-py*c) - int16(originY)},
 	}
 
-	d.FillPolygon(drawable, gc, arrowPoints, platform.PolygonConvex, platform.CoordModeOrigin)
+	d.FillPolygon(drawable, gc, arrowPoints, platform.PolygonNonconvex, platform.CoordModeOrigin)
 }
 
 func (l *LineItem) PointDistance(x, y float64) float64 {

@@ -33,7 +33,7 @@ func main() {
 	msg := label.New(f, "msg",
 		label.WrapLength("5i"),
 		label.JustifyOpt(option.JustifyLeft),
-		label.Text("This widget allows you to experiment with different widths and arrowhead shapes for lines in canvases. To change the line width or the shape of the arrowhead, drag any of the three boxes attached to the oversized arrow. The arrows on the right give examples at normal scale. The text at the bottom shows the configuration options as you'd enter them for a canvas line item."),
+		label.Text("This widget allows you to experiment with different widths and arrowhead shapes for lines in canvases.  To change the line width or the shape of the arrowhead, drag any of the three boxes attached to the oversized arrow.  The arrows on the right give examples at normal scale.  The text at the bottom shows the configuration options as you'd enter them for a canvas line item."),
 	)
 	pack.Pack(msg, pack.SideOpt(pack.Top))
 
@@ -41,22 +41,23 @@ func main() {
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	c := canvas.New(f, "c",
-		canvas.Width(500),
-		canvas.Height(350),
+		canvas.Width(750),
+		canvas.Height(525),
 		canvas.ReliefOpt(option.ReliefSunken),
 		canvas.BorderWidthOpt(2),
 	)
 	pack.Pack(c, pack.Expand(true), pack.FillOpt(pack.FillBoth))
 
 	// Arrow parameters (mutable state shared by closures).
-	a := 8.0    // arrowhead length along shaft
-	b := 10.0   // arrowhead total back distance
-	cc := 3.0   // arrowhead halfwidth (c reserved keyword)
-	w := 2.0    // line width
-	x1 := 40.0  // arrow start
-	x2 := 350.0 // arrow end (tip)
-	y := 150.0  // arrow center Y
-	bs := 5.0   // control box half-size
+	// Values are prescaled at 150% (matching Tk's scl() at scalingPct=150).
+	a := 12.0   // arrowhead length along shaft (scl(8))
+	b := 15.0   // arrowhead total back distance (scl(10))
+	cc := 5.0   // arrowhead halfwidth (scl(3))
+	w := 3.0    // line width (scl(2))
+	x1 := 60.0  // arrow start (scl(40))
+	x2 := 525.0 // arrow end (tip) (scl(350))
+	y := 225.0  // arrow center Y (scl(150))
+	bs := 8.0   // control box half-size (scl(5))
 
 	activeDragger := 0 // 0=none, 1=box1, 2=box2, 3=box3
 
@@ -95,69 +96,70 @@ func main() {
 			canvas.Tags("box", "box3"))
 
 		// Separator line.
-		c.CreateLine([]float64{x2 + 50, 0, x2 + 50, 350},
+		c.CreateLine([]float64{x2 + 75, 0, x2 + 75, 2000},
 			canvas.OutlineColor("black"), canvas.OutlineWidth(1))
 
 		// Three small example arrows on the right.
-		tmp := x2 + 100
-		c.CreateLine([]float64{tmp, y - 125, tmp, y - 75},
+		tmp := x2 + 150
+		c.CreateLine([]float64{tmp, y - 188, tmp, y - 113},
 			canvas.OutlineWidth(int(w)),
 			canvas.Arrow(canvas.ArrowBoth),
 			canvas.ArrowShape(a, b, cc))
-		c.CreateLine([]float64{tmp - 25, y, tmp + 25, y},
+		c.CreateLine([]float64{tmp - 38, y, tmp + 38, y},
 			canvas.OutlineWidth(int(w)),
 			canvas.Arrow(canvas.ArrowBoth),
 			canvas.ArrowShape(a, b, cc))
-		c.CreateLine([]float64{tmp - 25, y + 75, tmp + 25, y + 125},
+		c.CreateLine([]float64{tmp - 38, y + 113, tmp + 38, y + 188},
 			canvas.OutlineWidth(int(w)),
 			canvas.Arrow(canvas.ArrowBoth),
 			canvas.ArrowShape(a, b, cc))
 
 		// Dimension annotation arrows (small arrows showing measured values).
-		sa, sb, sc := 3.75, 3.75, 1.5
+		// smallTips: 3.75p × 1.5 scale ≈ 6px, 6px, 2px
+		sa, sb, sc := 6.0, 6.0, 2.0
 
 		// c (halfwidth) annotation.
-		tx := x2 + 10
+		tx := x2 + 15
 		c.CreateLine([]float64{tx, y - 5*w, tx, y - deltaY},
 			canvas.Arrow(canvas.ArrowBoth),
 			canvas.ArrowShape(sa, sb, sc))
-		c.CreateText(x2+15, y-deltaY+5*cc,
+		c.CreateText(x2+23, y-deltaY+5*cc,
 			canvas.TextOpt(fmt.Sprintf("%.0f", cc)),
 			canvas.AnchorOpt(option.AnchorW))
 
 		// width annotation.
-		tx = x1 - 10
+		tx = x1 - 15
 		c.CreateLine([]float64{tx, y - 5*w, tx, y + 5*w},
 			canvas.Arrow(canvas.ArrowBoth),
 			canvas.ArrowShape(sa, sb, sc))
-		c.CreateText(x1-15, y,
+		c.CreateText(x1-23, y,
 			canvas.TextOpt(fmt.Sprintf("%.0f", w)),
 			canvas.AnchorOpt(option.AnchorE))
 
 		// a (vertex distance) annotation.
-		ty := y + 5*w + 10*cc + 10
+		ty := y + 5*w + 10*cc + 15
 		c.CreateLine([]float64{x2 - 10*a, ty, x2, ty},
 			canvas.Arrow(canvas.ArrowBoth),
 			canvas.ArrowShape(sa, sb, sc))
-		c.CreateText(x2-5*a, ty+5,
+		c.CreateText(x2-5*a, ty+8,
 			canvas.TextOpt(fmt.Sprintf("%.0f", a)),
 			canvas.AnchorOpt(option.AnchorN))
 
 		// b (total back distance) annotation.
-		ty += 25
+		ty += 38
 		c.CreateLine([]float64{x2 - 10*b, ty, x2, ty},
 			canvas.Arrow(canvas.ArrowBoth),
 			canvas.ArrowShape(sa, sb, sc))
-		c.CreateText(x2-5*b, ty+5,
+		c.CreateText(x2-5*b, ty+8,
 			canvas.TextOpt(fmt.Sprintf("%.0f", b)),
 			canvas.AnchorOpt(option.AnchorN))
 
-		// Parameter text at bottom.
-		c.CreateText(x1, 310,
+		// Parameter text at bottom (232.5p and 247.5p at 144 DPI = 465px, 495px).
+		c.CreateText(x1, 465,
 			canvas.TextOpt(fmt.Sprintf("-width  %.0f", w)),
 			canvas.AnchorOpt(option.AnchorW),
 			canvas.FontOpt("Helvetica 18"))
-		c.CreateText(x1, 330,
+		c.CreateText(x1, 495,
 			canvas.TextOpt(fmt.Sprintf("-arrowshape  {%.0f  %.0f  %.0f}", a, b, cc)),
 			canvas.AnchorOpt(option.AnchorW),
 			canvas.FontOpt("Helvetica 18"))
@@ -203,8 +205,8 @@ func main() {
 			if newA < 0 {
 				newA = 0
 			}
-			if newA > 25 {
-				newA = 25
+			if newA > 38 {
+				newA = 38
 			}
 			if newA != a {
 				c.Move("box1", 10*(a-newA), 0)
@@ -215,15 +217,15 @@ func main() {
 			if newB < 0 {
 				newB = 0
 			}
-			if newB > 25 {
-				newB = 25
+			if newB > 38 {
+				newB = 38
 			}
 			newC := (y + bs - my - 5*w) / 10
 			if newC < 0 {
 				newC = 0
 			}
-			if newC > 20 {
-				newC = 20
+			if newC > 30 {
+				newC = 30
 			}
 			if newB != b || newC != cc {
 				c.Move("box2", 10*(b-newB), 10*(cc-newC))
@@ -231,12 +233,12 @@ func main() {
 				cc = newC
 			}
 		case 3: // box3 → controls w (line width)
-			newW := (y + 2 - my) / 5
+			newW := (y + 3 - my) / 5
 			if newW < 0 {
 				newW = 0
 			}
-			if newW > 20 {
-				newW = 20
+			if newW > 30 {
+				newW = 30
 			}
 			if newW != w {
 				c.Move("box3", 0, 5*(w-newW))

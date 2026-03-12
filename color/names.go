@@ -169,6 +169,8 @@ var NamedColors = map[string]NamedColor{
 	"saddlebrown":      rgb8(139, 69, 19),
 	"sandy brown":      rgb8(244, 164, 96),
 	"sandybrown":       rgb8(244, 164, 96),
+	"light sea green":  rgb8(32, 178, 170),
+	"lightseagreen":    rgb8(32, 178, 170),
 	"sea green":        rgb8(46, 139, 87),
 	"seagreen":         rgb8(46, 139, 87),
 	"seagreen1":        rgb8(84, 255, 159),
