@@ -438,6 +438,14 @@ func (c *Canvas) Delete(tagOrID string) {
 	c.scheduleRedraw()
 }
 
+// CurrentItem returns the ID of the item under the mouse cursor, or -1 if none.
+func (c *Canvas) CurrentItem() int64 {
+	if c.currentItem == nil {
+		return -1
+	}
+	return c.currentItem.id
+}
+
 // Move translates all items matching tagOrID by (dx, dy).
 func (c *Canvas) Move(tagOrID string, dx, dy float64) {
 	for _, entry := range c.resolve(tagOrID) {

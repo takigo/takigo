@@ -418,6 +418,13 @@ func (b *Button) Invoke() {
 	}
 }
 
+// SetText updates the button's label text and refreshes its size and display.
+func (b *Button) SetText(s string) {
+	b.Text = s
+	b.computeGeometry()
+	b.Display()
+}
+
 // Configure applies options to the button.
 func (b *Button) Configure(opts ...option.Option) {
 	option.Apply(b, opts)

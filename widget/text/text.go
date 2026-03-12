@@ -14,6 +14,12 @@ import (
 
 // color.ColorRef stores pre-resolved color components.
 
+// embeddedImage records an image embedded at a text index position.
+type embeddedImage struct {
+	index Index
+	img   widget.WidgetImage
+}
+
 // embeddedWin records a window embedded at a text index position.
 type embeddedWin struct {
 	index Index
@@ -40,6 +46,8 @@ type TextWidget struct {
 	prefWidth   int // characters
 	prefHeight  int // lines
 	inset       int
+	insetX      int // inset + PadX
+	insetY      int // inset + PadY
 
 	// Colors.
 	selBg       *color.ColorRef
@@ -67,6 +75,9 @@ type TextWidget struct {
 	// Tag event bindings: tagName → eventName → handlers.
 	tagBindings map[string]map[string][]func()
 	hoverTags   map[string]bool
+
+	// Embedded images drawn inline with text.
+	embeddedImages []embeddedImage
 
 	// Embedded windows (overlay-positioned child windows).
 	embeddedWindows []embeddedWin
@@ -143,6 +154,8 @@ func New(parent widget.Caregiver, name string, opts ...TextOption) *TextWidget {
 	}
 
 	t.inset = t.BorderWidth + t.HighlightWidth + 1
+	t.insetX = t.inset + t.PadX
+	t.insetY = t.inset + t.PadY
 	t.computeGeometry()
 
 	if t.Background != nil {
@@ -202,6 +215,8 @@ func NewPeer(doc *Document, parent widget.Caregiver, name string, opts ...TextOp
 	}
 
 	t.inset = t.BorderWidth + t.HighlightWidth + 1
+	t.insetX = t.inset + t.PadX
+	t.insetY = t.inset + t.PadY
 	t.computeGeometry()
 
 	if t.Background != nil {
@@ -234,8 +249,8 @@ func (t *TextWidget) computeGeometry() {
 	lineHeight := m.Linespace()
 
 	w := t.Win
-	w.ReqWidth = t.prefWidth*avgWidth + 2*t.inset
-	w.ReqHeight = t.prefHeight*lineHeight + 2*t.inset
+	w.ReqWidth = t.prefWidth*avgWidth + 2*t.insetX
+	w.ReqHeight = t.prefHeight*lineHeight + 2*t.insetY
 
 	if t.setGrid {
 		t.applySetGrid(avgWidth, lineHeight)
@@ -489,7 +504,7 @@ func (t *TextWidget) YViewMoveTo(fraction float64) {
 	}
 
 	// Walk through lines to find the logical line and display-line offset.
-	availWidth := t.Win.Width - 2*t.inset
+	availWidth := t.Win.Width - 2*t.insetX
 	dlCount := 0
 	for l := 1; l <= t.doc.LineCount(); l++ {
 		p := t.resolveLineProps(l)
@@ -515,7 +530,7 @@ func (t *TextWidget) YViewMoveTo(fraction float64) {
 // YViewScroll scrolls by count units or pages.
 func (t *TextWidget) YViewScroll(count int, pages bool) {
 	if pages {
-		visLines := (t.Win.Height - 2*t.inset) / t.lineHeight()
+		visLines := (t.Win.Height - 2*t.insetY) / t.lineHeight()
 		if visLines < 1 {
 			visLines = 1
 		}
@@ -553,7 +568,7 @@ func (t *TextWidget) XViewMoveTo(fraction float64) {
 // XViewScroll scrolls horizontally.
 func (t *TextWidget) XViewScroll(count int, pages bool) {
 	if pages {
-		availW := t.Win.Width - 2*t.inset
+		availW := t.Win.Width - 2*t.insetX
 		count *= availW
 	} else {
 		count *= t.Font.MeasureString("0")
@@ -619,6 +634,8 @@ func (t *TextWidget) Configure(opts ...option.Option) {
 	option.Apply(t, opts)
 	t.UpdateBorder()
 	t.inset = t.BorderWidth + t.HighlightWidth + 1
+	t.insetX = t.inset + t.PadX
+	t.insetY = t.inset + t.PadY
 	t.computeGeometry()
 	if t.Background != nil {
 		t.Win.BackgroundPixel = t.Background.Pixel
@@ -664,6 +681,65 @@ func (t *TextWidget) WindowCreate(indexStr string, w *window.Window) {
 	t.embeddedWindows = append(t.embeddedWindows, embeddedWin{index: idx, win: w})
 }
 
+// ImageCreate embeds an image at the given text index, treating it as an inline element.
+func (t *TextWidget) ImageCreate(indexStr string, img widget.WidgetImage) {
+	idx, ok := ParseIndex(t.doc, indexStr)
+	if !ok {
+		return
+	}
+	t.embeddedImages = append(t.embeddedImages, embeddedImage{index: idx, img: img})
+}
+
+// lineHeightFor returns the display line height for the given logical line,
+// taking into account any embedded images on that line.
+func (t *TextWidget) lineHeightFor(lineIdx int) int {
+	h := t.lineHeight()
+	for _, ei := range t.embeddedImages {
+		if ei.index.Line == lineIdx {
+			if imgH := ei.img.Height(); imgH > h {
+				h = imgH
+			}
+		}
+	}
+	return h
+}
+
+// RemoveWindow removes an embedded window from the text widget and unmaps it.
+func (t *TextWidget) RemoveWindow(win *window.Window) {
+	d := t.Win.Display.Server
+	for i, ew := range t.embeddedWindows {
+		if ew.win == win {
+			d.UnmapWindow(win.PlatformID)
+			t.embeddedWindows = append(t.embeddedWindows[:i], t.embeddedWindows[i+1:]...)
+			t.Display()
+			return
+		}
+	}
+}
+
+// MarkGravity sets the gravity of the named mark.
+func (t *TextWidget) MarkGravity(markName string, gravity MarkGravity) {
+	m, ok := t.doc.Marks[markName]
+	if !ok {
+		return
+	}
+	m.Gravity = gravity
+}
+
+// SetPadX sets horizontal padding between the border and the text content.
+func (t *TextWidget) SetPadX(n int) {
+	t.PadX = n
+	t.insetX = t.inset + n
+	t.Display()
+}
+
+// SetPadY sets vertical padding between the border and the text content.
+func (t *TextWidget) SetPadY(n int) {
+	t.PadY = n
+	t.insetY = t.inset + n
+	t.Display()
+}
+
 // positionEmbeddedWindows moves embedded windows to their text positions.
 func (t *TextWidget) positionEmbeddedWindows(dlines []displayLine) {
 	d := t.Win.Display.Server
@@ -673,8 +749,8 @@ func (t *TextWidget) positionEmbeddedWindows(dlines []displayLine) {
 			if dl.logicalLine != ew.index.Line {
 				continue
 			}
-			pixelY := t.inset + dl.y
-			wx := t.inset + dl.leftMargin
+			pixelY := t.insetY + dl.y
+			wx := t.insetX + dl.leftMargin
 			wy := pixelY
 			ww := ew.win.ReqWidth
 			wh := ew.win.ReqHeight
@@ -729,7 +805,7 @@ func (t *TextWidget) seeIndex(idx Index) {
 
 // scrollDownToShow scrolls down until idx is visible.
 func (t *TextWidget) scrollDownToShow(idx Index) {
-	availHeight := t.Win.Height - 2*t.inset
+	availHeight := t.Win.Height - 2*t.insetY
 	if availHeight <= 0 {
 		return
 	}
@@ -753,7 +829,7 @@ func (t *TextWidget) scrollDownToShow(idx Index) {
 // The last line of content should not scroll above the bottom of the viewport.
 func (t *TextWidget) clampScrollPosition() {
 	totalDL := t.totalDisplayLines()
-	visLines := (t.Win.Height - 2*t.inset) / t.lineHeight()
+	visLines := (t.Win.Height - 2*t.insetY) / t.lineHeight()
 	if visLines < 1 {
 		visLines = 1
 	}
@@ -768,7 +844,7 @@ func (t *TextWidget) clampScrollPosition() {
 	topDL := t.computeDisplayLinesBefore(t.topLine, t.topCharOffset)
 	if topDL > maxTopDL {
 		// Walk through lines to find the logical line at maxTopDL.
-		availWidth := t.Win.Width - 2*t.inset
+		availWidth := t.Win.Width - 2*t.insetX
 		dlCount := 0
 		for l := 1; l <= t.doc.LineCount(); l++ {
 			p := t.resolveLineProps(l)
@@ -787,7 +863,7 @@ func (t *TextWidget) clampScrollPosition() {
 
 // scrollByDisplayLines scrolls by n display lines (positive = down, negative = up).
 func (t *TextWidget) scrollByDisplayLines(n int) {
-	availWidth := t.Win.Width - 2*t.inset
+	availWidth := t.Win.Width - 2*t.insetX
 
 	if n > 0 {
 		// Scroll down.
@@ -832,7 +908,7 @@ func (t *TextWidget) notifyYScrollbar() {
 	}
 
 	topDL := t.computeDisplayLinesBefore(t.topLine, t.topCharOffset)
-	visLines := (t.Win.Height - 2*t.inset) / t.lineHeight()
+	visLines := (t.Win.Height - 2*t.insetY) / t.lineHeight()
 	if visLines < 1 {
 		visLines = 1
 	}

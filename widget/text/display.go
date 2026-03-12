@@ -115,7 +115,7 @@ func (t *TextWidget) wrapLine(lineIdx, availWidth, lm1, lm2, rm int) []displayLi
 
 	line := t.doc.Lines[lineIdx-1]
 	lineLen := len(line.Text)
-	h := t.lineHeight()
+	h := t.lineHeightFor(lineIdx)
 
 	if lineLen == 0 || t.Font == nil {
 		return []displayLine{{
@@ -228,8 +228,8 @@ func (t *TextWidget) wrapLine(lineIdx, availWidth, lm1, lm2, rm int) []displayLi
 
 // computeVisibleLines returns the display lines visible from the current scroll position.
 func (t *TextWidget) computeVisibleLines() []displayLine {
-	availWidth := t.Win.Width - 2*t.inset
-	availHeight := t.Win.Height - 2*t.inset
+	availWidth := t.Win.Width - 2*t.insetX
+	availHeight := t.Win.Height - 2*t.insetY
 	if availWidth <= 0 || availHeight <= 0 {
 		return nil
 	}
@@ -433,7 +433,7 @@ func (t *TextWidget) renderToPixmap() {
 	dlines := t.computeVisibleLines()
 
 	for _, dl := range dlines {
-		baseY := t.inset + dl.y + m.Ascent
+		baseY := t.insetY + dl.y + m.Ascent
 		segments := t.segmentsForRange(dl.logicalLine, dl.startChar, dl.endChar)
 
 		// Compute total segment width for justification.
@@ -441,7 +441,7 @@ func (t *TextWidget) renderToPixmap() {
 		for _, seg := range segments {
 			totalW += seg.width
 		}
-		availW := w.Width - 2*t.inset - dl.leftMargin - dl.rightMargin
+		availW := w.Width - 2*t.insetX - dl.leftMargin - dl.rightMargin
 		justifyOffset := 0
 		switch dl.justify {
 		case option.JustifyCenter:
@@ -456,7 +456,7 @@ func (t *TextWidget) renderToPixmap() {
 			}
 		}
 
-		xOffset := t.inset + dl.leftMargin + justifyOffset - t.xOffset
+		xOffset := t.insetX + dl.leftMargin + justifyOffset - t.xOffset
 
 		// Draw selection highlight once per display line, before any text.
 		t.drawSelectionHighlight(d, gc, pxDrawable, dl, xOffset)
@@ -471,17 +471,17 @@ func (t *TextWidget) renderToPixmap() {
 				if seg.bgStipple != 0 {
 					d.SetStipple(gc, seg.bgStipple)
 					d.SetFillStyle(gc, xlib.FillStippled)
-					d.FillRectangle(pxDrawable, gc, segX, t.inset+dl.y, uint(seg.width), uint(dl.height))
+					d.FillRectangle(pxDrawable, gc, segX, t.insetY+dl.y, uint(seg.width), uint(dl.height))
 					d.SetFillStyle(gc, xlib.FillSolid)
 				} else {
-					d.FillRectangle(pxDrawable, gc, segX, t.inset+dl.y, uint(seg.width), uint(dl.height))
+					d.FillRectangle(pxDrawable, gc, segX, t.insetY+dl.y, uint(seg.width), uint(dl.height))
 				}
 			} else if seg.bgStipple != 0 {
 				// Stipple with no explicit background color: use black dots on normal bg.
 				d.SetForeground(gc, 0)
 				d.SetStipple(gc, seg.bgStipple)
 				d.SetFillStyle(gc, xlib.FillStippled)
-				d.FillRectangle(pxDrawable, gc, segX, t.inset+dl.y, uint(seg.width), uint(dl.height))
+				d.FillRectangle(pxDrawable, gc, segX, t.insetY+dl.y, uint(seg.width), uint(dl.height))
 				d.SetFillStyle(gc, xlib.FillSolid)
 			}
 
@@ -522,7 +522,7 @@ func (t *TextWidget) renderToPixmap() {
 					border = draw.NewBorderFromPixel(bgPixelLocal)
 				}
 				bw := seg.reliefBW
-				segRowY := t.inset + dl.y
+				segRowY := t.insetY + dl.y
 				draw.Draw3DRectangle(d, pxDrawable, gc, border,
 					segX, segRowY, seg.width, dl.height, bw, seg.relief)
 			}
@@ -532,6 +532,26 @@ func (t *TextWidget) renderToPixmap() {
 	// Draw cursor (not in read-only mode).
 	if t.hasFocus && t.cursorOn && !t.readOnly {
 		t.drawCursor(d, gc, pxDrawable, dlines)
+	}
+
+	// Draw inline images.
+	if len(t.embeddedImages) > 0 {
+		bgPx := uint64(0xFFFFFF)
+		if t.Background != nil {
+			bgPx = t.Background.Pixel
+		}
+		for _, ei := range t.embeddedImages {
+			for _, dl := range dlines {
+				if dl.logicalLine == ei.index.Line {
+					imgX := t.insetX + dl.leftMargin
+					imgY := t.insetY + dl.y
+					ei.img.Draw(d, pxDrawable, gc, w.Depth,
+						0, 0, ei.img.Width(), ei.img.Height(),
+						imgX, imgY, bgPx)
+					break
+				}
+			}
+		}
 	}
 }
 
@@ -568,7 +588,7 @@ func (t *TextWidget) drawSelectionHighlight(d platform.DisplayServer, gc platfor
 	hlEndX := xOffset + t.Font.MeasureString(string(lineText[dl.startChar:hlEnd]))
 
 	d.SetForeground(gc, t.selBg.Pixel)
-	d.FillRectangle(drawable, gc, hlStartX, t.inset+dl.y, uint(hlEndX-hlStartX), uint(dl.height))
+	d.FillRectangle(drawable, gc, hlStartX, t.insetY+dl.y, uint(hlEndX-hlStartX), uint(dl.height))
 }
 
 // drawCursor draws the text insertion cursor.
@@ -593,7 +613,7 @@ func (t *TextWidget) drawCursor(d platform.DisplayServer, gc platform.GCID, draw
 			for _, seg := range lineSegs {
 				totalW += seg.width
 			}
-			availW := t.Win.Width - 2*t.inset - dl.leftMargin - dl.rightMargin
+			availW := t.Win.Width - 2*t.insetX - dl.leftMargin - dl.rightMargin
 			switch dl.justify {
 			case option.JustifyCenter:
 				justifyOffset = (availW - totalW) / 2
@@ -608,7 +628,7 @@ func (t *TextWidget) drawCursor(d platform.DisplayServer, gc platform.GCID, draw
 			}
 		}
 
-		cursorX := t.inset + dl.leftMargin + justifyOffset - t.xOffset
+		cursorX := t.insetX + dl.leftMargin + justifyOffset - t.xOffset
 		if insertPos.Char > dl.startChar {
 			segs := t.segmentsForRange(dl.logicalLine, dl.startChar, insertPos.Char)
 			for _, seg := range segs {
@@ -618,7 +638,7 @@ func (t *TextWidget) drawCursor(d platform.DisplayServer, gc platform.GCID, draw
 
 		d.SetForeground(gc, t.insertColor.Pixel)
 		d.FillRectangle(drawable, gc,
-			cursorX-t.insertWidth/2, t.inset+dl.y,
+			cursorX-t.insertWidth/2, t.insetY+dl.y,
 			uint(t.insertWidth), uint(dl.height))
 		return
 	}
@@ -633,7 +653,7 @@ func (t *TextWidget) indexFromPixel(x, y int) Index {
 
 	var dl *displayLine
 	for i := range dlines {
-		dlY := t.inset + dlines[i].y
+		dlY := t.insetY + dlines[i].y
 		if y >= dlY && y < dlY+dlines[i].height {
 			dl = &dlines[i]
 			break
@@ -656,7 +676,7 @@ func (t *TextWidget) indexFromPixel(x, y int) Index {
 		for _, seg := range segments {
 			totalW += seg.width
 		}
-		availW := t.Win.Width - 2*t.inset - dl.leftMargin - dl.rightMargin
+		availW := t.Win.Width - 2*t.insetX - dl.leftMargin - dl.rightMargin
 		switch dl.justify {
 		case option.JustifyCenter:
 			justifyOffset = (availW - totalW) / 2
@@ -672,7 +692,7 @@ func (t *TextWidget) indexFromPixel(x, y int) Index {
 	}
 
 	// x position relative to the start of the line's text content.
-	xInContent := x - t.inset - dl.leftMargin - justifyOffset + t.xOffset
+	xInContent := x - t.insetX - dl.leftMargin - justifyOffset + t.xOffset
 
 	if len(segments) == 0 {
 		return Index{Line: dl.logicalLine, Char: dl.startChar}
@@ -727,7 +747,7 @@ func (t *TextWidget) computeTotalHeight() int {
 	if t.Font == nil {
 		return 0
 	}
-	availWidth := t.Win.Width - 2*t.inset
+	availWidth := t.Win.Width - 2*t.insetX
 	total := 0
 	for lineIdx := 1; lineIdx <= t.doc.LineCount(); lineIdx++ {
 		props := t.resolveLineProps(lineIdx)
@@ -758,7 +778,7 @@ func (t *TextWidget) lineHeight() int {
 // computeDisplayLinesBefore returns the total number of display line slots from
 // the top of the document to (but not including) the given logical line and offset.
 func (t *TextWidget) computeDisplayLinesBefore(lineIdx, dlOffset int) int {
-	availWidth := t.Win.Width - 2*t.inset
+	availWidth := t.Win.Width - 2*t.insetX
 	count := 0
 	for l := 1; l < lineIdx; l++ {
 		props := t.resolveLineProps(l)
@@ -770,7 +790,7 @@ func (t *TextWidget) computeDisplayLinesBefore(lineIdx, dlOffset int) int {
 
 // totalDisplayLines returns the total number of display lines in the document.
 func (t *TextWidget) totalDisplayLines() int {
-	availWidth := t.Win.Width - 2*t.inset
+	availWidth := t.Win.Width - 2*t.insetX
 	count := 0
 	for l := 1; l <= t.doc.LineCount(); l++ {
 		props := t.resolveLineProps(l)

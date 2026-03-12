@@ -100,3 +100,19 @@ func ReadOnly(on bool) TextOption {
 func SetGridOpt(on bool) TextOption {
 	return func(t *TextWidget) { t.setGrid = on }
 }
+
+// PadXOpt sets horizontal padding between the border and the text content.
+func PadXOpt(n int) TextOption {
+	return func(t *TextWidget) {
+		t.PadX = n
+		t.insetX = t.inset + t.PadX
+	}
+}
+
+// PadYOpt sets vertical padding between the border and the text content.
+func PadYOpt(n int) TextOption {
+	return func(t *TextWidget) {
+		t.PadY = n
+		t.insetY = t.inset + t.PadY
+	}
+}
