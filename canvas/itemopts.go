@@ -331,6 +331,21 @@ func WidthOpt(w int) ItemOption {
 	}
 }
 
+// OutlineNone removes the outline from an item (no border drawn).
+func OutlineNone() ItemOption {
+	return func(_ *Canvas, item Item) error {
+		switch it := item.(type) {
+		case *RectOvalItem:
+			it.outline = nil
+		case *PolygonItem:
+			it.outline = nil
+		case *ArcItem:
+			it.outline = nil
+		}
+		return nil
+	}
+}
+
 // FillNone removes the fill from an item (transparent interior).
 func FillNone() ItemOption {
 	return func(_ *Canvas, item Item) error {

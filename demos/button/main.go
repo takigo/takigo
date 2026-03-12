@@ -72,6 +72,7 @@ func main() {
 	for _, c := range colors {
 		btn := button.New(f, "btn_"+c.text,
 			button.Text(c.text),
+			button.Width(10),
 			button.Command(func() { changeColor(c.color) }),
 		)
 		pack.Pack(btn, pack.SideOpt(pack.Top), pack.Expand(true), pack.PadY("1.5p"))

@@ -4,10 +4,9 @@ package main
 
 import (
 	"fmt"
-	"math"
 	"os"
-	"path/filepath"
 	"runtime"
+	"path/filepath"
 
 	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/canvas"
@@ -21,8 +20,10 @@ import (
 	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/ttk"
 	"github.com/msorc/takigo/widget/button"
+	"github.com/msorc/takigo/widget/entry"
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
+	"github.com/msorc/takigo/widget/scale"
 )
 
 func main() {
@@ -52,7 +53,7 @@ func main() {
 	gf := frame.New(f, "frame")
 	pack.Pack(gf, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
-	// Canvas with scroll region covering all sections including images, bitmaps, and windows.
+	// Canvas with scroll region covering all nine sections.
 	c := canvas.New(gf, "c",
 		canvas.Width(screenunit.Px("15c")),
 		canvas.Height(screenunit.Px("10c")),
@@ -103,6 +104,25 @@ func main() {
 	grid.RowConfigure(gf, 0, grid.Weight(1), grid.MinSize(0))
 	grid.ColumnConfigure(gf, 0, grid.Weight(1), grid.MinSize(0))
 
+	// Helper: convert centimeters to canvas pixel coordinate.
+	pxPerCm := float64(screenunit.Px("1c"))
+	p := func(cm float64) float64 { return cm * pxPerCm }
+
+	// Helper: convert a size string (e.g. "2m", "3p") to int pixels.
+	px := screenunit.Px
+
+	// Colors matching Tk's color depth >1 defaults.
+	const blue = "DeepSkyBlue3"
+	const red = "red"
+	const green = "SeaGreen3"
+
+	// ---- Structural 3×3 grid ----
+	c.CreateRectangle(0, 0, p(30), p(24), canvas.OutlineColor("black"), canvas.OutlineWidth(px("1.5p")))
+	c.CreateLine([]float64{0, p(8), p(30), p(8)}, canvas.OutlineColor("black"), canvas.OutlineWidth(px("1.5p")))
+	c.CreateLine([]float64{0, p(16), p(30), p(16)}, canvas.OutlineColor("black"), canvas.OutlineWidth(px("1.5p")))
+	c.CreateLine([]float64{p(10), 0, p(10), p(24)}, canvas.OutlineColor("black"), canvas.OutlineWidth(px("1.5p")))
+	c.CreateLine([]float64{p(20), 0, p(20), p(24)}, canvas.OutlineColor("black"), canvas.OutlineWidth(px("1.5p")))
+
 	// Track original colors per item ID for hover restore.
 	type itemColors struct {
 		fill    string
@@ -118,198 +138,284 @@ func main() {
 		origColors[fmt.Sprintf("%d", id)] = itemColors{fill: textColor, isText: true}
 	}
 
-	// --- Section 1: Rectangles ---
-	c.CreateText(110, 15, canvas.TextOpt("Rectangles"), canvas.FontOpt("Sans Bold 11"),
-		canvas.AnchorOpt(option.AnchorCenter))
+	// ---- Section 1: Lines (col 0, row 0) ----
+	c.CreateText(p(5), p(0.2), canvas.TextOpt("Lines"), canvas.AnchorOpt(option.AnchorN))
 
-	record(c.CreateRectangle(20, 30, 100, 90,
-		canvas.FillColor("#4a86c8"), canvas.OutlineColor("black"), canvas.OutlineWidth(2),
-		canvas.Tags("item")), "#4a86c8", "black")
+	// Bold "Z" shape in blue.
+	record(c.CreateLine([]float64{p(1), p(1), p(3), p(1), p(1), p(4), p(3), p(4)},
+		canvas.OutlineColor(blue), canvas.OutlineWidth(px("2m")),
+		canvas.CapStyleOpt(platform.CapButt), canvas.JoinStyleOpt(platform.JoinMiter),
+		canvas.Tags("item")), "", blue)
 
-	record(c.CreateRectangle(120, 30, 200, 90,
-		canvas.FillColor("#e8a835"), canvas.OutlineColor("black"), canvas.OutlineWidth(1),
-		canvas.Tags("item")), "#e8a835", "black")
+	// Single arrow (down).
+	record(c.CreateLine([]float64{p(4.67), p(1), p(4.67), p(4)},
+		canvas.Arrow(canvas.ArrowLast),
+		canvas.Tags("item")), "", "black")
 
-	record(c.CreateRectangle(20, 100, 200, 130,
-		canvas.FillColor("#6bb86b"), canvas.OutlineColor("darkgreen"), canvas.OutlineWidth(3),
-		canvas.Tags("item")), "#6bb86b", "darkgreen")
-
-	// --- Section 2: Ovals ---
-	c.CreateText(330, 15, canvas.TextOpt("Ovals"), canvas.FontOpt("Sans Bold 11"),
-		canvas.AnchorOpt(option.AnchorCenter))
-
-	record(c.CreateOval(240, 30, 340, 90,
-		canvas.FillColor("#c85a5a"), canvas.OutlineColor("black"), canvas.OutlineWidth(2),
-		canvas.Tags("item")), "#c85a5a", "black")
-
-	record(c.CreateOval(360, 30, 420, 130,
-		canvas.FillColor("#9b59b6"), canvas.OutlineColor("black"), canvas.OutlineWidth(1),
-		canvas.Tags("item")), "#9b59b6", "black")
-
-	// --- Section 3: Lines ---
-	c.CreateText(550, 15, canvas.TextOpt("Lines"), canvas.FontOpt("Sans Bold 11"),
-		canvas.AnchorOpt(option.AnchorCenter))
-
-	record(c.CreateLine([]float64{460, 30, 640, 30},
-		canvas.OutlineColor("red"), canvas.OutlineWidth(3),
-		canvas.Tags("item")), "", "red")
-
-	record(c.CreateLine([]float64{460, 50, 550, 90, 640, 50},
-		canvas.OutlineColor("blue"), canvas.OutlineWidth(2),
-		canvas.Tags("item")), "", "blue")
-
-	record(c.CreateLine([]float64{460, 110, 550, 70, 640, 110},
-		canvas.OutlineColor("darkgreen"), canvas.OutlineWidth(2), canvas.Smooth(true),
-		canvas.Tags("item")), "", "darkgreen")
-
-	record(c.CreateLine([]float64{460, 130, 640, 130},
-		canvas.OutlineColor("black"), canvas.OutlineWidth(2),
+	// Double arrow (up+down).
+	record(c.CreateLine([]float64{p(6.33), p(1), p(6.33), p(4)},
 		canvas.Arrow(canvas.ArrowBoth),
 		canvas.Tags("item")), "", "black")
 
-	// --- Section 4: Polygons ---
-	c.CreateText(110, 155, canvas.TextOpt("Polygons"), canvas.FontOpt("Sans Bold 11"),
-		canvas.AnchorOpt(option.AnchorCenter))
+	// Nested rectangles (spiral line) in red.
+	record(c.CreateLine([]float64{
+		p(5), p(6), p(9), p(6), p(9), p(1), p(8), p(1), p(8), p(4.8),
+		p(8.8), p(4.8), p(8.8), p(1.2), p(8.2), p(1.2), p(8.2), p(4.6),
+		p(8.6), p(4.6), p(8.6), p(1.4), p(8.4), p(1.4), p(8.4), p(4.4),
+	}, canvas.OutlineColor(red), canvas.OutlineWidth(px("2.25p")),
+		canvas.Tags("item")), "", red)
 
-	record(c.CreatePolygon([]float64{60, 170, 20, 260, 100, 260},
-		canvas.FillColor("#e74c3c"), canvas.OutlineColor("black"), canvas.OutlineWidth(2),
-		canvas.Tags("item")), "#e74c3c", "black")
-
-	cx, cy, r := 160.0, 220.0, 40.0
-	penta := make([]float64, 10)
-	for i := range 5 {
-		angle := math.Pi/2 + float64(i)*2*math.Pi/5
-		penta[i*2] = cx + r*math.Cos(angle)
-		penta[i*2+1] = cy - r*math.Sin(angle)
-	}
-	record(c.CreatePolygon(penta,
-		canvas.FillColor("#3498db"), canvas.OutlineColor("navy"), canvas.OutlineWidth(2),
-		canvas.Tags("item")), "#3498db", "navy")
-
-	// --- Section 5: Arcs ---
-	c.CreateText(330, 155, canvas.TextOpt("Arcs"), canvas.FontOpt("Sans Bold 11"),
-		canvas.AnchorOpt(option.AnchorCenter))
-
-	record(c.CreateArc(240, 170, 340, 270,
-		canvas.FillColor("#f39c12"), canvas.OutlineColor("black"), canvas.OutlineWidth(2),
-		canvas.StartAngle(0), canvas.Extent(120), canvas.ArcStyleOpt(canvas.ArcStylePieslice),
-		canvas.Tags("item")), "#f39c12", "black")
-
-	record(c.CreateArc(350, 170, 430, 270,
-		canvas.OutlineColor("#c0392b"), canvas.OutlineWidth(3),
-		canvas.StartAngle(30), canvas.Extent(270), canvas.ArcStyleOpt(canvas.ArcStyleArc),
-		canvas.Tags("item")), "", "#c0392b")
-
-	// --- Section 6: Text ---
-	c.CreateText(550, 155, canvas.TextOpt("Text Items"), canvas.FontOpt("Sans Bold 11"),
-		canvas.AnchorOpt(option.AnchorCenter))
-
-	recordText(c.CreateText(550, 190, canvas.TextOpt("Default font"),
-		canvas.TextColor("black"), canvas.AnchorOpt(option.AnchorCenter),
-		canvas.Tags("item")), "black")
-
-	recordText(c.CreateText(550, 220, canvas.TextOpt("Bold text"),
-		canvas.FontOpt("Sans Bold 14"), canvas.TextColor("navy"),
-		canvas.AnchorOpt(option.AnchorCenter),
-		canvas.Tags("item")), "navy")
-
-	recordText(c.CreateText(550, 250, canvas.TextOpt("Italic text"),
-		canvas.FontOpt("Sans Italic 12"), canvas.TextColor("darkred"),
-		canvas.AnchorOpt(option.AnchorCenter),
-		canvas.Tags("item")), "darkred")
-
-	// --- Section 7: Dashed Lines ---
-	c.CreateText(330, 290, canvas.TextOpt("Dashed Lines"), canvas.FontOpt("Sans Bold 11"),
-		canvas.AnchorOpt(option.AnchorCenter))
-
-	record(c.CreateLine([]float64{20, 310, 300, 310},
-		canvas.OutlineColor("black"), canvas.OutlineWidth(2), canvas.Dash(6, 4),
+	// Thick dashed-look line with double-headed arrows (stippled in Tcl — use dash).
+	record(c.CreateLine([]float64{p(1), p(5), p(7), p(5), p(7), p(7), p(9), p(7)},
+		canvas.OutlineWidth(px("0.5c")),
+		canvas.Dash(4, 4),
+		canvas.Arrow(canvas.ArrowBoth),
+		canvas.ArrowShape(15, 15, 7),
 		canvas.Tags("item")), "", "black")
 
-	record(c.CreateLine([]float64{20, 330, 300, 330},
-		canvas.OutlineColor("blue"), canvas.OutlineWidth(2), canvas.Dash(12, 4, 4, 4),
-		canvas.Tags("item")), "", "blue")
+	// Wavy line with round caps/joins.
+	record(c.CreateLine([]float64{p(1), p(7), p(1.75), p(5.8), p(2.5), p(7), p(3.25), p(5.8), p(4), p(7)},
+		canvas.OutlineWidth(px("0.5c")),
+		canvas.CapStyleOpt(platform.CapRound),
+		canvas.JoinStyleOpt(platform.JoinRound),
+		canvas.Tags("item")), "", "black")
 
-	record(c.CreateRectangle(340, 300, 640, 380,
-		canvas.OutlineColor("gray50"), canvas.OutlineWidth(2), canvas.Dash(8, 4),
-		canvas.Tags("item")), "", "gray50")
+	// ---- Section 2: Curves (col 1, row 0) ----
+	c.CreateText(p(15), p(0.2), canvas.TextOpt("Curves (smoothed lines)"), canvas.AnchorOpt(option.AnchorN))
 
-	record(c.CreateOval(380, 305, 600, 375,
-		canvas.FillColor("#eaf2f8"), canvas.OutlineColor("#2980b9"), canvas.OutlineWidth(2),
-		canvas.Tags("item")), "#eaf2f8", "#2980b9")
+	// Bell curve in blue.
+	record(c.CreateLine([]float64{p(11), p(4), p(11.5), p(1), p(13.5), p(1), p(14), p(4)},
+		canvas.OutlineColor(blue), canvas.Smooth(true),
+		canvas.Tags("item")), "", blue)
 
-	// --- Section 8: Images ---
-	c.CreateText(330, 430, canvas.TextOpt("Images"), canvas.FontOpt("Sans Bold 11"),
-		canvas.AnchorOpt(option.AnchorCenter))
+	// Crossing arrows smooth curve.
+	record(c.CreateLine([]float64{p(15.5), p(1), p(19.5), p(1.5), p(15.5), p(4.5), p(19.5), p(4)},
+		canvas.Smooth(true),
+		canvas.Arrow(canvas.ArrowBoth),
+		canvas.OutlineWidth(px("2.25p")),
+		canvas.Tags("item")), "", "black")
 
+	// Thick stippled (rendered as dashed) closed smooth curve in red.
+	record(c.CreateLine([]float64{
+		p(12), p(6), p(13.5), p(4.5), p(16.5), p(7.5), p(18), p(6),
+		p(16.5), p(4.5), p(13.5), p(7.5), p(12), p(6),
+	}, canvas.OutlineColor(red), canvas.Smooth(true),
+		canvas.OutlineWidth(px("3m")),
+		canvas.CapStyleOpt(platform.CapRound),
+		canvas.Tags("item")), "", red)
+
+	// ---- Section 3: Polygons (col 2, row 0) ----
+	c.CreateText(p(25), p(0.2), canvas.TextOpt("Polygons"), canvas.AnchorOpt(option.AnchorN))
+
+	// 8-point star in green, no outline.
+	record(c.CreatePolygon([]float64{
+		p(21), p(1.0), p(22.5), p(1.75), p(24), p(1.0), p(23.25), p(2.5),
+		p(24), p(4.0), p(22.5), p(3.25), p(21), p(4.0), p(21.75), p(2.5),
+	}, canvas.FillColor(green), canvas.OutlineNone(), canvas.OutlineWidth(px("3p")),
+		canvas.Tags("item")), green, "")
+
+	// Smooth M-wave polygon in red, no outline.
+	record(c.CreatePolygon([]float64{
+		p(25), p(4), p(25), p(4), p(25), p(1), p(26), p(1), p(27), p(4),
+		p(28), p(1), p(29), p(1), p(29), p(4), p(29), p(4),
+	}, canvas.FillColor(red), canvas.OutlineNone(), canvas.Smooth(true),
+		canvas.Tags("item")), red, "")
+
+	// L-shaped stippled polygon in blue (stipple not supported, use solid).
+	record(c.CreatePolygon([]float64{
+		p(22), p(4.5), p(25), p(4.5), p(25), p(6.75), p(28), p(6.75),
+		p(28), p(5.25), p(24), p(5.25), p(24), p(6.0), p(26), p(6), p(26), p(7.5), p(22), p(7.5),
+	}, canvas.FillColor(blue), canvas.OutlineNone(),
+		canvas.Tags("item")), blue, "")
+
+	// ---- Section 4: Rectangles (col 0, row 1) ----
+	c.CreateText(p(5), p(8.2), canvas.TextOpt("Rectangles"), canvas.AnchorOpt(option.AnchorN))
+
+	// Red outline only rectangle.
+	record(c.CreateRectangle(p(1), p(9.5), p(4), p(12.5),
+		canvas.FillNone(), canvas.OutlineColor(red), canvas.OutlineWidth(px("3m")),
+		canvas.Tags("item")), "", red)
+
+	// Green filled rectangle (default black outline).
+	record(c.CreateRectangle(p(0.5), p(13.5), p(4.5), p(15.5),
+		canvas.FillColor(green),
+		canvas.Tags("item")), green, "black")
+
+	// Blue stippled rectangle, no outline (stipple not supported, use solid blue).
+	record(c.CreateRectangle(p(6), p(10), p(9), p(15),
+		canvas.FillColor(blue), canvas.OutlineNone(),
+		canvas.Tags("item")), blue, "")
+
+	// ---- Section 5: Ovals (col 1, row 1) ----
+	c.CreateText(p(15), p(8.2), canvas.TextOpt("Ovals"), canvas.AnchorOpt(option.AnchorN))
+
+	// Red outline only oval.
+	record(c.CreateOval(p(11), p(9.5), p(14), p(12.5),
+		canvas.FillNone(), canvas.OutlineColor(red), canvas.OutlineWidth(px("3m")),
+		canvas.Tags("item")), "", red)
+
+	// Green filled oval (default black outline).
+	record(c.CreateOval(p(10.5), p(13.5), p(14.5), p(15.5),
+		canvas.FillColor(green),
+		canvas.Tags("item")), green, "black")
+
+	// Blue stippled oval, no outline (stipple not supported, use solid blue).
+	record(c.CreateOval(p(16), p(10), p(19), p(15),
+		canvas.FillColor(blue), canvas.OutlineNone(),
+		canvas.Tags("item")), blue, "")
+
+	// ---- Section 6: Text (col 2, row 1) ----
+	c.CreateText(p(25), p(8.2), canvas.TextOpt("Text"), canvas.AnchorOpt(option.AnchorN))
+
+	// Anchor point marker.
+	c.CreateRectangle(p(22.4), p(8.9), p(22.6), p(9.1), canvas.OutlineColor("black"))
+
+	// Word-wrapped text, anchor N, justified left.
+	recordText(c.CreateText(p(22.5), p(9),
+		canvas.TextOpt("A short string of text, word-wrapped, justified left, and anchored north (at the top).  The rectangles show the anchor points for each piece of text."),
+		canvas.FontOpt("Helvetica 12"),
+		canvas.WidthOpt(px("4c")),
+		canvas.AnchorOpt(option.AnchorN),
+		canvas.JustifyOpt(option.JustifyLeft),
+		canvas.Tags("item")), "black")
+
+	// Anchor point marker.
+	c.CreateRectangle(p(25.4), p(10.9), p(25.6), p(11.1), canvas.OutlineColor("black"))
+
+	// Multi-line centered text, anchor W, blue.
+	recordText(c.CreateText(p(25.5), p(11),
+		canvas.TextOpt("Several lines,\n each centered\nindividually,\nand all anchored\nat the left edge."),
+		canvas.FontOpt("Helvetica 12"),
+		canvas.TextColor(blue),
+		canvas.AnchorOpt(option.AnchorW),
+		canvas.JustifyOpt(option.JustifyCenter),
+		canvas.Tags("item")), blue)
+
+	// Anchor point marker.
+	c.CreateRectangle(p(24.9), p(13.9), p(25.1), p(14.1), canvas.OutlineColor("black"))
+
+	// Angled text in red.
+	recordText(c.CreateText(p(25), p(14),
+		canvas.TextOpt("Angled characters"),
+		canvas.FontOpt("Helvetica 24 bold"),
+		canvas.TextColor(red),
+		canvas.TextAngle(15),
+		canvas.AnchorOpt(option.AnchorCenter),
+		canvas.Tags("item")), red)
+
+	// ---- Section 7: Arcs (col 0, row 2) ----
+	c.CreateText(p(5), p(16.2), canvas.TextOpt("Arcs"), canvas.AnchorOpt(option.AnchorN))
+
+	// Green pieslice.
+	record(c.CreateArc(p(0.5), p(17), p(7), p(20),
+		canvas.FillColor(green), canvas.OutlineColor("black"),
+		canvas.StartAngle(45), canvas.Extent(270),
+		canvas.ArcStyleOpt(canvas.ArcStylePieslice),
+		canvas.Tags("item")), green, "black")
+
+	// Blue arc (style=arc), stipple skipped.
+	record(c.CreateArc(p(6.5), p(17), p(9.5), p(20),
+		canvas.OutlineColor(blue), canvas.OutlineWidth(px("4m")),
+		canvas.StartAngle(-135), canvas.Extent(270),
+		canvas.ArcStyleOpt(canvas.ArcStyleArc),
+		canvas.Tags("item")), "", blue)
+
+	// Red pieslice, no fill.
+	record(c.CreateArc(p(0.5), p(20), p(9.5), p(24),
+		canvas.FillNone(), canvas.OutlineColor(red), canvas.OutlineWidth(px("4m")),
+		canvas.StartAngle(225), canvas.Extent(-90),
+		canvas.ArcStyleOpt(canvas.ArcStylePieslice),
+		canvas.Tags("item")), "", red)
+
+	// Blue chord, no outline.
+	record(c.CreateArc(p(5.5), p(20.5), p(9.5), p(23.5),
+		canvas.FillColor(blue), canvas.OutlineNone(), canvas.OutlineWidth(px("4m")),
+		canvas.StartAngle(45), canvas.Extent(270),
+		canvas.ArcStyleOpt(canvas.ArcStyleChord),
+		canvas.Tags("item")), blue, "")
+
+	// ---- Section 8: Bitmaps and Images (col 1, row 2) ----
+	c.CreateText(p(15), p(16.2), canvas.TextOpt("Bitmaps and Images"), canvas.AnchorOpt(option.AnchorN))
+
+	// Photo image (ouster.png).
 	if imgPath := findImage("ouster.png"); imgPath != "" {
 		if photo, err := tkimage.NewPhotoFromFile("items_ouster", imgPath); err == nil {
 			app.ImageRegistry().Register(photo)
-			c.CreateImage(110, 470, canvas.ImageOpt(photo),
-				canvas.AnchorOpt(option.AnchorCenter),
-				canvas.Tags("item"))
-		}
-	}
-	if imgPath := findImage("plowed_field.png"); imgPath != "" {
-		if photo, err := tkimage.NewPhotoFromFile("items_field", imgPath); err == nil {
-			app.ImageRegistry().Register(photo)
-			c.CreateImage(350, 470, canvas.ImageOpt(photo),
+			c.CreateImage(p(13), p(20),
+				canvas.ImageOpt(photo),
 				canvas.AnchorOpt(option.AnchorCenter),
 				canvas.Tags("item"))
 		}
 	}
 
-	// --- Section 9: Bitmaps (XBM) ---
-	c.CreateText(330, 560, canvas.TextOpt("Bitmaps (XBM)"), canvas.FontOpt("Sans Bold 11"),
-		canvas.AnchorOpt(option.AnchorCenter))
-
-	bitmapNames := []string{"gray25.xbm", "flagdown.xbm", "flagup.xbm", "letters.xbm"}
-	bx9 := 60.0
-	for _, name := range bitmapNames {
-		if bPath := findImage(name); bPath != "" {
+	// XBM bitmaps.
+	for _, bname := range []struct{ file, name string }{
+		{"noletter.xbm", "noletter"},
+		{"letters.xbm", "letters"},
+	} {
+		if bPath := findImage(bname.file); bPath != "" {
 			if xbm, err := canvas.ParseXBMFile(bPath); err == nil {
-				c.CreateBitmap(bx9, 615, xbm,
+				_ = bname.name
+				yPos := p(18.5)
+				if bname.file == "letters.xbm" {
+					yPos = p(21.5)
+				}
+				c.CreateBitmap(p(17), yPos, xbm,
 					canvas.AnchorOpt(option.AnchorCenter),
 					canvas.BitmapForeground(0, 0, 0),
 					canvas.Tags("item"))
-				bx9 += 160
 			}
 		}
 	}
 
-	// --- Section 10: Embedded Windows ---
-	c.CreateText(330, 700, canvas.TextOpt("Embedded Windows"), canvas.FontOpt("Sans Bold 11"),
-		canvas.AnchorOpt(option.AnchorCenter))
+	// ---- Section 9: Windows (col 2, row 2) ----
+	c.CreateText(p(25), p(16.2), canvas.TextOpt("Windows"), canvas.AnchorOpt(option.AnchorN))
 
-	// A label widget embedded in the canvas.
-	lbl := label.New(c, "win_label",
-		label.Text("Canvas Label"),
-		label.Relief(option.ReliefGroove),
-		label.BorderWidth(2),
-	)
-	lbl.Win.ReqWidth = 120
-	lbl.Win.ReqHeight = 30
-	c.CreateWindow(80, 720, lbl.Win)
+	// Label text "Button:".
+	c.CreateText(p(21), p(17.9), canvas.TextOpt("Button:"), canvas.AnchorOpt(option.AnchorSW))
 
-	// A button widget embedded in the canvas.
+	// Embedded button.
+	var btnPressTextID int64
 	btn := button.New(c, "win_button",
-		button.Text("Click Me"),
-		button.Command(func() {}),
+		button.Text("Press Me"),
+		button.Command(func() {
+			if btnPressTextID != 0 {
+				c.Delete(fmt.Sprintf("%d", btnPressTextID))
+			}
+			btnPressTextID = c.CreateText(p(25), p(18.1),
+				canvas.TextOpt("Oooohhh!!"),
+				canvas.TextColor(red),
+				canvas.AnchorOpt(option.AnchorN))
+			app.After(500, func() {
+				c.Delete(fmt.Sprintf("%d", btnPressTextID))
+				btnPressTextID = 0
+			})
+		}),
 	)
-	btn.Win.ReqWidth = 100
-	btn.Win.ReqHeight = 30
-	c.CreateWindow(240, 720, btn.Win)
+	c.CreateWindow(p(21), p(18), btn.Win, canvas.AnchorOpt(option.AnchorNW), canvas.Tags("item"))
 
-	// A frame with content embedded in the canvas.
-	frm := frame.New(c, "win_frame",
-		frame.Relief(option.ReliefSunken),
-		frame.BorderWidth(2),
+	// Label text "Entry:".
+	c.CreateText(p(21), p(20.9), canvas.TextOpt("Entry:"), canvas.AnchorOpt(option.AnchorSW))
+
+	// Embedded entry.
+	ent := entry.New(c, "win_entry", entry.Width(20))
+	ent.InsertChars(0, "Edit this text")
+	c.CreateWindow(p(21), p(21), ent.Win, canvas.AnchorOpt(option.AnchorNW), canvas.Tags("item"))
+
+	// Label text "Scale:".
+	c.CreateText(p(28.5), p(17.4), canvas.TextOpt("Scale:"), canvas.AnchorOpt(option.AnchorS))
+
+	// Embedded scale.
+	sc := scale.New(c, "win_scale",
+		scale.FromOpt(0), scale.ToOpt(100),
+		scale.LengthOpt(screenunit.Px("6c")),
+		scale.SliderLengthOpt(screenunit.Px(".4c")),
+		scale.WidthOpt(screenunit.Px(".5c")),
+		scale.TickIntervalOpt(0),
 	)
-	frm.Win.ReqWidth = 120
-	frm.Win.ReqHeight = 30
-	c.CreateWindow(380, 720, frm.Win)
+	c.CreateWindow(p(28.5), p(17.5), sc.Win, canvas.AnchorOpt(option.AnchorN), canvas.Tags("item"))
 
-	// --- Event bindings ---
+	// ---- Event bindings ----
 
 	var highlightedID string
 

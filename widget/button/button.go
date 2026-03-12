@@ -37,6 +37,8 @@ type Button struct {
 	ActiveBackground *color.ColorRef
 	ActiveForeground *color.ColorRef
 
+	WidthChars int // requested width in characters (0 = auto)
+
 	textWidth  int
 	textHeight int
 	pressed    bool // button1 is held down
@@ -124,6 +126,12 @@ func PadY(p any) ButtonOption {
 	return func(b *Button) { b.PadY = screenunit.Px(p) }
 }
 
+// Width sets the requested button width in characters (like Tk's -width option).
+// When > 0, the button is at least this many "0" characters wide.
+func Width(n int) ButtonOption {
+	return func(b *Button) { b.WidthChars = n }
+}
+
 // New creates a new Button widget as a child of parent.
 func New(parent widget.Caregiver, name string, opts ...ButtonOption) *Button {
 	app := parent.AppContext()
@@ -197,6 +205,13 @@ func (b *Button) computeGeometry() {
 	}
 
 	contentW, contentH := compoundSize(b.Compound, b.Img, b.textWidth, b.textHeight)
+
+	if b.WidthChars > 0 && b.Font != nil {
+		charW := b.Font.MeasureString("0")
+		if minW := b.WidthChars * charW; minW > contentW {
+			contentW = minW
+		}
+	}
 
 	inset := b.BorderWidth + b.HighlightWidth
 	w := b.Win
