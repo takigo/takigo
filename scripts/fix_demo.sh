@@ -1,0 +1,149 @@
+#!/usr/bin/env bash
+# fix_demo.sh -- Compare one demo against Tcl original and auto-fix with Claude
+#
+# Usage:
+#   fix_demo.sh <demoname> [options]
+#
+# Options:
+#   --no-retake    Reuse existing screenshots (faster when iterating)
+#   --iterations N Run up to N fix+compare cycles (default 1)
+#
+# Output:
+#   tmp/screenshots/<demo>_*.png  updated after each fix
+#   tmp/logs/<demo>.log           Claude's output
+
+set -euo pipefail
+
+# Claude cannot be invoked from inside an active Claude Code session.
+if [[ -n "${CLAUDECODE:-}" ]]; then
+    echo "ERROR: fix_demo.sh must be run from a regular terminal, not from inside Claude Code." >&2
+    echo "Open a new terminal and run: bash scripts/fix_demo.sh $*" >&2
+    exit 1
+fi
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+DEMO="${1:-}"
+if [[ -z "$DEMO" ]]; then
+    echo "Usage: $0 <demoname> [--no-retake] [--iterations N]" >&2
+    exit 1
+fi
+
+RETAKE=1
+ITERATIONS=1
+shift
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --no-retake)   RETAKE=0 ;;
+        --iterations)  shift; ITERATIONS="$1" ;;
+        *) echo "Unknown option: $1" >&2; exit 1 ;;
+    esac
+    shift
+done
+
+# Load demo name mapping
+source "$SCRIPT_DIR/demo_map.sh"
+TCL_DEMO="${DEMO_MAP[$DEMO]:-$DEMO}"
+if [[ "$TCL_DEMO" == "-" ]]; then
+    echo "Demo '$DEMO' has no Tcl counterpart — nothing to compare." >&2
+    exit 1
+fi
+
+SS_DIR="$PROJECT_DIR/tmp/screenshots"
+LOGS_DIR="$PROJECT_DIR/tmp/logs"
+mkdir -p "$SS_DIR" "$LOGS_DIR"
+
+# ---------------------------------------------------------------------------
+# run_compare -- take screenshots + compute diff score, print score
+# ---------------------------------------------------------------------------
+run_compare() {
+    local retake="$1"
+    if [[ "$retake" == "1" ]]; then
+        export SKIP_IF_EXISTS=0
+    else
+        export SKIP_IF_EXISTS=1
+    fi
+    local out
+    out=$(bash "$SCRIPT_DIR/demo_compare.sh" "$DEMO" "$TCL_DEMO" 2>/dev/null)
+    echo "$out" >&2
+    echo "$out" | grep "^Diff score:" | awk '{print $3}'
+}
+
+# ---------------------------------------------------------------------------
+# run_claude -- call Claude non-interactively to analyze and fix the demo
+# ---------------------------------------------------------------------------
+run_claude() {
+    local log="$1"
+
+    cat <<EOF | claude -p /dev/stdin \
+        --allowedTools "Read,Edit,Bash" \
+        --permission-mode bypassPermissions \
+        --output-format text \
+        2>&1 | tee "$log"
+Fix the Go demo '$DEMO' to visually match the Tcl/Tk original.
+
+Screenshot files — Read ALL THREE before editing anything:
+  Go version:        $SS_DIR/${DEMO}_go.png
+  Tcl/Tk original:   $SS_DIR/${TCL_DEMO}_tcl.png
+  Side-by-side diff: $SS_DIR/${DEMO}_side.png
+
+Go source to fix: $PROJECT_DIR/demos/$DEMO/main.go
+
+Instructions:
+1. Read all three images. Carefully note every visual difference:
+   widget sizes, fonts, padding/spacing, colors, label text, geometry,
+   number and arrangement of widgets, border/relief styles.
+2. Read the Go source file.
+3. Edit the Go source to fix ALL identified visual differences.
+   Use Bash to run: cd $PROJECT_DIR && go build ./demos/$DEMO/
+   to confirm the fix compiles.
+4. Only fix appearance — do not change behavior or add new features.
+
+Focus areas in order of importance:
+- Missing or extra widgets vs the Tcl version
+- Wrong padding/margin (pack options: padx/pady, ipadx/ipady)
+- Wrong font (size, family, weight)
+- Wrong widget dimensions (width/height options)
+- Wrong colors or relief styles
+- Incorrect geometry string
+
+After editing, print a brief summary of changes made.
+EOF
+}
+
+# ---------------------------------------------------------------------------
+# Main loop
+# ---------------------------------------------------------------------------
+echo "╔══════════════════════════════════════════════════╗"
+echo "║  fix_demo: $DEMO (Tcl: $TCL_DEMO)"
+echo "╚══════════════════════════════════════════════════╝"
+echo ""
+
+echo "── Initial comparison ──────────────────────────────"
+SCORE=$(run_compare "$RETAKE")
+echo "Score before: $SCORE"
+echo ""
+
+for i in $(seq 1 "$ITERATIONS"); do
+    echo "── Iteration $i / $ITERATIONS ─────────────────────────"
+    LOG="$LOGS_DIR/${DEMO}_iter${i}.log"
+    echo "  Calling Claude... (log: $LOG)"
+    echo ""
+    run_claude "$LOG"
+
+    echo ""
+    echo "── Re-comparing after fix ──────────────────────────"
+    NEW_SCORE=$(run_compare 1)
+    echo ""
+    echo "Score before: $SCORE"
+    echo "Score after:  $NEW_SCORE"
+
+    SCORE="$NEW_SCORE"
+    echo ""
+done
+
+echo "═══════════════════════════════════════════════════"
+echo "Final score: $SCORE  (lower = more similar to Tcl)"
+echo "Screenshots: $SS_DIR/${DEMO}_side.png"
+echo "═══════════════════════════════════════════════════"
