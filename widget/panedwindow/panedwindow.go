@@ -6,11 +6,61 @@ package panedwindow
 import (
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/event"
+	"github.com/msorc/takigo/geometry"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/window"
 )
+
+// pwGeomMgr implements window.GeomManager for panedwindow pane children.
+// It receives RequestProc calls from child panes when they resize,
+// and propagates the aggregated natural size upward.
+type pwGeomMgr struct {
+	pw *PanedWindow
+}
+
+func (m *pwGeomMgr) Name() string { return "panedwindow" }
+
+func (m *pwGeomMgr) RequestProc(content *window.Window) {
+	m.pw.propagateReqSize()
+}
+
+func (m *pwGeomMgr) LostContentProc(content *window.Window) {}
+
+// propagateReqSize computes the panedwindow's natural size from its panes
+// and calls geometry.GeometryRequest so the pack manager above can resize.
+func (pw *PanedWindow) propagateReqSize() {
+	if len(pw.panes) == 0 {
+		return
+	}
+	totalSashSpace := (len(pw.panes) - 1) * pw.SashWidth
+	var reqW, reqH int
+	if pw.Orient == Horizontal {
+		for _, p := range pw.panes {
+			reqW += p.win.ReqWidth
+			if p.win.ReqHeight > reqH {
+				reqH = p.win.ReqHeight
+			}
+		}
+		reqW += totalSashSpace
+	} else {
+		for _, p := range pw.panes {
+			reqH += p.win.ReqHeight
+			if p.win.ReqWidth > reqW {
+				reqW = p.win.ReqWidth
+			}
+		}
+		reqH += totalSashSpace
+	}
+	if reqW < 1 {
+		reqW = 1
+	}
+	if reqH < 1 {
+		reqH = 1
+	}
+	geometry.GeometryRequest(pw.Win, reqW, reqH)
+}
 
 // Orient specifies the paned window orientation.
 type Orient int
@@ -42,6 +92,9 @@ type PanedWindow struct {
 	dragSash      int // index of sash being dragged, -1 = none
 	dragStartPos  int
 	dragStartSize int
+
+	// geomMgr is the geometry manager instance for this panedwindow's panes.
+	geomMgr *pwGeomMgr
 }
 
 // PanedWindowOption configures a PanedWindow.
@@ -81,6 +134,7 @@ func New(parent widget.Caregiver, name string, opts ...PanedWindowOption) *Paned
 		HandleSize: 8,
 		dragSash:   -1,
 	}
+	pw.geomMgr = &pwGeomMgr{pw: pw}
 	widget.InitBase(&pw.Base, w, app)
 	pw.BorderWidth = 0
 	pw.Relief = option.ReliefFlat
@@ -102,11 +156,13 @@ func (pw *PanedWindow) Add(child *window.Window, minSize int) {
 	if minSize < 1 {
 		minSize = 1
 	}
+	geometry.ManageGeometry(child, pw.geomMgr)
 	pw.panes = append(pw.panes, pane{
 		win:     child,
 		minSize: minSize,
 		size:    0,
 	})
+	pw.propagateReqSize()
 	pw.arrangePanes()
 }
 
@@ -114,7 +170,9 @@ func (pw *PanedWindow) Add(child *window.Window, minSize int) {
 func (pw *PanedWindow) Remove(child *window.Window) {
 	for i, p := range pw.panes {
 		if p.win == child {
+			child.GeomManager = nil
 			pw.panes = append(pw.panes[:i], pw.panes[i+1:]...)
+			pw.propagateReqSize()
 			pw.arrangePanes()
 			return
 		}
