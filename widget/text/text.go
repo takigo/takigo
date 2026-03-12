@@ -353,7 +353,6 @@ func (t *TextWidget) Insert(index, txt string) {
 	if t.undoEnabled {
 		t.undoStack.RecordInsert(idx, endIdx, txt)
 	}
-	t.seeInsert()
 	t.notifyYScrollbar()
 	t.Display()
 }
@@ -373,7 +372,6 @@ func (t *TextWidget) Delete(startIndex, endIndex string) {
 	if t.undoEnabled {
 		t.undoStack.RecordDelete(start, end, text)
 	}
-	t.seeInsert()
 	t.notifyYScrollbar()
 	t.Display()
 }
