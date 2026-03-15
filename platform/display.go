@@ -58,6 +58,10 @@ type DisplayServer interface {
 
 	// Pending returns the number of events in the queue.
 	Pending() int
+
+	// ResourceManagerString returns the X resource manager string
+	// (e.g., Xft.dpi settings). Returns "" if not available.
+	ResourceManagerString() string
 }
 
 // WindowManager manages window creation, destruction, and manipulation.
@@ -238,8 +242,9 @@ type CursorManager interface {
 	// DefineCursor sets the cursor for a window.
 	DefineCursor(w WindowID, cursor CursorID)
 
-	// DefineCursorFromFont creates and sets a cursor from the font.
-	DefineCursorFromFont(w WindowID, shape uint)
+	// SetCursorShape creates and sets a cursor from an abstract shape ID
+	// (cursor.Shape values). Each backend maps these to native cursors.
+	SetCursorShape(w WindowID, shape uint)
 
 	// UndefineCursor reverts a window to its parent's cursor.
 	UndefineCursor(w WindowID)

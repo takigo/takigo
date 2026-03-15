@@ -15,9 +15,7 @@ import (
 	"github.com/msorc/takigo/focus"
 	"github.com/msorc/takigo/font"
 	"github.com/msorc/takigo/image"
-	"github.com/msorc/takigo/internal/xlib"
 	"github.com/msorc/takigo/platform"
-	x11platform "github.com/msorc/takigo/platform/x11"
 	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/selection"
 	"github.com/msorc/takigo/widget"
@@ -54,20 +52,15 @@ func NewApp(opts ...AppOption) (*App, error) {
 		opt(&cfg)
 	}
 
-	// Create platform-specific display server.
-	server, err := x11platform.NewDisplayServer(cfg.displayName)
+	// Create platform-specific display server, event parser, and font opener.
+	server, parser, fontOpener, err := platformInit(cfg.displayName)
 	if err != nil {
 		return nil, fmt.Errorf("takigo: %w", err)
 	}
 
-	// Initialize predefined atoms for platform package.
-	x11platform.InitPredefinedAtoms()
-
 	// Configure screen unit conversion from actual screen metrics.
-	// Read Xft.dpi from X resources and adjust WidthMM to match,
-	// mirroring Tk's ScalingCmd (tkCmds.c:1316).
 	defScreen := server.DefaultScreen()
-	xftDPI := parseXftDPI(server.XlibDisplay().ResourceManagerString())
+	xftDPI := parseXftDPI(server.ResourceManagerString())
 	screenunit.SetScreenDPI(server.ScreenWidth(defScreen), server.ScreenWidthMM(defScreen), xftDPI)
 
 	d, err := window.NewDisplay(server)
@@ -78,15 +71,13 @@ func NewApp(opts ...AppOption) (*App, error) {
 
 	root := window.CreateMainWindow(d, 0, 0, cfg.width, cfg.height)
 
-	// Initialize X Input Method for proper non-Latin keyboard handling.
+	// Initialize input method for proper non-Latin keyboard handling.
 	d.Server.InitIM(root.PlatformID)
 
 	dispatcher := event.NewDispatcher()
-	parser := x11platform.NewEventParser(server.XlibDisplay())
 	loop := event.NewLoop(server, parser, dispatcher)
 
 	colors := color.NewCache(d.Screen)
-	fontOpener := x11platform.NewFontOpener(server.XlibDisplay(), d.Screen, server.XlibDisplay().DefaultVisual(d.Screen), server.XlibDisplay().DefaultColormap(d.Screen))
 	fontReg := font.NewRegistry(fontOpener)
 
 	bindEng := bind.NewEngine(d)
@@ -105,29 +96,18 @@ func NewApp(opts ...AppOption) (*App, error) {
 		selMgr:     selMgr,
 	}
 
-	// Handle X11 selection events (clipboard serve + async paste response).
+	// Handle selection events (clipboard serve + async paste response).
 	loop.SetRawEventHandler(func(raw *platform.RawEvent) {
-		xev, ok := raw.Data.(*xlib.RawEvent)
-		if !ok {
-			return
-		}
 		switch raw.EventType {
 		case platform.SelectionRequestEvent:
-			req := xev.ParseSelectionRequestEvent()
-			selMgr.HandleSelectionRequest(
-				platform.WindowID(req.Requestor),
-				platform.AtomID(req.Selection),
-				platform.AtomID(req.Target),
-				platform.AtomID(req.Property),
-				platform.Timestamp(req.Time))
+			req := parser.ParseSelectionRequestEvent(raw)
+			selMgr.HandleSelectionRequest(req.Requestor, req.Selection, req.Target, req.Property, req.Time)
 		case platform.SelectionClearEvent:
-			clr := xev.ParseSelectionClearEvent()
-			selMgr.HandleSelectionClear(platform.AtomID(clr.Selection))
+			clr := parser.ParseSelectionClearEvent(raw)
+			selMgr.HandleSelectionClear(clr.Selection)
 		case platform.SelectionNotifyEvent:
-			ntf := xev.ParseSelectionNotifyEvent()
-			selMgr.HandleSelectionNotify(
-				platform.WindowID(ntf.Requestor),
-				platform.AtomID(ntf.Property))
+			ntf := parser.ParseSelectionNotifyEvent(raw)
+			selMgr.HandleSelectionNotify(ntf.Requestor, ntf.Property)
 		}
 	})
 

@@ -115,9 +115,9 @@ func NewCombobox(parent widget.Caregiver, name string, opts ...ComboboxOption) *
 	}
 
 	if c.CbState == ComboNormal {
-		win.SetCursor(cursor.XTerm)
+		win.SetCursor(uint(cursor.XTerm))
 	} else {
-		win.SetCursor(cursor.LeftPtr)
+		win.SetCursor(uint(cursor.LeftPtr))
 	}
 	bindCombobox(c, app)
 
@@ -682,9 +682,9 @@ func comboHandleCtrl(c *Combobox, app widget.AppContext, ev *event.Event) {
 func (c *Combobox) updateCursor(x int) {
 	arrowX := c.Win.Width - c.arrowWidth
 	if x >= arrowX || c.CbState != ComboNormal {
-		c.Win.SetCursor(cursor.LeftPtr)
+		c.Win.SetCursor(uint(cursor.LeftPtr))
 	} else {
-		c.Win.SetCursor(cursor.XTerm)
+		c.Win.SetCursor(uint(cursor.XTerm))
 	}
 }
 

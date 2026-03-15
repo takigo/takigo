@@ -3,6 +3,7 @@ package ttk
 import (
 	"fmt"
 
+	"github.com/msorc/takigo/cursor"
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/platform"
@@ -46,7 +47,7 @@ func NewSizegrip(parent widget.Caregiver, name string, opts ...SizegripOption) *
 	win.ReqWidth = gripSize
 	win.ReqHeight = gripSize
 
-	win.SetCursor(14) // XC_bottom_right_corner (resize cursor)
+	win.SetCursor(uint(cursor.BottomRightCorner))
 	bindSizegrip(sg, app)
 
 	return sg

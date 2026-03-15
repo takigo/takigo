@@ -3,6 +3,7 @@
 package busy
 
 import (
+	"github.com/msorc/takigo/cursor"
 	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/window"
@@ -56,8 +57,7 @@ func Hold(app widget.AppContext, target *window.Window) *BusyWin {
 	d.Flush()
 
 	// Set the busy cursor (watch cursor).
-	// X11 cursor font index 150 = "watch"
-	d.DefineCursorFromFont(overlay, 150)
+	d.SetCursorShape(overlay, uint(cursor.Watch))
 
 	return &BusyWin{
 		overlay: overlay,

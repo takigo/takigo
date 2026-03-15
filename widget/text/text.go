@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/msorc/takigo/color"
+	"github.com/msorc/takigo/cursor"
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/font"
 	"github.com/msorc/takigo/option"
@@ -163,7 +164,7 @@ func New(parent widget.Caregiver, name string, opts ...TextOption) *TextWidget {
 	}
 
 	w.Flags |= window.FlagFocusable
-	w.SetCursor(152) // XC_xterm — I-beam cursor for text
+	w.SetCursor(uint(cursor.XTerm)) // XC_xterm — I-beam cursor for text
 	bindText(t, app)
 
 	return t
@@ -224,7 +225,7 @@ func NewPeer(doc *Document, parent widget.Caregiver, name string, opts ...TextOp
 	}
 
 	w.Flags |= window.FlagFocusable
-	w.SetCursor(152)
+	w.SetCursor(uint(cursor.XTerm))
 	bindText(t, app)
 
 	// Register as a document listener so edits from other peers trigger a redraw.

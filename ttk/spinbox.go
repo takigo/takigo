@@ -5,6 +5,7 @@ import (
 	"math"
 	"strconv"
 
+	"github.com/msorc/takigo/cursor"
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/font"
@@ -132,7 +133,7 @@ func NewSpinbox(parent widget.Caregiver, name string, opts ...SpinboxOption) *Sp
 	s.computeGeometry()
 
 	win.Flags |= window.FlagFocusable
-	win.SetCursor(152) // XC_xterm
+	win.SetCursor(uint(cursor.XTerm))
 	bindSpinbox(s, app)
 
 	return s

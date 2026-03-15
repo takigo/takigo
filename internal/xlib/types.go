@@ -1,3 +1,5 @@
+//go:build linux || freebsd || openbsd || netbsd
+
 // Package xlib provides low-level cgo bindings to the X11 Xlib library.
 package xlib
 

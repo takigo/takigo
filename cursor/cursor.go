@@ -1,21 +1,25 @@
-// Package cursor defines standard cursor shapes.
-// Shape values correspond to X11 cursor font indices (X11/cursorfont.h).
+// Package cursor defines platform-neutral cursor shapes.
+// Each platform backend maps these to native cursor identifiers.
 package cursor
+
+// Shape represents a platform-neutral cursor shape.
+type Shape uint
 
 // Standard cursor shapes.
 const (
-	Arrow        uint = 2   // XC_arrow — standard left pointer
-	Crosshair    uint = 34  // XC_crosshair
-	Fleur        uint = 52  // XC_fleur — move cursor
-	Hand1        uint = 58  // XC_hand1
-	Hand2        uint = 60  // XC_hand2 — pointing hand (for links)
-	LeftPtr      uint = 68  // XC_left_ptr — default arrow
-	Plus         uint = 90  // XC_plus
-	QuestionArrow uint = 92 // XC_question_arrow — help cursor
-	SBHDoubleArrow uint = 108 // XC_sb_h_double_arrow — horizontal resize
-	SBVDoubleArrow uint = 116 // XC_sb_v_double_arrow — vertical resize
-	SizingAngle  uint = 120 // XC_sizing — corner resize
-	TopLeftArrow uint = 132 // XC_top_left_arrow
-	Watch        uint = 150 // XC_watch — busy
-	XTerm        uint = 152 // XC_xterm — text insertion
+	Arrow          Shape = iota // standard left pointer
+	Crosshair                  // crosshair
+	Fleur                      // move cursor (four-directional)
+	Hand1                      // hand
+	Hand2                      // pointing hand (for links)
+	LeftPtr                    // default arrow (alias for Arrow on most platforms)
+	Plus                       // plus sign
+	QuestionArrow              // help cursor
+	SBHDoubleArrow             // horizontal resize
+	SBVDoubleArrow             // vertical resize
+	SizingAngle                // corner resize
+	TopLeftArrow               // top-left arrow
+	Watch                      // busy/wait cursor
+	XTerm                      // text insertion I-beam
+	BottomRightCorner          // bottom-right corner resize
 )

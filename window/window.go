@@ -127,12 +127,13 @@ func (w *Window) IsMapped() bool {
 }
 
 // SetCursor sets the cursor for this window to the given font cursor shape.
-// Use cursor shape constants from the cursor package.
+// SetCursor sets the cursor shape for this window.
+// Use cursor.Shape constants from the cursor package.
 func (w *Window) SetCursor(shape uint) {
 	if w.PlatformID == 0 {
 		return
 	}
-	w.Display.Server.DefineCursorFromFont(w.PlatformID, shape)
+	w.Display.Server.SetCursorShape(w.PlatformID, shape)
 }
 
 // ResetCursor reverts this window to its parent's cursor.

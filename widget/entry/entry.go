@@ -4,6 +4,7 @@ package entry
 
 import (
 	"github.com/msorc/takigo/color"
+	"github.com/msorc/takigo/cursor"
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/font"
 	"github.com/msorc/takigo/option"
@@ -205,7 +206,7 @@ func New(parent widget.Caregiver, name string, opts ...EntryOption) *Entry {
 	}
 
 	w.Flags |= window.FlagFocusable
-	w.SetCursor(152) // XC_xterm — I-beam cursor for text
+	w.SetCursor(uint(cursor.XTerm))
 	bindEntry(e, app)
 
 	return e

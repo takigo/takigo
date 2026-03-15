@@ -22,10 +22,14 @@ func NewDisplayServer(name string) (*X11Display, error) {
 	return &X11Display{dpy: dpy}, nil
 }
 
-// XlibDisplay returns the underlying *xlib.Display for code that still
-// needs direct access during the migration period.
-func (s *X11Display) XlibDisplay() *xlib.Display {
-	return s.dpy
+// EventParser creates an X11EventParser for this display.
+func (s *X11Display) EventParser() *X11EventParser {
+	return NewEventParser(s.dpy)
+}
+
+// FontOpener creates an X11FontOpener for this display's default screen.
+func (s *X11Display) FontOpener(screen int) *X11FontOpener {
+	return NewFontOpener(s.dpy, screen, s.dpy.DefaultVisual(screen), s.dpy.DefaultColormap(screen))
 }
 
 // --- DisplayServer core methods ---
@@ -45,6 +49,7 @@ func (s *X11Display) ConnectionNumber() int           { return s.dpy.ConnectionN
 func (s *X11Display) Sync(discard bool)               { s.dpy.Sync(discard) }
 func (s *X11Display) Flush()                          { s.dpy.Flush() }
 func (s *X11Display) Pending() int                    { return s.dpy.Pending() }
+func (s *X11Display) ResourceManagerString() string    { return s.dpy.ResourceManagerString() }
 
 // --- WindowManager ---
 
@@ -270,8 +275,31 @@ func (s *X11Display) DefineCursor(w platform.WindowID, cursor platform.CursorID)
 	s.dpy.DefineCursor(xlib.Window(w), xlib.Cursor(cursor))
 }
 
-func (s *X11Display) DefineCursorFromFont(w platform.WindowID, shape uint) {
-	s.dpy.DefineCursorFromFont(xlib.Window(w), shape)
+// shapeToX11Cursor maps abstract cursor.Shape values to X11 cursorfont.h indices.
+var shapeToX11Cursor = [...]uint{
+	0:  2,   // Arrow → XC_arrow
+	1:  34,  // Crosshair → XC_crosshair
+	2:  52,  // Fleur → XC_fleur
+	3:  58,  // Hand1 → XC_hand1
+	4:  60,  // Hand2 → XC_hand2
+	5:  68,  // LeftPtr → XC_left_ptr
+	6:  90,  // Plus → XC_plus
+	7:  92,  // QuestionArrow → XC_question_arrow
+	8:  108, // SBHDoubleArrow → XC_sb_h_double_arrow
+	9:  116, // SBVDoubleArrow → XC_sb_v_double_arrow
+	10: 120, // SizingAngle → XC_sizing
+	11: 132, // TopLeftArrow → XC_top_left_arrow
+	12: 150, // Watch → XC_watch
+	13: 152, // XTerm → XC_xterm
+	14: 14,  // BottomRightCorner → XC_bottom_right_corner
+}
+
+func (s *X11Display) SetCursorShape(w platform.WindowID, shape uint) {
+	x11Shape := shape // default: pass through
+	if shape < uint(len(shapeToX11Cursor)) {
+		x11Shape = shapeToX11Cursor[shape]
+	}
+	s.dpy.DefineCursorFromFont(xlib.Window(w), x11Shape)
 }
 
 func (s *X11Display) UndefineCursor(w platform.WindowID) { s.dpy.UndefineCursor(xlib.Window(w)) }

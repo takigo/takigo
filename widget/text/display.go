@@ -6,7 +6,6 @@ import (
 	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/font"
-	"github.com/msorc/takigo/internal/xlib"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
 )
@@ -470,9 +469,9 @@ func (t *TextWidget) renderToPixmap() {
 				d.SetForeground(gc, seg.bg.Pixel)
 				if seg.bgStipple != 0 {
 					d.SetStipple(gc, seg.bgStipple)
-					d.SetFillStyle(gc, xlib.FillStippled)
+					d.SetFillStyle(gc, platform.FillStippled)
 					d.FillRectangle(pxDrawable, gc, segX, t.insetY+dl.y, uint(seg.width), uint(dl.height))
-					d.SetFillStyle(gc, xlib.FillSolid)
+					d.SetFillStyle(gc, platform.FillSolid)
 				} else {
 					d.FillRectangle(pxDrawable, gc, segX, t.insetY+dl.y, uint(seg.width), uint(dl.height))
 				}
@@ -480,9 +479,9 @@ func (t *TextWidget) renderToPixmap() {
 				// Stipple with no explicit background color: use black dots on normal bg.
 				d.SetForeground(gc, 0)
 				d.SetStipple(gc, seg.bgStipple)
-				d.SetFillStyle(gc, xlib.FillStippled)
+				d.SetFillStyle(gc, platform.FillStippled)
 				d.FillRectangle(pxDrawable, gc, segX, t.insetY+dl.y, uint(seg.width), uint(dl.height))
-				d.SetFillStyle(gc, xlib.FillSolid)
+				d.SetFillStyle(gc, platform.FillSolid)
 			}
 
 			// Draw text.

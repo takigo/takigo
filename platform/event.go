@@ -107,6 +107,31 @@ type PropertyEvent struct {
 	Atom        AtomID
 }
 
+// SelectionRequestParsed holds parsed selection request event data.
+type SelectionRequestParsed struct {
+	Owner     WindowID
+	Requestor WindowID
+	Selection AtomID
+	Target    AtomID
+	Property  AtomID
+	Time      Timestamp
+}
+
+// SelectionClearParsed holds parsed selection clear event data.
+type SelectionClearParsed struct {
+	Window    WindowID
+	Selection AtomID
+}
+
+// SelectionNotifyParsed holds parsed selection notify event data.
+type SelectionNotifyParsed struct {
+	Requestor WindowID
+	Selection AtomID
+	Target    AtomID
+	Property  AtomID
+	Time      Timestamp
+}
+
 // X11 event type constants. Platform backends use these for EventType.
 const (
 	KeyPressEvent         = 2
@@ -173,4 +198,13 @@ type EventParser interface {
 
 	// ParsePropertyEvent parses a raw event as a property event.
 	ParsePropertyEvent(ev *RawEvent) PropertyEvent
+
+	// ParseSelectionRequestEvent parses a raw event as a selection request.
+	ParseSelectionRequestEvent(ev *RawEvent) SelectionRequestParsed
+
+	// ParseSelectionClearEvent parses a raw event as a selection clear.
+	ParseSelectionClearEvent(ev *RawEvent) SelectionClearParsed
+
+	// ParseSelectionNotifyEvent parses a raw event as a selection notify.
+	ParseSelectionNotifyEvent(ev *RawEvent) SelectionNotifyParsed
 }

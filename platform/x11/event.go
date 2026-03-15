@@ -156,5 +156,39 @@ func (p *X11EventParser) ParsePropertyEvent(ev *platform.RawEvent) platform.Prop
 	}
 }
 
+func (p *X11EventParser) ParseSelectionRequestEvent(ev *platform.RawEvent) platform.SelectionRequestParsed {
+	raw := ev.Data.(*xlib.RawEvent)
+	s := raw.ParseSelectionRequestEvent()
+	return platform.SelectionRequestParsed{
+		Owner:     platform.WindowID(s.Owner),
+		Requestor: platform.WindowID(s.Requestor),
+		Selection: platform.AtomID(s.Selection),
+		Target:    platform.AtomID(s.Target),
+		Property:  platform.AtomID(s.Property),
+		Time:      platform.Timestamp(s.Time),
+	}
+}
+
+func (p *X11EventParser) ParseSelectionClearEvent(ev *platform.RawEvent) platform.SelectionClearParsed {
+	raw := ev.Data.(*xlib.RawEvent)
+	s := raw.ParseSelectionClearEvent()
+	return platform.SelectionClearParsed{
+		Window:    platform.WindowID(s.Window),
+		Selection: platform.AtomID(s.Selection),
+	}
+}
+
+func (p *X11EventParser) ParseSelectionNotifyEvent(ev *platform.RawEvent) platform.SelectionNotifyParsed {
+	raw := ev.Data.(*xlib.RawEvent)
+	s := raw.ParseSelectionNotifyEvent()
+	return platform.SelectionNotifyParsed{
+		Requestor: platform.WindowID(s.Requestor),
+		Selection: platform.AtomID(s.Selection),
+		Target:    platform.AtomID(s.Target),
+		Property:  platform.AtomID(s.Property),
+		Time:      platform.Timestamp(s.Time),
+	}
+}
+
 // Verify at compile time.
 var _ platform.EventParser = (*X11EventParser)(nil)

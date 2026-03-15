@@ -112,6 +112,14 @@ const (
 	JoinBevel = 2
 )
 
+// Fill style constants.
+const (
+	FillSolid          = 0
+	FillTiled          = 1
+	FillStippled       = 2
+	FillOpaqueStippled = 3
+)
+
 // Polygon shape constants.
 const (
 	PolygonComplex   = 0

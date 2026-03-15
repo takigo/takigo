@@ -1,3 +1,5 @@
+//go:build linux || freebsd || openbsd || netbsd
+
 package xlib
 
 // KeySymToRune converts an X11 KeySym to a Unicode rune.
