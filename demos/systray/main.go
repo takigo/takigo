@@ -1,3 +1,5 @@
+//go:build linux || freebsd || openbsd || netbsd
+
 // Demo: System tray and notification commands.
 // Ported from Tk's systray.tcl demo.
 package main

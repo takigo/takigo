@@ -1,3 +1,5 @@
+//go:build linux || freebsd || openbsd || netbsd
+
 // Phase 13 demo: dialogs, spinbox, busy window, system tray.
 package main
 

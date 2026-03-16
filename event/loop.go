@@ -6,6 +6,16 @@ import (
 	"github.com/msorc/takigo/platform"
 )
 
+// EventPumper is an optional interface that platform backends can implement
+// when they need to be periodically polled from the main goroutine.
+// macOS/Cocoa requires this because NSEvents must be pumped on the main thread.
+type EventPumper interface {
+	// PumpEvents processes pending platform events. Called from the main
+	// goroutine on each iteration of the event loop. Implementations should
+	// process all available events and return quickly.
+	PumpEvents()
+}
+
 // Loop is the main event loop, integrating platform events with idle callbacks,
 // timers, and cross-goroutine dispatching.
 type Loop struct {
@@ -13,6 +23,7 @@ type Loop struct {
 	parser     platform.EventParser
 	hasIM      bool
 	dispatcher *Dispatcher
+	pumper     EventPumper // non-nil on platforms needing main-thread event pumping
 
 	// Channels for the select-based event loop.
 	eventCh chan *platform.RawEvent // raw events from reader goroutine
@@ -31,7 +42,7 @@ type Loop struct {
 
 // NewLoop creates a new event loop for the given display server.
 func NewLoop(server platform.DisplayServer, parser platform.EventParser, dispatcher *Dispatcher) *Loop {
-	return &Loop{
+	l := &Loop{
 		server:     server,
 		parser:     parser,
 		hasIM:      server.HasIM(),
@@ -42,15 +53,24 @@ func NewLoop(server platform.DisplayServer, parser platform.EventParser, dispatc
 		mainCh:     make(chan func(), 64),
 		done:       make(chan struct{}),
 	}
+	// Check if the server needs main-thread event pumping (e.g. macOS/Cocoa).
+	if p, ok := server.(EventPumper); ok {
+		l.pumper = p
+	}
+	return l
 }
 
 // Run starts the event loop. It blocks until Quit is called.
 func (l *Loop) Run() {
-	// Start event reader goroutine.
+	if l.pumper != nil {
+		l.runPumpMode()
+		return
+	}
+
+	// FD-based mode (X11): dedicated goroutine blocks on NextEvent.
 	go l.readEvents()
 
 	for {
-		// Drain idle queue first (before blocking).
 		l.processIdleQueue()
 
 		select {
@@ -70,6 +90,62 @@ func (l *Loop) Run() {
 		case fn := <-l.mainCh:
 			fn()
 			l.server.Flush()
+		}
+	}
+}
+
+// runPumpMode runs the event loop in pump mode, used on platforms (macOS)
+// where events must be pumped from the main thread. Instead of blocking
+// on NextEvent in a goroutine, we periodically pump the platform event
+// queue from the main goroutine and use a short-timeout select.
+func (l *Loop) runPumpMode() {
+	// Start the reader goroutine — it calls NextEvent() which polls
+	// the C-level ring buffer. PumpEvents() on the main thread feeds
+	// that buffer via NSView callbacks.
+	go l.readEvents()
+
+	// Use a ticker to drive event pumping. 2ms gives responsive UI
+	// without excessive CPU usage.
+	ticker := time.NewTicker(2 * time.Millisecond)
+	defer ticker.Stop()
+
+	for {
+		l.processIdleQueue()
+
+		select {
+		case <-l.done:
+			return
+
+		case raw := <-l.eventCh:
+			l.handleRaw(raw)
+
+		case fn := <-l.idleCh:
+			l.idleQueue = append(l.idleQueue, fn)
+
+		case fn := <-l.timerCh:
+			fn()
+			l.server.Flush()
+
+		case fn := <-l.mainCh:
+			fn()
+			l.server.Flush()
+
+		case <-ticker.C:
+			// Pump platform events from the main thread.
+			// This processes NSEvents on macOS, which triggers callbacks
+			// that post to eventCh.
+			l.pumper.PumpEvents()
+
+			// Drain any events that were posted during pumping.
+			for {
+				select {
+				case raw := <-l.eventCh:
+					l.handleRaw(raw)
+				default:
+					goto pumpDone
+				}
+			}
+		pumpDone:
 		}
 	}
 }
@@ -146,6 +222,10 @@ func (l *Loop) RunOnMain(fn func()) {
 // This implements nested event loops needed for modal dialogs (like Tcl's vwait).
 // It must be called from within a handler running on the main goroutine.
 func (l *Loop) RunNested(done <-chan struct{}) {
+	if l.pumper != nil {
+		l.runNestedPumpMode(done)
+		return
+	}
 	for {
 		l.processIdleQueue()
 
@@ -169,6 +249,43 @@ func (l *Loop) RunNested(done <-chan struct{}) {
 		case fn := <-l.mainCh:
 			fn()
 			l.server.Flush()
+		}
+	}
+}
+
+func (l *Loop) runNestedPumpMode(done <-chan struct{}) {
+	ticker := time.NewTicker(2 * time.Millisecond)
+	defer ticker.Stop()
+
+	for {
+		l.processIdleQueue()
+
+		select {
+		case <-done:
+			return
+		case <-l.done:
+			return
+		case raw := <-l.eventCh:
+			l.handleRaw(raw)
+		case fn := <-l.idleCh:
+			l.idleQueue = append(l.idleQueue, fn)
+		case fn := <-l.timerCh:
+			fn()
+			l.server.Flush()
+		case fn := <-l.mainCh:
+			fn()
+			l.server.Flush()
+		case <-ticker.C:
+			l.pumper.PumpEvents()
+			for {
+				select {
+				case raw := <-l.eventCh:
+					l.handleRaw(raw)
+				default:
+					goto nestedPumpDone
+				}
+			}
+		nestedPumpDone:
 		}
 	}
 }
