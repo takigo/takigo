@@ -136,6 +136,7 @@ func NewButton(parent widget.Caregiver, name string, opts ...ButtonOption) *Butt
 	}
 
 	// Button-specific bindings.
+	bindTtkHover(&b.TtkWidget, app)
 	bindTtkButton(b, app)
 
 	return b

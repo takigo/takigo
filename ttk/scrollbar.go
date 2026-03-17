@@ -81,7 +81,7 @@ func NewScrollbar(parent widget.Caregiver, name string, opts ...ScrollbarOption)
 	}
 
 	InitTtkWidget(&s.TtkWidget, win, app, styleName)
-	// No layout registered for scrollbar styles → TtkWidget.Display() is a no-op.
+	s.DisplayFunc = s.Display
 
 	if s.Orient == Vertical {
 		win.ReqWidth = s.sbWidth
@@ -91,6 +91,7 @@ func NewScrollbar(parent widget.Caregiver, name string, opts ...ScrollbarOption)
 		win.ReqHeight = s.sbWidth
 	}
 
+	bindTtkHover(&s.TtkWidget, app)
 	bindTtkScrollbar(s, app)
 	return s
 }

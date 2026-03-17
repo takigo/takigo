@@ -75,7 +75,7 @@ func NewRadiobutton(parent widget.Caregiver, name string, opts ...RadiobuttonOpt
 	r.Variable = widget.NewVariable("")
 
 	InitTtkWidget(&r.TtkWidget, win, app, "TRadiobutton")
-	// No layout registered for TRadiobutton → TtkWidget.Display() is a no-op.
+	r.DisplayFunc = r.Display
 
 	for _, opt := range opts {
 		opt(r)
@@ -319,13 +319,15 @@ func bindTtkRadiobutton(r *Radiobutton, app widget.AppContext) {
 		}
 	})
 
-	// Enter → redraw with hover state (bindTtkCommon updates state; we just redisplay).
+	// Enter → set hover state and redraw.
 	app.Dispatcher().Bind(win.PlatformID, event.EnterMask, func(ev *event.Event) {
+		r.ChangeState(StateHover|StateActive, 0)
 		r.Display()
 	})
 
-	// Leave → redraw without hover state.
+	// Leave → clear hover state and redraw.
 	app.Dispatcher().Bind(win.PlatformID, event.LeaveMask, func(ev *event.Event) {
+		r.ChangeState(0, StateHover|StateActive|StatePressed)
 		r.Display()
 	})
 

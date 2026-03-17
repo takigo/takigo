@@ -28,6 +28,11 @@ type TtkWidget struct {
 
 	NeedRedraw bool
 	Destroyed  bool
+
+	// DisplayFunc is the concrete widget's Display method.
+	// Set by widgets with custom Display (notebook, scrollbar, etc.)
+	// so ChangeState calls the right method.
+	DisplayFunc func()
 }
 
 // InitTtkWidget sets up a TTK widget: resolves style, creates layout, binds events.
@@ -123,7 +128,11 @@ func (w *TtkWidget) ChangeState(set, clear State) {
 	old := w.State
 	w.State = (w.State & ^clear) | set
 	if w.State != old {
-		w.Display()
+		if w.DisplayFunc != nil {
+			w.DisplayFunc()
+		} else {
+			w.Display()
+		}
 	}
 }
 
@@ -208,6 +217,22 @@ func bindTtkCommon(w *TtkWidget, app widget.AppContext) {
 		}
 	})
 
+	// FocusIn → +StateFocus.
+	app.Dispatcher().Bind(win.PlatformID, event.FocusChangeMask, func(ev *event.Event) {
+		if ev.Type == event.FocusInType {
+			w.ChangeState(StateFocus, 0)
+		} else if ev.Type == event.FocusOutType {
+			w.ChangeState(0, StateFocus)
+		}
+	})
+}
+
+// bindTtkHover binds Enter/Leave events to set hover state.
+// Only interactive widgets (buttons, scrollbars, etc.) should call this.
+// Container widgets (frames, notebooks, etc.) should NOT have hover effects.
+func bindTtkHover(w *TtkWidget, app widget.AppContext) {
+	win := w.Win
+
 	// Enter → +StateHover +StateActive.
 	app.Dispatcher().Bind(win.PlatformID, event.EnterMask, func(ev *event.Event) {
 		w.ChangeState(StateHover|StateActive, 0)
@@ -216,14 +241,5 @@ func bindTtkCommon(w *TtkWidget, app widget.AppContext) {
 	// Leave → -StateHover -StateActive -StatePressed.
 	app.Dispatcher().Bind(win.PlatformID, event.LeaveMask, func(ev *event.Event) {
 		w.ChangeState(0, StateHover|StateActive|StatePressed)
-	})
-
-	// FocusIn → +StateFocus.
-	app.Dispatcher().Bind(win.PlatformID, event.FocusChangeMask, func(ev *event.Event) {
-		if ev.Type == event.FocusInType {
-			w.ChangeState(StateFocus, 0)
-		} else if ev.Type == event.FocusOutType {
-			w.ChangeState(0, StateFocus)
-		}
 	})
 }

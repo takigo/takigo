@@ -86,6 +86,7 @@ func NewMenubutton(parent widget.Caregiver, name string, opts ...MenubuttonOptio
 	mb.Font, _ = app.FontRegistry().Get(font.TkDefaultFont)
 
 	InitTtkWidget(&mb.TtkWidget, win, app, "TMenubutton")
+	mb.DisplayFunc = mb.Display
 
 	// Bind label element to this widget.
 	if mb.Theme != nil {
@@ -140,6 +141,7 @@ func NewMenubutton(parent widget.Caregiver, name string, opts ...MenubuttonOptio
 		}
 	}
 
+	bindTtkHover(&mb.TtkWidget, app)
 	bindMenubutton(mb, app)
 
 	return mb

@@ -65,7 +65,7 @@ func NewCheckbutton(parent widget.Caregiver, name string, opts ...CheckbuttonOpt
 	c.Font, _ = app.FontRegistry().Get(font.TkDefaultFont)
 
 	InitTtkWidget(&c.TtkWidget, win, app, "TCheckbutton")
-	// No layout registered for TCheckbutton → TtkWidget.Display() is a no-op.
+	c.DisplayFunc = c.Display
 
 	for _, opt := range opts {
 		opt(c)
@@ -324,13 +324,15 @@ func bindTtkCheckbutton(c *Checkbutton, app widget.AppContext) {
 		}
 	})
 
-	// Enter → redraw with hover state (bindTtkCommon updates state; we just redisplay).
+	// Enter → set hover state and redraw.
 	app.Dispatcher().Bind(win.PlatformID, event.EnterMask, func(ev *event.Event) {
+		c.ChangeState(StateHover|StateActive, 0)
 		c.Display()
 	})
 
-	// Leave → redraw without hover state.
+	// Leave → clear hover state and redraw.
 	app.Dispatcher().Bind(win.PlatformID, event.LeaveMask, func(ev *event.Event) {
+		c.ChangeState(0, StateHover|StateActive|StatePressed)
 		c.Display()
 	})
 
