@@ -85,6 +85,7 @@ func NewProgressbar(parent widget.Caregiver, name string, opts ...ProgressbarOpt
 	}
 
 	InitTtkWidget(&p.TtkWidget, win, app, styleName)
+	p.DisplayFunc = p.Display
 
 	// Override requested size.
 	if p.Orient == Horizontal {
@@ -225,24 +226,32 @@ func (p *Progressbar) Start(interval time.Duration) {
 		if !p.animating || p.Destroyed {
 			return
 		}
-		// Advance phase.
-		troughW := p.Win.Width - 2
-		barLen := troughW / 5
-		if barLen < 20 {
-			barLen = 20
-		}
-		maxPhase := troughW - barLen
-		if maxPhase < 1 {
-			maxPhase = 1
-		}
+		if p.Mode == ProgressDeterminate {
+			// Advance value, wrapping at maximum.
+			p.Value += 1
+			if p.Value >= p.Maximum {
+				p.Value = 0
+			}
+		} else {
+			// Advance phase for bouncing bar.
+			troughW := p.Win.Width - 2
+			barLen := troughW / 5
+			if barLen < 20 {
+				barLen = 20
+			}
+			maxPhase := troughW - barLen
+			if maxPhase < 1 {
+				maxPhase = 1
+			}
 
-		p.phase += p.phaseDir * 3
-		if p.phase >= maxPhase {
-			p.phase = maxPhase
-			p.phaseDir = -1
-		} else if p.phase <= 0 {
-			p.phase = 0
-			p.phaseDir = 1
+			p.phase += p.phaseDir * 3
+			if p.phase >= maxPhase {
+				p.phase = maxPhase
+				p.phaseDir = -1
+			} else if p.phase <= 0 {
+				p.phase = 0
+				p.phaseDir = 1
+			}
 		}
 		p.Display()
 		p.App.After(interval, tick)
