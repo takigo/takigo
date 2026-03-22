@@ -2,51 +2,49 @@
 
 ## Critical — Destroy Cleanup Gaps
 
-### 1. Combobox missing Destroy() override
+### ~~1. Combobox missing Destroy() override~~ ✅ Fixed (e80a3dc)
 **File:** `ttk/combobox.go`
-No Destroy() method — dropdown window, dispatcher bindings, and pixmap leak when widget destroyed.
-TtkWidget.Destroy() doesn't call closeDropdown().
+Added `Destroy()` that calls `closeDropdown()` then `TtkWidget.Destroy()`.
 
-### 2. TTK Checkbutton Variable leak
+### ~~2. TTK Checkbutton Variable leak~~ ✅ Fixed (e80a3dc)
 **File:** `ttk/checkbutton.go`
-No Destroy() override — Variable OnChange callback fires after destroy, accesses dead widget state.
+Added `Destroy()` that unsubscribes Variable OnChange callback.
 
-### 3. TTK Toggleswitch Variable leak
+### ~~3. TTK Toggleswitch Variable leak~~ ✅ Fixed (e80a3dc)
 **File:** `ttk/toggleswitch.go`
-No Destroy() override — same issue as checkbutton.
+Added `Destroy()` that unsubscribes Variable OnChange callback.
 
-### 4. Label TextVariable leak
-**File:** `widget/label/label.go:488-494`
-Destroy() doesn't call `unsub()` — TextVariable callback fires on dead widget.
+### ~~4. Label TextVariable leak~~ ✅ Fixed (e80a3dc)
+**File:** `widget/label/label.go`
+`Destroy()` now calls `unsub()`.
 
-### 5. Systray dispatcher leak
-**File:** `systray/systray.go:131-137`
-Destroy() calls DestroyWindow but doesn't unbind from event dispatcher.
+### ~~5. Systray dispatcher leak~~ ✅ Fixed (e80a3dc)
+**File:** `systray/systray.go`
+`Destroy()` now calls `Unbind(t.win)` before `DestroyWindow`.
 
 ## Important — Integer Underflow
 
-`availW = width - 2*inset - 2*padX` can go negative in small windows:
-- `widget/label/label.go:318-319`
-- `widget/button/button.go:278-279`
-- `widget/checkbutton/checkbutton.go:303-304`
-- `widget/message/message.go:319-320`
-- `widget/text/text.go:576`
-
-Should clamp to 0 minimum before use.
+### ~~Layout underflow~~ ✅ Fixed (e80a3dc)
+All `availW`/`availH` calculations now use `max(0, ...)`:
+- `widget/label/label.go`
+- `widget/button/button.go`
+- `widget/checkbutton/checkbutton.go`
+- `widget/message/message.go`
+- `widget/text/text.go`
 
 ## Medium — Platform Layer
 
-### 6. PropertyNotifyEvent not dispatched
-**File:** `event/event.go:169`
-Event type defined but not converted — property change handlers never fire.
+### ~~6. PropertyNotifyEvent not dispatched~~ ✅ Fixed (f4abd6d)
+**File:** `event/event.go`
+Added `case platform.PropertyNotifyEvent` to `FromRawEventIM`; added `Atom` field to `Event`.
 
-### 7. PropertyEvent.Atom not populated
-**File:** `platform/x11/event.go:154`
-Atom field missing from parsed event.
+### ~~7. PropertyEvent.Atom not populated~~ ✅ Fixed (f4abd6d)
+**File:** `platform/x11/event.go`, `internal/xlib/event.go`
+Added `xlib.ParsePropertyEvent()` using C accessors; X11 parser now populates `Atom`.
 
-### 8. Windows missing compile-time interface check
+### ~~8. Windows missing compile-time interface check~~ ✅ Fixed (f4abd6d)
 **File:** `platform/windows/display.go`
-No `var _ platform.DisplayServer = (*WindowsDisplay)(nil)` assertion.
+Added `var _ platform.DisplayServer = (*WindowsDisplay)(nil)`.
 
 ## Minor — Test Coverage Gaps
 
