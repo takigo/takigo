@@ -230,6 +230,9 @@ func (nb *Notebook) Display() {
 		nb.pixmapW = width
 		nb.pixmapH = height
 	}
+	if nb.pixmap == 0 {
+		return
+	}
 
 	pixDrawable := platform.PixmapDrawable(nb.pixmap)
 

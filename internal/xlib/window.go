@@ -125,9 +125,11 @@ func (d *Display) DefineCursor(w Window, cursor Cursor) {
 }
 
 // DefineCursorFromFont creates a cursor from the font and sets it on a window.
+// The cursor is freed immediately after assignment since X11 ref-counts it.
 func (d *Display) DefineCursorFromFont(w Window, shape uint) {
 	cursor := d.CreateFontCursor(shape)
 	d.DefineCursor(w, cursor)
+	d.FreeCursor(cursor)
 }
 
 // UndefineCursor reverts a window to its parent's cursor.

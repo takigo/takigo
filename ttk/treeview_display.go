@@ -35,6 +35,9 @@ func (tv *Treeview) Display() {
 		tv.pixmapW = width
 		tv.pixmapH = height
 	}
+	if tv.pixmap == 0 {
+		return
+	}
 
 	pixDrawable := platform.PixmapDrawable(tv.pixmap)
 

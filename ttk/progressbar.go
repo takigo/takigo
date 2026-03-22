@@ -127,6 +127,9 @@ func (p *Progressbar) Display() {
 		p.pixmapW = width
 		p.pixmapH = height
 	}
+	if p.pixmap == 0 {
+		return
+	}
 
 	pixDrawable := platform.PixmapDrawable(p.pixmap)
 

@@ -185,6 +185,9 @@ func (c *Canvas) Display() {
 		c.pixmapW = pixW
 		c.pixmapH = pixH
 	}
+	if c.pixmap == 0 {
+		return
+	}
 
 	pxDrawable := platform.PixmapDrawable(c.pixmap)
 	gc := w.GC

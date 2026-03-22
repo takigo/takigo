@@ -169,6 +169,9 @@ func (c *Combobox) Display() {
 		c.pixmapW = width
 		c.pixmapH = height
 	}
+	if c.pixmap == 0 {
+		return
+	}
 
 	pixDrawable := platform.PixmapDrawable(c.pixmap)
 
@@ -429,8 +432,9 @@ func (c *Combobox) closeDropdown() {
 	}
 
 	if c.dropWin != nil {
+		c.App.Dispatcher().Unbind(c.dropWin.PlatformID)
 		d.UnmapWindow(c.dropWin.PlatformID)
-		d.DestroyWindow(c.dropWin.PlatformID)
+		window.DestroyWindow(c.dropWin)
 		c.dropWin = nil
 	}
 }

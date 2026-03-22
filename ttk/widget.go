@@ -105,6 +105,9 @@ func (w *TtkWidget) Display() {
 		w.pixmapW = width
 		w.pixmapH = height
 	}
+	if w.pixmap == 0 {
+		return
+	}
 
 	pixDrawable := platform.PixmapDrawable(w.pixmap)
 

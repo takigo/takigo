@@ -304,6 +304,9 @@ func (t *TextWidget) Display() {
 		t.pixmapW = winW
 		t.pixmapH = winH
 	}
+	if t.pixmap == 0 {
+		return
+	}
 
 	// Render content to pixmap.
 	t.renderToPixmap()

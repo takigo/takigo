@@ -186,6 +186,9 @@ func (s *Square) Display() {
 
 	if s.DoubleBuffer {
 		pixmap = d.CreatePixmap(w.Drawable(), uint(w.Width), uint(w.Height), uint(w.Depth))
+		if pixmap == 0 {
+			return
+		}
 		drawable = platform.DrawableID(pixmap)
 	} else {
 		drawable = w.Drawable()

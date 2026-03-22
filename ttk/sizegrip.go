@@ -82,6 +82,9 @@ func (sg *Sizegrip) Display() {
 		sg.pixmapW = width
 		sg.pixmapH = height
 	}
+	if sg.pixmap == 0 {
+		return
+	}
 
 	pixDrawable := platform.PixmapDrawable(sg.pixmap)
 

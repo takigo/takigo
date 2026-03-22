@@ -4,6 +4,7 @@ package dialog
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/geometry/pack"
@@ -42,6 +43,7 @@ type Dialog struct {
 	minHeight   int
 	result      DialogResult
 	done        chan struct{}
+	closeOnce   sync.Once
 	escBound    bool
 	returnBound bool
 }
@@ -142,20 +144,17 @@ func (d *Dialog) Run() DialogResult {
 
 // Close sets the result, hides the dialog, and signals done.
 func (d *Dialog) Close(result DialogResult) {
-	d.result = result
+	d.closeOnce.Do(func() {
+		d.result = result
 
-	// Unregister the close handler.
-	d.App.UnregisterCloseHandler(d.Toplevel.Window().PlatformID)
+		// Unregister the close handler.
+		d.App.UnregisterCloseHandler(d.Toplevel.Window().PlatformID)
 
-	d.Toplevel.Hide()
-	d.Toplevel.Destroy()
+		d.Toplevel.Hide()
+		d.Toplevel.Destroy()
 
-	select {
-	case <-d.done:
-		// Already closed.
-	default:
 		close(d.done)
-	}
+	})
 }
 
 // centerOverParent positions the dialog centered over the parent window.

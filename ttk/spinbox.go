@@ -358,6 +358,9 @@ func (s *Spinbox) Display() {
 		s.pixmapW = width
 		s.pixmapH = height
 	}
+	if s.pixmap == 0 {
+		return
+	}
 
 	pixDrawable := platform.PixmapDrawable(s.pixmap)
 
