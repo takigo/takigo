@@ -573,7 +573,7 @@ func (t *TextWidget) XViewMoveTo(fraction float64) {
 // XViewScroll scrolls horizontally.
 func (t *TextWidget) XViewScroll(count int, pages bool) {
 	if pages {
-		availW := t.Win.Width - 2*t.insetX
+		availW := max(0, t.Win.Width-2*t.insetX)
 		count *= availW
 	} else {
 		count *= t.Font.MeasureString("0")

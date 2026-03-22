@@ -315,8 +315,8 @@ func (l *Label) Display() {
 
 	// Draw content (image and/or text).
 	inset := l.BorderWidth + l.HighlightWidth
-	availW := w.Width - 2*inset - 2*l.PadX
-	availH := w.Height - 2*inset - 2*l.PadY
+	availW := max(0, w.Width-2*inset-2*l.PadX)
+	availH := max(0, w.Height-2*inset-2*l.PadY)
 	frameX := inset + l.PadX
 	frameY := inset + l.PadY
 
@@ -484,11 +484,15 @@ func (l *Label) SetImage(img widget.WidgetImage) {
 	l.Display()
 }
 
-// Destroy cleans up the label.
+// Destroy cleans up the label, unsubscribing from any linked TextVariable.
 func (l *Label) Destroy() {
 	if l.Destroyed {
 		return
 	}
 	l.Destroyed = true
+	if l.unsub != nil {
+		l.unsub()
+		l.unsub = nil
+	}
 	window.DestroyWindow(l.Win)
 }

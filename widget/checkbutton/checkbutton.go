@@ -300,8 +300,8 @@ func (c *Checkbutton) Display() {
 	if !c.IndicatorOn {
 		inset = 2 + c.HighlightWidth
 	}
-	availW := w.Width - 2*inset - 2*c.PadX
-	availH := w.Height - 2*inset - 2*c.PadY
+	availW := max(0, w.Width-2*inset-2*c.PadX)
+	availH := max(0, w.Height-2*inset-2*c.PadY)
 	frameX := inset + c.PadX
 	frameY := inset + c.PadY
 

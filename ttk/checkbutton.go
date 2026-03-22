@@ -366,3 +366,12 @@ func bindTtkCheckbutton(c *Checkbutton, app widget.AppContext) {
 		}
 	})
 }
+
+// Destroy cleans up the checkbutton, unsubscribing from any linked Variable.
+func (c *Checkbutton) Destroy() {
+	if c.unsub != nil {
+		c.unsub()
+		c.unsub = nil
+	}
+	c.TtkWidget.Destroy()
+}

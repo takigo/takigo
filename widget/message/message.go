@@ -316,8 +316,8 @@ func (m *Message) Display() {
 	}
 
 	inset := m.BorderWidth + m.HighlightWidth
-	availW := w.Width - 2*inset - 2*m.PadX
-	availH := w.Height - 2*inset - 2*m.PadY
+	availW := max(0, w.Width-2*inset-2*m.PadX)
+	availH := max(0, w.Height-2*inset-2*m.PadY)
 	frameX := inset + m.PadX
 	frameY := inset + m.PadY
 

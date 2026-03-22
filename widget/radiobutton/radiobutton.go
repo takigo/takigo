@@ -299,8 +299,8 @@ func (r *Radiobutton) Display() {
 	if !r.IndicatorOn {
 		inset = 2 + r.HighlightWidth
 	}
-	availW := w.Width - 2*inset - 2*r.PadX
-	availH := w.Height - 2*inset - 2*r.PadY
+	availW := max(0, w.Width-2*inset-2*r.PadX)
+	availH := max(0, w.Height-2*inset-2*r.PadY)
 	frameX := inset + r.PadX
 	frameY := inset + r.PadY
 

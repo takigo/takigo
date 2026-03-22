@@ -275,8 +275,8 @@ func (b *Button) Display() {
 
 	// Draw content (image and/or text).
 	inset := b.BorderWidth + b.HighlightWidth
-	availW := w.Width - 2*inset - 2*b.PadX
-	availH := w.Height - 2*inset - 2*b.PadY
+	availW := max(0, w.Width-2*inset-2*b.PadX)
+	availH := max(0, w.Height-2*inset-2*b.PadY)
 	frameX := inset + b.PadX
 	frameY := inset + b.PadY
 

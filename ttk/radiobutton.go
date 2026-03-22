@@ -391,15 +391,12 @@ func drawDiamond3DRadio(d platform.DisplayServer, drawable platform.DrawableID, 
 	}
 }
 
-// Destroy cleans up the radiobutton.
+// Destroy cleans up the radiobutton, unsubscribing from any linked Variable.
 func (r *Radiobutton) Destroy() {
-	if r.Destroyed {
-		return
-	}
-	r.Destroyed = true
 	if r.unsub != nil {
 		r.unsub()
+		r.unsub = nil
 	}
-	window.DestroyWindow(r.Win)
+	r.TtkWidget.Destroy()
 }
 

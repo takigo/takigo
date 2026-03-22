@@ -255,3 +255,12 @@ func bindToggleswitch(ts *Toggleswitch, app widget.AppContext) {
 		}
 	})
 }
+
+// Destroy cleans up the toggleswitch, unsubscribing from any linked Variable.
+func (ts *Toggleswitch) Destroy() {
+	if ts.unsub != nil {
+		ts.unsub()
+		ts.unsub = nil
+	}
+	ts.TtkWidget.Destroy()
+}

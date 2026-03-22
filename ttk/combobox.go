@@ -439,6 +439,12 @@ func (c *Combobox) closeDropdown() {
 	}
 }
 
+// Destroy cleans up the combobox, closing any open dropdown.
+func (c *Combobox) Destroy() {
+	c.closeDropdown()
+	c.TtkWidget.Destroy()
+}
+
 // displayDropdown draws the dropdown list contents.
 func (c *Combobox) displayDropdown() {
 	if c.dropWin == nil || !c.dropOpen {

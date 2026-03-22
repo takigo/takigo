@@ -127,11 +127,12 @@ func (t *TrayIcon) SetTooltip(s string) {
 	t.display.ChangeProperty(t.win, netWmName, utf8Atom, 8, platform.PropModeReplace, data, len(data))
 }
 
-// Destroy removes the tray icon.
+// Destroy removes the tray icon and unbinds its event handlers.
 func (t *TrayIcon) Destroy() {
 	if t.win == platform.WindowID(0) {
 		return
 	}
+	t.app.Dispatcher().Unbind(t.win)
 	t.display.DestroyWindow(t.win)
 	t.win = platform.WindowID(0)
 }
