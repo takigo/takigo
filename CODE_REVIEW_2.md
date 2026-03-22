@@ -48,8 +48,18 @@ Added `var _ platform.DisplayServer = (*WindowsDisplay)(nil)`.
 
 ## Minor — Test Coverage Gaps
 
-Still untested: `geometry/place/`, `focus/`, `grab/`, `selection/`, `wm/`, `image/`, `cursor/`
+### ~~Pure-Go unit tests~~ ✅ Added
+- `wm/wm_test.go` — `ParseGeometry()` table-driven tests (14 cases)
+- `image/image_test.go` — Registry operations (register, get, overwrite, unregister, destroyAll)
+- `grab/grab_test.go` — `State()` tree walk, `ShouldRedirect`, `RedirectTarget` (8 tests)
+- `focus/focus_test.go` — `flattenTree`, `findToplevel`, `nextFocusable` forward/backward/wrap (9 tests)
+
+### Remaining (X11-dependent, need display)
+`geometry/place/`, `selection/`, `cursor/`
 
 ## Minor — Consistency
 
-Option function naming: some use `FontOpt()`, others `Font()` — inconsistent `Opt` suffix.
+Option function naming: `Opt` suffix is used for enum/complex types (`FontOpt`, `ImageOpt`,
+`JustifyOpt`, `ReliefOpt`, `CompoundOpt`, `WrapModeOpt`), while simple value setters omit it
+(`Text`, `Background`, `Width`, `PadX`). Pattern is semi-intentional and consistent within
+categories. Not worth a bulk rename — ~100+ call sites across codebase and demos.
