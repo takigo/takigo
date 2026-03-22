@@ -5,6 +5,7 @@ import (
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/widget"
+	"github.com/msorc/takigo/widget/entryutil"
 )
 
 func bindEntry(e *Entry, app widget.AppContext) {
@@ -79,7 +80,7 @@ func bindEntry(e *Entry, app widget.AppContext) {
 		switch ev.KeySym {
 		case platform.XK_Left:
 			if ctrl {
-				newPos := wordStart(e.text, e.InsertPos)
+				newPos := entryutil.WordStart(e.text, e.InsertPos)
 				moveCursor(e, newPos, shift)
 			} else {
 				moveCursor(e, e.InsertPos-1, shift)
@@ -87,7 +88,7 @@ func bindEntry(e *Entry, app widget.AppContext) {
 
 		case platform.XK_Right:
 			if ctrl {
-				newPos := wordEnd(e.text, e.InsertPos)
+				newPos := entryutil.WordEnd(e.text, e.InsertPos)
 				moveCursor(e, newPos, shift)
 			} else {
 				moveCursor(e, e.InsertPos+1, shift)

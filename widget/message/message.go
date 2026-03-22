@@ -322,7 +322,7 @@ func (m *Message) Display() {
 	frameY := inset + m.PadY
 
 	// Anchor the text block within the available area.
-	textX, textY := anchorText(m.Anchor, frameX, frameY, availW, availH, m.msgWidth, m.msgHeight)
+	textX, textY := widget.AnchorText(m.Anchor, frameX, frameY, availW, availH, m.msgWidth, m.msgHeight)
 
 	metrics := m.Font.Metrics()
 	if df, ok := m.Font.(platform.DrawableFont); ok {
@@ -347,31 +347,6 @@ func (m *Message) Display() {
 	d.Flush()
 }
 
-// anchorText computes the x,y position for text within a frame.
-func anchorText(a option.Anchor, frameX, frameY, frameW, frameH, textW, textH int) (int, int) {
-	var x, y int
-	switch a {
-	case option.AnchorNW:
-		x, y = frameX, frameY
-	case option.AnchorN:
-		x, y = frameX+(frameW-textW)/2, frameY
-	case option.AnchorNE:
-		x, y = frameX+frameW-textW, frameY
-	case option.AnchorW:
-		x, y = frameX, frameY+(frameH-textH)/2
-	case option.AnchorCenter:
-		x, y = frameX+(frameW-textW)/2, frameY+(frameH-textH)/2
-	case option.AnchorE:
-		x, y = frameX+frameW-textW, frameY+(frameH-textH)/2
-	case option.AnchorSW:
-		x, y = frameX, frameY+frameH-textH
-	case option.AnchorS:
-		x, y = frameX+(frameW-textW)/2, frameY+frameH-textH
-	case option.AnchorSE:
-		x, y = frameX+frameW-textW, frameY+frameH-textH
-	}
-	return x, y
-}
 
 // Configure applies options to the message.
 func (m *Message) Configure(opts ...option.Option) {

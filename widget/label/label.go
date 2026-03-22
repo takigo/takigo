@@ -346,12 +346,12 @@ func (l *Label) Display() {
 		// Image only.
 		imgW := l.Img.Width()
 		imgH := l.Img.Height()
-		ix, iy := anchorText(l.Anchor, frameX, frameY, availW, availH, imgW, imgH)
+		ix, iy := widget.AnchorText(l.Anchor, frameX, frameY, availW, availH, imgW, imgH)
 		l.Img.Draw(w.Display.Server, w.Drawable(), gc,
 			w.Depth, 0, 0, imgW, imgH, ix, iy, bgPixel)
 	} else if hasText {
 		// Text only — handle multiline (with optional wraplength).
-		textX, textY := anchorText(l.Anchor, frameX, frameY,
+		textX, textY := widget.AnchorText(l.Anchor, frameX, frameY,
 			availW, availH, l.textWidth, l.textHeight)
 		m := l.Font.Metrics()
 		if df, ok := l.Font.(platform.DrawableFont); ok {
@@ -378,31 +378,6 @@ func (l *Label) Display() {
 	d.Flush()
 }
 
-// anchorText computes the x,y position for text within a frame.
-func anchorText(a option.Anchor, frameX, frameY, frameW, frameH, textW, textH int) (int, int) {
-	var x, y int
-	switch a {
-	case option.AnchorNW:
-		x, y = frameX, frameY
-	case option.AnchorN:
-		x, y = frameX+(frameW-textW)/2, frameY
-	case option.AnchorNE:
-		x, y = frameX+frameW-textW, frameY
-	case option.AnchorW:
-		x, y = frameX, frameY+(frameH-textH)/2
-	case option.AnchorCenter:
-		x, y = frameX+(frameW-textW)/2, frameY+(frameH-textH)/2
-	case option.AnchorE:
-		x, y = frameX+frameW-textW, frameY+(frameH-textH)/2
-	case option.AnchorSW:
-		x, y = frameX, frameY+frameH-textH
-	case option.AnchorS:
-		x, y = frameX+(frameW-textW)/2, frameY+frameH-textH
-	case option.AnchorSE:
-		x, y = frameX+frameW-textW, frameY+frameH-textH
-	}
-	return x, y
-}
 
 // compoundSize computes the total content size for a compound image+text layout.
 func compoundSize(c widget.Compound, img widget.WidgetImage, textW, textH int) (int, int) {
@@ -439,7 +414,7 @@ func drawCompound(l *Label, w *window.Window,
 	contentW, contentH := compoundSize(l.Compound, l.Img, l.textWidth, l.textHeight)
 
 	// Anchor the content block.
-	cx, cy := anchorText(l.Anchor, frameX, frameY, availW, availH, contentW, contentH)
+	cx, cy := widget.AnchorText(l.Anchor, frameX, frameY, availW, availH, contentW, contentH)
 
 	var imgX, imgY, textX, textY int
 	switch l.Compound {

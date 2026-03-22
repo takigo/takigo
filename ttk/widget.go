@@ -1,3 +1,5 @@
+// Package ttk implements themed (Tile) widgets with a theme engine, layout
+// engine, state system, and element interface. It ports tk/generic/ttk/*.c.
 package ttk
 
 import (

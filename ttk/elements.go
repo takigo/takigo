@@ -190,7 +190,7 @@ func (e *LabelElement) Draw(d platform.DisplayServer, drawable platform.Drawable
 	}
 }
 
-func drawText(d platform.DisplayServer, drawable platform.DrawableID, f font.Font, text string, x, y int, fgPixel uint64) {
+func drawText(_ platform.DisplayServer, drawable platform.DrawableID, f font.Font, text string, x, y int, fgPixel uint64) {
 	df, ok := f.(platform.DrawableFont)
 	if !ok {
 		return

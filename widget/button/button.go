@@ -294,11 +294,11 @@ func (b *Button) Display() {
 	} else if hasImg {
 		imgW := b.Img.Width()
 		imgH := b.Img.Height()
-		ix, iy := anchorText(b.Anchor, frameX, frameY, availW, availH, imgW, imgH)
+		ix, iy := widget.AnchorText(b.Anchor, frameX, frameY, availW, availH, imgW, imgH)
 		b.Img.Draw(w.Display.Server, w.Drawable(), gc,
 			w.Depth, 0, 0, imgW, imgH, ix+pressOff, iy+pressOff, bgPixel)
 	} else if hasText {
-		textX, textY := anchorText(b.Anchor, frameX, frameY,
+		textX, textY := widget.AnchorText(b.Anchor, frameX, frameY,
 			availW, availH, b.textWidth, b.textHeight)
 		textX += pressOff
 		textY += pressOff
@@ -316,31 +316,6 @@ func (b *Button) Display() {
 	d.Flush()
 }
 
-// anchorText computes x,y for text within a frame.
-func anchorText(a option.Anchor, frameX, frameY, frameW, frameH, textW, textH int) (int, int) {
-	var x, y int
-	switch a {
-	case option.AnchorNW:
-		x, y = frameX, frameY
-	case option.AnchorN:
-		x, y = frameX+(frameW-textW)/2, frameY
-	case option.AnchorNE:
-		x, y = frameX+frameW-textW, frameY
-	case option.AnchorW:
-		x, y = frameX, frameY+(frameH-textH)/2
-	case option.AnchorCenter:
-		x, y = frameX+(frameW-textW)/2, frameY+(frameH-textH)/2
-	case option.AnchorE:
-		x, y = frameX+frameW-textW, frameY+(frameH-textH)/2
-	case option.AnchorSW:
-		x, y = frameX, frameY+frameH-textH
-	case option.AnchorS:
-		x, y = frameX+(frameW-textW)/2, frameY+frameH-textH
-	case option.AnchorSE:
-		x, y = frameX+frameW-textW, frameY+frameH-textH
-	}
-	return x, y
-}
 
 // compoundSize computes the total content size for a compound image+text layout.
 func compoundSize(c widget.Compound, img widget.WidgetImage, textW, textH int) (int, int) {
@@ -375,7 +350,7 @@ func drawCompoundButton(b *Button, w *window.Window,
 	imgH := b.Img.Height()
 	contentW, contentH := compoundSize(b.Compound, b.Img, b.textWidth, b.textHeight)
 
-	cx, cy := anchorText(b.Anchor, frameX, frameY, availW, availH, contentW, contentH)
+	cx, cy := widget.AnchorText(b.Anchor, frameX, frameY, availW, availH, contentW, contentH)
 	cx += pressOff
 	cy += pressOff
 

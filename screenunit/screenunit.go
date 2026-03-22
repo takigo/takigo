@@ -76,24 +76,36 @@ func ScalingPct() int {
 // Px converts a Tk-style screen distance to pixels.
 // Accepts: int (passthrough), float64 (rounded), string ("3p", "2.5m", "1c", "4i", "10").
 // Panics on invalid input for fail-fast behavior during development.
+// Use TryPx for untrusted input that may be invalid.
 func Px(v any) int {
+	px, err := TryPx(v)
+	if err != nil {
+		panic(err)
+	}
+	return px
+}
+
+// TryPx converts a Tk-style screen distance to pixels, returning an error
+// on invalid input instead of panicking. Use this for user-provided or
+// untrusted input (config files, command-line arguments, etc.).
+func TryPx(v any) (int, error) {
 	switch val := v.(type) {
 	case int:
-		return val
+		return val, nil
 	case float64:
-		return int(math.Round(val))
+		return int(math.Round(val)), nil
 	case string:
-		return parseDistance(val)
+		return tryParseDistance(val)
 	default:
-		panic(fmt.Sprintf("screenunit.Px: unsupported type %T", v))
+		return 0, fmt.Errorf("screenunit: unsupported type %T", v)
 	}
 }
 
-// parseDistance parses a Tk-style distance string into pixels.
-func parseDistance(s string) int {
+// tryParseDistance parses a Tk-style distance string into pixels.
+func tryParseDistance(s string) (int, error) {
 	s = strings.TrimSpace(s)
 	if s == "" {
-		panic("screenunit.Px: empty string")
+		return 0, fmt.Errorf("screenunit: empty string")
 	}
 
 	// Check for unit suffix.
@@ -118,23 +130,23 @@ func parseDistance(s string) int {
 		// Bare number — pixels.
 		val, err := strconv.ParseFloat(s, 64)
 		if err != nil {
-			panic(fmt.Sprintf("screenunit.Px: invalid distance %q: %v", s, err))
+			return 0, fmt.Errorf("screenunit: invalid distance %q: %v", s, err)
 		}
-		return int(math.Round(val))
+		return int(math.Round(val)), nil
 	}
 
 	numStr = strings.TrimSpace(numStr)
 	if numStr == "" {
-		panic(fmt.Sprintf("screenunit.Px: missing number in %q", s))
+		return 0, fmt.Errorf("screenunit: missing number in %q", s)
 	}
 
 	val, err := strconv.ParseFloat(numStr, 64)
 	if err != nil {
-		panic(fmt.Sprintf("screenunit.Px: invalid number in %q: %v", s, err))
+		return 0, fmt.Errorf("screenunit: invalid number in %q: %v", s, err)
 	}
 
 	// Convert: value_in_mm * pixels_per_mm
 	// pixels_per_mm = screenWidthPx / screenWidthMM
 	pixels := val * multiplier * float64(screenWidthPx) / float64(screenWidthMM)
-	return int(math.Round(pixels))
+	return int(math.Round(pixels)), nil
 }

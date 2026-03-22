@@ -6,10 +6,10 @@ import (
 	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/cursor"
 	"github.com/msorc/takigo/draw"
-	"github.com/msorc/takigo/font"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/widget"
+	"github.com/msorc/takigo/widget/entryutil"
 	"github.com/msorc/takigo/window"
 )
 
@@ -401,7 +401,7 @@ func (e *Entry) computeGeometry() {
 	e.layoutY = e.inset + m.Ascent
 
 	dt := e.displayText()
-	totalWidth := measureRunes(e.Font, dt)
+	totalWidth := entryutil.MeasureRunes(e.Font, dt)
 	availWidth := w.Width - 2*e.inset
 	if availWidth < 1 {
 		availWidth = 1
@@ -413,14 +413,14 @@ func (e *Entry) computeGeometry() {
 		e.layoutX = e.inset
 	} else {
 		// Clamp leftIndex.
-		maxOff := runeIndexAtPixel(e.Font, dt, totalWidth-availWidth)
+		maxOff := entryutil.RuneIndexAtPixel(e.Font, dt, totalWidth-availWidth)
 		if e.LeftIndex > maxOff {
 			e.LeftIndex = maxOff
 		}
 		if e.LeftIndex < 0 {
 			e.LeftIndex = 0
 		}
-		leftCharX := measureRunes(e.Font, dt[:e.LeftIndex])
+		leftCharX := entryutil.MeasureRunes(e.Font, dt[:e.LeftIndex])
 		e.layoutX = e.inset - leftCharX
 	}
 }
@@ -441,7 +441,7 @@ func (e *Entry) seeInsert() {
 		e.LeftIndex = e.InsertPos
 		e.computeGeometry()
 	} else {
-		cursorX := measureRunes(e.Font, dt[:e.InsertPos]) + e.layoutX
+		cursorX := entryutil.MeasureRunes(e.Font, dt[:e.InsertPos]) + e.layoutX
 		if cursorX >= e.Win.Width-e.inset {
 			e.LeftIndex = e.InsertPos - availWidth/e.avgWidth
 			if e.LeftIndex < 0 {
@@ -459,7 +459,7 @@ func (e *Entry) charAtPixel(x int) int {
 	}
 	dt := e.displayText()
 	xInLayout := x - e.layoutX
-	return runeIndexAtPixel(e.Font, dt, xInLayout)
+	return entryutil.RuneIndexAtPixel(e.Font, dt, xInLayout)
 }
 
 // closestGap returns the rune index of the nearest inter-character gap.
@@ -470,14 +470,14 @@ func (e *Entry) closestGap(x int) int {
 	dt := e.displayText()
 	xInLayout := x - e.layoutX
 
-	idx := runeIndexAtPixel(e.Font, dt, xInLayout)
+	idx := entryutil.RuneIndexAtPixel(e.Font, dt, xInLayout)
 	if idx >= len(dt) {
 		return len(dt)
 	}
 
 	// Check if x is past the midpoint of the character.
-	charStart := measureRunes(e.Font, dt[:idx])
-	charEnd := measureRunes(e.Font, dt[:idx+1])
+	charStart := entryutil.MeasureRunes(e.Font, dt[:idx])
+	charEnd := entryutil.MeasureRunes(e.Font, dt[:idx+1])
 	mid := (charStart + charEnd) / 2
 	if xInLayout >= mid {
 		return idx + 1
@@ -530,7 +530,7 @@ func (e *Entry) VisibleRange() (float64, float64) {
 	// Approximate chars visible.
 	availWidth := e.Win.Width - 2*e.inset
 	dt := e.displayText()
-	charsVisible := runeIndexAtPixel(e.Font, dt[e.LeftIndex:], availWidth)
+	charsVisible := entryutil.RuneIndexAtPixel(e.Font, dt[e.LeftIndex:], availWidth)
 	last := float64(e.LeftIndex+charsVisible) / float64(n)
 	if last > 1 {
 		last = 1
@@ -609,8 +609,8 @@ func (e *Entry) Display() {
 	} else if isXft && len(dt) > 0 {
 		// Draw selection highlight.
 		if e.HasFocus && e.SelFirst >= 0 && e.SelLast > e.SelFirst && e.SelBg != nil {
-			selStartX := measureRunes(e.Font, dt[:clampIdx(e.SelFirst, len(dt))]) + e.layoutX
-			selEndX := measureRunes(e.Font, dt[:clampIdx(e.SelLast, len(dt))]) + e.layoutX
+			selStartX := entryutil.MeasureRunes(e.Font, dt[:entryutil.ClampIdx(e.SelFirst, len(dt))]) + e.layoutX
+			selEndX := entryutil.MeasureRunes(e.Font, dt[:entryutil.ClampIdx(e.SelLast, len(dt))]) + e.layoutX
 
 			if selStartX < e.inset {
 				selStartX = e.inset
@@ -640,17 +640,17 @@ func (e *Entry) Display() {
 			}
 			// Selection.
 			if e.SelFirst < len(dt) {
-				segStart := clampIdx(e.SelFirst, len(dt))
-				segEnd := clampIdx(e.SelLast, len(dt))
+				segStart := entryutil.ClampIdx(e.SelFirst, len(dt))
+				segEnd := entryutil.ClampIdx(e.SelLast, len(dt))
 				seg := string(dt[segStart:segEnd])
-				segX := measureRunes(e.Font, dt[:segStart]) + e.layoutX
+				segX := entryutil.MeasureRunes(e.Font, dt[:segStart]) + e.layoutX
 				xftFont.DrawString(w.Drawable(), segX, e.layoutY, seg,
 					e.SelFg.Pixel, e.SelFg.Red, e.SelFg.Green, e.SelFg.Blue)
 			}
 			// After selection.
 			if e.SelLast < len(dt) {
 				seg := string(dt[e.SelLast:])
-				segX := measureRunes(e.Font, dt[:e.SelLast]) + e.layoutX
+				segX := entryutil.MeasureRunes(e.Font, dt[:e.SelLast]) + e.layoutX
 				xftFont.DrawString(w.Drawable(), segX, e.layoutY, seg,
 					e.Foreground.Pixel, e.Foreground.Red, e.Foreground.Green, e.Foreground.Blue)
 			}
@@ -663,7 +663,7 @@ func (e *Entry) Display() {
 
 	// Draw cursor (outside text block so it works for empty entries too).
 	if e.HasFocus && e.CursorOn && e.InsertBg != nil && e.Font != nil {
-		cursorX := measureRunes(e.Font, dt[:clampIdx(e.InsertPos, len(dt))]) + e.layoutX
+		cursorX := entryutil.MeasureRunes(e.Font, dt[:entryutil.ClampIdx(e.InsertPos, len(dt))]) + e.layoutX
 		if cursorX >= e.inset && cursorX < w.Width-e.inset {
 			m := e.Font.Metrics()
 			d.SetForeground(gc, e.InsertBg.Pixel)
@@ -696,82 +696,3 @@ func (e *Entry) Destroy() {
 	window.DestroyWindow(e.Win)
 }
 
-// Helper: measure pixel width of a rune slice.
-func measureRunes(f font.Font, runes []rune) int {
-	if len(runes) == 0 {
-		return 0
-	}
-	return f.MeasureString(string(runes))
-}
-
-// Helper: find rune index at a given pixel offset.
-func runeIndexAtPixel(f font.Font, runes []rune, targetX int) int {
-	if targetX <= 0 || len(runes) == 0 {
-		return 0
-	}
-	// Binary search for the rune index.
-	lo, hi := 0, len(runes)
-	for lo < hi {
-		mid := (lo + hi) / 2
-		w := measureRunes(f, runes[:mid+1])
-		if w <= targetX {
-			lo = mid + 1
-		} else {
-			hi = mid
-		}
-	}
-	return lo
-}
-
-// clampIdx clamps an index to [0, max].
-func clampIdx(idx, max int) int {
-	if idx < 0 {
-		return 0
-	}
-	if idx > max {
-		return max
-	}
-	return idx
-}
-
-// wordStart returns the rune index of the start of the word at or before pos.
-func wordStart(text []rune, pos int) int {
-	if pos <= 0 {
-		return 0
-	}
-	if pos > len(text) {
-		pos = len(text)
-	}
-	// Skip back past non-word chars.
-	i := pos - 1
-	for i > 0 && !isWordChar(text[i]) {
-		i--
-	}
-	// Skip back past word chars.
-	for i > 0 && isWordChar(text[i-1]) {
-		i--
-	}
-	return i
-}
-
-// wordEnd returns the rune index past the end of the word at or after pos.
-func wordEnd(text []rune, pos int) int {
-	if pos >= len(text) {
-		return len(text)
-	}
-	i := pos
-	// Skip past word chars.
-	for i < len(text) && isWordChar(text[i]) {
-		i++
-	}
-	// Skip past non-word chars.
-	for i < len(text) && !isWordChar(text[i]) {
-		i++
-	}
-	return i
-}
-
-func isWordChar(r rune) bool {
-	return (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') ||
-		(r >= '0' && r <= '9') || r == '_'
-}

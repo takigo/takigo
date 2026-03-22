@@ -4,6 +4,7 @@ import (
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/widget"
+	"github.com/msorc/takigo/widget/entryutil"
 )
 
 func bindSpinbox(s *Spinbox, app widget.AppContext) {
@@ -111,13 +112,13 @@ func bindSpinbox(s *Spinbox, app widget.AppContext) {
 
 		case platform.XK_Left:
 			if ctrl {
-				moveCursor(s, wordStart(s.text, s.InsertPos), shift)
+				moveCursor(s, entryutil.WordStart(s.text, s.InsertPos), shift)
 			} else {
 				moveCursor(s, s.InsertPos-1, shift)
 			}
 		case platform.XK_Right:
 			if ctrl {
-				moveCursor(s, wordEnd(s.text, s.InsertPos), shift)
+				moveCursor(s, entryutil.WordEnd(s.text, s.InsertPos), shift)
 			} else {
 				moveCursor(s, s.InsertPos+1, shift)
 			}

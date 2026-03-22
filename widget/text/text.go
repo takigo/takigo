@@ -1,3 +1,6 @@
+// Package text implements a multi-line text editor widget with marks, tags,
+// undo/redo, word/char wrapping, selection, and scrollbar integration.
+// It ports tk/generic/tkText*.c.
 package text
 
 import (

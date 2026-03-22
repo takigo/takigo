@@ -10,10 +10,10 @@ import (
 	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/cursor"
 	"github.com/msorc/takigo/draw"
-	"github.com/msorc/takigo/font"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/widget"
+	"github.com/msorc/takigo/widget/entryutil"
 	"github.com/msorc/takigo/window"
 )
 
@@ -394,7 +394,7 @@ func (s *Spinbox) computeGeometry() {
 
 	s.layoutY = s.inset + m.Ascent
 
-	totalWidth := measureRunes(s.Font, s.text)
+	totalWidth := entryutil.MeasureRunes(s.Font, s.text)
 	availWidth := w.Width - 2*s.inset - s.buttonWidth
 	if availWidth < 1 {
 		availWidth = 1
@@ -407,7 +407,7 @@ func (s *Spinbox) computeGeometry() {
 		if s.LeftIndex < 0 {
 			s.LeftIndex = 0
 		}
-		leftCharX := measureRunes(s.Font, s.text[:s.LeftIndex])
+		leftCharX := entryutil.MeasureRunes(s.Font, s.text[:s.LeftIndex])
 		s.layoutX = s.inset - leftCharX
 	}
 }
@@ -424,7 +424,7 @@ func (s *Spinbox) seeInsert() {
 		s.LeftIndex = s.InsertPos
 		s.computeGeometry()
 	} else {
-		cursorX := measureRunes(s.Font, s.text[:s.InsertPos]) + s.layoutX
+		cursorX := entryutil.MeasureRunes(s.Font, s.text[:s.InsertPos]) + s.layoutX
 		if cursorX >= s.Win.Width-s.inset-s.buttonWidth {
 			s.LeftIndex = s.InsertPos - availWidth/s.avgWidth
 			if s.LeftIndex < 0 {
@@ -440,12 +440,12 @@ func (s *Spinbox) closestGap(x int) int {
 		return 0
 	}
 	xInLayout := x - s.layoutX
-	idx := runeIndexAtPixel(s.Font, s.text, xInLayout)
+	idx := entryutil.RuneIndexAtPixel(s.Font, s.text, xInLayout)
 	if idx >= len(s.text) {
 		return len(s.text)
 	}
-	charStart := measureRunes(s.Font, s.text[:idx])
-	charEnd := measureRunes(s.Font, s.text[:idx+1])
+	charStart := entryutil.MeasureRunes(s.Font, s.text[:idx])
+	charEnd := entryutil.MeasureRunes(s.Font, s.text[:idx+1])
 	mid := (charStart + charEnd) / 2
 	if xInLayout >= mid {
 		return idx + 1
@@ -496,8 +496,8 @@ func (s *Spinbox) Display() {
 	if isXft && len(s.text) > 0 {
 		// Selection highlight.
 		if s.HasFocus && s.SelFirst >= 0 && s.SelLast > s.SelFirst && s.SelBg != nil {
-			selStartX := measureRunes(s.Font, s.text[:clampIdx(s.SelFirst, len(s.text))]) + s.layoutX
-			selEndX := measureRunes(s.Font, s.text[:clampIdx(s.SelLast, len(s.text))]) + s.layoutX
+			selStartX := entryutil.MeasureRunes(s.Font, s.text[:entryutil.ClampIdx(s.SelFirst, len(s.text))]) + s.layoutX
+			selEndX := entryutil.MeasureRunes(s.Font, s.text[:entryutil.ClampIdx(s.SelLast, len(s.text))]) + s.layoutX
 			if selStartX < s.inset {
 				selStartX = s.inset
 			}
@@ -522,7 +522,7 @@ func (s *Spinbox) Display() {
 
 	// Cursor.
 	if s.HasFocus && s.CursorOn && s.InsertBg != nil && s.Font != nil {
-		cursorX := measureRunes(s.Font, s.text[:clampIdx(s.InsertPos, len(s.text))]) + s.layoutX
+		cursorX := entryutil.MeasureRunes(s.Font, s.text[:entryutil.ClampIdx(s.InsertPos, len(s.text))]) + s.layoutX
 		rightEdge := w.Width - s.inset - s.buttonWidth
 		if cursorX >= s.inset && cursorX < rightEdge {
 			m := s.Font.Metrics()
@@ -610,73 +610,3 @@ func (s *Spinbox) Destroy() {
 	window.DestroyWindow(s.Win)
 }
 
-// Helper functions.
-func measureRunes(f font.Font, runes []rune) int {
-	if len(runes) == 0 {
-		return 0
-	}
-	return f.MeasureString(string(runes))
-}
-
-func runeIndexAtPixel(f font.Font, runes []rune, targetX int) int {
-	if targetX <= 0 || len(runes) == 0 {
-		return 0
-	}
-	lo, hi := 0, len(runes)
-	for lo < hi {
-		mid := (lo + hi) / 2
-		w := measureRunes(f, runes[:mid+1])
-		if w <= targetX {
-			lo = mid + 1
-		} else {
-			hi = mid
-		}
-	}
-	return lo
-}
-
-func clampIdx(idx, max int) int {
-	if idx < 0 {
-		return 0
-	}
-	if idx > max {
-		return max
-	}
-	return idx
-}
-
-func wordStart(text []rune, pos int) int {
-	if pos <= 0 {
-		return 0
-	}
-	if pos > len(text) {
-		pos = len(text)
-	}
-	i := pos - 1
-	for i > 0 && !isWordChar(text[i]) {
-		i--
-	}
-	for i > 0 && isWordChar(text[i-1]) {
-		i--
-	}
-	return i
-}
-
-func wordEnd(text []rune, pos int) int {
-	if pos >= len(text) {
-		return len(text)
-	}
-	i := pos
-	for i < len(text) && isWordChar(text[i]) {
-		i++
-	}
-	for i < len(text) && !isWordChar(text[i]) {
-		i++
-	}
-	return i
-}
-
-func isWordChar(r rune) bool {
-	return (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') ||
-		(r >= '0' && r <= '9') || r == '_'
-}

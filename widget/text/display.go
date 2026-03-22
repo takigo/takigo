@@ -741,30 +741,7 @@ func (t *TextWidget) indexFromPixel(x, y int) Index {
 	return Index{Line: dl.logicalLine, Char: dl.endChar}
 }
 
-// computeTotalHeight returns the total pixel height of all lines including spacing.
-func (t *TextWidget) computeTotalHeight() int {
-	if t.Font == nil {
-		return 0
-	}
-	availWidth := t.Win.Width - 2*t.insetX
-	total := 0
-	for lineIdx := 1; lineIdx <= t.doc.LineCount(); lineIdx++ {
-		props := t.resolveLineProps(lineIdx)
-		dls := t.wrapLine(lineIdx, availWidth, props.lm1, props.lm2, props.rm)
-		for i, dl := range dls {
-			sp := props.sp2
-			if i == 0 {
-				sp = props.sp1
-			}
-			sb := 0
-			if i == len(dls)-1 {
-				sb = props.sp3
-			}
-			total += sp + dl.height + sb
-		}
-	}
-	return total
-}
+
 
 // lineHeight returns the pixel height of one line.
 func (t *TextWidget) lineHeight() int {

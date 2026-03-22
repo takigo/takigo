@@ -1,7 +1,6 @@
 package dialog
 
 import (
-	"fmt"
 	"strconv"
 
 	"github.com/msorc/takigo/font"
@@ -175,14 +174,3 @@ func ChooseFont(parent widget.Caregiver, opts ...FontOption) (string, bool) {
 	return "", false
 }
 
-// fontDescriptor builds a font descriptor string.
-func fontDescriptor(family string, size int, bold, italic bool) string {
-	desc := fmt.Sprintf("%s %d", family, size)
-	if bold {
-		desc += " bold"
-	}
-	if italic {
-		desc += " italic"
-	}
-	return desc
-}

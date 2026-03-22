@@ -110,6 +110,47 @@ func TestPxPanicsOnInvalid(t *testing.T) {
 	}
 }
 
+func TestTryPxValid(t *testing.T) {
+	tests := []struct {
+		input any
+		want  int
+	}{
+		{42, 42},
+		{3.7, 4},
+		{"10", 10},
+	}
+	for _, tt := range tests {
+		got, err := TryPx(tt.input)
+		if err != nil {
+			t.Errorf("TryPx(%v) unexpected error: %v", tt.input, err)
+		}
+		if got != tt.want {
+			t.Errorf("TryPx(%v) = %d, want %d", tt.input, got, tt.want)
+		}
+	}
+}
+
+func TestTryPxInvalid(t *testing.T) {
+	tests := []struct {
+		name  string
+		input any
+	}{
+		{"empty string", ""},
+		{"invalid string", "abc"},
+		{"bool type", true},
+		{"missing number", "p"},
+		{"bad number", "xyzm"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := TryPx(tt.input)
+			if err == nil {
+				t.Errorf("TryPx(%v) should have returned error", tt.input)
+			}
+		})
+	}
+}
+
 func TestSetScreenDPIIgnoresInvalid(t *testing.T) {
 	old := screenWidthPx
 	SetScreenDPI(0, 500, 0)
