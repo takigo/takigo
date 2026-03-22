@@ -149,10 +149,11 @@ func (p *X11EventParser) ParseFocusEvent(ev *platform.RawEvent) platform.FocusEv
 }
 
 func (p *X11EventParser) ParsePropertyEvent(ev *platform.RawEvent) platform.PropertyEvent {
-	// Property event parsing is not in xlib.RawEvent; extract from raw data.
-	// For now use the event window from the raw event.
+	raw := ev.Data.(*xlib.RawEvent)
+	prop := raw.ParsePropertyEvent()
 	return platform.PropertyEvent{
-		EventWindow: ev.EventWindow,
+		EventWindow: platform.WindowID(prop.EventWindow),
+		Atom:        platform.AtomID(prop.Atom),
 	}
 }
 

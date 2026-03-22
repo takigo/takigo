@@ -448,6 +448,20 @@ func (e *RawEvent) ParseFocusEvent() FocusEvent {
 	}
 }
 
+// PropertyEventData holds data from a PropertyNotify event.
+type PropertyEventData struct {
+	EventWindow Window
+	Atom        Atom
+}
+
+// ParsePropertyEvent extracts PropertyNotify event data.
+func (e *RawEvent) ParsePropertyEvent() PropertyEventData {
+	return PropertyEventData{
+		EventWindow: Window(C.xevent_property_window(&e.ev)),
+		Atom:        Atom(C.xevent_property_atom(&e.ev)),
+	}
+}
+
 // SelectionRequestEvent holds data from a SelectionRequest event.
 type SelectionRequestEvent struct {
 	Owner     Window

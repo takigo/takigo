@@ -76,6 +76,9 @@ type WindowsDisplay struct {
 	cursorCache map[uint]w32.HCURSOR
 }
 
+// Compile-time interface check.
+var _ platform.DisplayServer = (*WindowsDisplay)(nil)
+
 // windowInfo holds per-window state.
 type windowInfo struct {
 	hwnd       w32.HWND

@@ -36,6 +36,9 @@ type Event struct {
 	FocusMode   int // platform.FocusModeNormal etc.
 	FocusDetail int // platform.FocusDetailInferior etc.
 
+	// Property events
+	Atom platform.AtomID
+
 	// Timestamp (when available)
 	Time platform.Timestamp
 }
@@ -159,6 +162,12 @@ func FromRawEventIM(raw *platform.RawEvent, parser platform.EventParser, hasIM b
 
 	case platform.UnmapNotifyEvent:
 		ev.Type = UnmapType
+
+	case platform.PropertyNotifyEvent:
+		prop := parser.ParsePropertyEvent(raw)
+		ev.Type = PropertyType
+		ev.Window = prop.EventWindow
+		ev.Atom = prop.Atom
 
 	case platform.ClientMessageEvent_:
 		cm := parser.ParseClientMessageEvent(raw)
