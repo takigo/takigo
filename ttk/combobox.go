@@ -96,6 +96,7 @@ func NewCombobox(parent widget.Caregiver, name string, opts ...ComboboxOption) *
 	c.Font, _ = app.FontRegistry().Get(font.TkDefaultFont)
 
 	InitTtkWidget(&c.TtkWidget, win, app, "TCombobox")
+	c.DisplayFunc = c.Display
 
 	// Set reasonable size.
 	if c.Font != nil {

@@ -48,6 +48,7 @@ func NewNotebook(parent widget.Caregiver, name string, opts ...NotebookOption) *
 	nb.Font, _ = app.FontRegistry().Get(font.TkDefaultFont)
 
 	InitTtkWidget(&nb.TtkWidget, win, app, "TNotebook")
+	nb.DisplayFunc = nb.Display
 
 	for _, opt := range opts {
 		opt(nb)
@@ -69,6 +70,7 @@ func (nb *Notebook) Add(pane *window.Window, text string) {
 	}
 	nb.tabs = append(nb.tabs, tab)
 	nb.computeTabGeometry()
+	nb.updateReqSize()
 
 	// If this is the first tab, select it.
 	if nb.selected < 0 {
@@ -77,6 +79,34 @@ func (nb *Notebook) Add(pane *window.Window, text string) {
 		// Unmap the new pane (not selected).
 		pane.Display.Server.UnmapWindow(pane.PlatformID)
 		nb.Display()
+	}
+}
+
+// updateReqSize computes the notebook's requested size from the maximum
+// pane content size plus the tab bar height and content border.
+// This mirrors Tk's NotebookSize in ttkNotebook.c.
+func (nb *Notebook) updateReqSize() {
+	bw := 2 // content border width
+	maxW, maxH := 0, 0
+	for _, tab := range nb.tabs {
+		pw := tab.Window.ReqWidth
+		ph := tab.Window.ReqHeight
+		if pw > maxW {
+			maxW = pw
+		}
+		if ph > maxH {
+			maxH = ph
+		}
+	}
+	reqW := maxW + 2*bw
+	reqH := maxH + nb.tabHeight + 2*bw
+	if reqW != nb.Win.ReqWidth || reqH != nb.Win.ReqHeight {
+		nb.Win.ReqWidth = reqW
+		nb.Win.ReqHeight = reqH
+		// Notify the parent geometry manager so it can re-layout.
+		if nb.Win.GeomManager != nil {
+			nb.Win.GeomManager.RequestProc(nb.Win)
+		}
 	}
 }
 
@@ -203,7 +233,7 @@ func (nb *Notebook) Display() {
 
 	pixDrawable := platform.PixmapDrawable(nb.pixmap)
 
-	bg := LookupColor(nb.Context.Style, "-background", nb.State, 0xd9d9d9)
+	bg := LookupColor(nb.Context.Style, "-background", 0, 0xd9d9d9)
 	d.SetForeground(gc, bg)
 	d.FillRectangle(pixDrawable, gc, 0, 0, uint(width), uint(height))
 
@@ -247,7 +277,8 @@ func (nb *Notebook) Display() {
 
 		// Tab text.
 		if nb.Font != nil && tab.Text != "" {
-			fgPixel := LookupColor(nb.Context.Style, "-foreground", nb.State, 0x000000)
+			tabState := nb.State | tab.State
+			fgPixel := LookupColor(nb.Context.Style, "-foreground", tabState, 0x000000)
 			textW := nb.Font.MeasureString(tab.Text)
 			textX := tabX + (tw-textW)/2
 			m := nb.Font.Metrics()
@@ -365,9 +396,12 @@ func bindNotebook(nb *Notebook, app widget.AppContext) {
 		}
 	})
 
-	// Motion for tab hover.
+	// Motion for tab hover (skip disabled tabs).
 	app.Dispatcher().Bind(win.PlatformID, event.MotionMask, func(ev *event.Event) {
 		idx := nb.hitTestTab(ev.X, ev.Y)
+		if idx >= 0 && nb.tabs[idx].State&StateDisabled != 0 {
+			idx = -1
+		}
 		if idx != nb.hoverTab {
 			nb.hoverTab = idx
 			nb.Display()

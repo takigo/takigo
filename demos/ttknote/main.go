@@ -15,7 +15,6 @@ import (
 	"github.com/msorc/takigo/ttk"
 	_ "github.com/msorc/takigo/ttk/clamtheme"
 	_ "github.com/msorc/takigo/ttk/defaulttheme"
-	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
 	"github.com/msorc/takigo/widget/text"
 )
@@ -30,21 +29,26 @@ func main() {
 		os.Exit(1)
 	}
 
-	f := frame.New(app, "f")
-	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
-
-	btns := demohelper.AddSeeDismiss(f)
-	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
-
 	ttk.SetCurrentTheme("clam")
 
-	// Notebook.
+	// pack [addSeeDismiss $w.seeDismiss $w] -side bottom -fill x
+	btns := demohelper.AddSeeDismiss(app)
+	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
+
+	// ttk::frame $w.f; pack $w.f -fill both -expand 1
+	f := ttk.NewFrame(app, "f")
+	pack.Pack(f, pack.FillOpt(pack.FillBoth), pack.Expand(true))
+
+	// ttk::notebook $w.note; pack ... -padx 1.5p -pady 3p
 	nb := ttk.NewNotebook(f, "note")
-	pack.Pack(nb, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
+	pack.Pack(nb, pack.FillOpt(pack.FillBoth),
 		pack.Expand(true), pack.PadX("1.5p"), pack.PadY("3p"))
 
-	// Tab 1: Description with "Neat!" button (ttk::frame, grid layout).
+	// --- Tab 1: Description ---
+	// ttk::frame $w.note.msg
 	page1 := ttk.NewFrame(nb, "msg")
+
+	// ttk::label ... -wraplength 4i -justify left -anchor n
 	descLabel := label.New(page1, "m",
 		label.Text("Ttk is the new Tk themed widget set. One of the widgets "+
 			"it includes is the notebook widget, which provides a set "+
@@ -59,6 +63,7 @@ func main() {
 		label.JustifyOpt(option.JustifyLeft),
 		label.Anchor(option.AnchorN),
 	)
+	// grid $w.note.msg.m - -sticky new -pady 1.5p
 	grid.Grid(descLabel, grid.Row(0), grid.Column(0), grid.ColumnSpan(2),
 		grid.Sticky(grid.StickN+grid.EW), grid.PadY("1.5p"))
 
@@ -66,6 +71,7 @@ func main() {
 		ttk.LabelText(""),
 	)
 
+	// ttk::button ... "Neat!"
 	neatBtn := ttk.NewButton(page1, "b",
 		ttk.ButtonText("Neat!"),
 		ttk.ButtonCommand(func() {
@@ -77,29 +83,36 @@ func main() {
 			})
 		}),
 	)
+	// grid $w.note.msg.b $w.note.msg.l -pady {1.5p 3p}
 	grid.Grid(neatBtn, grid.Row(1), grid.Column(0), grid.PadYPair("1.5p", "3p"))
 	grid.Grid(neatLabel, grid.Row(1), grid.Column(1), grid.PadYPair("1.5p", "3p"))
 	grid.RowConfigure(page1, 1, grid.Weight(1))
 	grid.ColumnConfigure(page1, 0, grid.Weight(1), grid.Uniform("1"))
 	grid.ColumnConfigure(page1, 1, grid.Weight(1), grid.Uniform("1"))
 
+	// $w.note add $w.note.msg -text "Description" -underline 0
 	nb.Add(page1.Window(), "Description")
-	nb.SetTabUnderline(0, 0) // Alt+D → Description tab
+	nb.SetTabUnderline(0, 0)
 
-	// Tab 2: Disabled tab (ttk::frame).
+	// --- Tab 2: Disabled ---
+	// ttk::frame $w.note.disabled
 	page2 := ttk.NewFrame(nb, "disabled")
+	// $w.note add $w.note.disabled -text "Disabled" -state disabled
 	nb.Add(page2.Window(), "Disabled")
 	nb.SetTabState(1, ttk.StateDisabled)
 
-	// Tab 3: Text editor with scrollbar (ttk::frame).
+	// --- Tab 3: Text Editor ---
+	// ttk::frame $w.note.editor
 	page3 := ttk.NewFrame(nb, "editor")
 
+	// text ... -width 40 -height 10 -wrap char -yscroll "... set"
 	tw := text.New(page3, "t",
 		text.Width(40),
 		text.Height(10),
 		text.WrapModeOpt(text.WrapChar),
 	)
 
+	// ttk::scrollbar ... -orient vertical -command "... yview"
 	yscroll := ttk.NewScrollbar(page3, "s",
 		ttk.ScrollbarOrientOpt(ttk.Vertical),
 		ttk.ScrollbarCommandOpt(func(args ...any) {
@@ -126,17 +139,16 @@ func main() {
 		yscroll.Set(first, last)
 	}
 
+	// pack $w.note.editor.s -side right -fill y -padx {0 1.5p} -pady 1.5p
 	pack.Pack(yscroll, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY),
-		pack.PadX("1.5p"), pack.PadY("1.5p"))
+		pack.PadY("1.5p"))
+	// pack $w.note.editor.t -fill both -expand 1 -pady 1.5p -padx {1.5p 0}
 	pack.Pack(tw, pack.FillOpt(pack.FillBoth), pack.Expand(true),
-		pack.PadX("1.5p"), pack.PadY("1.5p"))
-	nb.Add(page3.Window(), "Text Editor")
-	nb.SetTabUnderline(2, 0) // Alt+T → Text Editor tab
+		pack.PadY("1.5p"))
 
-	_ = descLabel
-	_ = neatLabel
-	_ = neatBtn
-	_ = yscroll
-	_ = tw
+	// $w.note add $w.note.editor -text "Text Editor" -underline 0
+	nb.Add(page3.Window(), "Text Editor")
+	nb.SetTabUnderline(2, 0)
+
 	app.Run()
 }

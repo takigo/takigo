@@ -118,6 +118,7 @@ func NewSpinbox(parent widget.Caregiver, name string, opts ...SpinboxOption) *Sp
 	s.Font, _ = app.FontRegistry().Get(font.TkDefaultFont)
 
 	InitTtkWidget(&s.TtkWidget, win, app, "TSpinbox")
+	s.DisplayFunc = s.Display
 
 	for _, opt := range opts {
 		opt(s)
