@@ -64,9 +64,9 @@ func main() {
 
 	// Insert intro paragraph.
 	tw.Insert("0.0", "The same tag mechanism that controls display styles in text "+
-		"widgets can also be used to associate commands with regions of "+
+		"widgets can also be used to associate Tcl commands with regions of "+
 		"text, so that mouse or keyboard actions on the text cause "+
-		"particular commands to be invoked.  For example, in the text "+
+		"particular Tcl commands to be invoked.  For example, in the text "+
 		"below the descriptions of the canvas demonstrations have been "+
 		"tagged.  When you move the mouse over a demo description the "+
 		"description lights up, and when you press button 1 over a "+

@@ -17,6 +17,17 @@ import (
 	"github.com/msorc/takigo/widget/label"
 )
 
+// scaledCoords returns a copy of coords with all values multiplied by the
+// display scaling factor, matching Tcl's "$w.c scale wave 0 0 $sf $sf".
+func scaledCoords(coords []float64) []float64 {
+	sf := float64(screenunit.ScalingPct()) / 100.0
+	out := make([]float64, len(coords))
+	for i, v := range coords {
+		out[i] = v * sf
+	}
+	return out
+}
+
 func main() {
 	app, err := takigo.NewApp(takigo.Title("Animated Wave Demonstration"),
 		takigo.Geometry("+300+300"),
@@ -33,7 +44,7 @@ func main() {
 	msg := label.New(f, "msg",
 		label.WrapLength("4i"),
 		label.JustifyOpt(option.JustifyLeft),
-		label.Text("This demonstration contains a canvas widget with a line item inside it. The animation routines work by adjusting the coordinates list of the line."),
+		label.Text("This demonstration contains a canvas widget with a line item inside it. The animation routines work by adjusting the coordinates list of the line; a trace on a variable is used so updates to the variable result in a change of position of the line."),
 	)
 	pack.Pack(msg, pack.SideOpt(pack.Top))
 
@@ -55,8 +66,8 @@ func main() {
 	}
 	waveCoords = append(waveCoords, 305, 0, 310, 200)
 
-	waveID := c.CreateLine(waveCoords,
-		canvas.OutlineColor("green"), canvas.OutlineWidth(1), canvas.Smooth(true),
+	waveID := c.CreateLine(scaledCoords(waveCoords),
+		canvas.OutlineColor("green"), canvas.OutlineWidth(screenunit.Px("0.75p")), canvas.Smooth(true),
 		canvas.Tags("wave"))
 
 	direction := "left"
@@ -97,7 +108,7 @@ func main() {
 	move = func() {
 		basicMotion()
 		reverser()
-		c.SetItemCoords(fmt.Sprintf("%d", waveID), waveCoords)
+		c.SetItemCoords(fmt.Sprintf("%d", waveID), scaledCoords(waveCoords))
 		app.After(10*time.Millisecond, move)
 	}
 	app.After(10*time.Millisecond, move)

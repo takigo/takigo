@@ -79,8 +79,8 @@ func main() {
 	for _, spec := range specs {
 		opts := []label.LabelOption{
 			label.Text(spec.text),
-			label.FontOpt("Courier 12"),
-			label.BorderWidth(4),
+			label.FontOpt("Courier 10"),
+			label.BorderWidth(3),
 			label.Relief(spec.relief),
 		}
 		if spec.width > 0 {

@@ -38,7 +38,8 @@ func main() {
 			"variable to a value indicating the state of the checkbutton. "+
 			"The first button also follows the state of the other three. "+
 			"If only some of the three are checked, the first button will "+
-			"display the tri-state mode."),
+			"display the tri-state mode. Click the \"See Variables\" button "+
+			"to see the current values of the variables."),
 	)
 	pack.Pack(msg, pack.SideOpt(pack.Top))
 

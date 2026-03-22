@@ -4,9 +4,10 @@ package main
 
 import (
 	"fmt"
-	goimage "image"
 	"image/color"
 	"os"
+	"path/filepath"
+	"runtime"
 
 	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/demos/demohelper"
@@ -16,6 +17,19 @@ import (
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
 )
+
+func findBitmap(name string) string {
+	_, file, _, ok := runtime.Caller(0)
+	if !ok {
+		return ""
+	}
+	projectRoot := filepath.Dir(filepath.Dir(filepath.Dir(file)))
+	path := filepath.Join(projectRoot, "tk", "bitmaps", name)
+	if _, err := os.Stat(path); err == nil {
+		return path
+	}
+	return ""
+}
 
 func main() {
 	app, err := takigo.NewApp(takigo.Title("Bitmap Demonstration"),
@@ -33,7 +47,7 @@ func main() {
 	msg := label.New(f, "msg",
 		label.WrapLength("4i"),
 		label.JustifyOpt(option.JustifyLeft),
-		label.Text("This window displays all of the built-in bitmaps, along with the names you can use for them in scripts."),
+		label.Text("This window displays all of Tk's built-in bitmaps, along with the names you can use for them in Tcl scripts."),
 	)
 	pack.Pack(msg, pack.SideOpt(pack.Top))
 
@@ -41,71 +55,23 @@ func main() {
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	fg := color.RGBA{R: 0, G: 0, B: 0, A: 255}
-	bg := color.RGBA{R: 255, G: 255, B: 255, A: 255}
+	transparent := color.RGBA{R: 0, G: 0, B: 0, A: 0}
 
-	// Gray pattern: fill density% of pixels with fg.
-	makeGray := func(name string, density int) *tkimage.Photo {
-		const sz = 32
-		img := goimage.NewRGBA(goimage.Rect(0, 0, sz, sz))
-		step := 100 / density
-		for y := range sz {
-			for x := range sz {
-				if (x+y*3)%step == 0 {
-					img.SetRGBA(x, y, fg)
-				} else {
-					img.SetRGBA(x, y, bg)
-				}
-			}
+	bitmapNames := []string{
+		"error", "gray12", "gray25", "gray50", "gray75",
+		"hourglass", "info", "question", "questhead", "warning",
+	}
+
+	photos := make([]*tkimage.Photo, len(bitmapNames))
+	for i, name := range bitmapNames {
+		path := findBitmap(name + ".xbm")
+		photo, loadErr := tkimage.NewPhotoFromXBMFile("bm_"+name, path, fg, transparent)
+		if loadErr != nil {
+			fmt.Fprintf(os.Stderr, "Warning: could not load %s: %v\n", name, loadErr)
+			continue
 		}
-		return tkimage.NewPhoto(name, img)
-	}
-
-	// Simple icon: filled rect with letter.
-	makeIcon := func(name string, letter byte, c color.RGBA) *tkimage.Photo {
-		const sz = 32
-		img := goimage.NewRGBA(goimage.Rect(0, 0, sz, sz))
-		for y := range sz {
-			for x := range sz {
-				if x == 0 || x == sz-1 || y == 0 || y == sz-1 {
-					img.SetRGBA(x, y, fg)
-				} else {
-					img.SetRGBA(x, y, c)
-				}
-			}
-		}
-		// Draw letter in center (simple 5x7 block).
-		cx, cy := sz/2-2, sz/2-3
-		for dy := 0; dy < 7; dy++ {
-			for dx := 0; dx < 5; dx++ {
-				if dx == 0 || dx == 4 || dy == 0 || dy == 3 || dy == 6 {
-					img.SetRGBA(cx+dx, cy+dy, fg)
-				}
-			}
-		}
-		_ = letter
-		return tkimage.NewPhoto(name, img)
-	}
-
-	type bitmapDef struct {
-		name  string
-		photo *tkimage.Photo
-	}
-
-	bitmaps := []bitmapDef{
-		{"error", makeIcon("bm_error", 'E', color.RGBA{R: 220, G: 60, B: 60, A: 255})},
-		{"gray12", makeGray("bm_gray12", 12)},
-		{"gray25", makeGray("bm_gray25", 25)},
-		{"gray50", makeGray("bm_gray50", 50)},
-		{"gray75", makeGray("bm_gray75", 75)},
-		{"hourglass", makeIcon("bm_hourglass", 'H', color.RGBA{R: 200, G: 180, B: 100, A: 255})},
-		{"info", makeIcon("bm_info", 'I', color.RGBA{R: 60, G: 120, B: 220, A: 255})},
-		{"question", makeIcon("bm_question", '?', color.RGBA{R: 60, G: 160, B: 220, A: 255})},
-		{"questhead", makeIcon("bm_questhead", 'Q', color.RGBA{R: 100, G: 180, B: 100, A: 255})},
-		{"warning", makeIcon("bm_warning", 'W', color.RGBA{R: 220, G: 180, B: 40, A: 255})},
-	}
-
-	for _, b := range bitmaps {
-		app.ImageRegistry().Register(b.photo)
+		photos[i] = photo
+		app.ImageRegistry().Register(photo)
 	}
 
 	container := frame.New(f, "frame")
@@ -114,11 +80,16 @@ func main() {
 	row0 := frame.New(container, "0")
 	pack.Pack(row0, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth))
 
-	for i, b := range bitmaps[:5] {
+	for i := range 5 {
 		col := frame.New(row0, fmt.Sprintf("%d", i))
 		pack.Pack(col, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.PadY(".25c"), pack.PadX(".25c"))
-		nl := label.New(col, "label", label.Text(b.name), label.Width(9))
-		il := label.New(col, "bitmap", label.ImageOpt(b.photo))
+		nl := label.New(col, "label", label.Text(bitmapNames[i]), label.Width(9))
+		var il *label.Label
+		if photos[i] != nil {
+			il = label.New(col, "bitmap", label.ImageOpt(photos[i]))
+		} else {
+			il = label.New(col, "bitmap", label.Text("?"))
+		}
 		pack.Pack(nl, pack.SideOpt(pack.Bottom))
 		pack.Pack(il, pack.SideOpt(pack.Bottom))
 	}
@@ -127,11 +98,17 @@ func main() {
 	row1 := frame.New(container, "1")
 	pack.Pack(row1, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth))
 
-	for i, b := range bitmaps[5:] {
+	for i := range 5 {
+		idx := i + 5
 		col := frame.New(row1, fmt.Sprintf("%d", i))
 		pack.Pack(col, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.PadY(".25c"), pack.PadX(".25c"))
-		nl := label.New(col, "label", label.Text(b.name), label.Width(9))
-		il := label.New(col, "bitmap", label.ImageOpt(b.photo))
+		nl := label.New(col, "label", label.Text(bitmapNames[idx]), label.Width(9))
+		var il *label.Label
+		if photos[idx] != nil {
+			il = label.New(col, "bitmap", label.ImageOpt(photos[idx]))
+		} else {
+			il = label.New(col, "bitmap", label.Text("?"))
+		}
 		pack.Pack(nl, pack.SideOpt(pack.Bottom))
 		pack.Pack(il, pack.SideOpt(pack.Bottom))
 	}

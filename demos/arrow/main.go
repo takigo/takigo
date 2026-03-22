@@ -81,7 +81,7 @@ func main() {
 			x2 - 10*a, y,
 			xtip, y - deltaY,
 			x2, y,
-		}, canvas.OutlineColor("black"), canvas.OutlineWidth(1),
+		}, canvas.OutlineColor("black"), canvas.OutlineWidth(2),
 			canvas.CapStyleOpt(platform.CapRound), canvas.JoinStyleOpt(platform.JoinRound))
 
 		// Control boxes.
@@ -97,7 +97,7 @@ func main() {
 
 		// Separator line.
 		c.CreateLine([]float64{x2 + 75, 0, x2 + 75, 2000},
-			canvas.OutlineColor("black"), canvas.OutlineWidth(1))
+			canvas.OutlineColor("black"), canvas.OutlineWidth(2))
 
 		// Three small example arrows on the right.
 		tmp := x2 + 150
@@ -116,7 +116,7 @@ func main() {
 
 		// Dimension annotation arrows (small arrows showing measured values).
 		// smallTips: 3.75p × 1.5 scale ≈ 6px, 6px, 2px
-		sa, sb, sc := 6.0, 6.0, 2.0
+		sa, sb, sc := 8.0, 8.0, 3.0
 
 		// c (halfwidth) annotation.
 		tx := x2 + 15

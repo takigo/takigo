@@ -54,31 +54,31 @@ func main() {
 
 	// Editable combobox in labelframe (starts empty, no initial values).
 	editFrame := labelframe.New(body, "c1", labelframe.Text("Fully Editable"))
-	pack.Pack(editFrame, pack.SideOpt(pack.Top), pack.PadY("3p"), pack.PadX("7.5p"))
+	pack.Pack(editFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY("3p"), pack.PadX("7.5p"))
 
 	editCombo := ttk.NewCombobox(editFrame, "c")
-	pack.Pack(editCombo, pack.PadY("3p"), pack.PadX("7.5p"))
+	pack.Pack(editCombo, pack.FillOpt(pack.FillX), pack.PadY("3p"), pack.PadX("7.5p"))
 
 	// Disabled combobox in labelframe.
 	disFrame := labelframe.New(body, "c2", labelframe.Text("Disabled"))
-	pack.Pack(disFrame, pack.SideOpt(pack.Top), pack.PadY("3p"), pack.PadX("7.5p"))
+	pack.Pack(disFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY("3p"), pack.PadX("7.5p"))
 
 	disCombo := ttk.NewCombobox(disFrame, "c",
 		ttk.ComboboxText("unchangable"),
 		ttk.ComboboxCbState(ttk.ComboDisabled),
 	)
-	pack.Pack(disCombo, pack.PadY("3p"), pack.PadX("7.5p"))
+	pack.Pack(disCombo, pack.FillOpt(pack.FillX), pack.PadY("3p"), pack.PadX("7.5p"))
 
 	// Readonly combobox in labelframe.
 	roFrame := labelframe.New(body, "c3", labelframe.Text("Defined List Only"))
-	pack.Pack(roFrame, pack.SideOpt(pack.Top), pack.PadY("3p"), pack.PadX("7.5p"))
+	pack.Pack(roFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY("3p"), pack.PadX("7.5p"))
 
 	roCombo := ttk.NewCombobox(roFrame, "c",
 		ttk.ComboboxValues(cities),
 		ttk.ComboboxText("Sydney"),
 		ttk.ComboboxCbState(ttk.ComboReadonly),
 	)
-	pack.Pack(roCombo, pack.PadY("3p"), pack.PadX("7.5p"))
+	pack.Pack(roCombo, pack.FillOpt(pack.FillX), pack.PadY("3p"), pack.PadX("7.5p"))
 
 	// Bind Return on editable combobox: add current value to dropdown list.
 	app.Dispatcher().Bind(editCombo.Win.PlatformID, event.KeyPressMask, func(ev *event.Event) {

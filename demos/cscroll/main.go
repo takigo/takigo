@@ -35,7 +35,7 @@ func main() {
 	msg := label.New(f, "msg",
 		label.WrapLength("4i"),
 		label.JustifyOpt(option.JustifyLeft),
-		label.Text("This window displays a canvas widget that can be scrolled by using the scrollbars, by dragging with button 2 in the canvas, or by using a mouse wheel.  If you click button 1 on one of the rectangles, its indices will be printed on stdout."),
+		label.Text("This window displays a canvas widget that can be scrolled by using the scrollbars, by dragging with button 2 in the canvas, by using a mouse wheel, or with the two-finger gesture on a touchpad.  If you click button 1 on one of the rectangles, its indices will be printed on stdout."),
 	)
 	pack.Pack(msg, pack.SideOpt(pack.Top))
 
