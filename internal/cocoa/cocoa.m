@@ -437,20 +437,22 @@ static void applyGC(CGContextRef ctx, CocoaGCState *gc) {
     ev.keycode = [event keyCode];
     ev.time = (uint64_t)([event timestamp] * 1000);
 
-    // Get characters
+    // Use charactersIgnoringModifiers for keysym so that modifier keys
+    // (Option/Alt, Command) don't change the logical key identity.
+    // This matches X11 behavior where KeySym is the base key and
+    // modifiers are reported separately in ev.state.
+    NSString *plain = [event charactersIgnoringModifiers];
+    if (plain && [plain length] > 0) {
+        ev.keysym = [plain characterAtIndex:0];
+    }
+
+    // Use characters (with modifiers applied) for the text string,
+    // which is what text input needs.
     NSString *chars = [event characters];
     if (chars && [chars length] > 0) {
-        unichar ch = [chars characterAtIndex:0];
-        ev.keysym = ch;
         const char *utf8 = [chars UTF8String];
         if (utf8) {
             strncpy(ev.str, utf8, sizeof(ev.str) - 1);
-        }
-    } else {
-        // Use charactersIgnoringModifiers for keysym
-        NSString *plain = [event charactersIgnoringModifiers];
-        if (plain && [plain length] > 0) {
-            ev.keysym = [plain characterAtIndex:0];
         }
     }
 
@@ -1124,10 +1126,16 @@ void CocoaTranslateCoordinates(CocoaWindowID src, CocoaWindowID dst,
             }
             if ([dstView window]) {
                 screenP = [[dstView window] convertPointFromScreen:screenP];
+                NSPoint localP = [dstView convertPoint:screenP fromView:nil];
+                rx = (int)localP.x;
+                ry = (int)localP.y;
+            } else {
+                // Destination has no NSWindow (e.g. virtual root window).
+                // screenP is in Cocoa screen coords (bottom-left origin).
+                // Convert Y to top-left origin to match X11/Tk convention.
+                rx = (int)screenP.x;
+                ry = CocoaScreenHeight() - (int)screenP.y;
             }
-            NSPoint localP = [dstView convertPoint:screenP fromView:nil];
-            rx = (int)localP.x;
-            ry = (int)localP.y;
         }
     });
     *dstX = rx;
