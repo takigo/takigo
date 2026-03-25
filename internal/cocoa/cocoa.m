@@ -641,12 +641,14 @@ static void applyGC(CGContextRef ctx, CocoaGCState *gc) {
 }
 
 - (BOOL)windowShouldClose:(NSWindow *)sender {
-    // Post WM_DELETE_WINDOW equivalent as client message
+    // Post WM_DELETE_WINDOW as a WM_PROTOCOLS client message, matching the
+    // X11 convention: messageType = WM_PROTOCOLS, data[0] = WM_DELETE_WINDOW.
+    // The Go wm.HandleClientMessage expects this format.
     CocoaRawEvent ev = {0};
     ev.type = COCOA_EVENT_CLIENT_MESSAGE;
     ev.window = _windowID;
-    // Use atom ID for WM_DELETE_WINDOW (will be set up during init)
-    ev.messageType = CocoaInternAtom("WM_DELETE_WINDOW", false);
+    ev.messageType = CocoaInternAtom("WM_PROTOCOLS", false);
+    ev.messageData[0] = (int64_t)CocoaInternAtom("WM_DELETE_WINDOW", false);
     ev.time = (uint64_t)([NSProcessInfo processInfo].systemUptime * 1000);
     postEvent(&ev);
     return NO; // Don't close; let Go code handle it
@@ -825,7 +827,11 @@ CocoaWindowID CocoaCreateWindow(CocoaWindowID parent, int x, int y,
 
             TKContentView *view = [[TKContentView alloc]
                 initWithFrame:NSMakeRect(0, 0, w, h) windowID:wid];
-            view.bgPixel = bgPixel;
+            // Don't override the view's default bgPixel (0xD9D9D9, the Tk
+            // default background). Go widget code creates windows with
+            // WhitePixel before InitBase resolves the actual background.
+            // Widgets that need a different background will either draw it
+            // in their expose handler or call SetWindowBackground explicitly.
             view.eventMask = eventMask;
 
             if (isTopLevel) {
@@ -850,6 +856,10 @@ CocoaWindowID CocoaCreateWindow(CocoaWindowID parent, int x, int y,
                 window.windowID = wid;
                 [window setContentView:view];
                 [window setAcceptsMouseMovedEvents:YES];
+                // Match NSWindow background to content view so the Tk
+                // default gray shows through during layer compositing
+                // and resize transitions instead of white.
+                [window setBackgroundColor:pixelToNSColor(view.bgPixel)];
 
                 TKWindowDelegate *delegate = [TKWindowDelegate new];
                 delegate.windowID = wid;
