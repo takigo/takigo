@@ -40,7 +40,7 @@ static TKApplication *tkApp = nil;
 static NSMutableDictionary<NSNumber *, TKContentView *> *windowRegistry = nil;
 static uintptr_t nextWindowID = 1;
 static uintptr_t nextGCID = 1;
-static uintptr_t nextPixmapID = 1;
+static uintptr_t nextPixmapID = 0x80000000; // offset to avoid collision with window IDs
 static uintptr_t nextAtomID = 100; // start above predefined atoms
 static CocoaWindowID rootWindowID = 0; // virtual root window ID
 
