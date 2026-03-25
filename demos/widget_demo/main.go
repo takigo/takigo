@@ -15,6 +15,7 @@ import (
 	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/cursor"
 	"github.com/msorc/takigo/event"
+	tkfont "github.com/msorc/takigo/font"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
@@ -66,7 +67,7 @@ func main() {
 
 	// menu .menuBar.file -tearoff 0
 	fileMenu := menu.New(app, "file")
-	if menuFont, err := app.FontRegistry().Get("Sans 10"); err == nil {
+	if menuFont, err := app.FontRegistry().Get(tkfont.TkMenuFont); err == nil {
 		fileMenu.Font = menuFont
 	}
 	// .menuBar.file add command -label "About..." -accelerator "<F1>"
@@ -124,7 +125,7 @@ func main() {
 	//     [font metrics mainFont -displayof . -linespace]
 	// }]}
 	textHeight := 30
-	mainFont, err := app.FontRegistry().Get("Sans 10")
+	mainFont, err := app.FontRegistry().Get(tkfont.TkDefaultFont)
 	if err == nil {
 		screen := app.Root().Display.Screen
 		screenH := app.Server().ScreenHeight(screen)
@@ -140,7 +141,7 @@ func main() {
 	t := text.New(textFrame, "t",
 		text.WrapModeOpt(text.WrapWord),
 		text.Width(70), text.Height(textHeight),
-		text.FontOpt("Sans 10"),
+		text.FontOpt(tkfont.TkDefaultFont),
 		// TODO: text.SetGrid(true), text.HighlightThickness(0),
 		// TODO: text.TakeFocus(false)
 	)
@@ -177,11 +178,15 @@ func main() {
 
 	// ── Configure tags ──
 	// .t tag configure title -font titleFont
-	t.TagConfigure("title", text.TagFont("Sans Bold 14"))
+	// Tk creates titleFont from TkDefaultFont at 18pt bold, and boldFont
+	// from TkDefaultFont with bold weight. Derive from TkDefaultFont so
+	// the sizes adapt to each platform's defaults.
+	reg := app.FontRegistry()
+	t.TagConfigure("title", text.TagFont(reg.Derive(tkfont.TkDefaultFont, 18, tkfont.WeightBold)))
 	// .t tag configure subtitle -font titleFont
-	t.TagConfigure("subtitle", text.TagFont("Sans Bold 10"))
+	t.TagConfigure("subtitle", text.TagFont(reg.Derive(tkfont.TkDefaultFont, 0, tkfont.WeightBold)))
 	// .t tag configure bold -font boldFont
-	t.TagConfigure("bold", text.TagFont("Sans Bold 10"))
+	t.TagConfigure("bold", text.TagFont(reg.Derive(tkfont.TkDefaultFont, 0, tkfont.WeightBold)))
 
 	// .t tag configure demospace -lmargin1 1c -lmargin2 1c
 	t.TagConfigure("demospace",

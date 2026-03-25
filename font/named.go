@@ -18,17 +18,7 @@ const (
 )
 
 // namedFontDefs maps named font names to their default attributes.
-var namedFontDefs = map[string]Attributes{
-	TkDefaultFont:      {Family: "sans-serif", Size: 10, Weight: WeightNormal, Slant: SlantRoman},
-	TkTextFont:         {Family: "sans-serif", Size: 10, Weight: WeightNormal, Slant: SlantRoman},
-	TkFixedFont:        {Family: "monospace", Size: 10, Weight: WeightNormal, Slant: SlantRoman},
-	TkMenuFont:         {Family: "sans-serif", Size: 10, Weight: WeightNormal, Slant: SlantRoman},
-	TkHeadingFont:      {Family: "sans-serif", Size: 12, Weight: WeightBold, Slant: SlantRoman},
-	TkCaptionFont:      {Family: "sans-serif", Size: 10, Weight: WeightBold, Slant: SlantRoman},
-	TkSmallCaptionFont: {Family: "sans-serif", Size: 9, Weight: WeightNormal, Slant: SlantRoman},
-	TkIconFont:         {Family: "sans-serif", Size: 9, Weight: WeightNormal, Slant: SlantRoman},
-	TkTooltipFont:      {Family: "sans-serif", Size: 9, Weight: WeightNormal, Slant: SlantRoman},
-}
+// Defined in platform-specific files (named_darwin.go, named_unix.go, etc.).
 
 // FontOpener is the interface for platform-specific font creation.
 // The X11 backend implements this using OpenXft.
@@ -105,6 +95,32 @@ func (r *Registry) Get(name string) (Font, error) {
 
 	r.cache[name] = f
 	return f, nil
+}
+
+// GetAttrs returns the attributes for a named font.
+// Returns zero Attributes and false if the name is not registered.
+func (r *Registry) GetAttrs(name string) (Attributes, bool) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	a, ok := r.named[name]
+	return a, ok
+}
+
+// Derive creates a font descriptor string from a named font with overrides.
+// It looks up the named font's attributes and applies the given size and weight,
+// returning a descriptor string like "Helvetica Neue Bold 18".
+func (r *Registry) Derive(name string, size float64, weight Weight) string {
+	a, ok := r.GetAttrs(name)
+	if !ok {
+		a = Attributes{Family: "sans-serif", Size: 10}
+	}
+	if size > 0 {
+		a.Size = size
+	}
+	if weight != 0 {
+		a.Weight = weight
+	}
+	return a.Descriptor()
 }
 
 // Close releases all cached fonts.

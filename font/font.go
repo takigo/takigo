@@ -35,6 +35,29 @@ type Attributes struct {
 	Overstrike bool
 }
 
+// Descriptor returns a font descriptor string like "Helvetica Neue Bold 13".
+func (a Attributes) Descriptor() string {
+	family := a.Family
+	if family == "" {
+		family = "sans-serif"
+	}
+	w := ""
+	if a.Weight == WeightBold {
+		w = " Bold"
+	}
+	s := ""
+	if a.Slant == SlantItalic {
+		s = " Italic"
+	} else if a.Slant == SlantOblique {
+		s = " Oblique"
+	}
+	size := a.Size
+	if size <= 0 {
+		size = 10
+	}
+	return fmt.Sprintf("%s%s%s %.0f", family, w, s, size)
+}
+
 // Metrics holds font measurement data.
 type Metrics struct {
 	Ascent   int // pixels from baseline to top
