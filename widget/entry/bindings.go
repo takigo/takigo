@@ -75,7 +75,7 @@ func bindEntry(e *Entry, app widget.AppContext) {
 	// Keyboard.
 	app.Dispatcher().Bind(w.PlatformID, event.KeyPressMask, func(ev *event.Event) {
 		shift := ev.State&platform.ShiftMask != 0
-		ctrl := ev.State&platform.ControlMask != 0
+		ctrl := ev.State&(platform.ControlMask|platform.Mod2Mask) != 0 // Ctrl or Cmd (macOS)
 
 		switch ev.KeySym {
 		case platform.XK_Left:

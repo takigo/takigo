@@ -376,6 +376,12 @@ static void applyGC(CGContextRef ctx, CocoaGCState *gc) {
     ev.rootX = (int)screen.x;
     ev.rootY = (int)(CocoaScreenHeight() - screen.y); // flip Y for root coords
     ev.state = [self modifierFlags:event];
+    // Add mouse button state to match X11 convention where ev.state
+    // includes ButtonNMask for currently pressed buttons.
+    NSUInteger pressedButtons = [NSEvent pressedMouseButtons];
+    if (pressedButtons & (1 << 0)) ev.state |= (1 << 8);  // Button1Mask
+    if (pressedButtons & (1 << 1)) ev.state |= (1 << 10); // Button3Mask (right)
+    if (pressedButtons & (1 << 2)) ev.state |= (1 << 9);  // Button2Mask (middle)
     ev.button = btn;
     ev.time = (uint64_t)([event timestamp] * 1000);
     postEvent(&ev);
