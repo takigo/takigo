@@ -18,8 +18,10 @@ type Style struct {
 
 // Lookup returns the value for optionName at the given state.
 // It checks state maps first, then defaults, walking up the parent chain.
+// Stops after 20 levels to guard against accidental cycles.
 func (s *Style) Lookup(optionName string, state State) (any, bool) {
-	for cur := s; cur != nil; cur = cur.Parent {
+	const maxDepth = 20
+	for cur, depth := s, 0; cur != nil && depth < maxDepth; cur, depth = cur.Parent, depth+1 {
 		if m, ok := cur.Maps[optionName]; ok {
 			if v, found := m.Lookup(state); found {
 				return v, true

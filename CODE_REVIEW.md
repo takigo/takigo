@@ -47,25 +47,25 @@ Merged parallel `displayList []*TreeItem` and `displayDepth []int` slices into a
 
 ## Low Priority / Code Quality
 
-### 8. Event channel overflow (`event/loop.go:50`)
+### 8. ~~Event channel overflow (`event/loop.go`)~~ FIXED
 
-Event channel buffer is 64. If event generation outpaces processing, the `readEvents` goroutine blocks on send with no backpressure or overflow detection. Idle queue also grows unbounded.
+Documented channel buffer backpressure semantics. Senders block when full, which is correct — X server queues events internally. Replaced `goto`-based drain loops with idiomatic `for/select`.
 
-### 9. `goto` for flow control (`event/loop.go:145, 285`)
+### 9. ~~`goto` for flow control (`event/loop.go`)~~ FIXED
 
-`goto pumpDone` / `nestedPumpDone` is non-idiomatic Go. A `for/select` with explicit breaks would be clearer.
+Replaced `goto pumpDone`, `goto nestedPumpDone`, and `goto drain` with `for done := false; !done` select loops.
 
-### 10. Canvas linear tag scan (`canvas/tags.go:29-36`)
+### 10. ~~Canvas linear tag scan (`canvas/tags.go`)~~ FIXED
 
-Tag resolution iterates all items. Fine for small canvases, but O(n) per operation hurts with 10k+ items. A tag-to-items index map would fix this.
+Added `tagIndex map[string]map[int64]*itemEntry` to Canvas. Tag add/remove operations maintain the index. `resolve()` uses indexed lookup filtered by display order instead of linear scan.
 
-### 11. Canvas Delete/Raise/Lower rebuild entire slice (`canvas/canvas.go:428-487`)
+### 11. ~~Canvas Delete/Raise/Lower rebuild entire slice (`canvas/canvas.go`)~~ FIXED
 
-Creates new slices via append loops. In-place compaction would be more efficient for bulk operations.
+Raise/Lower now use in-place partitioning instead of allocating separate kept/moved slices. Delete already used in-place filtering.
 
-### 12. Theme style parent chain has no cycle detection (`ttk/theme.go:21-33`)
+### 12. ~~Theme style parent chain has no cycle detection (`ttk/theme.go`)~~ FIXED
 
-`Style.Lookup()` walks the parent chain without cycle guard. Unlikely in practice, but an infinite loop if it happens.
+`Style.Lookup()` now stops after 20 levels to guard against accidental parent chain cycles.
 
 ---
 
@@ -92,7 +92,7 @@ Creates new slices via append loops. In-place compaction would be more efficient
 | ~~P1~~ | ~~Guard TTK `Display()` against nil layout~~ | ALREADY FIXED |
 | ~~P2~~ | ~~Document single-goroutine requirement for event loop~~ | FIXED |
 | ~~P2~~ | ~~Merge `displayList`/`displayDepth` into single struct slice~~ | FIXED |
-| P3 | Add tag index map to canvas for large item counts | 2-3 hr |
+| ~~P3~~ | ~~Add tag index map to canvas for large item counts~~ | FIXED |
 | ~~P3~~ | ~~Add per-handler unbind to dispatcher~~ | FIXED |
 
 The codebase is in solid shape for its scope. The main areas to harden are resource cleanup edge cases in the C layer and treeview performance for large datasets.

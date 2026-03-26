@@ -14,9 +14,10 @@ import (
 type Canvas struct {
 	widget.Base
 
-	items   []*itemEntry
-	idMap   map[int64]*itemEntry
-	nextID  int64
+	items    []*itemEntry
+	idMap    map[int64]*itemEntry
+	tagIndex map[string]map[int64]*itemEntry // tag name → item IDs for O(1) tag lookup
+	nextID   int64
 
 	// Scroll state.
 	xOrigin, yOrigin int
@@ -113,6 +114,7 @@ func New(parent widget.Caregiver, name string, opts ...CanvasOption) *Canvas {
 
 	c := &Canvas{
 		idMap:        make(map[int64]*itemEntry),
+		tagIndex:     make(map[string]map[int64]*itemEntry),
 		nextID:       1,
 		itemBindings: make(map[string][]itemHandler),
 		closeEnough:  1.0,
@@ -308,6 +310,7 @@ func (c *Canvas) Destroy() {
 	}
 	c.items = nil
 	c.idMap = nil
+	c.tagIndex = nil
 
 	// Free pixmap.
 	if c.pixmap != 0 {
@@ -337,8 +340,33 @@ func (c *Canvas) addItem(item Item) int64 {
 	c.items = append(c.items, entry)
 	c.idMap[id] = entry
 
+	// Register initial tags in the index.
+	for _, tag := range base.Tags {
+		c.tagIndexAdd(tag, id)
+	}
+
 	c.scheduleRedraw()
 	return id
+}
+
+// tagIndexAdd registers item id under tag in the tag index.
+func (c *Canvas) tagIndexAdd(tag string, id int64) {
+	m := c.tagIndex[tag]
+	if m == nil {
+		m = make(map[int64]*itemEntry)
+		c.tagIndex[tag] = m
+	}
+	m[id] = c.idMap[id]
+}
+
+// tagIndexRemove unregisters item id from tag in the tag index.
+func (c *Canvas) tagIndexRemove(tag string, id int64) {
+	if m := c.tagIndex[tag]; m != nil {
+		delete(m, id)
+		if len(m) == 0 {
+			delete(c.tagIndex, tag)
+		}
+	}
 }
 
 // CreateRectangle creates a rectangle item.
@@ -433,6 +461,15 @@ func (c *Canvas) Delete(tagOrID string) {
 	}
 	c.items = filtered
 
+	// Remove deleted items from tag index.
+	for _, e := range entries {
+		if base := itemBase(e.item); base != nil {
+			for _, tag := range base.Tags {
+				c.tagIndexRemove(tag, e.id)
+			}
+		}
+	}
+
 	// Clear current item if deleted.
 	if c.currentItem != nil && deleteSet[c.currentItem.id] {
 		c.currentItem = nil
@@ -476,15 +513,19 @@ func (c *Canvas) Raise(tagOrID string) {
 		moveSet[e.id] = true
 	}
 
-	var kept, moved []*itemEntry
-	for _, e := range c.items {
-		if moveSet[e.id] {
-			moved = append(moved, e)
+	// In-place partition: kept items first, moved items appended at end.
+	n := len(c.items)
+	j := 0
+	moved := make([]*itemEntry, 0, len(entries))
+	for i := 0; i < n; i++ {
+		if moveSet[c.items[i].id] {
+			moved = append(moved, c.items[i])
 		} else {
-			kept = append(kept, e)
+			c.items[j] = c.items[i]
+			j++
 		}
 	}
-	c.items = append(kept, moved...)
+	copy(c.items[j:], moved)
 	c.scheduleRedraw()
 }
 
@@ -499,15 +540,22 @@ func (c *Canvas) Lower(tagOrID string) {
 		moveSet[e.id] = true
 	}
 
-	var kept, moved []*itemEntry
-	for _, e := range c.items {
-		if moveSet[e.id] {
-			moved = append(moved, e)
+	// In-place partition: moved items first, kept items shifted right.
+	n := len(c.items)
+	j := n - 1
+	kept := make([]*itemEntry, 0, n-len(entries))
+	for i := n - 1; i >= 0; i-- {
+		if moveSet[c.items[i].id] {
+			c.items[j] = c.items[i]
+			j--
 		} else {
-			kept = append(kept, e)
+			kept = append(kept, c.items[i])
 		}
 	}
-	c.items = append(moved, kept...)
+	// kept is in reverse order; copy reversed into the front.
+	for i, k := 0, len(kept)-1; k >= 0; i, k = i+1, k-1 {
+		c.items[i] = kept[k]
+	}
 	c.scheduleRedraw()
 }
 

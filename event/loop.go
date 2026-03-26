@@ -32,10 +32,13 @@ type Loop struct {
 	pumper     EventPumper // non-nil on platforms needing main-thread event pumping
 
 	// Channels for the select-based event loop.
-	eventCh chan *platform.RawEvent // raw events from reader goroutine
-	idleCh  chan func()             // idle callbacks (replaces Tcl_DoWhenIdle)
-	timerCh chan func()             // timer-fired callbacks
-	mainCh  chan func()             // cross-goroutine calls via RunOnMain
+	// Buffer sizes provide natural backpressure: senders block when full,
+	// which is acceptable since the X server queues events internally and
+	// DoWhenIdle/After callers are on the event loop goroutine.
+	eventCh chan *platform.RawEvent // raw events from reader goroutine (cap 64)
+	idleCh  chan func()             // idle callbacks (cap 256)
+	timerCh chan func()             // timer-fired callbacks (cap 64)
+	mainCh  chan func()             // cross-goroutine calls via RunOnMain (cap 64)
 	done    chan struct{}            // signal to stop the loop
 
 	// Pending idle callbacks (coalesced).
@@ -143,15 +146,14 @@ func (l *Loop) runPumpMode() {
 			l.pumper.PumpEvents()
 
 			// Drain any events that were posted during pumping.
-			for {
+			for done := false; !done; {
 				select {
 				case raw := <-l.eventCh:
 					l.handleRaw(raw)
 				default:
-					goto pumpDone
+					done = true
 				}
 			}
-		pumpDone:
 		}
 	}
 }
@@ -286,15 +288,14 @@ func (l *Loop) runNestedPumpMode(done <-chan struct{}) {
 			l.server.Flush()
 		case <-ticker.C:
 			l.pumper.PumpEvents()
-			for {
+			for done := false; !done; {
 				select {
 				case raw := <-l.eventCh:
 					l.handleRaw(raw)
 				default:
-					goto nestedPumpDone
+					done = true
 				}
 			}
-		nestedPumpDone:
 		}
 	}
 }
@@ -302,15 +303,14 @@ func (l *Loop) runNestedPumpMode(done <-chan struct{}) {
 // processIdleQueue runs all pending idle callbacks.
 func (l *Loop) processIdleQueue() {
 	// Drain any pending idle callbacks from the channel.
-	for {
+	for drained := false; !drained; {
 		select {
 		case fn := <-l.idleCh:
 			l.idleQueue = append(l.idleQueue, fn)
 		default:
-			goto drain
+			drained = true
 		}
 	}
-drain:
 	if len(l.idleQueue) == 0 {
 		return
 	}

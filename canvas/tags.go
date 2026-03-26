@@ -26,10 +26,15 @@ func (c *Canvas) resolve(tagOrID string) []*itemEntry {
 		}
 		return nil
 	default:
-		// Tag name: linear scan.
-		var result []*itemEntry
+		// Tag name: use tag index for O(1) lookup per tag.
+		indexed := c.tagIndex[tagOrID]
+		if len(indexed) == 0 {
+			return nil
+		}
+		// Return entries in display order (iterate items, filter by index).
+		result := make([]*itemEntry, 0, len(indexed))
 		for _, entry := range c.items {
-			if base := itemBase(entry.item); base != nil && base.HasTag(tagOrID) {
+			if indexed[entry.id] != nil {
 				result = append(result, entry)
 			}
 		}

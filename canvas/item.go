@@ -79,6 +79,9 @@ func (b *ItemBase) HasTag(tag string) bool {
 func (b *ItemBase) AddTag(tag string) {
 	if !b.HasTag(tag) {
 		b.Tags = append(b.Tags, tag)
+		if b.canvas != nil {
+			b.canvas.tagIndexAdd(tag, b.ID)
+		}
 	}
 }
 
@@ -87,6 +90,9 @@ func (b *ItemBase) RemoveTag(tag string) {
 	for i, t := range b.Tags {
 		if t == tag {
 			b.Tags = append(b.Tags[:i], b.Tags[i+1:]...)
+			if b.canvas != nil {
+				b.canvas.tagIndexRemove(tag, b.ID)
+			}
 			return
 		}
 	}
