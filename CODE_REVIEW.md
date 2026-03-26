@@ -11,21 +11,17 @@ Well-structured, ambitious port of Tk 9.1 to Go. Clean package separation, good 
 
 ## Critical / High Priority
 
-### 1. XImage buffer leak in C helper (`internal/xlib/pixmap.go`)
+### 1. ~~XImage buffer leak in C helper (`internal/xlib/pixmap.go`)~~ ALREADY FIXED
 
-`put_rgba_image` allocates a buffer, calls `XCreateImage()`, but never checks if `XCreateImage` returns NULL. If it fails, the buffer leaks silently.
+Code already has `if (img)` guard at line 63. No action needed.
 
-**Fix:** Add `if (!img) { free(buf); return; }` after `XCreateImage()`.
+### 2. ~~XIM resources never freed (`internal/xlib/`)~~ FIXED
 
-### 2. XIM resources never freed (`internal/xlib/`)
+`Display.Close()` now calls `XDestroyIC(xic)` and `XCloseIM(xim)` before `XCloseDisplay()`.
 
-`xim` and `xic` (input method) are initialized but never closed. `Display.Close()` should call `XCloseIM(xim)` / `XDestroyIC(xic)`.
+### 3. ~~Treeview O(n²) insert performance (`ttk/treeview.go`)~~ FIXED
 
-### 3. Treeview O(n²) insert performance (`ttk/treeview.go:286-296`)
-
-Every insert at a non-end index copies the entire children slice. Inserting 1000 items = ~500k item moves. `rebuildDisplayList()` is also called on every insert/delete/move/open/close, walking the entire tree each time — and sometimes multiple times per operation.
-
-**Fix:** Batch `rebuildDisplayList()` calls via idle callback, or at minimum deduplicate consecutive rebuilds.
+Added `scheduleRedisplay()` method that batches `rebuildDisplayList()` + `Display()` via `DoWhenIdle`. Multiple structural changes (insert/delete/move/open/sort) before the next idle phase are coalesced into a single rebuild.
 
 ---
 
@@ -37,11 +33,9 @@ Every insert at a non-end index copies the entire children slice. Inserting 1000
 
 **Fix:** Either protect with a mutex, or document that it must be called before `Run()`.
 
-### 5. TTK widget nil layout dereference (`ttk/widget.go`)
+### 5. ~~TTK widget nil layout dereference (`ttk/widget.go`)~~ ALREADY FIXED
 
-`RefreshTheme()` can set `w.Layout = nil` if the new theme has no layout template. `Display()` doesn't guard against this — will panic.
-
-**Fix:** Guard `Display()` with `if w.Layout == nil { return }`.
+`TtkWidget.Display()` already has `if w.Destroyed || w.Layout == nil { return }` guard at line 84.
 
 ### 6. Treeview displayList/displayDepth sync (`ttk/treeview.go`)
 
@@ -96,10 +90,10 @@ Creates new slices via append loops. In-place compaction would be more efficient
 
 | Priority | Action | Effort |
 |----------|--------|--------|
-| P0 | Add XCreateImage NULL check in `put_rgba_image` | 5 min |
-| P0 | Free XIM/XIC in `Display.Close()` | 15 min |
-| P1 | Batch/deduplicate `rebuildDisplayList()` in treeview | 1-2 hr |
-| P1 | Guard TTK `Display()` against nil layout | 5 min |
+| ~~P0~~ | ~~Add XCreateImage NULL check in `put_rgba_image`~~ | ALREADY FIXED |
+| ~~P0~~ | ~~Free XIM/XIC in `Display.Close()`~~ | FIXED |
+| ~~P1~~ | ~~Batch/deduplicate `rebuildDisplayList()` in treeview~~ | FIXED |
+| ~~P1~~ | ~~Guard TTK `Display()` against nil layout~~ | ALREADY FIXED |
 | P2 | Document single-goroutine requirement for event loop | 15 min |
 | P2 | Merge `displayList`/`displayDepth` into single struct slice | 30 min |
 | P3 | Add tag index map to canvas for large item counts | 2-3 hr |

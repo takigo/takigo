@@ -24,9 +24,17 @@ func OpenDisplay(name string) (*Display, error) {
 	return &Display{ptr: dpy}, nil
 }
 
-// Close closes the display connection.
+// Close closes the display connection, freeing XIM/XIC resources first.
 func (d *Display) Close() {
 	if d.ptr != nil {
+		if d.xic != nil {
+			C.XDestroyIC(d.xic)
+			d.xic = nil
+		}
+		if d.xim != nil {
+			C.XCloseIM(d.xim)
+			d.xim = nil
+		}
 		C.XCloseDisplay(d.ptr)
 		d.ptr = nil
 	}

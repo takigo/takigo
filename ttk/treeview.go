@@ -71,6 +71,9 @@ type Treeview struct {
 	displayList  []*TreeItem
 	displayDepth []int
 
+	// Deferred redisplay.
+	redisplayPending bool
+
 	// Selection.
 	selection  map[string]bool
 	focus      string
@@ -292,8 +295,7 @@ func (tv *Treeview) Insert(parentID string, index int, opts ...ItemOption) strin
 	}
 
 	tv.items[item.ID] = item
-	tv.rebuildDisplayList()
-	tv.Display()
+	tv.scheduleRedisplay()
 	return item.ID
 }
 
@@ -306,8 +308,7 @@ func (tv *Treeview) Delete(ids ...string) {
 		}
 		tv.removeItem(item)
 	}
-	tv.rebuildDisplayList()
-	tv.Display()
+	tv.scheduleRedisplay()
 }
 
 func (tv *Treeview) removeItem(item *TreeItem) {
@@ -364,8 +365,7 @@ func (tv *Treeview) Move(id, parentID string, index int) {
 		newParent.Children[index] = item
 	}
 
-	tv.rebuildDisplayList()
-	tv.Display()
+	tv.scheduleRedisplay()
 }
 
 // Item returns the item with the given ID.
@@ -432,9 +432,7 @@ func (tv *Treeview) SetItemOpen(id string, open bool) {
 	} else if !open && tv.OnClose != nil {
 		tv.OnClose(id)
 	}
-	tv.rebuildDisplayList()
-	tv.notifyYScrollbar()
-	tv.Display()
+	tv.scheduleRedisplay()
 }
 
 // --- Selection ---
@@ -715,6 +713,23 @@ func (tv *Treeview) displayIndex(id string) int {
 	return -1
 }
 
+// scheduleRedisplay batches rebuildDisplayList + Display via the idle loop.
+// Multiple calls before the next idle phase are coalesced into one redisplay.
+func (tv *Treeview) scheduleRedisplay() {
+	if tv.redisplayPending || tv.Destroyed {
+		return
+	}
+	tv.redisplayPending = true
+	tv.App.DoWhenIdle(func() {
+		tv.redisplayPending = false
+		if !tv.Destroyed {
+			tv.rebuildDisplayList()
+			tv.notifyYScrollbar()
+			tv.Display()
+		}
+	})
+}
+
 // --- Display List ---
 
 func (tv *Treeview) rebuildDisplayList() {
@@ -756,7 +771,6 @@ func (tv *Treeview) SortChildren(parentID string, less func(a, b *TreeItem) bool
 	sort.SliceStable(parent.Children, func(i, j int) bool {
 		return less(parent.Children[i], parent.Children[j])
 	})
-	tv.rebuildDisplayList()
-	tv.Display()
+	tv.scheduleRedisplay()
 }
 
