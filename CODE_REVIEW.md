@@ -27,25 +27,21 @@ Added `scheduleRedisplay()` method that batches `rebuildDisplayList()` + `Displa
 
 ## Medium Priority
 
-### 4. `SetRawEventHandler` race condition (`event/loop.go:180`)
+### 4. ~~`SetRawEventHandler` race condition (`event/loop.go`)~~ FIXED
 
-`l.rawHandler` is written by `SetRawEventHandler()` and read by `handleRaw()` without synchronization. Safe today because both run on the main goroutine, but undocumented and fragile.
-
-**Fix:** Either protect with a mutex, or document that it must be called before `Run()`.
+Documented single-goroutine threading model on `Loop` struct and `SetRawEventHandler`. All handlers, idle callbacks, and timer callbacks run on the main goroutine; only `readEvents` runs concurrently.
 
 ### 5. ~~TTK widget nil layout dereference (`ttk/widget.go`)~~ ALREADY FIXED
 
 `TtkWidget.Display()` already has `if w.Destroyed || w.Layout == nil { return }` guard at line 84.
 
-### 6. Treeview displayList/displayDepth sync (`ttk/treeview.go`)
+### 6. ~~Treeview displayList/displayDepth sync (`ttk/treeview.go`)~~ FIXED
 
-These two slices are rebuilt together in `rebuildDisplayList()` but accessed independently in display code. If they ever get out of sync (e.g., concurrent event during display), it's a panic.
+Merged parallel `displayList []*TreeItem` and `displayDepth []int` slices into a single `displayList []displayEntry` where `displayEntry` holds both `item` and `depth`. Cannot get out of sync.
 
-**Fix:** Use a single `[]displayEntry` struct slice instead of two parallel slices.
+### 7. ~~Dispatcher unbind granularity (`event/dispatch.go`)~~ FIXED
 
-### 7. Dispatcher unbind granularity (`event/dispatch.go:47`)
-
-`Unbind()` removes **all** handlers for a window. If multiple subsystems bind to the same window (focus manager + bind engine + widget), one unbind tears everything down.
+`Bind()` and `BindGlobal()` now return a `BindingID`. Added `UnbindID(id)` to remove a specific handler without affecting others on the same window. `Unbind(w)` still available for bulk cleanup.
 
 ---
 
@@ -94,9 +90,9 @@ Creates new slices via append loops. In-place compaction would be more efficient
 | ~~P0~~ | ~~Free XIM/XIC in `Display.Close()`~~ | FIXED |
 | ~~P1~~ | ~~Batch/deduplicate `rebuildDisplayList()` in treeview~~ | FIXED |
 | ~~P1~~ | ~~Guard TTK `Display()` against nil layout~~ | ALREADY FIXED |
-| P2 | Document single-goroutine requirement for event loop | 15 min |
-| P2 | Merge `displayList`/`displayDepth` into single struct slice | 30 min |
+| ~~P2~~ | ~~Document single-goroutine requirement for event loop~~ | FIXED |
+| ~~P2~~ | ~~Merge `displayList`/`displayDepth` into single struct slice~~ | FIXED |
 | P3 | Add tag index map to canvas for large item counts | 2-3 hr |
-| P3 | Add per-handler unbind to dispatcher | 1 hr |
+| ~~P3~~ | ~~Add per-handler unbind to dispatcher~~ | FIXED |
 
 The codebase is in solid shape for its scope. The main areas to harden are resource cleanup edge cases in the C layer and treeview performance for large datasets.

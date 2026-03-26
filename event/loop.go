@@ -18,6 +18,12 @@ type EventPumper interface {
 
 // Loop is the main event loop, integrating platform events with idle callbacks,
 // timers, and cross-goroutine dispatching.
+//
+// The loop runs on a single goroutine (the main goroutine). All handlers,
+// idle callbacks, and timer callbacks execute on this goroutine. The only
+// concurrency is the readEvents goroutine that posts raw events to eventCh.
+// Fields like rawHandler and idleQueue are not synchronized and must only
+// be accessed from the loop goroutine or before calling Run().
 type Loop struct {
 	server     platform.DisplayServer
 	parser     platform.EventParser
@@ -176,6 +182,9 @@ func (l *Loop) handleRaw(raw *platform.RawEvent) {
 // SetRawEventHandler installs a handler called for every raw event before
 // type conversion. Use it for event types not routed through the Dispatcher
 // (e.g. X11 selection events).
+//
+// Must be called before Run() or from a handler running on the event loop
+// goroutine. Not safe for concurrent use.
 func (l *Loop) SetRawEventHandler(h func(*platform.RawEvent)) {
 	l.rawHandler = h
 }

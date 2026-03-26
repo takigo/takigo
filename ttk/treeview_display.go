@@ -128,8 +128,9 @@ func (tv *Treeview) Display() {
 			break
 		}
 
-		item := tv.displayList[idx]
-		depth := tv.displayDepth[idx]
+		entry := tv.displayList[idx]
+		item := entry.item
+		depth := entry.depth
 		rowY := itemAreaY + i*tv.rowHeight
 
 		isSelected := tv.selection[item.ID]

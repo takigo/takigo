@@ -20,6 +20,12 @@ const (
 	TreeSelectNone                           // no selection
 )
 
+// displayEntry pairs an item with its depth in the flattened display list.
+type displayEntry struct {
+	item  *TreeItem
+	depth int
+}
+
 // TreeItem holds data for a single treeview item.
 type TreeItem struct {
 	ID       string
@@ -67,9 +73,8 @@ type Treeview struct {
 	items  map[string]*TreeItem // O(1) lookup
 	nextID int                  // auto-gen I001, I002...
 
-	// Flattened display list.
-	displayList  []*TreeItem
-	displayDepth []int
+	// Flattened display list (rebuilt on structural changes).
+	displayList []displayEntry
 
 	// Deferred redisplay.
 	redisplayPending bool
@@ -440,9 +445,9 @@ func (tv *Treeview) SetItemOpen(id string, open bool) {
 // Selection returns the IDs of selected items.
 func (tv *Treeview) Selection() []string {
 	var result []string
-	for _, item := range tv.displayList {
-		if tv.selection[item.ID] {
-			result = append(result, item.ID)
+	for _, e := range tv.displayList {
+		if tv.selection[e.item.ID] {
+			result = append(result, e.item.ID)
 		}
 	}
 	return result
@@ -705,8 +710,8 @@ func (tv *Treeview) notifyYScrollbar() {
 }
 
 func (tv *Treeview) displayIndex(id string) int {
-	for i, item := range tv.displayList {
-		if item.ID == id {
+	for i, e := range tv.displayList {
+		if e.item.ID == id {
 			return i
 		}
 	}
@@ -734,14 +739,12 @@ func (tv *Treeview) scheduleRedisplay() {
 
 func (tv *Treeview) rebuildDisplayList() {
 	tv.displayList = tv.displayList[:0]
-	tv.displayDepth = tv.displayDepth[:0]
 	tv.walkChildren(tv.root, 0)
 }
 
 func (tv *Treeview) walkChildren(parent *TreeItem, depth int) {
 	for _, child := range parent.Children {
-		tv.displayList = append(tv.displayList, child)
-		tv.displayDepth = append(tv.displayDepth, depth)
+		tv.displayList = append(tv.displayList, displayEntry{item: child, depth: depth})
 		if child.Open && len(child.Children) > 0 {
 			tv.walkChildren(child, depth+1)
 		}

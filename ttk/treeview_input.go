@@ -66,8 +66,9 @@ func (tv *Treeview) hitTest(x, y int) hitResult {
 		return hitResult{region: hitNothing}
 	}
 
-	item := tv.displayList[dispIdx]
-	depth := tv.displayDepth[dispIdx]
+	entry := tv.displayList[dispIdx]
+	item := entry.item
+	depth := entry.depth
 
 	// Check tree column.
 	if tv.showTree && x < tv.treeColumnWidth {
@@ -248,13 +249,13 @@ func bindTreeview(tv *Treeview, app widget.AppContext) {
 			}
 		case ks == platform.XK_Home:
 			if len(tv.displayList) > 0 {
-				tv.focus = tv.displayList[0].ID
+				tv.focus = tv.displayList[0].item.ID
 				tv.SelectionSet(tv.focus)
 				tv.See(tv.focus)
 			}
 		case ks == platform.XK_End:
 			if len(tv.displayList) > 0 {
-				tv.focus = tv.displayList[len(tv.displayList)-1].ID
+				tv.focus = tv.displayList[len(tv.displayList)-1].item.ID
 				tv.SelectionSet(tv.focus)
 				tv.See(tv.focus)
 			}
@@ -288,7 +289,7 @@ func (tv *Treeview) handleSelect(id string, dispIdx int, state uint) {
 			}
 			for i := lo; i <= hi; i++ {
 				if i < len(tv.displayList) {
-					tv.selection[tv.displayList[i].ID] = true
+					tv.selection[tv.displayList[i].item.ID] = true
 				}
 			}
 		} else if ctrl {
@@ -324,7 +325,7 @@ func (tv *Treeview) moveFocus(delta int) {
 	if idx >= len(tv.displayList) {
 		idx = len(tv.displayList) - 1
 	}
-	tv.focus = tv.displayList[idx].ID
+	tv.focus = tv.displayList[idx].item.ID
 	tv.SelectionSet(tv.focus)
 	tv.See(tv.focus)
 }
