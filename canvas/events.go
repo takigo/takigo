@@ -146,14 +146,14 @@ func (c *Canvas) pickCurrentItem(winX, winY float64) {
 // as needed.
 func (c *Canvas) setCurrentItem(entry *itemEntry, triggerEvent *event.Event) {
 	old := c.currentItem
-	c.currentItem = entry
 
-	// Dispatch Leave to old item.
+	// Dispatch Leave to old item while "current" still points to it.
 	if old != nil {
 		c.dispatchToItem(old, &event.Event{Type: event.LeaveType})
 	}
 
-	// Dispatch Enter to new item.
+	// Update current item and dispatch Enter to new item.
+	c.currentItem = entry
 	if entry != nil {
 		c.dispatchToItem(entry, &event.Event{Type: event.EnterType})
 	}

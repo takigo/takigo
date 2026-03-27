@@ -125,15 +125,18 @@ func (l *LineItem) Display(d platform.DisplayServer, drawable platform.DrawableI
 		displayCoords = generateBezierSpline(l.coords, false, l.splineSteps)
 	}
 
-	// Shorten line endpoints to the arrowhead notch position (arrowShapeA),
-	// so the thick shaft doesn't poke through the filled arrowhead polygon.
+	// Shorten line endpoints so the thick shaft meets the arrowhead polygon
+	// edge seamlessly. Tk computes a backup distance by interpolating between
+	// arrowShapeA and arrowShapeB based on where the line edge intersects
+	// the arrow polygon edge.
+	backup := l.arrowBackup()
 	if (l.arrow == ArrowFirst || l.arrow == ArrowBoth) && len(displayCoords) >= 4 {
 		dx0 := displayCoords[2] - displayCoords[0]
 		dy0 := displayCoords[3] - displayCoords[1]
 		seg := math.Sqrt(dx0*dx0 + dy0*dy0)
 		if seg > 0.001 {
-			displayCoords[0] += (dx0 / seg) * l.arrowShapeA
-			displayCoords[1] += (dy0 / seg) * l.arrowShapeA
+			displayCoords[0] += (dx0 / seg) * backup
+			displayCoords[1] += (dy0 / seg) * backup
 		}
 	}
 	if (l.arrow == ArrowLast || l.arrow == ArrowBoth) && len(displayCoords) >= 4 {
@@ -142,8 +145,8 @@ func (l *LineItem) Display(d platform.DisplayServer, drawable platform.DrawableI
 		dy0 := displayCoords[n-1] - displayCoords[n-3]
 		seg := math.Sqrt(dx0*dx0 + dy0*dy0)
 		if seg > 0.001 {
-			displayCoords[n-2] -= (dx0 / seg) * l.arrowShapeA
-			displayCoords[n-1] -= (dy0 / seg) * l.arrowShapeA
+			displayCoords[n-2] -= (dx0 / seg) * backup
+			displayCoords[n-1] -= (dy0 / seg) * backup
 		}
 	}
 
@@ -169,6 +172,19 @@ func (l *LineItem) Display(d platform.DisplayServer, drawable platform.DrawableI
 
 	// Reset line attributes.
 	d.SetLineAttributes(gc, 1, platform.LineSolid, platform.CapButt, platform.JoinMiter)
+}
+
+// arrowBackup returns the distance to shorten the line at an arrowhead
+// endpoint. It interpolates between arrowShapeA and arrowShapeB so the
+// thick line edge meets the arrow polygon edge exactly (matching Tk's
+// ConfigureArrows computation).
+func (l *LineItem) arrowBackup() float64 {
+	shapeC := l.arrowShapeC + float64(l.width)/2
+	if shapeC < 0.001 {
+		return l.arrowShapeA
+	}
+	fracHeight := (float64(l.width) / 2) / shapeC
+	return fracHeight*l.arrowShapeB + (1-fracHeight)*l.arrowShapeA
 }
 
 // drawArrow draws an arrowhead at one end of the line.
@@ -203,18 +219,21 @@ func (l *LineItem) drawArrow(d platform.DisplayServer, drawable platform.Drawabl
 	px := -uy
 	py := ux
 
-	a := l.arrowShapeA // notch distance (closer to tip)
-	b := l.arrowShapeB // wing distance (further from tip)
-	c := l.arrowShapeC // halfwidth
+	b := l.arrowShapeB                       // wing distance (further from tip)
+	c := l.arrowShapeC + float64(l.width)/2 // halfwidth + half line width (matches Tk)
+	backup := l.arrowBackup()               // shaft-edge junction distance
+	hw := float64(l.width) / 2              // half line width
 
-	// Tk-style 4-point arrowhead: tip → left_wing → notch → right_wing.
-	// Wings are at distance b from tip; notch is at distance a (a < b gives
-	// the classic concave-back arrowhead shape).
+	// Tk-style 6-point arrowhead: tip → left_wing → left_shaft_edge →
+	// right_shaft_edge → right_wing → tip. The shaft edge points at
+	// the backup distance ensure seamless connection with the thick line.
 	arrowPoints := []platform.Point{
 		{X: int16(tipX) - int16(originX), Y: int16(tipY) - int16(originY)},
 		{X: int16(tipX-ux*b+px*c) - int16(originX), Y: int16(tipY-uy*b+py*c) - int16(originY)},
-		{X: int16(tipX-ux*a) - int16(originX), Y: int16(tipY-uy*a) - int16(originY)},
+		{X: int16(tipX-ux*backup+px*hw) - int16(originX), Y: int16(tipY-uy*backup+py*hw) - int16(originY)},
+		{X: int16(tipX-ux*backup-px*hw) - int16(originX), Y: int16(tipY-uy*backup-py*hw) - int16(originY)},
 		{X: int16(tipX-ux*b-px*c) - int16(originX), Y: int16(tipY-uy*b-py*c) - int16(originY)},
+		{X: int16(tipX) - int16(originX), Y: int16(tipY) - int16(originY)},
 	}
 
 	d.FillPolygon(drawable, gc, arrowPoints, platform.PolygonNonconvex, platform.CoordModeOrigin)
