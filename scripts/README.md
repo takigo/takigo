@@ -73,7 +73,7 @@ Ctrl+C at any time — the next run resumes from the first pending demo.
 
 | Script | Purpose |
 |--------|---------|
-| `demo_compare.sh <demo> [tcl_name]` | Screenshot both sides, compute MAE diff, generate montage |
+| `demo_compare.sh <demo> [tcl_name]` | Screenshot both sides, compute normalized MAE diff (0–1, lower = more similar), generate montage |
 | `demo_screenshot.sh <demo> go\|tcl <out.png> [tcl_name]` | Screenshot one side |
 | `demo_refine.sh <demo> [--retake]` | Compare + print image paths for manual Claude analysis |
 | `demo_batch.sh [--retake] [prefix]` | Screenshot all demos, output `tmp/screenshots/scores_sorted.txt` |

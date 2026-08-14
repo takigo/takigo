@@ -69,12 +69,16 @@ for entry in "${DEMOS[@]}"; do
         continue
     fi
 
-    # Run screenshot + compare, capture score
-    RESULT=$(bash "$SCRIPT_DIR/demo_compare.sh" "$GO_DEMO" "$TCL_DEMO" 2>/dev/null) || {
-        echo "  FAILED: $GO_DEMO" >&2
+    # Run screenshot + compare, capture score. Stderr goes to a per-demo log so
+    # failures are diagnosable instead of silently discarded.
+    mkdir -p "$PROJECT_DIR/tmp/logs"
+    ERR_LOG="$PROJECT_DIR/tmp/logs/${GO_DEMO}.compare.err"
+    RESULT=$(bash "$SCRIPT_DIR/demo_compare.sh" "$GO_DEMO" "$TCL_DEMO" 2>"$ERR_LOG") || {
+        echo "  FAILED: $GO_DEMO (see $ERR_LOG)" >&2
         echo "FAILED $GO_DEMO -" >> "$SCORES_FILE"
         continue
     }
+    rm -f "$ERR_LOG"   # clean up on success
 
     SCORE=$(echo "$RESULT" | grep "^Diff score:" | awk '{print $3}')
     [[ -z "$SCORE" ]] && SCORE="unknown"

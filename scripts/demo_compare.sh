@@ -53,9 +53,11 @@ echo "=== Comparing demo: $DEMO (Go) vs $TCL_DEMO (Tcl) ===" >&2
 
 echo "[1/2] Go screenshot..." >&2
 take_screenshot "$DEMO" "go" "$DEMO" "$GO_IMG"
+[[ -s "$GO_IMG" ]] || { echo "Go screenshot missing or empty: $GO_IMG" >&2; exit 1; }
 
 echo "[2/2] Tcl screenshot..." >&2
 take_screenshot "$DEMO" "tcl" "$TCL_DEMO" "$TCL_IMG"
+[[ -s "$TCL_IMG" ]] || { echo "Tcl screenshot missing or empty: $TCL_IMG" >&2; exit 1; }
 
 # ---------------------------------------------------------------------------
 # Normalize to the same canvas size (pad smaller image with white)
@@ -77,8 +79,17 @@ magick "$TCL_IMG" -gravity NorthWest -background white -extent "${MAXW}x${MAXH}"
 # ---------------------------------------------------------------------------
 # Compute pixel diff
 # ---------------------------------------------------------------------------
-# compare returns exit code 1 when images differ (normal), 2 on error
-SCORE=$(compare -metric MAE "$PAD_GO" "$PAD_TCL" "$DIFF_IMG" 2>&1 | awk '{print $1}') || true
+# compare returns: 0 = identical, 1 = differ (normal), 2 = real error.
+# `-format "%[distortion]"` puts the normalized MAE on stdout; real errors
+# go to stderr. Disable `set -e` around the substitution because exit 1 is
+# expected here.
+SCORE=$(compare -metric MAE -format "%[distortion]" "$PAD_GO" "$PAD_TCL" "$DIFF_IMG" 2>/dev/null) && true
+RC=$?
+if [[ $RC -ne 0 && $RC -ne 1 ]]; then
+    echo "compare failed for $DEMO (exit $RC)" >&2
+    exit 1
+fi
+[[ -z "$SCORE" ]] && { echo "compare returned empty score for $DEMO" >&2; exit 1; }
 
 # ---------------------------------------------------------------------------
 # Side-by-side montage
@@ -101,6 +112,6 @@ echo ""
 echo "Demo:       $DEMO"
 echo "Go image:   $GO_IMG  (${W_GO}x${H_GO})"
 echo "Tcl image:  $TCL_IMG  (${W_TCL}x${H_TCL})"
-echo "Diff score: $SCORE  (MAE — lower is more similar)"
+echo "Diff score: $SCORE  (normalized MAE 0–1 — lower is more similar)"
 echo "Side-by-side: $SIDE_IMG"
 echo "Diff heatmap: $DIFF_IMG"
