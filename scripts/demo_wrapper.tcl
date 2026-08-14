@@ -8,6 +8,11 @@
 package require tk
 
 # ---- Font setup (mirrors widget launcher logic) ----------------------------
+# If the caller set XFT_DPI in the environment, push it into the Tk resource
+# database so TkDefaultFont matches what the Go side rendered with.
+if {[info exists ::env(XFT_DPI)] && $::env(XFT_DPI) ne ""} {
+    option add *TkDefaultFont.TkGlobalScaling [expr {$::env(XFT_DPI) / 72.0}] userDefault
+}
 if {"TkDefaultFont" in [font names]} {
     font create mainFont   {*}[font configure TkDefaultFont]
     font create fixedFont  {*}[font configure TkFixedFont]
@@ -38,7 +43,13 @@ if {[catch {package require msgcat}] || !([namespace exists ::msgcat])} {
 # ---- Helper procs (stubs matching widget launcher API) ---------------------
 
 proc positionWindow {w} {
-    wm geometry $w +300+300
+    # Honour DEMO_GEOMETRY from env if set; this lets the screenshot
+    # script align the Tcl window with the Go demo's takigo.Geometry(...).
+    set geom "+300+300"
+    if {[info exists ::env(DEMO_GEOMETRY)] && $::env(DEMO_GEOMETRY) ne ""} {
+        set geom $::env(DEMO_GEOMETRY)
+    }
+    wm geometry $w $geom
 }
 
 proc addSeeDismiss {w show {vars {}} {extra {}}} {

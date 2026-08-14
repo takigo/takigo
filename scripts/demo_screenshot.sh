@@ -29,6 +29,18 @@ TIMEOUT_SECS="${TIMEOUT_SECS:-15}"
 WISH="${WISH:-$PROJECT_DIR/tk/unix/wish}"
 export LD_LIBRARY_PATH="$PROJECT_DIR/tcl/unix:$PROJECT_DIR/tk/unix${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 
+# Make sure wish and the Go binary agree on Xft.dpi. The standalone wish
+# reads X resources at startup; merging the same Xft.dpi value the Go
+# side used (computed by screenunit.SetScreenDPI) keeps font metrics
+# identical between the two screenshots.
+XFT_DPI_VAL=""
+if command -v xrdb >/dev/null 2>&1; then
+    XFT_DPI_VAL=$(xrdb -query 2>/dev/null | awk -F':[[:space:]]*' '/^Xft\.dpi/ {print $2; exit}')
+fi
+if [[ -n "$XFT_DPI_VAL" ]]; then
+    export XFT_DPI="$XFT_DPI_VAL"
+fi
+
 # ---------------------------------------------------------------------------
 # extract_demo_title GO_DEMO_NAME
 # Reads the Title() option from the Go source to know what window to expect.
@@ -39,6 +51,21 @@ extract_demo_title() {
     local demo="$1"
     local src="$PROJECT_DIR/demos/$demo/main.go"
     (cd "$PROJECT_DIR" && go run ./cmd/demotitle "$src") 2>/dev/null || true
+}
+
+# ---------------------------------------------------------------------------
+# extract_demo_geometry GO_DEMO_NAME
+# Reads the Geometry() option from the Go source so the Tcl side can be
+# positioned identically. Returns "+300+300" when the demo does not specify
+# one (matching the default in demo_wrapper.tcl).
+# ---------------------------------------------------------------------------
+extract_demo_geometry() {
+    local demo="$1"
+    local src="$PROJECT_DIR/demos/$demo/main.go"
+    local geom
+    geom=$(cd "$PROJECT_DIR" && go run ./cmd/demotitle -geometry "$src" 2>/dev/null) || geom=""
+    [[ -z "$geom" ]] && geom="+300+300"
+    echo "$geom"
 }
 
 # ---------------------------------------------------------------------------
@@ -165,13 +192,15 @@ screenshot_tcl() {
 # ---------------------------------------------------------------------------
 mkdir -p "$(dirname "$OUTPUT")"
 
-# Get the expected window title from the Go source
+# Get the expected window title and geometry from the Go source
 TITLE=$(extract_demo_title "$GO_DEMO")
 if [[ -z "$TITLE" ]]; then
     echo "Could not extract window title from demos/$GO_DEMO/main.go" >&2
     echo "Set TITLE manually or check the source file." >&2
     exit 1
 fi
+DEMO_GEOMETRY=$(extract_demo_geometry "$GO_DEMO")
+export DEMO_GEOMETRY
 
 case "$TYPE" in
     go)  screenshot_go  "$GO_DEMO"  "$OUTPUT" "$TITLE" ;;
