@@ -1,6 +1,6 @@
 ---
 name: tk-demo-compare
-description: Use when comparing or fixing a takigo (Go port of Tk) demo against its Tcl/Tk original in tk/library/demos/. Triggers on phrases like "compare demo", "fix demo", "demo doesn't match", "visual diff", or any task that names a specific takigo demo directory (e.g. demos/label) alongside a tk demo (e.g. tk/library/demos/label.tcl). Takes screenshots of both sides via the project's scripts/demo_compare.sh, reads the resulting images, reads both sources, and iteratively edits the Go source until it visually and behaviourally matches the Tcl/Tk original.
+description: Use when comparing or fixing a takigo (Go port of Tk) demo against its Tcl/Tk original in tk/library/demos/. Triggers on phrases like "compare demo", "fix demo", "demo doesn't match", "visual diff", or naming a demos/<name> directory alongside its tk/library/demos/<name>.tcl counterpart. Drives the project's scripts/demo_compare.sh pipeline to screenshot both sides, reads the PNGs to spot visual diffs, reads both sources, and edits the Go source until the normalized MAE diff is acceptable or a takigo core bug is identified.
 ---
 
 # Compare & fix a takigo demo vs its Tk/Tcl original
@@ -44,6 +44,22 @@ tasks.
 
 If any tool is missing, report it and stop; do **not** try to install.
 
+### Step 0 — verify environment
+
+Before doing anything else, run this single Bash call:
+
+```bash
+for t in wmctrl xdotool magick compare go bash; do
+  command -v "$t" >/dev/null 2>&1 || { echo "missing tool: $t"; exit 1; }
+done
+[[ -n "${DISPLAY:-}" ]] || { echo "DISPLAY not set"; exit 1; }
+test -x ./tk/unix/wish || { echo "build wish first (make -C tk/unix)"; exit 1; }
+```
+
+If any check fails, report the missing prerequisite to the user and stop.
+Skipping this step is a common source of "the screenshot is just a black
+PNG" failures.
+
 ---
 
 ## Existing infrastructure (always use it)
@@ -51,13 +67,15 @@ If any tool is missing, report it and stop; do **not** try to install.
 | Script | Purpose |
 |---|---|
 | `scripts/demo_map.sh`         | Map Go demo name → Tcl demo name (same name unless `windowicons → icon`). Run with no args for the full list, or with one arg for the mapping of that demo. |
-| `scripts/demo_screenshot.sh <go_demo> {go\|tcl} <out.png> [tcl_name]` | Build, launch, screenshot one side. Reads the window title from `demos/<go_demo>/main.go` (`takigo.Title("...")`) and waits for it via `wmctrl`. |
-| `scripts/demo_compare.sh <demo> [tcl_demo]` | Screenshots both sides, normalises sizes, computes an MAE diff with ImageMagick `compare`, and produces three images: `<demo>_go.png`, `<demo>_tcl.png`, `<demo>_diff.png`, plus a side-by-side montage `<demo>_side.png`. Prints the MAE score. |
+| `scripts/demo_screenshot.sh <go_demo> {go\|tcl} <out.png> [tcl_name]` | Build, launch, screenshot one side. Reads the window title from `demos/<go_demo>/main.go` via `cmd/demotitle` and waits for it via `wmctrl`. Honours `DEMO_GEOMETRY` and `XFT_DPI` env vars to align with the Go side. |
+| `scripts/demo_compare.sh <demo> [tcl_demo]` | Screenshots both sides, normalises sizes, computes a **normalized MAE** (0–1, lower = more similar) with ImageMagick `compare`, and produces four outputs: `<demo>_go.png`, `<demo>_tcl.png`, `<demo>_diff.png`, and a side-by-side montage `<demo>_side.png`. Per-demo compare failures are written to `tmp/logs/<demo>.compare.err`. |
 | `scripts/demo_refine.sh <demo> [--retake]` | One-shot wrapper around `demo_compare.sh`; re-prints the paths so they can be `Read`. |
 | `scripts/demo_batch.sh [--retake] [prefix]` | Screenshot and score every comparable demo (uses `demo_map.sh`). Produces `tmp/screenshots/scores_sorted.txt`. |
-| `scripts/demo_wrapper.tcl`    | Run a Tk demo standalone (no widget launcher). Used internally by the screenshot scripts. |
-| `scripts/fix_demo.sh`         | *(Out-of-session only — invokes `claude -p`, must not be run from inside an opencode session.)* |
-| `scripts/fix_all.sh`          | *(Same — out-of-session batch wrapper.)* |
+| `scripts/demo_wrapper.tcl`    | Run a Tk demo standalone (no widget launcher). Used internally by the screenshot scripts. Reads `DEMO_GEOMETRY` from env. |
+| `scripts/_lib.sh`             | Shared helpers (`tcl_demo_for`, `run_compare`, `set_skip_if_exists`). Source this from any new script that needs them. |
+| `cmd/demotitle`               | Small Go CLI: `go run ./cmd/demotitle <path>` extracts the first `takigo.Title("...")`; `… -geometry <path>` extracts `takigo.Geometry("...")`. |
+| `scripts/fix_demo.sh`         | **Deprecated.** Out-of-session script that invokes `claude -p`. Superseded by this skill — prefer the skill. Refuses to run when `CLAUDECODE` is set. |
+| `scripts/fix_all.sh`          | **Deprecated.** Out-of-session batch wrapper. Same caveats as `fix_demo.sh`. |
 
 Outputs live in `tmp/screenshots/`. Set `SKIP_IF_EXISTS=0` to force retakes,
 `SKIP_IF_EXISTS=1` (default) to reuse. `SETTLE_SECS` (default `1.5`) controls
@@ -188,6 +206,13 @@ Read the new `_go.png` and `_side.png`. Repeat steps 3–6 until:
   **and**
 - The Go source semantically matches the Tcl source.
 
+**Stop iterating rule.** If the normalized MAE does not drop by more than 10%
+across three consecutive iterations, stop editing the demo. The remaining
+gap is almost always in takigo core (e.g. `widget/label/label.go` not
+honouring `-wraplength` correctly) or in unavoidable sub-pixel rendering
+differences between Xft (Go) and Tk's text drawing. Switch to escalation
+mode (step 7).
+
 ### 7. Iterate or escalate
 
 - If you can't reach a low diff after 3 iterations, the issue is likely in
@@ -233,13 +258,22 @@ If the user asks for many/all demos:
 - Tcl's `addSeeDismiss` produces a **TTK** separator + buttons inside a
   **TTK** frame. The Go equivalent is `demohelper.AddSeeDismiss` — use it.
 - Tcl demos position the window with `positionWindow` at `+300+300` (or
-  similar). Set `takigo.Geometry("+300+300")` (or whatever Tcl does) to match.
+  similar). Set `takigo.Geometry("+300+300")` (or whatever Tcl does) to
+  match — the screenshot script reads this from the Go source via
+  `cmd/demotitle -geometry` and passes it to the Tcl wrapper.
 - The Tcl demos may use the launcher fonts (`mainFont`, `boldFont`, etc.).
   In Go, prefer `app.FontRegistry().Get(tkfont.TkDefaultFont)` or an
-  explicit `-family/-size/-weight` matching the original.
+  explicit `-family/-size/-weight` matching the original. The screenshot
+  script exports `XFT_DPI` so the Tcl wrapper picks the same dpi.
 - Window title is taken from `takigo.Title("...")` — make sure it exactly
-  matches Tk's `wm title` string, otherwise `demo_compare.sh` will time out
-  waiting for the window.
+  matches Tk's `wm title` string, otherwise `demo_compare.sh` will time
+  out waiting for the window.
+- The diff score is **normalized MAE** (0–1) — not pixel MAE. Same
+  "lower = more similar" semantics, but the absolute numbers are
+  different from older runs. Don't compare scores across versions.
+- Don't run `scripts/fix_demo.sh` or `scripts/fix_all.sh` from inside
+  opencode — they check for the `CLAUDECODE` env var and refuse to run.
+  Use this skill instead; it supersedes them.
 - When in doubt, run `wish tk/library/demos/<tcl_demo>.tcl` by hand (via
   `scripts/demo_wrapper.tcl`) and inspect the window before editing.
 
@@ -276,4 +310,8 @@ If the user asks for many/all demos:
 
 When an option you need isn't in this table, **grep** the relevant package
 (`widget/<x>/<x>.go`) for similar option names before guessing — the option
-naming is consistent within a package.
+naming is consistent within a package. The inverse lookup (Tcl option →
+takigo source line) lives in
+[`references/tcl-option-map.md`](references/tcl-option-map.md) — read it
+when a Tcl option isn't doing what you expect in Go, since the bug is
+usually in the option's constructor.
