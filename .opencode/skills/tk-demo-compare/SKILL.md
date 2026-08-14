@@ -1,6 +1,6 @@
 ---
 name: tk-demo-compare
-description: Use when comparing or fixing a takigo (Go port of Tk) demo against its Tcl/Tk original in tk/library/demos/. Triggers on phrases like "compare demo", "fix demo", "demo doesn't match", "visual diff", or naming a demos/<name> directory alongside its tk/library/demos/<name>.tcl counterpart. Drives the project's scripts/demo_compare.sh pipeline to screenshot both sides, reads the PNGs to spot visual diffs, reads both sources, and edits the Go source until the normalized MAE diff is acceptable or a takigo core bug is identified.
+description: Use when comparing or fixing a takigo (Go port of Tk) demo against its Tcl/Tk original in tk/library/demos/. Triggers on phrases like "compare demo", "fix demo", "demo doesn't match", "visual diff", "behavioural check", or naming a demos/<name> directory alongside its tk/library/demos/<name>.tcl counterpart. Drives scripts/demo_compare.sh to screenshot both sides for visual diffs, scripts/demo_interact.sh to drive the demo through xdotool events for behavioural diffs, reads the PNGs to spot differences, reads both sources, and edits the Go source until the normalized MAE is acceptable or a takigo core bug is identified.
 ---
 
 # Compare & fix a takigo demo vs its Tk/Tcl original
@@ -72,6 +72,7 @@ PNG" failures.
 | `scripts/demo_refine.sh <demo> [--retake]` | One-shot wrapper around `demo_compare.sh`; re-prints the paths so they can be `Read`. |
 | `scripts/demo_batch.sh [--retake] [prefix]` | Screenshot and score every comparable demo (uses `demo_map.sh`). Produces `tmp/screenshots/scores_sorted.txt`. |
 | `scripts/demo_wrapper.tcl`    | Run a Tk demo standalone (no widget launcher). Used internally by the screenshot scripts. Reads `DEMO_GEOMETRY` from env. |
+| `scripts/demo_interact.sh`    | Drive a Go demo through `xdotool` events (key, type, click, wait), capture before/after PNGs, optionally diff. Use this for **behavioural** verification — does clicking this button do X? does typing into the entry update the variable? See step 5b below. |
 | `scripts/_lib.sh`             | Shared helpers (`tcl_demo_for`, `run_compare`, `set_skip_if_exists`). Source this from any new script that needs them. |
 | `cmd/demotitle`               | Small Go CLI: `go run ./cmd/demotitle <path>` extracts the first `takigo.Title("...")`; `… -geometry <path>` extracts `takigo.Geometry("...")`. |
 | `scripts/fix_demo.sh`         | **Deprecated.** Out-of-session script that invokes `claude -p`. Superseded by this skill — prefer the skill. Refuses to run when `CLAUDECODE` is set. |
@@ -194,6 +195,49 @@ go build ./demos/<go_demo>/
 If it fails, fix the compile error and try again. Don't proceed with a broken
 build.
 
+### 5b. Behavioural verification (optional but recommended for interactive demos)
+
+If the demo has interactive widgets (entries, buttons, checkbuttons,
+listboxes, canvas items, ...), verify behaviour too — a demo can look
+correct but be functionally broken.
+
+```bash
+bash scripts/demo_interact.sh <go_demo> --diff \
+    [--wait MS] [--key "<seq>"] [--type "text"] [--click X,Y]
+```
+
+This launches the demo, sends each event in order via `xdotool`,
+captures before/after screenshots, and prints the normalized MAE
+between them. MAE > 0 means the event visibly changed the screen.
+
+**Coordinate space:** `--click X,Y` is *window-relative*, not
+screen-relative. Take a screenshot first with `demo_compare.sh` to
+find the widget positions.
+
+**Event order matters.** Tab traversal visits widgets in
+depth-first pre-order. Buttons in `demohelper.AddSeeDismiss` come
+*before* entries: for `demos/entry1`, three `--key Tab` presses
+are needed to reach the first entry.
+
+Examples:
+
+```bash
+# Verify clicking the first entry of demos/entry1 focuses it and
+# accepts typed text.
+bash scripts/demo_interact.sh entry1 \
+    --click 200,265 --wait 500 --type "hello" --diff
+# Expected: MAE > 0, "hello" appears in the entry.
+
+# Verify pressing Tab and Return navigates a form.
+bash scripts/demo_interact.sh form \
+    --key Tab --type "Alice" --key Tab --type "Bob" \
+    --key Return --diff
+```
+
+When the Tcl side has analogous interaction, do the same on the Tcl
+side by sourcing `tk/library/demos/<x>.tcl` from `tclsh` and driving
+it with `event generate`, then compare the resulting screenshots.
+
 ### 6. Re-screenshot and verify
 
 ```bash
@@ -204,7 +248,8 @@ bash scripts/demo_compare.sh <go_demo> <tcl_demo>
 Read the new `_go.png` and `_side.png`. Repeat steps 3–6 until:
 - Visual diff is acceptable (low MAE score, no obvious widget mismatches),
   **and**
-- The Go source semantically matches the Tcl source.
+- The Go source semantically matches the Tcl source,
+  **and** if you ran step 5b, the behavioural MAE is acceptable.
 
 **Stop iterating rule.** If the normalized MAE does not drop by more than 10%
 across three consecutive iterations, stop editing the demo. The remaining
@@ -226,7 +271,9 @@ mode (step 7).
 ### 8. Report
 
 End with:
-- The final MAE score.
+- The final visual MAE score (`demo_compare.sh`).
+- The final behavioural MAE score (`demo_interact.sh` — only if the demo
+  has interactive widgets and you ran step 5b).
 - A short list of concrete changes made (file paths + brief descriptions).
 - Any takigo bugs discovered that need separate fixes.
 
@@ -276,6 +323,13 @@ If the user asks for many/all demos:
   Use this skill instead; it supersedes them.
 - When in doubt, run `wish tk/library/demos/<tcl_demo>.tcl` by hand (via
   `scripts/demo_wrapper.tcl`) and inspect the window before editing.
+- For behavioural checks, `--click X,Y` is **window-relative** (top-left = 0,0)
+  in `demo_interact.sh`. Get the window size from the before screenshot
+  and pick coordinates inside the visible area. Tab traversal is
+  depth-first pre-order, so `demos/entry1`'s button bar (dismiss → code)
+  comes before the entries — three Tab presses reach the first entry.
+- `demo_interact.sh` requires a real X11 display (DISPLAY set) and
+  `xdotool` installed. Step 0's environment check covers both.
 
 ---
 
