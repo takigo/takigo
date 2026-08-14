@@ -29,6 +29,8 @@ if [[ -n "${CLAUDECODE:-}" ]]; then
 fi
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/_lib.sh"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 PROGRESS_FILE="$PROJECT_DIR/tmp/fix_all_progress.tsv"
 
@@ -84,14 +86,12 @@ while [[ $# -gt 0 ]]; do
     shift
 done
 
-mkdir -p "$PROJECT_DIR/tmp"
-
 # ---------------------------------------------------------------------------
 # Initialize progress file if it doesn't exist or is empty
 # ---------------------------------------------------------------------------
 if [[ ! -s "$PROGRESS_FILE" ]]; then
     echo "Initializing progress file from demo map..."
-    source "$SCRIPT_DIR/demo_map.sh"
+    # _lib.sh already sourced demo_map.sh.
     > "$PROGRESS_FILE"
     for go_name in $(echo "${!DEMO_MAP[@]}" | tr ' ' '\n' | sort); do
         tcl_name="${DEMO_MAP[$go_name]}"
@@ -103,6 +103,14 @@ if [[ ! -s "$PROGRESS_FILE" ]]; then
     done
     echo "Initialized $(wc -l < "$PROGRESS_FILE") demos."
     echo ""
+fi
+
+# ---------------------------------------------------------------------------
+# Auto-recover demos stuck in `in_progress` (left by a previous Ctrl+C)
+# ---------------------------------------------------------------------------
+if grep -qP '\tin_progress\t' "$PROGRESS_FILE" 2>/dev/null; then
+    echo "Recovering in-progress demos to pending..."
+    sed -i 's/\tin_progress\t/\tpending\t/' "$PROGRESS_FILE"
 fi
 
 # ---------------------------------------------------------------------------
@@ -122,7 +130,7 @@ update_progress() {
 # ---------------------------------------------------------------------------
 # Process demos
 # ---------------------------------------------------------------------------
-TOTAL=$(grep -c $'\t''pending'$'\t' "$PROGRESS_FILE" || true)
+TOTAL=$(grep -cP '\tpending\t' "$PROGRESS_FILE" 2>/dev/null || echo 0)
 echo "Pending demos: $TOTAL"
 echo ""
 
@@ -142,8 +150,7 @@ while IFS=$'\t' read -r go_demo tcl_demo status score_before score_after _date; 
     update_progress "$go_demo" "$tcl_demo" "in_progress" "-" "-"
 
     # Run fix_demo.sh and capture output + exit code
-    LOG="$PROJECT_DIR/tmp/logs/${go_demo}_fix_all.log"
-    mkdir -p "$PROJECT_DIR/tmp/logs"
+    LOG="$LOGS_DIR/${go_demo}_fix_all.log"
 
     SCORE_B="-"
     SCORE_A="-"

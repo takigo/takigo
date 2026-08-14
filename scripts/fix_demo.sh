@@ -21,8 +21,8 @@ if [[ -n "${CLAUDECODE:-}" ]]; then
     exit 1
 fi
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+# shellcheck disable=SC1091
+source "$(cd "$(dirname "$0")" && pwd)/_lib.sh"
 
 DEMO="${1:-}"
 if [[ -z "$DEMO" ]]; then
@@ -42,32 +42,20 @@ while [[ $# -gt 0 ]]; do
     shift
 done
 
-# Load demo name mapping
-source "$SCRIPT_DIR/demo_map.sh"
-TCL_DEMO="${DEMO_MAP[$DEMO]:-$DEMO}"
-if [[ "$TCL_DEMO" == "-" ]]; then
+if ! TCL_DEMO=$(tcl_demo_for "$DEMO"); then
     echo "Demo '$DEMO' has no Tcl counterpart — nothing to compare." >&2
     exit 1
 fi
-
-SS_DIR="$PROJECT_DIR/tmp/screenshots"
-LOGS_DIR="$PROJECT_DIR/tmp/logs"
-mkdir -p "$SS_DIR" "$LOGS_DIR"
 
 # ---------------------------------------------------------------------------
 # run_compare -- take screenshots + compute diff score, print score
 # ---------------------------------------------------------------------------
 run_compare() {
-    local retake="$1"
-    if [[ "$retake" == "1" ]]; then
-        export SKIP_IF_EXISTS=0
-    else
-        export SKIP_IF_EXISTS=1
-    fi
+    set_skip_if_exists "$1"
     local out
-    out=$(bash "$SCRIPT_DIR/demo_compare.sh" "$DEMO" "$TCL_DEMO" 2>/dev/null)
+    out=$(bash "$SCRIPT_DIR/demo_compare.sh" "$DEMO" "$TCL_DEMO")
     echo "$out" >&2
-    echo "$out" | grep "^Diff score:" | awk '{print $3}'
+    echo "$out" | awk '/^Diff score:/ {print $3}'
 }
 
 # ---------------------------------------------------------------------------
