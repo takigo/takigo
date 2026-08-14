@@ -16,7 +16,10 @@ import (
 	"github.com/msorc/takigo/window"
 )
 
-// color.ColorRef stores pre-resolved color components.
+// runeEmbeddedWindow is the placeholder rune inserted into the document text
+// at each embedded window position.  The display engine measures this rune as
+// the window's width so that text wraps around the window correctly.
+const runeEmbeddedWindow = '\uFFFC' // Unicode Object Replacement Character
 
 // embeddedImage records an image embedded at a text index position.
 type embeddedImage struct {
@@ -25,9 +28,11 @@ type embeddedImage struct {
 }
 
 // embeddedWin records a window embedded at a text index position.
+// The window's position is tracked by a mark in the document so it
+// adjusts automatically as surrounding text is inserted or deleted.
 type embeddedWin struct {
-	index Index
-	win   *window.Window
+	markName string
+	win      *window.Window
 }
 
 // TextWidget is a multi-line text editor widget.
@@ -83,8 +88,9 @@ type TextWidget struct {
 	// Embedded images drawn inline with text.
 	embeddedImages []embeddedImage
 
-	// Embedded windows (overlay-positioned child windows).
+	// Embedded windows (inline child windows positioned at placeholder characters).
 	embeddedWindows []embeddedWin
+	ewSeq           int // sequence counter for embedded window mark names
 
 	// Offscreen pixmap.
 	pixmap           platform.PixmapID
@@ -676,14 +682,24 @@ func (t *TextWidget) EndIndex() string {
 	return fmt.Sprintf("%d.%d", n, c)
 }
 
-// WindowCreate registers a child window to be positioned at the given text index.
-// The window is placed as an overlay at the Y of the line containing that index.
+// WindowCreate embeds a child window inline at the given text index.
+// A placeholder character is inserted into the document so that text wraps
+// around the window, and the position is tracked by a mark.
 func (t *TextWidget) WindowCreate(indexStr string, w *window.Window) {
 	idx, ok := ParseIndex(t.doc, indexStr)
 	if !ok {
 		return
 	}
-	t.embeddedWindows = append(t.embeddedWindows, embeddedWin{index: idx, win: w})
+	// Insert placeholder character into the document.
+	t.doc.Insert(idx, string(runeEmbeddedWindow))
+	// Create a left-gravity mark to track the placeholder position.
+	t.ewSeq++
+	markName := fmt.Sprintf("_ew%d", t.ewSeq)
+	t.doc.MarkSet(markName, idx)
+	if m, mok := t.doc.Marks[markName]; mok {
+		m.Gravity = GravityLeft
+	}
+	t.embeddedWindows = append(t.embeddedWindows, embeddedWin{markName: markName, win: w})
 }
 
 // ImageCreate embeds an image at the given text index, treating it as an inline element.
@@ -696,7 +712,7 @@ func (t *TextWidget) ImageCreate(indexStr string, img widget.WidgetImage) {
 }
 
 // lineHeightFor returns the display line height for the given logical line,
-// taking into account any embedded images on that line.
+// taking into account any embedded images and windows on that line.
 func (t *TextWidget) lineHeightFor(lineIdx int) int {
 	h := t.lineHeight()
 	for _, ei := range t.embeddedImages {
@@ -706,15 +722,29 @@ func (t *TextWidget) lineHeightFor(lineIdx int) int {
 			}
 		}
 	}
+	for _, ew := range t.embeddedWindows {
+		if m, ok := t.doc.Marks[ew.markName]; ok && m.Pos.Line == lineIdx {
+			if wh := ew.win.ReqHeight; wh > h {
+				h = wh
+			}
+		}
+	}
 	return h
 }
 
 // RemoveWindow removes an embedded window from the text widget and unmaps it.
+// The placeholder character and tracking mark are also removed.
 func (t *TextWidget) RemoveWindow(win *window.Window) {
 	d := t.Win.Display.Server
 	for i, ew := range t.embeddedWindows {
 		if ew.win == win {
 			d.UnmapWindow(win.PlatformID)
+			// Delete placeholder character and mark.
+			if m, ok := t.doc.Marks[ew.markName]; ok {
+				pos := m.Pos
+				t.doc.Delete(pos, Index{Line: pos.Line, Char: pos.Char + 1})
+				t.doc.MarkUnset(ew.markName)
+			}
 			t.embeddedWindows = append(t.embeddedWindows[:i], t.embeddedWindows[i+1:]...)
 			t.Display()
 			return
@@ -745,23 +775,52 @@ func (t *TextWidget) SetPadY(n int) {
 	t.Display()
 }
 
-// positionEmbeddedWindows moves embedded windows to their text positions.
+// positionEmbeddedWindows moves embedded windows to their correct inline
+// positions within the text flow.
 func (t *TextWidget) positionEmbeddedWindows(dlines []displayLine) {
 	d := t.Win.Display.Server
 	for _, ew := range t.embeddedWindows {
+		m, ok := t.doc.Marks[ew.markName]
+		if !ok {
+			continue
+		}
+		pos := m.Pos
 		visible := false
 		for _, dl := range dlines {
-			if dl.logicalLine != ew.index.Line {
+			if dl.logicalLine != pos.Line {
 				continue
 			}
-			pixelY := t.insetY + dl.y
-			wx := t.insetX + dl.leftMargin
-			wy := pixelY
+			if pos.Char < dl.startChar || pos.Char >= dl.endChar {
+				continue
+			}
+			// Compute x by measuring content before the window on this display line.
+			xBefore := t.measureRange(pos.Line, dl.startChar, pos.Char)
+
+			// Apply justification offset (same logic as renderToPixmap).
+			totalW := t.measureRange(pos.Line, dl.startChar, dl.endChar)
+			availW := t.Win.Width - 2*t.insetX - dl.leftMargin - dl.rightMargin
+			justifyOffset := 0
+			switch dl.justify {
+			case option.JustifyCenter:
+				justifyOffset = (availW - totalW) / 2
+				if justifyOffset < 0 {
+					justifyOffset = 0
+				}
+			case option.JustifyRight:
+				justifyOffset = availW - totalW
+				if justifyOffset < 0 {
+					justifyOffset = 0
+				}
+			}
+
+			wx := t.insetX + dl.leftMargin + justifyOffset - t.xOffset + xBefore
 			ww := ew.win.ReqWidth
 			wh := ew.win.ReqHeight
 			if wh == 0 {
 				wh = dl.height
 			}
+			// Vertically center the window within the display line (Tk default: -align center).
+			wy := t.insetY + dl.y + (dl.height-wh)/2
 			d.MoveResizeWindow(ew.win.PlatformID, wx, wy, uint(ww), uint(wh))
 			d.MapWindow(ew.win.PlatformID)
 			visible = true
@@ -771,6 +830,18 @@ func (t *TextWidget) positionEmbeddedWindows(dlines []displayLine) {
 			d.UnmapWindow(ew.win.PlatformID)
 		}
 	}
+}
+
+// embeddedWindowAt returns the embedded window at the given document position, or nil.
+func (t *TextWidget) embeddedWindowAt(lineIdx, charIdx int) *window.Window {
+	for _, ew := range t.embeddedWindows {
+		if m, ok := t.doc.Marks[ew.markName]; ok {
+			if m.Pos.Line == lineIdx && m.Pos.Char == charIdx {
+				return ew.win
+			}
+		}
+	}
+	return nil
 }
 
 // --- Internal helpers ---

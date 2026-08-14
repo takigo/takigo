@@ -104,6 +104,57 @@ func (t *TextWidget) resolveLineProps(lineIdx int) lineProps {
 	return p
 }
 
+// measureRange measures the pixel width of text from startChar to endChar
+// on the given logical line, substituting embedded window widths for their
+// placeholder characters.
+func (t *TextWidget) measureRange(lineIdx, startChar, endChar int) int {
+	if startChar >= endChar || t.Font == nil {
+		return 0
+	}
+	line := t.doc.Lines[lineIdx-1]
+
+	// Collect embedded window positions in this range.
+	type winInfo struct {
+		char  int
+		width int
+	}
+	var wins []winInfo
+	for _, ew := range t.embeddedWindows {
+		m, ok := t.doc.Marks[ew.markName]
+		if !ok || m.Pos.Line != lineIdx {
+			continue
+		}
+		if m.Pos.Char >= startChar && m.Pos.Char < endChar {
+			wins = append(wins, winInfo{char: m.Pos.Char, width: ew.win.ReqWidth})
+		}
+	}
+
+	if len(wins) == 0 {
+		return t.Font.MeasureString(string(line.Text[startChar:endChar]))
+	}
+
+	// Sort by position (insertion sort for small N).
+	for i := 1; i < len(wins); i++ {
+		for j := i; j > 0 && wins[j].char < wins[j-1].char; j-- {
+			wins[j], wins[j-1] = wins[j-1], wins[j]
+		}
+	}
+
+	width := 0
+	pos := startChar
+	for _, wi := range wins {
+		if wi.char > pos {
+			width += t.Font.MeasureString(string(line.Text[pos:wi.char]))
+		}
+		width += wi.width
+		pos = wi.char + 1
+	}
+	if pos < endChar {
+		width += t.Font.MeasureString(string(line.Text[pos:endChar]))
+	}
+	return width
+}
+
 // wrapLine wraps a logical line into display lines based on the wrap mode.
 // lineIdx is 1-based. availWidth is the pixel width available (before margins).
 // lm1 is the left margin for the first fragment, lm2 for continuations, rm is the right margin.
@@ -160,8 +211,7 @@ func (t *TextWidget) wrapLine(lineIdx, availWidth, lm1, lm2, rm int) []displayLi
 		}
 
 		end := lineLen
-		seg := string(line.Text[start:end])
-		w := t.Font.MeasureString(seg)
+		w := t.measureRange(lineIdx, start, end)
 
 		if w <= ew {
 			result = append(result, displayLine{
@@ -179,7 +229,7 @@ func (t *TextWidget) wrapLine(lineIdx, availWidth, lm1, lm2, rm int) []displayLi
 		lo, hi := start+1, end
 		for lo < hi {
 			mid := (lo + hi) / 2
-			mw := t.Font.MeasureString(string(line.Text[start:mid]))
+			mw := t.measureRange(lineIdx, start, mid)
 			if mw <= ew {
 				lo = mid + 1
 			} else {
@@ -323,6 +373,28 @@ func (t *TextWidget) segmentsForRange(lineIdx, startChar, endChar int) []textSeg
 	}
 	breaks = append(breaks, endChar-startChar)
 
+	// Add breakpoints around embedded window placeholders so each
+	// placeholder rune becomes its own segment.
+	for i := 0; i < endChar-startChar; i++ {
+		if text[i] == runeEmbeddedWindow {
+			breaks = append(breaks, i, i+1)
+		}
+	}
+	// Re-sort and de-duplicate breaks.
+	for i := 1; i < len(breaks); i++ {
+		for j := i; j > 0 && breaks[j] < breaks[j-1]; j-- {
+			breaks[j], breaks[j-1] = breaks[j-1], breaks[j]
+		}
+	}
+	n := 1
+	for i := 1; i < len(breaks); i++ {
+		if breaks[i] != breaks[i-1] {
+			breaks[n] = breaks[i]
+			n++
+		}
+	}
+	breaks = breaks[:n]
+
 	// Build segments between breakpoints.
 	var segments []textSegment
 	x := 0
@@ -331,6 +403,14 @@ func (t *TextWidget) segmentsForRange(lineIdx, startChar, endChar int) []textSeg
 		segEnd := breaks[i+1]
 		segText := string(text[segStart:segEnd])
 		segWidth := t.Font.MeasureString(segText)
+
+		// Handle embedded window placeholder: use window width, empty text.
+		if segEnd-segStart == 1 && text[segStart] == runeEmbeddedWindow {
+			if w := t.embeddedWindowAt(lineIdx, startChar+segStart); w != nil {
+				segWidth = w.ReqWidth
+				segText = ""
+			}
+		}
 
 		// Resolve attributes at this position.
 		fg := t.Foreground
