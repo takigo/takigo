@@ -32,12 +32,13 @@ export LD_LIBRARY_PATH="$PROJECT_DIR/tcl/unix:$PROJECT_DIR/tk/unix${LD_LIBRARY_P
 # ---------------------------------------------------------------------------
 # extract_demo_title GO_DEMO_NAME
 # Reads the Title() option from the Go source to know what window to expect.
+# Uses cmd/demotitle (a small Go helper) instead of grep -oP so we don't
+# depend on GNU PCRE and so escaped strings / comments are handled correctly.
 # ---------------------------------------------------------------------------
 extract_demo_title() {
     local demo="$1"
     local src="$PROJECT_DIR/demos/$demo/main.go"
-    # Match takigo.Title("...") or Title("...")
-    grep -oP '(?<=Title\(")[^"]+' "$src" 2>/dev/null | head -1 || true
+    (cd "$PROJECT_DIR" && go run ./cmd/demotitle "$src") 2>/dev/null || true
 }
 
 # ---------------------------------------------------------------------------
