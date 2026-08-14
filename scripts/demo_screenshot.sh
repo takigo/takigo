@@ -13,6 +13,8 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/_lib.sh"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 GO_DEMO="$1"
@@ -41,32 +43,8 @@ if [[ -n "$XFT_DPI_VAL" ]]; then
     export XFT_DPI="$XFT_DPI_VAL"
 fi
 
-# ---------------------------------------------------------------------------
-# extract_demo_title GO_DEMO_NAME
-# Reads the Title() option from the Go source to know what window to expect.
-# Uses cmd/demotitle (a small Go helper) instead of grep -oP so we don't
-# depend on GNU PCRE and so escaped strings / comments are handled correctly.
-# ---------------------------------------------------------------------------
-extract_demo_title() {
-    local demo="$1"
-    local src="$PROJECT_DIR/demos/$demo/main.go"
-    (cd "$PROJECT_DIR" && go run ./cmd/demotitle "$src") 2>/dev/null || true
-}
-
-# ---------------------------------------------------------------------------
-# extract_demo_geometry GO_DEMO_NAME
-# Reads the Geometry() option from the Go source so the Tcl side can be
-# positioned identically. Returns "+300+300" when the demo does not specify
-# one (matching the default in demo_wrapper.tcl).
-# ---------------------------------------------------------------------------
-extract_demo_geometry() {
-    local demo="$1"
-    local src="$PROJECT_DIR/demos/$demo/main.go"
-    local geom
-    geom=$(cd "$PROJECT_DIR" && go run ./cmd/demotitle -geometry "$src" 2>/dev/null) || geom=""
-    [[ -z "$geom" ]] && geom="+300+300"
-    echo "$geom"
-}
+# extract_demo_title GO_DEMO and extract_demo_geometry GO_DEMO are defined
+# in _lib.sh (sourced above). No local copies needed.
 
 # ---------------------------------------------------------------------------
 # wait_for_titled_window TITLE

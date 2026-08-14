@@ -34,6 +34,30 @@ tcl_demo_for() {
     echo "${DEMO_MAP[$go_demo]}"
 }
 
+# extract_demo_title GO_DEMO
+# Reads the Title() option from the Go source via cmd/demotitle.
+# Returns the empty string if the demo has no Title() call or the file
+# can't be parsed. Use go/parser + go/ast (not grep) so escaped strings
+# and comments are handled correctly.
+extract_demo_title() {
+    local demo="$1"
+    local src="$PROJECT_DIR/demos/$demo/main.go"
+    (cd "$PROJECT_DIR" && go run ./cmd/demotitle "$src") 2>/dev/null || true
+}
+
+# extract_demo_geometry GO_DEMO
+# Reads the Geometry() option from the Go source so the Tcl wrapper can be
+# positioned identically. Falls back to "+300+300" when the demo has no
+# Geometry() call (matching the wrapper's default).
+extract_demo_geometry() {
+    local demo="$1"
+    local src="$PROJECT_DIR/demos/$demo/main.go"
+    local geom
+    geom=$(cd "$PROJECT_DIR" && go run ./cmd/demotitle -geometry "$src") 2>/dev/null || geom=""
+    [[ -z "$geom" ]] && geom="+300+300"
+    echo "$geom"
+}
+
 # set_skip_if_exists FLAG (0 or 1)
 # 0 = always retake screenshots; 1 = reuse existing files when present.
 set_skip_if_exists() {
