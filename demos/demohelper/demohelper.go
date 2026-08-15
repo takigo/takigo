@@ -32,9 +32,21 @@ var (
 	img map[string]*tkimage.Photo
 	// varsWindow is the single reusable "See Variables" toplevel (nil until first use).
 	varsWindow *toplevel.Toplevel
+	// varsUnsubs holds OnChange unsubscribers from the current vars dialog so
+	// they can be released when the dialog closes (or is rebuilt).
+	varsUnsubs []func()
 	// lastBottomButtons stores buttons created by the most recent AddBottomButtons call.
 	lastBottomButtons []*ttk.Button
 )
+
+// releaseVarsSubscriptions unsubscribes all OnChange listeners registered by
+// the current vars dialog so they don't keep firing after the window is gone.
+func releaseVarsSubscriptions() {
+	for _, u := range varsUnsubs {
+		u()
+	}
+	varsUnsubs = nil
+}
 
 // BottomButtons returns the TTK buttons created by the most recent
 // AddSeeDismiss or AddBottomButtons call.
@@ -105,6 +117,7 @@ func AddSeeDismissWithVars(parent widget.Caregiver, vars []NamedVar) *ttk.Frame 
 // showVarsAny is a type-erased showVars for mixed-type variable maps.
 // It uses each variable's underlying *widget.Variable via a small adapter.
 func showVarsAny(app widget.AppContext, vars map[string]any) {
+	releaseVarsSubscriptions()
 	if varsWindow != nil && !varsWindow.Destroyed {
 		varsWindow.Destroy()
 	}
@@ -132,13 +145,19 @@ func showVarsAny(app widget.AppContext, vars map[string]any) {
 		valLabel := ttk.NewLabel(f, "v_"+name,
 			ttk.LabelText(fmt.Sprintf("%v", variableGet(vars[name]))),
 		)
+		if unsub := bindAnyVarToLabel(valLabel, vars[name]); unsub != nil {
+			varsUnsubs = append(varsUnsubs, unsub)
+		}
 		grid.Grid(geometry.Group{nameLabel, valLabel}, grid.Column(0), grid.Row(row),
 			grid.PadX("1.5p"), grid.PadY("1.5p"), grid.Sticky(grid.StickW))
 	}
 
 	okBtn := ttk.NewButton(b, "ok",
 		ttk.ButtonText("OK"),
-		ttk.ButtonCommand(func() { varsWindow.Destroy() }),
+		ttk.ButtonCommand(func() {
+			releaseVarsSubscriptions()
+			varsWindow.Destroy()
+		}),
 	)
 
 	grid.Grid(f, grid.Sticky(grid.NSEW), grid.PadX("3p"))
@@ -151,7 +170,53 @@ func showVarsAny(app widget.AppContext, vars map[string]any) {
 	grid.ColumnConfigure(varsRoot, 0, grid.Weight(1))
 	grid.RowConfigure(varsRoot, 0, grid.Weight(1))
 
-	varsWindow.OnClose(func() { varsWindow.Destroy() })
+	varsWindow.OnClose(func() {
+		releaseVarsSubscriptions()
+		varsWindow.Destroy()
+	})
+}
+
+// bindAnyVarToLabel subscribes valLabel to a variable of any common type so
+// the label updates whenever the variable changes. Returns an unsubscribe
+// function (or nil if the variable type is not supported).
+func bindAnyVarToLabel(valLabel *ttk.Label, v any) func() {
+	switch val := v.(type) {
+	case *widget.Variable[string]:
+		return val.OnChange(func(_, new string) {
+			updateValueLabel(valLabel, new)
+		})
+	case *widget.Variable[bool]:
+		return val.OnChange(func(_, new bool) {
+			updateValueLabel(valLabel, fmt.Sprintf("%v", new))
+		})
+	case *widget.Variable[int]:
+		return val.OnChange(func(_, new int) {
+			updateValueLabel(valLabel, fmt.Sprintf("%v", new))
+		})
+	case *widget.Variable[float64]:
+		return val.OnChange(func(_, new float64) {
+			updateValueLabel(valLabel, fmt.Sprintf("%v", new))
+		})
+	}
+	return nil
+}
+
+// updateValueLabel sets valLabel's text and lets it grow/shrink to fit by
+// recomputing its requested size and propagating the change to the geometry
+// manager. This matches Tk's -textvariable behavior where a label re-requests
+// its natural size whenever the underlying variable changes.
+func updateValueLabel(valLabel *ttk.Label, text string) {
+	if valLabel.Destroyed {
+		return
+	}
+	valLabel.Text = text
+	if valLabel.Layout != nil {
+		rw, rh := valLabel.Layout.Size(valLabel.State)
+		if rw > 0 && rh > 0 {
+			geometry.GeometryRequest(valLabel.Win, rw, rh)
+		}
+	}
+	valLabel.Display()
 }
 
 // variableGet extracts the current value from any *widget.Variable[T].
@@ -379,15 +444,21 @@ func showCode(app widget.AppContext, srcFile string) {
 }
 
 // showVars opens a toplevel window displaying the current values of demo variables.
-// Matches Tk's showVars proc from tk/library/demos/widget.
+// Matches Tk's showVars proc from tk/library/demos/widget. The values are kept
+// live: whenever a linked variable changes, the corresponding label updates
+// immediately, matching Tcl's `ttk::label ... -textvariable $var` behavior.
 //
 //	proc showVars {w args} {
 //	    catch {destroy $w}
 //	    toplevel $w
 //	    wm title $w "Variable values"
 //	    ...
+//	    ttk::label $f.v$var -textvariable $var -anchor w
+//	    ...
 //	}
 func showVars[T comparable](app widget.AppContext, vars *DemoVars[T]) {
+	releaseVarsSubscriptions()
+
 	// catch {destroy $w}
 	if varsWindow != nil && !varsWindow.Destroyed {
 		varsWindow.Destroy()
@@ -411,21 +482,28 @@ func showVars[T comparable](app widget.AppContext, vars *DemoVars[T]) {
 	for name := range *vars {
 		names = append(names, name)
 	}
+	sortStrings(names)
 
 	for row, name := range names {
 		v := (*vars)[name]
 		nameLabel := ttk.NewLabel(f, "n_"+name, ttk.LabelText(name+":"))
-		// TODO: textvariable support for live updates
 		valLabel := ttk.NewLabel(f, "v_"+name,
 			ttk.LabelText(fmt.Sprintf("%v", v.Get())),
 		)
+		unsub := v.OnChange(func(_, new T) {
+			updateValueLabel(valLabel, fmt.Sprintf("%v", new))
+		})
+		varsUnsubs = append(varsUnsubs, unsub)
 		grid.Grid(geometry.Group{nameLabel, valLabel}, grid.Column(0), grid.Row(row),
 			grid.PadX("1.5p"), grid.PadY("1.5p"), grid.Sticky(grid.StickW))
 	}
 
 	okBtn := ttk.NewButton(b, "ok",
 		ttk.ButtonText("OK"),
-		ttk.ButtonCommand(func() { varsWindow.Destroy() }),
+		ttk.ButtonCommand(func() {
+			releaseVarsSubscriptions()
+			varsWindow.Destroy()
+		}),
 	)
 
 	// TODO: bind $w <Return> [list $b.ok invoke]
@@ -441,5 +519,8 @@ func showVars[T comparable](app widget.AppContext, vars *DemoVars[T]) {
 	grid.ColumnConfigure(varsRoot, 0, grid.Weight(1))
 	grid.RowConfigure(varsRoot, 0, grid.Weight(1))
 
-	varsWindow.OnClose(func() { varsWindow.Destroy() })
+	varsWindow.OnClose(func() {
+		releaseVarsSubscriptions()
+		varsWindow.Destroy()
+	})
 }
