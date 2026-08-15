@@ -13,6 +13,7 @@ import (
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/geometry/place"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/widget/button"
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
@@ -50,8 +51,8 @@ func main() {
 
 	// Puzzle frame (matches Tcl: -width 90p -height 90p, pady 1c padx 1c).
 	puzzleFrame := frame.New(f, "frame",
-		frame.Width(120),
-		frame.Height(120),
+		frame.Width(screenunit.Px("90p")),
+		frame.Height(screenunit.Px("90p")),
 		frame.BorderWidth(2),
 		frame.Relief(option.ReliefSunken),
 	)
@@ -64,6 +65,10 @@ func main() {
 	puzzleFrame.Background = troughColor
 	puzzleFrame.Window().BackgroundPixel = troughCol.Pixel
 	pack.Pack(puzzleFrame, pack.SideOpt(pack.Top), pack.PadX("1c"), pack.PadY("1c"))
+	// Inset children by the border width so place tiles don't overlap the
+	// sunken bevel (matches Tcl, where the place manager respects the frame's
+	// border).
+	puzzleFrame.SetInternalBorder(2, 2, 2, 2)
 
 	// Initial tile order (scrambled).
 	order := []int{3, 1, 6, 2, 5, 7, 15, 13, 4, 11, 8, 9, 14, 10, 12}
@@ -117,7 +122,6 @@ func main() {
 			btn := button.New(puzzleFrame, fmt.Sprintf("%d", num),
 				button.Text(fmt.Sprintf("%d", num)),
 				button.BorderWidth(0),
-				button.Width(3),
 				button.Command(func() { tryMove(n) }),
 			)
 			btn.HighlightWidth = 0
