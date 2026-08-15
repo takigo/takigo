@@ -31,10 +31,7 @@ func main() {
 	msg := label.New(f, "msg",
 		label.WrapLength("4i"),
 		label.JustifyOpt(option.JustifyLeft),
-		label.Text("If you click on any of the four buttons below, the background "+
-			"of the button area will change to the color indicated in the "+
-			"button.  You can press Tab to move among the buttons, then "+
-			"press Space to invoke the current button."),
+		label.Text("If you click on any of the four buttons below, the background of the button area will change to the color indicated in the button.  You can press Tab to move among the buttons, then press Space to invoke the current button."),
 	)
 	pack.Pack(msg, pack.SideOpt(pack.Top))
 

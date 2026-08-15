@@ -33,13 +33,13 @@ func main() {
 	msg := label.New(f, "msg",
 		label.WrapLength("4i"),
 		label.JustifyOpt(option.JustifyLeft),
-		label.Text("Four checkbuttons are displayed below. If you click on a "+
+		label.Text("Four checkbuttons are displayed below.  If you click on a "+
 			"button, it will toggle the button's selection state and set a "+
-			"variable to a value indicating the state of the checkbutton. "+
-			"The first button also follows the state of the other three. "+
+			"Tcl variable to a value indicating the state of the checkbutton.  "+
+			"The first button also follows the state of the other three.  "+
 			"If only some of the three are checked, the first button will "+
-			"display the tri-state mode. Click the \"See Variables\" button "+
-			"to see the current values of the variables."),
+			"display the tri-state mode. Click the \"See Variables\" button to "+
+			"see the current values of the variables."),
 	)
 	pack.Pack(msg, pack.SideOpt(pack.Top))
 

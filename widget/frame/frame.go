@@ -4,6 +4,7 @@ package frame
 
 import (
 	"github.com/msorc/takigo/event"
+	"github.com/msorc/takigo/geometry/place"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/widget"
@@ -84,6 +85,8 @@ func New(parent widget.Caregiver, name string, opts ...FrameOption) *Frame {
 		if ev.Type == event.ConfigureType {
 			w.Width = ev.ConfigWidth
 			w.Height = ev.ConfigHeight
+			// Re-run place geometry manager if any children use place.
+			place.ArrangeContainer(w)
 			f.Display()
 			if w.ConfigureCallback != nil {
 				w.ConfigureCallback()

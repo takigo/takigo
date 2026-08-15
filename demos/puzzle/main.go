@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/msorc/takigo"
+	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/geometry/place"
@@ -15,6 +16,7 @@ import (
 	"github.com/msorc/takigo/widget/button"
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
+	"github.com/msorc/takigo/widget/scrollbar"
 	"github.com/msorc/takigo/window"
 )
 
@@ -34,24 +36,33 @@ func main() {
 	msg := label.New(f, "msg",
 		label.WrapLength("4i"),
 		label.JustifyOpt(option.JustifyLeft),
-		label.Text("A 15-puzzle appears below as a collection of buttons.  Click "+
-			"on any of the pieces next to the space, and that piece will "+
-			"slide over the space.  Continue this until the pieces are "+
-			"arranged in numerical order from upper-left to lower-right."),
+		label.Text("A 15-puzzle appears below as a collection of buttons.  Click on any of the pieces next to the space, and that piece will slide over the space.  Continue this until the pieces are arranged in numerical order from upper-left to lower-right."),
 	)
 	pack.Pack(msg, pack.SideOpt(pack.Top))
 
 	btns := demohelper.AddSeeDismiss(f)
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
-	// Puzzle frame (matches Tcl: 90p ≈ 120px, pady 1c padx 1c).
+	// Match Tcl's "special trick": grab the trough color from a temporary scrollbar.
+	troughSB := scrollbar.New(f, "trough_temp")
+	troughCol := troughSB.TroughColor
+	troughSB.Destroy()
+
+	// Puzzle frame (matches Tcl: -width 90p -height 90p, pady 1c padx 1c).
 	puzzleFrame := frame.New(f, "frame",
-		frame.Width(240),
-		frame.Height(240),
+		frame.Width(120),
+		frame.Height(120),
 		frame.BorderWidth(2),
 		frame.Relief(option.ReliefSunken),
-		frame.Background("#4a6984"),
 	)
+	troughColor := &color.Color{
+		Pixel: troughCol.Pixel,
+		Red:   troughCol.Red,
+		Green: troughCol.Green,
+		Blue:  troughCol.Blue,
+	}
+	puzzleFrame.Background = troughColor
+	puzzleFrame.Window().BackgroundPixel = troughCol.Pixel
 	pack.Pack(puzzleFrame, pack.SideOpt(pack.Top), pack.PadX("1c"), pack.PadY("1c"))
 
 	// Initial tile order (scrambled).
@@ -106,6 +117,7 @@ func main() {
 			btn := button.New(puzzleFrame, fmt.Sprintf("%d", num),
 				button.Text(fmt.Sprintf("%d", num)),
 				button.BorderWidth(0),
+				button.Width(3),
 				button.Command(func() { tryMove(n) }),
 			)
 			btn.HighlightWidth = 0

@@ -58,10 +58,24 @@ func main() {
 	)
 	pack.Pack(msg, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
 
-	btns := demohelper.AddSeeDismiss(f)
+	enabled := widget.NewVariable(true)
+	happiness := widget.NewVariable("great")
+	cheese := widget.NewVariable(false)
+	tomato := widget.NewVariable(false)
+	basil := widget.NewVariable(false)
+	oregano := widget.NewVariable(false)
+
+	btns := demohelper.AddSeeDismissWithVars(f, []demohelper.NamedVar{
+		{Name: "enabled", Var: enabled},
+		{Name: "happiness", Var: happiness},
+		{Name: "cheese", Var: cheese},
+		{Name: "tomato", Var: tomato},
+		{Name: "basil", Var: basil},
+		{Name: "oregano", Var: oregano},
+	})
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
-	// Get the bottom bar TTK buttons (See Code, Dismiss) for toggling.
+	// Get the bottom bar TTK buttons (See Variables, See Code, Dismiss) for toggling.
 	bottomButtons := demohelper.BottomButtons()
 
 	// Container frame for the grid layout.
@@ -105,11 +119,6 @@ func main() {
 		labelframe.Text("Checkbuttons"),
 	)
 
-	cheese := widget.NewVariable(false)
-	tomato := widget.NewVariable(false)
-	basil := widget.NewVariable(false)
-	oregano := widget.NewVariable(false)
-
 	c1 := ttk.NewCheckbutton(chkFrame, "c1",
 		ttk.CheckbuttonText("Cheese"),
 		ttk.CheckbuttonVar(cheese),
@@ -149,7 +158,6 @@ func main() {
 		labelframe.Text("Radiobuttons"),
 	)
 
-	happiness := widget.NewVariable("great")
 	for i, item := range []struct{ text, value string }{
 		{"Great", "great"},
 		{"Good", "good"},
@@ -171,8 +179,6 @@ func main() {
 	togFrame := labelframe.New(container, "toggle",
 		labelframe.Text("Toggleswitch"),
 	)
-
-	enabled := widget.NewVariable(true)
 
 	// Classic widgets to disable (msg label, labelframes).
 	classicLabelframes := []*labelframe.Labelframe{btnFrame, chkFrame, radFrame}

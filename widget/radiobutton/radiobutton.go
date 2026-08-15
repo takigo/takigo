@@ -39,6 +39,12 @@ type Radiobutton struct {
 	ActiveBackground *color.ColorRef
 	ActiveForeground *color.ColorRef
 
+	// Disabled foreground (used when State == StateDisabled).
+	DisabledFg *color.ColorRef
+
+	// WidthChars sets the requested width in characters of the default font (Tk's -width).
+	WidthChars int
+
 	textWidth  int
 	textHeight int
 	pressed    bool
@@ -143,6 +149,12 @@ func PadY(p any) RadiobuttonOption {
 	return func(r *Radiobutton) { r.PadY = screenunit.Px(p) }
 }
 
+// Width sets the requested width in characters of the default font.
+// Matches Tk's `-width` option for text-only buttons.
+func Width(n int) RadiobuttonOption {
+	return func(r *Radiobutton) { r.WidthChars = n }
+}
+
 // indicatorSize is the diameter of the circle indicator.
 const indicatorSize = 13
 
@@ -173,6 +185,11 @@ func New(parent widget.Caregiver, name string, opts ...RadiobuttonOption) *Radio
 	}
 	if af, err := app.ColorCache().Get(widget.DefActiveForeground); err == nil {
 		r.ActiveForeground = af.Ref()
+	}
+
+	// Disabled foreground.
+	if df, err := app.ColorCache().Get(widget.DefDisabledForeground); err == nil {
+		r.DisabledFg = df.Ref()
 	}
 
 	// Select color.
@@ -221,6 +238,11 @@ func (r *Radiobutton) computeGeometry() {
 	} else {
 		contentW = r.textWidth
 		contentH = r.textHeight
+		if r.WidthChars > 0 && r.Font != nil {
+			if minW := r.WidthChars * r.Font.MeasureString("0"); minW > contentW {
+				contentW = minW
+			}
+		}
 	}
 	if r.IndicatorOn {
 		contentW += indicatorSize + 4
@@ -270,6 +292,9 @@ func (r *Radiobutton) Display() {
 	}
 	if r.State == widget.StateActive && r.ActiveForeground != nil {
 		fgCol = r.ActiveForeground
+	}
+	if r.State == widget.StateDisabled && r.DisabledFg != nil {
+		fgCol = r.DisabledFg
 	}
 
 	// Fill background.

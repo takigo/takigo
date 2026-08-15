@@ -37,7 +37,7 @@ func main() {
 	msg := label.New(f, "msg",
 		label.WrapLength("5i"),
 		label.JustifyOpt(option.JustifyLeft),
-		label.Text("Three groups of radiobuttons are displayed below. If you click on a button then the button will become selected exclusively among all the buttons in its group. A variable is associated with each group to indicate which of the group's buttons is selected."),
+		label.Text("Three groups of radiobuttons are displayed below.  If you click on a button then the button will become selected exclusively among all the buttons in its group.  A Tcl variable is associated with each group to indicate which of the group's buttons is selected.  When the 'Tristate' button is pressed, the radio buttons will display the tri-state mode. Selecting any radio button will return the buttons to their respective on/off state. Click the \"See Variables\" button to see the current values of the variables."),
 	)
 	grid.Grid(msg, grid.Row(0), grid.Column(0), grid.ColumnSpan(3), grid.Sticky(grid.NSEW))
 
@@ -153,11 +153,12 @@ func main() {
 		{"Right", "right", 1, 2},
 		{"Bottom", "bottom", 2, 1},
 	} {
-		rb := radiobutton.New(right, a.value,
+		rb := radiobutton.New(right, "align_"+a.value,
 			radiobutton.Text(a.text),
 			radiobutton.Value(a.value),
 			radiobutton.Var(alignVar),
 			radiobutton.IndicatorOnOpt(false),
+			radiobutton.Width(7),
 		)
 		rightButtons[a.value] = rb
 	}

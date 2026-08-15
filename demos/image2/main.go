@@ -43,7 +43,7 @@ func main() {
 	msg := label.New(f, "msg",
 		label.WrapLength("4i"),
 		label.JustifyOpt(option.JustifyLeft),
-		label.Text("This demonstration allows you to view images using a Tk \"photo\" image. First type a directory name in the listbox, then type Return to load the directory into the listbox. Then double-click on a file name in the listbox to see that image."),
+		label.Text("This demonstration allows you to view images using a Tk \"photo\" image.  First type a directory name in the listbox, then type Return to load the directory into the listbox.  Then double-click on a file name in the listbox to see that image."),
 	)
 	pack.Pack(msg, pack.SideOpt(pack.Top))
 

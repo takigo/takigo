@@ -39,14 +39,7 @@ func main() {
 	msg := label.New(f, "msg",
 		label.WrapLength("5i"),
 		label.JustifyOpt(option.JustifyLeft),
-		label.Text("This window shows three ways of using bitmaps or images in "+
-			"radiobuttons and checkbuttons.  On the left are two "+
-			"radiobuttons, each of which displays a bitmap and an "+
-			"indicator.  In the middle is a checkbutton that displays a "+
-			"different image depending on whether it is selected or not.  "+
-			"On the right is a checkbutton that displays a single bitmap "+
-			"but changes its background color to indicate whether or not "+
-			"it is selected."),
+		label.Text("This window shows three ways of using bitmaps or images in radiobuttons and checkbuttons.  On the left are two radiobuttons, each of which displays a bitmap and an indicator.  In the middle is a checkbutton that displays a different image depending on whether it is selected or not.  On the right is a checkbutton that displays a single bitmap but changes its background color to indicate whether or not it is selected."),
 	)
 	pack.Pack(msg, pack.SideOpt(pack.Top))
 

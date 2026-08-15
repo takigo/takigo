@@ -39,6 +39,9 @@ type Checkbutton struct {
 	ActiveBackground *color.ColorRef
 	ActiveForeground *color.ColorRef
 
+	// Disabled foreground (used when State == StateDisabled).
+	DisabledFg *color.ColorRef
+
 	textWidth  int
 	textHeight int
 	pressed    bool
@@ -166,6 +169,11 @@ func New(parent widget.Caregiver, name string, opts ...CheckbuttonOption) *Check
 		c.ActiveForeground = af.Ref()
 	}
 
+	// Disabled foreground.
+	if df, err := app.ColorCache().Get(widget.DefDisabledForeground); err == nil {
+		c.DisabledFg = df.Ref()
+	}
+
 	// Select color (indicator fill when checked).
 	if sc, err := app.ColorCache().Get("#b03060"); err == nil {
 		c.SelectColor = sc.Ref()
@@ -266,6 +274,9 @@ func (c *Checkbutton) Display() {
 	}
 	if c.State == widget.StateActive && c.ActiveForeground != nil {
 		fgCol = c.ActiveForeground
+	}
+	if c.State == widget.StateDisabled && c.DisabledFg != nil {
+		fgCol = c.DisabledFg
 	}
 
 	// In toggle mode, use select color as background when selected.

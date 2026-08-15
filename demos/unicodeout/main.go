@@ -31,11 +31,7 @@ func main() {
 	msg := label.New(f, "msg",
 		label.WrapLength("4i"),
 		label.JustifyOpt(option.JustifyLeft),
-		label.Text("This is a sample of Tk's support for languages that use "+
-			"non-Western character sets. However, what you will actually see "+
-			"below depends largely on what character sets you have installed, "+
-			"and what you see for characters that are not present varies greatly "+
-			"between platforms as well."),
+		label.Text("This is a sample of Tk's support for languages that use non-Western character sets.  However, what you will actually see below depends largely on what character sets you have installed, and what you see for characters that are not present varies greatly between platforms as well."),
 	)
 	pack.Pack(msg, pack.SideOpt(pack.Top))
 

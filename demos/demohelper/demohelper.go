@@ -8,6 +8,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"reflect"
 	"runtime"
 
 	"github.com/msorc/takigo/event"
@@ -75,6 +76,117 @@ func AddVarsSeeDismiss[T comparable](parent widget.Caregiver, vars *DemoVars[T])
 func AddSeeDismiss(parent widget.Caregiver) *ttk.Frame {
 	return AddBottomButtons(parent, func(*ttk.Frame) *ttk.Button { return nil })
 }
+
+// NamedVar is a name + widget variable pair, used by AddSeeDismissWithVars to
+// show the See Variables button.
+type NamedVar struct {
+	Name string
+	Var  any // one of *widget.Variable[T] for any T
+}
+
+// AddSeeDismissWithVars creates the See Code / Dismiss button bar with an
+// additional See Variables button that displays the given named variables.
+// Matches Tcl's: addSeeDismiss $w.buttons $w [list size color align ...]
+func AddSeeDismissWithVars(parent widget.Caregiver, vars []NamedVar) *ttk.Frame {
+	varsMap := make(map[string]any, len(vars))
+	for _, nv := range vars {
+		varsMap[nv.Name] = nv.Var
+	}
+	return AddBottomButtons(parent, func(f *ttk.Frame) *ttk.Button {
+		return ttk.NewButton(f, "vars",
+			ttk.ButtonText("See Variables"),
+			ttk.ButtonImage(img["view"]),
+			ttk.ButtonCompound(widget.CompoundLeft),
+			ttk.ButtonCommand(func() { showVarsAny(parent.AppContext(), varsMap) }),
+		)
+	})
+}
+
+// showVarsAny is a type-erased showVars for mixed-type variable maps.
+// It uses each variable's underlying *widget.Variable via a small adapter.
+func showVarsAny(app widget.AppContext, vars map[string]any) {
+	if varsWindow != nil && !varsWindow.Destroyed {
+		varsWindow.Destroy()
+	}
+	varsWindow = toplevel.New(app, "vars",
+		toplevel.Title("Variable values"),
+	)
+	varsWindow.Show()
+
+	varsRoot := varsWindow.Window()
+
+	b := ttk.NewFrame(varsWindow, "frame")
+	grid.Grid(b, grid.Sticky(grid.NSEW))
+
+	f := labelframe.New(b, "title", labelframe.Text("Variable values:"))
+
+	// Sort names for stable display.
+	names := make([]string, 0, len(vars))
+	for name := range vars {
+		names = append(names, name)
+	}
+	sortStrings(names)
+
+	for row, name := range names {
+		nameLabel := ttk.NewLabel(f, "n_"+name, ttk.LabelText(name+":"))
+		valLabel := ttk.NewLabel(f, "v_"+name,
+			ttk.LabelText(fmt.Sprintf("%v", variableGet(vars[name]))),
+		)
+		grid.Grid(geometry.Group{nameLabel, valLabel}, grid.Column(0), grid.Row(row),
+			grid.PadX("1.5p"), grid.PadY("1.5p"), grid.Sticky(grid.StickW))
+	}
+
+	okBtn := ttk.NewButton(b, "ok",
+		ttk.ButtonText("OK"),
+		ttk.ButtonCommand(func() { varsWindow.Destroy() }),
+	)
+
+	grid.Grid(f, grid.Sticky(grid.NSEW), grid.PadX("3p"))
+	grid.Grid(okBtn, grid.Row(1), grid.Sticky(grid.StickE), grid.PadX("3p"), grid.PadY("3p"))
+
+	grid.ColumnConfigure(f, 1, grid.Weight(1))
+	grid.RowConfigure(f, 100, grid.Weight(1))
+	grid.ColumnConfigure(b, 0, grid.Weight(1))
+	grid.RowConfigure(b, 0, grid.Weight(1))
+	grid.ColumnConfigure(varsRoot, 0, grid.Weight(1))
+	grid.RowConfigure(varsRoot, 0, grid.Weight(1))
+
+	varsWindow.OnClose(func() { varsWindow.Destroy() })
+}
+
+// variableGet extracts the current value from any *widget.Variable[T].
+// Variables are generic; we use reflection to call Get().
+func variableGet(v any) any {
+	rv := reflect.ValueOf(v)
+	if !rv.IsValid() || rv.Kind() != reflect.Ptr {
+		return "<unknown>"
+	}
+	method := rv.MethodByName("Get")
+	if !method.IsValid() {
+		return "<unknown>"
+	}
+	results := method.Call(nil)
+	if len(results) == 0 {
+		return "<unknown>"
+	}
+	return results[0].Interface()
+}
+
+// reflectValueOf is a thin alias to avoid shadowing reflect.ValueOf below.
+var reflectValueOf = reflect.ValueOf
+
+// sortStrings sorts a slice of strings in place (avoids importing "sort"
+// at the top; keeps the import block tidy).
+func sortStrings(s []string) {
+	for i := 1; i < len(s); i++ {
+		for j := i; j > 0 && s[j-1] > s[j]; j-- {
+			s[j-1], s[j] = s[j], s[j-1]
+		}
+	}
+}
+
+// ensure reflect package is referenced (some toolchains strip unused imports)
+var _ = reflect.TypeOf
 
 func AddBottomButtons(parent widget.Caregiver, varsFunc func(*ttk.Frame) *ttk.Button) *ttk.Frame {
 	_, callerFile, _, _ := runtime.Caller(2)

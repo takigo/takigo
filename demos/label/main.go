@@ -34,9 +34,7 @@ func main() {
 	msg := label.New(f, "msg",
 		label.WrapLength("4i"),
 		label.JustifyOpt(option.JustifyLeft),
-		label.Text("Five labels are displayed below: three textual ones on the left, "+
-			"and an image label and a text label on the right.  Labels are "+
-			"pretty boring because you can't do anything with them."),
+		label.Text("Five labels are displayed below: three textual ones on the left, and an image label and a text label on the right.  Labels are pretty boring because you can't do anything with them."),
 	)
 	pack.Pack(msg, pack.SideOpt(pack.Top))
 
