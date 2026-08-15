@@ -9,7 +9,11 @@
 #   --wait MS            Sleep MS milliseconds before next event (default 200)
 #   --key "<sequence>"   xdotool key — e.g. "Tab", "Return", "ctrl+a"
 #   --type "text"        xdotool type — literal text
-#   --click X,Y          Left-click at (X,Y) relative to the window
+#   --click X,Y          Left-click at (X,Y) window-relative (legacy)
+#   --click <name>       Left-click centre of widget named <name>
+#                        (requires TAKIGO_DEBUG_NAME_WIDGETS=1 in the demo)
+#   --list-widgets       Print all X windows under the toplevel with
+#                        their names and geometries, then exit
 #
 # Output flags:
 #   --before PATH        Override before-screenshot path
@@ -22,8 +26,9 @@
 #
 # Examples:
 #   bash scripts/demo_interact.sh label
-#   bash scripts/demo_interact.sh entry1 --type "hello" --key Return --diff
-#   bash scripts/demo_interact.sh button --click 100,200 --diff
+#   bash scripts/demo_interact.sh entry1 --click e1 --wait 500 --type "hello" --diff
+#   bash scripts/demo_interact.sh button --click b0 --diff
+#   bash scripts/demo_interact.sh form --list-widgets  # discover widget names + coords
 
 set -euo pipefail
 
@@ -45,6 +50,7 @@ BEFORE="$SS_DIR/${DEMO}_interact_before.png"
 AFTER="$SS_DIR/${DEMO}_interact_after.png"
 DIFF=0
 KEEP_RUNNING=0
+LIST_WIDGETS=0
 DEFAULT_WAIT_MS=200
 
 # Events stored in order in the EVENTS array; each entry is
@@ -73,13 +79,14 @@ while [[ $# -gt 0 ]]; do
             shift 2
             ;;
         --click)
-            [[ $# -ge 2 ]] || { echo "--click requires X,Y" >&2; exit 1; }
+            [[ $# -ge 2 ]] || { echo "--click requires X,Y or <widget_name>" >&2; exit 1; }
             add_event "click|$2"
             shift 2
             ;;
         --before)  BEFORE="$2"; shift 2 ;;
         --after)   AFTER="$2";  shift 2 ;;
         --diff)    DIFF=1; shift ;;
+        --list-widgets) LIST_WIDGETS=1; shift ;;
         --keep-running) KEEP_RUNNING=1; shift ;;
         *) echo "Unknown flag: $1" >&2; exit 1 ;;
     esac
@@ -118,6 +125,10 @@ if command -v xrdb >/dev/null 2>&1; then
     XFT_DPI_VAL=$(xrdb -query 2>/dev/null | awk -F':[[:space:]]*' '/^Xft\.dpi/ {print $2; exit}')
     [[ -n "$XFT_DPI_VAL" ]] && export XFT_DPI="$XFT_DPI_VAL"
 fi
+# Enable X window naming in the demo so --click <name> can resolve
+# widgets by identity rather than by pixel coordinates. Opt-in, no
+# effect when unset.
+export TAKIGO_DEBUG_NAME_WIDGETS=1
 
 echo "Running demos/$DEMO (title: \"$TITLE\")..." >&2
 nohup "$binary" > /tmp/takigo_interact_out.txt 2>&1 &
@@ -147,8 +158,33 @@ sleep "${SETTLE_SECS:-1.5}"
 import -window "$wid" "$BEFORE"
 
 # ---------------------------------------------------------------------------
-# Run the event sequence
+# --list-widgets: enumerate X child windows with names + geometry, exit.
+# Useful for discovering what to click without reading the source.
 # ---------------------------------------------------------------------------
+if [[ "$LIST_WIDGETS" == "1" ]]; then
+    printf '%-12s %-24s %-12s %-12s %-10s %-10s\n' "XID" "NAME" "X" "Y" "WIDTH" "HEIGHT"
+    printf '%-12s %-24s %-12s %-12s %-10s %-10s\n' "----" "----" "--" "--" "-----" "------"
+    # Combine both name queries, dedupe by XID, print one line each.
+    { xdotool search --name "" 2>/dev/null; \
+      xdotool search --name ".*" 2>/dev/null; } | sort -u | \
+    while read -r child; do
+        [[ "$child" == "$wid" ]] && continue
+        name=$(xdotool getwindowname "$child" 2>/dev/null)
+        [[ -z "$name" ]] && continue
+        geom=$(xdotool getwindowgeometry --shell "$child" 2>/dev/null)
+        rx=$(echo "$geom" | awk -F= '/^X=/{print $2}')
+        ry=$(echo "$geom" | awk -F= '/^Y=/{print $2}')
+        w=$(echo "$geom"  | awk -F= '/^WIDTH=/{print $2}')
+        h=$(echo "$geom"  | awk -F= '/^HEIGHT=/{print $2}')
+        printf '%-12s %-24s %-12s %-12s %-10s %-10s\n' "0x$(printf '%x' "$child")" "$name" "$rx" "$ry" "$w" "$h"
+    done | sort -k2
+    echo ""
+    echo "Tip: --click <name> clicks the centre of the widget with that name."
+    echo "Coordinates are SCREEN-absolute (xdotool will translate to window-relative)."
+    exit 0
+fi
+
+
 echo "Running ${#EVENTS[@]} event(s)..." >&2
 DEFAULT_WAIT_MS="${DEFAULT_WAIT_MS:-200}"
 for entry in "${EVENTS[@]}"; do
@@ -163,13 +199,41 @@ for entry in "${EVENTS[@]}"; do
             xdotool key --window "$wid" --clearmodifiers "$arg"
             ;;
         type)
-            xdotool type --window "$wid" --delay 20 "$arg"
+            # Send to the focused window via XTEST. `xdotool type` defaults
+            # to the currently focused window, which is what we want.
+            xdotool type --delay 20 "$arg"
             ;;
         click)
-            x="${arg%,*}"
-            y="${arg#*,}"
-            xdotool mousemove --window "$wid" "$x" "$y"
-            xdotool click --window "$wid" 1
+            # If arg contains a comma, treat as window-relative X,Y.
+            # Otherwise treat as a widget name (requires
+            # TAKIGO_DEBUG_NAME_WIDGETS=1 in the demo).
+            if [[ "$arg" == *,* ]]; then
+                x="${arg%,*}"
+                y="${arg#*,}"
+                xdotool mousemove --window "$wid" "$x" "$y"
+                xdotool click --window "$wid" 1
+            else
+                # Resolve widget name → XID → screen-absolute centre.
+                wid2=$(xdotool search --onlyvisible --name "$arg" 2>/dev/null | head -1)
+                if [[ -z "$wid2" ]]; then
+                    echo "click: no window named '$arg' (is TAKIGO_DEBUG_NAME_WIDGETS=1 set on the demo?)" >&2
+                    exit 1
+                fi
+                # getwindowgeometry --shell returns SCREEN-absolute X,Y.
+                geom=$(xdotool getwindowgeometry --shell "$wid2" 2>/dev/null)
+                cx=$(echo "$geom" | awk -F= '/^X=/{print $2}')
+                cy=$(echo "$geom" | awk -F= '/^Y=/{print $2}')
+                w=$(echo "$geom"  | awk -F= '/^WIDTH=/{print $2}')
+                h=$(echo "$geom"  | awk -F= '/^HEIGHT=/{print $2}')
+                cx=$(( cx + w / 2 ))
+                cy=$(( cy + h / 2 ))
+                echo "  click '$arg' (XID=0x$(printf %x $wid2)) → abs ($cx, $cy)" >&2
+                # Use absolute screen coordinates; this matches the path
+                # the legacy --click X,Y takes (xdotool --window X Y is
+                # unreliable in some configurations, see #demo-interact).
+                xdotool mousemove "$cx" "$cy"
+                xdotool click 1
+            fi
             ;;
     esac
 done

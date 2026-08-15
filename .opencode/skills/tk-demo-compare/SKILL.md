@@ -203,30 +203,52 @@ correct but be functionally broken.
 
 ```bash
 bash scripts/demo_interact.sh <go_demo> --diff \
-    [--wait MS] [--key "<seq>"] [--type "text"] [--click X,Y]
+    [--wait MS] [--key "<seq>"] [--type "text"] \
+    [--click X,Y | --click <widget_name>] \
+    [--list-widgets]
 ```
 
 This launches the demo, sends each event in order via `xdotool`,
 captures before/after screenshots, and prints the normalized MAE
 between them. MAE > 0 means the event visibly changed the screen.
 
-**Coordinate space:** `--click X,Y` is *window-relative*, not
-screen-relative. Take a screenshot first with `demo_compare.sh` to
-find the widget positions.
+**Widget-aware clicks are the default.** Prefer `--click <name>` over
+`--click X,Y` — takigo sets each widget's Go name as its X11 window
+name (when the demo is launched with `TAKIGO_DEBUG_NAME_WIDGETS=1`,
+which `demo_interact.sh` does automatically), and `xdotool` resolves
+the name to the XID. The script then clicks the centre of the
+resolved window. This survives layout changes — if a demo's
+geometry shifts by 30 px, the widget-name click still hits the
+target.
 
-**Event order matters.** Tab traversal visits widgets in
-depth-first pre-order. Buttons in `demohelper.AddSeeDismiss` come
-*before* entries: for `demos/entry1`, three `--key Tab` presses
-are needed to reach the first entry.
+```bash
+# Discover what widgets exist and where they are.
+bash scripts/demo_interact.sh entry1 --list-widgets
+# Output:
+#   XID          NAME                 X           Y           WIDTH     HEIGHT
+#   0x6000010    e1                    315         574         689       36
+#   0x6000017    e2                    315         622         689       36
+#   0x600000c    dismiss               874         726         139       40
+#   ...
+```
+
+The legacy `--click X,Y` form (window-relative pixel coordinates) is
+still supported for one-off clicks when you know exact coordinates.
+Tab traversal order is depth-first pre-order: buttons from
+`demohelper.AddSeeDismiss` come *before* entries, so for
+`demos/entry1`, three `--key Tab` presses reach the first entry.
 
 Examples:
 
 ```bash
-# Verify clicking the first entry of demos/entry1 focuses it and
-# accepts typed text.
+# Click the widget named 'e1', wait, type "hello", diff.
+bash scripts/demo_interact.sh entry1 \
+    --click e1 --wait 500 --type "hello" --diff
+# Expected: MAE > 0, "hello" appears in the entry.
+
+# Same thing with raw pixel coordinates (legacy mode).
 bash scripts/demo_interact.sh entry1 \
     --click 200,265 --wait 500 --type "hello" --diff
-# Expected: MAE > 0, "hello" appears in the entry.
 
 # Verify pressing Tab and Return navigates a form.
 bash scripts/demo_interact.sh form \
@@ -323,11 +345,15 @@ If the user asks for many/all demos:
   Use this skill instead; it supersedes them.
 - When in doubt, run `wish tk/library/demos/<tcl_demo>.tcl` by hand (via
   `scripts/demo_wrapper.tcl`) and inspect the window before editing.
-- For behavioural checks, `--click X,Y` is **window-relative** (top-left = 0,0)
-  in `demo_interact.sh`. Get the window size from the before screenshot
-  and pick coordinates inside the visible area. Tab traversal is
-  depth-first pre-order, so `demos/entry1`'s button bar (dismiss → code)
-  comes before the entries — three Tab presses reach the first entry.
+- For behavioural checks, prefer `--click <widget_name>` over
+  `--click X,Y` — widget-name clicks resolve via X11 window names set
+  by takigo (when `TAKIGO_DEBUG_NAME_WIDGETS=1` is set, which
+  `demo_interact.sh` does automatically). Use `--list-widgets` to
+  discover widget names + positions before clicking. Legacy
+  `--click X,Y` is window-relative (top-left = 0,0).
+- Tab traversal is depth-first pre-order, so `demos/entry1`'s button
+  bar (dismiss → code) comes before the entries — three Tab presses
+  reach the first entry.
 - `demo_interact.sh` requires a real X11 display (DISPLAY set) and
   `xdotool` installed. Step 0's environment check covers both.
 

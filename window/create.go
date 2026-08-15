@@ -1,6 +1,8 @@
 package window
 
 import (
+	"os"
+
 	"github.com/msorc/takigo/platform"
 )
 
@@ -49,6 +51,14 @@ func CreateMainWindow(d *Display, x, y, width, height int) *Window {
 
 	// Register in display's window table.
 	d.RegisterWindow(w.PlatformID, w)
+
+	// Debug aid: when TAKIGO_DEBUG_NAME_WIDGETS=1 is set, set each widget's
+	// Go name as its X11 window name so external tools (xdotool, scripts/
+	// demo_interact.sh) can resolve widgets by identity rather than by
+	// pixel coordinates. Opt-in: no behaviour change for normal runs.
+	if os.Getenv("TAKIGO_DEBUG_NAME_WIDGETS") == "1" && w.Name != "" {
+		d.Server.StoreName(w.PlatformID, w.Name)
+	}
 
 	// Set WM_DELETE_WINDOW protocol.
 	protocols := []platform.AtomID{d.WMDeleteWindow}
@@ -101,6 +111,11 @@ func MakeWindowExist(w *Window) {
 	)
 
 	d.RegisterWindow(w.PlatformID, w)
+
+	// See CreateMainWindow for the TAKIGO_DEBUG_NAME_WIDGETS rationale.
+	if os.Getenv("TAKIGO_DEBUG_NAME_WIDGETS") == "1" && w.Name != "" {
+		d.Server.StoreName(w.PlatformID, w.Name)
+	}
 
 	w.GC = d.Server.CreateGC(w.Drawable(), platform.GCForeground|platform.GCBackground, &platform.GCValues{
 		Foreground: d.BlackPixel,
