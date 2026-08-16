@@ -10,7 +10,8 @@ import (
 	"github.com/msorc/takigo/window"
 )
 
-const ttkRadioIndicatorSize = 13
+// ttkRadioIndicatorSize matches Tcl's rendered radio indicator (16px SVG × ~1.5x system DPI scaling).
+const ttkRadioIndicatorSize = 24
 
 // Radiobutton is a TTK themed mutually-exclusive selection button.
 type Radiobutton struct {
@@ -52,6 +53,7 @@ func RadiobuttonVar(v *widget.Variable[string]) RadiobuttonOption {
 			} else {
 				r.State &^= StateSelected
 			}
+			r.State &^= StateAlternate
 			r.Display()
 		})
 	}
@@ -60,6 +62,12 @@ func RadiobuttonVar(v *widget.Variable[string]) RadiobuttonOption {
 // RadiobuttonCommand sets the callback invoked on selection.
 func RadiobuttonCommand(fn func()) RadiobuttonOption {
 	return func(r *Radiobutton) { r.Command = fn }
+}
+
+// RadiobuttonAlternate sets the initial state to include StateAlternate.
+// Matches Tk's behavior when the linked variable is unset.
+func RadiobuttonAlternate() RadiobuttonOption {
+	return func(r *Radiobutton) { r.State |= StateAlternate }
 }
 
 // NewRadiobutton creates a TTK themed radiobutton.
@@ -84,6 +92,7 @@ func NewRadiobutton(parent widget.Caregiver, name string, opts ...RadiobuttonOpt
 	// Sync initial selected state from variable.
 	if r.Variable != nil && r.Variable.Get() == r.Value {
 		r.State |= StateSelected
+		r.State &^= StateAlternate
 	}
 
 	r.computeSize()
@@ -176,10 +185,10 @@ func (r *Radiobutton) Display() {
 
 	// Indicator fill and color.
 	indFill := uint64(0xffffff)
-	indColor := fgColor
+	indColor := uint64(0xffffff) // default to white (matches Tcl default theme)
 	if r.Context != nil && r.Context.Style != nil {
 		indFill = LookupColor(r.Context.Style, "-indicatorbackground", r.State, indFill)
-		indColor = LookupColor(r.Context.Style, "-indicatorcolor", r.State, fgColor)
+		indColor = LookupColor(r.Context.Style, "-indicatorforeground", r.State, indColor)
 	}
 	if r.State&StateDisabled != 0 {
 		indFill = bgColor
@@ -226,35 +235,58 @@ func (r *Radiobutton) Display() {
 		d.SetForeground(gc, indFill)
 		d.FillArc(win.Drawable(), gc, indX+1, indY+1, uint(indSize-2), uint(indSize-2), 0, 360*64)
 
-		// Inner dot when selected.
+		// Inner dot when selected, horizontal line when alternate.
 		if selected {
 			dotSize := indSize / 2
 			dotX := indX + (indSize-dotSize)/2
 			dotY := indY + (indSize-dotSize)/2
 			d.SetForeground(gc, fgColor)
 			d.FillArc(win.Drawable(), gc, dotX, dotY, uint(dotSize), uint(dotSize), 0, 360*64)
+		} else if r.State&StateAlternate != 0 {
+			lineY := indY + indSize/2
+			d.SetForeground(gc, fgColor)
+			d.DrawLine(win.Drawable(), gc, indX+3, lineY, indX+indSize-4, lineY)
+			d.DrawLine(win.Drawable(), gc, indX+3, lineY+1, indX+indSize-4, lineY+1)
 		}
 	} else {
-		// Default style: 3D arc border.
-		border := draw.NewBorderFromPixel(bgColor)
-		d.SetForeground(gc, indFill)
-		d.FillArc(win.Drawable(), gc, indX, indY, uint(indSize), uint(indSize), 0, 360*64)
-
-		// Border arcs around circle (flat when disabled).
+		// Default style: solid filled circle with optional center dot/line
+		// indicator, matching Tcl's default theme SVG indicator.
+		// The Tcl SVG uses a solid filled circle for selected/alternate
+		// states.
 		if r.State&StateDisabled == 0 {
-			d.SetForeground(gc, border.DarkPixel)
-			d.DrawArc(win.Drawable(), gc, indX, indY, uint(indSize-1), uint(indSize-1), 45*64, 180*64)
-			d.SetForeground(gc, border.LightPixel)
-			d.DrawArc(win.Drawable(), gc, indX, indY, uint(indSize-1), uint(indSize-1), 225*64, 180*64)
+			// Solid filled circle with indicatorbackground.
+			d.SetForeground(gc, indFill)
+			d.FillArc(win.Drawable(), gc, indX, indY, uint(indSize), uint(indSize), 0, 360*64)
+			// 1px border using -bordercolor for the "sunken" 3D look
+			// matching Tcl's SVG rendering. Disabled state is flat.
+			if r.State&StateAlternate != 0 {
+				borderColor := LookupColor(r.Context.Style, "-bordercolor", r.State, 0x414141)
+				d.SetForeground(gc, borderColor)
+				d.DrawArc(win.Drawable(), gc, indX, indY, uint(indSize-1), uint(indSize-1), 0, 360*64)
+			}
+		} else {
+			// Disabled: simple flat circle outline.
+			borderColor := LookupColor(r.Context.Style, "-bordercolor", r.State, 0x414141)
+			d.SetForeground(gc, indFill)
+			d.FillArc(win.Drawable(), gc, indX, indY, uint(indSize), uint(indSize), 0, 360*64)
+			d.SetForeground(gc, borderColor)
+			d.DrawArc(win.Drawable(), gc, indX, indY, uint(indSize-1), uint(indSize-1), 0, 360*64)
 		}
 
-		// Inner dot when selected.
+		// Inner dot when selected, horizontal line when alternate.
 		if selected {
-			dotSize := indSize - 6
-			dotX := indX + 3
-			dotY := indY + 3
+			dotDiam := indSize / 2
+			dotX := indX + (indSize-dotDiam)/2
+			dotY := indY + (indSize-dotDiam)/2
 			d.SetForeground(gc, indColor)
-			d.FillArc(win.Drawable(), gc, dotX, dotY, uint(dotSize), uint(dotSize), 0, 360*64)
+			d.FillArc(win.Drawable(), gc, dotX, dotY, uint(dotDiam), uint(dotDiam), 0, 360*64)
+		} else if r.State&StateAlternate != 0 {
+			lineY := indY + indSize/2
+			d.SetForeground(gc, indColor)
+			d.DrawLine(win.Drawable(), gc, indX+indSize*3/16, lineY,
+				indX+indSize*13/16, lineY)
+			d.DrawLine(win.Drawable(), gc, indX+indSize*3/16, lineY+1,
+				indX+indSize*13/16, lineY+1)
 		}
 	}
 
@@ -290,6 +322,7 @@ func (r *Radiobutton) Select() {
 		return
 	}
 	r.State |= StateSelected
+	r.State &^= StateAlternate
 	if r.Variable != nil {
 		r.Variable.Set(r.Value)
 	}

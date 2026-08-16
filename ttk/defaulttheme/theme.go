@@ -33,18 +33,51 @@ func init() {
 		{Spec: ttk.StateSpec{OnBits: ttk.StateDisabled}, Value: uint64(0xa3a3a3)},
 	}
 
+	// Indicator element colors (used by Checkbutton.indicator / Radiobutton.indicator).
+	// Matches Tcl's default theme SVG palette (shade/border/light/hi on 4 sides).
+	root.Defaults["-shadecolor"] = uint64(0x888888)
+	root.Defaults["-lightcolor"] = uint64(0xdddddd)
+	root.Defaults["-bordercolor"] = uint64(0x414141)
+
 	// TFrame style.
 	tframe := theme.GetStyle("TFrame")
 	tframe.Defaults["-relief"] = option.ReliefFlat
 	tframe.Defaults["-borderwidth"] = 0
 
 	// TCheckbutton style.
+	// Matches Tcl's default theme: indicatorbackground defaults to white and
+	// turns dark navy when selected/alternate, lighter blue when pressed,
+	// gray when disabled.
 	tcheckbutton := theme.GetStyle("TCheckbutton")
-	tcheckbutton.Defaults["-indicatorcolor"] = uint64(0x4a6984)
+	tcheckbutton.Defaults["-indicatorbackground"] = uint64(0xffffff)
+	tcheckbutton.Defaults["-indicatorforeground"] = uint64(0xffffff)
+	tcheckbutton.Defaults["-indicatormargin"] = ttk.Padding{Left: 0, Top: 1, Right: 3, Bottom: 1}
+	tcheckbutton.Maps["-indicatorbackground"] = ttk.StateMap[any]{
+		{Spec: ttk.StateSpec{OnBits: ttk.StateAlternate | ttk.StateDisabled}, Value: uint64(0xa3a3a3)},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateAlternate | ttk.StatePressed}, Value: uint64(0x5895bc)},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateAlternate}, Value: uint64(0x4a6984)},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateSelected | ttk.StateDisabled}, Value: uint64(0xa3a3a3)},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateSelected | ttk.StatePressed}, Value: uint64(0x5895bc)},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateSelected}, Value: uint64(0x4a6984)},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateDisabled}, Value: uint64(0xd9d9d9)},
+		{Spec: ttk.StateSpec{OnBits: ttk.StatePressed}, Value: uint64(0xc3c3c3)},
+	}
 
 	// TRadiobutton style.
 	tradiobutton := theme.GetStyle("TRadiobutton")
-	tradiobutton.Defaults["-indicatorcolor"] = uint64(0x4a6984)
+	tradiobutton.Defaults["-indicatorbackground"] = uint64(0xffffff)
+	tradiobutton.Defaults["-indicatorforeground"] = uint64(0xffffff)
+	tradiobutton.Defaults["-indicatormargin"] = ttk.Padding{Left: 0, Top: 1, Right: 3, Bottom: 1}
+	tradiobutton.Maps["-indicatorbackground"] = ttk.StateMap[any]{
+		{Spec: ttk.StateSpec{OnBits: ttk.StateAlternate | ttk.StateDisabled}, Value: uint64(0xa3a3a3)},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateAlternate | ttk.StatePressed}, Value: uint64(0x5895bc)},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateAlternate}, Value: uint64(0x4a6984)},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateSelected | ttk.StateDisabled}, Value: uint64(0xa3a3a3)},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateSelected | ttk.StatePressed}, Value: uint64(0x5895bc)},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateSelected}, Value: uint64(0x4a6984)},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateDisabled}, Value: uint64(0xd9d9d9)},
+		{Spec: ttk.StateSpec{OnBits: ttk.StatePressed}, Value: uint64(0xc3c3c3)},
+	}
 
 	// TLabel style.
 	tlabel := theme.GetStyle("TLabel")

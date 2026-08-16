@@ -13,11 +13,13 @@ import (
 
 // Classic theme colors.
 const (
-	frameColor uint64 = 0xd9d9d9
-	activeBg   uint64 = 0xececec
-	disabledFg uint64 = 0xa3a3a3
-	selectBg   uint64 = 0xc3c3c3
-	troughBg   uint64 = 0xb3b3b3
+	frameColor    uint64 = 0xd9d9d9
+	activeBg      uint64 = 0xececec
+	disabledFg    uint64 = 0xa3a3a3
+	selectBg      uint64 = 0xc3c3c3
+	troughBg      uint64 = 0xb3b3b3
+	indicator     uint64 = 0xb03060
+	altIndicator  uint64 = 0xb05e5e
 )
 
 // --- highlightElement ---
@@ -547,11 +549,20 @@ func init() {
 	tmenubutton.Defaults["-borderwidth"] = 2
 
 	// TCheckbutton — Motif-style indicator: raised when off, sunken when on.
+	// Matches Tcl classic: red filled squares (Motif-style dark red #b03060
+	// for selected, muted red #b05e5e for alternate).
 	tCheckbutton := theme.GetStyle("TCheckbutton")
 	tCheckbutton.Defaults["-indicatorrelief"] = option.ReliefRaised
 	tCheckbutton.Defaults["-indicatorbackground"] = frameColor
-	tCheckbutton.Defaults["-indicatorsize"] = 12
+	tCheckbutton.Defaults["-indicatorsize"] = 24
+	tCheckbutton.Maps["-indicatorbackground"] = ttk.StateMap[any]{
+		{Spec: ttk.StateSpec{OnBits: ttk.StateSelected}, Value: indicator},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateAlternate}, Value: altIndicator},
+		{Spec: ttk.StateSpec{OnBits: ttk.StatePressed}, Value: frameColor},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateDisabled}, Value: frameColor},
+	}
 	tCheckbutton.Maps["-indicatorrelief"] = ttk.StateMap[any]{
+		{Spec: ttk.StateSpec{OnBits: ttk.StateAlternate}, Value: option.ReliefRaised},
 		{Spec: ttk.StateSpec{OnBits: ttk.StateSelected}, Value: option.ReliefSunken},
 		{Spec: ttk.StateSpec{OnBits: ttk.StatePressed}, Value: option.ReliefSunken},
 	}
@@ -560,8 +571,15 @@ func init() {
 	tRadiobutton := theme.GetStyle("TRadiobutton")
 	tRadiobutton.Defaults["-indicatorrelief"] = option.ReliefRaised
 	tRadiobutton.Defaults["-indicatorbackground"] = frameColor
-	tRadiobutton.Defaults["-indicatorsize"] = 12
+	tRadiobutton.Defaults["-indicatorsize"] = 24
+	tRadiobutton.Maps["-indicatorbackground"] = ttk.StateMap[any]{
+		{Spec: ttk.StateSpec{OnBits: ttk.StateSelected}, Value: indicator},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateAlternate}, Value: altIndicator},
+		{Spec: ttk.StateSpec{OnBits: ttk.StatePressed}, Value: frameColor},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateDisabled}, Value: frameColor},
+	}
 	tRadiobutton.Maps["-indicatorrelief"] = ttk.StateMap[any]{
+		{Spec: ttk.StateSpec{OnBits: ttk.StateAlternate}, Value: option.ReliefRaised},
 		{Spec: ttk.StateSpec{OnBits: ttk.StateSelected}, Value: option.ReliefSunken},
 		{Spec: ttk.StateSpec{OnBits: ttk.StatePressed}, Value: option.ReliefSunken},
 	}

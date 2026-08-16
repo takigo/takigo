@@ -10,7 +10,8 @@ import (
 	"github.com/msorc/takigo/window"
 )
 
-const ttkIndicatorSize = 13
+// ttkIndicatorSize matches Tcl's rendered indicator size (16px SVG × ~1.5x system DPI scaling).
+const ttkIndicatorSize = 24
 
 // Checkbutton is a TTK themed toggle button with a checkbox indicator.
 type Checkbutton struct {
@@ -53,6 +54,12 @@ func CheckbuttonVar(v *widget.Variable[bool]) CheckbuttonOption {
 	return func(c *Checkbutton) { c.Variable = v }
 }
 
+// CheckbuttonAlternate sets the initial state to include StateAlternate.
+// Matches Tk's behavior when the linked variable is unset.
+func CheckbuttonAlternate() CheckbuttonOption {
+	return func(c *Checkbutton) { c.State |= StateAlternate }
+}
+
 // NewCheckbutton creates a TTK themed checkbutton.
 func NewCheckbutton(parent widget.Caregiver, name string, opts ...CheckbuttonOption) *Checkbutton {
 	app := parent.AppContext()
@@ -76,6 +83,7 @@ func NewCheckbutton(parent widget.Caregiver, name string, opts ...CheckbuttonOpt
 		c.selected = c.Variable.Get()
 		if c.selected {
 			c.State |= StateSelected
+			c.State &^= StateAlternate
 		}
 		c.unsub = c.Variable.OnChange(func(_, _ bool) {
 			c.selected = c.Variable.Get()
@@ -84,6 +92,7 @@ func NewCheckbutton(parent widget.Caregiver, name string, opts ...CheckbuttonOpt
 			} else {
 				c.State &^= StateSelected
 			}
+			c.State &^= StateAlternate
 			c.Display()
 		})
 	}
@@ -170,10 +179,10 @@ func (c *Checkbutton) Display() {
 
 	// Indicator fill and color.
 	indFill := uint64(0xffffff)
-	indColor := fgColor
+	indColor := uint64(0xffffff) // default to white (matches Tcl default theme)
 	if c.Context != nil && c.Context.Style != nil {
 		indFill = LookupColor(c.Context.Style, "-indicatorbackground", c.State, indFill)
-		indColor = LookupColor(c.Context.Style, "-indicatorcolor", c.State, fgColor)
+		indColor = LookupColor(c.Context.Style, "-indicatorforeground", c.State, indColor)
 	}
 	if c.State&StateDisabled != 0 {
 		indFill = bgColor
@@ -216,7 +225,7 @@ func (c *Checkbutton) Display() {
 		d.DrawLine(win.Drawable(), gc, indX, indY+indSize-1, indX+indSize-1, indY+indSize-1)
 		d.DrawLine(win.Drawable(), gc, indX+indSize-1, indY, indX+indSize-1, indY+indSize-1)
 
-		// X mark when selected.
+		// X mark when selected, horizontal line when alternate.
 		if c.selected {
 			d.SetForeground(gc, fgColor)
 			// Cross from (5,5) to (11,11) and (11,5) to (5,11) in 16px space.
@@ -232,29 +241,57 @@ func (c *Checkbutton) Display() {
 			d.DrawLine(win.Drawable(), gc, x1, y0, x0, y1)
 			d.DrawLine(win.Drawable(), gc, x1-1, y0, x0-1, y1)
 			d.DrawLine(win.Drawable(), gc, x1, y0+1, x0, y1+1)
+		} else if c.State&StateAlternate != 0 {
+			lineY := indY + indSize/2
+			d.SetForeground(gc, fgColor)
+			d.DrawLine(win.Drawable(), gc, indX+3, lineY, indX+indSize-4, lineY)
+			d.DrawLine(win.Drawable(), gc, indX+3, lineY+1, indX+indSize-4, lineY+1)
 		}
 	} else {
-		// Default style: 3D sunken border, checkmark.
-		border := draw.NewBorderFromPixel(bgColor)
-		d.SetForeground(gc, indFill)
-		d.FillRectangle(win.Drawable(), gc, indX+2, indY+2,
-			uint(indSize-4), uint(indSize-4))
-
-		// Sunken border around checkbox (flat when disabled).
+		// Default style: solid filled rect with optional center line
+		// indicator, matching Tcl's default theme SVG indicator.
+		// The Tcl SVG uses a solid rectangle (with `rx='4'`) for
+		// selected/alternate states.
 		if c.State&StateDisabled == 0 {
-			draw.Draw3DRectangle(d, win.Drawable(), gc, border,
-				indX, indY, indSize, indSize, 2, option.ReliefSunken)
+			// Solid filled rect with indicatorbackground.
+			d.SetForeground(gc, indFill)
+			d.FillRectangle(win.Drawable(), gc, indX, indY,
+				uint(indSize), uint(indSize))
+			// 1px border using -bordercolor for the "sunken" 3D look
+			// matching Tcl's SVG rendering. Disabled state is flat.
+			if c.State&StateAlternate != 0 {
+				borderColor := LookupColor(c.Context.Style, "-bordercolor", c.State, 0x414141)
+				d.SetForeground(gc, borderColor)
+				d.DrawRectangle(win.Drawable(), gc, indX, indY,
+					uint(indSize-1), uint(indSize-1))
+			}
+		} else {
+			// Disabled: simple flat outline.
+			borderColor := LookupColor(c.Context.Style, "-bordercolor", c.State, 0x414141)
+			d.SetForeground(gc, indFill)
+			d.FillRectangle(win.Drawable(), gc, indX, indY,
+				uint(indSize), uint(indSize))
+			d.SetForeground(gc, borderColor)
+			d.DrawRectangle(win.Drawable(), gc, indX, indY,
+				uint(indSize-1), uint(indSize-1))
 		}
 
-		// Checkmark when selected.
+		// Checkmark when selected, horizontal line when alternate.
 		if c.selected {
 			d.SetForeground(gc, indColor)
-			cx := indX + 3
+			cx := indX + indSize*3/8
 			cy := indY + indSize/2
-			d.DrawLine(win.Drawable(), gc, cx, cy, cx+2, cy+3)
-			d.DrawLine(win.Drawable(), gc, cx+1, cy, cx+3, cy+3)
-			d.DrawLine(win.Drawable(), gc, cx+2, cy+3, cx+7, cy-2)
-			d.DrawLine(win.Drawable(), gc, cx+3, cy+3, cx+8, cy-2)
+			d.DrawLine(win.Drawable(), gc, cx, cy, cx+indSize/8, cy+indSize/4)
+			d.DrawLine(win.Drawable(), gc, cx+1, cy, cx+indSize/8+1, cy+indSize/4)
+			d.DrawLine(win.Drawable(), gc, cx+indSize/8, cy+indSize/4, cx+indSize*5/8, cy-indSize/4)
+			d.DrawLine(win.Drawable(), gc, cx+indSize/8+1, cy+indSize/4, cx+indSize*5/8+1, cy-indSize/4)
+		} else if c.State&StateAlternate != 0 {
+			lineY := indY + indSize/2
+			d.SetForeground(gc, indColor)
+			d.DrawLine(win.Drawable(), gc, indX+indSize*3/16, lineY,
+				indX+indSize*13/16, lineY)
+			d.DrawLine(win.Drawable(), gc, indX+indSize*3/16, lineY+1,
+				indX+indSize*13/16, lineY+1)
 		}
 	}
 
@@ -295,6 +332,7 @@ func (c *Checkbutton) Toggle() {
 	} else {
 		c.State &^= StateSelected
 	}
+	c.State &^= StateAlternate
 	if c.Variable != nil {
 		c.Variable.Set(c.selected)
 	}

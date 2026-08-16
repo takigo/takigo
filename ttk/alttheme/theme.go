@@ -10,14 +10,15 @@ import (
 
 // Alt theme colors (from Tk's altTheme.tcl).
 const (
-	frameColor   uint64 = 0xd9d9d9
-	windowColor  uint64 = 0xffffff
-	darkerColor  uint64 = 0xc3c3c3
-	borderColor  uint64 = 0x414141
-	activeBg     uint64 = 0xececec
-	disabledFg   uint64 = 0xa3a3a3
-	selectBg     uint64 = 0x4a6984
-	selectFg     uint64 = 0xffffff
+	frameColor     uint64 = 0xd9d9d9
+	windowColor    uint64 = 0xffffff
+	darkerColor    uint64 = 0xc3c3c3
+	borderColor    uint64 = 0x414141
+	activeBg       uint64 = 0xececec
+	disabledFg     uint64 = 0xa3a3a3
+	selectBg       uint64 = 0x4a6984
+	selectFg       uint64 = 0xffffff
+	altIndicator   uint64 = 0xaaaaaa
 )
 
 func init() {
@@ -83,6 +84,28 @@ func init() {
 	tmenubutton.Defaults["-padding"] = ttk.Padding{Left: 8, Top: 4, Right: 8, Bottom: 4}
 	tmenubutton.Defaults["-relief"] = option.ReliefRaised
 	tmenubutton.Defaults["-borderwidth"] = 2
+
+	// TCheckbutton style (overrides default theme).
+	// In alt theme, indicators are white by default, with state maps
+	// changing alternate/disabled/pressed to grays.
+	tcheckbutton := theme.GetStyle("TCheckbutton")
+	tcheckbutton.Defaults["-indicatorbackground"] = windowColor
+	tcheckbutton.Defaults["-indicatorforeground"] = windowColor
+	tcheckbutton.Maps["-indicatorbackground"] = ttk.StateMap[any]{
+		{Spec: ttk.StateSpec{OnBits: ttk.StatePressed}, Value: frameColor},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateAlternate}, Value: altIndicator},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateDisabled}, Value: frameColor},
+	}
+
+	// TRadiobutton style (overrides default theme).
+	tradiobutton := theme.GetStyle("TRadiobutton")
+	tradiobutton.Defaults["-indicatorbackground"] = windowColor
+	tradiobutton.Defaults["-indicatorforeground"] = windowColor
+	tradiobutton.Maps["-indicatorbackground"] = ttk.StateMap[any]{
+		{Spec: ttk.StateSpec{OnBits: ttk.StatePressed}, Value: frameColor},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateAlternate}, Value: altIndicator},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateDisabled}, Value: frameColor},
+	}
 
 	// TSeparator styles.
 	tsepH := theme.GetStyle("TSeparator.Horizontal")

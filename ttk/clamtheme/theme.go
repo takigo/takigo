@@ -12,13 +12,15 @@ import (
 
 // Clam theme colors (from clamTheme.tcl).
 const (
-	frameColor   uint64 = 0xdcdad5
-	darkColor    uint64 = 0xcfcdc8
-	darkerColor  uint64 = 0xbab5ab
-	darkestColor uint64 = 0x9e9a91
-	lighterColor uint64 = 0xeeebe7
-	lightColor   uint64 = 0xffffff
-	disabledFg   uint64 = 0x999999
+	frameColor             uint64 = 0xdcdad5
+	darkColor              uint64 = 0xcfcdc8
+	darkerColor            uint64 = 0xbab5ab
+	darkestColor           uint64 = 0x9e9a91
+	lighterColor           uint64 = 0xeeebe7
+	lightColor             uint64 = 0xffffff
+	disabledFg             uint64 = 0x999999
+	altIndicator           uint64 = 0x5895bc
+	disabledAltIndicator  uint64 = 0xa0a0a0
 )
 
 func init() {
@@ -155,23 +157,38 @@ func init() {
 	vProgress.Defaults["-barcolor"] = uint64(0x4a6984)
 
 	// TCheckbutton style — clam-style flat indicators.
+	// Matches Tcl clam: white fill with light blue (#5895bc) alternate.
 	tcheckbutton := theme.GetStyle("TCheckbutton")
-	tcheckbutton.Defaults["-indicatorsize"] = 16
+	tcheckbutton.Defaults["-indicatorsize"] = 24
 	tcheckbutton.Defaults["-upperbordercolor"] = darkestColor
 	tcheckbutton.Defaults["-lowerbordercolor"] = darkColor
 	tcheckbutton.Defaults["-indicatorbackground"] = lightColor
+	tcheckbutton.Defaults["-indicatorforeground"] = uint64(0x000000)
 	tcheckbutton.Maps["-indicatorbackground"] = ttk.StateMap[any]{
+		{Spec: ttk.StateSpec{OnBits: ttk.StatePressed}, Value: frameColor},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateAlternate | ttk.StateDisabled}, Value: disabledAltIndicator},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateAlternate}, Value: altIndicator},
 		{Spec: ttk.StateSpec{OnBits: ttk.StateDisabled}, Value: frameColor},
+	}
+	tcheckbutton.Maps["-indicatorforeground"] = ttk.StateMap[any]{
+		{Spec: ttk.StateSpec{OnBits: ttk.StateDisabled}, Value: disabledFg},
 	}
 
 	// TRadiobutton style — clam-style flat indicators.
 	tradiobutton := theme.GetStyle("TRadiobutton")
-	tradiobutton.Defaults["-indicatorsize"] = 16
+	tradiobutton.Defaults["-indicatorsize"] = 24
 	tradiobutton.Defaults["-upperbordercolor"] = darkestColor
 	tradiobutton.Defaults["-lowerbordercolor"] = darkColor
 	tradiobutton.Defaults["-indicatorbackground"] = lightColor
+	tradiobutton.Defaults["-indicatorforeground"] = uint64(0x000000)
 	tradiobutton.Maps["-indicatorbackground"] = ttk.StateMap[any]{
+		{Spec: ttk.StateSpec{OnBits: ttk.StatePressed}, Value: frameColor},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateAlternate | ttk.StateDisabled}, Value: disabledAltIndicator},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateAlternate}, Value: altIndicator},
 		{Spec: ttk.StateSpec{OnBits: ttk.StateDisabled}, Value: frameColor},
+	}
+	tradiobutton.Maps["-indicatorforeground"] = ttk.StateMap[any]{
+		{Spec: ttk.StateSpec{OnBits: ttk.StateDisabled}, Value: disabledFg},
 	}
 
 	ttk.RegisterTheme(theme)

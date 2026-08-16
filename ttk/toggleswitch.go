@@ -8,11 +8,11 @@ import (
 	"github.com/msorc/takigo/window"
 )
 
-// toggleswitchW is the width of the trough in pixels.
-const toggleswitchW = 36
+// toggleswitchW is the width of the trough in pixels (matches Tcl Toggleswitch1 rendered size ~57px).
+const toggleswitchW = 57
 
-// toggleswitchH is the height of the trough in pixels.
-const toggleswitchH = 18
+// toggleswitchH is the height of the trough in pixels (matches Tcl Toggleswitch1 rendered size ~29px).
+const toggleswitchH = 29
 
 // Toggleswitch is a TTK sliding on/off toggle switch.
 type Toggleswitch struct {
@@ -134,15 +134,15 @@ func (ts *Toggleswitch) Display() {
 	troughH := toggleswitchH
 	radius := troughH / 2
 
-	// Trough color: blue when on, gray when off.
+	// Trough color: dark navy when on, gray when off.
 	var troughColor uint64
 	if ts.selected {
-		troughColor = 0x4a90d9 // blue
+		troughColor = 0x4a6984
 		if ts.State&StateDisabled != 0 {
-			troughColor = 0x90b8d9
+			troughColor = 0x90a0b0
 		}
 	} else {
-		troughColor = 0xaaaaaa // gray
+		troughColor = 0xaaaaaa
 		if ts.State&StateDisabled != 0 {
 			troughColor = 0xcccccc
 		}

@@ -59,7 +59,7 @@ func main() {
 	pack.Pack(msg, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
 
 	enabled := widget.NewVariable(true)
-	happiness := widget.NewVariable("great")
+	happiness := widget.NewVariable("")
 	cheese := widget.NewVariable(false)
 	tomato := widget.NewVariable(false)
 	basil := widget.NewVariable(false)
@@ -122,10 +122,12 @@ func main() {
 	c1 := ttk.NewCheckbutton(chkFrame, "c1",
 		ttk.CheckbuttonText("Cheese"),
 		ttk.CheckbuttonVar(cheese),
+		ttk.CheckbuttonAlternate(),
 	)
 	c2 := ttk.NewCheckbutton(chkFrame, "c2",
 		ttk.CheckbuttonText("Tomato"),
 		ttk.CheckbuttonVar(tomato),
+		ttk.CheckbuttonAlternate(),
 	)
 	pack.Pack(c1, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY("1.5p"))
 	pack.Pack(c2, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY("1.5p"))
@@ -141,10 +143,12 @@ func main() {
 	c3 := ttk.NewCheckbutton(chkFrame, "c3",
 		ttk.CheckbuttonText("Basil"),
 		ttk.CheckbuttonVar(basil),
+		ttk.CheckbuttonAlternate(),
 	)
 	c4 := ttk.NewCheckbutton(chkFrame, "c4",
 		ttk.CheckbuttonText("Oregano"),
 		ttk.CheckbuttonVar(oregano),
+		ttk.CheckbuttonAlternate(),
 	)
 	pack.Pack(c3, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY("1.5p"))
 	pack.Pack(c4, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY("1.5p"))
@@ -169,6 +173,7 @@ func main() {
 			ttk.RadiobuttonText(item.text),
 			ttk.RadiobuttonValue(item.value),
 			ttk.RadiobuttonVar(happiness),
+			ttk.RadiobuttonAlternate(),
 		)
 		pack.Pack(r, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
 			pack.PadX("3p"), pack.PadY("1.5p"))
