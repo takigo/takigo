@@ -95,6 +95,7 @@ func init() {
 		{Spec: ttk.StateSpec{OnBits: ttk.StatePressed}, Value: frameColor},
 		{Spec: ttk.StateSpec{OnBits: ttk.StateAlternate}, Value: altIndicator},
 		{Spec: ttk.StateSpec{OnBits: ttk.StateDisabled}, Value: frameColor},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateSelected}, Value: selectBg},
 	}
 
 	// TRadiobutton style (overrides default theme).
@@ -105,6 +106,7 @@ func init() {
 		{Spec: ttk.StateSpec{OnBits: ttk.StatePressed}, Value: frameColor},
 		{Spec: ttk.StateSpec{OnBits: ttk.StateAlternate}, Value: altIndicator},
 		{Spec: ttk.StateSpec{OnBits: ttk.StateDisabled}, Value: frameColor},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateSelected}, Value: selectBg},
 	}
 
 	// TSeparator styles.
