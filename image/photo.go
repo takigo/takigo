@@ -9,6 +9,7 @@ import (
 	_ "image/png" // register PNG decoder
 	"io"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -41,8 +42,23 @@ func NewPhoto(name string, rgba *goimage.RGBA) *Photo {
 }
 
 // NewPhotoFromFile opens a file and decodes it as an image.
-// Supports PNG and GIF via Go stdlib registered decoders.
+// Supported formats are selected by file extension:
+//
+//   - .png, .gif, .jpg/.jpeg  via Go stdlib registered decoders
+//   - .xbm                    via NewPhotoFromXBMFile (black fg, transparent bg)
+//   - .ppm, .pgm, .pbm        via NewPhotoFromPPMFile (Netpbm P1..P6)
+//   - .svg                    via NewPhotoFromSVGFile (requires rsvg-convert
+//                             or ImageMagick on PATH)
 func NewPhotoFromFile(name, path string) (*Photo, error) {
+	switch strings.ToLower(filepath.Ext(path)) {
+	case ".xbm":
+		return NewPhotoFromXBMFile(name, path, color.RGBA{0, 0, 0, 255}, color.RGBA{0, 0, 0, 0})
+	case ".ppm", ".pgm", ".pbm":
+		return NewPhotoFromPPMFile(name, path)
+	case ".svg":
+		return NewPhotoFromSVGFile(name, path)
+	}
+
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, fmt.Errorf("image: open %s: %w", path, err)
