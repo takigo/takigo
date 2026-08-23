@@ -17,6 +17,12 @@ import (
 	"github.com/msorc/takigo/widget/label"
 )
 
+const (
+	safetyAll     = "all"
+	safetyNone    = "none"
+	safetyPartial = "partial"
+)
+
 func main() {
 	app, err := takigo.NewApp(takigo.Title("Checkbutton Demonstration"),
 		takigo.Geometry("+300+300"),
@@ -43,86 +49,73 @@ func main() {
 	)
 	pack.Pack(msg, pack.SideOpt(pack.Top))
 
-	vars := make(demohelper.DemoVars[bool])
+	vars := make(demohelper.DemoVars[string])
 
 	btns := demohelper.AddVarsSeeDismiss(f, &vars)
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
-	// Variables for the three sub-checkbuttons.
-	wipers := widget.NewVariable(false)
-	brakes := widget.NewVariable(false)
-	sober := widget.NewVariable(false)
-	// Variable for the master "Safety Check" button.
-	safety := widget.NewVariable(false)
+	wipers := widget.NewVariable("0")
+	brakes := widget.NewVariable("0")
+	sober := widget.NewVariable("0")
+	safety := widget.NewVariable(safetyNone)
 
 	vars["wipers"] = wipers
 	vars["brakes"] = brakes
 	vars["sober"] = sober
 	vars["safety"] = safety
 
-	// Guard against recursive updates.
 	inCheck := false
 
-	// masterCb is set after creation; used to control the indeterminate dash display.
-	var masterCb *checkbutton.Checkbutton
-
-	// updateMaster sets the master checkbutton based on the sub-checkbutton states.
-	// All three checked → checked; none → unchecked; partial → indeterminate (dash).
 	updateMaster := func() {
 		if inCheck {
 			return
 		}
 		inCheck = true
-		w, b, s := wipers.Get(), brakes.Get(), sober.Get()
+		w := wipers.Get() == "1"
+		b := brakes.Get() == "1"
+		s := sober.Get() == "1"
 		count := 0
 		for _, v := range []bool{w, b, s} {
 			if v {
 				count++
 			}
 		}
-		if count == 3 {
-			safety.Set(true)
-			if masterCb != nil {
-				masterCb.SetIndeterminate(false)
-			}
-		} else if count == 0 {
-			safety.Set(false)
-			if masterCb != nil {
-				masterCb.SetIndeterminate(false)
-			}
-		} else {
-			// Partial: show indeterminate dash.
-			safety.Set(false)
-			if masterCb != nil {
-				masterCb.SetIndeterminate(true)
-			}
+		switch count {
+		case 3:
+			safety.Set(safetyAll)
+		case 0:
+			safety.Set(safetyNone)
+		default:
+			safety.Set(safetyPartial)
 		}
 		inCheck = false
 	}
 
-	// updateSubs sets all sub-checkbuttons to match the master.
 	updateSubs := func() {
 		if inCheck {
 			return
 		}
 		inCheck = true
-		val := safety.Get()
+		val := "0"
+		if safety.Get() == safetyAll {
+			val = "1"
+		}
 		wipers.Set(val)
 		brakes.Set(val)
 		sober.Set(val)
 		inCheck = false
 	}
 
-	// Master "Safety Check" checkbutton — packed without extra left padding.
 	cb0 := checkbutton.New(f, "safety",
 		checkbutton.Text("Safety Check"),
 		checkbutton.Var(safety),
+		checkbutton.OnValueOpt(safetyAll),
+		checkbutton.OffValueOpt(safetyNone),
+		checkbutton.TristateValueOpt(safetyPartial),
 		checkbutton.Command(updateSubs),
 	)
-	masterCb = cb0
 	pack.Pack(cb0, pack.SideOpt(pack.Top), pack.PadY("1.5p"), pack.Anchor(option.AnchorW))
 
-	// Sub-checkbuttons — indented with extra left padding like the Tk original.
 	cb1 := checkbutton.New(f, "wipers",
 		checkbutton.Text("Wipers OK"),
 		checkbutton.Var(wipers),

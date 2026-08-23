@@ -15,6 +15,7 @@ import (
 	"github.com/msorc/takigo/ttk"
 	_ "github.com/msorc/takigo/ttk/clamtheme"
 	_ "github.com/msorc/takigo/ttk/defaulttheme"
+	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
 	"github.com/msorc/takigo/widget/labelframe"
@@ -40,10 +41,17 @@ func main() {
 	)
 	pack.Pack(msg, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
 
-	btns := demohelper.AddSeeDismiss(f)
+	firstValue := widget.NewVariable[string]("")
+	secondValue := widget.NewVariable[string]("unchangable")
+	ozCity := widget.NewVariable[string]("Sydney")
+	vars := []demohelper.NamedVar{
+		{Name: "firstValue", Var: firstValue},
+		{Name: "secondValue", Var: secondValue},
+		{Name: "ozCity", Var: ozCity},
+	}
+	btns := demohelper.AddSeeDismissWithVars(f, vars)
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
-	// Inner frame (matches Tcl's ttk::frame $w.f).
 	body := ttk.NewFrame(f, "f")
 	pack.Pack(body, pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
@@ -52,35 +60,33 @@ func main() {
 		"Adelaide", "Brisbane", "Hobart", "Darwin", "Alice Springs",
 	}
 
-	// Editable combobox in labelframe (starts empty, no initial values).
 	editFrame := labelframe.New(body, "c1", labelframe.Text("Fully Editable"))
-	pack.Pack(editFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY("3p"), pack.PadX("7.5p"))
+	pack.Pack(editFrame, pack.SideOpt(pack.Top), pack.PadY("3p"), pack.PadX("7.5p"))
 
-	editCombo := ttk.NewCombobox(editFrame, "c")
-	pack.Pack(editCombo, pack.FillOpt(pack.FillX), pack.PadY("3p"), pack.PadX("7.5p"))
+	editCombo := ttk.NewCombobox(editFrame, "c",
+		ttk.ComboboxText("Enter text here"),
+	)
+	pack.Pack(editCombo, pack.PadY("3p"), pack.PadX("7.5p"))
 
-	// Disabled combobox in labelframe.
 	disFrame := labelframe.New(body, "c2", labelframe.Text("Disabled"))
-	pack.Pack(disFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY("3p"), pack.PadX("7.5p"))
+	pack.Pack(disFrame, pack.SideOpt(pack.Top), pack.PadY("3p"), pack.PadX("7.5p"))
 
 	disCombo := ttk.NewCombobox(disFrame, "c",
-		ttk.ComboboxText("unchangable"),
+		ttk.ComboboxText(secondValue.Get()),
 		ttk.ComboboxCbState(ttk.ComboDisabled),
 	)
-	pack.Pack(disCombo, pack.FillOpt(pack.FillX), pack.PadY("3p"), pack.PadX("7.5p"))
+	pack.Pack(disCombo, pack.PadY("3p"), pack.PadX("7.5p"))
 
-	// Readonly combobox in labelframe.
 	roFrame := labelframe.New(body, "c3", labelframe.Text("Defined List Only"))
-	pack.Pack(roFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY("3p"), pack.PadX("7.5p"))
+	pack.Pack(roFrame, pack.SideOpt(pack.Top), pack.PadY("3p"), pack.PadX("7.5p"))
 
 	roCombo := ttk.NewCombobox(roFrame, "c",
 		ttk.ComboboxValues(cities),
-		ttk.ComboboxText("Sydney"),
+		ttk.ComboboxText(ozCity.Get()),
 		ttk.ComboboxCbState(ttk.ComboReadonly),
 	)
-	pack.Pack(roCombo, pack.FillOpt(pack.FillX), pack.PadY("3p"), pack.PadX("7.5p"))
+	pack.Pack(roCombo, pack.PadY("3p"), pack.PadX("7.5p"))
 
-	// Bind Return on editable combobox: add current value to dropdown list.
 	app.Dispatcher().Bind(editCombo.Win.PlatformID, event.KeyPressMask, func(ev *event.Event) {
 		if ev.KeySym == platform.XK_Return {
 			cur := editCombo.Get()

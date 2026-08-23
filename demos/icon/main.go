@@ -46,7 +46,10 @@ func main() {
 	btns := demohelper.AddSeeDismiss(f)
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
-	// Load XBM images.
+	// Load XBM images. Use transparent white for the bitmap background so
+	// the bitmap shows the checkbutton's SelectColor frame through (matching
+	// Tk, where -indicatoron 0 -selectcolor X renders a small color rectangle
+	// hugging the image, and the bitmap's transparent bg lets it show).
 	black := color.RGBA{R: 0, G: 0, B: 0, A: 255}
 	white := color.RGBA{R: 255, G: 255, B: 255, A: 0}
 

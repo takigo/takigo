@@ -22,14 +22,19 @@ type Checkbutton struct {
 	Anchor  option.Anchor
 	State   widget.State
 
-	// Variable linkage.
-	Variable *widget.Variable[bool]
-	unsub    func()
+	// Variable linkage. The variable holds a string equal to OnValue, OffValue,
+	// or TristateValue (when set). The checkbutton renders a checkmark when the
+	// variable equals OnValue, an empty box when OffValue, and a dash when
+	// TristateValue. Mirrors Tk's `-variable -onvalue -offvalue -tristatevalue`.
+	Variable      *widget.Variable[string]
+	OnValue       string // value meaning "on" (default "1")
+	OffValue      string // value meaning "off" (default "0")
+	TristateValue string // optional value that renders a dash (partial/tri-state)
+	unsub         func()
 
 	// Indicator.
-	IndicatorOn   bool            // whether to draw the indicator (default true)
-	Indeterminate bool            // shows a dash (partial/tri-state) instead of a checkmark
-	SelectColor   *color.ColorRef // indicator fill color when selected
+	IndicatorOn bool            // whether to draw the indicator (default true)
+	SelectColor *color.ColorRef // indicator fill color when selected
 
 	// Images (selectimage shown when checked; image shown otherwise).
 	Img       widget.WidgetImage
@@ -61,17 +66,39 @@ func Command(fn func()) CheckbuttonOption {
 	return func(c *Checkbutton) { c.Command = fn }
 }
 
-// Var links the checkbutton to a boolean variable.
-func Var(v *widget.Variable[bool]) CheckbuttonOption {
+// Var links the checkbutton to a string variable. The variable's value
+// drives the displayed state: matches OnValue for checked, OffValue for
+// unchecked, and TristateValue for the indeterminate dash (when configured).
+func Var(v *widget.Variable[string]) CheckbuttonOption {
 	return func(c *Checkbutton) {
 		if c.unsub != nil {
 			c.unsub()
 		}
 		c.Variable = v
-		c.unsub = v.OnChange(func(_, _ bool) {
+		c.unsub = v.OnChange(func(_, _ string) {
 			c.Display()
 		})
 	}
+}
+
+// OnValueOpt sets the value of the linked variable that renders the checkbutton
+// as selected (checkmark). Default "1" — matches Tk's -onvalue default.
+func OnValueOpt(v string) CheckbuttonOption {
+	return func(c *Checkbutton) { c.OnValue = v }
+}
+
+// OffValueOpt sets the value of the linked variable that renders the checkbutton
+// as unselected (empty box). Default "0" — matches Tk's -offvalue default.
+func OffValueOpt(v string) CheckbuttonOption {
+	return func(c *Checkbutton) { c.OffValue = v }
+}
+
+// TristateValueOpt sets the value of the linked variable that renders the
+// checkbutton in the indeterminate (partial/tri-state) dash state. Mirrors
+// Tk's -tristatevalue. When unset (the default), the checkbutton only ever
+// shows on or off.
+func TristateValueOpt(v string) CheckbuttonOption {
+	return func(c *Checkbutton) { c.TristateValue = v }
 }
 
 // Background sets the background color.
@@ -151,6 +178,8 @@ func New(parent widget.Caregiver, name string, opts ...CheckbuttonOption) *Check
 	c := &Checkbutton{
 		Anchor:      option.AnchorW,
 		IndicatorOn: true,
+		OnValue:     "1",
+		OffValue:    "0",
 	}
 	widget.InitBase(&c.Base, w, app)
 
@@ -179,11 +208,14 @@ func New(parent widget.Caregiver, name string, opts ...CheckbuttonOption) *Check
 		c.SelectColor = sc.Ref()
 	}
 
-	// Default variable.
-	c.Variable = widget.NewVariable(false)
-
 	for _, opt := range opts {
 		opt(c)
+	}
+
+	// Default variable if none was provided. Created after options so
+	// OffValue (set via OffValueOpt) is honoured for the initial value.
+	if c.Variable == nil {
+		c.Variable = widget.NewVariable(c.OffValue)
 	}
 
 	c.computeGeometry()
@@ -232,16 +264,22 @@ func (c *Checkbutton) computeGeometry() {
 
 // activeImage returns the image to display based on current state.
 func (c *Checkbutton) activeImage() widget.WidgetImage {
-	selected := c.Variable.Get()
-	if selected && c.SelectImg != nil {
+	if c.Selected() && c.SelectImg != nil {
 		return c.SelectImg
 	}
 	return c.Img
 }
 
-// Selected returns whether the checkbutton is currently selected.
+// Selected returns whether the checkbutton is currently selected
+// (variable equals OnValue).
 func (c *Checkbutton) Selected() bool {
-	return c.Variable.Get()
+	return c.Variable.Get() == c.OnValue
+}
+
+// tristate returns whether the checkbutton is in the indeterminate state
+// (variable equals TristateValue, when configured).
+func (c *Checkbutton) isTristate() bool {
+	return c.TristateValue != "" && c.Variable.Get() == c.TristateValue
 }
 
 // Display draws the checkbutton.
@@ -257,7 +295,8 @@ func (c *Checkbutton) Display() {
 	d := w.Display.Server
 	gc := w.GC
 
-	selected := c.Variable.Get()
+	selected := c.Selected()
+	tristate := c.isTristate()
 
 	// Choose colors based on state.
 	bgPixel := uint64(0)
@@ -279,13 +318,21 @@ func (c *Checkbutton) Display() {
 		fgCol = c.DisabledFg
 	}
 
-	// In toggle mode, use select color as background when selected.
+	// In toggle mode, the SelectColor fills an inner "indicator" rectangle
+	// around the image (matching Tk's -indicatoron 0 -selectcolor behaviour,
+	// where the selectcolor area sits inside the widget border instead of
+	// flooding the whole widget). Keep the widget background as the default
+	// bg so the rest of the widget keeps its normal appearance.
+	widgetBg := bgPixel
+	selectPixel := uint64(0)
+	hasSelectFill := false
 	if !c.IndicatorOn && selected && c.SelectColor != nil {
-		bgPixel = c.SelectColor.Pixel
+		selectPixel = c.SelectColor.Pixel
+		hasSelectFill = true
 	}
 
-	// Fill background.
-	d.SetForeground(gc, bgPixel)
+	// Fill background with the widget's own background colour.
+	d.SetForeground(gc, widgetBg)
 	d.FillRectangle(w.Drawable(), gc, 0, 0, uint(w.Width), uint(w.Height))
 
 	// Draw border (inset by highlight width so highlight ring is outermost).
@@ -299,12 +346,35 @@ func (c *Checkbutton) Display() {
 		bw := 2
 		border := c.Border
 		if border == nil {
-			border = draw.NewBorderFromPixel(bgPixel)
+			border = draw.NewBorderFromPixel(widgetBg)
 		}
 		draw.Draw3DRectangle(d, w.Drawable(), gc, border, hlw, hlw, w.Width-2*hlw, w.Height-2*hlw, bw, btnRelief)
 	} else if c.Border != nil && c.BorderWidth > 0 {
 		draw.Draw3DRectangle(d, w.Drawable(), gc, c.Border,
 			hlw, hlw, w.Width-2*hlw, w.Height-2*hlw, c.BorderWidth, c.Relief)
+	}
+
+	// Fill the SelectColor indicator area inside the bezel (matches Tk's
+	// -indicatoron 0 -selectcolor rendering: a small colour rectangle that
+	// hugs the image).
+	if hasSelectFill && c.Img != nil {
+		// Inset by 1 pixel so the SelectColor area sits just inside the
+		// widget edge, leaving room for a visible bezel frame around it.
+		innerInset := 1
+		if innerInset*2 < w.Width && innerInset*2 < w.Height {
+			d.SetForeground(gc, selectPixel)
+			d.FillRectangle(w.Drawable(), gc,
+				innerInset, innerInset,
+				uint(w.Width-2*innerInset), uint(w.Height-2*innerInset))
+		}
+		// Image transparent pixels show the widget's normal background
+		// (not the selectcolor), so the bitmap stays readable on top of
+		// the selectcolor frame.
+	} else if hasSelectFill {
+		// No image: selectcolor becomes the full background (pushbutton mode).
+		d.SetForeground(gc, selectPixel)
+		d.FillRectangle(w.Drawable(), gc, 0, 0, uint(w.Width), uint(w.Height))
+		bgPixel = selectPixel
 	}
 
 	inset := c.BorderWidth + c.HighlightWidth
@@ -331,7 +401,7 @@ func (c *Checkbutton) Display() {
 		}
 
 		// Fill indicator.
-		if (selected || c.Indeterminate) && c.SelectColor != nil {
+		if (selected || tristate) && c.SelectColor != nil {
 			d.SetForeground(gc, c.SelectColor.Pixel)
 		} else {
 			d.SetForeground(gc, uint64(0xffffff)) // white background
@@ -343,7 +413,7 @@ func (c *Checkbutton) Display() {
 		draw.Draw3DRectangle(d, w.Drawable(), gc, indBorder,
 			indX, indY, indicatorSize, indicatorSize, 2, option.ReliefSunken)
 
-		if c.Indeterminate && fgCol != nil {
+		if tristate && fgCol != nil {
 			// Draw a horizontal dash for the indeterminate/partial state.
 			d.SetForeground(gc, fgCol.Pixel)
 			midY := indY + indicatorSize/2
@@ -398,18 +468,18 @@ func (c *Checkbutton) Display() {
 	d.Flush()
 }
 
-// SetIndeterminate sets the indeterminate (partial tri-state) display flag and redraws.
-func (c *Checkbutton) SetIndeterminate(v bool) {
-	c.Indeterminate = v
-	c.Display()
-}
-
-// Toggle flips the checkbutton state.
+// Toggle flips the checkbutton state by alternating the linked variable
+// between OnValue and OffValue. Mirrors Tcl's click behaviour for a
+// checkbutton without a tri-state value.
 func (c *Checkbutton) Toggle() {
 	if c.State == widget.StateDisabled {
 		return
 	}
-	c.Variable.Set(!c.Variable.Get())
+	if c.Selected() {
+		c.Variable.Set(c.OffValue)
+	} else {
+		c.Variable.Set(c.OnValue)
+	}
 	c.Display()
 	if c.Command != nil {
 		c.Command()

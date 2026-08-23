@@ -191,7 +191,7 @@ func main() {
 	pack.Pack(resetBtn, pack.SideOpt(pack.Left), pack.PadX(4))
 
 	// Repeat checkbutton.
-	repeatVar := widget.NewVariable(false)
+	repeatVar := widget.NewVariable("0")
 	repeatChk := checkbutton.New(btnFrame, "cc",
 		checkbutton.Text("Repeat"),
 		checkbutton.Var(repeatVar),
@@ -231,7 +231,7 @@ func main() {
 		if step >= len(tour) {
 			running = false
 			updateButtons()
-			if repeatVar.Get() {
+			if repeatVar.Get() == "1" {
 				// Restart from same square.
 				step = 0
 				c.Delete("knight")

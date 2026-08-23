@@ -74,7 +74,7 @@ func main() {
 
 	// Option checkbuttons.
 	var optionCbs []*checkbutton.Checkbutton
-	enableVar := widget.NewVariable(false)
+	enableVar := widget.NewVariable("0")
 
 	enableCb := checkbutton.New(lfOpts, "cb",
 		checkbutton.Text("Use this option."),
@@ -85,7 +85,7 @@ func main() {
 	lfOpts.SetLabelWidget(enableCb)
 
 	for i, s := range []string{"Option1", "Option2", "Option3"} {
-		v := widget.NewVariable(false)
+		v := widget.NewVariable("0")
 		cb := checkbutton.New(lfOpts, fmt.Sprintf("b%d", i),
 			checkbutton.Text(s),
 			checkbutton.Var(v),
@@ -97,7 +97,7 @@ func main() {
 	// Enable/disable callback — toggle option checkbuttons.
 	enableCb.Command = func() {
 		for _, cb := range optionCbs {
-			if enableVar.Get() {
+			if enableVar.Get() == "1" {
 				cb.State = widget.StateNormal
 			} else {
 				cb.State = widget.StateDisabled
