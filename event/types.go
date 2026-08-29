@@ -28,7 +28,7 @@ const (
 type Mask uint64
 
 const (
-	KeyPressMask        Mask = 1 << iota
+	KeyPressMask Mask = 1 << iota
 	KeyReleaseMask
 	ButtonPressMask
 	ButtonReleaseMask

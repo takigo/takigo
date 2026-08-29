@@ -23,10 +23,10 @@ func TestRectPointDistanceOnEdge(t *testing.T) {
 
 func TestRectPointDistanceOutside(t *testing.T) {
 	tests := []struct {
-		name         string
-		px, py       float64
+		name           string
+		px, py         float64
 		x1, y1, x2, y2 float64
-		want         float64
+		want           float64
 	}{
 		{"right", 13, 5, 0, 0, 10, 10, 3},
 		{"left", -4, 5, 0, 0, 10, 10, 4},

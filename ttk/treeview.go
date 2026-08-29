@@ -62,9 +62,9 @@ type Treeview struct {
 	TtkWidget
 
 	// Columns.
-	columns        []*TreeColumn
-	showTree       bool // show tree column (#0)
-	showHeadings   bool // show heading row
+	columns         []*TreeColumn
+	showTree        bool // show tree column (#0)
+	showHeadings    bool // show heading row
 	treeColumnWidth int
 	treeHeadingText string
 
@@ -99,7 +99,7 @@ type Treeview struct {
 	hasFocus      bool
 
 	// Column resize drag.
-	resizeCol  int // column index being resized, -1 if none
+	resizeCol   int // column index being resized, -1 if none
 	resizeDragX int
 
 	// Sort indicator.
@@ -776,4 +776,3 @@ func (tv *Treeview) SortChildren(parentID string, less func(a, b *TreeItem) bool
 	})
 	tv.scheduleRedisplay()
 }
-

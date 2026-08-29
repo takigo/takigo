@@ -432,4 +432,3 @@ func (r *Radiobutton) Destroy() {
 	}
 	r.TtkWidget.Destroy()
 }
-

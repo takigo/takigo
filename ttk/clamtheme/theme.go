@@ -12,15 +12,15 @@ import (
 
 // Clam theme colors (from clamTheme.tcl).
 const (
-	frameColor             uint64 = 0xdcdad5
-	darkColor              uint64 = 0xcfcdc8
-	darkerColor            uint64 = 0xbab5ab
-	darkestColor           uint64 = 0x9e9a91
-	lighterColor           uint64 = 0xeeebe7
-	lightColor             uint64 = 0xffffff
-	disabledFg             uint64 = 0x999999
-	altIndicator           uint64 = 0x5895bc
-	disabledAltIndicator  uint64 = 0xa0a0a0
+	frameColor           uint64 = 0xdcdad5
+	darkColor            uint64 = 0xcfcdc8
+	darkerColor          uint64 = 0xbab5ab
+	darkestColor         uint64 = 0x9e9a91
+	lighterColor         uint64 = 0xeeebe7
+	lightColor           uint64 = 0xffffff
+	disabledFg           uint64 = 0x999999
+	altIndicator         uint64 = 0x5895bc
+	disabledAltIndicator uint64 = 0xa0a0a0
 )
 
 func init() {

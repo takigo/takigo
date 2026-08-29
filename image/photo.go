@@ -24,11 +24,11 @@ type Photo struct {
 	rgba *goimage.RGBA
 
 	// Pixmap cache.
-	server     platform.DisplayServer
-	pixmap     platform.PixmapID
-	pixmapW    int
-	pixmapH    int
-	pixmapBg   uint64 // bgPixel used when rendering the cached pixmap
+	server      platform.DisplayServer
+	pixmap      platform.PixmapID
+	pixmapW     int
+	pixmapH     int
+	pixmapBg    uint64 // bgPixel used when rendering the cached pixmap
 	pixmapDirty bool
 }
 
@@ -48,7 +48,7 @@ func NewPhoto(name string, rgba *goimage.RGBA) *Photo {
 //   - .xbm                    via NewPhotoFromXBMFile (black fg, transparent bg)
 //   - .ppm, .pgm, .pbm        via NewPhotoFromPPMFile (Netpbm P1..P6)
 //   - .svg                    via NewPhotoFromSVGFile (requires rsvg-convert
-//                             or ImageMagick on PATH)
+//     or ImageMagick on PATH)
 func NewPhotoFromFile(name, path string) (*Photo, error) {
 	switch strings.ToLower(filepath.Ext(path)) {
 	case ".xbm":

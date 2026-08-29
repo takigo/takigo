@@ -24,7 +24,7 @@ const windowClassName = "TakigoWindowClass"
 
 // WindowsDisplay implements platform.DisplayServer using Win32 API.
 type WindowsDisplay struct {
-	hInstance  w32.HINSTANCE
+	hInstance w32.HINSTANCE
 	rootHWND  w32.HWND
 	screenDC  w32.HDC // device context for the screen
 
@@ -37,10 +37,10 @@ type WindowsDisplay struct {
 	dpiX           int
 
 	// Atom emulation: bidirectional maps for string interning.
-	atomMu      sync.Mutex
-	atomNext    uint64
-	nameToAtom  map[string]platform.AtomID
-	atomToName  map[platform.AtomID]string
+	atomMu     sync.Mutex
+	atomNext   uint64
+	nameToAtom map[string]platform.AtomID
+	atomToName map[platform.AtomID]string
 
 	// Event channel for delivering events to the event loop.
 	eventCh chan *platform.RawEvent
@@ -101,18 +101,18 @@ func NewDisplayServer(displayName string) (*WindowsDisplay, error) {
 	}
 
 	d := &WindowsDisplay{
-		hInstance:  hInstance,
-		eventCh:    make(chan *platform.RawEvent, 256),
-		windowData: make(map[w32.HWND]*windowInfo),
-		nameToAtom: make(map[string]platform.AtomID),
-		atomToName: make(map[platform.AtomID]string),
-		atomNext:   100, // start after predefined atoms
-		gcs:        make(map[platform.GCID]*gcState),
-		gcNext:     1,
-		pixmaps:    make(map[platform.PixmapID]*pixmapInfo),
-		pixmapNext: 1,
-		clipOwner:  make(map[platform.AtomID]platform.WindowID),
-		clipData:   make(map[platform.AtomID]string),
+		hInstance:   hInstance,
+		eventCh:     make(chan *platform.RawEvent, 256),
+		windowData:  make(map[w32.HWND]*windowInfo),
+		nameToAtom:  make(map[string]platform.AtomID),
+		atomToName:  make(map[platform.AtomID]string),
+		atomNext:    100, // start after predefined atoms
+		gcs:         make(map[platform.GCID]*gcState),
+		gcNext:      1,
+		pixmaps:     make(map[platform.PixmapID]*pixmapInfo),
+		pixmapNext:  1,
+		clipOwner:   make(map[platform.AtomID]platform.WindowID),
+		clipData:    make(map[platform.AtomID]string),
 		cursorCache: make(map[uint]w32.HCURSOR),
 	}
 
@@ -186,21 +186,21 @@ func (d *WindowsDisplay) Close() {
 	}
 }
 
-func (d *WindowsDisplay) DefaultScreen() int                     { return 0 }
-func (d *WindowsDisplay) DefaultRootWindow() platform.WindowID   { return fromHWND(d.rootHWND) }
+func (d *WindowsDisplay) DefaultScreen() int                      { return 0 }
+func (d *WindowsDisplay) DefaultRootWindow() platform.WindowID    { return fromHWND(d.rootHWND) }
 func (d *WindowsDisplay) RootWindow(screen int) platform.WindowID { return fromHWND(d.rootHWND) }
-func (d *WindowsDisplay) DefaultDepth(screen int) int            { return d.screenDepth }
-func (d *WindowsDisplay) ScreenWidth(screen int) int             { return d.screenWidth }
-func (d *WindowsDisplay) ScreenHeight(screen int) int            { return d.screenHeight }
-func (d *WindowsDisplay) ScreenWidthMM(screen int) int           { return d.screenWidthMM }
-func (d *WindowsDisplay) ScreenHeightMM(screen int) int          { return d.screenHeightMM }
-func (d *WindowsDisplay) WhitePixel(screen int) uint64           { return 0x00FFFFFF }
-func (d *WindowsDisplay) BlackPixel(screen int) uint64           { return 0x00000000 }
-func (d *WindowsDisplay) ConnectionNumber() int                  { return -1 }
-func (d *WindowsDisplay) Sync(discard bool)                      {} // noop on Windows
-func (d *WindowsDisplay) Flush()                                 {} // noop on Windows
-func (d *WindowsDisplay) Pending() int                           { return len(d.eventCh) }
-func (d *WindowsDisplay) ResourceManagerString() string          { return "" }
+func (d *WindowsDisplay) DefaultDepth(screen int) int             { return d.screenDepth }
+func (d *WindowsDisplay) ScreenWidth(screen int) int              { return d.screenWidth }
+func (d *WindowsDisplay) ScreenHeight(screen int) int             { return d.screenHeight }
+func (d *WindowsDisplay) ScreenWidthMM(screen int) int            { return d.screenWidthMM }
+func (d *WindowsDisplay) ScreenHeightMM(screen int) int           { return d.screenHeightMM }
+func (d *WindowsDisplay) WhitePixel(screen int) uint64            { return 0x00FFFFFF }
+func (d *WindowsDisplay) BlackPixel(screen int) uint64            { return 0x00000000 }
+func (d *WindowsDisplay) ConnectionNumber() int                   { return -1 }
+func (d *WindowsDisplay) Sync(discard bool)                       {} // noop on Windows
+func (d *WindowsDisplay) Flush()                                  {} // noop on Windows
+func (d *WindowsDisplay) Pending() int                            { return len(d.eventCh) }
+func (d *WindowsDisplay) ResourceManagerString() string           { return "" }
 
 // PumpEvents implements event.EventPumper for main-thread message pumping.
 func (d *WindowsDisplay) PumpEvents() {

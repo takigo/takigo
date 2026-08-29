@@ -13,13 +13,13 @@ import (
 
 // Classic theme colors.
 const (
-	frameColor    uint64 = 0xd9d9d9
-	activeBg      uint64 = 0xececec
-	disabledFg    uint64 = 0xa3a3a3
-	selectBg      uint64 = 0xc3c3c3
-	troughBg      uint64 = 0xb3b3b3
-	indicator     uint64 = 0xb03060
-	altIndicator  uint64 = 0xb05e5e
+	frameColor   uint64 = 0xd9d9d9
+	activeBg     uint64 = 0xececec
+	disabledFg   uint64 = 0xa3a3a3
+	selectBg     uint64 = 0xc3c3c3
+	troughBg     uint64 = 0xb3b3b3
+	indicator    uint64 = 0xb03060
+	altIndicator uint64 = 0xb05e5e
 )
 
 // --- highlightElement ---
@@ -220,7 +220,7 @@ func (e *menuIndicatorElement) Draw(d platform.DisplayServer, drawable platform.
 type arrowDir int
 
 const (
-	arrowUp    arrowDir = iota
+	arrowUp arrowDir = iota
 	arrowDown
 	arrowLeft
 	arrowRight

@@ -85,8 +85,8 @@ func main() {
 	// Phase space parameters.
 	phaseCX := 160.0 // Center of phase canvas.
 	phaseCY := 100.0
-	phaseScaleX := 80.0  // Pixels per radian for angle.
-	phaseScaleY := 8.0   // Pixels per (rad/s) for angular velocity.
+	phaseScaleX := 80.0 // Pixels per radian for angle.
+	phaseScaleY := 8.0  // Pixels per (rad/s) for angular velocity.
 	const maxPhasePoints = 500
 
 	// Phase space trail: ring buffer of (x,y) canvas coordinates.

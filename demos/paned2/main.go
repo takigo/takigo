@@ -11,11 +11,11 @@ import (
 	"github.com/msorc/takigo/geometry/grid"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/ttk"
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
 	"github.com/msorc/takigo/widget/listbox"
 	"github.com/msorc/takigo/widget/panedwindow"
-	"github.com/msorc/takigo/ttk"
 	"github.com/msorc/takigo/widget/text"
 )
 

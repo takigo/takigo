@@ -3,27 +3,27 @@
 package windows
 
 import (
-	w32 "github.com/msorc/takigo/internal/win32"
 	"github.com/msorc/takigo/cursor"
+	w32 "github.com/msorc/takigo/internal/win32"
 	"github.com/msorc/takigo/platform"
 )
 
 // shapeToWinCursor maps abstract cursor shapes to Windows IDC_* constants.
 var shapeToWinCursor = map[cursor.Shape]uint16{
-	cursor.Arrow:          w32.IDC_ARROW,
-	cursor.Crosshair:      w32.IDC_CROSS,
-	cursor.Fleur:          w32.IDC_SIZEALL,
-	cursor.Hand1:          w32.IDC_HAND,
-	cursor.Hand2:          w32.IDC_HAND,
-	cursor.LeftPtr:        w32.IDC_ARROW,
-	cursor.Plus:           w32.IDC_CROSS,
-	cursor.QuestionArrow:  w32.IDC_HELP,
-	cursor.SBHDoubleArrow: w32.IDC_SIZEWE,
-	cursor.SBVDoubleArrow: w32.IDC_SIZENS,
-	cursor.SizingAngle:    w32.IDC_SIZENWSE,
-	cursor.TopLeftArrow:   w32.IDC_ARROW,
-	cursor.Watch:          w32.IDC_WAIT,
-	cursor.XTerm:          w32.IDC_IBEAM,
+	cursor.Arrow:             w32.IDC_ARROW,
+	cursor.Crosshair:         w32.IDC_CROSS,
+	cursor.Fleur:             w32.IDC_SIZEALL,
+	cursor.Hand1:             w32.IDC_HAND,
+	cursor.Hand2:             w32.IDC_HAND,
+	cursor.LeftPtr:           w32.IDC_ARROW,
+	cursor.Plus:              w32.IDC_CROSS,
+	cursor.QuestionArrow:     w32.IDC_HELP,
+	cursor.SBHDoubleArrow:    w32.IDC_SIZEWE,
+	cursor.SBVDoubleArrow:    w32.IDC_SIZENS,
+	cursor.SizingAngle:       w32.IDC_SIZENWSE,
+	cursor.TopLeftArrow:      w32.IDC_ARROW,
+	cursor.Watch:             w32.IDC_WAIT,
+	cursor.XTerm:             w32.IDC_IBEAM,
 	cursor.BottomRightCorner: w32.IDC_SIZENWSE,
 }
 

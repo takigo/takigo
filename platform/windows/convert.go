@@ -9,10 +9,10 @@ import (
 )
 
 // Type conversion helpers — platform types are uintptr, win32 types are uintptr-based.
-func toHWND(w platform.WindowID) w32.HWND       { return w32.HWND(uintptr(w)) }
+func toHWND(w platform.WindowID) w32.HWND           { return w32.HWND(uintptr(w)) }
 func toDrawableHWND(d platform.DrawableID) w32.HWND { return w32.HWND(uintptr(d)) }
-func fromHWND(h w32.HWND) platform.WindowID     { return platform.WindowID(uintptr(h)) }
-func fromPixmap(p platform.PixmapID) uintptr     { return uintptr(p) }
+func fromHWND(h w32.HWND) platform.WindowID         { return platform.WindowID(uintptr(h)) }
+func fromPixmap(p platform.PixmapID) uintptr        { return uintptr(p) }
 
 // pixelToCOLORREF converts a platform pixel value (0x00RRGGBB) to Win32 COLORREF (0x00BBGGRR).
 func pixelToCOLORREF(pixel uint64) w32.COLORREF {

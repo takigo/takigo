@@ -9,11 +9,11 @@ import (
 
 func TestAnchorPosition(t *testing.T) {
 	tests := []struct {
-		name                         string
-		anchor                       option.Anchor
+		name                           string
+		anchor                         option.Anchor
 		frameX, frameY, frameW, frameH int
-		childW, childH               int
-		wantX, wantY                 int
+		childW, childH                 int
+		wantX, wantY                   int
 	}{
 		{"center", option.AnchorCenter, 10, 10, 100, 100, 20, 20, 50, 50},
 		{"nw", option.AnchorNW, 10, 10, 100, 100, 20, 20, 10, 10},
@@ -135,11 +135,11 @@ func TestComputeSize(t *testing.T) {
 
 func TestXExpansion(t *testing.T) {
 	tests := []struct {
-		name     string
-		entries  []*packEntry
+		name      string
+		entries   []*packEntry
 		targetIdx int
-		cavityW  int
-		want     int
+		cavityW   int
+		want      int
 	}{
 		{
 			name: "single_expander",
@@ -203,11 +203,11 @@ func TestXExpansion(t *testing.T) {
 
 func TestYExpansion(t *testing.T) {
 	tests := []struct {
-		name     string
-		entries  []*packEntry
+		name      string
+		entries   []*packEntry
 		targetIdx int
-		cavityH  int
-		want     int
+		cavityH   int
+		want      int
 	}{
 		{
 			name: "single_expander",

@@ -13,7 +13,7 @@ import (
 type Modifier uint32
 
 const (
-	ModShift   Modifier = 1 << iota
+	ModShift Modifier = 1 << iota
 	ModControl
 	ModAlt
 	ModMeta

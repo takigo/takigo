@@ -56,8 +56,8 @@ func main() {
 
 	c := canvas.New(f, "c",
 		canvas.Background("white"),
-		canvas.Width(562),  // 14.8c
-		canvas.Height(95),  // 2.5c
+		canvas.Width(562), // 14.8c
+		canvas.Height(95), // 2.5c
 	)
 	pack.Pack(c, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
 

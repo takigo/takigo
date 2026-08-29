@@ -10,7 +10,7 @@ import (
 type ItemState int
 
 const (
-	ItemStateNormal   ItemState = iota
+	ItemStateNormal ItemState = iota
 	ItemStateDisabled
 	ItemStateHidden
 )
@@ -58,11 +58,11 @@ type Item interface {
 
 // ItemBase holds fields common to all item types.
 type ItemBase struct {
-	ID              int64
-	Tags            []string
-	X1, Y1, X2, Y2 int       // integer bounding box in canvas coords
-	State           ItemState
-	canvas          *Canvas   // back-pointer for color/font/visual resolution
+	ID             int64
+	Tags           []string
+	X1, Y1, X2, Y2 int // integer bounding box in canvas coords
+	State          ItemState
+	canvas         *Canvas // back-pointer for color/font/visual resolution
 }
 
 // HasTag returns true if the item has the given tag.

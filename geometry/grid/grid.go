@@ -696,7 +696,7 @@ func resolveConstraints(entries []*gridEntry, conf map[int]*SlotConfig, gridCoun
 					w = layout[sli].weight
 				}
 				accWeight += w
-				grow := (have - need) * accWeight / totalWeight - prevGrow
+				grow := (have-need)*accWeight/totalWeight - prevGrow
 				prevGrow += grow
 
 				if w > 0 && (prevMinOffset+layout[sli].minSize+grow) > layout[sli].maxOffset {
@@ -741,7 +741,7 @@ func resolveConstraints(entries []*gridEntry, conf map[int]*SlotConfig, gridCoun
 				w = layout[sli].weight
 			}
 			accWeight += w
-			grow := (have - need) * accWeight / totalWeight - prevGrow
+			grow := (have-need)*accWeight/totalWeight - prevGrow
 			prevGrow += grow
 			layout[sli].minSize += grow
 			if layout[sli-1].minOffset+layout[sli].minSize > layout[sli].minOffset {

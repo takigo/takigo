@@ -5,8 +5,8 @@ import "github.com/msorc/takigo/platform"
 // Event is the unified event struct delivered to handlers.
 // Only fields relevant to the event type are populated.
 type Event struct {
-	Type    Type
-	Window  platform.WindowID // target window
+	Type   Type
+	Window platform.WindowID // target window
 
 	// Key events
 	KeySym  platform.KeySym

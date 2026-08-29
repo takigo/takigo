@@ -121,10 +121,10 @@ func main() {
 	// Tk uses centimeter units: each cell is 2c x 2c with 3c spacing.
 	// 1c ~ 37.8px, so 2c ~ 75.6px, 3c ~ 113.4px.
 	cellPx := 75.6     // 2c in pixels
-	spacingPx := 113.4  // 3c in pixels
-	startX := -378.0    // -10c in pixels
-	startY := -378.0    // -10c in pixels
-	bg := "white"       // canvas background color, used as default fill
+	spacingPx := 113.4 // 3c in pixels
+	startX := -378.0   // -10c in pixels
+	startY := -378.0   // -10c in pixels
+	bg := "white"      // canvas background color, used as default fill
 
 	// Track old fill for enter/leave highlighting.
 	var oldFill string

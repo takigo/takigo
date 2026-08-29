@@ -39,7 +39,7 @@ type Loop struct {
 	idleCh  chan func()             // idle callbacks (cap 256)
 	timerCh chan func()             // timer-fired callbacks (cap 64)
 	mainCh  chan func()             // cross-goroutine calls via RunOnMain (cap 64)
-	done    chan struct{}            // signal to stop the loop
+	done    chan struct{}           // signal to stop the loop
 
 	// Pending idle callbacks (coalesced).
 	idleQueue []func()

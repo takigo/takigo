@@ -32,10 +32,10 @@ type entry struct {
 
 // Pool manages a cache of shared GCs per display.
 type Pool struct {
-	mu      sync.Mutex
-	server  platform.DisplayServer
-	screen  int
-	depth   int
+	mu     sync.Mutex
+	server platform.DisplayServer
+	screen int
+	depth  int
 
 	byValue map[key]*entry
 	byGC    map[platform.GCID]*entry

@@ -11,13 +11,13 @@ import (
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/ttk"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
 	"github.com/msorc/takigo/widget/labelframe"
 	"github.com/msorc/takigo/widget/listbox"
 	"github.com/msorc/takigo/widget/radiobutton"
-	"github.com/msorc/takigo/ttk"
 )
 
 // justifyValues maps justification radio value -> option.Justify.

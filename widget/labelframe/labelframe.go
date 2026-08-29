@@ -22,9 +22,9 @@ type Labelframe struct {
 	// Disabled state — when true, title text is drawn in gray.
 	Disabled bool
 
-	textWidth  int
-	textHeight int
-	labelWidth int // effective label width (text or widget)
+	textWidth   int
+	textHeight  int
+	labelWidth  int // effective label width (text or widget)
 	labelHeight int // effective label height (text or widget)
 }
 

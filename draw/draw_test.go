@@ -6,9 +6,9 @@ import (
 
 func TestToPixel(t *testing.T) {
 	tests := []struct {
-		name       string
-		r, g, b    uint16
-		wantPixel  uint64
+		name      string
+		r, g, b   uint16
+		wantPixel uint64
 	}{
 		{"black", 0, 0, 0, 0x000000},
 		{"white", 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFFFF},

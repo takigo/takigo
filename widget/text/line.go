@@ -173,8 +173,8 @@ func (d *Document) Delete(start, end Index) {
 	firstLine.Text = append(firstLine.Text[:start.Char], lastLine.Text[end.Char:]...)
 
 	// Remove lines from start.Line+1 through end.Line (inclusive, 0-based).
-	removeStart := start.Line     // 0-based index of first line to remove
-	removeEnd := end.Line         // 0-based index past last line to remove
+	removeStart := start.Line // 0-based index of first line to remove
+	removeEnd := end.Line     // 0-based index past last line to remove
 	copy(d.Lines[removeStart:], d.Lines[removeEnd:])
 	d.Lines = d.Lines[:len(d.Lines)-(removeEnd-removeStart)]
 	d.notifyListeners()

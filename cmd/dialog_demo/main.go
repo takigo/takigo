@@ -101,8 +101,7 @@ func main() {
 	fontBtn := button.New(dlgFrame, "fontbtn",
 		button.Text("Font..."),
 		button.Command(func() {
-			fontDesc, ok := dialog.ChooseFont(app,
-			)
+			fontDesc, ok := dialog.ChooseFont(app)
 			if ok {
 				setStatus(fmt.Sprintf("Chosen font: %s", fontDesc))
 			} else {

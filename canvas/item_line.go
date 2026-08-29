@@ -219,7 +219,7 @@ func (l *LineItem) drawArrow(d platform.DisplayServer, drawable platform.Drawabl
 	px := -uy
 	py := ux
 
-	b := l.arrowShapeB                       // wing distance (further from tip)
+	b := l.arrowShapeB                      // wing distance (further from tip)
 	c := l.arrowShapeC + float64(l.width)/2 // halfwidth + half line width (matches Tk)
 	backup := l.arrowBackup()               // shaft-edge junction distance
 	hw := float64(l.width) / 2              // half line width

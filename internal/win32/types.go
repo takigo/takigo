@@ -80,7 +80,7 @@ type WNDCLASSEXW struct {
 	HbrBackground HBRUSH
 	LpszMenuName  *uint16
 	LpszClassName *uint16
-	HIconSm      HICON
+	HIconSm       HICON
 }
 
 // PAINTSTRUCT structure.
@@ -195,76 +195,76 @@ const (
 
 // Extended window styles.
 const (
-	WS_EX_TOPMOST      = 0x00000008
-	WS_EX_TOOLWINDOW   = 0x00000080
-	WS_EX_WINDOWEDGE   = 0x00000100
-	WS_EX_CLIENTEDGE   = 0x00000200
-	WS_EX_APPWINDOW    = 0x00040000
-	WS_EX_LAYERED      = 0x00080000
-	WS_EX_NOACTIVATE   = 0x08000000
+	WS_EX_TOPMOST          = 0x00000008
+	WS_EX_TOOLWINDOW       = 0x00000080
+	WS_EX_WINDOWEDGE       = 0x00000100
+	WS_EX_CLIENTEDGE       = 0x00000200
+	WS_EX_APPWINDOW        = 0x00040000
+	WS_EX_LAYERED          = 0x00080000
+	WS_EX_NOACTIVATE       = 0x08000000
 	WS_EX_OVERLAPPEDWINDOW = WS_EX_WINDOWEDGE | WS_EX_CLIENTEDGE
 )
 
 // Window messages.
 const (
-	WM_NULL            = 0x0000
-	WM_CREATE          = 0x0001
-	WM_DESTROY         = 0x0002
-	WM_MOVE            = 0x0003
-	WM_SIZE            = 0x0005
-	WM_ACTIVATE        = 0x0006
-	WM_SETFOCUS        = 0x0007
-	WM_KILLFOCUS       = 0x0008
-	WM_ENABLE          = 0x000A
-	WM_PAINT           = 0x000F
-	WM_CLOSE           = 0x0010
-	WM_QUIT            = 0x0012
-	WM_ERASEBKGND      = 0x0014
-	WM_SHOWWINDOW      = 0x0018
-	WM_SETCURSOR       = 0x0020
-	WM_GETMINMAXINFO   = 0x0024
-	WM_WINDOWPOSCHANGING = 0x0046
-	WM_WINDOWPOSCHANGED = 0x0047
-	WM_NCCALCSIZE      = 0x0083
-	WM_NCHITTEST       = 0x0084
-	WM_KEYDOWN         = 0x0100
-	WM_KEYUP           = 0x0101
-	WM_CHAR            = 0x0102
-	WM_DEADCHAR        = 0x0103
-	WM_SYSKEYDOWN      = 0x0104
-	WM_SYSKEYUP        = 0x0105
-	WM_SYSCHAR         = 0x0106
-	WM_UNICHAR         = 0x0109
+	WM_NULL                 = 0x0000
+	WM_CREATE               = 0x0001
+	WM_DESTROY              = 0x0002
+	WM_MOVE                 = 0x0003
+	WM_SIZE                 = 0x0005
+	WM_ACTIVATE             = 0x0006
+	WM_SETFOCUS             = 0x0007
+	WM_KILLFOCUS            = 0x0008
+	WM_ENABLE               = 0x000A
+	WM_PAINT                = 0x000F
+	WM_CLOSE                = 0x0010
+	WM_QUIT                 = 0x0012
+	WM_ERASEBKGND           = 0x0014
+	WM_SHOWWINDOW           = 0x0018
+	WM_SETCURSOR            = 0x0020
+	WM_GETMINMAXINFO        = 0x0024
+	WM_WINDOWPOSCHANGING    = 0x0046
+	WM_WINDOWPOSCHANGED     = 0x0047
+	WM_NCCALCSIZE           = 0x0083
+	WM_NCHITTEST            = 0x0084
+	WM_KEYDOWN              = 0x0100
+	WM_KEYUP                = 0x0101
+	WM_CHAR                 = 0x0102
+	WM_DEADCHAR             = 0x0103
+	WM_SYSKEYDOWN           = 0x0104
+	WM_SYSKEYUP             = 0x0105
+	WM_SYSCHAR              = 0x0106
+	WM_UNICHAR              = 0x0109
 	WM_IME_STARTCOMPOSITION = 0x010D
 	WM_IME_ENDCOMPOSITION   = 0x010E
-	WM_IME_COMPOSITION     = 0x010F
-	WM_COMMAND         = 0x0111
-	WM_TIMER           = 0x0113
-	WM_MOUSEMOVE       = 0x0200
-	WM_LBUTTONDOWN     = 0x0201
-	WM_LBUTTONUP       = 0x0202
-	WM_LBUTTONDBLCLK   = 0x0203
-	WM_RBUTTONDOWN     = 0x0204
-	WM_RBUTTONUP       = 0x0205
-	WM_RBUTTONDBLCLK   = 0x0206
-	WM_MBUTTONDOWN     = 0x0207
-	WM_MBUTTONUP       = 0x0208
-	WM_MBUTTONDBLCLK   = 0x0209
-	WM_MOUSEWHEEL      = 0x020A
-	WM_MOUSEHWHEEL     = 0x020E
-	WM_ENTERSIZEMOVE   = 0x0231
-	WM_EXITSIZEMOVE    = 0x0232
-	WM_MOUSELEAVE      = 0x02A3
-	WM_DPICHANGED      = 0x02E0
-	WM_USER            = 0x0400
+	WM_IME_COMPOSITION      = 0x010F
+	WM_COMMAND              = 0x0111
+	WM_TIMER                = 0x0113
+	WM_MOUSEMOVE            = 0x0200
+	WM_LBUTTONDOWN          = 0x0201
+	WM_LBUTTONUP            = 0x0202
+	WM_LBUTTONDBLCLK        = 0x0203
+	WM_RBUTTONDOWN          = 0x0204
+	WM_RBUTTONUP            = 0x0205
+	WM_RBUTTONDBLCLK        = 0x0206
+	WM_MBUTTONDOWN          = 0x0207
+	WM_MBUTTONUP            = 0x0208
+	WM_MBUTTONDBLCLK        = 0x0209
+	WM_MOUSEWHEEL           = 0x020A
+	WM_MOUSEHWHEEL          = 0x020E
+	WM_ENTERSIZEMOVE        = 0x0231
+	WM_EXITSIZEMOVE         = 0x0232
+	WM_MOUSELEAVE           = 0x02A3
+	WM_DPICHANGED           = 0x02E0
+	WM_USER                 = 0x0400
 )
 
 // Class styles.
 const (
-	CS_VREDRAW   = 0x0001
-	CS_HREDRAW   = 0x0002
-	CS_DBLCLKS   = 0x0008
-	CS_OWNDC     = 0x0020
+	CS_VREDRAW = 0x0001
+	CS_HREDRAW = 0x0002
+	CS_DBLCLKS = 0x0008
+	CS_OWNDC   = 0x0020
 )
 
 // ShowWindow commands.
@@ -283,13 +283,13 @@ const (
 
 // SetWindowPos flags.
 const (
-	SWP_NOSIZE         = 0x0001
-	SWP_NOMOVE         = 0x0002
-	SWP_NOZORDER       = 0x0004
-	SWP_NOACTIVATE     = 0x0010
-	SWP_SHOWWINDOW     = 0x0040
-	SWP_HIDEWINDOW     = 0x0080
-	SWP_FRAMECHANGED   = 0x0020
+	SWP_NOSIZE       = 0x0001
+	SWP_NOMOVE       = 0x0002
+	SWP_NOZORDER     = 0x0004
+	SWP_NOACTIVATE   = 0x0010
+	SWP_SHOWWINDOW   = 0x0040
+	SWP_HIDEWINDOW   = 0x0080
+	SWP_FRAMECHANGED = 0x0020
 )
 
 // SetWindowPos HWND constants.
@@ -302,8 +302,8 @@ var (
 
 func init() {
 	// Correct values: HWND_TOPMOST = -1, HWND_NOTOPMOST = -2
-	HWND_TOPMOST = HWND(^uintptr(0))    // -1
-	HWND_NOTOPMOST = HWND(^uintptr(1))  // -2
+	HWND_TOPMOST = HWND(^uintptr(0))   // -1
+	HWND_NOTOPMOST = HWND(^uintptr(1)) // -2
 }
 
 // PeekMessage flags.
@@ -353,32 +353,32 @@ const (
 
 // GDI object types / stock objects.
 const (
-	WHITE_BRUSH         = 0
-	LTGRAY_BRUSH        = 1
-	GRAY_BRUSH          = 2
-	DKGRAY_BRUSH        = 3
-	BLACK_BRUSH         = 4
-	NULL_BRUSH          = 5
-	WHITE_PEN           = 6
-	BLACK_PEN           = 7
-	NULL_PEN            = 8
-	SYSTEM_FONT         = 13
-	DEFAULT_GUI_FONT    = 17
-	DC_BRUSH            = 18
-	DC_PEN              = 19
+	WHITE_BRUSH      = 0
+	LTGRAY_BRUSH     = 1
+	GRAY_BRUSH       = 2
+	DKGRAY_BRUSH     = 3
+	BLACK_BRUSH      = 4
+	NULL_BRUSH       = 5
+	WHITE_PEN        = 6
+	BLACK_PEN        = 7
+	NULL_PEN         = 8
+	SYSTEM_FONT      = 13
+	DEFAULT_GUI_FONT = 17
+	DC_BRUSH         = 18
+	DC_PEN           = 19
 )
 
 // Pen styles.
 const (
-	PS_SOLID       = 0
-	PS_DASH        = 1
-	PS_DOT         = 2
-	PS_DASHDOT     = 3
-	PS_DASHDOTDOT  = 4
-	PS_NULL        = 5
-	PS_INSIDEFRAME = 6
-	PS_USERSTYLE   = 7
-	PS_GEOMETRIC   = 0x00010000
+	PS_SOLID         = 0
+	PS_DASH          = 1
+	PS_DOT           = 2
+	PS_DASHDOT       = 3
+	PS_DASHDOTDOT    = 4
+	PS_NULL          = 5
+	PS_INSIDEFRAME   = 6
+	PS_USERSTYLE     = 7
+	PS_GEOMETRIC     = 0x00010000
 	PS_ENDCAP_ROUND  = 0x00000000
 	PS_ENDCAP_SQUARE = 0x00000100
 	PS_ENDCAP_FLAT   = 0x00000200
@@ -413,103 +413,103 @@ const (
 
 // GetSystemMetrics indices.
 const (
-	SM_CXSCREEN    = 0
-	SM_CYSCREEN    = 1
-	SM_CXVSCROLL   = 2
-	SM_CYHSCROLL   = 3
-	SM_CYCAPTION   = 4
-	SM_CXBORDER    = 5
-	SM_CYBORDER    = 6
+	SM_CXSCREEN     = 0
+	SM_CYSCREEN     = 1
+	SM_CXVSCROLL    = 2
+	SM_CYHSCROLL    = 3
+	SM_CYCAPTION    = 4
+	SM_CXBORDER     = 5
+	SM_CYBORDER     = 6
 	SM_CXFIXEDFRAME = 7
 	SM_CYFIXEDFRAME = 8
 )
 
 // GetDeviceCaps indices.
 const (
-	HORZSIZE    = 4  // horizontal size in mm
-	VERTSIZE    = 6  // vertical size in mm
-	HORZRES     = 8  // horizontal width in pixels
-	VERTRES     = 10 // vertical height in pixels
-	BITSPIXEL   = 12
-	LOGPIXELSX  = 88
-	LOGPIXELSY  = 90
+	HORZSIZE   = 4  // horizontal size in mm
+	VERTSIZE   = 6  // vertical size in mm
+	HORZRES    = 8  // horizontal width in pixels
+	VERTRES    = 10 // vertical height in pixels
+	BITSPIXEL  = 12
+	LOGPIXELSX = 88
+	LOGPIXELSY = 90
 )
 
 // Virtual key codes.
 const (
-	VK_LBUTTON    = 0x01
-	VK_RBUTTON    = 0x02
-	VK_CANCEL     = 0x03
-	VK_MBUTTON    = 0x04
-	VK_BACK       = 0x08
-	VK_TAB        = 0x09
-	VK_CLEAR      = 0x0C
-	VK_RETURN     = 0x0D
-	VK_SHIFT      = 0x10
-	VK_CONTROL    = 0x11
-	VK_MENU       = 0x12 // Alt
-	VK_PAUSE      = 0x13
-	VK_CAPITAL    = 0x14
-	VK_ESCAPE     = 0x1B
-	VK_SPACE      = 0x20
-	VK_PRIOR      = 0x21 // Page Up
-	VK_NEXT       = 0x22 // Page Down
-	VK_END        = 0x23
-	VK_HOME       = 0x24
-	VK_LEFT       = 0x25
-	VK_UP         = 0x26
-	VK_RIGHT      = 0x27
-	VK_DOWN       = 0x28
-	VK_SELECT     = 0x29
-	VK_PRINT      = 0x2A
-	VK_EXECUTE    = 0x2B
-	VK_SNAPSHOT   = 0x2C
-	VK_INSERT     = 0x2D
-	VK_DELETE     = 0x2E
-	VK_HELP       = 0x2F
-	VK_LWIN       = 0x5B
-	VK_RWIN       = 0x5C
-	VK_APPS       = 0x5D
-	VK_NUMPAD0    = 0x60
-	VK_NUMPAD9    = 0x69
-	VK_MULTIPLY   = 0x6A
-	VK_ADD        = 0x6B
-	VK_SEPARATOR  = 0x6C
-	VK_SUBTRACT   = 0x6D
-	VK_DECIMAL    = 0x6E
-	VK_DIVIDE     = 0x6F
-	VK_F1         = 0x70
-	VK_F2         = 0x71
-	VK_F3         = 0x72
-	VK_F4         = 0x73
-	VK_F5         = 0x74
-	VK_F6         = 0x75
-	VK_F7         = 0x76
-	VK_F8         = 0x77
-	VK_F9         = 0x78
-	VK_F10        = 0x79
-	VK_F11        = 0x7A
-	VK_F12        = 0x7B
-	VK_F13        = 0x7C
-	VK_F14        = 0x7D
-	VK_F15        = 0x7E
-	VK_F16        = 0x7F
-	VK_F17        = 0x80
-	VK_F18        = 0x81
-	VK_F19        = 0x82
-	VK_F20        = 0x83
-	VK_F21        = 0x84
-	VK_F22        = 0x85
-	VK_F23        = 0x86
-	VK_F24        = 0x87
-	VK_NUMLOCK    = 0x90
-	VK_SCROLL     = 0x91
-	VK_LSHIFT     = 0xA0
-	VK_RSHIFT     = 0xA1
-	VK_LCONTROL   = 0xA2
-	VK_RCONTROL   = 0xA3
-	VK_LMENU      = 0xA4
-	VK_RMENU      = 0xA5
+	VK_LBUTTON   = 0x01
+	VK_RBUTTON   = 0x02
+	VK_CANCEL    = 0x03
+	VK_MBUTTON   = 0x04
+	VK_BACK      = 0x08
+	VK_TAB       = 0x09
+	VK_CLEAR     = 0x0C
+	VK_RETURN    = 0x0D
+	VK_SHIFT     = 0x10
+	VK_CONTROL   = 0x11
+	VK_MENU      = 0x12 // Alt
+	VK_PAUSE     = 0x13
+	VK_CAPITAL   = 0x14
+	VK_ESCAPE    = 0x1B
+	VK_SPACE     = 0x20
+	VK_PRIOR     = 0x21 // Page Up
+	VK_NEXT      = 0x22 // Page Down
+	VK_END       = 0x23
+	VK_HOME      = 0x24
+	VK_LEFT      = 0x25
+	VK_UP        = 0x26
+	VK_RIGHT     = 0x27
+	VK_DOWN      = 0x28
+	VK_SELECT    = 0x29
+	VK_PRINT     = 0x2A
+	VK_EXECUTE   = 0x2B
+	VK_SNAPSHOT  = 0x2C
+	VK_INSERT    = 0x2D
+	VK_DELETE    = 0x2E
+	VK_HELP      = 0x2F
+	VK_LWIN      = 0x5B
+	VK_RWIN      = 0x5C
+	VK_APPS      = 0x5D
+	VK_NUMPAD0   = 0x60
+	VK_NUMPAD9   = 0x69
+	VK_MULTIPLY  = 0x6A
+	VK_ADD       = 0x6B
+	VK_SEPARATOR = 0x6C
+	VK_SUBTRACT  = 0x6D
+	VK_DECIMAL   = 0x6E
+	VK_DIVIDE    = 0x6F
+	VK_F1        = 0x70
+	VK_F2        = 0x71
+	VK_F3        = 0x72
+	VK_F4        = 0x73
+	VK_F5        = 0x74
+	VK_F6        = 0x75
+	VK_F7        = 0x76
+	VK_F8        = 0x77
+	VK_F9        = 0x78
+	VK_F10       = 0x79
+	VK_F11       = 0x7A
+	VK_F12       = 0x7B
+	VK_F13       = 0x7C
+	VK_F14       = 0x7D
+	VK_F15       = 0x7E
+	VK_F16       = 0x7F
+	VK_F17       = 0x80
+	VK_F18       = 0x81
+	VK_F19       = 0x82
+	VK_F20       = 0x83
+	VK_F21       = 0x84
+	VK_F22       = 0x85
+	VK_F23       = 0x86
+	VK_F24       = 0x87
+	VK_NUMLOCK   = 0x90
+	VK_SCROLL    = 0x91
+	VK_LSHIFT    = 0xA0
+	VK_RSHIFT    = 0xA1
+	VK_LCONTROL  = 0xA2
+	VK_RCONTROL  = 0xA3
+	VK_LMENU     = 0xA4
+	VK_RMENU     = 0xA5
 )
 
 // Cursor constants.
@@ -567,9 +567,9 @@ const WHEEL_DELTA = 120
 
 // GDI function return values.
 const (
-	GDI_ERROR     = 0xFFFFFFFF
-	CLR_INVALID   = 0xFFFFFFFF
-	HGDI_ERROR    = HGDIOBJ(0xFFFFFFFF)
+	GDI_ERROR   = 0xFFFFFFFF
+	CLR_INVALID = 0xFFFFFFFF
+	HGDI_ERROR  = HGDIOBJ(0xFFFFFFFF)
 )
 
 // CW_USEDEFAULT for CreateWindow.
@@ -627,8 +627,8 @@ const (
 
 // Font quality.
 const (
-	DEFAULT_QUALITY        = 0
-	CLEARTYPE_QUALITY      = 5
+	DEFAULT_QUALITY   = 0
+	CLEARTYPE_QUALITY = 5
 )
 
 // Font pitch and family.

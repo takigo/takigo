@@ -69,9 +69,9 @@ type textSegment struct {
 
 // lineProps holds resolved per-logical-line properties from tags.
 type lineProps struct {
-	lm1, lm2, rm       int
-	sp1, sp2, sp3       int
-	justify             option.Justify
+	lm1, lm2, rm  int
+	sp1, sp2, sp3 int
+	justify       option.Justify
 }
 
 // resolveLineProps resolves tag properties for the first character of a logical line.
@@ -820,8 +820,6 @@ func (t *TextWidget) indexFromPixel(x, y int) Index {
 
 	return Index{Line: dl.logicalLine, Char: dl.endChar}
 }
-
-
 
 // lineHeight returns the pixel height of one line.
 func (t *TextWidget) lineHeight() int {

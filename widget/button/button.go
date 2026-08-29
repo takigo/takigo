@@ -316,7 +316,6 @@ func (b *Button) Display() {
 	d.Flush()
 }
 
-
 // compoundSize computes the total content size for a compound image+text layout.
 func compoundSize(c widget.Compound, img widget.WidgetImage, textW, textH int) (int, int) {
 	if img == nil {

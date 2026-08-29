@@ -5,8 +5,8 @@ package main
 import (
 	"fmt"
 	"os"
-	"runtime"
 	"path/filepath"
+	"runtime"
 
 	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/canvas"

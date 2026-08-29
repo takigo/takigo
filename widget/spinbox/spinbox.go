@@ -609,4 +609,3 @@ func (s *Spinbox) Destroy() {
 	s.Destroyed = true
 	window.DestroyWindow(s.Win)
 }
-

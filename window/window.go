@@ -6,10 +6,10 @@ import (
 
 // Flags for Window.Flags field.
 const (
-	FlagTopLevel   = 1 << iota // this is a top-level window
-	FlagMapped                 // window is currently mapped
-	FlagAlreadyDead            // destruction in progress
-	FlagFocusable              // widget can receive keyboard focus
+	FlagTopLevel    = 1 << iota // this is a top-level window
+	FlagMapped                  // window is currently mapped
+	FlagAlreadyDead             // destruction in progress
+	FlagFocusable               // widget can receive keyboard focus
 )
 
 // GeomManager is the interface for geometry managers, defined here

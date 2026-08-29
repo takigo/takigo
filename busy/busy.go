@@ -46,7 +46,7 @@ func Hold(app widget.AppContext, target *window.Window) *BusyWin {
 	overlay := d.CreateWindow(
 		target.PlatformID,
 		0, 0, w, h, 0,
-		0,             // depth=0 for InputOnly
+		0, // depth=0 for InputOnly
 		platform.InputOnly,
 		platform.CWEventMask,
 		attrs,

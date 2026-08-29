@@ -11,6 +11,7 @@ import (
 
 	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/demos/demohelper"
+	"github.com/msorc/takigo/geometry"
 	"github.com/msorc/takigo/geometry/pack"
 	tkimage "github.com/msorc/takigo/image"
 	"github.com/msorc/takigo/option"
@@ -20,7 +21,6 @@ import (
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
 	"github.com/msorc/takigo/widget/radiobutton"
-	"github.com/msorc/takigo/geometry"
 )
 
 func main() {

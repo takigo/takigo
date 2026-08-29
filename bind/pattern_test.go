@@ -185,11 +185,11 @@ func TestParseSingleCharQ(t *testing.T) {
 
 func TestParseErrors(t *testing.T) {
 	errors := []string{
-		"",            // empty
-		"<Unknown>",   // unknown event type
-		"<Button-0>",  // invalid button number
-		"<Button-6>",  // button out of range
-		"abc",         // multi-char non-pattern
+		"",           // empty
+		"<Unknown>",  // unknown event type
+		"<Button-0>", // invalid button number
+		"<Button-6>", // button out of range
+		"abc",        // multi-char non-pattern
 	}
 	for _, s := range errors {
 		_, err := Parse(s)
@@ -206,10 +206,10 @@ func TestSpecificity(t *testing.T) {
 	}{
 		{"<Motion>", 0},
 		{"<Button-1>", 4},
-		{"<Control-a>", 6},                // 4 (keysym) + 2 (control)
-		{"<Control-Shift-x>", 8},          // 4 + 2 + 2
-		{"<Double-Button-1>", 5},          // 4 + 1
-		{"<Control-Shift-Button-1>", 8},   // 4 + 2 + 2
+		{"<Control-a>", 6},              // 4 (keysym) + 2 (control)
+		{"<Control-Shift-x>", 8},        // 4 + 2 + 2
+		{"<Double-Button-1>", 5},        // 4 + 1
+		{"<Control-Shift-Button-1>", 8}, // 4 + 2 + 2
 	}
 	for _, tt := range tests {
 		seq := MustParse(tt.pattern)

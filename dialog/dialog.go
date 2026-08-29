@@ -21,7 +21,7 @@ import (
 type DialogResult int
 
 const (
-	ResultNone   DialogResult = iota
+	ResultNone DialogResult = iota
 	ResultOK
 	ResultCancel
 	ResultYes
@@ -54,10 +54,10 @@ type Dialog struct {
 func New(parent widget.Caregiver, title string, minWidth, minHeight int) *Dialog {
 	app := parent.AppContext()
 	d := &Dialog{
-		App:      app,
-		done:     make(chan struct{}),
-		parent:   parent.Window(),
-		minWidth: minWidth,
+		App:       app,
+		done:      make(chan struct{}),
+		parent:    parent.Window(),
+		minWidth:  minWidth,
 		minHeight: minHeight,
 	}
 

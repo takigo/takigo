@@ -69,7 +69,7 @@ const (
 type Sticky uint
 
 const (
-	StickW   Sticky = 1 << iota
+	StickW Sticky = 1 << iota
 	StickE
 	StickN
 	StickS

@@ -3,8 +3,8 @@
 package cocoa
 
 import (
-	clib "github.com/msorc/takigo/internal/cocoa"
 	"github.com/msorc/takigo/font"
+	clib "github.com/msorc/takigo/internal/cocoa"
 	"github.com/msorc/takigo/platform"
 )
 

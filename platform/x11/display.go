@@ -34,22 +34,26 @@ func (s *X11Display) FontOpener(screen int) *X11FontOpener {
 
 // --- DisplayServer core methods ---
 
-func (s *X11Display) Close()                          { s.dpy.Close() }
-func (s *X11Display) DefaultScreen() int              { return s.dpy.DefaultScreen() }
-func (s *X11Display) DefaultRootWindow() platform.WindowID { return platform.WindowID(s.dpy.DefaultRootWindow()) }
-func (s *X11Display) RootWindow(screen int) platform.WindowID { return platform.WindowID(s.dpy.RootWindow(screen)) }
-func (s *X11Display) DefaultDepth(screen int) int     { return s.dpy.DefaultDepth(screen) }
-func (s *X11Display) ScreenWidth(screen int) int      { return s.dpy.ScreenWidth(screen) }
-func (s *X11Display) ScreenHeight(screen int) int     { return s.dpy.ScreenHeight(screen) }
-func (s *X11Display) ScreenWidthMM(screen int) int    { return s.dpy.ScreenWidthMM(screen) }
-func (s *X11Display) ScreenHeightMM(screen int) int   { return s.dpy.ScreenHeightMM(screen) }
-func (s *X11Display) WhitePixel(screen int) uint64    { return s.dpy.WhitePixel(screen) }
-func (s *X11Display) BlackPixel(screen int) uint64    { return s.dpy.BlackPixel(screen) }
-func (s *X11Display) ConnectionNumber() int           { return s.dpy.ConnectionNumber() }
-func (s *X11Display) Sync(discard bool)               { s.dpy.Sync(discard) }
-func (s *X11Display) Flush()                          { s.dpy.Flush() }
-func (s *X11Display) Pending() int                    { return s.dpy.Pending() }
-func (s *X11Display) ResourceManagerString() string    { return s.dpy.ResourceManagerString() }
+func (s *X11Display) Close()             { s.dpy.Close() }
+func (s *X11Display) DefaultScreen() int { return s.dpy.DefaultScreen() }
+func (s *X11Display) DefaultRootWindow() platform.WindowID {
+	return platform.WindowID(s.dpy.DefaultRootWindow())
+}
+func (s *X11Display) RootWindow(screen int) platform.WindowID {
+	return platform.WindowID(s.dpy.RootWindow(screen))
+}
+func (s *X11Display) DefaultDepth(screen int) int   { return s.dpy.DefaultDepth(screen) }
+func (s *X11Display) ScreenWidth(screen int) int    { return s.dpy.ScreenWidth(screen) }
+func (s *X11Display) ScreenHeight(screen int) int   { return s.dpy.ScreenHeight(screen) }
+func (s *X11Display) ScreenWidthMM(screen int) int  { return s.dpy.ScreenWidthMM(screen) }
+func (s *X11Display) ScreenHeightMM(screen int) int { return s.dpy.ScreenHeightMM(screen) }
+func (s *X11Display) WhitePixel(screen int) uint64  { return s.dpy.WhitePixel(screen) }
+func (s *X11Display) BlackPixel(screen int) uint64  { return s.dpy.BlackPixel(screen) }
+func (s *X11Display) ConnectionNumber() int         { return s.dpy.ConnectionNumber() }
+func (s *X11Display) Sync(discard bool)             { s.dpy.Sync(discard) }
+func (s *X11Display) Flush()                        { s.dpy.Flush() }
+func (s *X11Display) Pending() int                  { return s.dpy.Pending() }
+func (s *X11Display) ResourceManagerString() string { return s.dpy.ResourceManagerString() }
 
 // --- WindowManager ---
 
@@ -90,11 +94,21 @@ func (s *X11Display) MapRaised(w platform.WindowID)     { s.dpy.MapRaised(xlib.W
 func (s *X11Display) UnmapWindow(w platform.WindowID)   { s.dpy.UnmapWindow(xlib.Window(w)) }
 func (s *X11Display) RaiseWindow(w platform.WindowID)   { s.dpy.RaiseWindow(xlib.Window(w)) }
 func (s *X11Display) LowerWindow(w platform.WindowID)   { s.dpy.LowerWindow(xlib.Window(w)) }
-func (s *X11Display) MoveWindow(w platform.WindowID, x, y int)           { s.dpy.MoveWindow(xlib.Window(w), x, y) }
-func (s *X11Display) ResizeWindow(w platform.WindowID, width, height uint) { s.dpy.ResizeWindow(xlib.Window(w), width, height) }
-func (s *X11Display) MoveResizeWindow(w platform.WindowID, x, y int, width, height uint) { s.dpy.MoveResizeWindow(xlib.Window(w), x, y, width, height) }
-func (s *X11Display) SelectInput(w platform.WindowID, eventMask int64)    { s.dpy.SelectInput(xlib.Window(w), eventMask) }
-func (s *X11Display) StoreName(w platform.WindowID, name string)          { s.dpy.StoreName(xlib.Window(w), name) }
+func (s *X11Display) MoveWindow(w platform.WindowID, x, y int) {
+	s.dpy.MoveWindow(xlib.Window(w), x, y)
+}
+func (s *X11Display) ResizeWindow(w platform.WindowID, width, height uint) {
+	s.dpy.ResizeWindow(xlib.Window(w), width, height)
+}
+func (s *X11Display) MoveResizeWindow(w platform.WindowID, x, y int, width, height uint) {
+	s.dpy.MoveResizeWindow(xlib.Window(w), x, y, width, height)
+}
+func (s *X11Display) SelectInput(w platform.WindowID, eventMask int64) {
+	s.dpy.SelectInput(xlib.Window(w), eventMask)
+}
+func (s *X11Display) StoreName(w platform.WindowID, name string) {
+	s.dpy.StoreName(xlib.Window(w), name)
+}
 
 func (s *X11Display) TranslateCoordinates(src, dst platform.WindowID, srcX, srcY int) (int, int) {
 	return s.dpy.TranslateCoordinates(xlib.Window(src), xlib.Window(dst), srcX, srcY)
@@ -177,9 +191,13 @@ func (s *X11Display) CreateGC(drawable platform.DrawableID, valueMask uint64, va
 	return fromXGC(s.dpy.CreateGC(xlib.Drawable(drawable), valueMask, xv))
 }
 
-func (s *X11Display) FreeGC(gc platform.GCID)                    { s.dpy.FreeGC(toXGC(gc)) }
-func (s *X11Display) SetForeground(gc platform.GCID, pixel uint64) { s.dpy.SetForeground(toXGC(gc), pixel) }
-func (s *X11Display) SetBackground(gc platform.GCID, pixel uint64) { s.dpy.SetBackground(toXGC(gc), pixel) }
+func (s *X11Display) FreeGC(gc platform.GCID) { s.dpy.FreeGC(toXGC(gc)) }
+func (s *X11Display) SetForeground(gc platform.GCID, pixel uint64) {
+	s.dpy.SetForeground(toXGC(gc), pixel)
+}
+func (s *X11Display) SetBackground(gc platform.GCID, pixel uint64) {
+	s.dpy.SetBackground(toXGC(gc), pixel)
+}
 
 func (s *X11Display) SetLineAttributes(gc platform.GCID, lineWidth uint, lineStyle, capStyle, joinStyle int) {
 	s.dpy.SetLineAttributes(toXGC(gc), lineWidth, lineStyle, capStyle, joinStyle)
@@ -326,17 +344,17 @@ func (s *X11Display) SetWMProtocols(w platform.WindowID, protocols []platform.At
 
 func (s *X11Display) SetWMNormalHints(w platform.WindowID, hints *platform.SizeHints) {
 	s.dpy.SetWMNormalHints(xlib.Window(w), &xlib.SizeHints{
-		Flags:     hints.Flags,
-		X:         hints.X,
-		Y:         hints.Y,
-		Width:     hints.Width,
-		Height:    hints.Height,
-		MinWidth:  hints.MinWidth,
-		MinHeight: hints.MinHeight,
-		MaxWidth:  hints.MaxWidth,
-		MaxHeight: hints.MaxHeight,
-		WidthInc:  hints.WidthInc,
-		HeightInc: hints.HeightInc,
+		Flags:      hints.Flags,
+		X:          hints.X,
+		Y:          hints.Y,
+		Width:      hints.Width,
+		Height:     hints.Height,
+		MinWidth:   hints.MinWidth,
+		MinHeight:  hints.MinHeight,
+		MaxWidth:   hints.MaxWidth,
+		MaxHeight:  hints.MaxHeight,
+		WidthInc:   hints.WidthInc,
+		HeightInc:  hints.HeightInc,
 		WinGravity: hints.WinGravity,
 	})
 }
@@ -414,10 +432,10 @@ func (s *X11Display) SetIconName(w platform.WindowID, name string) {
 
 // --- InputMethodManager ---
 
-func (s *X11Display) InitIM(root platform.WindowID) { s.dpy.InitIM(xlib.Window(root)) }
-func (s *X11Display) HasIM() bool                   { return s.dpy.HasIM() }
+func (s *X11Display) InitIM(root platform.WindowID)  { s.dpy.InitIM(xlib.Window(root)) }
+func (s *X11Display) HasIM() bool                    { return s.dpy.HasIM() }
 func (s *X11Display) SetICFocus(w platform.WindowID) { s.dpy.SetICFocus(xlib.Window(w)) }
-func (s *X11Display) UnsetICFocus()                 { s.dpy.UnsetICFocus() }
+func (s *X11Display) UnsetICFocus()                  { s.dpy.UnsetICFocus() }
 
 // Verify that X11Display implements platform.DisplayServer at compile time.
 var _ platform.DisplayServer = (*X11Display)(nil)

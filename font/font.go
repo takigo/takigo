@@ -60,9 +60,9 @@ func (a Attributes) Descriptor() string {
 
 // Metrics holds font measurement data.
 type Metrics struct {
-	Ascent   int // pixels from baseline to top
-	Descent  int // pixels from baseline to bottom
-	MaxWidth int // width of widest character
+	Ascent   int  // pixels from baseline to top
+	Descent  int  // pixels from baseline to bottom
+	MaxWidth int  // width of widest character
 	Fixed    bool // true for monospace
 }
 

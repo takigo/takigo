@@ -3,8 +3,8 @@
 package windows
 
 import (
-	w32 "github.com/msorc/takigo/internal/win32"
 	"github.com/msorc/takigo/font"
+	w32 "github.com/msorc/takigo/internal/win32"
 )
 
 // FontOpener implements font.FontOpener using GDI on Windows.

@@ -451,9 +451,9 @@ func (s *Spinbox) Display() {
 		}
 
 		if df, ok := s.Font.(platform.DrawableFont); ok {
-			r := uint16((fg >> 16) & 0xFF) << 8
-			g := uint16((fg >> 8) & 0xFF) << 8
-			b := uint16((fg) & 0xFF) << 8
+			r := uint16((fg>>16)&0xFF) << 8
+			g := uint16((fg>>8)&0xFF) << 8
+			b := uint16((fg)&0xFF) << 8
 			df.DrawString(pixDrawable, textX, textY, string(s.text), fg, r, g, b)
 		}
 

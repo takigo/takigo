@@ -17,11 +17,11 @@ type DCResolver func(drawable platform.DrawableID) (w32.HDC, func())
 
 // GDIFont implements font.Font and platform.DrawableFont using Windows GDI.
 type GDIFont struct {
-	hfont      w32.HFONT
-	screenDC   w32.HDC
-	attrs      Attributes
-	metrics    Metrics
-	resolveDC  DCResolver
+	hfont     w32.HFONT
+	screenDC  w32.HDC
+	attrs     Attributes
+	metrics   Metrics
+	resolveDC DCResolver
 }
 
 // OpenGDI creates a GDI font from font attributes.

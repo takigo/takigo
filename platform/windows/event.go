@@ -12,24 +12,24 @@ import (
 // WinRawEvent holds the parsed data from a Windows message, stored in
 // platform.RawEvent.Data.
 type WinRawEvent struct {
-	Window  platform.WindowID
-	X, Y    int
+	Window       platform.WindowID
+	X, Y         int
 	RootX, RootY int
-	State   uint   // modifier state (X11-style masks)
-	KeyCode uint   // virtual key code
-	KeySym  uint64 // translated keysym
-	Str     string // character string from WM_CHAR
-	Button  uint
-	Width   int
-	Height  int
-	Time    uint64
-	MessageType platform.AtomID
-	MessageData [5]int64
-	FocusMode   int
-	FocusDetail int
+	State        uint   // modifier state (X11-style masks)
+	KeyCode      uint   // virtual key code
+	KeySym       uint64 // translated keysym
+	Str          string // character string from WM_CHAR
+	Button       uint
+	Width        int
+	Height       int
+	Time         uint64
+	MessageType  platform.AtomID
+	MessageData  [5]int64
+	FocusMode    int
+	FocusDetail  int
 	// Expose fields
 	ExposeX, ExposeY, ExposeW, ExposeH int
-	ExposeCount int
+	ExposeCount                        int
 }
 
 // EventParser implements platform.EventParser for Windows events.
@@ -319,11 +319,11 @@ func (d *WindowsDisplay) wndProc(hwnd w32.HWND, msg uint32, wParam w32.WPARAM, l
 			keysym = uint64(ch) // ASCII maps directly to keysym
 		}
 		raw := &WinRawEvent{
-			Window:  wid,
-			KeySym:  keysym,
-			Str:     string(ch),
-			State:   d.getModifierState(),
-			Time:    now,
+			Window: wid,
+			KeySym: keysym,
+			Str:    string(ch),
+			State:  d.getModifierState(),
+			Time:   now,
 		}
 		d.postEvent(&platform.RawEvent{
 			Data:        raw,

@@ -34,10 +34,10 @@ func TestParseHexRRRRGGGGBBBB(t *testing.T) {
 
 func TestParseNamedColor(t *testing.T) {
 	tests := []struct {
-		name    string
-		wantR   uint16
-		wantG   uint16
-		wantB   uint16
+		name  string
+		wantR uint16
+		wantG uint16
+		wantB uint16
 	}{
 		{"red", 0xff00, 0, 0},
 		{"blue", 0, 0, 0xff00},

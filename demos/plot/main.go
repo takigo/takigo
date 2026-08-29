@@ -4,7 +4,6 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/canvas"
 	"github.com/msorc/takigo/demos/demohelper"
@@ -14,6 +13,7 @@ import (
 	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
+	"os"
 )
 
 func main() {

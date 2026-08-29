@@ -17,6 +17,7 @@ import (
 	"github.com/msorc/takigo/geometry/pack"
 	tkimage "github.com/msorc/takigo/image"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/ttk"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/button"
 	"github.com/msorc/takigo/widget/entry"
@@ -24,7 +25,6 @@ import (
 	"github.com/msorc/takigo/widget/label"
 	"github.com/msorc/takigo/widget/labelframe"
 	"github.com/msorc/takigo/widget/listbox"
-	"github.com/msorc/takigo/ttk"
 )
 
 func main() {

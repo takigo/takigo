@@ -173,4 +173,3 @@ func ChooseFont(parent widget.Caregiver, opts ...FontOption) (string, bool) {
 	}
 	return "", false
 }
-

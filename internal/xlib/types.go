@@ -65,22 +65,22 @@ type XColor struct {
 
 // Event mask constants.
 const (
-	NoEventMask             = C.NoEventMask
-	KeyPressMask            = C.KeyPressMask
-	KeyReleaseMask          = C.KeyReleaseMask
-	ButtonPressMask         = C.ButtonPressMask
-	ButtonReleaseMask       = C.ButtonReleaseMask
-	EnterWindowMask         = C.EnterWindowMask
-	LeaveWindowMask         = C.LeaveWindowMask
-	PointerMotionMask       = C.PointerMotionMask
-	ButtonMotionMask        = C.ButtonMotionMask
-	ExposureMask            = C.ExposureMask
-	StructureNotifyMask     = C.StructureNotifyMask
-	SubstructureNotifyMask  = C.SubstructureNotifyMask
+	NoEventMask              = C.NoEventMask
+	KeyPressMask             = C.KeyPressMask
+	KeyReleaseMask           = C.KeyReleaseMask
+	ButtonPressMask          = C.ButtonPressMask
+	ButtonReleaseMask        = C.ButtonReleaseMask
+	EnterWindowMask          = C.EnterWindowMask
+	LeaveWindowMask          = C.LeaveWindowMask
+	PointerMotionMask        = C.PointerMotionMask
+	ButtonMotionMask         = C.ButtonMotionMask
+	ExposureMask             = C.ExposureMask
+	StructureNotifyMask      = C.StructureNotifyMask
+	SubstructureNotifyMask   = C.SubstructureNotifyMask
 	SubstructureRedirectMask = C.SubstructureRedirectMask
-	FocusChangeMask         = C.FocusChangeMask
-	PropertyChangeMask      = C.PropertyChangeMask
-	VisibilityChangeMask    = C.VisibilityChangeMask
+	FocusChangeMask          = C.FocusChangeMask
+	PropertyChangeMask       = C.PropertyChangeMask
+	VisibilityChangeMask     = C.VisibilityChangeMask
 )
 
 // Event type constants.
@@ -116,11 +116,11 @@ const (
 
 // Window attribute constants.
 const (
-	CWBackPixel       = C.CWBackPixel
-	CWBorderPixel     = C.CWBorderPixel
-	CWBitGravity      = C.CWBitGravity
-	CWEventMask       = C.CWEventMask
-	CWColormap        = C.CWColormap
+	CWBackPixel        = C.CWBackPixel
+	CWBorderPixel      = C.CWBorderPixel
+	CWBitGravity       = C.CWBitGravity
+	CWEventMask        = C.CWEventMask
+	CWColormap         = C.CWColormap
 	CWOverrideRedirect = C.CWOverrideRedirect
 
 	InputOutput = C.InputOutput
@@ -195,9 +195,9 @@ const (
 
 // Atom predefined constants.
 var (
-	XA_WM_NAME          = Atom(C.XA_WM_NAME)
-	XA_STRING           = Atom(C.XA_STRING)
-	XA_WM_NORMAL_HINTS  = Atom(C.XA_WM_NORMAL_HINTS)
+	XA_WM_NAME         = Atom(C.XA_WM_NAME)
+	XA_STRING          = Atom(C.XA_STRING)
+	XA_WM_NORMAL_HINTS = Atom(C.XA_WM_NORMAL_HINTS)
 )
 
 // None is the X11 None constant.

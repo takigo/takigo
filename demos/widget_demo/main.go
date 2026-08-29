@@ -632,4 +632,3 @@ func addFormattedText(t *text.TextWidget, content string) {
 		}
 	}
 }
-

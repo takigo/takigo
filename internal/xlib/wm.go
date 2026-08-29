@@ -63,13 +63,13 @@ const (
 
 // SizeHints holds XSizeHints data.
 type SizeHints struct {
-	Flags                int64
-	X, Y                 int
-	Width, Height        int
-	MinWidth, MinHeight  int
-	MaxWidth, MaxHeight  int
-	WidthInc, HeightInc  int
-	WinGravity           int
+	Flags               int64
+	X, Y                int
+	Width, Height       int
+	MinWidth, MinHeight int
+	MaxWidth, MaxHeight int
+	WidthInc, HeightInc int
+	WinGravity          int
 }
 
 // SetWMNormalHints sets the WM_NORMAL_HINTS property.

@@ -57,7 +57,7 @@ func MenuOpt(m *menu.Menu) MenubuttonOption     { return func(mb *Menubutton) { 
 func DirectionOpt(d Direction) MenubuttonOption { return func(mb *Menubutton) { mb.Direction = d } }
 func PadX(p int) MenubuttonOption               { return func(mb *Menubutton) { mb.PadX = p } }
 func PadY(p int) MenubuttonOption               { return func(mb *Menubutton) { mb.PadY = p } }
-func UnderlineOpt(i int) MenubuttonOption        { return func(mb *Menubutton) { mb.Underline = i } }
+func UnderlineOpt(i int) MenubuttonOption       { return func(mb *Menubutton) { mb.Underline = i } }
 func IndicatorOnOpt(on bool) MenubuttonOption   { return func(mb *Menubutton) { mb.IndicatorOn = on } }
 func OptionMenuOpt(on bool) MenubuttonOption    { return func(mb *Menubutton) { mb.OptionMenu = on } }
 

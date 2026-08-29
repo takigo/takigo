@@ -33,9 +33,11 @@ type TrayIcon struct {
 // TrayOption configures a TrayIcon.
 type TrayOption func(*TrayIcon)
 
-func TrayTooltip(s string) TrayOption                    { return func(t *TrayIcon) { t.tooltip = s } }
-func TrayClickHandler(fn func()) TrayOption              { return func(t *TrayIcon) { t.clickHandler = fn } }
-func TrayRightClickHandler(fn func(x, y int)) TrayOption { return func(t *TrayIcon) { t.rightClickHandler = fn } }
+func TrayTooltip(s string) TrayOption       { return func(t *TrayIcon) { t.tooltip = s } }
+func TrayClickHandler(fn func()) TrayOption { return func(t *TrayIcon) { t.clickHandler = fn } }
+func TrayRightClickHandler(fn func(x, y int)) TrayOption {
+	return func(t *TrayIcon) { t.rightClickHandler = fn }
+}
 
 // New creates a new system tray icon and docks it.
 // Returns an error if no system tray manager is running.

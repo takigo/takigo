@@ -11,7 +11,7 @@ import (
 
 // Focus mode / detail constants (mirrors platform package values for readability).
 const (
-	focusModeNormal   = platform.FocusModeNormal
+	focusModeNormal     = platform.FocusModeNormal
 	focusDetailInferior = platform.FocusDetailInferior
 	focusDetailPointer  = platform.FocusDetailPointer
 )
@@ -125,7 +125,6 @@ func bindMenu(m *Menu, app widget.AppContext) {
 		}
 		m.unpostChain()
 	})
-
 
 	// Keyboard.
 	app.Dispatcher().Bind(w.PlatformID, event.KeyPressMask, func(ev *event.Event) {

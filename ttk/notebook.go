@@ -273,8 +273,8 @@ func (nb *Notebook) Display() {
 
 		// Tab border: top, left, right.
 		d.SetForeground(gc, border.LightPixel)
-		d.DrawLine(pixDrawable, gc, tabX, tabY, tabX+tw-1, tabY)         // top
-		d.DrawLine(pixDrawable, gc, tabX, tabY, tabX, tabY+tabH-1)       // left
+		d.DrawLine(pixDrawable, gc, tabX, tabY, tabX+tw-1, tabY)   // top
+		d.DrawLine(pixDrawable, gc, tabX, tabY, tabX, tabY+tabH-1) // left
 		d.SetForeground(gc, border.DarkPixel)
 		d.DrawLine(pixDrawable, gc, tabX+tw-1, tabY, tabX+tw-1, tabY+tabH-1) // right
 
@@ -288,9 +288,9 @@ func (nb *Notebook) Display() {
 			textY := tabY + (tabH-m.Linespace())/2 + m.Ascent
 
 			if df, ok := nb.Font.(platform.DrawableFont); ok {
-				r := uint16((fgPixel >> 16) & 0xFF) << 8
-				g := uint16((fgPixel >> 8) & 0xFF) << 8
-				b := uint16((fgPixel) & 0xFF) << 8
+				r := uint16((fgPixel>>16)&0xFF) << 8
+				g := uint16((fgPixel>>8)&0xFF) << 8
+				b := uint16((fgPixel)&0xFF) << 8
 				df.DrawString(pixDrawable, textX, textY, tab.Text, fgPixel, r, g, b)
 			}
 

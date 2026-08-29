@@ -347,7 +347,6 @@ func (m *Message) Display() {
 	d.Flush()
 }
 
-
 // Configure applies options to the message.
 func (m *Message) Configure(opts ...option.Option) {
 	option.Apply(m, opts)

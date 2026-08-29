@@ -24,13 +24,13 @@ type Point struct {
 
 // SizeHints holds window sizing hints.
 type SizeHints struct {
-	Flags                int64
-	X, Y                 int
-	Width, Height        int
-	MinWidth, MinHeight  int
-	MaxWidth, MaxHeight  int
-	WidthInc, HeightInc  int
-	WinGravity           int
+	Flags               int64
+	X, Y                int
+	Width, Height       int
+	MinWidth, MinHeight int
+	MaxWidth, MaxHeight int
+	WidthInc, HeightInc int
+	WinGravity          int
 }
 
 // WMHints holds window manager hints.

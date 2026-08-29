@@ -10,15 +10,15 @@ import (
 
 // Alt theme colors (from Tk's altTheme.tcl).
 const (
-	frameColor     uint64 = 0xd9d9d9
-	windowColor    uint64 = 0xffffff
-	darkerColor    uint64 = 0xc3c3c3
-	borderColor    uint64 = 0x414141
-	activeBg       uint64 = 0xececec
-	disabledFg     uint64 = 0xa3a3a3
-	selectBg       uint64 = 0x4a6984
-	selectFg       uint64 = 0xffffff
-	altIndicator   uint64 = 0xaaaaaa
+	frameColor   uint64 = 0xd9d9d9
+	windowColor  uint64 = 0xffffff
+	darkerColor  uint64 = 0xc3c3c3
+	borderColor  uint64 = 0x414141
+	activeBg     uint64 = 0xececec
+	disabledFg   uint64 = 0xa3a3a3
+	selectBg     uint64 = 0x4a6984
+	selectFg     uint64 = 0xffffff
+	altIndicator uint64 = 0xaaaaaa
 )
 
 func init() {

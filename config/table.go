@@ -20,10 +20,10 @@ type Getter func(target any) any
 type Setter func(target any, value any) error
 
 type entry struct {
-	spec   Spec
-	get    Getter
-	set    Setter
-	mask   int // bitmask indicating which aspect changed
+	spec Spec
+	get  Getter
+	set  Setter
+	mask int // bitmask indicating which aspect changed
 }
 
 // NewTable creates a new configuration table.

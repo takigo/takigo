@@ -10,12 +10,12 @@ import (
 
 // Type conversion helpers — platform types are uintptr, internal/cocoa types
 // are C.uintptr_t based. We go through uintptr as an intermediary.
-func toWin(w platform.WindowID) clib.Window     { return clib.Window(uintptr(w)) }
+func toWin(w platform.WindowID) clib.Window          { return clib.Window(uintptr(w)) }
 func toDrawable(d platform.DrawableID) clib.Drawable { return clib.Drawable(uintptr(d)) }
-func toGC(gc platform.GCID) clib.GC             { return clib.GC(uintptr(gc)) }
-func toCursor(c platform.CursorID) clib.Cursor   { return clib.Cursor(uintptr(c)) }
-func toPixmap(p platform.PixmapID) clib.Pixmap   { return clib.Pixmap(uintptr(p)) }
-func fromWin(w clib.Window) platform.WindowID    { return platform.WindowID(uintptr(w)) }
+func toGC(gc platform.GCID) clib.GC                  { return clib.GC(uintptr(gc)) }
+func toCursor(c platform.CursorID) clib.Cursor       { return clib.Cursor(uintptr(c)) }
+func toPixmap(p platform.PixmapID) clib.Pixmap       { return clib.Pixmap(uintptr(p)) }
+func fromWin(w clib.Window) platform.WindowID        { return platform.WindowID(uintptr(w)) }
 
 // CocoaDisplay implements platform.DisplayServer using macOS Cocoa/AppKit.
 type CocoaDisplay struct {
@@ -46,22 +46,22 @@ func (d *CocoaDisplay) FontOpener(screen int) *FontOpener {
 
 // --- DisplayServer core methods ---
 
-func (d *CocoaDisplay) Close()                              { clib.Stop() }
-func (d *CocoaDisplay) DefaultScreen() int                  { return 0 }
-func (d *CocoaDisplay) DefaultRootWindow() platform.WindowID { return d.rootWindow }
+func (d *CocoaDisplay) Close()                                  { clib.Stop() }
+func (d *CocoaDisplay) DefaultScreen() int                      { return 0 }
+func (d *CocoaDisplay) DefaultRootWindow() platform.WindowID    { return d.rootWindow }
 func (d *CocoaDisplay) RootWindow(screen int) platform.WindowID { return d.rootWindow }
-func (d *CocoaDisplay) DefaultDepth(screen int) int         { return clib.ScreenDepth() }
-func (d *CocoaDisplay) ScreenWidth(screen int) int          { return clib.ScreenWidth() }
-func (d *CocoaDisplay) ScreenHeight(screen int) int         { return clib.ScreenHeight() }
-func (d *CocoaDisplay) ScreenWidthMM(screen int) int        { return clib.ScreenWidthMM() }
-func (d *CocoaDisplay) ScreenHeightMM(screen int) int       { return clib.ScreenHeightMM() }
-func (d *CocoaDisplay) WhitePixel(screen int) uint64        { return 0x00FFFFFF }
-func (d *CocoaDisplay) BlackPixel(screen int) uint64        { return 0x00000000 }
-func (d *CocoaDisplay) ConnectionNumber() int               { return -1 }
-func (d *CocoaDisplay) Sync(discard bool)                   { clib.Flush() }
-func (d *CocoaDisplay) Flush()                              { clib.Flush() }
-func (d *CocoaDisplay) Pending() int                        { return clib.Pending() }
-func (d *CocoaDisplay) ResourceManagerString() string       { return "" }
+func (d *CocoaDisplay) DefaultDepth(screen int) int             { return clib.ScreenDepth() }
+func (d *CocoaDisplay) ScreenWidth(screen int) int              { return clib.ScreenWidth() }
+func (d *CocoaDisplay) ScreenHeight(screen int) int             { return clib.ScreenHeight() }
+func (d *CocoaDisplay) ScreenWidthMM(screen int) int            { return clib.ScreenWidthMM() }
+func (d *CocoaDisplay) ScreenHeightMM(screen int) int           { return clib.ScreenHeightMM() }
+func (d *CocoaDisplay) WhitePixel(screen int) uint64            { return 0x00FFFFFF }
+func (d *CocoaDisplay) BlackPixel(screen int) uint64            { return 0x00000000 }
+func (d *CocoaDisplay) ConnectionNumber() int                   { return -1 }
+func (d *CocoaDisplay) Sync(discard bool)                       { clib.Flush() }
+func (d *CocoaDisplay) Flush()                                  { clib.Flush() }
+func (d *CocoaDisplay) Pending() int                            { return clib.Pending() }
+func (d *CocoaDisplay) ResourceManagerString() string           { return "" }
 
 // --- WindowManager ---
 
@@ -162,9 +162,13 @@ func (d *CocoaDisplay) CreateGC(drawable platform.DrawableID, valueMask uint64, 
 	gc := clib.CreateGC(values.Foreground, values.Background, values.LineWidth, values.Function)
 	return platform.GCID(uintptr(gc))
 }
-func (d *CocoaDisplay) FreeGC(gc platform.GCID)                    { clib.FreeGC(toGC(gc)) }
-func (d *CocoaDisplay) SetForeground(gc platform.GCID, pixel uint64) { clib.SetForeground(toGC(gc), pixel) }
-func (d *CocoaDisplay) SetBackground(gc platform.GCID, pixel uint64) { clib.SetBackground(toGC(gc), pixel) }
+func (d *CocoaDisplay) FreeGC(gc platform.GCID) { clib.FreeGC(toGC(gc)) }
+func (d *CocoaDisplay) SetForeground(gc platform.GCID, pixel uint64) {
+	clib.SetForeground(toGC(gc), pixel)
+}
+func (d *CocoaDisplay) SetBackground(gc platform.GCID, pixel uint64) {
+	clib.SetBackground(toGC(gc), pixel)
+}
 func (d *CocoaDisplay) SetLineAttributes(gc platform.GCID, lineWidth uint, lineStyle, capStyle, joinStyle int) {
 	clib.SetLineAttributes(toGC(gc), lineWidth, lineStyle, capStyle, joinStyle)
 }
@@ -244,7 +248,7 @@ func (d *CocoaDisplay) DefineCursor(w platform.WindowID, cursor platform.CursorI
 func (d *CocoaDisplay) SetCursorShape(w platform.WindowID, shape uint) {
 	clib.SetCursorShape(toWin(w), shape)
 }
-func (d *CocoaDisplay) UndefineCursor(w platform.WindowID) { clib.UndefineCursor(toWin(w)) }
+func (d *CocoaDisplay) UndefineCursor(w platform.WindowID)  { clib.UndefineCursor(toWin(w)) }
 func (d *CocoaDisplay) FreeCursor(cursor platform.CursorID) { clib.FreeCursor(toCursor(cursor)) }
 
 // --- PropertyManager ---
@@ -315,10 +319,10 @@ func (d *CocoaDisplay) PumpEvents() {
 
 // --- InputMethodManager ---
 
-func (d *CocoaDisplay) InitIM(root platform.WindowID) {}
-func (d *CocoaDisplay) HasIM() bool                   { return false }
+func (d *CocoaDisplay) InitIM(root platform.WindowID)  {}
+func (d *CocoaDisplay) HasIM() bool                    { return false }
 func (d *CocoaDisplay) SetICFocus(w platform.WindowID) {}
-func (d *CocoaDisplay) UnsetICFocus()                 {}
+func (d *CocoaDisplay) UnsetICFocus()                  {}
 
 // Verify at compile time.
 var _ platform.DisplayServer = (*CocoaDisplay)(nil)

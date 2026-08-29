@@ -10,7 +10,7 @@ import (
 type MessageType int
 
 const (
-	MsgInfo     MessageType = iota
+	MsgInfo MessageType = iota
 	MsgWarning
 	MsgError
 	MsgQuestion
@@ -20,7 +20,7 @@ const (
 type ButtonSet int
 
 const (
-	BtnOK              ButtonSet = iota
+	BtnOK ButtonSet = iota
 	BtnOKCancel
 	BtnYesNo
 	BtnYesNoCancel
@@ -39,10 +39,10 @@ type messageConfig struct {
 // MessageOption configures ShowMessage.
 type MessageOption func(*messageConfig)
 
-func MsgTitle(s string) MessageOption     { return func(c *messageConfig) { c.title = s } }
-func MsgMessage(s string) MessageOption   { return func(c *messageConfig) { c.message = s } }
-func MsgDetail(s string) MessageOption    { return func(c *messageConfig) { c.detail = s } }
-func MsgType(t MessageType) MessageOption { return func(c *messageConfig) { c.msgType = t } }
+func MsgTitle(s string) MessageOption      { return func(c *messageConfig) { c.title = s } }
+func MsgMessage(s string) MessageOption    { return func(c *messageConfig) { c.message = s } }
+func MsgDetail(s string) MessageOption     { return func(c *messageConfig) { c.detail = s } }
+func MsgType(t MessageType) MessageOption  { return func(c *messageConfig) { c.msgType = t } }
 func MsgButtons(b ButtonSet) MessageOption { return func(c *messageConfig) { c.buttons = b } }
 
 // ShowMessage displays a modal message box and returns the user's choice.

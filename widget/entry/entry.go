@@ -695,4 +695,3 @@ func (e *Entry) Destroy() {
 	e.Destroyed = true
 	window.DestroyWindow(e.Win)
 }
-

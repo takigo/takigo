@@ -186,10 +186,10 @@ func TestPatternSpecificity(t *testing.T) {
 		pattern string
 		wantGt  string // this pattern should be more specific than wantGt
 	}{
-		{"<Control-Button-1>", "<Button-1>"},   // modifier adds specificity
-		{"<Button-1>", "<ButtonPress>"},         // detail adds specificity
-		{"<Double-Button-1>", "<Button-1>"},     // double adds specificity
-		{"<Control-Shift-a>", "<Control-a>"},    // more modifiers = more specific
+		{"<Control-Button-1>", "<Button-1>"}, // modifier adds specificity
+		{"<Button-1>", "<ButtonPress>"},      // detail adds specificity
+		{"<Double-Button-1>", "<Button-1>"},  // double adds specificity
+		{"<Control-Shift-a>", "<Control-a>"}, // more modifiers = more specific
 	}
 	for _, tt := range tests {
 		seq1, _ := Parse(tt.pattern)

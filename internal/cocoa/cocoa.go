@@ -72,12 +72,12 @@ func (e *RawEvent) MessageData() [5]int64 {
 
 // ---- Application lifecycle ----
 
-func Init()            { C.CocoaInit() }
-func Run()             { C.CocoaRun() }
-func Stop()            { C.CocoaStop() }
-func Flush()           { C.CocoaFlush() }
-func StartEventPump()  { C.CocoaStartEventPump() }
-func PumpEvents()      { C.CocoaPumpEvents() }
+func Init()           { C.CocoaInit() }
+func Run()            { C.CocoaRun() }
+func Stop()           { C.CocoaStop() }
+func Flush()          { C.CocoaFlush() }
+func StartEventPump() { C.CocoaStartEventPump() }
+func PumpEvents()     { C.CocoaPumpEvents() }
 
 // ---- Screen info ----
 
@@ -104,12 +104,12 @@ func CreateSimpleWindow(parent Window, x, y int, width, height, borderWidth uint
 		C.uint64_t(border), C.uint64_t(background)))
 }
 
-func DestroyWindow(w Window)    { C.CocoaDestroyWindow(C.CocoaWindowID(w)) }
-func MapWindow(w Window)        { C.CocoaMapWindow(C.CocoaWindowID(w)) }
-func MapRaised(w Window)        { C.CocoaMapRaised(C.CocoaWindowID(w)) }
-func UnmapWindow(w Window)      { C.CocoaUnmapWindow(C.CocoaWindowID(w)) }
-func RaiseWindow(w Window)      { C.CocoaRaiseWindow(C.CocoaWindowID(w)) }
-func LowerWindow(w Window)      { C.CocoaLowerWindow(C.CocoaWindowID(w)) }
+func DestroyWindow(w Window) { C.CocoaDestroyWindow(C.CocoaWindowID(w)) }
+func MapWindow(w Window)     { C.CocoaMapWindow(C.CocoaWindowID(w)) }
+func MapRaised(w Window)     { C.CocoaMapRaised(C.CocoaWindowID(w)) }
+func UnmapWindow(w Window)   { C.CocoaUnmapWindow(C.CocoaWindowID(w)) }
+func RaiseWindow(w Window)   { C.CocoaRaiseWindow(C.CocoaWindowID(w)) }
+func LowerWindow(w Window)   { C.CocoaLowerWindow(C.CocoaWindowID(w)) }
 func MoveWindow(w Window, x, y int) {
 	C.CocoaMoveWindow(C.CocoaWindowID(w), C.int(x), C.int(y))
 }
@@ -149,10 +149,10 @@ func ClearArea(w Window, x, y int, width, height uint, exposures bool) {
 func CreateGC(fg, bg uint64, lineWidth, function int) GC {
 	return GC(C.CocoaCreateGC(C.uint64_t(fg), C.uint64_t(bg), C.int(lineWidth), C.int(function)))
 }
-func FreeGC(gc GC)                       { C.CocoaFreeGC(C.CocoaGCID(gc)) }
-func SetForeground(gc GC, pixel uint64)  { C.CocoaSetForeground(C.CocoaGCID(gc), C.uint64_t(pixel)) }
-func SetBackground(gc GC, pixel uint64)  { C.CocoaSetBackground(C.CocoaGCID(gc), C.uint64_t(pixel)) }
-func SetFillStyle(gc GC, fillStyle int)  { C.CocoaSetFillStyle(C.CocoaGCID(gc), C.int(fillStyle)) }
+func FreeGC(gc GC)                      { C.CocoaFreeGC(C.CocoaGCID(gc)) }
+func SetForeground(gc GC, pixel uint64) { C.CocoaSetForeground(C.CocoaGCID(gc), C.uint64_t(pixel)) }
+func SetBackground(gc GC, pixel uint64) { C.CocoaSetBackground(C.CocoaGCID(gc), C.uint64_t(pixel)) }
+func SetFillStyle(gc GC, fillStyle int) { C.CocoaSetFillStyle(C.CocoaGCID(gc), C.int(fillStyle)) }
 func SetLineAttributes(gc GC, lineWidth uint, lineStyle, capStyle, joinStyle int) {
 	C.CocoaSetLineAttributes(C.CocoaGCID(gc), C.uint(lineWidth),
 		C.int(lineStyle), C.int(capStyle), C.int(joinStyle))
@@ -236,14 +236,14 @@ func SetCursorShape(w Window, shape uint) {
 	C.CocoaSetCursorShape(C.CocoaWindowID(w), C.uint(shape))
 }
 func UndefineCursor(w Window) { C.CocoaUndefineCursor(C.CocoaWindowID(w)) }
-func FreeCursor(c Cursor)    { C.CocoaFreeCursor(C.CocoaCursorID(c)) }
+func FreeCursor(c Cursor)     { C.CocoaFreeCursor(C.CocoaCursorID(c)) }
 
 // ---- Grab ----
 
-func GrabPointer(w Window) int    { return int(C.CocoaGrabPointer(C.CocoaWindowID(w))) }
-func UngrabPointer()               { C.CocoaUngrabPointer() }
-func GrabKeyboard(w Window) int   { return int(C.CocoaGrabKeyboard(C.CocoaWindowID(w))) }
-func UngrabKeyboard()              { C.CocoaUngrabKeyboard() }
+func GrabPointer(w Window) int  { return int(C.CocoaGrabPointer(C.CocoaWindowID(w))) }
+func UngrabPointer()            { C.CocoaUngrabPointer() }
+func GrabKeyboard(w Window) int { return int(C.CocoaGrabKeyboard(C.CocoaWindowID(w))) }
+func UngrabKeyboard()           { C.CocoaUngrabKeyboard() }
 
 // ---- Clipboard ----
 
@@ -298,9 +298,9 @@ func OpenFont(family string, size float64, weight, slant int) FontID {
 	return FontID(C.CocoaOpenFont(cfamily, C.double(size), C.int(weight), C.int(slant)))
 }
 
-func CloseFont(f FontID)       { C.CocoaCloseFont(C.CocoaFontID(f)) }
-func FontAscent(f FontID) int  { return int(C.CocoaFontAscent(C.CocoaFontID(f))) }
-func FontDescent(f FontID) int { return int(C.CocoaFontDescent(C.CocoaFontID(f))) }
+func CloseFont(f FontID)        { C.CocoaCloseFont(C.CocoaFontID(f)) }
+func FontAscent(f FontID) int   { return int(C.CocoaFontAscent(C.CocoaFontID(f))) }
+func FontDescent(f FontID) int  { return int(C.CocoaFontDescent(C.CocoaFontID(f))) }
 func FontMaxWidth(f FontID) int { return int(C.CocoaFontMaxWidth(C.CocoaFontID(f))) }
 func FontIsFixed(f FontID) bool { return bool(C.CocoaFontIsFixed(C.CocoaFontID(f))) }
 
@@ -326,9 +326,9 @@ func DrawString(d Drawable, f FontID, x, y int, s string, pixel uint64, r, g, b 
 
 // ---- WM ----
 
-func SetWMProtocols(w Window)        { C.CocoaSetWMProtocols(C.CocoaWindowID(w)) }
-func IconifyWindow(w Window)         { C.CocoaIconifyWindow(C.CocoaWindowID(w)) }
-func WithdrawWindow(w Window)        { C.CocoaWithdrawWindow(C.CocoaWindowID(w)) }
+func SetWMProtocols(w Window) { C.CocoaSetWMProtocols(C.CocoaWindowID(w)) }
+func IconifyWindow(w Window)  { C.CocoaIconifyWindow(C.CocoaWindowID(w)) }
+func WithdrawWindow(w Window) { C.CocoaWithdrawWindow(C.CocoaWindowID(w)) }
 
 func SetWMHints(w Window, input bool, initialState int) {
 	C.CocoaSetWMHints(C.CocoaWindowID(w), C.bool(input), C.int(initialState))

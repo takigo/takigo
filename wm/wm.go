@@ -47,17 +47,17 @@ type WmInfo struct {
 	Class    string // WM_CLASS res_class
 
 	// Geometry.
-	UserX, UserY     int  // user-requested position
-	UserW, UserH     int  // user-requested size (-1 = not set)
-	NegativeX        bool // x from right edge
-	NegativeY        bool // y from bottom edge
-	PositionSet      bool // user has set position
+	UserX, UserY int  // user-requested position
+	UserW, UserH int  // user-requested size (-1 = not set)
+	NegativeX    bool // x from right edge
+	NegativeY    bool // y from bottom edge
+	PositionSet  bool // user has set position
 
 	// Size constraints.
 	MinWidth, MinHeight int
 	MaxWidth, MaxHeight int // 0 = unconstrained
-	ResizableW         bool
-	ResizableH         bool
+	ResizableW          bool
+	ResizableH          bool
 
 	// State.
 	CurrentState State
@@ -75,18 +75,18 @@ type WmInfo struct {
 
 // wmAtoms caches interned atoms.
 type wmAtoms struct {
-	NetWMName             platform.AtomID
-	NetWMIconName         platform.AtomID
-	NetWMState            platform.AtomID
-	NetWMStateMaxVert     platform.AtomID
-	NetWMStateMaxHorz     platform.AtomID
-	NetWMStateFullscreen  platform.AtomID
-	NetWMStateAbove       platform.AtomID
-	NetWMPing             platform.AtomID
-	UTF8String            platform.AtomID
-	WMDeleteWindow        platform.AtomID
-	WMProtocols           platform.AtomID
-	WMTransientFor        platform.AtomID
+	NetWMName            platform.AtomID
+	NetWMIconName        platform.AtomID
+	NetWMState           platform.AtomID
+	NetWMStateMaxVert    platform.AtomID
+	NetWMStateMaxHorz    platform.AtomID
+	NetWMStateFullscreen platform.AtomID
+	NetWMStateAbove      platform.AtomID
+	NetWMPing            platform.AtomID
+	UTF8String           platform.AtomID
+	WMDeleteWindow       platform.AtomID
+	WMProtocols          platform.AtomID
+	WMTransientFor       platform.AtomID
 }
 
 var atomCache = map[platform.DisplayServer]*wmAtoms{}
@@ -120,18 +120,18 @@ func Init(w *window.Window) *WmInfo {
 	atoms := getAtoms(d)
 
 	info := &WmInfo{
-		Win:         w,
-		Title:       w.Name,
-		Class:       "Takigo",
-		UserW:       -1,
-		UserH:       -1,
-		MinWidth:    1,
-		MinHeight:   1,
-		ResizableW:  true,
-		ResizableH:  true,
+		Win:          w,
+		Title:        w.Name,
+		Class:        "Takigo",
+		UserW:        -1,
+		UserH:        -1,
+		MinWidth:     1,
+		MinHeight:    1,
+		ResizableW:   true,
+		ResizableH:   true,
 		CurrentState: StateNormal,
-		Protocols:   make(map[platform.AtomID]func()),
-		atoms:       atoms,
+		Protocols:    make(map[platform.AtomID]func()),
+		atoms:        atoms,
 	}
 
 	// Set default WM hints.

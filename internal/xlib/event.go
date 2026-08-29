@@ -231,15 +231,15 @@ func (d *Display) PeekEvent() *RawEvent {
 
 // KeyEvent holds parsed key press/release data.
 type KeyEvent struct {
-	EventWindow Window
-	RootWindow  Window
-	X, Y        int
+	EventWindow  Window
+	RootWindow   Window
+	X, Y         int
 	RootX, RootY int
-	State       uint
-	KeyCode     uint
-	KeySym      KeySym
-	Str         string
-	Time        Time
+	State        uint
+	KeyCode      uint
+	KeySym       KeySym
+	Str          string
+	Time         Time
 }
 
 // ParseKeyEvent extracts key event data using XLookupString (legacy fallback).
@@ -344,10 +344,10 @@ func (e *RawEvent) ParseMotionEvent() MotionEvent {
 
 // ExposeEvent holds parsed expose event data.
 type ExposeEvent struct {
-	EventWindow    Window
-	X, Y           int
-	Width, Height  int
-	Count          int
+	EventWindow   Window
+	X, Y          int
+	Width, Height int
+	Count         int
 }
 
 // ParseExposeEvent extracts expose event data.

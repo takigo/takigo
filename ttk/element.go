@@ -36,5 +36,5 @@ type TextProvider interface {
 // NullElement is a zero-size element that draws nothing.
 type NullElement struct{}
 
-func (NullElement) Size(State) (int, int, Padding) { return 0, 0, Padding{} }
+func (NullElement) Size(State) (int, int, Padding)                                              { return 0, 0, Padding{} }
 func (NullElement) Draw(platform.DisplayServer, platform.DrawableID, platform.GCID, Box, State) {}

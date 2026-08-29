@@ -31,7 +31,7 @@ type MenuEntry struct {
 	SubMenu     *Menu
 	Checked     bool
 	State       widget.State
-	AccelStr    string              // accelerator text for display
+	AccelStr    string             // accelerator text for display
 	Underline   int                // index of char to underline for keyboard nav; -1 = none
 	Image       widget.WidgetImage // optional image
 	SelectImage widget.WidgetImage // image shown when entry is active/highlighted

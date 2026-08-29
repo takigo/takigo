@@ -17,7 +17,7 @@ func Apply(target any, opts []Option) {
 type Relief int
 
 const (
-	ReliefFlat   Relief = iota
+	ReliefFlat Relief = iota
 	ReliefRaised
 	ReliefSunken
 	ReliefGroove

@@ -34,7 +34,7 @@ type Combobox struct {
 	Command   func(value string) // called when value changes
 
 	// Text selection.
-	selFirst  int    // -1 = no selection
+	selFirst  int // -1 = no selection
 	selLast   int
 	selAnchor int
 	selBg     uint64 // selection highlight background
@@ -251,9 +251,9 @@ func (c *Combobox) Display() {
 				}
 				seg := string(c.text[start:end])
 				segX := textX + c.Font.MeasureString(string(c.text[:start]))
-				r := uint16((clr >> 16) & 0xFF) << 8
-				g := uint16((clr >> 8) & 0xFF) << 8
-				b := uint16((clr) & 0xFF) << 8
+				r := uint16((clr>>16)&0xFF) << 8
+				g := uint16((clr>>8)&0xFF) << 8
+				b := uint16((clr)&0xFF) << 8
 				df.DrawString(pixDrawable, segX, textY, seg, clr, r, g, b)
 			}
 			if hasSel && len(c.text) > 0 {
@@ -492,9 +492,9 @@ func (c *Combobox) displayDropdown() {
 			}
 
 			if df, ok := c.Font.(platform.DrawableFont); ok {
-				r := uint16((fg >> 16) & 0xFF) << 8
-				g := uint16((fg >> 8) & 0xFF) << 8
-				b := uint16((fg) & 0xFF) << 8
+				r := uint16((fg>>16)&0xFF) << 8
+				g := uint16((fg>>8)&0xFF) << 8
+				b := uint16((fg)&0xFF) << 8
 				df.DrawString(dw.Drawable(), 4, textY, val, fg, r, g, b)
 			}
 		}

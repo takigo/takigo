@@ -14,7 +14,7 @@ import (
 type Side int
 
 const (
-	Top    Side = iota
+	Top Side = iota
 	Bottom
 	Left
 	Right
@@ -34,14 +34,14 @@ const (
 type PackOption func(*packConfig)
 
 type packConfig struct {
-	side    Side
-	fill    Fill
-	expand  bool
-	anchor  option.Anchor
-	padX    int
-	padY    int
-	iPadX   int
-	iPadY   int
+	side   Side
+	fill   Fill
+	expand bool
+	anchor option.Anchor
+	padX   int
+	padY   int
+	iPadX  int
+	iPadY  int
 }
 
 // Side sets the packing side.

@@ -11,8 +11,8 @@ import (
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/geometry/pack"
 	tkimage "github.com/msorc/takigo/image"
-	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/ttk"
 	_ "github.com/msorc/takigo/ttk/clamtheme"
 	_ "github.com/msorc/takigo/ttk/defaulttheme"
@@ -30,9 +30,9 @@ func generateTestImage() *goimage.RGBA {
 	img := goimage.NewRGBA(goimage.Rect(0, 0, 64, 64))
 	colors := [4]color.RGBA{
 		{R: 220, G: 50, B: 50, A: 255},  // top-left: red
-		{R: 50, G: 150, B: 220, A: 255},  // top-right: blue
-		{R: 50, G: 180, B: 80, A: 255},   // bottom-left: green
-		{R: 220, G: 180, B: 50, A: 255},  // bottom-right: yellow
+		{R: 50, G: 150, B: 220, A: 255}, // top-right: blue
+		{R: 50, G: 180, B: 80, A: 255},  // bottom-left: green
+		{R: 220, G: 180, B: 50, A: 255}, // bottom-right: yellow
 	}
 	for y := 0; y < 64; y++ {
 		for x := 0; x < 64; x++ {
