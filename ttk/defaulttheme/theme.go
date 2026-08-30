@@ -245,6 +245,24 @@ func init() {
 	tspinbox.Defaults["-foreground"] = uint64(0x000000)
 	tspinbox.Defaults["-fieldbackground"] = uint64(0xffffff)
 
+	// TEntry style.
+	tentry := theme.GetStyle("TEntry")
+	tentry.Defaults["-background"] = uint64(0xd9d9d9)
+	tentry.Defaults["-foreground"] = uint64(0x000000)
+	tentry.Defaults["-fieldbackground"] = uint64(0xffffff)
+	tentry.Defaults["-selectbackground"] = uint64(0x4a6984)
+	tentry.Defaults["-selectforeground"] = uint64(0xffffff)
+	tentry.Defaults["-insertwidth"] = 1
+	tentry.Defaults["-padding"] = ttk.Padding{Left: 1, Top: 1, Right: 1, Bottom: 1}
+	tentry.Defaults["-insertcolor"] = uint64(0x000000)
+
+	// TEntry layout: background → highlight → border → padding
+	theme.RegisterLayout("TEntry",
+		ttk.L("background", ttk.Expand|ttk.FillF,
+			ttk.L("highlight", ttk.Expand|ttk.FillF,
+				ttk.L("border", ttk.Expand|ttk.FillF|ttk.Border,
+					ttk.L("padding", ttk.Expand|ttk.FillF)))))
+
 	// TSizegrip style.
 	tsizegrip := theme.GetStyle("TSizegrip")
 	tsizegrip.Defaults["-background"] = uint64(0xd9d9d9)

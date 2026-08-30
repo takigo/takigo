@@ -145,5 +145,23 @@ func init() {
 	vProgress := theme.GetStyle("Vertical.TProgressbar")
 	vProgress.Defaults["-barcolor"] = selectBg
 
+	// TEntry style.
+	tentry := theme.GetStyle("TEntry")
+	tentry.Defaults["-background"] = frameColor
+	tentry.Defaults["-foreground"] = uint64(0x000000)
+	tentry.Defaults["-fieldbackground"] = windowColor
+	tentry.Defaults["-selectbackground"] = selectBg
+	tentry.Defaults["-selectforeground"] = selectFg
+	tentry.Defaults["-insertwidth"] = 1
+	tentry.Defaults["-padding"] = ttk.Padding{Left: 1, Top: 1, Right: 1, Bottom: 1}
+	tentry.Defaults["-insertcolor"] = uint64(0x000000)
+
+	// TEntry layout: background → highlight → border → padding
+	theme.RegisterLayout("TEntry",
+		ttk.L("background", ttk.Expand|ttk.FillF,
+			ttk.L("highlight", ttk.Expand|ttk.FillF,
+				ttk.L("border", ttk.Expand|ttk.FillF|ttk.Border,
+					ttk.L("padding", ttk.Expand|ttk.FillF)))))
+
 	ttk.RegisterTheme(theme)
 }

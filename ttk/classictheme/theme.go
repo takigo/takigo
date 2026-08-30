@@ -665,6 +665,22 @@ func init() {
 					ttk.L("padding", ttk.FillXF,
 						ttk.L("label", 0))))))
 
+	// TEntry style.
+	tentry := theme.GetStyle("TEntry")
+	tentry.Defaults["-background"] = frameColor
+	tentry.Defaults["-foreground"] = uint64(0x000000)
+	tentry.Defaults["-fieldbackground"] = uint64(0xffffff)
+	tentry.Defaults["-selectbackground"] = selectBg
+	tentry.Defaults["-selectforeground"] = uint64(0xffffff)
+	tentry.Defaults["-insertwidth"] = 1
+	tentry.Defaults["-padding"] = ttk.Padding{Left: 1, Top: 1, Right: 1, Bottom: 1}
+	tentry.Defaults["-insertcolor"] = uint64(0x000000)
+	tentry.Maps["-fieldbackground"] = ttk.StateMap[any]{
+		{Spec: ttk.StateSpec{OnBits: ttk.StateFocus}, Value: uint64(0xffffff)},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateDisabled}, Value: frameColor},
+		{Spec: ttk.StateSpec{}, Value: uint64(0xffffff)},
+	}
+
 	// TEntry: highlight → field → padding → textarea (field=layout engine, textarea=NullElement)
 	theme.RegisterLayout("TEntry",
 		ttk.L("background", ttk.Expand|ttk.FillF,

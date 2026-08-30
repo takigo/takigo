@@ -7,6 +7,7 @@ import (
 	"github.com/msorc/takigo/font"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
+	"github.com/msorc/takigo/ttk/entrytext"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/window"
 )
@@ -26,19 +27,13 @@ const (
 // Combobox is a themed entry with a dropdown list.
 type Combobox struct {
 	TtkWidget
-	Values    []string
-	text      []rune
-	insertPos int
-	CbState   ComboboxState
-	Font      font.Font
-	Command   func(value string) // called when value changes
-
-	// Text selection.
-	selFirst  int // -1 = no selection
-	selLast   int
-	selAnchor int
-	selBg     uint64 // selection highlight background
-	selFg     uint64 // selection text foreground
+	Values   []string
+	edit     entrytext.Helper
+	CbState  ComboboxState
+	Font     font.Font
+	Command  func(value string) // called when value changes
+	selBg    uint64             // selection highlight background
+	selFg    uint64             // selection text foreground
 
 	// Dropdown state.
 	dropWin      *window.Window
@@ -63,7 +58,7 @@ func ComboboxValues(vals []string) ComboboxOption {
 
 // ComboboxText sets the initial text.
 func ComboboxText(s string) ComboboxOption {
-	return func(c *Combobox) { c.text = []rune(s) }
+	return func(c *Combobox) { c.edit.Text = []rune(s) }
 }
 
 // ComboboxCbState sets the combobox state.
@@ -87,13 +82,20 @@ func NewCombobox(parent widget.Caregiver, name string, opts ...ComboboxOption) *
 		insetX:     4,
 		insetY:     2,
 		dropSel:    -1,
-		selFirst:   -1,
-		selLast:    -1,
 		selBg:      0x3399ff,
 		selFg:      0xffffff,
 	}
 
 	c.Font, _ = app.FontRegistry().Get(font.TkDefaultFont)
+
+	c.edit = entrytext.Helper{
+		Font:    c.Font,
+		TextX:   c.insetX + 1,
+		App:     app,
+		Win:     win,
+		Redraw:  c.Display,
+		Editable: func() bool { return c.CbState == ComboNormal },
+	}
 
 	InitTtkWidget(&c.TtkWidget, win, app, "TCombobox")
 	c.DisplayFunc = c.Display
@@ -127,17 +129,14 @@ func NewCombobox(parent widget.Caregiver, name string, opts ...ComboboxOption) *
 
 // Get returns the current text value.
 func (c *Combobox) Get() string {
-	return string(c.text)
+	return c.edit.Get()
 }
 
 // Set sets the text value.
 func (c *Combobox) Set(s string) {
-	c.text = []rune(s)
-	c.insertPos = len(c.text)
-	c.clearSelection()
-	c.Display()
+	c.edit.Set(s)
 	if c.Command != nil {
-		c.Command(s)
+		c.Command(c.edit.Get())
 	}
 }
 
@@ -216,20 +215,20 @@ func (c *Combobox) Display() {
 	if c.Font != nil {
 		m := c.Font.Metrics()
 		textY := (height-m.Linespace())/2 + m.Ascent
-		hasSel := c.State&StateFocus != 0 && c.selFirst >= 0 && c.selLast > c.selFirst
+		hasSel := c.State&StateFocus != 0 && c.edit.HasSelection()
 
 		// Selection highlight rectangle.
-		if hasSel && len(c.text) > 0 {
-			sf := c.selFirst
-			sl := c.selLast
-			if sf > len(c.text) {
-				sf = len(c.text)
+		if hasSel && len(c.edit.Text) > 0 {
+			sf := c.edit.SelFirst
+			sl := c.edit.SelLast
+			if sf > len(c.edit.Text) {
+				sf = len(c.edit.Text)
 			}
-			if sl > len(c.text) {
-				sl = len(c.text)
+			if sl > len(c.edit.Text) {
+				sl = len(c.edit.Text)
 			}
-			selStartX := textX + c.Font.MeasureString(string(c.text[:sf]))
-			selEndX := textX + c.Font.MeasureString(string(c.text[:sl]))
+			selStartX := textX + c.Font.MeasureString(string(c.edit.Text[:sf]))
+			selEndX := textX + c.Font.MeasureString(string(c.edit.Text[:sl]))
 			if selStartX < textX {
 				selStartX = textX
 			}
@@ -246,30 +245,30 @@ func (c *Combobox) Display() {
 		// Draw text in segments: before selection / selection / after selection.
 		if df, ok := c.Font.(platform.DrawableFont); ok {
 			drawSeg := func(start, end int, clr uint64) {
-				if start >= end || end > len(c.text) || start < 0 {
+				if start >= end || end > len(c.edit.Text) || start < 0 {
 					return
 				}
-				seg := string(c.text[start:end])
-				segX := textX + c.Font.MeasureString(string(c.text[:start]))
+				seg := string(c.edit.Text[start:end])
+				segX := textX + c.Font.MeasureString(string(c.edit.Text[:start]))
 				r := uint16((clr>>16)&0xFF) << 8
 				g := uint16((clr>>8)&0xFF) << 8
 				b := uint16((clr)&0xFF) << 8
 				df.DrawString(pixDrawable, segX, textY, seg, clr, r, g, b)
 			}
-			if hasSel && len(c.text) > 0 {
-				sf := c.selFirst
-				sl := c.selLast
-				if sf > len(c.text) {
-					sf = len(c.text)
+			if hasSel && len(c.edit.Text) > 0 {
+				sf := c.edit.SelFirst
+				sl := c.edit.SelLast
+				if sf > len(c.edit.Text) {
+					sf = len(c.edit.Text)
 				}
-				if sl > len(c.text) {
-					sl = len(c.text)
+				if sl > len(c.edit.Text) {
+					sl = len(c.edit.Text)
 				}
 				drawSeg(0, sf, fg)
 				drawSeg(sf, sl, c.selFg)
-				drawSeg(sl, len(c.text), fg)
-			} else if len(c.text) > 0 {
-				drawSeg(0, len(c.text), fg)
+				drawSeg(sl, len(c.edit.Text), fg)
+			} else if len(c.edit.Text) > 0 {
+				drawSeg(0, len(c.edit.Text), fg)
 			}
 		}
 	}
@@ -278,8 +277,8 @@ func (c *Combobox) Display() {
 	if c.State&StateFocus != 0 && c.CbState == ComboNormal {
 		textX := c.insetX + 1
 		cursorX := textX
-		if c.Font != nil && c.insertPos > 0 {
-			cursorX = textX + c.Font.MeasureString(string(c.text[:c.insertPos]))
+		if c.Font != nil && c.edit.InsertPos > 0 {
+			cursorX = textX + c.Font.MeasureString(string(c.edit.Text[:c.edit.InsertPos]))
 		}
 		d.SetForeground(gc, fg)
 		d.DrawLine(pixDrawable, gc, cursorX, c.insetY, cursorX, height-c.insetY-1)
@@ -364,7 +363,7 @@ func (c *Combobox) openDropdown() {
 	c.dropSel = -1
 
 	// Find current value in dropdown.
-	curText := string(c.text)
+	curText := c.edit.Get()
 	for i, v := range c.Values {
 		if v == curText {
 			c.dropSel = i
@@ -503,190 +502,34 @@ func (c *Combobox) displayDropdown() {
 	d.Flush()
 }
 
-// clearSelection removes the text selection.
-func (c *Combobox) clearSelection() {
-	c.selFirst = -1
-	c.selLast = -1
-}
+// clearSelection is a thin wrapper kept for code that referenced it.
+// New code should call c.edit.ClearSelection() directly.
+func (c *Combobox) clearSelection() { c.edit.ClearSelection() }
 
-// deleteSelection deletes the selected text and clears the selection.
-func (c *Combobox) deleteSelection() {
-	if c.selFirst < 0 {
-		return
-	}
-	c.text = append(c.text[:c.selFirst], c.text[c.selLast:]...)
-	if c.insertPos > c.selFirst {
-		c.insertPos = c.selFirst
-	}
-	c.clearSelection()
-}
+// deleteSelection is a thin wrapper kept for code that referenced it.
+// New code should call c.edit.DeleteSelection() directly.
+func (c *Combobox) deleteSelection() { c.edit.DeleteSelection() }
 
-// closestGap returns the rune index of the nearest insertion gap at pixel x.
-func (c *Combobox) closestGap(x int) int {
-	if c.Font == nil {
-		return 0
-	}
-	textX := c.insetX + 1
-	xInLayout := x - textX
-	if xInLayout <= 0 {
-		return 0
-	}
-	idx := comboRuneAtPixel(c.Font, c.text, xInLayout)
-	if idx >= len(c.text) {
-		return len(c.text)
-	}
-	charStart := c.Font.MeasureString(string(c.text[:idx]))
-	charEnd := c.Font.MeasureString(string(c.text[:idx+1]))
-	if xInLayout >= (charStart+charEnd)/2 {
-		return idx + 1
-	}
-	return idx
-}
+// closestGap is a thin wrapper kept for code that referenced it.
+// New code should call c.edit.ClosestGap(x) directly.
+func (c *Combobox) closestGap(x int) int { return c.edit.ClosestGap(x) }
 
-// comboRuneAtPixel finds the rune index at a given pixel offset using binary search.
-func comboRuneAtPixel(f font.Font, runes []rune, targetX int) int {
-	if targetX <= 0 || len(runes) == 0 {
-		return 0
-	}
-	lo, hi := 0, len(runes)
-	for lo < hi {
-		mid := (lo + hi) / 2
-		if f.MeasureString(string(runes[:mid+1])) <= targetX {
-			lo = mid + 1
-		} else {
-			hi = mid
-		}
-	}
-	return lo
-}
-
-// comboWordStart returns the rune index of the word start at or before pos.
-func comboWordStart(text []rune, pos int) int {
-	if pos <= 0 {
-		return 0
-	}
-	if pos > len(text) {
-		pos = len(text)
-	}
-	i := pos - 1
-	for i > 0 && !comboIsWordChar(text[i]) {
-		i--
-	}
-	for i > 0 && comboIsWordChar(text[i-1]) {
-		i--
-	}
-	return i
-}
-
-// comboWordEnd returns the rune index past the word end at or after pos.
-func comboWordEnd(text []rune, pos int) int {
-	i := pos
-	for i < len(text) && comboIsWordChar(text[i]) {
-		i++
-	}
-	for i < len(text) && !comboIsWordChar(text[i]) {
-		i++
-	}
-	return i
-}
-
-func comboIsWordChar(r rune) bool {
-	return (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') ||
-		(r >= '0' && r <= '9') || r == '_'
-}
-
-// comboMoveCursor moves the cursor, optionally extending the selection.
+// comboMoveCursor is a thin wrapper kept for code that referenced it.
+// New code should call c.edit.MoveCursor directly.
 func comboMoveCursor(c *Combobox, newPos int, shift bool) {
-	if newPos < 0 {
-		newPos = 0
-	}
-	if newPos > len(c.text) {
-		newPos = len(c.text)
-	}
-	if shift {
-		if c.selFirst < 0 {
-			c.selAnchor = c.insertPos
-		}
-		if newPos < c.selAnchor {
-			c.selFirst = newPos
-			c.selLast = c.selAnchor
-		} else {
-			c.selFirst = c.selAnchor
-			c.selLast = newPos
-		}
-		if c.selFirst == c.selLast {
-			c.clearSelection()
-		}
-	} else {
-		c.clearSelection()
-	}
-	c.insertPos = newPos
-	c.Display()
+	c.edit.MoveCursor(newPos, c.edit.SelAnchor, shift)
 }
 
-// comboHandleCtrl handles Ctrl+key combinations for the editable combobox.
-func comboHandleCtrl(c *Combobox, app widget.AppContext, ev *event.Event) {
-	win := c.Win
-	switch ev.KeySym {
-	case platform.XK_a: // Ctrl+A: select all
-		if len(c.text) > 0 {
-			c.selFirst = 0
-			c.selLast = len(c.text)
-			c.selAnchor = 0
-			c.insertPos = len(c.text)
-			c.Display()
-		}
-	case platform.XK_e: // Ctrl+E: move to end (Emacs)
-		comboMoveCursor(c, len(c.text), false)
-	case platform.XK_b: // Ctrl+B: back one char (Emacs)
-		comboMoveCursor(c, c.insertPos-1, false)
-	case platform.XK_f: // Ctrl+F: forward one char (Emacs)
-		comboMoveCursor(c, c.insertPos+1, false)
-	case platform.XK_c: // Ctrl+C: copy
-		if c.selFirst >= 0 {
-			app.Clipboard().Set(win.PlatformID, string(c.text[c.selFirst:c.selLast]), ev.Time)
-		}
-	case platform.XK_x: // Ctrl+X: cut
-		if c.selFirst >= 0 {
-			app.Clipboard().Set(win.PlatformID, string(c.text[c.selFirst:c.selLast]), ev.Time)
-			c.deleteSelection()
-			c.Display()
-		}
-	case platform.XK_v: // Ctrl+V: paste
-		app.Clipboard().Get(win.PlatformID, ev.Time, func(text string) {
-			if text == "" {
-				return
-			}
-			if c.selFirst >= 0 {
-				c.deleteSelection()
-			}
-			runes := []rune(text)
-			newText := make([]rune, 0, len(c.text)+len(runes))
-			newText = append(newText, c.text[:c.insertPos]...)
-			newText = append(newText, runes...)
-			newText = append(newText, c.text[c.insertPos:]...)
-			c.text = newText
-			c.insertPos += len(runes)
-			c.Display()
-		})
-	case platform.XK_w: // Ctrl+W: cut selection (Emacs kill-region)
-		if c.selFirst >= 0 {
-			app.Clipboard().Set(win.PlatformID, string(c.text[c.selFirst:c.selLast]), ev.Time)
-			c.deleteSelection()
-			c.Display()
-		}
-	case platform.XK_k: // Ctrl+K: kill to end
-		if c.insertPos < len(c.text) {
-			c.clearSelection()
-			c.text = c.text[:c.insertPos]
-			c.Display()
-		}
-	case platform.XK_d: // Ctrl+D: delete char forward
-		if c.insertPos < len(c.text) {
-			c.text = append(c.text[:c.insertPos], c.text[c.insertPos+1:]...)
-			c.Display()
-		}
-	}
+// comboWordStart / comboWordEnd / comboIsWordChar are thin wrappers kept
+// for any external callers. The shared implementation lives in entrytext.
+func comboWordStart(text []rune, pos int) int { return entrytext.WordStart(text, pos) }
+func comboWordEnd(text []rune, pos int) int   { return entrytext.WordEnd(text, pos) }
+func comboIsWordChar(r rune) bool             { return entrytext.IsWordChar(r) }
+
+// comboHandleCtrl is kept as a thin wrapper. New code should call
+// c.edit.HandleCtrlKey(ev) directly.
+func comboHandleCtrl(c *Combobox, _ widget.AppContext, ev *event.Event) {
+	c.edit.HandleCtrlKey(ev)
 }
 
 // updateCursor sets the cursor shape based on mouse x position and combobox state.
@@ -725,19 +568,7 @@ func bindCombobox(c *Combobox, app widget.AppContext) {
 	app.Dispatcher().Bind(win.PlatformID, event.MotionMask, func(ev *event.Event) {
 		c.updateCursor(ev.X)
 		if ev.State&platform.Button1Mask != 0 && c.CbState == ComboNormal && c.State&StateFocus != 0 {
-			pos := c.closestGap(ev.X)
-			if pos < c.selAnchor {
-				c.selFirst = pos
-				c.selLast = c.selAnchor
-			} else {
-				c.selFirst = c.selAnchor
-				c.selLast = pos
-			}
-			if c.selFirst == c.selLast {
-				c.clearSelection()
-			}
-			c.insertPos = pos
-			c.Display()
+			c.edit.MoveCursor(c.edit.ClosestGap(ev.X), c.edit.SelAnchor, true)
 		}
 	})
 
@@ -766,9 +597,9 @@ func bindCombobox(c *Combobox, app widget.AppContext) {
 				// the previous click was on a non-focusable widget), no FocusIn fires.
 				app.Server().SetInputFocus(win.PlatformID, platform.RevertToParent, platform.CurrentTime)
 				c.State |= StateFocus
-				c.insertPos = c.closestGap(ev.X)
-				c.selAnchor = c.insertPos
-				c.clearSelection()
+				c.edit.SelAnchor = c.edit.ClosestGap(ev.X)
+				c.edit.InsertPos = c.edit.SelAnchor
+				c.edit.ClearSelection()
 				c.Display()
 			}
 		}
@@ -786,93 +617,18 @@ func bindCombobox(c *Combobox, app widget.AppContext) {
 		if c.State&StateDisabled != 0 || c.CbState != ComboNormal {
 			return
 		}
-		shift := ev.State&platform.ShiftMask != 0
-		ctrl := ev.State&platform.ControlMask != 0
 
 		switch ev.KeySym {
-		case platform.XK_Left:
-			if ctrl {
-				comboMoveCursor(c, comboWordStart(c.text, c.insertPos), shift)
-			} else {
-				comboMoveCursor(c, c.insertPos-1, shift)
-			}
-		case platform.XK_Right:
-			if ctrl {
-				comboMoveCursor(c, comboWordEnd(c.text, c.insertPos), shift)
-			} else {
-				comboMoveCursor(c, c.insertPos+1, shift)
-			}
-		case platform.XK_Home:
-			comboMoveCursor(c, 0, shift)
-		case platform.XK_End:
-			comboMoveCursor(c, len(c.text), shift)
-
-		case platform.XK_BackSpace:
-			if c.selFirst >= 0 {
-				c.deleteSelection()
-			} else if c.insertPos > 0 {
-				c.text = append(c.text[:c.insertPos-1], c.text[c.insertPos:]...)
-				c.insertPos--
-			}
-			c.Display()
-
-		case platform.XK_Delete:
-			if shift && c.selFirst >= 0 {
-				app.Clipboard().Set(win.PlatformID, string(c.text[c.selFirst:c.selLast]), ev.Time)
-				c.deleteSelection()
-			} else if c.selFirst >= 0 {
-				c.deleteSelection()
-			} else if c.insertPos < len(c.text) {
-				c.text = append(c.text[:c.insertPos], c.text[c.insertPos+1:]...)
-			}
-			c.Display()
-
-		case platform.XK_Insert:
-			if ctrl && c.selFirst >= 0 {
-				app.Clipboard().Set(win.PlatformID, string(c.text[c.selFirst:c.selLast]), ev.Time)
-			} else if shift {
-				app.Clipboard().Get(win.PlatformID, ev.Time, func(text string) {
-					if text == "" {
-						return
-					}
-					if c.selFirst >= 0 {
-						c.deleteSelection()
-					}
-					runes := []rune(text)
-					newText := make([]rune, 0, len(c.text)+len(runes))
-					newText = append(newText, c.text[:c.insertPos]...)
-					newText = append(newText, runes...)
-					newText = append(newText, c.text[c.insertPos:]...)
-					c.text = newText
-					c.insertPos += len(runes)
-					c.Display()
-				})
-			}
-
+		case platform.XK_Left, platform.XK_Right, platform.XK_Home, platform.XK_End:
+			c.edit.HandleNavKey(ev)
+		case platform.XK_BackSpace, platform.XK_Delete, platform.XK_Insert:
+			c.edit.HandleEditKey(ev)
 		default:
-			if ctrl {
-				comboHandleCtrl(c, app, ev)
+			if ev.State&platform.ControlMask != 0 {
+				c.edit.HandleCtrlKey(ev)
 				return
 			}
-			insertStr := ev.Str
-			if insertStr == "" {
-				if r := platform.KeySymToRune(ev.KeySym); r > 0 {
-					insertStr = string(r)
-				}
-			}
-			if insertStr != "" && insertStr[0] >= 32 {
-				if c.selFirst >= 0 {
-					c.deleteSelection()
-				}
-				runes := []rune(insertStr)
-				newText := make([]rune, 0, len(c.text)+len(runes))
-				newText = append(newText, c.text[:c.insertPos]...)
-				newText = append(newText, runes...)
-				newText = append(newText, c.text[c.insertPos:]...)
-				c.text = newText
-				c.insertPos += len(runes)
-				c.Display()
-			}
+			c.edit.HandleKey(ev)
 		}
 	})
 
@@ -883,7 +639,7 @@ func bindCombobox(c *Combobox, app widget.AppContext) {
 			c.Display()
 		} else if ev.Type == event.FocusOutType {
 			c.ChangeState(0, StateFocus)
-			c.clearSelection()
+			c.edit.ClearSelection()
 			c.closeDropdown()
 			c.Display()
 		}
@@ -902,7 +658,7 @@ func bindCombobox(c *Combobox, app widget.AppContext) {
 			return
 		}
 		c.State &^= StateFocus
-		c.clearSelection()
+		c.edit.ClearSelection()
 		c.Display()
 	})
 }

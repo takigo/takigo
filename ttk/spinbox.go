@@ -10,6 +10,7 @@ import (
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/font"
 	"github.com/msorc/takigo/platform"
+	"github.com/msorc/takigo/ttk/entrytext"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/window"
 )
@@ -19,11 +20,7 @@ type Spinbox struct {
 	TtkWidget
 
 	// Text state.
-	text      []rune
-	insertPos int
-	selFirst  int
-	selLast   int
-	selAnchor int
+	edit      entrytext.Helper
 	leftIndex int
 
 	// Range mode.
@@ -102,8 +99,6 @@ func NewSpinbox(parent widget.Caregiver, name string, opts ...SpinboxOption) *Sp
 	window.MakeWindowExist(win)
 
 	s := &Spinbox{
-		selFirst:    -1,
-		selLast:     -1,
 		prefWidth:   10,
 		cursorOn:    true,
 		From:        0,
@@ -117,6 +112,18 @@ func NewSpinbox(parent widget.Caregiver, name string, opts ...SpinboxOption) *Sp
 
 	s.Font, _ = app.FontRegistry().Get(font.TkDefaultFont)
 
+	s.edit = entrytext.Helper{
+		Font:  s.Font,
+		TextX: s.insetX + 2,
+		App:   app,
+		Win:   win,
+		Redraw: func() {
+			s.Display()
+		},
+		Editable: func() bool { return s.State&StateDisabled == 0 },
+		Validate: s.tryValidate,
+	}
+
 	InitTtkWidget(&s.TtkWidget, win, app, "TSpinbox")
 	s.DisplayFunc = s.Display
 
@@ -126,10 +133,13 @@ func NewSpinbox(parent widget.Caregiver, name string, opts ...SpinboxOption) *Sp
 
 	// Set initial value.
 	if len(s.Values) > 0 {
-		s.text = []rune(s.Values[0])
+		s.edit.Text = []rune(s.Values[0])
 	} else {
-		s.text = []rune(s.formatValue(s.From))
+		s.edit.Text = []rune(s.formatValue(s.From))
 	}
+	s.edit.InsertPos = len(s.edit.Text)
+	s.edit.SelFirst = -1
+	s.edit.SelLast = -1
 
 	s.computeGeometry()
 
@@ -142,26 +152,23 @@ func NewSpinbox(parent widget.Caregiver, name string, opts ...SpinboxOption) *Sp
 
 // Get returns the current text value.
 func (s *Spinbox) Get() string {
-	return string(s.text)
+	return s.edit.Get()
 }
 
 // Set sets the text value.
 func (s *Spinbox) Set(text string) {
-	s.text = []rune(text)
-	if s.insertPos > len(s.text) {
-		s.insertPos = len(s.text)
+	s.edit.Set(text)
+	if s.edit.InsertPos > len(s.edit.Text) {
+		s.edit.InsertPos = len(s.edit.Text)
 	}
-	s.selFirst = -1
-	s.selLast = -1
 	s.computeGeometry()
-	s.Display()
 }
 
 // SpinUp increments the value.
 func (s *Spinbox) SpinUp() {
 	if len(s.Values) > 0 {
 		// Find current value in list.
-		cur := string(s.text)
+		cur := string(s.edit.Text)
 		s.valuesIndex = -1
 		for i, v := range s.Values {
 			if v == cur {
@@ -202,7 +209,7 @@ func (s *Spinbox) SpinUp() {
 // SpinDown decrements the value.
 func (s *Spinbox) SpinDown() {
 	if len(s.Values) > 0 {
-		cur := string(s.text)
+		cur := string(s.edit.Text)
 		s.valuesIndex = -1
 		for i, v := range s.Values {
 			if v == cur {
@@ -241,7 +248,7 @@ func (s *Spinbox) SpinDown() {
 }
 
 func (s *Spinbox) currentNumericValue() float64 {
-	val, err := strconv.ParseFloat(string(s.text), 64)
+	val, err := strconv.ParseFloat(string(s.edit.Text), 64)
 	if err != nil {
 		return s.From
 	}
@@ -257,18 +264,15 @@ func (s *Spinbox) formatValue(v float64) string {
 
 func (s *Spinbox) fireCommand() {
 	if s.Command != nil {
-		s.Command(string(s.text))
+		s.Command(string(s.edit.Text))
 	}
 }
 
 func (s *Spinbox) selectAll() {
-	if len(s.text) > 0 {
-		s.selFirst = 0
-		s.selLast = len(s.text)
-	}
+	s.edit.SelectAll()
 }
 
-func (s *Spinbox) tryEdit(prospective string) bool {
+func (s *Spinbox) tryValidate(_ entrytext.ValidateReason, prospective string) bool {
 	if s.ValidateCmd == nil {
 		return true
 	}
@@ -277,6 +281,10 @@ func (s *Spinbox) tryEdit(prospective string) bool {
 		return true
 	}
 	return s.ValidateCmd(prospective)
+}
+
+func (s *Spinbox) tryEdit(prospective string) bool {
+	return s.tryValidate(entrytext.ValidateKey, prospective)
 }
 
 func (s *Spinbox) computeGeometry() {
@@ -307,28 +315,7 @@ func (s *Spinbox) hitButton(x, y int) string {
 	return "down"
 }
 
-func (s *Spinbox) closestGap(x int) int {
-	if s.Font == nil || len(s.text) == 0 {
-		return 0
-	}
-	textX := s.insetX + 2
-	xInText := x - textX
-	if xInText <= 0 {
-		return 0
-	}
-	// Binary search for closest character boundary.
-	lo, hi := 0, len(s.text)
-	for lo < hi {
-		mid := (lo + hi) / 2
-		w := s.Font.MeasureString(string(s.text[:mid+1]))
-		if w <= xInText {
-			lo = mid + 1
-		} else {
-			hi = mid
-		}
-	}
-	return lo
-}
+func (s *Spinbox) closestGap(x int) int { return s.edit.ClosestGap(x) }
 
 // Display draws the themed spinbox.
 func (s *Spinbox) Display() {
@@ -427,15 +414,15 @@ func (s *Spinbox) Display() {
 	}
 
 	// Draw text.
-	if s.Font != nil && len(s.text) > 0 {
+	if s.Font != nil && len(s.edit.Text) > 0 {
 		m := s.Font.Metrics()
 		textX := s.insetX + 2
 		textY := (height-m.Linespace())/2 + m.Ascent
 
 		// Selection highlight.
-		if s.hasFocus && s.selFirst >= 0 && s.selLast > s.selFirst {
-			selStartX := textX + s.Font.MeasureString(string(s.text[:sbClamp(s.selFirst, len(s.text))]))
-			selEndX := textX + s.Font.MeasureString(string(s.text[:sbClamp(s.selLast, len(s.text))]))
+		if s.hasFocus && s.edit.HasSelection() {
+			selStartX := textX + s.Font.MeasureString(string(s.edit.Text[:sbClamp(s.edit.SelFirst, len(s.edit.Text))]))
+			selEndX := textX + s.Font.MeasureString(string(s.edit.Text[:sbClamp(s.edit.SelLast, len(s.edit.Text))]))
 			rightEdge := btnLeft - s.insetX
 			if selStartX < textX {
 				selStartX = textX
@@ -454,12 +441,12 @@ func (s *Spinbox) Display() {
 			r := uint16((fg>>16)&0xFF) << 8
 			g := uint16((fg>>8)&0xFF) << 8
 			b := uint16((fg)&0xFF) << 8
-			df.DrawString(pixDrawable, textX, textY, string(s.text), fg, r, g, b)
+			df.DrawString(pixDrawable, textX, textY, string(s.edit.Text), fg, r, g, b)
 		}
 
 		// Insert cursor.
 		if s.hasFocus && s.cursorOn {
-			cursorX := textX + s.Font.MeasureString(string(s.text[:sbClamp(s.insertPos, len(s.text))]))
+			cursorX := textX + s.Font.MeasureString(string(s.edit.Text[:sbClamp(s.edit.InsertPos, len(s.edit.Text))]))
 			rightEdge := btnLeft - s.insetX
 			if cursorX >= textX && cursorX < rightEdge {
 				d.SetForeground(gc, uint64(0x000000))
@@ -526,10 +513,9 @@ func bindSpinbox(s *Spinbox, app widget.AppContext) {
 				s.SpinDown()
 			} else {
 				// Click in text area — position cursor.
-				s.selFirst = -1
-				s.selLast = -1
-				s.insertPos = s.closestGap(ev.X)
-				s.selAnchor = s.insertPos
+				s.edit.SelAnchor = s.closestGap(ev.X)
+				s.edit.InsertPos = s.edit.SelAnchor
+				s.edit.ClearSelection()
 				s.Display()
 			}
 		} else if ev.Button == 4 {
@@ -553,16 +539,7 @@ func bindSpinbox(s *Spinbox, app widget.AppContext) {
 			if s.hitButton(ev.X, ev.Y) != "" {
 				return
 			}
-			pos := s.closestGap(ev.X)
-			if pos < s.selAnchor {
-				s.selFirst = pos
-				s.selLast = s.selAnchor
-			} else {
-				s.selFirst = s.selAnchor
-				s.selLast = pos
-			}
-			s.insertPos = pos
-			s.Display()
+			s.edit.MoveCursor(s.closestGap(ev.X), s.edit.SelAnchor, true)
 		}
 	})
 
@@ -583,174 +560,30 @@ func bindSpinbox(s *Spinbox, app widget.AppContext) {
 		if s.State&StateDisabled != 0 {
 			return
 		}
-		shift := ev.State&platform.ShiftMask != 0
-		ctrl := ev.State&platform.ControlMask != 0
 
 		switch ev.KeySym {
 		case platform.XK_Up:
 			s.SpinUp()
 		case platform.XK_Down:
 			s.SpinDown()
-
-		case platform.XK_Left:
-			if ctrl {
-				sbMoveCursor(s, sbWordStart(s.text, s.insertPos), shift)
-			} else {
-				sbMoveCursor(s, s.insertPos-1, shift)
-			}
-		case platform.XK_Right:
-			if ctrl {
-				sbMoveCursor(s, sbWordEnd(s.text, s.insertPos), shift)
-			} else {
-				sbMoveCursor(s, s.insertPos+1, shift)
-			}
-		case platform.XK_Home:
-			sbMoveCursor(s, 0, shift)
-		case platform.XK_End:
-			sbMoveCursor(s, len(s.text), shift)
-
-		case platform.XK_BackSpace:
-			if s.selFirst >= 0 {
-				prospective := string(s.text[:s.selFirst]) + string(s.text[s.selLast:])
-				if s.tryEdit(prospective) {
-					sbDeleteSelection(s)
-				}
-			} else if s.insertPos > 0 {
-				prospective := string(s.text[:s.insertPos-1]) + string(s.text[s.insertPos:])
-				if s.tryEdit(prospective) {
-					s.text = append(s.text[:s.insertPos-1], s.text[s.insertPos:]...)
-					s.insertPos--
-					s.Display()
-				}
-			}
-		case platform.XK_Delete:
-			if s.selFirst >= 0 {
-				prospective := string(s.text[:s.selFirst]) + string(s.text[s.selLast:])
-				if s.tryEdit(prospective) {
-					sbDeleteSelection(s)
-				}
-			} else if s.insertPos < len(s.text) {
-				prospective := string(s.text[:s.insertPos]) + string(s.text[s.insertPos+1:])
-				if s.tryEdit(prospective) {
-					s.text = append(s.text[:s.insertPos], s.text[s.insertPos+1:]...)
-					s.Display()
-				}
-			}
-
+		case platform.XK_Left, platform.XK_Right, platform.XK_Home, platform.XK_End:
+			s.edit.HandleNavKey(ev)
+		case platform.XK_BackSpace, platform.XK_Delete, platform.XK_Insert:
+			s.edit.HandleEditKey(ev)
 		default:
-			if ctrl {
-				if ev.KeySym == platform.KeySym(0x0061) { // XK_a
-					s.selectAll()
-					s.Display()
-				}
+			if ev.State&platform.ControlMask != 0 {
+				s.edit.HandleCtrlKey(ev)
 				return
 			}
-			insertStr := ev.Str
-			if insertStr == "" {
-				if r := platform.KeySymToRune(ev.KeySym); r > 0 {
-					insertStr = string(r)
-				}
-			}
-			if insertStr != "" && insertStr[0] >= 32 {
-				var prospective string
-				if s.selFirst >= 0 {
-					prospective = string(s.text[:s.selFirst]) + insertStr + string(s.text[s.selLast:])
-				} else {
-					prospective = string(s.text[:s.insertPos]) + insertStr + string(s.text[s.insertPos:])
-				}
-				if s.tryEdit(prospective) {
-					if s.selFirst >= 0 {
-						sbDeleteSelection(s)
-					}
-					runes := []rune(insertStr)
-					newText := make([]rune, 0, len(s.text)+len(runes))
-					newText = append(newText, s.text[:s.insertPos]...)
-					newText = append(newText, runes...)
-					newText = append(newText, s.text[s.insertPos:]...)
-					s.text = newText
-					s.insertPos += len(runes)
-					s.Display()
-				}
-			}
+			s.edit.HandleKey(ev)
 		}
 	})
 }
 
-func sbDeleteSelection(s *Spinbox) {
-	if s.selFirst < 0 {
-		return
-	}
-	s.text = append(s.text[:s.selFirst], s.text[s.selLast:]...)
-	s.insertPos = s.selFirst
-	s.selFirst = -1
-	s.selLast = -1
-	s.Display()
-}
-
+func sbDeleteSelection(s *Spinbox) { s.edit.DeleteSelection() }
 func sbMoveCursor(s *Spinbox, newPos int, shift bool) {
-	if newPos < 0 {
-		newPos = 0
-	}
-	if newPos > len(s.text) {
-		newPos = len(s.text)
-	}
-
-	if shift {
-		if s.selFirst < 0 {
-			s.selAnchor = s.insertPos
-		}
-		if newPos < s.selAnchor {
-			s.selFirst = newPos
-			s.selLast = s.selAnchor
-		} else {
-			s.selFirst = s.selAnchor
-			s.selLast = newPos
-		}
-		if s.selFirst == s.selLast {
-			s.selFirst = -1
-			s.selLast = -1
-		}
-	} else {
-		s.selFirst = -1
-		s.selLast = -1
-	}
-
-	s.insertPos = newPos
-	s.Display()
+	s.edit.MoveCursor(newPos, s.edit.SelAnchor, shift)
 }
-
-func sbWordStart(text []rune, pos int) int {
-	if pos <= 0 {
-		return 0
-	}
-	if pos > len(text) {
-		pos = len(text)
-	}
-	i := pos - 1
-	for i > 0 && !sbIsWordChar(text[i]) {
-		i--
-	}
-	for i > 0 && sbIsWordChar(text[i-1]) {
-		i--
-	}
-	return i
-}
-
-func sbWordEnd(text []rune, pos int) int {
-	if pos >= len(text) {
-		return len(text)
-	}
-	i := pos
-	for i < len(text) && sbIsWordChar(text[i]) {
-		i++
-	}
-	for i < len(text) && !sbIsWordChar(text[i]) {
-		i++
-	}
-	return i
-}
-
-func sbIsWordChar(r rune) bool {
-	return (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') ||
-		(r >= '0' && r <= '9') || r == '_'
-}
+func sbWordStart(text []rune, pos int) int { return entrytext.WordStart(text, pos) }
+func sbWordEnd(text []rune, pos int) int   { return entrytext.WordEnd(text, pos) }
+func sbIsWordChar(r rune) bool             { return entrytext.IsWordChar(r) }

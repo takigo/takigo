@@ -1,0 +1,104 @@
+// Demo: Themed Entry widgets — plain, placeholder, password, textvariable,
+// and integer-only validation.
+// Ported from Tk's entry1.tcl / entry3.tcl demos but using ttk::entry.
+package main
+
+import (
+	"fmt"
+	"os"
+	"strconv"
+
+	"github.com/msorc/takigo"
+	"github.com/msorc/takigo/demos/demohelper"
+	"github.com/msorc/takigo/geometry/pack"
+	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/ttk"
+	_ "github.com/msorc/takigo/ttk/clamtheme"
+	_ "github.com/msorc/takigo/ttk/defaulttheme"
+	"github.com/msorc/takigo/widget"
+	"github.com/msorc/takigo/widget/frame"
+	"github.com/msorc/takigo/widget/label"
+)
+
+func main() {
+	app, err := takigo.NewApp(takigo.Title("Themed Entry Demonstration"),
+		takigo.Geometry("+300+300"),
+		takigo.IconName("ttkentry"),
+	)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	ttk.SetCurrentTheme("clam")
+
+	f := frame.New(app, "f")
+	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+
+	msg := label.New(f, "msg",
+		label.Text("Five themed entries are displayed below. You can edit, select, "+
+			"and copy/paste using the standard keyboard bindings. The third entry "+
+			"masks its contents (password). The fourth is bound to a string variable "+
+			"and updates a label as you type. The fifth accepts only integers; "+
+			"non-digit input is rejected."),
+		label.JustifyOpt(option.JustifyLeft),
+		label.WrapLength("5i"),
+	)
+	pack.Pack(msg, pack.SideOpt(pack.Top))
+
+	btns := demohelper.AddSeeDismiss(f)
+	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
+
+	// 1. Plain entry with initial value.
+	e1 := ttk.NewEntry(f, "e1",
+		ttk.EntryText("Initial value"),
+		ttk.EntryWidth(40),
+	)
+	pack.Pack(e1, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadX("5p"), pack.PadY("3p"))
+
+	// 2. Placeholder entry (no initial text).
+	e2 := ttk.NewEntry(f, "e2",
+		ttk.EntryPlaceholder("Type here..."),
+		ttk.EntryWidth(40),
+	)
+	pack.Pack(e2, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadX("5p"), pack.PadY("3p"))
+
+	// 3. Password entry.
+	e3 := ttk.NewEntry(f, "e3",
+		ttk.EntryShow('*'),
+		ttk.EntryWidth(40),
+	)
+	pack.Pack(e3, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadX("5p"), pack.PadY("3p"))
+
+	// 4. Textvariable-bound entry that updates a label as the user types.
+	statusVar := widget.NewVariable[string]("")
+	e4 := ttk.NewEntry(f, "e4",
+		ttk.EntryTextVariable(statusVar),
+		ttk.EntryWidth(40),
+	)
+	pack.Pack(e4, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadX("5p"), pack.PadY("3p"))
+
+	liveLabel := label.New(f, "live", label.Text("(live)"))
+	pack.Pack(liveLabel, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadX("5p"))
+	statusVar.OnChange(func(_, val string) {
+		liveLabel.Text = "(live) " + val
+		liveLabel.Display()
+	})
+
+	// 5. Integer-only entry with -validate "key".
+	e5 := ttk.NewEntry(f, "e5",
+		ttk.EntryText("42"),
+		ttk.EntryWidth(20),
+		ttk.EntryValidate("key"),
+		ttk.EntryValidateCmd(func(s string) bool {
+			if s == "" {
+				return true
+			}
+			_, err := strconv.Atoi(s)
+			return err == nil
+		}),
+	)
+	pack.Pack(e5, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadX("5p"), pack.PadY("3p"))
+
+	app.Run()
+}
