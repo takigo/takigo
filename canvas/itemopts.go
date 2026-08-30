@@ -365,7 +365,7 @@ func FillNone() ItemOption {
 func StateOpt(s ItemState) ItemOption {
 	return func(_ *Canvas, item Item) error {
 		if base := itemBase(item); base != nil {
-			base.State = s
+			base.state = s
 		}
 		return nil
 	}

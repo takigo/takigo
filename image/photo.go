@@ -232,6 +232,16 @@ func (p *Photo) Height() int { return p.rgba.Rect.Dy() }
 // Call Invalidate after modifying pixels to force pixmap re-creation.
 func (p *Photo) RGBA() *goimage.RGBA { return p.rgba }
 
+// Pixels returns the underlying RGBA pixel buffer (4 bytes per pixel, RGBA
+// order) suitable for byte-for-byte export to PostScript / PNG / etc.
+// Returns nil if the photo has no pixels.
+func (p *Photo) Pixels() []byte {
+	if p.rgba == nil {
+		return nil
+	}
+	return p.rgba.Pix
+}
+
 // Invalidate marks the cached pixmap as stale, forcing re-creation on
 // the next Draw call.
 func (p *Photo) Invalidate() {

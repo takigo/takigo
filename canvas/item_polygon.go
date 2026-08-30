@@ -184,6 +184,37 @@ func (p *PolygonItem) Translate(dx, dy float64) {
 
 func (p *PolygonItem) Delete(d platform.DisplayServer) {}
 
+// Postscript emits a PostScript representation of the polygon.
+//
+// Mirrors tk/generic/tkCanvPoly.c:PolygonToPostscript. Smooth polygons are
+// sampled into polyline approximations.
+func (p *PolygonItem) Postscript(ps *PSContext) error {
+	if p.State() == ItemStateHidden || len(p.coords) < 4 {
+		return nil
+	}
+	if p.smooth {
+		steps := 12
+		pts := generateBezierSpline(p.coords, true, steps)
+		ps.Path(pts)
+	} else {
+		ps.Path(p.coords)
+	}
+	if p.fill != nil {
+		ps.Color(p.fill)
+		ps.write("gsave fill grestore newpath\n")
+		if p.smooth {
+			ps.Path(generateBezierSpline(p.coords, true, 12))
+		} else {
+			ps.Path(p.coords)
+		}
+	}
+	if p.outline != nil && p.outlineWidth > 0 {
+		ps.Outline(p.outlineWidth, dashInts(p.dash), 0, p.outline, nil)
+	}
+	ps.write("newpath\n")
+	return nil
+}
+
 // pointInPolygon tests if (px,py) is inside the polygon using ray casting.
 func pointInPolygon(px, py float64, coords []float64) bool {
 	n := len(coords) / 2

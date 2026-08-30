@@ -127,3 +127,61 @@ func (im *ImageItem) Translate(dx, dy float64) {
 }
 
 func (im *ImageItem) Delete(d platform.DisplayServer) {}
+
+// Postscript emits a byte-for-byte 24-bit RGB dump of the image as
+// PostScript `image` data. Mirrors tk/generic/tkCanvImg.c:ImageToPostscript +
+// tk/generic/tkImgBmap.c:Tk_PostscriptImage. Output is large (no compression)
+// but matches Tk's wire format exactly.
+func (im *ImageItem) Postscript(ps *PSContext) error {
+	if im.State() == ItemStateHidden || im.image == nil {
+		return nil
+	}
+	if ps.Prepass {
+		return nil
+	}
+	w := im.image.Width()
+	h := im.image.Height()
+	if w == 0 || h == 0 {
+		return nil
+	}
+	ax, ay := anchorOffset(im.anchor, w, h)
+	x := float64(int(im.x) + ax)
+	y := float64(int(im.y) + ay)
+
+	// Dump the image as RGBA bytes via the WidgetImage interface. We then
+	// convert to 3-byte RGB for PostScript `<< /BitsPerComponent 8 /Decode [0 1 0 1 0 1] >> image`.
+	rgba := im.dumpRGBA()
+	if len(rgba) != w*h*4 {
+		return nil
+	}
+	rgb := make([]byte, w*h*3)
+	for i := 0; i < w*h; i++ {
+		rgb[i*3+0] = rgba[i*4+0]
+		rgb[i*3+1] = rgba[i*4+1]
+		rgb[i*3+2] = rgba[i*4+2]
+	}
+
+	hex := make([]byte, len(rgb)*2)
+	for i, b := range rgb {
+		hex[i*2+0] = hexDigit[b>>4]
+		hex[i*2+1] = hexDigit[b&0xF]
+	}
+
+	ps.writef("gsave %.15g %.15g translate %d %d scale\n", x, ps.PsY(int(y)+h), w, h)
+	ps.writef("<< /ImageType 1 /Width %d /Height %d /BitsPerComponent 8 /Decode [0 1 0 1 0 1] /DataSource <%s> >> image\n",
+		w, h, string(hex))
+	ps.write("grestore newpath\n")
+	return nil
+}
+
+// dumpRGBA returns the image's RGBA pixels as a flat byte slice.
+// Returns nil if the image doesn't expose its pixels (e.g. SVG).
+func (im *ImageItem) dumpRGBA() []byte {
+	type pixelSource interface {
+		Pixels() []byte
+	}
+	if r, ok := im.image.(pixelSource); ok {
+		return r.Pixels()
+	}
+	return nil
+}

@@ -213,3 +213,55 @@ func (a *ArcItem) Translate(dx, dy float64) {
 }
 
 func (a *ArcItem) Delete(d platform.DisplayServer) {}
+
+// Postscript emits a PostScript representation of the arc/chord/pieslice.
+//
+// Mirrors tk/generic/tkCanvArc.c:ArcToPostscript. We approximate the ellipse
+// arc as a series of line segments (Tk relies on a prolog "Ellipse" macro;
+// emitting sampled segments is visually equivalent and keeps our prolog
+// minimal).
+func (a *ArcItem) Postscript(ps *PSContext) error {
+	if a.State() == ItemStateHidden {
+		return nil
+	}
+	x1, y1, x2, y2 := a.coords[0], a.coords[1], a.coords[2], a.coords[3]
+	cx := (x1 + x2) / 2
+	cy := (y1 + y2) / 2
+	rx := (x2 - x1) / 2
+	ry := (y2 - y1) / 2
+	if rx == 0 || ry == 0 {
+		return nil
+	}
+	startRad := a.start * math.Pi / 180
+	extentRad := a.extent * math.Pi / 180
+
+	const segs = 60
+	// Build the arc polyline.
+	pts := make([]float64, 0, segs*2)
+	for i := 0; i <= segs; i++ {
+		t := startRad + extentRad*float64(i)/float64(segs)
+		pts = append(pts, cx+rx*math.Cos(t), cy+ry*math.Sin(t))
+	}
+
+	// Pieslice and chord close the path back to the center.
+	if a.style == ArcStylePieslice || a.style == ArcStyleChord {
+		pts = append(pts, cx, cy)
+	}
+
+	ps.Path(pts)
+
+	switch a.style {
+	case ArcStylePieslice, ArcStyleChord:
+		if a.fill != nil {
+			ps.Color(a.fill)
+			ps.write("gsave fill grestore newpath\n")
+			ps.Path(pts)
+		}
+	}
+
+	if a.outline != nil && a.outlineWidth > 0 {
+		ps.Outline(a.outlineWidth, dashInts(a.dash), 0, a.outline, nil)
+	}
+	ps.write("newpath\n")
+	return nil
+}

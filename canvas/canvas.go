@@ -215,7 +215,7 @@ func (c *Canvas) Display() {
 	// Draw items bottom to top.
 	for _, entry := range c.items {
 		item := entry.item
-		if base := itemBase(item); base != nil && base.State == ItemStateHidden {
+		if base := itemBase(item); base != nil && base.State() == ItemStateHidden {
 			continue
 		}
 

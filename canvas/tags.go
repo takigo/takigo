@@ -66,7 +66,7 @@ func (c *Canvas) findByID(id int64) *itemEntry {
 func (c *Canvas) findClosest(x, y float64, halo float64) *itemEntry {
 	for i := len(c.items) - 1; i >= 0; i-- {
 		entry := c.items[i]
-		if base := itemBase(entry.item); base != nil && base.State == ItemStateHidden {
+		if base := itemBase(entry.item); base != nil && base.State() == ItemStateHidden {
 			continue
 		}
 		dist := entry.item.PointDistance(x, y)

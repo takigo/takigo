@@ -3,6 +3,7 @@ package canvas
 import (
 	"image/color"
 
+	colortakigo "github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
 )
@@ -133,3 +134,28 @@ func (bi *BitmapItem) Translate(dx, dy float64) {
 }
 
 func (bi *BitmapItem) Delete(d platform.DisplayServer) {}
+
+// Postscript emits a PostScript representation of the bitmap item.
+//
+// Mirrors tk/generic/tkCanvBmap.c:BitmapToPostscript.
+func (bi *BitmapItem) Postscript(ps *PSContext) error {
+	if bi.State() == ItemStateHidden || bi.xbm == nil {
+		return nil
+	}
+	if ps.Prepass {
+		return nil
+	}
+	w, h := bi.xbm.Width, bi.xbm.Height
+	ax, ay := anchorOffset(bi.anchor, w, h)
+	x := float64(int(bi.x) + ax)
+	y := float64(int(bi.y) + ay)
+	ps.writef("gsave %.15g %.15g translate %d %d scale\n", x, ps.PsY(int(y)+h), w, h)
+	// Foreground is goimage/color.RGBA; convert to takigo ColorRef for the emitter.
+	fg := &colortakigo.ColorRef{Pixel: 0, Red: uint16(bi.Foreground.R) << 8, Green: uint16(bi.Foreground.G) << 8, Blue: uint16(bi.Foreground.B) << 8}
+	if bi.Foreground.A != 0 {
+		ps.Color(fg)
+	}
+	ps.Bitmap(bi.xbm.Bits, w, h)
+	ps.write("grestore newpath\n")
+	return nil
+}

@@ -261,6 +261,64 @@ func (t *TextItem) Translate(dx, dy float64) {
 
 func (t *TextItem) Delete(d platform.DisplayServer) {}
 
+// Postscript emits a PostScript representation of the text item.
+//
+// Mirrors tk/generic/tkCanvText.c:TextToPostscript.
+func (t *TextItem) Postscript(ps *PSContext) error {
+	if t.State() == ItemStateHidden {
+		return nil
+	}
+	if t.font == nil || len(t.text) == 0 {
+		return nil
+	}
+	ps.Font(t.font)
+	if ps.Prepass {
+		return nil
+	}
+	ps.Color(t.color)
+
+	// Anchor offset in pixels.
+	w := t.font.MeasureString(t.text)
+	m := t.font.Metrics()
+	h := m.Linespace()
+	ax, ay := anchorOffset(t.anchor, w, h)
+	x := float64(int(t.x) + ax)
+	y := float64(int(t.y) + ay)
+
+	// PostScript y is anchored at the baseline. We approximate baseline
+	// as y + ascent (Tk does this with tk_anchorY corrections).
+	ps.writef("%.15g %.15g moveto\n", x, ps.PsY(int(y)+m.Ascent))
+	ps.writef("(%s) show\n", psEscape(t.text))
+	ps.write("newpath\n")
+	return nil
+}
+
+// psEscape escapes a string for inclusion in a PostScript literal string
+// between parentheses. Mirrors Tcl_AppendPrintfootToObj conventions.
+func psEscape(s string) string {
+	var b []byte
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		switch c {
+		case '(', ')', '\\':
+			b = append(b, '\\', c)
+		case '\n':
+			b = append(b, '\\', 'n')
+		case '\r':
+			b = append(b, '\\', 'r')
+		case '\t':
+			b = append(b, '\\', 't')
+		default:
+			if c < 32 || c > 126 {
+				b = append(b, '\\', '0'+(c>>6)&0x7, '0'+(c>>3)&0x7, '0'+c&0x7)
+			} else {
+				b = append(b, c)
+			}
+		}
+	}
+	return string(b)
+}
+
 // anchorOffset computes the top-left offset from the anchor point
 // for a region of size (w, h).
 func anchorOffset(a option.Anchor, w, h int) (int, int) {

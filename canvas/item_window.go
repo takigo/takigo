@@ -108,3 +108,33 @@ func (wi *WindowItem) Delete(d platform.DisplayServer) {
 		d.UnmapWindow(wi.win.PlatformID)
 	}
 }
+
+// Postscript emits a placeholder rectangle outline at the window item's
+// bounding box. The embedded widget's contents are not captured — this
+// matches the simplified scope agreed for the first port.
+//
+// Tk's full WinItemToPostscript tries `$win postscript` first and otherwise
+// emits a pixmap dump; we keep takigo self-contained with the rectangle
+// stub.
+func (wi *WindowItem) Postscript(ps *PSContext) error {
+	if wi.State() == ItemStateHidden {
+		return nil
+	}
+	if ps.Prepass {
+		return nil
+	}
+	if wi.X2 <= wi.X1 || wi.Y2 <= wi.Y1 {
+		return nil
+	}
+	ps.Path([]float64{
+		float64(wi.X1), float64(wi.Y1),
+		float64(wi.X2), float64(wi.Y1),
+		float64(wi.X2), float64(wi.Y2),
+		float64(wi.X1), float64(wi.Y2),
+	})
+	// Light grey 1px outline so the placeholder is visible but unobtrusive.
+	ps.writef("0.75 setgray %.15g setlinewidth\n", 1.0)
+	ps.write("[] 0 setdash\nstroke newpath\n")
+	ps.write("setgray\n")
+	return nil
+}

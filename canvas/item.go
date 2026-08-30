@@ -54,6 +54,14 @@ type Item interface {
 
 	// Delete frees platform resources held by the item.
 	Delete(d platform.DisplayServer)
+
+	// Postscript emits a PostScript representation of the item into ps.
+	// Returns nil error; PS emission is best-effort and never aborts the
+	// output. Items in state ItemStateHidden should emit nothing.
+	Postscript(ps *PSContext) error
+
+	// State returns the item's per-item state (normal/disabled/hidden).
+	State() ItemState
 }
 
 // ItemBase holds fields common to all item types.
@@ -61,9 +69,12 @@ type ItemBase struct {
 	ID             int64
 	Tags           []string
 	X1, Y1, X2, Y2 int // integer bounding box in canvas coords
-	State          ItemState
+	state ItemState
 	canvas         *Canvas // back-pointer for color/font/visual resolution
 }
+
+// State returns the item's per-item state.
+func (b *ItemBase) State() ItemState { return b.state }
 
 // HasTag returns true if the item has the given tag.
 func (b *ItemBase) HasTag(tag string) bool {

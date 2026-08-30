@@ -188,6 +188,88 @@ func (r *RectOvalItem) Delete(d platform.DisplayServer) {
 	// No per-item GCs allocated (we use shared gc), nothing to free.
 }
 
+// Postscript emits a PostScript representation of the rectangle or oval.
+//
+// Mirrors tk/generic/tkCanvRectOval.c:RRectOvalToPostscript / ROvalToPostscript.
+// Rectangle uses a closed 4-point path; oval uses a closed ellipse path
+// (PostScript ellipse via the prolog's Ellipse / ova macros, but to stay
+// portable we emit a circle approximation built from moveto/lineto — Tk's
+// ellipse macro requires it to be defined in the prolog. We use moveto+lineto
+// along the perimeter with sufficient segments for visual fidelity).
+func (r *RectOvalItem) Postscript(ps *PSContext) error {
+	if r.State() == ItemStateHidden || ps.Prepass {
+		// Even on prepass we should still register fonts; rectoval has none.
+		return nil
+	}
+	switch r.typeName {
+	case "rectangle":
+		return psRectangle(r, ps)
+	case "oval":
+		return psOval(r, ps)
+	}
+	return nil
+}
+
+func psRectangle(r *RectOvalItem, ps *PSContext) error {
+	ps.Path([]float64{
+		float64(r.X1), float64(r.Y1),
+		float64(r.X2), float64(r.Y1),
+		float64(r.X2), float64(r.Y2),
+		float64(r.X1), float64(r.Y2),
+	})
+	if r.fill != nil {
+		ps.Color(r.fill)
+		ps.write("gsave fill grestore newpath\n")
+		// Re-emit the path for the outline.
+		ps.Path([]float64{
+			float64(r.X1), float64(r.Y1),
+			float64(r.X2), float64(r.Y1),
+			float64(r.X2), float64(r.Y2),
+			float64(r.X1), float64(r.Y2),
+		})
+	}
+	if r.outline != nil && r.outlineWidth > 0 {
+		ps.Outline(r.outlineWidth, dashInts(r.dash), 0, r.outline, nil)
+	}
+	ps.write("newpath\n")
+	return nil
+}
+
+func psOval(r *RectOvalItem, ps *PSContext) error {
+	// Approximate the oval with a closed polygon (60 segments).
+	// Tk's ellipse uses its own prolog macro; we keep takigo self-contained.
+	cx := float64(r.X1+r.X2) / 2.0
+	cy := float64(r.Y1+r.Y2) / 2.0
+	rx := float64(r.X2-r.X1) / 2.0
+	ry := float64(r.Y2-r.Y1) / 2.0
+	const segs = 60
+	pts := make([]float64, 0, segs*2)
+	for i := 0; i < segs; i++ {
+		theta := 2 * math.Pi * float64(i) / float64(segs)
+		pts = append(pts, cx+rx*math.Cos(theta), cy+ry*math.Sin(theta))
+	}
+	ps.Path(pts)
+	if r.fill != nil {
+		ps.Color(r.fill)
+		ps.write("gsave fill grestore newpath\n")
+		// Re-emit for stroke.
+		ps.Path(pts)
+	}
+	if r.outline != nil && r.outlineWidth > 0 {
+		ps.Outline(r.outlineWidth, dashInts(r.dash), 0, r.outline, nil)
+	}
+	ps.write("newpath\n")
+	return nil
+}
+
+func dashInts(b []byte) []int {
+	out := make([]int, len(b))
+	for i, v := range b {
+		out[i] = int(v)
+	}
+	return out
+}
+
 // --- Geometry helpers ---
 
 func rectPointDistance(px, py, x1, y1, x2, y2 float64) float64 {

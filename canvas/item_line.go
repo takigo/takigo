@@ -289,6 +289,102 @@ func (l *LineItem) Translate(dx, dy float64) {
 
 func (l *LineItem) Delete(d platform.DisplayServer) {}
 
+// Postscript emits a PostScript representation of the line.
+//
+// Mirrors tk/generic/tkCanvLine.c:LineToPostscript + ArrowheadPostscript.
+// Single-point lines become filled circles; multi-point lines draw a path
+// then stroke; arrowheads emit closed polygons at each end.
+func (l *LineItem) Postscript(ps *PSContext) error {
+	if l.State() == ItemStateHidden {
+		return nil
+	}
+	npts := len(l.coords) / 2
+	if npts == 0 {
+		return nil
+	}
+	if npts == 1 {
+		// Single point → filled disc.
+		ps.writef("matrix currentmatrix\n%.15g %.15g translate %.15g %.15g scale 1 0 moveto 0 0 1 0 360 arc\nsetmatrix\n",
+			l.coords[0], ps.PsY(int(l.coords[1])), float64(l.width)/2, float64(l.width)/2)
+		if l.color != nil {
+			ps.Color(l.color)
+			ps.write("fill\n")
+		}
+		return nil
+	}
+
+	// Decide whether to use spline path (smooth) or polyline.
+	if l.smooth && len(l.coords) >= 6 {
+		// Linear approximation; the prolog has a real bezier curve helper but
+		// we sample for portability. SplineSteps controls sampling density.
+		steps := l.splineSteps
+		if steps < 1 {
+			steps = 12
+		}
+		pts := sampleSpline(l.coords, steps)
+		ps.Path(pts)
+	} else {
+		ps.Path(l.coords)
+	}
+	ps.Outline(l.width, dashInts(l.dash), 0, l.color, nil)
+	ps.write("newpath\n")
+
+	// Arrowheads.
+	if l.arrow == ArrowFirst || l.arrow == ArrowBoth {
+		psArrow(l, ps, true /*first*/)
+	}
+	if l.arrow == ArrowLast || l.arrow == ArrowBoth {
+		psArrow(l, ps, false /*last*/)
+	}
+	return nil
+}
+
+// sampleSpline returns a sampled polyline approximating the open Bezier
+// spline through coords with `steps` segments between each control pair.
+func sampleSpline(coords []float64, steps int) []float64 {
+	return generateBezierSpline(coords, false, steps)
+}
+
+// psArrow emits an arrowhead polygon. Mirrors ArrowheadPostscript.
+func psArrow(l *LineItem, ps *PSContext, first bool) {
+	n := len(l.coords) / 2
+	if n < 2 {
+		return
+	}
+	var tipX, tipY, sideX, sideY float64
+	if first {
+		tipX, tipY = l.coords[0], l.coords[1]
+		sideX, sideY = l.coords[2], l.coords[3]
+	} else {
+		tipX, tipY = l.coords[n*2-2], l.coords[n*2-1]
+		sideX, sideY = l.coords[n*2-4], l.coords[n*2-3]
+	}
+	dx := sideX - tipX
+	dy := sideY - tipY
+	dist := math.Sqrt(dx*dx + dy*dy)
+	if dist == 0 {
+		return
+	}
+	ux, uy := dx/dist, dy/dist
+	px, py := -uy, ux
+
+	shapeC := l.arrowShapeC + float64(l.width)/2
+	shapeA := l.arrowBackup()
+	shapeB := l.arrowShapeB
+
+	p1x, p1y := tipX, tipY
+	p2x, p2y := tipX+shapeB*ux+shapeC*px, tipY+shapeB*uy+shapeC*py
+	p3x, p3y := tipX+shapeA*ux+(float64(l.width)/2)*px, tipY+shapeA*uy+(float64(l.width)/2)*py
+	p4x, p4y := tipX+shapeA*ux-(float64(l.width)/2)*px, tipY+shapeA*uy-(float64(l.width)/2)*py
+	p5x, p5y := tipX+shapeB*ux-shapeC*px, tipY+shapeB*uy-shapeC*py
+
+	ps.Path([]float64{p1x, p1y, p2x, p2y, p3x, p3y, p4x, p4y, p5x, p5y})
+	if l.color != nil {
+		ps.Color(l.color)
+		ps.write("gsave fill grestore newpath\n")
+	}
+}
+
 // segmentPointDistance computes the distance from point (px,py) to the
 // line segment from (x1,y1) to (x2,y2).
 func segmentPointDistance(px, py, x1, y1, x2, y2 float64) float64 {
