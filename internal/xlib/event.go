@@ -222,13 +222,6 @@ func (d *Display) NextEvent() *RawEvent {
 	return &ev
 }
 
-// PeekEvent returns the next event without removing it from the queue.
-func (d *Display) PeekEvent() *RawEvent {
-	var ev RawEvent
-	C.XPeekEvent(d.ptr, &ev.ev)
-	return &ev
-}
-
 // KeyEvent holds parsed key press/release data.
 type KeyEvent struct {
 	EventWindow  Window

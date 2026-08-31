@@ -195,9 +195,6 @@ type EventSource interface {
 	// NextEvent blocks until the next event and returns it.
 	NextEvent() *RawEvent
 
-	// PeekEvent returns the next event without removing it.
-	PeekEvent() *RawEvent
-
 	// FilterEvent returns true if the event was consumed by input method.
 	FilterEvent(ev *RawEvent) bool
 }

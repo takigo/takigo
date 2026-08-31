@@ -173,15 +173,6 @@ func (d *WindowsDisplay) NextEvent() *platform.RawEvent {
 	return <-d.eventCh
 }
 
-func (d *WindowsDisplay) PeekEvent() *platform.RawEvent {
-	select {
-	case ev := <-d.eventCh:
-		return ev
-	default:
-		return nil
-	}
-}
-
 func (d *WindowsDisplay) FilterEvent(ev *platform.RawEvent) bool {
 	return false // No IM filtering on Windows currently.
 }

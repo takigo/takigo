@@ -234,15 +234,6 @@ func (s *X11Display) NextEvent() *platform.RawEvent {
 	}
 }
 
-func (s *X11Display) PeekEvent() *platform.RawEvent {
-	raw := s.dpy.PeekEvent()
-	return &platform.RawEvent{
-		Data:        raw,
-		EventType:   raw.Type(),
-		EventWindow: platform.WindowID(raw.Window()),
-	}
-}
-
 func (s *X11Display) FilterEvent(ev *platform.RawEvent) bool {
 	raw := ev.Data.(*xlib.RawEvent)
 	return raw.FilterEvent()

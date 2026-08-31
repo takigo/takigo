@@ -201,12 +201,6 @@ func (d *CocoaDisplay) NextEvent() *platform.RawEvent {
 		EventWindow: platform.WindowID(uintptr(raw.Window())),
 	}
 }
-func (d *CocoaDisplay) PeekEvent() *platform.RawEvent {
-	if clib.Pending() == 0 {
-		return nil
-	}
-	return d.NextEvent()
-}
 func (d *CocoaDisplay) FilterEvent(ev *platform.RawEvent) bool {
 	return false
 }
