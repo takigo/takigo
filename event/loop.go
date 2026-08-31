@@ -71,58 +71,36 @@ func NewLoop(server platform.DisplayServer, parser platform.EventParser, dispatc
 
 // Run starts the event loop. It blocks until Quit is called.
 func (l *Loop) Run() {
-	if l.pumper != nil {
-		l.runPumpMode()
-		return
-	}
-
-	// FD-based mode (X11): dedicated goroutine blocks on NextEvent.
-	go l.readEvents()
-
-	for {
-		l.processIdleQueue()
-
-		select {
-		case <-l.done:
-			return
-
-		case raw := <-l.eventCh:
-			l.handleRaw(raw)
-
-		case fn := <-l.idleCh:
-			l.idleQueue = append(l.idleQueue, fn)
-
-		case fn := <-l.timerCh:
-			fn()
-			l.server.Flush()
-
-		case fn := <-l.mainCh:
-			fn()
-			l.server.Flush()
-		}
-	}
+	l.run(nil)
 }
 
-// runPumpMode runs the event loop in pump mode, used on platforms (macOS)
-// where events must be pumped from the main thread. Instead of blocking
-// on NextEvent in a goroutine, we periodically pump the platform event
-// queue from the main goroutine and use a short-timeout select.
-func (l *Loop) runPumpMode() {
-	// Start the reader goroutine — it calls NextEvent() which polls
-	// the C-level ring buffer. PumpEvents() on the main thread feeds
-	// that buffer via NSView callbacks.
-	go l.readEvents()
+// run is the unified event-loop body shared by Run and RunNested.
+// extraDone may be nil for the top-level loop (Quit is the only way out)
+// or the caller's done channel for a nested loop. Pump mode is enabled
+// automatically when the display server implements EventPumper (macOS/Cocoa).
+func (l *Loop) run(extraDone <-chan struct{}) {
+	var pumpTick <-chan time.Time
+	if l.pumper != nil {
+		// 2ms gives responsive UI without excessive CPU usage; the
+		// reader goroutine below feeds eventCh from the C-level ring
+		// buffer that PumpEvents populates.
+		ticker := time.NewTicker(2 * time.Millisecond)
+		defer ticker.Stop()
+		pumpTick = ticker.C
+	}
 
-	// Use a ticker to drive event pumping. 2ms gives responsive UI
-	// without excessive CPU usage.
-	ticker := time.NewTicker(2 * time.Millisecond)
-	defer ticker.Stop()
+	// FD-based mode (X11) blocks on NextEvent in a goroutine; on pump
+	// mode the reader polls the C ring buffer that PumpEvents feeds.
+	go l.readEvents()
 
 	for {
 		l.processIdleQueue()
 
 		select {
 		case <-l.done:
+			return
+
+		case <-extraDone:
 			return
 
 		case raw := <-l.eventCh:
@@ -139,19 +117,19 @@ func (l *Loop) runPumpMode() {
 			fn()
 			l.server.Flush()
 
-		case <-ticker.C:
+		case <-pumpTick:
 			// Pump platform events from the main thread.
-			// This processes NSEvents on macOS, which triggers callbacks
-			// that post to eventCh.
+			// This processes NSEvents on macOS, which triggers
+			// callbacks that post to eventCh.
 			l.pumper.PumpEvents()
 
 			// Drain any events that were posted during pumping.
-			for done := false; !done; {
+			for drained := false; !drained; {
 				select {
 				case raw := <-l.eventCh:
 					l.handleRaw(raw)
 				default:
-					done = true
+					drained = true
 				}
 			}
 		}
@@ -233,71 +211,7 @@ func (l *Loop) RunOnMain(fn func()) {
 // This implements nested event loops needed for modal dialogs (like Tcl's vwait).
 // It must be called from within a handler running on the main goroutine.
 func (l *Loop) RunNested(done <-chan struct{}) {
-	if l.pumper != nil {
-		l.runNestedPumpMode(done)
-		return
-	}
-	for {
-		l.processIdleQueue()
-
-		select {
-		case <-done:
-			return
-
-		case <-l.done:
-			return
-
-		case raw := <-l.eventCh:
-			l.handleRaw(raw)
-
-		case fn := <-l.idleCh:
-			l.idleQueue = append(l.idleQueue, fn)
-
-		case fn := <-l.timerCh:
-			fn()
-			l.server.Flush()
-
-		case fn := <-l.mainCh:
-			fn()
-			l.server.Flush()
-		}
-	}
-}
-
-func (l *Loop) runNestedPumpMode(done <-chan struct{}) {
-	ticker := time.NewTicker(2 * time.Millisecond)
-	defer ticker.Stop()
-
-	for {
-		l.processIdleQueue()
-
-		select {
-		case <-done:
-			return
-		case <-l.done:
-			return
-		case raw := <-l.eventCh:
-			l.handleRaw(raw)
-		case fn := <-l.idleCh:
-			l.idleQueue = append(l.idleQueue, fn)
-		case fn := <-l.timerCh:
-			fn()
-			l.server.Flush()
-		case fn := <-l.mainCh:
-			fn()
-			l.server.Flush()
-		case <-ticker.C:
-			l.pumper.PumpEvents()
-			for done := false; !done; {
-				select {
-				case raw := <-l.eventCh:
-					l.handleRaw(raw)
-				default:
-					done = true
-				}
-			}
-		}
-	}
+	l.run(done)
 }
 
 // processIdleQueue runs all pending idle callbacks.
