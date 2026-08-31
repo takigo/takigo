@@ -60,8 +60,12 @@ func NewApp(opts ...AppOption) (*App, error) {
 
 	// Configure screen unit conversion from actual screen metrics.
 	defScreen := server.DefaultScreen()
-	xftDPI := parseXftDPI(server.ResourceManagerString())
-	screenunit.SetScreenDPI(server.ScreenWidth(defScreen), server.ScreenWidthMM(defScreen), xftDPI)
+	xftDPI, hasXftDPI := parseXftDPI(server.ResourceManagerString())
+	var dpiArg float64
+	if hasXftDPI {
+		dpiArg = xftDPI
+	}
+	screenunit.SetScreenDPI(server.ScreenWidth(defScreen), server.ScreenWidthMM(defScreen), dpiArg)
 
 	d, err := window.NewDisplay(server)
 	if err != nil {
@@ -387,8 +391,9 @@ func Size(width, height int) AppOption {
 }
 
 // parseXftDPI extracts the Xft.dpi value from an X RESOURCE_MANAGER string.
-// Returns 0 if not found. The string is newline-separated "key:\tvalue" pairs.
-func parseXftDPI(resources string) float64 {
+// Returns (dpi, true) when a positive value is found, (0, false) otherwise.
+// The string is newline-separated "key:\tvalue" pairs.
+func parseXftDPI(resources string) (float64, bool) {
 	for _, line := range strings.Split(resources, "\n") {
 		line = strings.TrimSpace(line)
 		idx := strings.Index(line, ":")
@@ -404,7 +409,7 @@ func parseXftDPI(resources string) float64 {
 		if err != nil || dpi <= 0 {
 			continue
 		}
-		return dpi
+		return dpi, true
 	}
-	return 0
+	return 0, false
 }
