@@ -204,7 +204,7 @@ func (b *Button) computeGeometry() {
 		b.textHeight = 0
 	}
 
-	contentW, contentH := compoundSize(b.Compound, b.Img, b.textWidth, b.textHeight)
+	contentW, contentH := widget.CompoundSize(b.Compound, b.Img, b.textWidth, b.textHeight)
 
 	if b.WidthChars > 0 && b.Font != nil {
 		charW := b.Font.MeasureString("0")
@@ -316,30 +316,6 @@ func (b *Button) Display() {
 	d.Flush()
 }
 
-// compoundSize computes the total content size for a compound image+text layout.
-func compoundSize(c widget.Compound, img widget.WidgetImage, textW, textH int) (int, int) {
-	if img == nil {
-		return textW, textH
-	}
-	imgW := img.Width()
-	imgH := img.Height()
-
-	if textW == 0 && textH == 0 {
-		return imgW, imgH
-	}
-
-	switch c {
-	case widget.CompoundLeft, widget.CompoundRight:
-		return imgW + 4 + textW, max(imgH, textH)
-	case widget.CompoundTop, widget.CompoundBottom:
-		return max(imgW, textW), imgH + 4 + textH
-	case widget.CompoundCenter:
-		return max(imgW, textW), max(imgH, textH)
-	default:
-		return imgW, imgH
-	}
-}
-
 // drawCompoundButton draws image and text in compound mode for a button.
 func drawCompoundButton(b *Button, w *window.Window,
 	frameX, frameY, availW, availH int, bgPixel uint64,
@@ -347,7 +323,7 @@ func drawCompoundButton(b *Button, w *window.Window,
 
 	imgW := b.Img.Width()
 	imgH := b.Img.Height()
-	contentW, contentH := compoundSize(b.Compound, b.Img, b.textWidth, b.textHeight)
+	contentW, contentH := widget.CompoundSize(b.Compound, b.Img, b.textWidth, b.textHeight)
 
 	cx, cy := widget.AnchorText(b.Anchor, frameX, frameY, availW, availH, contentW, contentH)
 	cx += pressOff

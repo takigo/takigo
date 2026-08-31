@@ -270,3 +270,34 @@ func AnchorText(a option.Anchor, frameX, frameY, frameW, frameH, textW, textH in
 	}
 	return x, y
 }
+
+// CompoundSize returns the bounding-box width and height of a compound
+// image+text layout, given the layout mode, an optional image, and the
+// measured text size. A nil image degrades to the text size; empty text
+// degrades to the image size; the four-pixel gap is the conventional
+// Tk separator between image and text.
+//
+// Matches the geometry expected by -compound on label, button, and ttk
+// widgets, so callers in widget/button and ttk/elements share it.
+func CompoundSize(c Compound, img WidgetImage, textW, textH int) (int, int) {
+	if img == nil {
+		return textW, textH
+	}
+	imgW := img.Width()
+	imgH := img.Height()
+
+	if textW == 0 && textH == 0 {
+		return imgW, imgH
+	}
+
+	switch c {
+	case CompoundLeft, CompoundRight:
+		return imgW + 4 + textW, max(imgH, textH)
+	case CompoundTop, CompoundBottom:
+		return max(imgW, textW), imgH + 4 + textH
+	case CompoundCenter:
+		return max(imgW, textW), max(imgH, textH)
+	default:
+		return imgW, imgH
+	}
+}

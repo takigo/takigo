@@ -147,7 +147,7 @@ func (e *LabelElement) Size(state State) (int, int, Padding) {
 		}
 	}
 
-	w, h := compoundSize(compound, img, tw, th)
+	w, h := widget.CompoundSize(compound, img, tw, th)
 	return w, h, Padding{}
 }
 
@@ -166,7 +166,7 @@ func (e *LabelElement) Draw(d platform.DisplayServer, drawable platform.Drawable
 		th = f.Metrics().Linespace()
 	}
 
-	contentW, contentH := compoundSize(compound, img, tw, th)
+	contentW, contentH := widget.CompoundSize(compound, img, tw, th)
 
 	// Center content in box.
 	cx := box.X + (box.Width-contentW)/2
@@ -244,30 +244,6 @@ func drawCompound(d platform.DisplayServer, drawable platform.DrawableID, gc pla
 	img.Draw(d, drawable, gc, ctx.Depth,
 		0, 0, imgW, imgH, imgX, imgY, bgPixel)
 	drawText(d, drawable, f, text, textX, textY, fgPixel)
-}
-
-// compoundSize computes the total content size for a compound image+text layout.
-func compoundSize(c widget.Compound, img widget.WidgetImage, textW, textH int) (int, int) {
-	if img == nil {
-		return textW, textH
-	}
-	imgW := img.Width()
-	imgH := img.Height()
-
-	if textW == 0 && textH == 0 {
-		return imgW, imgH
-	}
-
-	switch c {
-	case widget.CompoundLeft, widget.CompoundRight:
-		return imgW + 4 + textW, max(imgH, textH)
-	case widget.CompoundTop, widget.CompoundBottom:
-		return max(imgW, textW), imgH + 4 + textH
-	case widget.CompoundCenter:
-		return max(imgW, textW), max(imgH, textH)
-	default:
-		return imgW, imgH
-	}
 }
 
 // --- FieldElement ---
