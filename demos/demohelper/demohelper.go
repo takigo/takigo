@@ -442,70 +442,9 @@ func showCode(app widget.AppContext, srcFile string) {
 //	    ...
 //	}
 func showVars[T comparable](app widget.AppContext, vars *DemoVars[T]) {
-	releaseVarsSubscriptions()
-
-	// catch {destroy $w}
-	if varsWindow != nil && !varsWindow.Destroyed {
-		varsWindow.Destroy()
+	asAny := make(map[string]any, len(*vars))
+	for name, v := range *vars {
+		asAny[name] = v
 	}
-
-	// toplevel $w
-	// wm title $w "Variable values"
-	varsWindow = toplevel.New(app, "vars",
-		toplevel.Title("Variable values"),
-	)
-	varsWindow.Show()
-
-	varsRoot := varsWindow.Window()
-
-	b := ttk.NewFrame(varsWindow, "frame")
-	grid.Grid(b, grid.Sticky(grid.NSEW))
-
-	f := labelframe.New(b, "title", labelframe.Text("Variable values:"))
-
-	names := make([]string, 0, len(*vars))
-	for name := range *vars {
-		names = append(names, name)
-	}
-	slices.Sort(names)
-
-	for row, name := range names {
-		v := (*vars)[name]
-		nameLabel := ttk.NewLabel(f, "n_"+name, ttk.LabelText(name+":"))
-		valLabel := ttk.NewLabel(f, "v_"+name,
-			ttk.LabelText(fmt.Sprintf("%v", v.Get())),
-		)
-		unsub := v.OnChange(func(_, new T) {
-			updateValueLabel(valLabel, fmt.Sprintf("%v", new))
-		})
-		varsUnsubs = append(varsUnsubs, unsub)
-		grid.Grid(geometry.Group{nameLabel, valLabel}, grid.Column(0), grid.Row(row),
-			grid.PadX("1.5p"), grid.PadY("1.5p"), grid.Sticky(grid.StickW))
-	}
-
-	okBtn := ttk.NewButton(b, "ok",
-		ttk.ButtonText("OK"),
-		ttk.ButtonCommand(func() {
-			releaseVarsSubscriptions()
-			varsWindow.Destroy()
-		}),
-	)
-
-	// TODO: bind $w <Return> [list $b.ok invoke]
-	// TODO: bind $w <Escape> [list $b.ok invoke]
-
-	grid.Grid(f, grid.Sticky(grid.NSEW), grid.PadX("3p"))
-	grid.Grid(okBtn, grid.Row(1), grid.Sticky(grid.StickE), grid.PadX("3p"), grid.PadY("3p"))
-
-	grid.ColumnConfigure(f, 1, grid.Weight(1))
-	grid.RowConfigure(f, 100, grid.Weight(1))
-	grid.ColumnConfigure(b, 0, grid.Weight(1))
-	grid.RowConfigure(b, 0, grid.Weight(1))
-	grid.ColumnConfigure(varsRoot, 0, grid.Weight(1))
-	grid.RowConfigure(varsRoot, 0, grid.Weight(1))
-
-	varsWindow.OnClose(func() {
-		releaseVarsSubscriptions()
-		varsWindow.Destroy()
-	})
+	showVarsAny(app, asAny)
 }
