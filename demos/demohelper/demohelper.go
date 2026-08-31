@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"runtime"
+	"slices"
 
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/geometry"
@@ -138,7 +139,7 @@ func showVarsAny(app widget.AppContext, vars map[string]any) {
 	for name := range vars {
 		names = append(names, name)
 	}
-	sortStrings(names)
+	slices.Sort(names)
 
 	for row, name := range names {
 		nameLabel := ttk.NewLabel(f, "n_"+name, ttk.LabelText(name+":"))
@@ -236,22 +237,6 @@ func variableGet(v any) any {
 	}
 	return results[0].Interface()
 }
-
-// reflectValueOf is a thin alias to avoid shadowing reflect.ValueOf below.
-var reflectValueOf = reflect.ValueOf
-
-// sortStrings sorts a slice of strings in place (avoids importing "sort"
-// at the top; keeps the import block tidy).
-func sortStrings(s []string) {
-	for i := 1; i < len(s); i++ {
-		for j := i; j > 0 && s[j-1] > s[j]; j-- {
-			s[j-1], s[j] = s[j], s[j-1]
-		}
-	}
-}
-
-// ensure reflect package is referenced (some toolchains strip unused imports)
-var _ = reflect.TypeOf
 
 func AddBottomButtons(parent widget.Caregiver, varsFunc func(*ttk.Frame) *ttk.Button) *ttk.Frame {
 	_, callerFile, _, _ := runtime.Caller(2)
@@ -482,7 +467,7 @@ func showVars[T comparable](app widget.AppContext, vars *DemoVars[T]) {
 	for name := range *vars {
 		names = append(names, name)
 	}
-	sortStrings(names)
+	slices.Sort(names)
 
 	for row, name := range names {
 		v := (*vars)[name]
