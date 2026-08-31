@@ -115,3 +115,49 @@ func TestDispatcherUnknownType(t *testing.T) {
 		t.Error("should not dispatch unknown event type")
 	}
 }
+
+func TestDispatcherUnbindID(t *testing.T) {
+	d := NewDispatcher()
+	var aCount, bCount int
+	idA := d.Bind(platform.WindowID(1), KeyPressMask, func(ev *Event) { aCount++ })
+	idB := d.Bind(platform.WindowID(1), KeyPressMask, func(ev *Event) { bCount++ })
+	idG := d.BindGlobal(KeyPressMask, func(ev *Event) { aCount++ })
+
+	// Sanity: all three fire.
+	d.Dispatch(&Event{Type: KeyPressType, Window: platform.WindowID(1)})
+	if aCount != 2 || bCount != 1 {
+		t.Fatalf("baseline: aCount=%d bCount=%d, want 2/1", aCount, bCount)
+	}
+
+	// Remove the per-window handler A.
+	if !d.UnbindID(idA) {
+		t.Fatal("UnbindID(A) returned false")
+	}
+	d.Dispatch(&Event{Type: KeyPressType, Window: platform.WindowID(1)})
+	if aCount != 3 || bCount != 2 {
+		t.Errorf("after UnbindID(A): aCount=%d bCount=%d, want 3/2", aCount, bCount)
+	}
+
+	// Remove the global handler G; only B should remain.
+	if !d.UnbindID(idG) {
+		t.Fatal("UnbindID(G) returned false")
+	}
+	d.Dispatch(&Event{Type: KeyPressType, Window: platform.WindowID(1)})
+	if aCount != 3 || bCount != 3 {
+		t.Errorf("after UnbindID(G): aCount=%d bCount=%d, want 3/3", aCount, bCount)
+	}
+
+	// Removing an unknown ID is a no-op.
+	if d.UnbindID(BindingID(99999)) {
+		t.Error("UnbindID on unknown ID should return false")
+	}
+
+	// After removing A (idx 0) from [A, B], the swap-with-last removal
+	// should leave B at idx 0; removing B should now find it there.
+	if !d.UnbindID(idB) {
+		t.Fatal("UnbindID(B) returned false after swap-with-last")
+	}
+	if d.UnbindID(idB) {
+		t.Error("UnbindID on already-removed B should return false")
+	}
+}
