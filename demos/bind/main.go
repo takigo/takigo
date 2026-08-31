@@ -116,11 +116,16 @@ func main() {
 			tw.Display()
 		})
 		tw.TagBind(tag, "<Button-1>", func() {
-			go func() {
-				cmd := exec.Command("go", "run", ".")
-				cmd.Dir = demosRoot + "/" + dir
-				_ = cmd.Start()
-			}()
+			cmd := exec.Command("go", "run", ".")
+			cmd.Dir = demosRoot + "/" + dir
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+			// Fire-and-forget: the child demo owns its own event loop.
+			// Surface Start errors so a missing demo or "go" not on PATH
+			// doesn't fail silently.
+			if err := cmd.Start(); err != nil {
+				fmt.Fprintf(os.Stderr, "Demo %s: failed to start: %v\n", dir, err)
+			}
 		})
 	}
 

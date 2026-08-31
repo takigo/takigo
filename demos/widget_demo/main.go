@@ -234,12 +234,20 @@ func main() {
 				// showStatus
 				statusLabel.Text = fmt.Sprintf("Running: %s...", demoDesc)
 				statusLabel.Display()
+				cmd := exec.Command("go", "run", ".")
+				cmd.Dir = dir
+				cmd.Stdout = os.Stdout
+				cmd.Stderr = os.Stderr
+				// Fire-and-forget: the launched demo runs its own event
+				// loop. Surface Start errors (e.g. demo directory moved,
+				// "go" missing) immediately; Run errors get the same
+				// stderr treatment so a crashing child is visible.
+				if err := cmd.Start(); err != nil {
+					fmt.Fprintf(os.Stderr, "Demo %s: failed to start: %v\n", demoDir, err)
+					return
+				}
 				go func() {
-					cmd := exec.Command("go", "run", ".")
-					cmd.Dir = dir
-					cmd.Stdout = os.Stdout
-					cmd.Stderr = os.Stderr
-					if err := cmd.Run(); err != nil {
+					if err := cmd.Wait(); err != nil {
 						fmt.Fprintf(os.Stderr, "Demo %s error: %v\n", demoDir, err)
 					}
 				}()
