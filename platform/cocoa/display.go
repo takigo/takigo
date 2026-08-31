@@ -1,6 +1,28 @@
 //go:build darwin
 
 // Package cocoa provides the macOS/Cocoa backend for the platform abstraction layer.
+//
+// # Known gaps
+//
+// The backend currently satisfies platform.DisplayServer with a number of
+// no-op or zero-returning stubs. They are intentionally left empty so the
+// type checks, but they drop data — code that relies on them works on X11
+// and silently fails on macOS. The list below is the source of truth for
+// what is intentionally stubbed versus what is incomplete:
+//
+//   - ChangeProperty, DeleteProperty, GetWindowProperty — window
+//     properties (other than WM_NAME) are not yet wired to NSWindow.
+//   - SendEvent, SendClientMessage — synthetic event dispatch is X11-only.
+//   - ConvertSelection, SendSelectionNotify — clipboard transfer is
+//     partial: SetSelectionOwner only records the owner in-process and
+//     does not advertise it via NSPasteboard.
+//   - InitIM, SetICFocus, UnsetICFocus — no Cocoa input method integration;
+//     HasIM returns false so the event loop skips IM routing.
+//   - CreatePixmap stipple parameters — CGPatternRef support missing
+//     (see TODO in this file).
+//
+// Before removing any of these stubs, port the behavior to NSWindow /
+// NSPasteboard / NSTextInputClient as appropriate.
 package cocoa
 
 import (
@@ -221,14 +243,18 @@ func (d *CocoaDisplay) UngrabKeyboard(time platform.Timestamp) { clib.UngrabKeyb
 // --- SelectionManager ---
 
 func (d *CocoaDisplay) SetSelectionOwner(selection platform.AtomID, owner platform.WindowID, time platform.Timestamp) {
+	// Partial: stores the owner in-process; does not advertise via
+	// NSPasteboard. See package doc ("Known gaps").
 	d.clipOwner = owner
 }
 func (d *CocoaDisplay) GetSelectionOwner(selection platform.AtomID) platform.WindowID {
 	return d.clipOwner
 }
 func (d *CocoaDisplay) ConvertSelection(selection, target, property platform.AtomID, requestor platform.WindowID, time platform.Timestamp) {
+	// Stub. See package doc ("Known gaps").
 }
 func (d *CocoaDisplay) SendSelectionNotify(requestor platform.WindowID, selection, target, property platform.AtomID, time platform.Timestamp) {
+	// Stub. See package doc ("Known gaps").
 }
 
 // --- CursorManager ---
@@ -276,6 +302,7 @@ func (d *CocoaDisplay) GetInputFocus() (platform.WindowID, int) {
 	return d.rootWindow, platform.RevertToParent
 }
 func (d *CocoaDisplay) ChangeProperty(w platform.WindowID, prop, propType platform.AtomID, format int, mode int, data []byte, nelements int) {
+	// Stub. See package doc ("Known gaps").
 }
 func (d *CocoaDisplay) ChangePropertyString(w platform.WindowID, property, typ platform.AtomID, data string) {
 	name := d.GetAtomName(property)
@@ -284,14 +311,20 @@ func (d *CocoaDisplay) ChangePropertyString(w platform.WindowID, property, typ p
 	}
 }
 func (d *CocoaDisplay) ChangePropertyAtoms(w platform.WindowID, prop platform.AtomID, atoms []platform.AtomID) {
+	// Stub. See package doc ("Known gaps").
 }
 func (d *CocoaDisplay) GetWindowProperty(w platform.WindowID, property platform.AtomID, offset, length int64, delete bool) ([]byte, platform.AtomID, int) {
+	// Stub. See package doc ("Known gaps").
 	return nil, 0, 0
 }
-func (d *CocoaDisplay) DeleteProperty(w platform.WindowID, prop platform.AtomID) {}
+func (d *CocoaDisplay) DeleteProperty(w platform.WindowID, prop platform.AtomID) {
+	// Stub. See package doc ("Known gaps").
+}
 func (d *CocoaDisplay) SendEvent(w platform.WindowID, propagate bool, eventMask int64, ev *platform.RawEvent) {
+	// Stub. See package doc ("Known gaps").
 }
 func (d *CocoaDisplay) SendClientMessage(w, target platform.WindowID, msgType platform.AtomID, d0, d1, d2, d3, d4 int64) {
+	// Stub. See package doc ("Known gaps").
 }
 func (d *CocoaDisplay) IconifyWindow(w platform.WindowID, screen int) {
 	clib.IconifyWindow(toWin(w))
@@ -313,6 +346,8 @@ func (d *CocoaDisplay) PumpEvents() {
 
 // --- InputMethodManager ---
 
+// InitIM, HasIM, SetICFocus and UnsetICFocus are stubs. HasIM reports
+// false so the event loop skips IM routing. See package doc ("Known gaps").
 func (d *CocoaDisplay) InitIM(root platform.WindowID)  {}
 func (d *CocoaDisplay) HasIM() bool                    { return false }
 func (d *CocoaDisplay) SetICFocus(w platform.WindowID) {}
