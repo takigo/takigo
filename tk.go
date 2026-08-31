@@ -329,10 +329,17 @@ func (a *App) RegisterCloseHandler(w platform.WindowID, fn func()) {
 	}
 }
 
-// UnregisterCloseHandler removes a WM_DELETE_WINDOW handler.
+// UnregisterCloseHandler restores the default WM_DELETE_WINDOW
+// behavior — destroying the window — for the given toplevel.
+// Equivalent to Tk's behavior when no user handler is installed.
 func (a *App) UnregisterCloseHandler(w platform.WindowID) {
-	// No-op: WmInfo always has WM_DELETE_WINDOW in its protocol set.
-	// The handler can be overwritten via RegisterCloseHandler.
+	win := a.display.LookupWindow(w)
+	if win == nil {
+		return
+	}
+	if info, ok := win.WmData.(*wm.WmInfo); ok {
+		info.OffDeleteWindow()
+	}
 }
 
 // DoWhenIdle schedules a function to run during the next idle phase.

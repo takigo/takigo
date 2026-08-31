@@ -382,6 +382,17 @@ func (info *WmInfo) OnDeleteWindow(fn func()) {
 	info.updateProtocols()
 }
 
+// OffDeleteWindow restores the default WM_DELETE_WINDOW behavior:
+// destroying the window. Mirrors Tk's behavior when no user handler
+// is installed.
+func (info *WmInfo) OffDeleteWindow() {
+	w := info.Win
+	info.Protocols[info.atoms.WMDeleteWindow] = func() {
+		window.DestroyWindow(w)
+	}
+	info.updateProtocols()
+}
+
 // OnProtocol registers a callback for a named WM protocol.
 func (info *WmInfo) OnProtocol(name string, fn func()) {
 	atom := info.Win.Display.Server.InternAtom(name, false)
