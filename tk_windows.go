@@ -16,8 +16,6 @@ func platformInit(displayName string) (platform.DisplayServer, platform.EventPar
 		return nil, nil, nil, err
 	}
 
-	winplatform.InitPredefinedAtoms()
-
 	parser := server.EventParser()
 	fontOpener := server.FontOpener(server.DefaultScreen())
 

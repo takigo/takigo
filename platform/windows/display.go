@@ -27,6 +27,7 @@ type WindowsDisplay struct {
 	hInstance w32.HINSTANCE
 	rootHWND  w32.HWND
 	screenDC  w32.HDC // device context for the screen
+	atoms     *platform.Atoms
 
 	// Screen metrics (cached at init).
 	screenWidth    int
@@ -114,6 +115,19 @@ func NewDisplayServer(displayName string) (*WindowsDisplay, error) {
 		clipOwner:   make(map[platform.AtomID]platform.WindowID),
 		clipData:    make(map[platform.AtomID]string),
 		cursorCache: make(map[uint]w32.HCURSOR),
+		atoms: &platform.Atoms{
+			// Windows has no X11 atoms; the Windows backend emulates
+			// them with fixed IDs that match the X11 predefined values
+			// for source compatibility.
+			WMName:        platform.AtomID(1),
+			String:        platform.AtomID(2),
+			WMNormalHints: platform.AtomID(3),
+			Primary:       platform.AtomID(4),
+			Secondary:     platform.AtomID(5),
+			Atom:          platform.AtomID(6),
+			Cardinal:      platform.AtomID(7),
+			Window:        platform.AtomID(8),
+		},
 	}
 
 	// Install our WndProc.
@@ -201,6 +215,7 @@ func (d *WindowsDisplay) Sync(discard bool)                       {} // noop on 
 func (d *WindowsDisplay) Flush()                                  {} // noop on Windows
 func (d *WindowsDisplay) Pending() int                            { return len(d.eventCh) }
 func (d *WindowsDisplay) ResourceManagerString() string           { return "" }
+func (d *WindowsDisplay) Atoms() *platform.Atoms                  { return d.atoms }
 
 // PumpEvents implements event.EventPumper for main-thread message pumping.
 func (d *WindowsDisplay) PumpEvents() {

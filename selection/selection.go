@@ -63,7 +63,7 @@ func (m *Manager) Own(selection platform.AtomID, owner platform.WindowID, conten
 
 // OwnPrimary claims PRIMARY selection.
 func (m *Manager) OwnPrimary(owner platform.WindowID, content string, time platform.Timestamp) {
-	m.Own(platform.XA_PRIMARY, owner, content, time)
+	m.Own(m.server.Atoms().Primary, owner, content, time)
 }
 
 // OwnClipboard claims CLIPBOARD selection.
@@ -99,10 +99,10 @@ func (m *Manager) HandleSelectionRequest(requestor platform.WindowID, selection,
 		// Respond with supported targets.
 		m.server.ChangePropertyAtoms(requestor, property, []platform.AtomID{
 			m.utf8str,
-			platform.XA_STRING,
+			m.server.Atoms().String,
 			m.targets,
 		})
-	} else if target == m.utf8str || target == platform.XA_STRING {
+	} else if target == m.utf8str || target == m.server.Atoms().String {
 		m.server.ChangePropertyString(requestor, property, target, content)
 	} else {
 		// Unsupported target — refuse.

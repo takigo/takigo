@@ -16,8 +16,6 @@ func platformInit(displayName string) (platform.DisplayServer, platform.EventPar
 		return nil, nil, nil, err
 	}
 
-	x11platform.InitPredefinedAtoms()
-
 	parser := server.EventParser()
 	fontOpener := server.FontOpener(server.DefaultScreen())
 

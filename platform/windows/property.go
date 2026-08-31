@@ -118,7 +118,7 @@ func (d *WindowsDisplay) ChangePropertyAtoms(w platform.WindowID, prop platform.
 			data[i*8+j] = byte(v >> (j * 8))
 		}
 	}
-	d.ChangeProperty(w, prop, platform.XA_ATOM, 32, platform.PropModeReplace, data, len(atoms))
+	d.ChangeProperty(w, prop, d.atoms.Atom, 32, platform.PropModeReplace, data, len(atoms))
 }
 
 func (d *WindowsDisplay) GetWindowProperty(w platform.WindowID, property platform.AtomID,
@@ -135,7 +135,7 @@ func (d *WindowsDisplay) GetWindowProperty(w platform.WindowID, property platfor
 	if shouldDelete {
 		delete(p.properties, property)
 	}
-	return data, platform.XA_STRING, 8
+	return data, d.atoms.String, 8
 }
 
 func (d *WindowsDisplay) DeleteProperty(w platform.WindowID, prop platform.AtomID) {

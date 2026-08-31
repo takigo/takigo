@@ -135,7 +135,7 @@ func setIconFromRGBA(win *window.Window, rgba *image.RGBA) {
 	}
 	d := win.Display.Server
 	netWmIcon := d.InternAtom("_NET_WM_ICON", false)
-	d.ChangeProperty(win.PlatformID, netWmIcon, platform.XA_CARDINAL, 32, platform.PropModeReplace, data, 2+w*h)
+	d.ChangeProperty(win.PlatformID, netWmIcon, d.Atoms().Cardinal, 32, platform.PropModeReplace, data, 2+w*h)
 }
 
 // setFallbackIcon generates a procedural 16x16 blue "T" icon.
@@ -159,5 +159,5 @@ func setFallbackIcon(win *window.Window) {
 		}
 	}
 	netWmIcon := d.InternAtom("_NET_WM_ICON", false)
-	d.ChangeProperty(win.PlatformID, netWmIcon, platform.XA_CARDINAL, 32, platform.PropModeReplace, data, 2+size*size)
+	d.ChangeProperty(win.PlatformID, netWmIcon, d.Atoms().Cardinal, 32, platform.PropModeReplace, data, 2+size*size)
 }

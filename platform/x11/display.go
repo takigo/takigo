@@ -10,7 +10,8 @@ import (
 
 // X11Display implements platform.DisplayServer by wrapping *xlib.Display.
 type X11Display struct {
-	dpy *xlib.Display
+	dpy   *xlib.Display
+	atoms *platform.Atoms
 }
 
 // NewDisplayServer opens an X11 display connection and returns a DisplayServer.
@@ -19,8 +20,23 @@ func NewDisplayServer(name string) (*X11Display, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &X11Display{dpy: dpy}, nil
+	return &X11Display{
+		dpy: dpy,
+		atoms: &platform.Atoms{
+			WMName:        platform.AtomID(xlib.XA_WM_NAME),
+			String:        platform.AtomID(xlib.XA_STRING),
+			WMNormalHints: platform.AtomID(xlib.XA_WM_NORMAL_HINTS),
+			Primary:       platform.AtomID(xlib.XA_PRIMARY),
+			Secondary:     platform.AtomID(xlib.XA_SECONDARY),
+			Atom:          platform.AtomID(xlib.XA_ATOM),
+			Cardinal:      platform.AtomID(xlib.XA_CARDINAL),
+			Window:        platform.AtomID(xlib.XA_WINDOW),
+		},
+	}, nil
 }
+
+// Atoms returns the resolved X11 predefined atom table.
+func (s *X11Display) Atoms() *platform.Atoms { return s.atoms }
 
 // EventParser creates an X11EventParser for this display.
 func (s *X11Display) EventParser() *X11EventParser {

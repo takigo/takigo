@@ -43,6 +43,7 @@ func fromWin(w clib.Window) platform.WindowID        { return platform.WindowID(
 type CocoaDisplay struct {
 	rootWindow platform.WindowID
 	clipOwner  platform.WindowID
+	atoms      *platform.Atoms
 }
 
 // NewDisplayServer initializes Cocoa and returns a DisplayServer.
@@ -53,8 +54,21 @@ func NewDisplayServer(displayName string) (*CocoaDisplay, error) {
 
 	return &CocoaDisplay{
 		rootWindow: fromWin(rootWin),
+		atoms: &platform.Atoms{
+			WMName:        platform.AtomID(clib.InternAtom("WM_NAME", false)),
+			String:        platform.AtomID(clib.InternAtom("STRING", false)),
+			WMNormalHints: platform.AtomID(clib.InternAtom("WM_NORMAL_HINTS", false)),
+			Primary:       platform.AtomID(clib.InternAtom("PRIMARY", false)),
+			Secondary:     platform.AtomID(clib.InternAtom("SECONDARY", false)),
+			Atom:          platform.AtomID(clib.InternAtom("ATOM", false)),
+			Cardinal:      platform.AtomID(clib.InternAtom("CARDINAL", false)),
+			Window:        platform.AtomID(clib.InternAtom("WINDOW", false)),
+		},
 	}, nil
 }
+
+// Atoms returns the resolved well-known atom table.
+func (d *CocoaDisplay) Atoms() *platform.Atoms { return d.atoms }
 
 // EventParser creates a CocoaEventParser.
 func (d *CocoaDisplay) EventParser() *EventParser {

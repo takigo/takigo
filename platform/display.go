@@ -62,6 +62,10 @@ type DisplayServer interface {
 	// ResourceManagerString returns the X resource manager string
 	// (e.g., Xft.dpi settings). Returns "" if not available.
 	ResourceManagerString() string
+
+	// Atoms returns the backend's resolved well-known atom table.
+	// Guaranteed non-nil after NewDisplayServer returns.
+	Atoms() *Atoms
 }
 
 // WindowManager manages window creation, destruction, and manipulation.
@@ -324,15 +328,3 @@ type InputMethodManager interface {
 	// UnsetICFocus notifies the input method that a window lost focus.
 	UnsetICFocus()
 }
-
-// Predefined atom IDs — backends must map these appropriately.
-var (
-	XA_WM_NAME         AtomID // to be set by backend
-	XA_STRING          AtomID // to be set by backend
-	XA_WM_NORMAL_HINTS AtomID // to be set by backend
-	XA_PRIMARY         AtomID // to be set by backend
-	XA_SECONDARY       AtomID // to be set by backend
-	XA_ATOM            AtomID // to be set by backend
-	XA_CARDINAL        AtomID // to be set by backend
-	XA_WINDOW          AtomID // to be set by backend
-)
