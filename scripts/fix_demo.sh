@@ -8,8 +8,9 @@
 #   --no-retake    Reuse existing screenshots (faster when iterating)
 #   --iterations N Run up to N fix+compare cycles (default 1)
 #
-# The LLM tool is configurable via the LLM_CMD env var (default: claude). The
-# prompt is fed on stdin; the tool must write its response to stdout.
+# The LLM tool is configurable via the LLM_TOOL env var (default: claude); see
+# scripts/_lib.sh for the known ids. The prompt is fed on stdin; the tool must
+# write its response to stdout.
 #
 # Output:
 #   tmp/screenshots/<demo>_*.png  updated after each fix
@@ -62,7 +63,7 @@ run_compare() {
 run_llm() {
     local log="$1"
 
-    eval "$LLM_CMD" 2>&1 <<EOF | tee "$log"
+    eval "$LLM_COMMAND" 2>&1 <<EOF | tee "$log"
 Fix the Go demo '$DEMO' to visually match the Tcl/Tk original.
 
 Screenshot files — Read ALL THREE before editing anything:

@@ -46,23 +46,37 @@ maybe_xvfb() {
     fi
 }
 
-# LLM_CMD — the LLM tool invoked by fix_demo.sh / fix_all.sh for auto-fixes.
-# The prompt is written to stdin; the tool must write its response to stdout.
-# Override via env with the full command line, e.g.:
-#   LLM_CMD="opencode -m MiniMax-M3" bash scripts/fix_demo.sh button
-LLM_CMD="${LLM_CMD:-claude -p /dev/stdin --allowedTools \"Read,Edit,Bash\" --permission-mode bypassPermissions --output-format text}"
-LLM_NAME="${LLM_CMD%% *}"
+# LLM_TOOL — selects the LLM used by fix_demo.sh / fix_all.sh for auto-fixes.
+# It points to a predefined id (see LLM_TOOLS below); each id maps to a full
+# launch command. The prompt is piped on stdin; the tool must write its
+# response to stdout. Example:
+#   LLM_TOOL=opencode-deepseek-v4-pro bash scripts/fix_demo.sh button
+LLM_TOOL="${LLM_TOOL:-claude}"
+
+# Predefined LLM launch configs, keyed by id. Add new ids here to make them
+# selectable via LLM_TOOL.
+declare -A LLM_TOOLS=(
+    [claude]='claude -p /dev/stdin --allowedTools "Read,Edit,Bash" --permission-mode bypassPermissions --output-format text'
+    [opencode-deepseek-v4-pro]='opencode run --model deepseek/deepseek-v4-pro --auto'
+    [opencode-minimax-m3]='opencode run --model minimax-coding-plan/MiniMax-M3 --auto'
+)
+
+# Resolve LLM_TOOL to LLM_COMMAND (the launch command) and LLM_NAME (the binary
+# name, used for the guard and progress messages).
+if [[ -z "${LLM_TOOLS[$LLM_TOOL]:-}" ]]; then
+    echo "ERROR: unknown LLM_TOOL '$LLM_TOOL'." >&2
+    echo "Known tools: $(printf '%s ' "${!LLM_TOOLS[@]}")" >&2
+    exit 1
+fi
+LLM_COMMAND="${LLM_TOOLS[$LLM_TOOL]}"
+LLM_NAME="${LLM_COMMAND%% *}"
 
 # llm_guard — refuse to run the claude CLI from inside a Claude Code session
 # (claude-in-claude is problematic). Other tools (e.g. opencode) are allowed.
 llm_guard() {
-    if [[ -z "$LLM_CMD" ]]; then
-        echo "ERROR: LLM_CMD is empty." >&2
-        exit 1
-    fi
     if [[ "$LLM_NAME" == claude && -n "${CLAUDECODE:-}" ]]; then
         echo "ERROR: $0 refuses to run the 'claude' CLI from inside a Claude Code session." >&2
-        echo "Set LLM_CMD to another tool (e.g. \"opencode -m MiniMax-M3\") or run from a regular terminal." >&2
+        echo "Set LLM_TOOL to another tool (e.g. \"opencode-deepseek-v4-pro\") or run from a regular terminal." >&2
         exit 1
     fi
 }
