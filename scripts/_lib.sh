@@ -46,6 +46,27 @@ maybe_xvfb() {
     fi
 }
 
+# LLM_CMD — the LLM tool invoked by fix_demo.sh / fix_all.sh for auto-fixes.
+# The prompt is written to stdin; the tool must write its response to stdout.
+# Override via env with the full command line, e.g.:
+#   LLM_CMD="opencode -m MiniMax-M3" bash scripts/fix_demo.sh button
+LLM_CMD="${LLM_CMD:-claude -p /dev/stdin --allowedTools \"Read,Edit,Bash\" --permission-mode bypassPermissions --output-format text}"
+LLM_NAME="${LLM_CMD%% *}"
+
+# llm_guard — refuse to run the claude CLI from inside a Claude Code session
+# (claude-in-claude is problematic). Other tools (e.g. opencode) are allowed.
+llm_guard() {
+    if [[ -z "$LLM_CMD" ]]; then
+        echo "ERROR: LLM_CMD is empty." >&2
+        exit 1
+    fi
+    if [[ "$LLM_NAME" == claude && -n "${CLAUDECODE:-}" ]]; then
+        echo "ERROR: $0 refuses to run the 'claude' CLI from inside a Claude Code session." >&2
+        echo "Set LLM_CMD to another tool (e.g. \"opencode -m MiniMax-M3\") or run from a regular terminal." >&2
+        exit 1
+    fi
+}
+
 # demotitle_bin
 # Builds cmd/demotitle once into tmp/bin and echoes the path. The cached binary
 # is rebuilt only when its source is newer, so the per-demo `go run` cost is

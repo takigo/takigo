@@ -1,9 +1,12 @@
 # Demo Comparison & Auto-Fix Scripts
 
-Automated visual comparison between Go and Tcl/Tk demos, with Claude-powered fixes.
+Automated visual comparison between Go and Tcl/Tk demos, with LLM-powered fixes
+(Claude by default, configurable via the `LLM_CMD` env var).
 
-> **Note:** `fix_demo.sh` and `fix_all.sh` invoke `claude` and must be run from a
-> **regular terminal**, not from inside a Claude Code session.
+> **Note:** `fix_demo.sh` and `fix_all.sh` invoke an LLM CLI (default `claude`)
+> to edit demos. When using `claude`, run from a **regular terminal**, not from
+> inside a Claude Code session. Set `LLM_CMD` to switch tools, e.g.
+> `LLM_CMD="opencode -m MiniMax-M3" bash scripts/fix_demo.sh button`.
 
 ## Quick Start
 
@@ -36,7 +39,7 @@ bash scripts/fix_demo.sh button --no-retake
 bash scripts/fix_demo.sh button --iterations 2
 ```
 
-Output: updated screenshots in `tmp/screenshots/`, Claude log in `tmp/logs/<demo>_iter1.log`.
+Output: updated screenshots in `tmp/screenshots/`, LLM log in `tmp/logs/<demo>_iter1.log`.
 
 ---
 
@@ -104,6 +107,7 @@ tmp/logs/<demo>_iter1.log          Claude's output for each fix attempt
 | `TIMEOUT_SECS` | `15` | Max wait for demo window to appear |
 | `SKIP_IF_EXISTS` | `1` | Skip screenshot if file already exists |
 | `WISH` | `./tk/unix/wish` | Path to Tk 9.1 wish binary |
+| `LLM_CMD` | `claude …` | LLM CLI invoked by `fix_demo.sh`/`fix_all.sh` (prompt on stdin, response on stdout). E.g. `opencode -m MiniMax-M3` |
 
 ### Required tools
 

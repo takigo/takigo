@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# fix_demo.sh -- Compare one demo against Tcl original and auto-fix with Claude
+# fix_demo.sh -- Compare one demo against Tcl original and auto-fix with an LLM
 #
 # Usage:
 #   fix_demo.sh <demoname> [options]
@@ -8,21 +8,19 @@
 #   --no-retake    Reuse existing screenshots (faster when iterating)
 #   --iterations N Run up to N fix+compare cycles (default 1)
 #
+# The LLM tool is configurable via the LLM_CMD env var (default: claude). The
+# prompt is fed on stdin; the tool must write its response to stdout.
+#
 # Output:
 #   tmp/screenshots/<demo>_*.png  updated after each fix
-#   tmp/logs/<demo>.log           Claude's output
+#   tmp/logs/<demo>.log           the LLM's output
 
 set -euo pipefail
 
-# Claude cannot be invoked from inside an active Claude Code session.
-if [[ -n "${CLAUDECODE:-}" ]]; then
-    echo "ERROR: fix_demo.sh must be run from a regular terminal, not from inside Claude Code." >&2
-    echo "Open a new terminal and run: bash scripts/fix_demo.sh $*" >&2
-    exit 1
-fi
-
 # shellcheck disable=SC1091
 source "$(cd "$(dirname "$0")" && pwd)/_lib.sh"
+
+llm_guard
 
 DEMO="${1:-}"
 if [[ -z "$DEMO" ]]; then
@@ -59,16 +57,12 @@ run_compare() {
 }
 
 # ---------------------------------------------------------------------------
-# run_claude -- call Claude non-interactively to analyze and fix the demo
+# run_llm -- call the configured LLM non-interactively to analyze and fix the demo
 # ---------------------------------------------------------------------------
-run_claude() {
+run_llm() {
     local log="$1"
 
-    cat <<EOF | claude -p /dev/stdin \
-        --allowedTools "Read,Edit,Bash" \
-        --permission-mode bypassPermissions \
-        --output-format text \
-        2>&1 | tee "$log"
+    eval "$LLM_CMD" 2>&1 <<EOF | tee "$log"
 Fix the Go demo '$DEMO' to visually match the Tcl/Tk original.
 
 Screenshot files — Read ALL THREE before editing anything:
@@ -116,9 +110,9 @@ echo ""
 for i in $(seq 1 "$ITERATIONS"); do
     echo "── Iteration $i / $ITERATIONS ─────────────────────────"
     LOG="$LOGS_DIR/${DEMO}_iter${i}.log"
-    echo "  Calling Claude... (log: $LOG)"
+    echo "  Calling $LLM_NAME... (log: $LOG)"
     echo ""
-    run_claude "$LOG"
+    run_llm "$LOG"
 
     echo ""
     echo "── Re-comparing after fix ──────────────────────────"

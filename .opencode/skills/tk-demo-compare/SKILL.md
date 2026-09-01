@@ -78,7 +78,7 @@ PNG" failures.
 | `scripts/demo_interact.sh`    | Drive a Go demo through `xdotool` events (key, type, click, wait), capture before/after PNGs, optionally diff (odiff). Use this for **behavioural** verification — does clicking this button do X? does typing into the entry update the variable? See step 5b below. |
 | `scripts/_lib.sh`             | Shared helpers (`tcl_demo_for`, `run_compare`, `set_skip_if_exists`, `odiff_score`, `find_windows_exact`, `maybe_xvfb`). Source this from any new script that needs them. |
 | `cmd/demotitle`               | Small Go CLI: `go run ./cmd/demotitle <path>` extracts the first `takigo.Title("...")`; `… -geometry <path>` extracts `takigo.Geometry("...")`. |
-| `scripts/fix_demo.sh`         | **Deprecated.** Out-of-session script that invokes `claude -p`. Superseded by this skill — prefer the skill. Refuses to run when `CLAUDECODE` is set. |
+| `scripts/fix_demo.sh`         | **Deprecated.** Out-of-session script that invokes an LLM CLI (default `claude -p`, configurable via `LLM_CMD`). Superseded by this skill — prefer the skill. Refuses to run `claude` when `CLAUDECODE` is set. |
 | `scripts/fix_all.sh`          | **Deprecated.** Out-of-session batch wrapper. Same caveats as `fix_demo.sh`. |
 
 Outputs live in `tmp/screenshots/`. Set `SKIP_IF_EXISTS=0` to force retakes,
@@ -344,8 +344,10 @@ If the user asks for many/all demos:
   computed with anti-aliasing ignored. It is not comparable with the old
   normalized-MAE numbers from earlier runs — don't mix the two scales.
 - Don't run `scripts/fix_demo.sh` or `scripts/fix_all.sh` from inside
-  opencode — they check for the `CLAUDECODE` env var and refuse to run.
-  Use this skill instead; it supersedes them.
+  opencode with the default `claude` backend — they refuse to run `claude`
+  when `CLAUDECODE` is set. Set `LLM_CMD` to another tool (e.g. `opencode`)
+  if you want to drive them from here. Use this skill instead; it supersedes
+  them.
 - When in doubt, run `wish tk/library/demos/<tcl_demo>.tcl` by hand (via
   `scripts/demo_wrapper.tcl`) and inspect the window before editing.
 - For behavioural checks, prefer `--click <widget_name>` over

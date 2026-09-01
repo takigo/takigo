@@ -21,18 +21,13 @@
 
 set -euo pipefail
 
-# Claude cannot be invoked from inside an active Claude Code session.
-if [[ -n "${CLAUDECODE:-}" ]]; then
-    echo "ERROR: fix_all.sh must be run from a regular terminal, not from inside Claude Code." >&2
-    echo "Open a new terminal in $(pwd) and run: bash scripts/fix_all.sh $*" >&2
-    exit 1
-fi
-
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck disable=SC1091
 source "$SCRIPT_DIR/_lib.sh"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 PROGRESS_FILE="$PROJECT_DIR/tmp/fix_all_progress.tsv"
+
+llm_guard
 
 ITERATIONS=1
 RETAKE_FLAG=""
