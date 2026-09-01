@@ -18,7 +18,7 @@
 # Output flags:
 #   --before PATH        Override before-screenshot path
 #   --after  PATH        Override after-screenshot path
-#   --diff               Compute normalized MAE between before/after
+#   --diff               Compute odiff diff % between before/after
 #   --keep-running       Leave the demo window open after capture
 #
 # If no event flags are given, only the before/after screenshots are
@@ -36,6 +36,9 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck disable=SC1091
 source "$SCRIPT_DIR/_lib.sh"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+# Re-exec under xvfb-run when headless (before touching DISPLAY).
+maybe_xvfb "$@"
 
 DEMO="${1:-}"
 if [[ -z "$DEMO" ]]; then
@@ -104,12 +107,12 @@ fi
 # Kill any stale instance of this demo.
 TITLE=$(extract_demo_title "$DEMO")
 if [[ -n "$TITLE" ]]; then
-    wmctrl -c "$TITLE" 2>/dev/null || true
+    for sid in $(find_windows_exact "$TITLE"); do xdotool windowkill "$sid" 2>/dev/null; done
     sleep 0.3
 fi
 
 binary="$(mktemp /tmp/takigo_interact_XXXXXX)"
-trap '[[ "$KEEP_RUNNING" == "0" ]] && { kill "$DEMO_PID" 2>/dev/null || true; wait "$DEMO_PID" 2>/dev/null || true; }; rm -f "$binary"' EXIT
+trap 'if [[ "$KEEP_RUNNING" == "0" && -n "${DEMO_PID:-}" ]]; then kill "$DEMO_PID" 2>/dev/null || true; wait "$DEMO_PID" 2>/dev/null || true; fi; rm -f "$binary"' EXIT
 
 echo "Building demos/$DEMO..." >&2
 if ! (cd "$PROJECT_DIR" && go build -o "$binary" "./demos/$DEMO/" 2>&1); then
@@ -123,7 +126,11 @@ DEMO_GEOMETRY=$(extract_demo_geometry "$DEMO")
 export DEMO_GEOMETRY
 if command -v xrdb >/dev/null 2>&1; then
     XFT_DPI_VAL=$(xrdb -query 2>/dev/null | awk -F':[[:space:]]*' '/^Xft\.dpi/ {print $2; exit}')
-    [[ -n "$XFT_DPI_VAL" ]] && export XFT_DPI="$XFT_DPI_VAL"
+    if [[ -n "$XFT_DPI_VAL" ]]; then
+        export XFT_DPI="$XFT_DPI_VAL"
+    elif [[ -n "${_XVFB_RUNNING:-}" ]]; then
+        export XFT_DPI=96
+    fi
 fi
 # Enable X window naming in the demo so --click <name> can resolve
 # widgets by identity rather than by pixel coordinates. Opt-in, no
@@ -140,7 +147,7 @@ tries=$(( TIMEOUT_SECS * 2 ))
 wid=""
 for _ in $(seq 1 "$tries"); do
     if [[ -n "$TITLE" ]]; then
-        wid=$(wmctrl -l 2>/dev/null | grep -F "$TITLE" | awk '{print $1}' | head -1 || true)
+        wid=$(find_windows_exact "$TITLE" | head -1)
     fi
     [[ -n "$wid" ]] && break
     sleep 0.5
@@ -158,13 +165,57 @@ sleep "${SETTLE_SECS:-1.5}"
 import -window "$wid" "$BEFORE"
 
 # ---------------------------------------------------------------------------
+# resolve_widget PARENT_WID NAME
+# Prints the XID of the window named NAME, preferring windows geometrically
+# contained within PARENT_WID (so a same-named widget in another app doesn't
+# win). Falls back to the first exact-name match on the display.
+# ---------------------------------------------------------------------------
+resolve_widget() {
+    local parent="$1" name="$2"
+    local pgeom px py pw ph
+    pgeom=$(xdotool getwindowgeometry --shell "$parent" 2>/dev/null)
+    px=$(echo "$pgeom" | awk -F= '/^X=/{print $2}')
+    py=$(echo "$pgeom" | awk -F= '/^Y=/{print $2}')
+    pw=$(echo "$pgeom" | awk -F= '/^WIDTH=/{print $2}')
+    ph=$(echo "$pgeom" | awk -F= '/^HEIGHT=/{print $2}')
+    local fallback=""
+    local id
+    while read -r id; do
+        [[ -z "$id" ]] && continue
+        [[ -z "$fallback" ]] && fallback="$id"
+        local geom gx gy gw gh
+        geom=$(xdotool getwindowgeometry --shell "$id" 2>/dev/null)
+        gx=$(echo "$geom" | awk -F= '/^X=/{print $2}')
+        gy=$(echo "$geom" | awk -F= '/^Y=/{print $2}')
+        gw=$(echo "$geom"  | awk -F= '/^WIDTH=/{print $2}')
+        gh=$(echo "$geom"  | awk -F= '/^HEIGHT=/{print $2}')
+        [[ -z "$gx" || -z "$gy" ]] && continue
+        local cx cy
+        cx=$(( gx + gw / 2 ))
+        cy=$(( gy + gh / 2 ))
+        if (( cx >= px && cy >= py && cx < px + pw && cy < py + ph )); then
+            echo "$id"
+            return 0
+        fi
+    done < <(find_windows_exact "$name")
+    [[ -n "$fallback" ]] && { echo "$fallback"; return 0; }
+    return 1
+}
+
+# ---------------------------------------------------------------------------
 # --list-widgets: enumerate X child windows with names + geometry, exit.
 # Useful for discovering what to click without reading the source.
 # ---------------------------------------------------------------------------
 if [[ "$LIST_WIDGETS" == "1" ]]; then
     printf '%-12s %-24s %-12s %-12s %-10s %-10s\n' "XID" "NAME" "X" "Y" "WIDTH" "HEIGHT"
     printf '%-12s %-24s %-12s %-12s %-10s %-10s\n' "----" "----" "--" "--" "-----" "------"
-    # Combine both name queries, dedupe by XID, print one line each.
+    pgeom=$(xdotool getwindowgeometry --shell "$wid" 2>/dev/null)
+    px=$(echo "$pgeom" | awk -F= '/^X=/{print $2}')
+    py=$(echo "$pgeom" | awk -F= '/^Y=/{print $2}')
+    pw=$(echo "$pgeom" | awk -F= '/^WIDTH=/{print $2}')
+    ph=$(echo "$pgeom" | awk -F= '/^HEIGHT=/{print $2}')
+    # List only windows geometrically contained within the toplevel, not the
+    # whole display. Combine both name queries, dedupe by XID.
     { xdotool search --name "" 2>/dev/null; \
       xdotool search --name ".*" 2>/dev/null; } | sort -u | \
     while read -r child; do
@@ -176,7 +227,12 @@ if [[ "$LIST_WIDGETS" == "1" ]]; then
         ry=$(echo "$geom" | awk -F= '/^Y=/{print $2}')
         w=$(echo "$geom"  | awk -F= '/^WIDTH=/{print $2}')
         h=$(echo "$geom"  | awk -F= '/^HEIGHT=/{print $2}')
-        printf '%-12s %-24s %-12s %-12s %-10s %-10s\n' "0x$(printf '%x' "$child")" "$name" "$rx" "$ry" "$w" "$h"
+        [[ -z "$rx" || -z "$ry" ]] && continue
+        cx=$(( rx + w / 2 ))
+        cy=$(( ry + h / 2 ))
+        if (( cx >= px && cy >= py && cx < px + pw && cy < py + ph )); then
+            printf '%-12s %-24s %-12s %-12s %-10s %-10s\n' "0x$(printf '%x' "$child")" "$name" "$rx" "$ry" "$w" "$h"
+        fi
     done | sort -k2
     echo ""
     echo "Tip: --click <name> clicks the centre of the widget with that name."
@@ -186,7 +242,6 @@ fi
 
 
 echo "Running ${#EVENTS[@]} event(s)..." >&2
-DEFAULT_WAIT_MS="${DEFAULT_WAIT_MS:-200}"
 for entry in "${EVENTS[@]}"; do
     IFS='|' read -r kind arg <<<"$entry"
     case "$kind" in
@@ -214,7 +269,7 @@ for entry in "${EVENTS[@]}"; do
                 xdotool click --window "$wid" 1
             else
                 # Resolve widget name → XID → screen-absolute centre.
-                wid2=$(xdotool search --onlyvisible --name "$arg" 2>/dev/null | head -1)
+                wid2=$(resolve_widget "$wid" "$arg")
                 if [[ -z "$wid2" ]]; then
                     echo "click: no window named '$arg' (is TAKIGO_DEBUG_NAME_WIDGETS=1 set on the demo?)" >&2
                     exit 1
@@ -249,19 +304,16 @@ import -window "$wid" "$AFTER"
 
 if [[ "$DIFF" == "1" ]]; then
     diff_img="${AFTER%.png}_diff.png"
-    SCORE=$(compare -metric MAE -format "%[distortion]" "$BEFORE" "$AFTER" "$diff_img" 2>/dev/null) && true
-    RC=$?
-    if [[ $RC -ne 0 && $RC -ne 1 ]]; then
-        echo "compare failed (exit $RC)" >&2
+    SCORE=$(odiff_score "$BEFORE" "$AFTER" "$diff_img") || {
+        echo "diff failed for $DEMO" >&2
         exit 1
-    fi
-    [[ -z "$SCORE" ]] && SCORE="unknown"
+    }
     echo ""
     echo "Demo:       $DEMO"
     echo "Events:     ${#EVENTS[@]}"
     echo "Before:     $BEFORE"
     echo "After:      $AFTER"
-    echo "Diff score: $SCORE  (normalized MAE 0-1, 0 = no change)"
+    echo "Diff score: $SCORE  (odiff diff % 0-100, 0 = no change)"
     echo "Diff image: $diff_img"
 else
     echo ""

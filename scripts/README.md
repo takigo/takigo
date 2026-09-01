@@ -73,10 +73,10 @@ Ctrl+C at any time — the next run resumes from the first pending demo.
 
 | Script | Purpose |
 |--------|---------|
-| `demo_compare.sh <demo> [tcl_name]` | Screenshot both sides, compute normalized MAE diff (0–1, lower = more similar), generate montage |
+| `demo_compare.sh <demo> [tcl_name]` | Screenshot both sides, compute odiff diff % (0–100, lower = more similar), generate montage |
 | `demo_screenshot.sh <demo> go\|tcl <out.png> [tcl_name]` | Screenshot one side |
 | `demo_refine.sh <demo> [--retake]` | Compare + print image paths for manual Claude analysis |
-| `demo_batch.sh [--retake] [prefix]` | Screenshot all demos, output `tmp/screenshots/scores_sorted.txt` |
+| `demo_batch.sh [--retake] [prefix]` | Screenshot all demos (skips animated), output `tmp/screenshots/scores_sorted.txt` |
 | `demo_map.sh [demo]` | Print Go↔Tcl name mapping (or Tcl name for one demo) |
 | `demo_wrapper.tcl <demo>` | Run a Tk 9.1 demo standalone (used by screenshot scripts) |
 
@@ -99,7 +99,14 @@ tmp/logs/<demo>_iter1.log          Claude's output for each fix attempt
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `DISPLAY` | `:0` | X display |
+| `HEADLESS` | `0` | `1` = run screenshots under `xvfb-run` (also auto-falls back when `DISPLAY` is unset) |
 | `SETTLE_SECS` | `1.5` | Wait after window appears before screenshot |
 | `TIMEOUT_SECS` | `15` | Max wait for demo window to appear |
 | `SKIP_IF_EXISTS` | `1` | Skip screenshot if file already exists |
 | `WISH` | `./tk/unix/wish` | Path to Tk 9.1 wish binary |
+
+### Required tools
+
+`xdotool`, `import`/`magick`/`montage` (ImageMagick), `odiff`, `go`, `bash`.
+Headless runs also need `xvfb-run` (`xorg-server-xvfb`). `wmctrl` and ImageMagick
+`compare` are no longer used.

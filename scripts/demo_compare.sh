@@ -10,17 +10,24 @@
 #   <demo>_diff.png     -- Pixel-level difference heatmap
 #   <demo>_side.png     -- Side-by-side montage for easy viewing
 #
-# Prints a diff score (mean absolute error, lower = more similar) to stdout.
+# Prints a diff score (odiff diff percentage, lower = more similar) to stdout.
 #
 # Environment:
 #   DISPLAY, SETTLE_SECS, TIMEOUT_SECS  (passed through to demo_screenshot.sh)
 #   SKIP_IF_EXISTS=1                    (skip screenshot if file already exists)
+#   HEADLESS=1                          (run screenshots under xvfb-run)
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 SS_DIR="$PROJECT_DIR/tmp/screenshots"
+
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/_lib.sh"
+
+command -v odiff >/dev/null 2>&1 || { echo "odiff not found (required)" >&2; exit 1; }
+command -v magick >/dev/null 2>&1 || { echo "magick (ImageMagick) not found (required)" >&2; exit 1; }
 
 DEMO="$1"
 TCL_DEMO="${2:-$DEMO}"
@@ -49,23 +56,41 @@ take_screenshot() {
     bash "$SCRIPT_DIR/demo_screenshot.sh" "$demo" "$type" "$out" "$tcl_name"
 }
 
+# ---------------------------------------------------------------------------
+# assert_captured IMG SIDE
+# Rejects missing/empty captures and essentially-black captures (an unmapped
+# window / failed grab yields an all-black image).
+# ---------------------------------------------------------------------------
+assert_captured() {
+    local img="$1" side="$2"
+    [[ -s "$img" ]] || { echo "$side screenshot missing or empty: $img" >&2; exit 1; }
+    local mean
+    mean=$(magick identify -format "%[fx:mean]" "$img" 2>/dev/null) || mean=""
+    if [[ -n "$mean" ]]; then
+        local is_black
+        is_black=$(awk -v m="$mean" 'BEGIN { print (m < 0.01) ? 1 : 0 }')
+        if [[ "$is_black" == "1" ]]; then
+            echo "$side screenshot is blank/black: $img (mean=$mean)" >&2
+            exit 1
+        fi
+    fi
+}
+
 echo "=== Comparing demo: $DEMO (Go) vs $TCL_DEMO (Tcl) ===" >&2
 
 echo "[1/2] Go screenshot..." >&2
 take_screenshot "$DEMO" "go" "$DEMO" "$GO_IMG"
-[[ -s "$GO_IMG" ]] || { echo "Go screenshot missing or empty: $GO_IMG" >&2; exit 1; }
+assert_captured "$GO_IMG" "Go"
 
 echo "[2/2] Tcl screenshot..." >&2
 take_screenshot "$DEMO" "tcl" "$TCL_DEMO" "$TCL_IMG"
-[[ -s "$TCL_IMG" ]] || { echo "Tcl screenshot missing or empty: $TCL_IMG" >&2; exit 1; }
+assert_captured "$TCL_IMG" "Tcl"
 
 # ---------------------------------------------------------------------------
 # Normalize to the same canvas size (pad smaller image with white)
 # ---------------------------------------------------------------------------
-W_GO=$(identify -format "%w" "$GO_IMG")
-H_GO=$(identify -format "%h" "$GO_IMG")
-W_TCL=$(identify -format "%w" "$TCL_IMG")
-H_TCL=$(identify -format "%h" "$TCL_IMG")
+read -r W_GO H_GO <<<"$(magick identify -format "%w %h" "$GO_IMG")"
+read -r W_TCL H_TCL <<<"$(magick identify -format "%w %h" "$TCL_IMG")"
 
 MAXW=$(( W_GO > W_TCL ? W_GO : W_TCL ))
 MAXH=$(( H_GO > H_TCL ? H_GO : H_TCL ))
@@ -77,19 +102,13 @@ magick "$GO_IMG"  -gravity NorthWest -background white -extent "${MAXW}x${MAXH}"
 magick "$TCL_IMG" -gravity NorthWest -background white -extent "${MAXW}x${MAXH}" "$PAD_TCL"
 
 # ---------------------------------------------------------------------------
-# Compute pixel diff
+# Compute pixel diff with odiff (anti-aliasing ignored)
 # ---------------------------------------------------------------------------
-# compare returns: 0 = identical, 1 = differ (normal), 2 = real error.
-# `-format "%[distortion]"` puts the normalized MAE on stdout; real errors
-# go to stderr. Disable `set -e` around the substitution because exit 1 is
-# expected here.
-SCORE=$(compare -metric MAE -format "%[distortion]" "$PAD_GO" "$PAD_TCL" "$DIFF_IMG" 2>/dev/null) && true
-RC=$?
-if [[ $RC -ne 0 && $RC -ne 1 ]]; then
-    echo "compare failed for $DEMO (exit $RC)" >&2
+SCORE=$(odiff_score "$PAD_GO" "$PAD_TCL" "$DIFF_IMG") || {
+    echo "odiff failed for $DEMO" >&2
+    rm -f "$PAD_GO" "$PAD_TCL"
     exit 1
-fi
-[[ -z "$SCORE" ]] && { echo "compare returned empty score for $DEMO" >&2; exit 1; }
+}
 
 # ---------------------------------------------------------------------------
 # Side-by-side montage
@@ -97,7 +116,7 @@ fi
 montage \
     -label "Go: $DEMO"  "$GO_IMG" \
     -label "Tcl: $TCL_DEMO" "$TCL_IMG" \
-    -label "Diff (MAE=$SCORE)" "$DIFF_IMG" \
+    -label "Diff (%%=$SCORE)" "$DIFF_IMG" \
     -tile 3x1 -geometry +4+4 \
     -background gray80 \
     "$SIDE_IMG"
@@ -112,6 +131,6 @@ echo ""
 echo "Demo:       $DEMO"
 echo "Go image:   $GO_IMG  (${W_GO}x${H_GO})"
 echo "Tcl image:  $TCL_IMG  (${W_TCL}x${H_TCL})"
-echo "Diff score: $SCORE  (normalized MAE 0–1 — lower is more similar)"
+echo "Diff score: $SCORE  (odiff diff % 0-100 — lower is more similar)"
 echo "Side-by-side: $SIDE_IMG"
 echo "Diff heatmap: $DIFF_IMG"

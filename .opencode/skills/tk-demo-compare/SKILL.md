@@ -1,6 +1,6 @@
 ---
 name: tk-demo-compare
-description: Use when comparing or fixing a takigo (Go port of Tk) demo against its Tcl/Tk original in tk/library/demos/. Triggers on phrases like "compare demo", "fix demo", "demo doesn't match", "visual diff", "behavioural check", or naming a demos/<name> directory alongside its tk/library/demos/<name>.tcl counterpart. Drives scripts/demo_compare.sh to screenshot both sides for visual diffs, scripts/demo_interact.sh to drive the demo through xdotool events for behavioural diffs, reads the PNGs to spot differences, reads both sources, and edits the Go source until the normalized MAE is acceptable or a takigo core bug is identified.
+description: Use when comparing or fixing a takigo (Go port of Tk) demo against its Tcl/Tk original in tk/library/demos/. Triggers on phrases like "compare demo", "fix demo", "demo doesn't match", "visual diff", "behavioural check", or naming a demos/<name> directory alongside its tk/library/demos/<name>.tcl counterpart. Drives scripts/demo_compare.sh to screenshot both sides for visual diffs, scripts/demo_interact.sh to drive the demo through xdotool events for behavioural diffs, reads the PNGs to spot differences, reads both sources, and edits the Go source until the odiff diff % is acceptable or a takigo core bug is identified.
 ---
 
 # Compare & fix a takigo demo vs its Tk/Tcl original
@@ -33,11 +33,12 @@ tasks.
 
 ## Preconditions
 
-- `DISPLAY` is set (default `:0`). If not, ask the user to start `xvfb-run`
-  or an X server.
+- `DISPLAY` is set (default `:0`), or `HEADLESS=1` to run under `xvfb-run`.
+  If neither is available, ask the user to start `xvfb-run` or an X server.
 - The following tools must be available; check with `command -v`:
-  `wmctrl`, `xdotool`, `import` (ImageMagick), `magick`, `compare`,
-  `go`, `bash`, and the project's own `./tk/unix/wish`.
+  `xdotool`, `import` (ImageMagick), `magick`, `montage`, `odiff`,
+  `go`, `bash`, and the project's own `./tk/unix/wish`. For headless runs
+  also `xvfb-run` (from `xorg-server-xvfb`).
 - Working directory is the repo root (`/home/msorc/projects/takigo` in this
   project). The skill assumes that.
 - Network/image access is fine — the Read tool can read PNGs.
@@ -49,10 +50,12 @@ If any tool is missing, report it and stop; do **not** try to install.
 Before doing anything else, run this single Bash call:
 
 ```bash
-for t in wmctrl xdotool magick compare go bash; do
+for t in xdotool magick montage odiff go bash; do
   command -v "$t" >/dev/null 2>&1 || { echo "missing tool: $t"; exit 1; }
 done
-[[ -n "${DISPLAY:-}" ]] || { echo "DISPLAY not set"; exit 1; }
+if [[ -z "${DISPLAY:-}" && "${HEADLESS:-0}" != "1" ]]; then
+  echo "DISPLAY not set and HEADLESS!=1"; exit 1
+fi
 test -x ./tk/unix/wish || { echo "build wish first (make -C tk/unix)"; exit 1; }
 ```
 
@@ -66,14 +69,14 @@ PNG" failures.
 
 | Script | Purpose |
 |---|---|
-| `scripts/demo_map.sh`         | Map Go demo name → Tcl demo name (same name unless `windowicons → icon`). Run with no args for the full list, or with one arg for the mapping of that demo. |
-| `scripts/demo_screenshot.sh <go_demo> {go\|tcl} <out.png> [tcl_name]` | Build, launch, screenshot one side. Reads the window title from `demos/<go_demo>/main.go` via `cmd/demotitle` and waits for it via `wmctrl`. Honours `DEMO_GEOMETRY` and `XFT_DPI` env vars to align with the Go side. |
-| `scripts/demo_compare.sh <demo> [tcl_demo]` | Screenshots both sides, normalises sizes, computes a **normalized MAE** (0–1, lower = more similar) with ImageMagick `compare`, and produces four outputs: `<demo>_go.png`, `<demo>_tcl.png`, `<demo>_diff.png`, and a side-by-side montage `<demo>_side.png`. Per-demo compare failures are written to `tmp/logs/<demo>.compare.err`. |
+| `scripts/demo_map.sh`         | Map Go demo name → Tcl demo name (auto-derived from the filesystem; overrides: `windowicons → icon`, `systray → -`). Run with no args for the full list, or with one arg for the mapping of that demo. |
+| `scripts/demo_screenshot.sh <go_demo> {go\|tcl} <out.png> [tcl_name]` | Build, launch, screenshot one side. Reads the window title from `demos/<go_demo>/main.go` via `cmd/demotitle` and waits for it via `xdotool search` (no window manager required). Honours `DEMO_GEOMETRY` and `XFT_DPI` env vars to align with the Go side. Re-execs under `xvfb-run` when `HEADLESS=1` or `DISPLAY` is unset. |
+| `scripts/demo_compare.sh <demo> [tcl_demo]` | Screenshots both sides, normalises sizes, computes the **odiff diff %** (0–100, lower = more similar, anti-aliasing ignored), and produces four outputs: `<demo>_go.png`, `<demo>_tcl.png`, `<demo>_diff.png`, and a side-by-side montage `<demo>_side.png`. Per-demo compare failures are written to `tmp/logs/<demo>.compare.err`. |
 | `scripts/demo_refine.sh <demo> [--retake]` | One-shot wrapper around `demo_compare.sh`; re-prints the paths so they can be `Read`. |
-| `scripts/demo_batch.sh [--retake] [prefix]` | Screenshot and score every comparable demo (uses `demo_map.sh`). Produces `tmp/screenshots/scores_sorted.txt`. |
+| `scripts/demo_batch.sh [--retake] [prefix]` | Screenshot and score every comparable demo (uses `demo_map.sh`); skips animated demos (`anilabel aniwave pendulum knightstour twind`). Produces `tmp/screenshots/scores_sorted.txt`. |
 | `scripts/demo_wrapper.tcl`    | Run a Tk demo standalone (no widget launcher). Used internally by the screenshot scripts. Reads `DEMO_GEOMETRY` from env. |
-| `scripts/demo_interact.sh`    | Drive a Go demo through `xdotool` events (key, type, click, wait), capture before/after PNGs, optionally diff. Use this for **behavioural** verification — does clicking this button do X? does typing into the entry update the variable? See step 5b below. |
-| `scripts/_lib.sh`             | Shared helpers (`tcl_demo_for`, `run_compare`, `set_skip_if_exists`). Source this from any new script that needs them. |
+| `scripts/demo_interact.sh`    | Drive a Go demo through `xdotool` events (key, type, click, wait), capture before/after PNGs, optionally diff (odiff). Use this for **behavioural** verification — does clicking this button do X? does typing into the entry update the variable? See step 5b below. |
+| `scripts/_lib.sh`             | Shared helpers (`tcl_demo_for`, `run_compare`, `set_skip_if_exists`, `odiff_score`, `find_windows_exact`, `maybe_xvfb`). Source this from any new script that needs them. |
 | `cmd/demotitle`               | Small Go CLI: `go run ./cmd/demotitle <path>` extracts the first `takigo.Title("...")`; `… -geometry <path>` extracts `takigo.Geometry("...")`. |
 | `scripts/fix_demo.sh`         | **Deprecated.** Out-of-session script that invokes `claude -p`. Superseded by this skill — prefer the skill. Refuses to run when `CLAUDECODE` is set. |
 | `scripts/fix_all.sh`          | **Deprecated.** Out-of-session batch wrapper. Same caveats as `fix_demo.sh`. |
@@ -209,8 +212,8 @@ bash scripts/demo_interact.sh <go_demo> --diff \
 ```
 
 This launches the demo, sends each event in order via `xdotool`,
-captures before/after screenshots, and prints the normalized MAE
-between them. MAE > 0 means the event visibly changed the screen.
+captures before/after screenshots, and prints the odiff diff %
+between them. A diff % > 0 means the event visibly changed the screen.
 
 **Widget-aware clicks are the default.** Prefer `--click <name>` over
 `--click X,Y` — takigo sets each widget's Go name as its X11 window
@@ -244,7 +247,7 @@ Examples:
 # Click the widget named 'e1', wait, type "hello", diff.
 bash scripts/demo_interact.sh entry1 \
     --click e1 --wait 500 --type "hello" --diff
-# Expected: MAE > 0, "hello" appears in the entry.
+# Expected: diff % > 0, "hello" appears in the entry.
 
 # Same thing with raw pixel coordinates (legacy mode).
 bash scripts/demo_interact.sh entry1 \
@@ -268,12 +271,12 @@ bash scripts/demo_compare.sh <go_demo> <tcl_demo>
 ```
 
 Read the new `_go.png` and `_side.png`. Repeat steps 3–6 until:
-- Visual diff is acceptable (low MAE score, no obvious widget mismatches),
+- Visual diff is acceptable (low odiff diff %, no obvious widget mismatches),
   **and**
 - The Go source semantically matches the Tcl source,
-  **and** if you ran step 5b, the behavioural MAE is acceptable.
+  **and** if you ran step 5b, the behavioural diff % is acceptable.
 
-**Stop iterating rule.** If the normalized MAE does not drop by more than 10%
+**Stop iterating rule.** If the odiff diff % does not drop by more than 10%
 across three consecutive iterations, stop editing the demo. The remaining
 gap is almost always in takigo core (e.g. `widget/label/label.go` not
 honouring `-wraplength` correctly) or in unavoidable sub-pixel rendering
@@ -293,8 +296,8 @@ mode (step 7).
 ### 8. Report
 
 End with:
-- The final visual MAE score (`demo_compare.sh`).
-- The final behavioural MAE score (`demo_interact.sh` — only if the demo
+- The final visual diff % (`demo_compare.sh`).
+- The final behavioural diff % (`demo_interact.sh` — only if the demo
   has interactive widgets and you ran step 5b).
 - A short list of concrete changes made (file paths + brief descriptions).
 - Any takigo bugs discovered that need separate fixes.
@@ -320,7 +323,7 @@ If the user asks for many/all demos:
 
 - Don't edit `scripts/` or any takigo library file unless the demo *can't*
   be made to match without it. The goal is to fix demos, not core.
-- Don't lower the MAE by making the window smaller than Tk's — that hides
+- Don't lower the diff % by making the window smaller than Tk's — that hides
   differences, doesn't fix them.
 - Don't replace classic widgets with TTK to "get a closer match" if the Tcl
   original uses classic. Match the original.
@@ -337,9 +340,9 @@ If the user asks for many/all demos:
 - Window title is taken from `takigo.Title("...")` — make sure it exactly
   matches Tk's `wm title` string, otherwise `demo_compare.sh` will time
   out waiting for the window.
-- The diff score is **normalized MAE** (0–1) — not pixel MAE. Same
-  "lower = more similar" semantics, but the absolute numbers are
-  different from older runs. Don't compare scores across versions.
+- The diff score is the **odiff diff %** (0–100, lower = more similar),
+  computed with anti-aliasing ignored. It is not comparable with the old
+  normalized-MAE numbers from earlier runs — don't mix the two scales.
 - Don't run `scripts/fix_demo.sh` or `scripts/fix_all.sh` from inside
   opencode — they check for the `CLAUDECODE` env var and refuse to run.
   Use this skill instead; it supersedes them.

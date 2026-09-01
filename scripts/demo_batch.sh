@@ -12,13 +12,15 @@
 #   tmp/screenshots/<demo>_*.png  for each demo
 #   tmp/screenshots/scores.txt    sorted by diff score (worst first)
 #
-# This is useful for identifying which demos need the most work.
+# Animated demos (DEMO_ANIMATED in demo_map.sh) are skipped because their
+# screenshots are nondeterministic. A score of 9999 marks a failed comparison.
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/_lib.sh"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-SS_DIR="$PROJECT_DIR/tmp/screenshots"
 
 RETAKE=0
 FILTER=""
@@ -41,30 +43,40 @@ mkdir -p "$SS_DIR"
 SCORES_FILE="$SS_DIR/scores.txt"
 > "$SCORES_FILE"
 
-# Get all comparable demos
-mapfile -t DEMOS < <(bash "$SCRIPT_DIR/demo_map.sh")
+SORTED_GO=$(echo "${!DEMO_MAP[@]}" | tr ' ' '\n' | sort)
 
-TOTAL=${#DEMOS[@]}
+# First pass: count demos that will actually be processed (after filter and
+# animated skip), so the progress prefix is accurate.
+TOTAL=0
+for go_name in $SORTED_GO; do
+    TCL_DEMO="${DEMO_MAP[$go_name]}"
+    [[ "$TCL_DEMO" == "-" ]] && continue
+    [[ -n "$FILTER" && "$go_name" != ${FILTER}* ]] && continue
+    [[ " $DEMO_ANIMATED " == *" $go_name "* ]] && continue
+    TOTAL=$(( TOTAL + 1 ))
+done
+
 COUNT=0
-
-for entry in "${DEMOS[@]}"; do
-    GO_DEMO=$(echo "$entry" | awk '{print $1}')
-    TCL_DEMO=$(echo "$entry" | awk '{print $2}')
+for go_name in $SORTED_GO; do
+    TCL_DEMO="${DEMO_MAP[$go_name]}"
+    [[ "$TCL_DEMO" == "-" ]] && continue
 
     # Apply filter
-    if [[ -n "$FILTER" && "$GO_DEMO" != ${FILTER}* ]]; then
+    if [[ -n "$FILTER" && "$go_name" != ${FILTER}* ]]; then
+        continue
+    fi
+
+    # Skip animated demos (nondeterministic screenshots).
+    if [[ " $DEMO_ANIMATED " == *" $go_name "* ]]; then
+        echo "  SKIP: $go_name (animated)"
         continue
     fi
 
     COUNT=$(( COUNT + 1 ))
     echo ""
-    echo "[$COUNT/$TOTAL] $GO_DEMO ..."
+    echo "[$COUNT/$TOTAL] $go_name ..."
 
-    GO_IMG="$SS_DIR/${GO_DEMO}_go.png"
-    TCL_IMG="$SS_DIR/${TCL_DEMO}_tcl.png"
-
-    # Skip demos where Go directory doesn't exist
-    if [[ ! -d "$PROJECT_DIR/demos/$GO_DEMO" ]]; then
+    if [[ ! -d "$PROJECT_DIR/demos/$go_name" ]]; then
         echo "  SKIP: no Go demo directory"
         continue
     fi
@@ -72,24 +84,24 @@ for entry in "${DEMOS[@]}"; do
     # Run screenshot + compare, capture score. Stderr goes to a per-demo log so
     # failures are diagnosable instead of silently discarded.
     mkdir -p "$PROJECT_DIR/tmp/logs"
-    ERR_LOG="$PROJECT_DIR/tmp/logs/${GO_DEMO}.compare.err"
-    RESULT=$(bash "$SCRIPT_DIR/demo_compare.sh" "$GO_DEMO" "$TCL_DEMO" 2>"$ERR_LOG") || {
-        echo "  FAILED: $GO_DEMO (see $ERR_LOG)" >&2
-        echo "FAILED $GO_DEMO -" >> "$SCORES_FILE"
+    ERR_LOG="$PROJECT_DIR/tmp/logs/${go_name}.compare.err"
+    RESULT=$(bash "$SCRIPT_DIR/demo_compare.sh" "$go_name" "$TCL_DEMO" 2>"$ERR_LOG") || {
+        echo "  FAILED: $go_name (see $ERR_LOG)" >&2
+        echo "9999 $go_name $TCL_DEMO" >> "$SCORES_FILE"
         continue
     }
     rm -f "$ERR_LOG"   # clean up on success
 
     SCORE=$(echo "$RESULT" | grep "^Diff score:" | awk '{print $3}')
-    [[ -z "$SCORE" ]] && SCORE="unknown"
+    [[ -z "$SCORE" ]] && SCORE="9999"
 
-    echo "  Score: $SCORE (MAE)"
-    echo "$SCORE $GO_DEMO $TCL_DEMO" >> "$SCORES_FILE"
+    echo "  Score: $SCORE (odiff diff %)"
+    echo "$SCORE $go_name $TCL_DEMO" >> "$SCORES_FILE"
 done
 
 echo ""
 echo "============================================================"
-echo "Results sorted by diff score (highest = most different):"
+echo "Results sorted by diff % (highest = most different, 9999 = failed):"
 echo "============================================================"
 sort -rn "$SCORES_FILE" | tee "$SS_DIR/scores_sorted.txt"
 echo ""
