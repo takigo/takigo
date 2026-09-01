@@ -41,22 +41,25 @@ func main() {
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	// Inner frame with border (matches Tcl's `frame -borderwidth 7.5p`).
+	bw := screenunit.Px("7.5p")
 	fr := frame.New(f, "frame",
-		frame.BorderWidth(10), // 7.5p ≈ 10px
+		frame.BorderWidth(bw),
 	)
+	fr.SetInternalBorder(bw, bw, bw, bw)
 	pack.Pack(fr, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
 
 	// Canvas for arrow display.
 	c := canvas.New(fr, "canvas",
-		canvas.Width(50),  // 37.5p
-		canvas.Height(50), // 37.5p
+		canvas.Width(screenunit.Px("37.5p")),
+		canvas.Height(screenunit.Px("37.5p")),
 		canvas.BorderWidthOpt(0),
 		canvas.HighlightWidthOpt(0),
+		canvas.Background("#d9d9d9"),
 	)
 
 	// Create initial polygon and line items with dummy coords.
 	c.CreatePolygon([]float64{0, 0, 1, 1, 2, 2},
-		canvas.FillColor("DeepSkyBlue3"), canvas.Tags("poly"))
+		canvas.FillColor("deepskyblue"), canvas.Tags("poly"))
 	c.CreateLine([]float64{0, 0, 1, 1, 2, 2, 0, 0},
 		canvas.OutlineColor("black"), canvas.Tags("line"))
 
@@ -86,7 +89,7 @@ func main() {
 		scale.ToOpt(250),
 		scale.ValueOpt(75),
 		scale.TickIntervalOpt(50),
-		scale.LengthOpt(284), // 213p at 96dpi
+		scale.LengthOpt(screenunit.Px("213p")),
 		scale.CommandOpt(func(v float64) {
 			setWidth(v)
 		}),
