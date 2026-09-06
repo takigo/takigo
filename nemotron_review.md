@@ -40,7 +40,6 @@
 | Area | Issue | File/Location |
 |------|-------|---------------|
 | **Interface Bloat** | `DisplayServer` embeds 10 sub-interfaces (60+ methods). Hard to implement new backend. | `platform/display.go:5-69` |
-| **Type Assertions** | `WmData any` + `PlatformID` casts scattered. | `window/window.go:79-86`, `tk.go:184-190` |
 | **Global State** | `packers` map is package-global; no per-container isolation. | `geometry/pack/pack.go:91` |
 | **No Context Propagation** | Event loop doesn't use `context.Context` for cancellation. | `event/loop.go` |
 | **Circular Import Avoidance** | Multiple `any` + interfaces in `widget/` to break cycles. | `widget/widget.go:88-129` |
@@ -61,7 +60,7 @@
 
 | Issue | Examples |
 |-------|----------|
-| **Any/Interface{} Overuse** | `WmData any`, `GeomData any`, `DrawContext.Style any`, `TtkWidget.Context any` | Multiple files |
+| **Any/Interface{} Overuse** | `DrawContext.Style any`, `TtkWidget.Context any` | Multiple files |
 | **Inconsistent Naming** | `ButtonOption` vs `ButtonText` vs `Text` (classic), `ttk.ButtonText` (ttk) | Across widget packages |
 | **Missing Tests** | 66 demos have no tests; font, platform, cursor, bitmap packages untested | `go test` output |
 | **No Lint Config** | No `.golangci.yml`; `go vet` has 1 pre-existing false positive | AGENTS.md |
@@ -139,6 +138,14 @@ Created `event/dispatch_bench_test.go` with:
 - `Unbind()` and `UnbindID()` return registrations to pool via `registrationPool.Put()`
 - Reduces allocations in the hot dispatcher path
 
+### 4. Replaced `any` with concrete types for `WmData` / `GeomData`
+
+**Files:** `window/window.go`, `tk.go`, `ttk/sizegrip.go`, `wm/wm.go`
+- `WmData any` → `WmData WmInfo` interface (defined in `window` package, implemented by `wm.WmInfo`)
+- `GeomData any` → removed entirely (unused; geometry managers use package-level maps)
+- Updated all call sites in `tk.go`, `ttk/sizegrip.go` to use interface directly without type assertions
+- Removed unused `wm` import from `ttk/sizegrip.go`
+
 ---
 
 ## Test Results (Post-Fix)
@@ -174,17 +181,16 @@ $ go vet ./...
 
 ### 🟠 High
 4. **Refactor `DisplayServer`** — split into capability interfaces; use composition over giant interface
-5. **Replace `any` with generics or concrete types** — `WmData *wm.WmInfo`, `GeomData` per-manager
-6. **Add per-package test coverage** — especially `font`, `platform`, `platform/x11`
-7. **Add `.golangci.yml`** with project-specific rules (disable false positive on `platform/x11/convert.go:15`)
+5. **Add per-package test coverage** — especially `font`, `platform`, `platform/x11`
+6. **Add `.golangci.yml`** with project-specific rules (disable false positive on `platform/x11/convert.go:15`)
 
 ### 🟡 Medium
-8. **Profile macOS pump ticker** — adaptive interval based on event rate
-9. **Pre-allocate point slices** in X11 drawer for common sizes
-10. **Cache `MeasureString("0")`** per font in widget geometry computation
-11. **Document threading contract** — which types are goroutine-safe vs loop-only
+7. **Profile macOS pump ticker** — adaptive interval based on event rate
+8. **Pre-allocate point slices** in X11 drawer for common sizes
+9. **Cache `MeasureString("0")`** per font in widget geometry computation
+10. **Document threading contract** — which types are goroutine-safe vs loop-only
 
 ### 🟢 Low
-12. **Consolidate option naming** — consider `widget.Option` vs `ttk.ButtonOption` unification
-13. **Add fuzz tests** for `bind/pattern.go`, `geometry/grid/grid.go`
-14. **Consider `context.Context`** for `RunNestedLoop` cancellation
+11. **Consolidate option naming** — consider `widget.Option` vs `ttk.ButtonOption` unification
+12. **Add fuzz tests** for `bind/pattern.go`, `geometry/grid/grid.go`
+13. **Consider `context.Context`** for `RunNestedLoop` cancellation
