@@ -185,7 +185,7 @@ func NewApp(opts ...AppOption) (*App, error) {
 		if w == nil {
 			return
 		}
-		if info, ok := w.WmData.(*wm.WmInfo); ok {
+		if info := w.WmData; info != nil {
 			info.HandleClientMessage(ev.MessageType, ev.MessageData)
 		}
 	})
@@ -318,29 +318,29 @@ func (a *App) RunNestedLoop(done <-chan struct{}) {
 }
 
 // RegisterCloseHandler registers a WM_DELETE_WINDOW handler for a toplevel window.
-// It routes through the window's WmInfo if available.
-func (a *App) RegisterCloseHandler(w platform.WindowID, fn func()) {
-	win := a.display.LookupWindow(w)
-	if win == nil {
-		return
+	// It routes through the window's WmInfo if available.
+	func (a *App) RegisterCloseHandler(w platform.WindowID, fn func()) {
+		win := a.display.LookupWindow(w)
+		if win == nil {
+			return
+		}
+		if info := win.WmData; info != nil {
+			info.OnDeleteWindow(fn)
+		}
 	}
-	if info, ok := win.WmData.(*wm.WmInfo); ok {
-		info.OnDeleteWindow(fn)
-	}
-}
 
 // UnregisterCloseHandler restores the default WM_DELETE_WINDOW
-// behavior — destroying the window — for the given toplevel.
-// Equivalent to Tk's behavior when no user handler is installed.
-func (a *App) UnregisterCloseHandler(w platform.WindowID) {
-	win := a.display.LookupWindow(w)
-	if win == nil {
-		return
+	// behavior — destroying the window — for the given toplevel.
+	// Equivalent to Tk's behavior when no user handler is installed.
+	func (a *App) UnregisterCloseHandler(w platform.WindowID) {
+		win := a.display.LookupWindow(w)
+		if win == nil {
+			return
+		}
+		if info := win.WmData; info != nil {
+			info.OffDeleteWindow()
+		}
 	}
-	if info, ok := win.WmData.(*wm.WmInfo); ok {
-		info.OffDeleteWindow()
-	}
-}
 
 // DoWhenIdle schedules a function to run during the next idle phase.
 func (a *App) DoWhenIdle(fn func()) {

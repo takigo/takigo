@@ -10,7 +10,6 @@ import (
 	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/window"
-	"github.com/msorc/takigo/wm"
 )
 
 // Sizegrip is a themed grip handle for resizing a toplevel window.
@@ -196,7 +195,7 @@ func bindSizegrip(sg *Sizegrip, app widget.AppContext) {
 			newH = 50
 		}
 
-		if info, ok := top.WmData.(*wm.WmInfo); ok {
+		if info := top.WmData; info != nil {
 			info.SetGeometry(formatGeom(newW, newH, top.X, top.Y))
 		}
 	})

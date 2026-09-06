@@ -28,9 +28,18 @@ type Windower interface {
 // Window returns the Window itself, satisfying the Windower interface.
 func (w *Window) Window() *Window { return w }
 
+// WmInfo defines the interface for WM-specific window data.
+// Implemented by wm.WmInfo to avoid circular imports.
+type WmInfo interface {
+	HandleClientMessage(messageType platform.AtomID, data [5]int64) bool
+	OnDeleteWindow(fn func())
+	OffDeleteWindow()
+	SetGeometry(geom string) error
+}
+
 // Window represents a single window in the takigo hierarchy.
-// Ports TkWindow from tk/generic/tkInt.h.
-type Window struct {
+	// Ports TkWindow from tk/generic/tkInt.h.
+	type Window struct {
 	// Platform identity.
 	PlatformID platform.WindowID // platform window handle (0 = not yet created)
 	Display    *Display
@@ -58,7 +67,6 @@ type Window struct {
 
 	// Geometry manager currently managing this window.
 	GeomManager GeomManager
-	GeomData    any // manager-specific data for this window
 
 	// Visual depth (used for pixmap creation).
 	Depth int
@@ -76,10 +84,10 @@ type Window struct {
 	// Set by geometry managers (e.g. pack) to re-layout children.
 	ConfigureCallback func()
 
-	// WmData stores per-toplevel WM state (*wm.WmInfo) for toplevel windows.
-	// Typed as any to avoid circular imports between window and wm packages.
+	// WmData stores per-toplevel WM state for toplevel windows.
+	// Uses WmInfo interface to avoid circular imports between window and wm packages.
 	// Mirrors TkWindow.wmInfoPtr in Tk's C code.
-	WmData any
+	WmData WmInfo
 
 	// BackgroundHook is called when a recursive background change is applied.
 	// Widgets register this to update their own Background field and pixel.
