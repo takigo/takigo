@@ -4,6 +4,7 @@
 package menubutton
 
 import (
+	"log"
 	"unicode"
 
 	"github.com/msorc/takigo/color"
@@ -64,19 +65,23 @@ func OptionMenuOpt(on bool) MenubuttonOption    { return func(mb *Menubutton) { 
 func Background(name string) MenubuttonOption {
 	return func(mb *Menubutton) {
 		col, err := mb.App.ColorCache().Get(name)
-		if err == nil {
-			mb.Background = col
-			mb.UpdateBorder()
+		if err != nil {
+			log.Printf("menubutton: failed to get color %q: %v", name, err)
+			return
 		}
+		mb.Background = col
+		mb.UpdateBorder()
 	}
 }
 
 func Foreground(name string) MenubuttonOption {
 	return func(mb *Menubutton) {
 		col, err := mb.App.ColorCache().Get(name)
-		if err == nil {
-			mb.Foreground = col
+		if err != nil {
+			log.Printf("menubutton: failed to get color %q: %v", name, err)
+			return
 		}
+		mb.Foreground = col
 	}
 }
 

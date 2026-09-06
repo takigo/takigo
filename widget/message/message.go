@@ -4,6 +4,7 @@
 package message
 
 import (
+	"log"
 	"strings"
 
 	"github.com/msorc/takigo/draw"
@@ -45,10 +46,12 @@ func Text(s string) MessageOption {
 func Background(name string) MessageOption {
 	return func(m *Message) {
 		col, err := m.App.ColorCache().Get(name)
-		if err == nil {
-			m.Background = col
-			m.UpdateBorder()
+		if err != nil {
+			log.Printf("message: failed to get color %q: %v", name, err)
+			return
 		}
+		m.Background = col
+		m.UpdateBorder()
 	}
 }
 
@@ -56,9 +59,11 @@ func Background(name string) MessageOption {
 func Foreground(name string) MessageOption {
 	return func(m *Message) {
 		col, err := m.App.ColorCache().Get(name)
-		if err == nil {
-			m.Foreground = col
+		if err != nil {
+			log.Printf("message: failed to get color %q: %v", name, err)
+			return
 		}
+		m.Foreground = col
 	}
 }
 
@@ -66,9 +71,11 @@ func Foreground(name string) MessageOption {
 func FontOpt(name string) MessageOption {
 	return func(m *Message) {
 		f, err := m.App.FontRegistry().Get(name)
-		if err == nil {
-			m.Font = f
+		if err != nil {
+			log.Printf("message: failed to get font %q: %v", name, err)
+			return
 		}
+		m.Font = f
 	}
 }
 

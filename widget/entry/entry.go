@@ -3,6 +3,8 @@
 package entry
 
 import (
+	"log"
+
 	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/cursor"
 	"github.com/msorc/takigo/draw"
@@ -86,9 +88,11 @@ func Placeholder(s string) EntryOption {
 func PlaceholderForeground(name string) EntryOption {
 	return func(e *Entry) {
 		col, err := e.App.ColorCache().Get(name)
-		if err == nil {
-			e.PlaceholderFg = col.Ref()
+		if err != nil {
+			log.Printf("entry: failed to get color %q: %v", name, err)
+			return
 		}
+		e.PlaceholderFg = col.Ref()
 	}
 }
 
@@ -101,10 +105,12 @@ func Show(ch rune) EntryOption {
 func Background(name string) EntryOption {
 	return func(e *Entry) {
 		col, err := e.App.ColorCache().Get(name)
-		if err == nil {
-			e.Background = col
-			e.UpdateBorder()
+		if err != nil {
+			log.Printf("entry: failed to get color %q: %v", name, err)
+			return
 		}
+		e.Background = col
+		e.UpdateBorder()
 	}
 }
 
@@ -112,9 +118,11 @@ func Background(name string) EntryOption {
 func Foreground(name string) EntryOption {
 	return func(e *Entry) {
 		col, err := e.App.ColorCache().Get(name)
-		if err == nil {
-			e.Foreground = col
+		if err != nil {
+			log.Printf("entry: failed to get color %q: %v", name, err)
+			return
 		}
+		e.Foreground = col
 	}
 }
 
@@ -122,9 +130,11 @@ func Foreground(name string) EntryOption {
 func FontOpt(name string) EntryOption {
 	return func(e *Entry) {
 		f, err := e.App.FontRegistry().Get(name)
-		if err == nil {
-			e.Font = f
+		if err != nil {
+			log.Printf("entry: failed to get font %q: %v", name, err)
+			return
 		}
+		e.Font = f
 	}
 }
 

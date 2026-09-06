@@ -1,6 +1,8 @@
 package ttk
 
 import (
+	"log"
+
 	"github.com/msorc/takigo/font"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/window"
@@ -67,9 +69,11 @@ func LabelForeground(pixel uint64) LabelOption {
 func LabelFont(name string) LabelOption {
 	return func(l *Label) {
 		f, err := l.App.FontRegistry().Get(name)
-		if err == nil {
-			l.Font = f
+		if err != nil {
+			log.Printf("ttk.label: failed to get font %q: %v", name, err)
+			return
 		}
+		l.Font = f
 	}
 }
 

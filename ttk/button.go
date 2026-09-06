@@ -1,6 +1,8 @@
 package ttk
 
 import (
+	"log"
+
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/font"
 	"github.com/msorc/takigo/platform"
@@ -58,9 +60,11 @@ func ButtonCompound(c widget.Compound) ButtonOption {
 func ButtonFont(name string) ButtonOption {
 	return func(b *Button) {
 		f, err := b.App.FontRegistry().Get(name)
-		if err == nil {
-			b.Font = f
+		if err != nil {
+			log.Printf("ttk.button: failed to get font %q: %v", name, err)
+			return
 		}
+		b.Font = f
 	}
 }
 

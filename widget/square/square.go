@@ -3,6 +3,8 @@
 package square
 
 import (
+	"log"
+
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/option"
@@ -33,10 +35,12 @@ type SquareOption func(*Square)
 func Background(name string) SquareOption {
 	return func(s *Square) {
 		col, err := s.App.ColorCache().Get(name)
-		if err == nil {
-			s.Background = col
-			s.UpdateBorder()
+		if err != nil {
+			log.Printf("square: failed to get color %q: %v", name, err)
+			return
 		}
+		s.Background = col
+		s.UpdateBorder()
 	}
 }
 
@@ -44,10 +48,12 @@ func Background(name string) SquareOption {
 func Foreground(name string) SquareOption {
 	return func(s *Square) {
 		col, err := s.App.ColorCache().Get(name)
-		if err == nil {
-			s.Foreground = col
-			s.FgBorder = draw.NewBorder(col.Red, col.Green, col.Blue)
+		if err != nil {
+			log.Printf("square: failed to get color %q: %v", name, err)
+			return
 		}
+		s.Foreground = col
+		s.FgBorder = draw.NewBorder(col.Red, col.Green, col.Blue)
 	}
 }
 

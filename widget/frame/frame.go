@@ -3,6 +3,8 @@
 package frame
 
 import (
+	"log"
+
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/geometry/place"
 	"github.com/msorc/takigo/option"
@@ -24,10 +26,12 @@ type FrameOption func(*Frame)
 func Background(name string) FrameOption {
 	return func(f *Frame) {
 		col, err := f.App.ColorCache().Get(name)
-		if err == nil {
-			f.Background = col
-			f.UpdateBorder()
+		if err != nil {
+			log.Printf("frame: failed to get color %q: %v", name, err)
+			return
 		}
+		f.Background = col
+		f.UpdateBorder()
 	}
 }
 

@@ -4,6 +4,7 @@ package scale
 
 import (
 	"fmt"
+	"log"
 	"math"
 
 	"github.com/msorc/takigo/color"
@@ -69,10 +70,12 @@ func CommandOpt(fn func(float64)) ScaleOption { return func(s *Scale) { s.Comman
 func Background(name string) ScaleOption {
 	return func(s *Scale) {
 		col, err := s.App.ColorCache().Get(name)
-		if err == nil {
-			s.Background = col
-			s.UpdateBorder()
+		if err != nil {
+			log.Printf("scale: failed to get color %q: %v", name, err)
+			return
 		}
+		s.Background = col
+		s.UpdateBorder()
 	}
 }
 

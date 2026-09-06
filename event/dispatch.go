@@ -25,6 +25,14 @@ type registration struct {
 	global  bool
 }
 
+// registrationPool is used to reduce allocations for handler registrations.
+// The pool is safe for concurrent use.
+var registrationPool = sync.Pool{
+	New: func() any {
+		return &registration{}
+	},
+}
+
 // Dispatcher manages event handler registration and dispatch per window.
 type Dispatcher struct {
 	mu       sync.RWMutex
@@ -50,7 +58,13 @@ func (d *Dispatcher) Bind(w platform.WindowID, mask Mask, h Handler) BindingID {
 	defer d.mu.Unlock()
 	d.nextID++
 	id := d.nextID
-	reg := &registration{id: id, mask: mask, handler: h, window: w, idx: len(d.handlers[w])}
+	reg := registrationPool.Get().(*registration)
+	reg.id = id
+	reg.mask = mask
+	reg.handler = h
+	reg.window = w
+	reg.idx = len(d.handlers[w])
+	reg.global = false
 	d.handlers[w] = append(d.handlers[w], reg)
 	d.byID[id] = reg
 	return id
@@ -62,7 +76,13 @@ func (d *Dispatcher) BindGlobal(mask Mask, h Handler) BindingID {
 	defer d.mu.Unlock()
 	d.nextID++
 	id := d.nextID
-	reg := &registration{id: id, mask: mask, handler: h, global: true, idx: len(d.global)}
+	reg := registrationPool.Get().(*registration)
+	reg.id = id
+	reg.mask = mask
+	reg.handler = h
+	reg.window = 0
+	reg.idx = len(d.global)
+	reg.global = true
 	d.global = append(d.global, reg)
 	d.byID[id] = reg
 	return id
@@ -74,6 +94,14 @@ func (d *Dispatcher) Unbind(w platform.WindowID) {
 	defer d.mu.Unlock()
 	for _, r := range d.handlers[w] {
 		delete(d.byID, r.id)
+		// Reset fields and return to pool
+		r.id = 0
+		r.mask = 0
+		r.handler = nil
+		r.window = 0
+		r.idx = 0
+		r.global = false
+		registrationPool.Put(r)
 	}
 	delete(d.handlers, w)
 }
@@ -96,6 +124,14 @@ func (d *Dispatcher) UnbindID(id BindingID) bool {
 		swapRemove(&regs, reg)
 		d.handlers[reg.window] = regs
 	}
+	// Return to pool
+	reg.id = 0
+	reg.mask = 0
+	reg.handler = nil
+	reg.window = 0
+	reg.idx = 0
+	reg.global = false
+	registrationPool.Put(reg)
 	return true
 }
 

@@ -1,6 +1,8 @@
 package ttk
 
 import (
+	"log"
+
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/font"
@@ -38,9 +40,11 @@ func CheckbuttonText(s string) CheckbuttonOption {
 func CheckbuttonFont(name string) CheckbuttonOption {
 	return func(c *Checkbutton) {
 		f, err := c.App.FontRegistry().Get(name)
-		if err == nil {
-			c.Font = f
+		if err != nil {
+			log.Printf("ttk.checkbutton: failed to get font %q: %v", name, err)
+			return
 		}
+		c.Font = f
 	}
 }
 

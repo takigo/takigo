@@ -3,6 +3,8 @@
 package toplevel
 
 import (
+	"log"
+
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
@@ -38,10 +40,12 @@ func IconName(s string) ToplevelOption {
 func Background(name string) ToplevelOption {
 	return func(t *Toplevel) {
 		col, err := t.App.ColorCache().Get(name)
-		if err == nil {
-			t.Background = col
-			t.UpdateBorder()
+		if err != nil {
+			log.Printf("toplevel: failed to get color %q: %v", name, err)
+			return
 		}
+		t.Background = col
+		t.UpdateBorder()
 	}
 }
 

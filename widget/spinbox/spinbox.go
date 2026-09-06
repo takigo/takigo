@@ -4,6 +4,7 @@ package spinbox
 
 import (
 	"fmt"
+	"log"
 	"math"
 	"strconv"
 
@@ -90,10 +91,12 @@ func ValidateCmdOpt(fn func(string) bool) SpinboxOption {
 func Background(name string) SpinboxOption {
 	return func(s *Spinbox) {
 		col, err := s.App.ColorCache().Get(name)
-		if err == nil {
-			s.Background = col
-			s.UpdateBorder()
+		if err != nil {
+			log.Printf("spinbox: failed to get color %q: %v", name, err)
+			return
 		}
+		s.Background = col
+		s.UpdateBorder()
 	}
 }
 

@@ -3,6 +3,8 @@
 package labelframe
 
 import (
+	"log"
+
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/option"
@@ -40,10 +42,12 @@ func Text(s string) LabelframeOption {
 func Background(name string) LabelframeOption {
 	return func(lf *Labelframe) {
 		col, err := lf.App.ColorCache().Get(name)
-		if err == nil {
-			lf.Background = col
-			lf.UpdateBorder()
+		if err != nil {
+			log.Printf("labelframe: failed to get color %q: %v", name, err)
+			return
 		}
+		lf.Background = col
+		lf.UpdateBorder()
 	}
 }
 
@@ -71,9 +75,11 @@ func Height(h int) LabelframeOption {
 func FontOpt(name string) LabelframeOption {
 	return func(lf *Labelframe) {
 		f, err := lf.App.FontRegistry().Get(name)
-		if err == nil {
-			lf.Font = f
+		if err != nil {
+			log.Printf("labelframe: failed to get font %q: %v", name, err)
+			return
 		}
+		lf.Font = f
 	}
 }
 

@@ -3,6 +3,8 @@
 package listbox
 
 import (
+	"log"
+
 	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/option"
@@ -82,19 +84,23 @@ func JustifyOpt(j option.Justify) ListboxOption {
 func Background(name string) ListboxOption {
 	return func(lb *Listbox) {
 		col, err := lb.App.ColorCache().Get(name)
-		if err == nil {
-			lb.Background = col
-			lb.UpdateBorder()
+		if err != nil {
+			log.Printf("listbox: failed to get color %q: %v", name, err)
+			return
 		}
+		lb.Background = col
+		lb.UpdateBorder()
 	}
 }
 
 func Foreground(name string) ListboxOption {
 	return func(lb *Listbox) {
 		col, err := lb.App.ColorCache().Get(name)
-		if err == nil {
-			lb.Foreground = col
+		if err != nil {
+			log.Printf("listbox: failed to get color %q: %v", name, err)
+			return
 		}
+		lb.Foreground = col
 	}
 }
 

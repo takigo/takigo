@@ -3,6 +3,8 @@
 package menu
 
 import (
+	"log"
+
 	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/font"
@@ -95,10 +97,12 @@ func TearOffOpt(on bool) MenuOption {
 func Background(name string) MenuOption {
 	return func(m *Menu) {
 		col, err := m.App.ColorCache().Get(name)
-		if err == nil {
-			m.Background = col
-			m.UpdateBorder()
+		if err != nil {
+			log.Printf("menu: failed to get color %q: %v", name, err)
+			return
 		}
+		m.Background = col
+		m.UpdateBorder()
 	}
 }
 

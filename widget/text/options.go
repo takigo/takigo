@@ -1,5 +1,7 @@
 package text
 
+import "log"
+
 // WrapMode specifies how lines are wrapped at widget boundaries.
 type WrapMode int
 
@@ -31,10 +33,12 @@ func WrapModeOpt(mode WrapMode) TextOption {
 func Background(name string) TextOption {
 	return func(t *TextWidget) {
 		col, err := t.App.ColorCache().Get(name)
-		if err == nil {
-			t.Background = col
-			t.UpdateBorder()
+		if err != nil {
+			log.Printf("text: failed to get color %q: %v", name, err)
+			return
 		}
+		t.Background = col
+		t.UpdateBorder()
 	}
 }
 
@@ -42,9 +46,11 @@ func Background(name string) TextOption {
 func Foreground(name string) TextOption {
 	return func(t *TextWidget) {
 		col, err := t.App.ColorCache().Get(name)
-		if err == nil {
-			t.Foreground = col
+		if err != nil {
+			log.Printf("text: failed to get color %q: %v", name, err)
+			return
 		}
+		t.Foreground = col
 	}
 }
 
@@ -52,9 +58,11 @@ func Foreground(name string) TextOption {
 func FontOpt(name string) TextOption {
 	return func(t *TextWidget) {
 		f, err := t.App.FontRegistry().Get(name)
-		if err == nil {
-			t.Font = f
+		if err != nil {
+			log.Printf("text: failed to get font %q: %v", name, err)
+			return
 		}
+		t.Font = f
 	}
 }
 

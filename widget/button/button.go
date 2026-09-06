@@ -4,6 +4,8 @@
 package button
 
 import (
+	"log"
+
 	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/event"
@@ -62,10 +64,12 @@ func Command(fn func()) ButtonOption {
 func Background(name string) ButtonOption {
 	return func(b *Button) {
 		col, err := b.App.ColorCache().Get(name)
-		if err == nil {
-			b.Background = col
-			b.UpdateBorder()
+		if err != nil {
+			log.Printf("button: failed to get color %q: %v", name, err)
+			return
 		}
+		b.Background = col
+		b.UpdateBorder()
 	}
 }
 
@@ -73,9 +77,11 @@ func Background(name string) ButtonOption {
 func Foreground(name string) ButtonOption {
 	return func(b *Button) {
 		col, err := b.App.ColorCache().Get(name)
-		if err == nil {
-			b.Foreground = col
+		if err != nil {
+			log.Printf("button: failed to get color %q: %v", name, err)
+			return
 		}
+		b.Foreground = col
 	}
 }
 
@@ -83,9 +89,11 @@ func Foreground(name string) ButtonOption {
 func FontOpt(name string) ButtonOption {
 	return func(b *Button) {
 		f, err := b.App.FontRegistry().Get(name)
-		if err == nil {
-			b.Font = f
+		if err != nil {
+			log.Printf("button: failed to get font %q: %v", name, err)
+			return
 		}
+		b.Font = f
 	}
 }
 

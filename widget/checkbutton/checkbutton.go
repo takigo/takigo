@@ -4,6 +4,8 @@
 package checkbutton
 
 import (
+	"log"
+
 	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/option"
@@ -105,10 +107,12 @@ func TristateValueOpt(v string) CheckbuttonOption {
 func Background(name string) CheckbuttonOption {
 	return func(c *Checkbutton) {
 		col, err := c.App.ColorCache().Get(name)
-		if err == nil {
-			c.Background = col
-			c.UpdateBorder()
+		if err != nil {
+			log.Printf("checkbutton: failed to get color %q: %v", name, err)
+			return
 		}
+		c.Background = col
+		c.UpdateBorder()
 	}
 }
 
@@ -116,9 +120,11 @@ func Background(name string) CheckbuttonOption {
 func Foreground(name string) CheckbuttonOption {
 	return func(c *Checkbutton) {
 		col, err := c.App.ColorCache().Get(name)
-		if err == nil {
-			c.Foreground = col
+		if err != nil {
+			log.Printf("checkbutton: failed to get color %q: %v", name, err)
+			return
 		}
+		c.Foreground = col
 	}
 }
 
@@ -126,9 +132,11 @@ func Foreground(name string) CheckbuttonOption {
 func FontOpt(name string) CheckbuttonOption {
 	return func(c *Checkbutton) {
 		f, err := c.App.FontRegistry().Get(name)
-		if err == nil {
-			c.Font = f
+		if err != nil {
+			log.Printf("checkbutton: failed to get font %q: %v", name, err)
+			return
 		}
+		c.Font = f
 	}
 }
 

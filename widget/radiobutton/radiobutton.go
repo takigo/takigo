@@ -4,6 +4,8 @@
 package radiobutton
 
 import (
+	"log"
+
 	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/option"
@@ -86,10 +88,12 @@ func Var(v *widget.Variable[string]) RadiobuttonOption {
 func Background(name string) RadiobuttonOption {
 	return func(r *Radiobutton) {
 		col, err := r.App.ColorCache().Get(name)
-		if err == nil {
-			r.Background = col
-			r.UpdateBorder()
+		if err != nil {
+			log.Printf("radiobutton: failed to get color %q: %v", name, err)
+			return
 		}
+		r.Background = col
+		r.UpdateBorder()
 	}
 }
 
@@ -97,9 +101,11 @@ func Background(name string) RadiobuttonOption {
 func Foreground(name string) RadiobuttonOption {
 	return func(r *Radiobutton) {
 		col, err := r.App.ColorCache().Get(name)
-		if err == nil {
-			r.Foreground = col
+		if err != nil {
+			log.Printf("radiobutton: failed to get color %q: %v", name, err)
+			return
 		}
+		r.Foreground = col
 	}
 }
 
@@ -107,9 +113,11 @@ func Foreground(name string) RadiobuttonOption {
 func FontOpt(name string) RadiobuttonOption {
 	return func(r *Radiobutton) {
 		f, err := r.App.FontRegistry().Get(name)
-		if err == nil {
-			r.Font = f
+		if err != nil {
+			log.Printf("radiobutton: failed to get font %q: %v", name, err)
+			return
 		}
+		r.Font = f
 	}
 }
 

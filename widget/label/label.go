@@ -3,6 +3,8 @@
 package label
 
 import (
+	"log"
+
 	gocolor "image/color"
 	"strings"
 
@@ -70,10 +72,12 @@ func TextVariable(v *widget.Variable[string]) LabelOption {
 func Background(name string) LabelOption {
 	return func(l *Label) {
 		col, err := l.App.ColorCache().Get(name)
-		if err == nil {
-			l.Background = col
-			l.UpdateBorder()
+		if err != nil {
+			log.Printf("label: failed to get color %q: %v", name, err)
+			return
 		}
+		l.Background = col
+		l.UpdateBorder()
 	}
 }
 
@@ -81,9 +85,11 @@ func Background(name string) LabelOption {
 func Foreground(name string) LabelOption {
 	return func(l *Label) {
 		col, err := l.App.ColorCache().Get(name)
-		if err == nil {
-			l.Foreground = col
+		if err != nil {
+			log.Printf("label: failed to get color %q: %v", name, err)
+			return
 		}
+		l.Foreground = col
 	}
 }
 
@@ -91,9 +97,11 @@ func Foreground(name string) LabelOption {
 func FontOpt(name string) LabelOption {
 	return func(l *Label) {
 		f, err := l.App.FontRegistry().Get(name)
-		if err == nil {
-			l.Font = f
+		if err != nil {
+			log.Printf("label: failed to get font %q: %v", name, err)
+			return
 		}
+		l.Font = f
 	}
 }
 

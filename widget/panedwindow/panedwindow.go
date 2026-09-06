@@ -4,6 +4,8 @@
 package panedwindow
 
 import (
+	"log"
+
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/geometry"
@@ -115,10 +117,12 @@ func HandleSizeOpt(s int) PanedWindowOption {
 func Background(name string) PanedWindowOption {
 	return func(pw *PanedWindow) {
 		col, err := pw.App.ColorCache().Get(name)
-		if err == nil {
-			pw.Background = col
-			pw.UpdateBorder()
+		if err != nil {
+			log.Printf("panedwindow: failed to get color %q: %v", name, err)
+			return
 		}
+		pw.Background = col
+		pw.UpdateBorder()
 	}
 }
 
