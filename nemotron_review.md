@@ -188,7 +188,7 @@ $ go vet ./...
 7. **Profile macOS pump ticker** — adaptive interval based on event rate
 8. **Pre-allocate point slices** in X11 drawer for common sizes
 9. **Cache `MeasureString("0")`** per font in widget geometry computation
-10. **Document threading contract** — which types are goroutine-safe vs loop-only
+10. ✅ **Document threading contract** — which types are goroutine-safe vs loop-only (THREADING.md)
 
 ### 🟢 Low
 11. **Consolidate option naming** — consider `widget.Option` vs `ttk.ButtonOption` unification
