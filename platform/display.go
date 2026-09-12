@@ -1,73 +1,5 @@
 package platform
 
-// DisplayServer is the top-level interface for a platform backend.
-// It embeds all sub-interfaces that provide windowing functionality.
-type DisplayServer interface {
-	WindowManager
-	Drawer
-	GCManager
-	PixmapManager
-	EventSource
-	GrabManager
-	SelectionManager
-	CursorManager
-	PropertyManager
-	InputMethodManager
-
-	// Close closes the display connection.
-	Close()
-
-	// DefaultScreen returns the default screen number.
-	DefaultScreen() int
-
-	// DefaultRootWindow returns the root window ID.
-	DefaultRootWindow() WindowID
-
-	// RootWindow returns the root window for a given screen.
-	RootWindow(screen int) WindowID
-
-	// DefaultDepth returns the default depth for a given screen.
-	DefaultDepth(screen int) int
-
-	// ScreenWidth returns the screen width in pixels.
-	ScreenWidth(screen int) int
-
-	// ScreenHeight returns the screen height in pixels.
-	ScreenHeight(screen int) int
-
-	// ScreenWidthMM returns the screen width in millimeters.
-	ScreenWidthMM(screen int) int
-
-	// ScreenHeightMM returns the screen height in millimeters.
-	ScreenHeightMM(screen int) int
-
-	// WhitePixel returns the white pixel value.
-	WhitePixel(screen int) uint64
-
-	// BlackPixel returns the black pixel value.
-	BlackPixel(screen int) uint64
-
-	// ConnectionNumber returns the file descriptor for the connection.
-	ConnectionNumber() int
-
-	// Sync flushes and waits for all requests to complete.
-	Sync(discard bool)
-
-	// Flush flushes the output buffer.
-	Flush()
-
-	// Pending returns the number of events in the queue.
-	Pending() int
-
-	// ResourceManagerString returns the X resource manager string
-	// (e.g., Xft.dpi settings). Returns "" if not available.
-	ResourceManagerString() string
-
-	// Atoms returns the backend's resolved well-known atom table.
-	// Guaranteed non-nil after NewDisplayServer returns.
-	Atoms() *Atoms
-}
-
 // WindowManager manages window creation, destruction, and manipulation.
 type WindowManager interface {
 	// CreateWindow creates a new window.
@@ -327,4 +259,124 @@ type InputMethodManager interface {
 
 	// UnsetICFocus notifies the input method that a window lost focus.
 	UnsetICFocus()
+}
+
+// DisplayCore provides core display connection methods.
+type DisplayCore interface {
+	// Close closes the display connection.
+	Close()
+
+	// DefaultScreen returns the default screen number.
+	DefaultScreen() int
+
+	// DefaultRootWindow returns the root window ID.
+	DefaultRootWindow() WindowID
+
+	// RootWindow returns the root window for a given screen.
+	RootWindow(screen int) WindowID
+
+	// DefaultDepth returns the default depth for a given screen.
+	DefaultDepth(screen int) int
+
+	// ScreenWidth returns the screen width in pixels.
+	ScreenWidth(screen int) int
+
+	// ScreenHeight returns the screen height in pixels.
+	ScreenHeight(screen int) int
+
+	// ScreenWidthMM returns the screen width in millimeters.
+	ScreenWidthMM(screen int) int
+
+	// ScreenHeightMM returns the screen height in millimeters.
+	ScreenHeightMM(screen int) int
+
+	// WhitePixel returns the white pixel value.
+	WhitePixel(screen int) uint64
+
+	// BlackPixel returns the black pixel value.
+	BlackPixel(screen int) uint64
+
+	// ConnectionNumber returns the file descriptor for the connection.
+	ConnectionNumber() int
+
+	// Sync flushes and waits for all requests to complete.
+	Sync(discard bool)
+
+	// Flush flushes the output buffer.
+	Flush()
+
+	// Pending returns the number of events in the queue.
+	Pending() int
+
+	// ResourceManagerString returns the X resource manager string
+	// (e.g., Xft.dpi settings). Returns "" if not available.
+	ResourceManagerString() string
+
+	// Atoms returns the backend's resolved well-known atom table.
+	// Guaranteed non-nil after NewDisplayServer returns.
+	Atoms() *Atoms
+
+	// EventParser returns the platform-specific event parser.
+	EventParser() EventParser
+}
+
+// DisplayServer is the interface for a platform display server.
+// It aggregates all capability interfaces for windowing functionality.
+type DisplayServer interface {
+	DisplayCore
+	WindowManager
+	Drawer
+	GCManager
+	PixmapManager
+	EventSource
+	GrabManager
+	SelectionManager
+	CursorManager
+	PropertyManager
+	InputMethodManager
+}
+
+// displayServer is the concrete implementation of DisplayServer.
+// It composes all capability interfaces.
+type displayServer struct {
+	DisplayCore
+	WindowManager
+	Drawer
+	GCManager
+	PixmapManager
+	EventSource
+	GrabManager
+	SelectionManager
+	CursorManager
+	PropertyManager
+	InputMethodManager
+}
+
+// NewDisplayServer creates a new DisplayServer from its capability implementations.
+func NewDisplayServer(
+	core DisplayCore,
+	wm WindowManager,
+	drawer Drawer,
+	gc GCManager,
+	pixmap PixmapManager,
+	eventSrc EventSource,
+	grab GrabManager,
+	sel SelectionManager,
+	cursor CursorManager,
+	prop PropertyManager,
+	im InputMethodManager,
+) DisplayServer {
+	return &displayServer{
+		DisplayCore:       core,
+		WindowManager:     wm,
+		Drawer:            drawer,
+		GCManager:         gc,
+		PixmapManager:     pixmap,
+		EventSource:       eventSrc,
+		GrabManager:       grab,
+		SelectionManager:  sel,
+		CursorManager:     cursor,
+		PropertyManager:   prop,
+		InputMethodManager: im,
+	}
 }

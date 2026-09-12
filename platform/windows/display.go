@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"unsafe"
 
+	"github.com/msorc/takigo/font"
 	w32 "github.com/msorc/takigo/internal/win32"
 	"github.com/msorc/takigo/platform"
 )
@@ -22,7 +23,7 @@ func init() {
 
 const windowClassName = "TakigoWindowClass"
 
-// WindowsDisplay implements platform.DisplayServer using Win32 API.
+// WindowsDisplay implements all platform capability interfaces using Win32 API.
 type WindowsDisplay struct {
 	hInstance w32.HINSTANCE
 	rootHWND  w32.HWND
@@ -77,8 +78,18 @@ type WindowsDisplay struct {
 	cursorCache map[uint]w32.HCURSOR
 }
 
-// Compile-time interface check.
-var _ platform.DisplayServer = (*WindowsDisplay)(nil)
+// Compile-time interface checks.
+var _ platform.DisplayCore = (*WindowsDisplay)(nil)
+var _ platform.WindowManager = (*WindowsDisplay)(nil)
+var _ platform.Drawer = (*WindowsDisplay)(nil)
+var _ platform.GCManager = (*WindowsDisplay)(nil)
+var _ platform.PixmapManager = (*WindowsDisplay)(nil)
+var _ platform.EventSource = (*WindowsDisplay)(nil)
+var _ platform.GrabManager = (*WindowsDisplay)(nil)
+var _ platform.SelectionManager = (*WindowsDisplay)(nil)
+var _ platform.CursorManager = (*WindowsDisplay)(nil)
+var _ platform.PropertyManager = (*WindowsDisplay)(nil)
+var _ platform.InputMethodManager = (*WindowsDisplay)(nil)
 
 // windowInfo holds per-window state.
 type windowInfo struct {
@@ -90,8 +101,8 @@ type windowInfo struct {
 	isTopLevel bool // top-level window (parent was display root)
 }
 
-// NewDisplayServer initializes the Windows display and returns a DisplayServer.
-func NewDisplayServer(displayName string) (*WindowsDisplay, error) {
+// NewDisplayServer initializes the Windows display and returns a composed DisplayServer.
+func NewDisplayServer(displayName string) (platform.DisplayServer, error) {
 
 	// Set DPI awareness (best effort).
 	_ = w32.SetProcessDpiAwareness(w32.PROCESS_PER_MONITOR_DPI_AWARE)
@@ -174,20 +185,32 @@ func NewDisplayServer(displayName string) (*WindowsDisplay, error) {
 		bgPixel: 0x00FFFFFF, // white
 	}
 
-	return d, nil
+	return platform.NewDisplayServer(
+		d, // DisplayCore
+		d, // WindowManager
+		d, // Drawer
+		d, // GCManager
+		d, // PixmapManager
+		d, // EventSource
+		d, // GrabManager
+		d, // SelectionManager
+		d, // CursorManager
+		d, // PropertyManager
+		d, // InputMethodManager
+	), nil
 }
 
 // EventParser creates a WindowsEventParser.
-func (d *WindowsDisplay) EventParser() *EventParser {
+func (d *WindowsDisplay) EventParser() platform.EventParser {
 	return &EventParser{}
 }
 
 // FontOpener creates a WindowsFontOpener for font loading.
-func (d *WindowsDisplay) FontOpener(screen int) *FontOpener {
+func (d *WindowsDisplay) FontOpener(screen int) font.FontOpener {
 	return &FontOpener{screenDC: d.screenDC, resolveDC: d.getDrawableDC}
 }
 
-// --- DisplayServer core methods ---
+// --- DisplayCore ---
 
 func (d *WindowsDisplay) Close() {
 	if d.screenDC != 0 {

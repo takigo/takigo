@@ -2,7 +2,7 @@
 
 // Package cocoa provides the macOS/Cocoa backend for the platform abstraction layer.
 //
-// # Known gaps
+// Known gaps
 //
 // The backend currently satisfies platform.DisplayServer with a number of
 // no-op or zero-returning stubs. They are intentionally left empty so the
@@ -27,6 +27,7 @@ package cocoa
 
 import (
 	clib "github.com/msorc/takigo/internal/cocoa"
+	"github.com/msorc/takigo/font"
 	"github.com/msorc/takigo/platform"
 )
 
@@ -39,20 +40,20 @@ func toCursor(c platform.CursorID) clib.Cursor       { return clib.Cursor(uintpt
 func toPixmap(p platform.PixmapID) clib.Pixmap       { return clib.Pixmap(uintptr(p)) }
 func fromWin(w clib.Window) platform.WindowID        { return platform.WindowID(uintptr(w)) }
 
-// CocoaDisplay implements platform.DisplayServer using macOS Cocoa/AppKit.
+// CocoaDisplay wraps the low-level Cocoa connection.
 type CocoaDisplay struct {
 	rootWindow platform.WindowID
 	clipOwner  platform.WindowID
 	atoms      *platform.Atoms
 }
 
-// NewDisplayServer initializes Cocoa and returns a DisplayServer.
-func NewDisplayServer(displayName string) (*CocoaDisplay, error) {
+// NewDisplayServer initializes Cocoa and returns a composed DisplayServer.
+func NewDisplayServer(displayName string) (platform.DisplayServer, error) {
 	clib.Init()
 
 	rootWin := clib.CreateWindow(clib.Window(0), 0, 0, 1, 1, 0, 0x00D9D9D9, 0, false)
 
-	return &CocoaDisplay{
+	core := &CocoaDisplay{
 		rootWindow: fromWin(rootWin),
 		atoms: &platform.Atoms{
 			WMName:        platform.AtomID(clib.InternAtom("WM_NAME", false)),
@@ -64,23 +65,36 @@ func NewDisplayServer(displayName string) (*CocoaDisplay, error) {
 			Cardinal:      platform.AtomID(clib.InternAtom("CARDINAL", false)),
 			Window:        platform.AtomID(clib.InternAtom("WINDOW", false)),
 		},
-	}, nil
+	}
+	return platform.NewDisplayServer(
+		core,        // DisplayCore
+		core,        // WindowManager
+		core,        // Drawer
+		core,        // GCManager
+		core,        // PixmapManager
+		core,        // EventSource
+		core,        // GrabManager
+		core,        // SelectionManager
+		core,        // CursorManager
+		core,        // PropertyManager
+		core,        // InputMethodManager
+	), nil
 }
 
 // Atoms returns the resolved well-known atom table.
 func (d *CocoaDisplay) Atoms() *platform.Atoms { return d.atoms }
 
 // EventParser creates a CocoaEventParser.
-func (d *CocoaDisplay) EventParser() *EventParser {
+func (d *CocoaDisplay) EventParser() platform.EventParser {
 	return &EventParser{}
 }
 
 // FontOpener creates a FontOpener for font loading.
-func (d *CocoaDisplay) FontOpener(screen int) *FontOpener {
+func (d *CocoaDisplay) FontOpener(screen int) font.FontOpener {
 	return &FontOpener{}
 }
 
-// --- DisplayServer core methods ---
+// --- DisplayCore ---
 
 func (d *CocoaDisplay) Close()                                  { clib.Stop() }
 func (d *CocoaDisplay) DefaultScreen() int                      { return 0 }
@@ -367,5 +381,15 @@ func (d *CocoaDisplay) HasIM() bool                    { return false }
 func (d *CocoaDisplay) SetICFocus(w platform.WindowID) {}
 func (d *CocoaDisplay) UnsetICFocus()                  {}
 
-// Verify at compile time.
-var _ platform.DisplayServer = (*CocoaDisplay)(nil)
+// Compile-time interface checks
+var _ platform.DisplayCore = (*CocoaDisplay)(nil)
+var _ platform.WindowManager = (*CocoaDisplay)(nil)
+var _ platform.Drawer = (*CocoaDisplay)(nil)
+var _ platform.GCManager = (*CocoaDisplay)(nil)
+var _ platform.PixmapManager = (*CocoaDisplay)(nil)
+var _ platform.EventSource = (*CocoaDisplay)(nil)
+var _ platform.GrabManager = (*CocoaDisplay)(nil)
+var _ platform.SelectionManager = (*CocoaDisplay)(nil)
+var _ platform.CursorManager = (*CocoaDisplay)(nil)
+var _ platform.PropertyManager = (*CocoaDisplay)(nil)
+var _ platform.InputMethodManager = (*CocoaDisplay)(nil)

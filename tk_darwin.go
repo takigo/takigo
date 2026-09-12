@@ -17,7 +17,10 @@ func platformInit(displayName string) (platform.DisplayServer, platform.EventPar
 	}
 
 	parser := server.EventParser()
-	fontOpener := server.FontOpener(server.DefaultScreen())
+	var fontOpener font.FontOpener
+	if core, ok := server.(interface{ FontOpener(int) font.FontOpener }); ok {
+		fontOpener = core.FontOpener(server.DefaultScreen())
+	}
 
 	return server, parser, fontOpener, nil
 }

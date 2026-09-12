@@ -4,23 +4,24 @@
 package x11
 
 import (
+	"github.com/msorc/takigo/font"
 	"github.com/msorc/takigo/internal/xlib"
 	"github.com/msorc/takigo/platform"
 )
 
-// X11Display implements platform.DisplayServer by wrapping *xlib.Display.
+// X11Display wraps the low-level X11 connection.
 type X11Display struct {
 	dpy   *xlib.Display
 	atoms *platform.Atoms
 }
 
-// NewDisplayServer opens an X11 display connection and returns a DisplayServer.
-func NewDisplayServer(name string) (*X11Display, error) {
+// NewDisplayServer opens an X11 display connection and returns a composed DisplayServer.
+func NewDisplayServer(name string) (platform.DisplayServer, error) {
 	dpy, err := xlib.OpenDisplay(name)
 	if err != nil {
 		return nil, err
 	}
-	return &X11Display{
+	core := &X11Display{
 		dpy: dpy,
 		atoms: &platform.Atoms{
 			WMName:        platform.AtomID(xlib.XA_WM_NAME),
@@ -32,23 +33,34 @@ func NewDisplayServer(name string) (*X11Display, error) {
 			Cardinal:      platform.AtomID(xlib.XA_CARDINAL),
 			Window:        platform.AtomID(xlib.XA_WINDOW),
 		},
-	}, nil
+	}
+	// All capabilities are implemented by the same core struct.
+	return platform.NewDisplayServer(
+		core,        // DisplayCore
+		core,        // WindowManager
+		core,        // Drawer
+		core,        // GCManager
+		core,        // PixmapManager
+		core,        // EventSource
+		core,        // GrabManager
+		core,        // SelectionManager
+		core,        // CursorManager
+		core,        // PropertyManager
+		core,        // InputMethodManager
+	), nil
 }
 
-// Atoms returns the resolved X11 predefined atom table.
-func (s *X11Display) Atoms() *platform.Atoms { return s.atoms }
-
 // EventParser creates an X11EventParser for this display.
-func (s *X11Display) EventParser() *X11EventParser {
+func (s *X11Display) EventParser() platform.EventParser {
 	return NewEventParser(s.dpy)
 }
 
 // FontOpener creates an X11FontOpener for this display's default screen.
-func (s *X11Display) FontOpener(screen int) *X11FontOpener {
+func (s *X11Display) FontOpener(screen int) font.FontOpener {
 	return NewFontOpener(s.dpy, screen, s.dpy.DefaultVisual(screen), s.dpy.DefaultColormap(screen))
 }
 
-// --- DisplayServer core methods ---
+// --- DisplayCore ---
 
 func (s *X11Display) Close()             { s.dpy.Close() }
 func (s *X11Display) DefaultScreen() int { return s.dpy.DefaultScreen() }
@@ -70,6 +82,7 @@ func (s *X11Display) Sync(discard bool)             { s.dpy.Sync(discard) }
 func (s *X11Display) Flush()                        { s.dpy.Flush() }
 func (s *X11Display) Pending() int                  { return s.dpy.Pending() }
 func (s *X11Display) ResourceManagerString() string { return s.dpy.ResourceManagerString() }
+func (s *X11Display) Atoms() *platform.Atoms        { return s.atoms }
 
 // --- WindowManager ---
 
@@ -84,13 +97,10 @@ func (s *X11Display) CreateWindow(parent platform.WindowID, x, y int, width, hei
 		OverrideRedirect: attrs.OverrideRedirect,
 	}
 
-	// Get visual for the display.
 	screen := s.dpy.DefaultScreen()
 	visual := s.dpy.DefaultVisual(screen)
 	colormap := s.dpy.DefaultColormap(screen)
 
-	// Add colormap if requested via CW bits (the platform interface doesn't
-	// expose colormap directly; X11 backend handles it).
 	if valueMask&xlib.CWColormap != 0 {
 		xattrs.Colormap = colormap
 	}
@@ -125,7 +135,6 @@ func (s *X11Display) SelectInput(w platform.WindowID, eventMask int64) {
 func (s *X11Display) StoreName(w platform.WindowID, name string) {
 	s.dpy.StoreName(xlib.Window(w), name)
 }
-
 func (s *X11Display) TranslateCoordinates(src, dst platform.WindowID, srcX, srcY int) (int, int) {
 	return s.dpy.TranslateCoordinates(xlib.Window(src), xlib.Window(dst), srcX, srcY)
 }
@@ -214,15 +223,12 @@ func (s *X11Display) SetForeground(gc platform.GCID, pixel uint64) {
 func (s *X11Display) SetBackground(gc platform.GCID, pixel uint64) {
 	s.dpy.SetBackground(toXGC(gc), pixel)
 }
-
 func (s *X11Display) SetLineAttributes(gc platform.GCID, lineWidth uint, lineStyle, capStyle, joinStyle int) {
 	s.dpy.SetLineAttributes(toXGC(gc), lineWidth, lineStyle, capStyle, joinStyle)
 }
-
 func (s *X11Display) SetFillStyle(gc platform.GCID, fillStyle int) {
 	s.dpy.SetFillStyle(toXGC(gc), fillStyle)
 }
-
 func (s *X11Display) SetStipple(gc platform.GCID, stipple platform.PixmapID) {
 	s.dpy.SetStipple(toXGC(gc), xlib.Pixmap(stipple))
 }
@@ -300,7 +306,6 @@ func (s *X11Display) DefineCursor(w platform.WindowID, cursor platform.CursorID)
 	s.dpy.DefineCursor(xlib.Window(w), xlib.Cursor(cursor))
 }
 
-// shapeToX11Cursor maps abstract cursor.Shape values to X11 cursorfont.h indices.
 var shapeToX11Cursor = [...]uint{
 	0:  2,   // Arrow → XC_arrow
 	1:  34,  // Crosshair → XC_crosshair
@@ -320,7 +325,7 @@ var shapeToX11Cursor = [...]uint{
 }
 
 func (s *X11Display) SetCursorShape(w platform.WindowID, shape uint) {
-	x11Shape := shape // default: pass through
+	x11Shape := shape
 	if shape < uint(len(shapeToX11Cursor)) {
 		x11Shape = shapeToX11Cursor[shape]
 	}
@@ -328,7 +333,6 @@ func (s *X11Display) SetCursorShape(w platform.WindowID, shape uint) {
 }
 
 func (s *X11Display) UndefineCursor(w platform.WindowID) { s.dpy.UndefineCursor(xlib.Window(w)) }
-
 func (s *X11Display) FreeCursor(cursor platform.CursorID) { s.dpy.FreeCursor(xlib.Cursor(cursor)) }
 
 // --- PropertyManager ---
@@ -444,5 +448,15 @@ func (s *X11Display) HasIM() bool                    { return s.dpy.HasIM() }
 func (s *X11Display) SetICFocus(w platform.WindowID) { s.dpy.SetICFocus(xlib.Window(w)) }
 func (s *X11Display) UnsetICFocus()                  { s.dpy.UnsetICFocus() }
 
-// Verify that X11Display implements platform.DisplayServer at compile time.
-var _ platform.DisplayServer = (*X11Display)(nil)
+// Compile-time interface checks
+var _ platform.DisplayCore = (*X11Display)(nil)
+var _ platform.WindowManager = (*X11Display)(nil)
+var _ platform.Drawer = (*X11Display)(nil)
+var _ platform.GCManager = (*X11Display)(nil)
+var _ platform.PixmapManager = (*X11Display)(nil)
+var _ platform.EventSource = (*X11Display)(nil)
+var _ platform.GrabManager = (*X11Display)(nil)
+var _ platform.SelectionManager = (*X11Display)(nil)
+var _ platform.CursorManager = (*X11Display)(nil)
+var _ platform.PropertyManager = (*X11Display)(nil)
+var _ platform.InputMethodManager = (*X11Display)(nil)
