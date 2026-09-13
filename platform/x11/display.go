@@ -4,10 +4,19 @@
 package x11
 
 import (
+	"sync"
+
 	"github.com/msorc/takigo/font"
 	"github.com/msorc/takigo/internal/xlib"
 	"github.com/msorc/takigo/platform"
 )
+
+// Pool for XPoint slices to avoid allocations in DrawLines/FillPolygon.
+var xpointPool = sync.Pool{
+	New: func() any {
+		return make([]xlib.XPoint, 0, 32) // common case: small polygons/lines
+	},
+}
 
 // X11Display wraps the low-level X11 connection.
 type X11Display struct {
@@ -154,19 +163,32 @@ func (s *X11Display) DrawLine(drawable platform.DrawableID, gc platform.GCID, x1
 }
 
 func (s *X11Display) DrawLines(drawable platform.DrawableID, gc platform.GCID, points []platform.Point, mode int) {
-	xpoints := make([]xlib.XPoint, len(points))
+	xpoints := xpointPool.Get().([]xlib.XPoint)
+	// Ensure capacity
+	if cap(xpoints) < len(points) {
+		xpoints = make([]xlib.XPoint, len(points))
+	} else {
+		xpoints = xpoints[:len(points)]
+	}
 	for i, p := range points {
 		xpoints[i] = xlib.XPoint{X: p.X, Y: p.Y}
 	}
 	s.dpy.DrawLines(xlib.Drawable(drawable), toXGC(gc), xpoints, mode)
+	xpointPool.Put(xpoints)
 }
 
 func (s *X11Display) FillPolygon(drawable platform.DrawableID, gc platform.GCID, points []platform.Point, shape, mode int) {
-	xpoints := make([]xlib.XPoint, len(points))
+	xpoints := xpointPool.Get().([]xlib.XPoint)
+	if cap(xpoints) < len(points) {
+		xpoints = make([]xlib.XPoint, len(points))
+	} else {
+		xpoints = xpoints[:len(points)]
+	}
 	for i, p := range points {
 		xpoints[i] = xlib.XPoint{X: p.X, Y: p.Y}
 	}
 	s.dpy.FillPolygon(xlib.Drawable(drawable), toXGC(gc), xpoints, shape, mode)
+	xpointPool.Put(xpoints)
 }
 
 func (s *X11Display) FillArc(drawable platform.DrawableID, gc platform.GCID, x, y int, width, height uint, angle1, angle2 int) {

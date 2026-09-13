@@ -81,16 +81,92 @@ func (l *Loop) Run() {
 func (l *Loop) run(extraDone <-chan struct{}) {
 	var pumpTick <-chan time.Time
 	if l.pumper != nil {
-		// 2ms gives responsive UI without excessive CPU usage; the
-		// reader goroutine below feeds eventCh from the C-level ring
-		// buffer that PumpEvents populates.
-		ticker := time.NewTicker(2 * time.Millisecond)
+		// Adaptive pump interval: start at 10ms (idle), drop to 1ms when
+		// events are flowing. This avoids 500Hz spin when idle while
+		// keeping responsiveness during interaction.
+		const (
+			minInterval = 1 * time.Millisecond
+			maxInterval = 10 * time.Millisecond
+		)
+		interval := maxInterval
+		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
 		pumpTick = ticker.C
+
+		// Track event activity to adjust interval dynamically.
+		eventsSinceTick := 0
+
+		// FD-based mode (X11) blocks on NextEvent in a goroutine; on pump
+		// mode the reader polls the C ring buffer that PumpEvents feeds.
+		go l.readEvents()
+
+		for {
+			l.processIdleQueue()
+
+			select {
+			case <-l.done:
+				return
+
+			case <-extraDone:
+				return
+
+			case raw := <-l.eventCh:
+				l.handleRaw(raw)
+				eventsSinceTick++
+
+			case fn := <-l.idleCh:
+				l.idleQueue = append(l.idleQueue, fn)
+
+			case fn := <-l.timerCh:
+				fn()
+				l.server.Flush()
+
+			case fn := <-l.mainCh:
+				fn()
+				l.server.Flush()
+
+			case <-pumpTick:
+				// Pump platform events from the main thread.
+				// This processes NSEvents on macOS, which triggers
+				// callbacks that post to eventCh.
+				l.pumper.PumpEvents()
+
+				// Drain any events that were posted during pumping.
+				drainedCount := 0
+				for drained := false; !drained; {
+					select {
+					case raw := <-l.eventCh:
+						l.handleRaw(raw)
+						drainedCount++
+					default:
+						drained = true
+					}
+				}
+				eventsSinceTick += drainedCount
+
+				// Adjust ticker interval based on recent event activity.
+				// If events were processed this tick, speed up; otherwise slow down.
+				if eventsSinceTick > 0 {
+					if interval > minInterval {
+						interval /= 2
+						if interval < minInterval {
+							interval = minInterval
+						}
+						ticker.Reset(interval)
+					}
+				} else if interval < maxInterval {
+					interval *= 2
+					if interval > maxInterval {
+						interval = maxInterval
+					}
+					ticker.Reset(interval)
+				}
+				eventsSinceTick = 0
+			}
+		}
 	}
 
-	// FD-based mode (X11) blocks on NextEvent in a goroutine; on pump
-	// mode the reader polls the C ring buffer that PumpEvents feeds.
+	// FD-based mode (X11) blocks on NextEvent in a goroutine.
 	go l.readEvents()
 
 	for {

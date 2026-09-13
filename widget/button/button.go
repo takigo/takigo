@@ -41,10 +41,11 @@ type Button struct {
 
 	WidthChars int // requested width in characters (0 = auto)
 
-	textWidth  int
-	textHeight int
-	pressed    bool // button1 is held down
-	HasFocus   bool // whether button currently has keyboard focus
+	textWidth     int
+	textHeight    int
+	zeroCharWidth int  // cached MeasureString("0") for WidthChars
+	pressed       bool // button1 is held down
+	HasFocus      bool // whether button currently has keyboard focus
 }
 
 // ButtonOption configures a Button.
@@ -94,6 +95,7 @@ func FontOpt(name string) ButtonOption {
 			return
 		}
 		b.Font = f
+		b.zeroCharWidth = f.MeasureString("0")
 	}
 }
 
@@ -215,8 +217,10 @@ func (b *Button) computeGeometry() {
 	contentW, contentH := widget.CompoundSize(b.Compound, b.Img, b.textWidth, b.textHeight)
 
 	if b.WidthChars > 0 && b.Font != nil {
-		charW := b.Font.MeasureString("0")
-		if minW := b.WidthChars * charW; minW > contentW {
+		if b.zeroCharWidth == 0 {
+			b.zeroCharWidth = b.Font.MeasureString("0")
+		}
+		if minW := b.WidthChars * b.zeroCharWidth; minW > contentW {
 			contentW = minW
 		}
 	}
