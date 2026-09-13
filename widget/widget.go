@@ -4,6 +4,7 @@
 package widget
 
 import (
+	"context"
 	"time"
 
 	"github.com/msorc/takigo/color"
@@ -117,6 +118,9 @@ type AppContext interface {
 	// RunNestedLoop processes events until done is closed.
 	// Used by modal dialogs to keep the event loop alive while blocking.
 	RunNestedLoop(done <-chan struct{})
+	// RunNestedLoopContext processes events until the context is cancelled or done is closed.
+	// Context-aware version for cancellation support.
+	RunNestedLoopContext(ctx context.Context, done <-chan struct{})
 	// RegisterCloseHandler registers a WM_DELETE_WINDOW handler for a toplevel window.
 	RegisterCloseHandler(w platform.WindowID, fn func())
 	// UnregisterCloseHandler removes a WM_DELETE_WINDOW handler.

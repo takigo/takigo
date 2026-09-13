@@ -4,6 +4,7 @@
 *Updated after implementing critical fixes and DisplayServer refactor*
 *Updated after adding test coverage and golangci.yml*
 *Updated after implementing medium-priority performance fixes (items 7-9)*
+*Updated after adding fuzz tests and context.Context support (items 12-13)*
 
 ---
 
@@ -178,7 +179,27 @@ Created golangci-lint v2 configuration with:
 - Populated in `FontOpt` setter and `computeGeometry()` fallback
 - Eliminates repeated `MeasureString("0")` calls for `WidthChars` option
 
----
+### 11. Fuzz Tests for Bind Pattern Parser (Low)
+
+**File:** `bind/pattern_fuzz_test.go`
+- Added `FuzzParse`, `FuzzParseSequenceString`, `FuzzPatternMatches`, `FuzzPatternSpecificity`
+- Seeds corpus with valid Tk patterns (`<Button-1>`, `<Control-a>`, `<<Virtual>>`, etc.)
+- Tests Parse, String, matches, and specificity methods against random input
+
+### 12. Fuzz Tests for Grid Geometry Manager (Low)
+
+**File:** `geometry/grid/grid_fuzz_test.go`
+- Added `FuzzGridOption`, `FuzzSlotOption`, `FuzzResolveConstraints`, `FuzzAdjustOffsets`, `FuzzApplySticky`, `FuzzComputeAnchor`
+- Tests option setters, constraint resolution, offset adjustment, sticky positioning, anchor computation
+
+### 13. `context.Context` Support for `RunNestedLoop` (Low)
+
+**Files:** `event/loop.go`, `tk.go`, `widget/widget.go`
+- Added `Loop.RunNestedContext(ctx, done)` — processes events until context cancelled or done closed
+- Added `Loop.mergeDoneChannels` helper for merging cancellation signals
+- Added `App.RunNestedLoopContext(ctx, done)` — public API for modal dialogs
+- Added `AppContext.RunNestedLoopContext` to interface for widget access
+- Backward compatible: existing `RunNestedLoop(done)` unchanged
 
 ## Test Results (Current)
 
@@ -244,5 +265,5 @@ platform/x11/convert.go:15:17: possible misuse of unsafe.Pointer
 
 ### 🟢 Low
 11. **Consolidate option naming** — consider `widget.Option` vs `ttk.ButtonOption` unification
-12. **Add fuzz tests** for `bind/pattern.go`, `geometry/grid/grid.go`
-13. **Consider `context.Context`** for `RunNestedLoop` cancellation
+12. ✅ **Add fuzz tests** for `bind/pattern.go`, `geometry/grid/grid.go`
+13. ✅ **Consider `context.Context`** for `RunNestedLoop` cancellation

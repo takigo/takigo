@@ -1,6 +1,7 @@
 package event
 
 import (
+	"context"
 	"time"
 
 	"github.com/msorc/takigo/platform"
@@ -288,6 +289,40 @@ func (l *Loop) RunOnMain(fn func()) {
 // It must be called from within a handler running on the main goroutine.
 func (l *Loop) RunNested(done <-chan struct{}) {
 	l.run(done)
+}
+
+// RunNestedContext processes events until the context is cancelled or the done channel is closed.
+// This is the context-aware version of RunNested for cancellation support.
+// It must be called from within a handler running on the main goroutine.
+func (l *Loop) RunNestedContext(ctx context.Context, done <-chan struct{}) {
+	// Create a channel that closes when context is done
+	ctxDone := make(chan struct{})
+	go func() {
+		<-ctx.Done()
+		close(ctxDone)
+	}()
+
+	// Run with both channels - return when either closes
+	l.run(mergeDoneChannels(ctxDone, done))
+}
+
+// mergeDoneChannels returns a channel that closes when either input channel closes.
+func mergeDoneChannels(ch1, ch2 <-chan struct{}) <-chan struct{} {
+	if ch1 == nil {
+		return ch2
+	}
+	if ch2 == nil {
+		return ch1
+	}
+	out := make(chan struct{})
+	go func() {
+		select {
+		case <-ch1:
+		case <-ch2:
+		}
+		close(out)
+	}()
+	return out
 }
 
 // processIdleQueue runs all pending idle callbacks.

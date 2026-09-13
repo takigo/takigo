@@ -4,6 +4,7 @@
 package takigo
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
@@ -315,6 +316,13 @@ func (a *App) FocusManager() *focus.Manager {
 // Used by modal dialogs to keep the event loop alive while blocking.
 func (a *App) RunNestedLoop(done <-chan struct{}) {
 	a.loop.RunNested(done)
+}
+
+// RunNestedLoopContext processes events until the context is cancelled or done is closed.
+// This is the context-aware version of RunNestedLoop for cancellation support.
+// Used by modal dialogs to keep the event loop alive while blocking.
+func (a *App) RunNestedLoopContext(ctx context.Context, done <-chan struct{}) {
+	a.loop.RunNestedContext(ctx, done)
 }
 
 // RegisterCloseHandler registers a WM_DELETE_WINDOW handler for a toplevel window.
