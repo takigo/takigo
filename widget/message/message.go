@@ -127,6 +127,49 @@ func HighlightWidth(w int) MessageOption {
 	return func(m *Message) { m.HighlightWidth = w }
 }
 
+// --- Ttk-compatible aliases (prefix with Message) for consistent naming ---
+// These aliases match the naming convention used by ttk widgets
+// allowing consistent option naming when both classic and ttk widgets are used.
+
+// MessageText is an alias for Text.
+var MessageText = Text
+
+// MessageBackground is an alias for Background.
+var MessageBackground = Background
+
+// MessageForeground is an alias for Foreground.
+var MessageForeground = Foreground
+
+// MessageFontOpt is an alias for FontOpt.
+var MessageFontOpt = FontOpt
+
+// MessageBorderWidth is an alias for BorderWidth.
+var MessageBorderWidth = BorderWidth
+
+// MessageRelief is an alias for Relief.
+var MessageRelief = Relief
+
+// MessageAnchor is an alias for Anchor.
+var MessageAnchor = Anchor
+
+// MessageJustifyOpt is an alias for JustifyOpt.
+var MessageJustifyOpt = JustifyOpt
+
+// MessageAspect is an alias for Aspect.
+var MessageAspect = Aspect
+
+// MessageWidthOpt is an alias for WidthOpt.
+var MessageWidthOpt = WidthOpt
+
+// MessagePadX is an alias for PadX.
+var MessagePadX = PadX
+
+// MessagePadY is an alias for PadY.
+var MessagePadY = PadY
+
+// MessageHighlightWidth is an alias for HighlightWidth.
+var MessageHighlightWidth = HighlightWidth
+
 // New creates a new Message widget as a child of parent.
 func New(parent widget.Caregiver, name string, opts ...MessageOption) *Message {
 	app := parent.AppContext()

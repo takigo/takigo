@@ -126,6 +126,22 @@ func Background(name string) PanedWindowOption {
 	}
 }
 
+// --- Ttk-compatible aliases (prefix with Panedwindow) for consistent naming ---
+// These aliases match the naming convention used by ttk widgets
+// allowing consistent option naming when both classic and ttk widgets are used.
+
+// PanedwindowOrientOpt is an alias for OrientOpt.
+var PanedwindowOrientOpt = OrientOpt
+
+// PanedwindowSashWidthOpt is an alias for SashWidthOpt.
+var PanedwindowSashWidthOpt = SashWidthOpt
+
+// PanedwindowHandleSizeOpt is an alias for HandleSizeOpt.
+var PanedwindowHandleSizeOpt = HandleSizeOpt
+
+// PanedwindowBackground is an alias for Background.
+var PanedwindowBackground = Background
+
 // New creates a new PanedWindow widget.
 func New(parent widget.Caregiver, name string, opts ...PanedWindowOption) *PanedWindow {
 	app := parent.AppContext()

@@ -172,6 +172,55 @@ func IndicatorOnOpt(on bool) CheckbuttonOption {
 	return func(c *Checkbutton) { c.IndicatorOn = on }
 }
 
+// --- Ttk-compatible aliases (prefix with Checkbutton) for consistent naming ---
+// These aliases match the naming convention used by ttk widgets (ttk.CheckbuttonText, etc.)
+// allowing consistent option naming when both classic and ttk widgets are used.
+
+// CheckbuttonText is an alias for Text.
+var CheckbuttonText = Text
+
+// CheckbuttonCommand is an alias for Command.
+var CheckbuttonCommand = Command
+
+// CheckbuttonVar is an alias for Var.
+var CheckbuttonVar = Var
+
+// CheckbuttonOnValueOpt is an alias for OnValueOpt.
+var CheckbuttonOnValueOpt = OnValueOpt
+
+// CheckbuttonOffValueOpt is an alias for OffValueOpt.
+var CheckbuttonOffValueOpt = OffValueOpt
+
+// CheckbuttonTristateValueOpt is an alias for TristateValueOpt.
+var CheckbuttonTristateValueOpt = TristateValueOpt
+
+// CheckbuttonBackground is an alias for Background.
+var CheckbuttonBackground = Background
+
+// CheckbuttonForeground is an alias for Foreground.
+var CheckbuttonForeground = Foreground
+
+// CheckbuttonFontOpt is an alias for FontOpt.
+var CheckbuttonFontOpt = FontOpt
+
+// CheckbuttonAnchor is an alias for Anchor.
+var CheckbuttonAnchor = Anchor
+
+// CheckbuttonPadX is an alias for PadX.
+var CheckbuttonPadX = PadX
+
+// CheckbuttonPadY is an alias for PadY.
+var CheckbuttonPadY = PadY
+
+// CheckbuttonImageOpt is an alias for ImageOpt.
+var CheckbuttonImageOpt = ImageOpt
+
+// CheckbuttonSelectImageOpt is an alias for SelectImageOpt.
+var CheckbuttonSelectImageOpt = SelectImageOpt
+
+// CheckbuttonIndicatorOnOpt is an alias for IndicatorOnOpt.
+var CheckbuttonIndicatorOnOpt = IndicatorOnOpt
+
 // indicatorSize is the side length of the square indicator.
 const indicatorSize = 13
 

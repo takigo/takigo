@@ -79,6 +79,49 @@ func Background(name string) ScaleOption {
 	}
 }
 
+// --- Ttk-compatible aliases (prefix with Scale) for consistent naming ---
+// These aliases match the naming convention used by ttk widgets
+// allowing consistent option naming when both classic and ttk widgets are used.
+
+// ScaleOrientOpt is an alias for OrientOpt.
+var ScaleOrientOpt = OrientOpt
+
+// ScaleFromOpt is an alias for FromOpt.
+var ScaleFromOpt = FromOpt
+
+// ScaleToOpt is an alias for ToOpt.
+var ScaleToOpt = ToOpt
+
+// ScaleValueOpt is an alias for ValueOpt.
+var ScaleValueOpt = ValueOpt
+
+// ScaleResolutionOpt is an alias for ResolutionOpt.
+var ScaleResolutionOpt = ResolutionOpt
+
+// ScaleShowValueOpt is an alias for ShowValueOpt.
+var ScaleShowValueOpt = ShowValueOpt
+
+// ScaleLabelOpt is an alias for LabelOpt.
+var ScaleLabelOpt = LabelOpt
+
+// ScaleSliderLengthOpt is an alias for SliderLengthOpt.
+var ScaleSliderLengthOpt = SliderLengthOpt
+
+// ScaleWidthOpt is an alias for WidthOpt.
+var ScaleWidthOpt = WidthOpt
+
+// ScaleTickIntervalOpt is an alias for TickIntervalOpt.
+var ScaleTickIntervalOpt = TickIntervalOpt
+
+// ScaleLengthOpt is an alias for LengthOpt.
+var ScaleLengthOpt = LengthOpt
+
+// ScaleCommandOpt is an alias for CommandOpt.
+var ScaleCommandOpt = CommandOpt
+
+// ScaleBackground is an alias for Background.
+var ScaleBackground = Background
+
 // New creates a new Scale widget.
 func New(parent widget.Caregiver, name string, opts ...ScaleOption) *Scale {
 	app := parent.AppContext()

@@ -87,6 +87,34 @@ func DoubleBufferOpt(on bool) SquareOption {
 	return func(s *Square) { s.DoubleBuffer = on }
 }
 
+// --- Ttk-compatible aliases (prefix with Square) for consistent naming ---
+// These aliases match the naming convention used by ttk widgets
+// allowing consistent option naming when both classic and ttk widgets are used.
+
+// SquareBackground is an alias for Background.
+var SquareBackground = Background
+
+// SquareForeground is an alias for Foreground.
+var SquareForeground = Foreground
+
+// SquareBorderWidthOpt is an alias for BorderWidthOpt.
+var SquareBorderWidthOpt = BorderWidthOpt
+
+// SquareRelief is an alias for Relief.
+var SquareRelief = Relief
+
+// SquarePosXOpt is an alias for PosXOpt.
+var SquarePosXOpt = PosXOpt
+
+// SquarePosYOpt is an alias for PosYOpt.
+var SquarePosYOpt = PosYOpt
+
+// SquareSizeOpt is an alias for SizeOpt.
+var SquareSizeOpt = SizeOpt
+
+// SquareDoubleBufferOpt is an alias for DoubleBufferOpt.
+var SquareDoubleBufferOpt = DoubleBufferOpt
+
 // New creates a new Square widget as a child of parent.
 func New(parent widget.Caregiver, name string, opts ...SquareOption) *Square {
 	app := parent.AppContext()

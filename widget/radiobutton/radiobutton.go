@@ -163,6 +163,52 @@ func Width(n int) RadiobuttonOption {
 	return func(r *Radiobutton) { r.WidthChars = n }
 }
 
+// --- Ttk-compatible aliases (prefix with Radiobutton) for consistent naming ---
+// These aliases match the naming convention used by ttk widgets (ttk.RadiobuttonText, etc.)
+// allowing consistent option naming when both classic and ttk widgets are used.
+
+// RadiobuttonText is an alias for Text.
+var RadiobuttonText = Text
+
+// RadiobuttonValue is an alias for Value.
+var RadiobuttonValue = Value
+
+// RadiobuttonCommand is an alias for Command.
+var RadiobuttonCommand = Command
+
+// RadiobuttonVar is an alias for Var.
+var RadiobuttonVar = Var
+
+// RadiobuttonBackground is an alias for Background.
+var RadiobuttonBackground = Background
+
+// RadiobuttonForeground is an alias for Foreground.
+var RadiobuttonForeground = Foreground
+
+// RadiobuttonFontOpt is an alias for FontOpt.
+var RadiobuttonFontOpt = FontOpt
+
+// RadiobuttonAnchor is an alias for Anchor.
+var RadiobuttonAnchor = Anchor
+
+// RadiobuttonTristateValueOpt is an alias for TristateValueOpt.
+var RadiobuttonTristateValueOpt = TristateValueOpt
+
+// RadiobuttonIndicatorOnOpt is an alias for IndicatorOnOpt.
+var RadiobuttonIndicatorOnOpt = IndicatorOnOpt
+
+// RadiobuttonPadX is an alias for PadX.
+var RadiobuttonPadX = PadX
+
+// RadiobuttonPadY is an alias for PadY.
+var RadiobuttonPadY = PadY
+
+// RadiobuttonImageOpt is an alias for ImageOpt.
+var RadiobuttonImageOpt = ImageOpt
+
+// RadiobuttonWidth is an alias for Width.
+var RadiobuttonWidth = Width
+
 // indicatorSize is the diameter of the circle indicator.
 const indicatorSize = 13
 

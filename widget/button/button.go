@@ -142,6 +142,49 @@ func Width(n int) ButtonOption {
 	return func(b *Button) { b.WidthChars = n }
 }
 
+// --- Ttk-compatible aliases (prefix with Button) for consistent naming ---
+// These aliases match the naming convention used by ttk widgets (ttk.ButtonText, etc.)
+// allowing consistent option naming when both classic and ttk widgets are used.
+
+// ButtonText is an alias for Text.
+var ButtonText = Text
+
+// ButtonCommand is an alias for Command.
+var ButtonCommand = Command
+
+// ButtonBackground is an alias for Background.
+var ButtonBackground = Background
+
+// ButtonForeground is an alias for Foreground.
+var ButtonForeground = Foreground
+
+// ButtonFontOpt is an alias for FontOpt.
+var ButtonFontOpt = FontOpt
+
+// ButtonImageOpt is an alias for ImageOpt.
+var ButtonImageOpt = ImageOpt
+
+// ButtonCompoundOpt is an alias for CompoundOpt.
+var ButtonCompoundOpt = CompoundOpt
+
+// ButtonBorderWidth is an alias for BorderWidth.
+var ButtonBorderWidth = BorderWidth
+
+// ButtonReliefOpt is an alias for ReliefOpt.
+var ButtonReliefOpt = ReliefOpt
+
+// ButtonAnchor is an alias for Anchor.
+var ButtonAnchor = Anchor
+
+// ButtonPadX is an alias for PadX.
+var ButtonPadX = PadX
+
+// ButtonPadY is an alias for PadY.
+var ButtonPadY = PadY
+
+// ButtonWidth is an alias for Width.
+var ButtonWidth = Width
+
 // New creates a new Button widget as a child of parent.
 func New(parent widget.Caregiver, name string, opts ...ButtonOption) *Button {
 	app := parent.AppContext()

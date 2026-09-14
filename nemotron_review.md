@@ -5,6 +5,7 @@
 *Updated after adding test coverage and golangci.yml*
 *Updated after implementing medium-priority performance fixes (items 7-9)*
 *Updated after adding fuzz tests and context.Context support (items 12-13)*
+*Updated after consolidating option naming (item 11)*
 
 ---
 
@@ -179,20 +180,28 @@ Created golangci-lint v2 configuration with:
 - Populated in `FontOpt` setter and `computeGeometry()` fallback
 - Eliminates repeated `MeasureString("0")` calls for `WidthChars` option
 
-### 11. Fuzz Tests for Bind Pattern Parser (Low)
+### 11. Consolidate Option Naming (Low)
+
+**Files:** All classic widget packages (`widget/button`, `widget/label`, `widget/checkbutton`, `widget/radiobutton`, `widget/entry`, `widget/frame`, `widget/menubutton`, `widget/listbox`, `widget/labelframe`, `widget/message`, `widget/panedwindow`, `widget/scale`, `widget/scrollbar`, `widget/spinbox`, `widget/square`, `widget/text`, `widget/toplevel`)
+- Added ttk-compatible aliases with widget-type prefix (e.g., `ButtonText`, `ButtonCommand`, `ButtonBackground`, `LabelText`, `LabelBackground`, `CheckbuttonText`, `CheckbuttonVar`, `RadiobuttonText`, `RadiobuttonValue`, `EntryText`, `EntryPlaceholder`, `FrameBackground`, `MenubuttonText`, `ListboxItems`, `LabelframeText`, `MessageText`, `PanedwindowOrientOpt`, `ScaleOrientOpt`, `ScrollbarOrientOpt`, `SpinboxFromOpt`, `SquareBackground`, `TextWidth`, `ToplevelTitle`)
+- These aliases match the naming convention used by ttk widgets (e.g., `ttk.ButtonText`, `ttk.LabelText`, `ttk.CheckbuttonText`)
+- Allows consistent option naming when both classic and ttk widgets are used in the same file
+- Non-breaking: original bare-name options (`Text`, `Command`, `Background`, etc.) remain available
+
+### 12. Fuzz Tests for Bind Pattern Parser (Low)
 
 **File:** `bind/pattern_fuzz_test.go`
 - Added `FuzzParse`, `FuzzParseSequenceString`, `FuzzPatternMatches`, `FuzzPatternSpecificity`
 - Seeds corpus with valid Tk patterns (`<Button-1>`, `<Control-a>`, `<<Virtual>>`, etc.)
 - Tests Parse, String, matches, and specificity methods against random input
 
-### 12. Fuzz Tests for Grid Geometry Manager (Low)
+### 13. Fuzz Tests for Grid Geometry Manager (Low)
 
 **File:** `geometry/grid/grid_fuzz_test.go`
 - Added `FuzzGridOption`, `FuzzSlotOption`, `FuzzResolveConstraints`, `FuzzAdjustOffsets`, `FuzzApplySticky`, `FuzzComputeAnchor`
 - Tests option setters, constraint resolution, offset adjustment, sticky positioning, anchor computation
 
-### 13. `context.Context` Support for `RunNestedLoop` (Low)
+### 14. `context.Context` Support for `RunNestedLoop` (Low)
 
 **Files:** `event/loop.go`, `tk.go`, `widget/widget.go`
 - Added `Loop.RunNestedContext(ctx, done)` — processes events until context cancelled or done closed
@@ -264,6 +273,6 @@ platform/x11/convert.go:15:17: possible misuse of unsafe.Pointer
 10. ✅ **Document threading contract** — which types are goroutine-safe vs loop-only (THREADING.md)
 
 ### 🟢 Low
-11. **Consolidate option naming** — consider `widget.Option` vs `ttk.ButtonOption` unification
+11. ✅ **Consolidate option naming** — added ttk-compatible aliases (e.g., `ButtonText`, `LabelText`) to all classic widgets
 12. ✅ **Add fuzz tests** for `bind/pattern.go`, `geometry/grid/grid.go`
 13. ✅ **Consider `context.Context`** for `RunNestedLoop` cancellation

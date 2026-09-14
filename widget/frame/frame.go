@@ -55,6 +55,25 @@ func Height(h int) FrameOption {
 	return func(f *Frame) { f.Win.ReqHeight = h }
 }
 
+// --- Ttk-compatible aliases (prefix with Frame) for consistent naming ---
+// These aliases match the naming convention used by ttk widgets (ttk.FramePadding, etc.)
+// allowing consistent option naming when both classic and ttk widgets are used.
+
+// FrameBackground is an alias for Background.
+var FrameBackground = Background
+
+// FrameBorderWidth is an alias for BorderWidth.
+var FrameBorderWidth = BorderWidth
+
+// FrameRelief is an alias for Relief.
+var FrameRelief = Relief
+
+// FrameWidth is an alias for Width.
+var FrameWidth = Width
+
+// FrameHeight is an alias for Height.
+var FrameHeight = Height
+
 // New creates a new Frame widget as a child of parent.
 func New(parent widget.Caregiver, name string, opts ...FrameOption) *Frame {
 	app := parent.AppContext()

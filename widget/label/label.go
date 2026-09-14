@@ -185,6 +185,61 @@ func WrapLength(w any) LabelOption {
 	return func(l *Label) { l.WrapLen = screenunit.Px(w) }
 }
 
+// --- Ttk-compatible aliases (prefix with Label) for consistent naming ---
+// These aliases match the naming convention used by ttk widgets (ttk.LabelText, etc.)
+// allowing consistent option naming when both classic and ttk widgets are used.
+
+// LabelText is an alias for Text.
+var LabelText = Text
+
+// LabelTextVariable is an alias for TextVariable.
+var LabelTextVariable = TextVariable
+
+// LabelBackground is an alias for Background.
+var LabelBackground = Background
+
+// LabelForeground is an alias for Foreground.
+var LabelForeground = Foreground
+
+// LabelFontOpt is an alias for FontOpt.
+var LabelFontOpt = FontOpt
+
+// LabelBorderWidth is an alias for BorderWidth.
+var LabelBorderWidth = BorderWidth
+
+// LabelRelief is an alias for Relief.
+var LabelRelief = Relief
+
+// LabelAnchor is an alias for Anchor.
+var LabelAnchor = Anchor
+
+// LabelJustifyOpt is an alias for JustifyOpt.
+var LabelJustifyOpt = JustifyOpt
+
+// LabelPadX is an alias for PadX.
+var LabelPadX = PadX
+
+// LabelPadY is an alias for PadY.
+var LabelPadY = PadY
+
+// LabelImageOpt is an alias for ImageOpt.
+var LabelImageOpt = ImageOpt
+
+// LabelCompoundOpt is an alias for CompoundOpt.
+var LabelCompoundOpt = CompoundOpt
+
+// LabelBitmap is an alias for Bitmap.
+var LabelBitmap = Bitmap
+
+// LabelWidth is an alias for Width.
+var LabelWidth = Width
+
+// LabelHeight is an alias for Height.
+var LabelHeight = Height
+
+// LabelWrapLength is an alias for WrapLength.
+var LabelWrapLength = WrapLength
+
 // New creates a new Label widget as a child of parent.
 func New(parent widget.Caregiver, name string, opts ...LabelOption) *Label {
 	app := parent.AppContext()
