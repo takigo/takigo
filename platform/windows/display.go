@@ -101,8 +101,9 @@ type windowInfo struct {
 	isTopLevel bool // top-level window (parent was display root)
 }
 
-// NewDisplayServer initializes the Windows display and returns a composed DisplayServer.
-func NewDisplayServer(displayName string) (platform.DisplayServer, error) {
+// NewDisplayServer initializes the Windows display and returns a composed
+// DisplayServer along with a FontOpener for the default screen.
+func NewDisplayServer(displayName string) (platform.DisplayServer, font.FontOpener, error) {
 
 	// Set DPI awareness (best effort).
 	_ = w32.SetProcessDpiAwareness(w32.PROCESS_PER_MONITOR_DPI_AWARE)
@@ -185,7 +186,7 @@ func NewDisplayServer(displayName string) (platform.DisplayServer, error) {
 		bgPixel: 0x00FFFFFF, // white
 	}
 
-	return platform.NewDisplayServer(
+	ds := platform.NewDisplayServer(
 		d, // DisplayCore
 		d, // WindowManager
 		d, // Drawer
@@ -197,7 +198,8 @@ func NewDisplayServer(displayName string) (platform.DisplayServer, error) {
 		d, // CursorManager
 		d, // PropertyManager
 		d, // InputMethodManager
-	), nil
+	)
+	return ds, d.FontOpener(d.DefaultScreen()), nil
 }
 
 // EventParser creates a WindowsEventParser.

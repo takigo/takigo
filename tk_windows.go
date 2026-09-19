@@ -11,16 +11,11 @@ import (
 // platformInit creates the platform-specific display server, event parser,
 // and font opener. On Windows, this uses Win32/GDI APIs.
 func platformInit(displayName string) (platform.DisplayServer, platform.EventParser, font.FontOpener, error) {
-	server, err := winplatform.NewDisplayServer(displayName)
+	server, fontOpener, err := winplatform.NewDisplayServer(displayName)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
 	parser := server.EventParser()
-	var fontOpener font.FontOpener
-	if core, ok := server.(interface{ FontOpener(int) font.FontOpener }); ok {
-		fontOpener = core.FontOpener(server.DefaultScreen())
-	}
-
 	return server, parser, fontOpener, nil
 }

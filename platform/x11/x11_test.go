@@ -19,7 +19,7 @@ func requireDisplay(t *testing.T) {
 func TestX11DisplayCore(t *testing.T) {
 	requireDisplay(t)
 
-	ds, err := NewDisplayServer("")
+	ds, _, err := NewDisplayServer("")
 	if err != nil {
 		t.Fatalf("NewDisplayServer failed: %v", err)
 	}
@@ -111,7 +111,7 @@ func TestX11DisplayCore(t *testing.T) {
 func TestX11DisplayWindowManager(t *testing.T) {
 	requireDisplay(t)
 
-	ds, err := NewDisplayServer("")
+	ds, _, err := NewDisplayServer("")
 	if err != nil {
 		t.Fatalf("NewDisplayServer failed: %v", err)
 	}
@@ -185,7 +185,7 @@ func TestX11DisplayWindowManager(t *testing.T) {
 func TestX11DisplayDrawer(t *testing.T) {
 	requireDisplay(t)
 
-	ds, err := NewDisplayServer("")
+	ds, _, err := NewDisplayServer("")
 	if err != nil {
 		t.Fatalf("NewDisplayServer failed: %v", err)
 	}
@@ -238,7 +238,7 @@ func TestX11DisplayDrawer(t *testing.T) {
 func TestX11DisplayGCManager(t *testing.T) {
 	requireDisplay(t)
 
-	ds, err := NewDisplayServer("")
+	ds, _, err := NewDisplayServer("")
 	if err != nil {
 		t.Fatalf("NewDisplayServer failed: %v", err)
 	}
@@ -280,7 +280,7 @@ func TestX11DisplayGCManager(t *testing.T) {
 func TestX11DisplayPixmapManager(t *testing.T) {
 	requireDisplay(t)
 
-	ds, err := NewDisplayServer("")
+	ds, _, err := NewDisplayServer("")
 	if err != nil {
 		t.Fatalf("NewDisplayServer failed: %v", err)
 	}
@@ -314,7 +314,7 @@ func TestX11DisplayPixmapManager(t *testing.T) {
 func TestX11DisplayEventSource(t *testing.T) {
 	requireDisplay(t)
 
-	ds, err := NewDisplayServer("")
+	ds, _, err := NewDisplayServer("")
 	if err != nil {
 		t.Fatalf("NewDisplayServer failed: %v", err)
 	}
@@ -343,7 +343,7 @@ func TestX11DisplayEventSource(t *testing.T) {
 func TestX11DisplayGrabManager(t *testing.T) {
 	requireDisplay(t)
 
-	ds, err := NewDisplayServer("")
+	ds, _, err := NewDisplayServer("")
 	if err != nil {
 		t.Fatalf("NewDisplayServer failed: %v", err)
 	}
@@ -377,7 +377,7 @@ func TestX11DisplayGrabManager(t *testing.T) {
 func TestX11DisplaySelectionManager(t *testing.T) {
 	requireDisplay(t)
 
-	ds, err := NewDisplayServer("")
+	ds, _, err := NewDisplayServer("")
 	if err != nil {
 		t.Fatalf("NewDisplayServer failed: %v", err)
 	}
@@ -409,7 +409,7 @@ func TestX11DisplaySelectionManager(t *testing.T) {
 func TestX11DisplayCursorManager(t *testing.T) {
 	requireDisplay(t)
 
-	ds, err := NewDisplayServer("")
+	ds, _, err := NewDisplayServer("")
 	if err != nil {
 		t.Fatalf("NewDisplayServer failed: %v", err)
 	}
@@ -444,7 +444,7 @@ func TestX11DisplayCursorManager(t *testing.T) {
 func TestX11DisplayPropertyManager(t *testing.T) {
 	requireDisplay(t)
 
-	ds, err := NewDisplayServer("")
+	ds, _, err := NewDisplayServer("")
 	if err != nil {
 		t.Fatalf("NewDisplayServer failed: %v", err)
 	}
@@ -563,7 +563,7 @@ func TestX11DisplayPropertyManager(t *testing.T) {
 func TestX11DisplayInputMethodManager(t *testing.T) {
 	requireDisplay(t)
 
-	ds, err := NewDisplayServer("")
+	ds, _, err := NewDisplayServer("")
 	if err != nil {
 		t.Fatalf("NewDisplayServer failed: %v", err)
 	}
@@ -594,36 +594,12 @@ func TestX11DisplayInputMethodManager(t *testing.T) {
 func TestX11DisplayFontOpener(t *testing.T) {
 	requireDisplay(t)
 
-	ds, err := NewDisplayServer("")
+	_, opener, err := NewDisplayServer("")
 	if err != nil {
 		t.Fatalf("NewDisplayServer failed: %v", err)
 	}
-	defer ds.Close()
-
-	// Get the underlying X11Display to access FontOpener
-	var x11Display *X11Display
-	switch d := ds.(type) {
-	case interface{ DisplayServer() *X11Display }:
-		// If there's a method to get the X11Display
-		x11Display = d.DisplayServer()
-	case *X11Display:
-		x11Display = d
-	default:
-		// Try type assertion to the internal displayServer
-		// The displayServer embeds DisplayCore which is implemented by X11Display
-		// We need to access the X11Display directly
-		t.Skip("Cannot access X11Display from DisplayServer")
-		return
-	}
-
-	if x11Display == nil {
-		t.Skip("X11Display not accessible")
-		return
-	}
-
-	opener := x11Display.FontOpener(0)
 	if opener == nil {
-		t.Error("FontOpener should not be nil")
+		t.Fatal("FontOpener should not be nil")
 	}
 
 	// Test OpenFont with basic attributes

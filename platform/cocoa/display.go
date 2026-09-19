@@ -47,8 +47,9 @@ type CocoaDisplay struct {
 	atoms      *platform.Atoms
 }
 
-// NewDisplayServer initializes Cocoa and returns a composed DisplayServer.
-func NewDisplayServer(displayName string) (platform.DisplayServer, error) {
+// NewDisplayServer initializes Cocoa and returns a composed DisplayServer
+// along with a FontOpener for the default screen.
+func NewDisplayServer(displayName string) (platform.DisplayServer, font.FontOpener, error) {
 	clib.Init()
 
 	rootWin := clib.CreateWindow(clib.Window(0), 0, 0, 1, 1, 0, 0x00D9D9D9, 0, false)
@@ -66,7 +67,7 @@ func NewDisplayServer(displayName string) (platform.DisplayServer, error) {
 			Window:        platform.AtomID(clib.InternAtom("WINDOW", false)),
 		},
 	}
-	return platform.NewDisplayServer(
+	ds := platform.NewDisplayServer(
 		core,        // DisplayCore
 		core,        // WindowManager
 		core,        // Drawer
@@ -78,7 +79,8 @@ func NewDisplayServer(displayName string) (platform.DisplayServer, error) {
 		core,        // CursorManager
 		core,        // PropertyManager
 		core,        // InputMethodManager
-	), nil
+	)
+	return ds, core.FontOpener(core.DefaultScreen()), nil
 }
 
 // Atoms returns the resolved well-known atom table.

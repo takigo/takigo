@@ -24,11 +24,12 @@ type X11Display struct {
 	atoms *platform.Atoms
 }
 
-// NewDisplayServer opens an X11 display connection and returns a composed DisplayServer.
-func NewDisplayServer(name string) (platform.DisplayServer, error) {
+// NewDisplayServer opens an X11 display connection and returns a composed
+// DisplayServer along with a FontOpener for the default screen.
+func NewDisplayServer(name string) (platform.DisplayServer, font.FontOpener, error) {
 	dpy, err := xlib.OpenDisplay(name)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	core := &X11Display{
 		dpy: dpy,
@@ -44,7 +45,7 @@ func NewDisplayServer(name string) (platform.DisplayServer, error) {
 		},
 	}
 	// All capabilities are implemented by the same core struct.
-	return platform.NewDisplayServer(
+	ds := platform.NewDisplayServer(
 		core,        // DisplayCore
 		core,        // WindowManager
 		core,        // Drawer
@@ -56,7 +57,8 @@ func NewDisplayServer(name string) (platform.DisplayServer, error) {
 		core,        // CursorManager
 		core,        // PropertyManager
 		core,        // InputMethodManager
-	), nil
+	)
+	return ds, core.FontOpener(core.dpy.DefaultScreen()), nil
 }
 
 // EventParser creates an X11EventParser for this display.
