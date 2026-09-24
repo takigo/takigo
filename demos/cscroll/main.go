@@ -14,6 +14,7 @@ import (
 	"github.com/msorc/takigo/geometry/grid"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/ttk"
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
@@ -52,6 +53,8 @@ func main() {
 	c := canvas.New(gf, "c",
 		canvas.ReliefOpt(option.ReliefSunken),
 		canvas.BorderWidthOpt(2),
+		canvas.Width(screenunit.Px("15c")),
+		canvas.Height(screenunit.Px("10c")),
 		canvas.ScrollRegion(-416, -416, 1890, 756),
 	)
 

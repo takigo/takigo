@@ -193,9 +193,5 @@ func main() {
 		}
 	})
 
-	// Set initial focus to the text item with cursor at end.
-	c.Focus(textIDStr)
-	c.ICursor(textIDStr, "end")
-
 	app.Run()
 }

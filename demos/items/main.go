@@ -112,7 +112,7 @@ func main() {
 	px := screenunit.Px
 
 	// Colors matching Tk's color depth >1 defaults.
-	const blue = "DeepSkyBlue3"
+	const blue = "#009ACD"   // DeepSkyBlue3
 	const red = "red"
 	const green = "SeaGreen3"
 
@@ -432,11 +432,11 @@ func main() {
 		}
 		highlightedID = idStr
 		if colors.isText {
-			c.ItemConfigure("current", canvas.TextColor("SteelBlue2"))
+			c.ItemConfigure("current", canvas.TextColor("#5CACE5")) // SteelBlue2
 		} else if colors.fill != "" {
-			c.ItemConfigure("current", canvas.FillColor("SteelBlue2"))
+			c.ItemConfigure("current", canvas.FillColor("#5CACE5")) // SteelBlue2
 		} else if colors.outline != "" {
-			c.ItemConfigure("current", canvas.OutlineColor("SteelBlue2"))
+			c.ItemConfigure("current", canvas.OutlineColor("#5CACE5")) // SteelBlue2
 		}
 	})
 
