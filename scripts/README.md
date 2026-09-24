@@ -81,6 +81,8 @@ Ctrl+C at any time — the next run resumes from the first pending demo.
 | `demo_refine.sh <demo> [--retake]` | Compare + print image paths for manual Claude analysis |
 | `demo_batch.sh [--retake] [prefix]` | Screenshot all demos (skips animated), output `tmp/screenshots/scores_sorted.txt` |
 | `demo_map.sh [demo]` | Print Go↔Tcl name mapping (or Tcl name for one demo) |
+| `demo_interact.sh <demo> [events...]` | Drive a Go demo with xdotool (`--key`, `--type`, `--click X,Y\|<name>`, `--wait`), capture before/after PNGs, `--diff` for odiff %, `--list-widgets` to discover names (needs `TAKIGO_DEBUG_NAME_WIDGETS=1`) |
+| `_lib.sh` | Shared helpers (`tcl_demo_for`, `run_compare`, `odiff_score`, `maybe_xvfb`, `LLM_TOOL` launch configs); source it from new scripts |
 | `demo_wrapper.tcl <demo>` | Run a Tk 9.1 demo standalone (used by screenshot scripts) |
 
 ---
@@ -105,7 +107,7 @@ tmp/logs/<demo>_iter1.log          the LLM's output for each fix attempt
 | `HEADLESS` | `0` | `1` = run screenshots under `xvfb-run` (also auto-falls back when `DISPLAY` is unset) |
 | `SETTLE_SECS` | `1.5` | Wait after window appears before screenshot |
 | `TIMEOUT_SECS` | `15` | Max wait for demo window to appear |
-| `SKIP_IF_EXISTS` | `1` | Skip screenshot if file already exists |
+| `SKIP_IF_EXISTS` | `0` | `1` = reuse an existing screenshot (`demo_refine.sh`/`demo_batch.sh` set it to `1` unless `--retake`) |
 | `WISH` | `./tk/unix/wish` | Path to Tk 9.1 wish binary |
 | `LLM_TOOL` | `claude` | LLM id used by `fix_demo.sh`/`fix_all.sh`. Maps to a launch command in `scripts/_lib.sh` (prompt on stdin, response on stdout). Known ids: `claude`, `opencode-deepseek-v4-pro`, `opencode-minimax-m3` |
 

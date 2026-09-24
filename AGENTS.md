@@ -16,7 +16,8 @@ Go version: `1.25.0` (toolchain `go1.26.6+` on this host)
 go build ./...
 
 # Run all unit tests. Most tests don't need an X display; GUI tests
-# (in tk_test.go, internal/testutil) call t.Skip when DISPLAY is unset.
+# (tk_test.go, platform/x11/x11_test.go, anything using internal/testutil)
+# call t.Skip when DISPLAY is unset.
 go test -short ./...
 
 # Run only a package.
@@ -25,13 +26,21 @@ go test -short ./canvas/ -run TestParseXBM
 # Run a single demo binary (Linux/X11).
 go build -o /tmp/button ./demos/button && DISPLAY=:0 /tmp/button
 
+# Fuzz / benchmark targets.
+go test ./bind/ -run '^$' -fuzz '^FuzzParse$' -fuzztime 30s
+go test ./event/ -run '^$' -bench .
+
 # Static analysis.
 go vet ./...
+golangci-lint run ./...   # config in .golangci.yml (v2 format)
 ```
 
-There is **no `Makefile`, no `.golangci.yml`, no `go.sum`** — dependencies
-are stdlib only. `go vet` produces one pre-existing false-positive on
+There is **no `Makefile` and no `go.sum`** — dependencies are stdlib only.
+`go vet` produces one pre-existing false-positive on
 `platform/x11/convert.go:15` (unsafe.Pointer in cgo shim); ignore it.
+`.golangci.yml` enables a broad linter set plus `gofmt`/`goimports` with
+`local-prefixes: github.com/msorc/takigo`; it is not a CI gate, so existing
+code is not lint-clean — don't mass-fix unrelated warnings.
 
 ---
 
@@ -50,6 +59,7 @@ widget/<name>/                                     — classic widgets: button, 
                                                       `bindings.go` for event handlers
 ttk/                                               — themed widget package; widgets embed TtkWidget
 ttk/<name>theme/                                   — theme registrations (default, clam, alt, classic)
+ttk/entrytext/                                     — shared editing logic for ttk entry/combobox/spinbox
 
 window/                                            — Window struct, display, hierarchy, creation
 event/                                             — event loop, dispatcher, raw event parsing
@@ -74,12 +84,16 @@ config/  cursor/  busy/  systray/  screenunit/  option/  gc/
 
 demos/<name>/main.go                               — one Go demo per directory, mirrors tk/library/demos/*.tcl
 demos/demohelper/                                  — shared demo boilerplate (AddSeeDismiss, images, vars)
-demos/ctext/  demos/cscroll/  demos/mclist/        — composite demos built on the helper
+demos/images/                                      — image assets only (gif/png/xbm), no main.go
+demos/widget_demo/                                 — launcher, Go counterpart of tk/library/demos/widget
 
 cmd/                                               — top-level test programs (demo, bind_demo,
                                                     canvas_demo, dialog_demo, text_demo, dialog_test_debug, demotitle)
 
 scripts/                                           — bash + tcl screenshot/compare pipeline (see below)
+docs/architecture-review.md                        — architecture review snapshot (2026-08-31)
+nemotron_review.md                                 — code review + log of implemented fixes
+THREADING.md                                       — threading contract: loop-only vs goroutine-safe APIs
 tk/  tcl/                                          — vendored Tk 9.1 + Tcl 9.1 source (gitignored) — REFERENCE ONLY
 tmp/                                               — gitignored; screenshot output and progress files
 ```
@@ -113,9 +127,16 @@ They expose a constructor `func New(parent widget.Caregiver, name string, opts .
 and a matching `XxxOption` functional-option type.
 
 The `platform.DisplayServer` interface in `platform/display.go` is the single
-abstraction boundary for windowing. Per-platform implementations live in
-`platform/<x11|cocoa|windows>/` and are selected at compile time via the
-`platformInit` shim in `tk_<os>.go`.
+abstraction boundary for windowing. It is composed of `DisplayCore` plus
+capability interfaces (`WindowManager`, `Drawer`, `GCManager`,
+`PixmapManager`, `EventSource`, `GrabManager`, `SelectionManager`,
+`CursorManager`, `PropertyManager`, `InputMethodManager`). Per-platform
+implementations live in `platform/<x11|cocoa|windows>/`; each exposes
+`NewDisplayServer(name) (platform.DisplayServer, font.FontOpener, error)`,
+selected at compile time via the `platformInit` shim in `tk_<os>.go`. The
+returned `DisplayServer` is a composed wrapper, so backend methods that are
+not part of any capability interface are **not** reachable by type assertion
+on it — return them explicitly from `NewDisplayServer` (as `FontOpener` is).
 
 `geometry/{pack,grid,place}/` each register themselves as `window.GeomManager`
 singletons. When a widget calls `geometry.GeometryRequest(w, w, h)`, the
@@ -133,18 +154,22 @@ parent's manager's `RequestProc` re-runs the layout.
   top-level `takigo` package from a widget (use `widget.AppContext`).
 
 - **Functional options.** Define `type XxxOption func(*Xxx)` and one
-  `XxxField(value) XxxOption` constructor per settable field. Option
-  setters that look up a resource (color, font) silently ignore the lookup
-  error and keep the previous value — see `widget/button/button.go:62`.
+  constructor per settable field. Option setters that look up a resource
+  (color, font) `log.Printf` a warning on lookup failure and keep the
+  previous value — see `Background` in `widget/button/button.go`.
 
-- **Naming collisions.** When a Tk option name collides with a Go keyword
-  or a built-in (`Width`, `Text`, `Anchor`, `Font`, `Image`, `Command`,
-  `Background`, `Foreground`, `BorderWidth`, `Relief`, `Justify`, `PadX`,
-  `PadY`, `Compound`, `State`, `WidthChars`, …) suffix with `Opt`:
-  `WidthOpt`, `BorderWidthOpt`, `ReliefOpt`, `Anchor`, `TextOpt`, etc.
-  For Ttk widgets prefix with `Button`/`Label`/etc. to avoid clashing
-  with classic widget options imported into the same demo file:
-  `ttk.ButtonText`, `ttk.ButtonCommand`.
+- **Option naming.** Classic widget packages use the bare Tk option name
+  where possible (`button.Text`, `label.Width`, `label.Background`,
+  `label.Relief`). An `Opt` suffix is used when the bare name is unavailable
+  or ambiguous in that package (`label.FontOpt`, `label.ImageOpt`,
+  `label.JustifyOpt`, `scale.FromOpt`, `menu.TearOffOpt`, …) — check the
+  package's existing setters before adding one. Every classic package also
+  exports ttk-style prefixed aliases as package-level vars
+  (`var ButtonText = Text`, `label.LabelText`, `entry.EntryText`, …) so
+  classic and ttk code read the same; add the alias when adding a setter.
+  The `ttk` package, which hosts every themed widget, always prefixes with
+  the widget name (`ttk.ButtonText`, `ttk.ButtonCommand`,
+  `ttk.ButtonStyleOpt`).
 
 - **Distances.** Tk accepts `"3p"`, `"2m"`, `"1c"`, `"0.5i"`, or a bare
   number. Use `screenunit.Px(value)` (accepts `int`, `float64`, `string`)
@@ -179,9 +204,12 @@ parent's manager's `RequestProc` re-runs the layout.
   `tk_windows.go`, `font/{xft,coretext,gdi,named_*}.go`, `systray/systray.go`.
 - The cgo bridges live under `internal/<platform>/`. Keep cgo surface
   minimal; the bulk of each backend is pure Go in `platform/<platform>/`.
-- When adding a platform capability, extend `platform.DisplayServer` and
-  implement it in all three backends (use the type assertion pattern in
-  `event/loop.go:66` if a method is missing on one backend).
+- When adding a platform capability, add the method to the matching
+  capability interface in `platform/display.go` (or a new one composed into
+  `DisplayServer`) and implement it in all three backends; each backend has
+  `var _ platform.Xxx = (*XxxDisplay)(nil)` compile-time checks. For
+  optional, backend-specific behaviour use an optional interface checked by
+  type assertion, as `event.EventPumper` is at `event/loop.go:67`.
 
 ---
 
@@ -194,14 +222,18 @@ parent's manager's `RequestProc` re-runs the layout.
 - Prefer table-driven tests for pure logic (`geometry/grid/grid_test.go`,
   `geometry/pack/pack_test.go`, `canvas/geometry_test.go`, `screenunit/screenunit_test.go`,
   `wm/wm_test.go`, `bind/{table,pattern}_test.go`).
-- No fuzz tests, no benchmarks, no race-detector CI gate today.
+- Fuzz targets: `bind/pattern_fuzz_test.go`, `geometry/grid/grid_fuzz_test.go`.
+  Benchmarks: `event/dispatch_bench_test.go` (dispatcher hot path).
+- No CI and no race-detector gate today.
 
 ---
 
 ## Demos — visual parity with Tk
 
-The project ships **66** demos under `demos/<name>/main.go`, each a Go port
-of the corresponding `tk/library/demos/<name>.tcl`. There is a dedicated
+The project ships **67** demos under `demos/<name>/main.go`, most a Go port
+of the corresponding `tk/library/demos/<name>.tcl` (`bash scripts/demo_map.sh`
+prints the Go↔Tcl mapping; `msgwidget`, `square`, `ttkentry`, `widget_demo`
+have no same-named `.tcl`). There is a dedicated
 skill and script pipeline for comparing and fixing them.
 
 - **Skill** (auto-loaded by description): `.opencode/skills/tk-demo-compare/SKILL.md`.
@@ -210,25 +242,31 @@ skill and script pipeline for comparing and fixing them.
   its `tk/library/demos/<name>.tcl` counterpart.
 - **Scripts** (entry points, see `scripts/README.md`):
   ```bash
-  bash scripts/demo_compare.sh <demo>          # screenshot Go+Tk, compute MAE
+  bash scripts/demo_compare.sh <demo> [tcl]    # screenshot Go+Tk, compute odiff diff %
   bash scripts/demo_refine.sh <demo> [--retake] # screenshot + show paths
   bash scripts/demo_batch.sh  [--retake] [pfx]  # all demos, sorted by score
   bash scripts/demo_interact.sh <demo> ...      # xdotool-driven behavioural test
-  bash scripts/fix_demo.sh  <demo>             # single demo, claude-driven fix
+  bash scripts/fix_demo.sh  <demo>             # single demo, LLM-driven fix
   bash scripts/fix_all.sh   [--status]          # resumable batch fix
   ```
+  `fix_demo.sh`/`fix_all.sh` shell out to an LLM CLI chosen by `LLM_TOOL`
+  (default `claude`; ids defined in `scripts/_lib.sh`). Don't run them with
+  `claude` from inside a Claude Code session.
 - **Wish binary used for Tcl side:** `./tk/unix/wish` (built from the
   vendored Tk 9.1; `make -C tk/unix`). System `wish` is 8.6 and incompatible.
-- **Required tools on PATH:** `wmctrl`, `xdotool`, `import` (ImageMagick),
-  `magick`, `compare`, `xrdb`, `wmctrl`, `go`, `bash`. The skill verifies
-  these and stops if any are missing.
-- **Diff score:** normalized MAE in `[0, 1]` from
-  `scripts/demo_compare.sh`. Lower = closer to Tk. Goal is visually
-  indistinguishable (typically ≲ 0.05 for static demos).
+- **Required tools on PATH:** `xdotool`, ImageMagick (`import`, `magick`,
+  `montage`), `odiff`, `xrdb`, `go`, `bash`; plus `xvfb-run` for headless
+  runs. `wmctrl` and ImageMagick `compare` are no longer used. The skill
+  verifies these and stops if any are missing.
+- **Diff score:** odiff diff % in `[0, 100]` (anti-aliasing ignored) from
+  `scripts/demo_compare.sh`. Lower = closer to Tk. Older notes quoting
+  normalized-MAE values in `[0, 1]` use a different scale — don't compare them.
+- **Headless:** `HEADLESS=1` (or an unset/unreachable `DISPLAY`) re-execs
+  the screenshot scripts under `xvfb-run`.
 - **Debug aid:** `TAKIGO_DEBUG_NAME_WIDGETS=1` calls `XStoreName` on each
   child window so `xdotool` and `demo_interact.sh --click <name>` can target
-  widgets by name instead of pixel coordinates. See
-  `window/create.go:55` and `window/hierarchy.go`.
+  widgets by name instead of pixel coordinates (`--list-widgets` prints
+  them). See `window/create.go:55`.
 
 ### Demo boilerplate
 
@@ -268,7 +306,8 @@ lookup.
 - **Don't block the main goroutine.** Everything UI-related runs on the
   event loop. Use `app.DoWhenIdle(fn)`, `app.After(d, fn)`, or
   `app.RunOnMain(fn)` from other goroutines; for modal dialogs use
-  `app.RunNestedLoop(doneCh)`.
+  `app.RunNestedLoop(doneCh)` or `app.RunNestedLoopContext(ctx, doneCh)`.
+  `THREADING.md` lists which types are loop-only vs goroutine-safe.
 - **Don't add third-party dependencies.** Keep go.mod / no-go.sum
   structure intact.
 - **Don't add comments** unless they document a Tk porting decision or a
@@ -288,4 +327,6 @@ lookup.
 | `XFT_DPI` | Pushed into Tk resources by `demo_wrapper.tcl` so Tk-side fonts match the Go side |
 | `SKIP_IF_EXISTS=1` | Reuse existing screenshots in `demo_compare.sh` |
 | `SETTLE_SECS` / `TIMEOUT_SECS` | Demo screenshot wait tuning (see `scripts/README.md`) |
+| `HEADLESS=1` | Run screenshot/interact scripts under `xvfb-run` |
+| `LLM_TOOL` | LLM CLI used by `fix_demo.sh` / `fix_all.sh` (default `claude`) |
 | `WISH` | Override path to Tk 9.1 wish binary (default `./tk/unix/wish`) |
