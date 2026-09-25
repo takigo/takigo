@@ -334,9 +334,13 @@ func (t *TextWidget) Display() {
 
 	// Draw border on top.
 	if t.Border != nil && t.BorderWidth > 0 {
+		hl := t.HighlightWidth
 		draw.Draw3DRectangle(d, w.Drawable(), gc, t.Border,
-			0, 0, w.Width, w.Height, t.BorderWidth, t.Relief)
+			hl, hl, w.Width-2*hl, w.Height-2*hl, t.BorderWidth, t.Relief)
 	}
+	// The highlight ring sits outside the border (focus colour or
+	// -highlightbackground).
+	t.DrawHighlightBorder(t.hasFocus, 0)
 
 	d.Flush()
 	t.redrawPending = false

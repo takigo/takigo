@@ -92,8 +92,8 @@ func (bi *BitmapItem) Display(d platform.DisplayServer, drawable platform.Drawab
 	w := bi.xbm.Width
 	h := bi.xbm.Height
 	ax, ay := anchorOffset(bi.anchor, w, h)
-	drawX := int(bi.x) + ax - originX
-	drawY := int(bi.y) + ay - originY
+	drawX := drawableCoord(bi.x, originX) + ax
+	drawY := drawableCoord(bi.y, originY) + ay
 
 	rgba := bi.xbm.ToRGBA(bi.Foreground, bi.Background)
 

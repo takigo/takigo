@@ -444,13 +444,9 @@ func (c *Checkbutton) Display() {
 	img := c.activeImage()
 	var contentX, contentY int
 	if img != nil {
-		contentX, contentY = widget.AnchorText(c.Anchor, inset, inset,
-			max(0, w.Width-2*inset), max(0, w.Height-2*inset),
-			c.indicatorSpace+img.Width(), img.Height())
+		contentX, contentY = widget.ComputeAnchor(c.Anchor, w.Width, w.Height, inset, 0, 0, c.indicatorSpace+img.Width(), img.Height())
 	} else {
-		contentX, contentY = widget.AnchorText(c.Anchor, inset+c.PadX, inset+c.PadY,
-			max(0, w.Width-2*inset-2*c.PadX), max(0, w.Height-2*inset-2*c.PadY),
-			c.indicatorSpace+c.textWidth, c.textHeight)
+		contentX, contentY = widget.ComputeAnchor(c.Anchor, w.Width, w.Height, inset, c.PadX, c.PadY, c.indicatorSpace+c.textWidth, c.textHeight)
 	}
 	contentX += c.indicatorSpace
 

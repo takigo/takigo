@@ -405,10 +405,6 @@ func (l *Label) Display() {
 
 	// Draw content (image and/or text).
 	inset := l.BorderWidth + l.HighlightWidth
-	availW := max(0, w.Width-2*inset-2*l.PadX)
-	availH := max(0, w.Height-2*inset-2*l.PadY)
-	frameX := inset + l.PadX
-	frameY := inset + l.PadY
 
 	hasImg := l.Img != nil
 	hasText := l.Font != nil && l.Text != "" && l.Foreground != nil
@@ -431,19 +427,17 @@ func (l *Label) Display() {
 	}
 
 	if hasImg && hasText && l.Compound != widget.CompoundNone {
-		drawCompound(l, w, frameX, frameY, availW, availH, bgPixel, fgPixel, fgR, fgG, fgB)
+		drawCompound(l, w, bgPixel, fgPixel, fgR, fgG, fgB)
 	} else if hasImg {
 		// Image only: Tk anchors it inside the inset, ignoring padx/pady.
 		imgW := l.Img.Width()
 		imgH := l.Img.Height()
-		ix, iy := widget.AnchorText(l.Anchor, inset, inset,
-			max(0, w.Width-2*inset), max(0, w.Height-2*inset), imgW, imgH)
+		ix, iy := widget.ComputeAnchor(l.Anchor, w.Width, w.Height, inset, 0, 0, imgW, imgH)
 		l.Img.Draw(w.Display.Server, w.Drawable(), gc,
 			w.Depth, 0, 0, imgW, imgH, ix, iy, bgPixel)
 	} else if hasText {
 		// Text only — handle multiline (with optional wraplength).
-		textX, textY := widget.AnchorText(l.Anchor, frameX, frameY,
-			availW, availH, l.textWidth, l.textHeight)
+		textX, textY := widget.ComputeAnchor(l.Anchor, w.Width, w.Height, inset, l.PadX, l.PadY, l.textWidth, l.textHeight)
 		m := l.Font.Metrics()
 		if df, ok := l.Font.(platform.DrawableFont); ok {
 			lines := l.textLines()
@@ -487,7 +481,7 @@ func (l *Label) compoundSize() (int, int) {
 
 // drawCompound draws image and text in compound mode.
 func drawCompound(l *Label, w *window.Window,
-	frameX, frameY, availW, availH int, bgPixel uint64,
+	bgPixel uint64,
 	fgPixel uint64, fgR, fgG, fgB uint16) {
 
 	imgW := l.Img.Width()
@@ -495,7 +489,8 @@ func drawCompound(l *Label, w *window.Window,
 	contentW, contentH := l.compoundSize()
 
 	// Anchor the content block.
-	cx, cy := widget.AnchorText(l.Anchor, frameX, frameY, availW, availH, contentW, contentH)
+	inset := l.BorderWidth + l.HighlightWidth
+	cx, cy := widget.ComputeAnchor(l.Anchor, w.Width, w.Height, inset, l.PadX, l.PadY, contentW, contentH)
 
 	var imgX, imgY, textX, textY int
 	switch l.Compound {

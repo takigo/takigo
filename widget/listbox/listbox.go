@@ -484,9 +484,13 @@ func (lb *Listbox) Display() {
 
 	// Border.
 	if lb.Border != nil && lb.BorderWidth > 0 {
+		hl := lb.HighlightWidth
 		draw.Draw3DRectangle(d, w.Drawable(), gc, lb.Border,
-			0, 0, w.Width, w.Height, lb.BorderWidth, lb.Relief)
+			hl, hl, w.Width-2*hl, w.Height-2*hl, lb.BorderWidth, lb.Relief)
 	}
+	// The highlight ring sits outside the border (focus colour or
+	// -highlightbackground).
+	lb.DrawHighlightBorder(lb.HasFocus, 0)
 
 	if lb.Font == nil || lb.lineHeight <= 0 {
 		d.Flush()

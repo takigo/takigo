@@ -114,3 +114,20 @@ type itemEntry struct {
 	id   int64
 	item Item
 }
+
+// drawableCoord ports Tk_CanvasDrawableCoords: canvas coordinate v minus the
+// drawable origin, rounded half away from zero.
+func drawableCoord(v float64, origin int) int {
+	t := v - float64(origin)
+	if t > 0 {
+		t += 0.5
+	} else {
+		t -= 0.5
+	}
+	return int(t)
+}
+
+// drawablePoint converts a canvas point to an X point like drawableCoord.
+func drawablePoint(x, y float64, originX, originY int) platform.Point {
+	return platform.Point{X: int16(drawableCoord(x, originX)), Y: int16(drawableCoord(y, originY))}
+}

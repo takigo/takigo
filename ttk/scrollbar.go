@@ -117,128 +117,143 @@ func (s *Scrollbar) Set(first, last float64) {
 	s.Display()
 }
 
-// computeGeometry calculates pixel positions of trough and thumb.
-func (s *Scrollbar) computeGeometry() {
-	w := s.Win
-	var totalLen int
-	if s.Orient == Vertical {
-		totalLen = w.Height
-	} else {
-		totalLen = w.Width
-	}
+// Default theme scrollbar metrics (tk/generic/ttk/ttkDefaultTheme.c): a 1px
+// sunken trough border, square arrow boxes filling the rest of the
+// thickness, and a minimum thumb of MIN_THUMB_SIZE plus its 1px border.
+const (
+	sbTroughBorder = 1
+	sbMinThumb     = 8 + 2
+)
 
-	arrowSize := s.sbWidth
-	s.troughStart = arrowSize
-	s.troughEnd = totalLen - arrowSize
-	troughLen := s.troughEnd - s.troughStart
-	if troughLen < 1 {
-		troughLen = 1
+// arrowBox returns the size of the square arrow boxes.
+func (s *Scrollbar) arrowBox() int {
+	thick := s.Win.Width
+	if s.Orient == Horizontal {
+		thick = s.Win.Height
 	}
-
-	s.thumbStart = s.troughStart + int(s.First*float64(troughLen))
-	s.thumbEnd = s.troughStart + int(s.Last*float64(troughLen))
-
-	minThumb := max(s.sbWidth/2, 6)
-	if s.thumbEnd-s.thumbStart < minThumb {
-		s.thumbEnd = s.thumbStart + minThumb
-		if s.thumbEnd > s.troughEnd {
-			s.thumbEnd = s.troughEnd
-			s.thumbStart = s.thumbEnd - minThumb
-		}
-	}
+	return max(0, thick-2*sbTroughBorder)
 }
 
-// Display renders the scrollbar with custom drawing (overrides layout-based TtkWidget.Display).
+// computeGeometry ports ScrollbarDoLayout (tk/generic/ttk/ttkScrollbar.c):
+// the thumb moves over the trough minus its own minimum size.
+func (s *Scrollbar) computeGeometry() {
+	totalLen := s.Win.Height
+	if s.Orient == Horizontal {
+		totalLen = s.Win.Width
+	}
+	box := s.arrowBox()
+	s.troughStart = sbTroughBorder + box
+	s.troughEnd = totalLen - sbTroughBorder - box
+	size := float64(s.troughEnd - s.troughStart - sbMinThumb)
+	s.thumbStart = s.troughStart + int(size*s.First)
+	s.thumbEnd = s.troughStart + int(size*s.Last) + sbMinThumb
+}
+
+// Display draws the default theme's Horizontal/Vertical.Scrollbar layout:
+// trough (TroughElement, 1px sunken), the two arrows (ArrowElement with a thin
+// raised border and a padded triangle) and the thumb (thin raised).
 func (s *Scrollbar) Display() {
 	if s.Destroyed {
 		return
 	}
 	w := s.Win
-	if w.PlatformID == 0 {
+	if w.PlatformID == 0 || w.Width <= 0 || w.Height <= 0 {
 		return
 	}
-
 	d := w.Display.Server
 	gc := w.GC
-	width := w.Width
-	height := w.Height
-	if width <= 0 || height <= 0 {
-		return
-	}
-
 	s.computeGeometry()
 
-	// Look up theme colors (fall back to defaults if no theme loaded).
 	troughColor := uint64(0xc3c3c3)
 	bgColor := uint64(0xd9d9d9)
+	arrowColor := uint64(0x000000)
+	if s.First <= 0 && s.Last >= 1 {
+		arrowColor = 0xa3a3a3 // disabled: colors(-disabledfg)
+	}
 	if s.Context != nil && s.Context.Style != nil {
 		troughColor = LookupColor(s.Context.Style, "-troughcolor", s.State, troughColor)
 		bgColor = LookupColor(s.Context.Style, "-background", s.State, bgColor)
 	}
-
+	trough := draw.NewBorderFromPixel(troughColor)
 	border := draw.NewBorderFromPixel(bgColor)
-	arrowSize := s.sbWidth
 
-	// Fill trough background.
 	d.SetForeground(gc, troughColor)
-	d.FillRectangle(w.Drawable(), gc, 0, 0, uint(width), uint(height))
+	d.FillRectangle(w.Drawable(), gc, 0, 0, uint(w.Width), uint(w.Height))
+	draw.Draw3DRectangle(d, w.Drawable(), gc, trough, 0, 0, w.Width, w.Height,
+		sbTroughBorder, option.ReliefSunken)
 
-	// Arrow padding (matches Tk's ArrowPadding = {3,3,3,3}).
-	arrowPad := 3
-
-	if s.Orient == Vertical {
-		// Arrow 1 (up).
-		d.SetForeground(gc, bgColor)
-		d.FillRectangle(w.Drawable(), gc, 0, 0, uint(width), uint(arrowSize))
-		draw.Draw3DRectangle(d, w.Drawable(), gc, border,
-			0, 0, width, arrowSize, 1, option.ReliefRaised)
-		drawScrollArrow(d, w.Drawable(), gc, 0x000000,
-			arrowPad, arrowPad, width-2*arrowPad, arrowSize-2*arrowPad, arrowUp)
-
-		// Arrow 2 (down).
-		d.SetForeground(gc, bgColor)
-		d.FillRectangle(w.Drawable(), gc, 0, height-arrowSize, uint(width), uint(arrowSize))
-		draw.Draw3DRectangle(d, w.Drawable(), gc, border,
-			0, height-arrowSize, width, arrowSize, 1, option.ReliefRaised)
-		drawScrollArrow(d, w.Drawable(), gc, 0x000000,
-			arrowPad, height-arrowSize+arrowPad, width-2*arrowPad, arrowSize-2*arrowPad, arrowDown)
-
-		// Thumb.
-		if s.thumbEnd > s.thumbStart {
-			d.SetForeground(gc, bgColor)
-			d.FillRectangle(w.Drawable(), gc, 0, s.thumbStart,
-				uint(width), uint(s.thumbEnd-s.thumbStart))
-			draw.Draw3DRectangle(d, w.Drawable(), gc, border,
-				0, s.thumbStart, width, s.thumbEnd-s.thumbStart, 1, option.ReliefRaised)
+	// rect maps (along, across, length, thickness) to window coordinates.
+	rect := func(along, across, length, thick int) (int, int, int, int) {
+		if s.Orient == Vertical {
+			return across, along, thick, length
 		}
-	} else {
-		// Arrow 1 (left).
+		return along, across, length, thick
+	}
+	thinRaised := func(x, y, bw, bh int) {
 		d.SetForeground(gc, bgColor)
-		d.FillRectangle(w.Drawable(), gc, 0, 0, uint(arrowSize), uint(height))
-		draw.Draw3DRectangle(d, w.Drawable(), gc, border,
-			0, 0, arrowSize, height, 1, option.ReliefRaised)
-		drawScrollArrow(d, w.Drawable(), gc, 0x000000,
-			arrowPad, arrowPad, arrowSize-2*arrowPad, height-2*arrowPad, arrowLeft)
-
-		// Arrow 2 (right).
-		d.SetForeground(gc, bgColor)
-		d.FillRectangle(w.Drawable(), gc, width-arrowSize, 0, uint(arrowSize), uint(height))
-		draw.Draw3DRectangle(d, w.Drawable(), gc, border,
-			width-arrowSize, 0, arrowSize, height, 1, option.ReliefRaised)
-		drawScrollArrow(d, w.Drawable(), gc, 0x000000,
-			width-arrowSize+arrowPad, arrowPad, arrowSize-2*arrowPad, height-2*arrowPad, arrowRight)
-
-		// Thumb.
-		if s.thumbEnd > s.thumbStart {
-			d.SetForeground(gc, bgColor)
-			d.FillRectangle(w.Drawable(), gc, s.thumbStart, 0,
-				uint(s.thumbEnd-s.thumbStart), uint(height))
-			draw.Draw3DRectangle(d, w.Drawable(), gc, border,
-				s.thumbStart, 0, s.thumbEnd-s.thumbStart, height, 1, option.ReliefRaised)
-		}
+		d.FillRectangle(w.Drawable(), gc, x, y, uint(bw), uint(bh))
+		// DrawBorder with borderWidth 1: thinShadowColors[raised] = LITE, DARK.
+		d.SetForeground(gc, border.LightPixel)
+		d.DrawLine(w.Drawable(), gc, x, y+bh-1, x, y)
+		d.DrawLine(w.Drawable(), gc, x, y, x+bw-1, y)
+		d.SetForeground(gc, border.DarkPixel)
+		d.DrawLine(w.Drawable(), gc, x, y+bh-1, x+bw-1, y+bh-1)
+		d.DrawLine(w.Drawable(), gc, x+bw-1, y+bh-1, x+bw-1, y)
 	}
 
+	box := s.arrowBox()
+	totalLen := w.Width
+	dir1, dir2 := arrowLeft, arrowRight
+	if s.Orient == Vertical {
+		totalLen = w.Height
+		dir1, dir2 = arrowUp, arrowDown
+	}
+	for i, along := range []int{sbTroughBorder, totalLen - sbTroughBorder - box} {
+		x, y, bw, bh := rect(along, sbTroughBorder, box, box)
+		thinRaised(x, y, bw, bh)
+		dir := dir1
+		if i == 1 {
+			dir = dir2
+		}
+		drawArrowInBox(d, w.Drawable(), gc, arrowColor, x, y, bw, bh, dir)
+	}
+	x, y, bw, bh := rect(s.thumbStart, sbTroughBorder, s.thumbEnd-s.thumbStart, box)
+	thinRaised(x, y, bw, bh)
+
 	d.Flush()
+}
+
+// drawArrowInBox follows ArrowElementDraw: pad the box by ArrowPadding
+// {3,3,4,4}, size the arrow with TtkArrowSize, centre it and fill it.
+func drawArrowInBox(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID,
+	color uint64, x, y, w, h, dir int) {
+	x, y, w, h = x+3, y+3, w-7, h-7
+	var cx, cy int
+	switch dir {
+	case arrowUp, arrowDown:
+		hh := w / 2
+		cx, cy = 2*hh+1, hh+1
+		if (h-cy)%2 == 1 {
+			cy++
+		}
+	default:
+		hh := h / 2
+		cx, cy = hh+1, 2*hh+1
+		if (w-cx)%2 == 1 {
+			cx++
+		}
+	}
+	// Ttk_AnchorBox(center): C integer division truncates toward zero.
+	ax := x + (w-cx)/2
+	ay := y + (h-cy)/2
+	// Measured against Tk 9.1: down/right arrows sit one pixel further along.
+	switch dir {
+	case arrowDown:
+		ay++
+	case arrowRight:
+		ax++
+	}
+	drawScrollArrow(d, drawable, gc, color, ax, ay, cx, cy, dir)
 }
 
 // hitTest returns which region a pixel coordinate falls in.
@@ -250,18 +265,10 @@ func (s *Scrollbar) hitTest(x, y int) sbRegion {
 		pos = x
 	}
 
-	var totalLen int
-	if s.Orient == Vertical {
-		totalLen = s.Win.Height
-	} else {
-		totalLen = s.Win.Width
-	}
-
-	arrowSize := s.sbWidth
-	if pos < arrowSize {
+	if pos < s.troughStart {
 		return sbArrow1
 	}
-	if pos >= totalLen-arrowSize {
+	if pos >= s.troughEnd {
 		return sbArrow2
 	}
 	if pos >= s.thumbStart && pos < s.thumbEnd {
@@ -362,7 +369,7 @@ func bindTtkScrollbar(s *Scrollbar, app widget.AppContext) {
 			pos = ev.X
 		}
 
-		troughLen := s.troughEnd - s.troughStart
+		troughLen := s.troughEnd - s.troughStart - sbMinThumb
 		if troughLen < 1 {
 			return
 		}
@@ -447,4 +454,5 @@ func drawScrollArrow(d platform.DisplayServer, drawable platform.DrawableID, gc 
 	d.SetForeground(gc, fgColor)
 	d.FillPolygon(drawable, gc, points[:3], platform.PolygonConvex, platform.CoordModeOrigin)
 	d.DrawLines(drawable, gc, points[:4], platform.CoordModeOrigin)
+	d.DrawLine(drawable, gc, int(points[2].X), int(points[2].Y), int(points[2].X), int(points[2].Y))
 }

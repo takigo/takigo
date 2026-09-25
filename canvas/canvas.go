@@ -4,8 +4,10 @@ import (
 	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/font"
+	"github.com/msorc/takigo/geometry"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/window"
 )
@@ -44,6 +46,9 @@ type Canvas struct {
 	// Computed inset (borderWidth + highlightWidth).
 	inset int
 
+	// Tk -width/-height: the drawing area, excluding the inset.
+	reqW, reqH int
+
 	// displayFunc is stored so ScheduleRedraw can call it.
 	displayFunc func()
 }
@@ -51,12 +56,14 @@ type Canvas struct {
 // CanvasOption configures a Canvas.
 type CanvasOption func(*Canvas)
 
-func Width(w int) CanvasOption {
-	return func(c *Canvas) { c.Win.ReqWidth = w }
+// Width sets -width (a Tk distance: pixels or "10c", "3i", ...).
+func Width(w any) CanvasOption {
+	return func(c *Canvas) { c.reqW = screenunit.Px(w) }
 }
 
-func Height(h int) CanvasOption {
-	return func(c *Canvas) { c.Win.ReqHeight = h }
+// Height sets -height (a Tk distance).
+func Height(h any) CanvasOption {
+	return func(c *Canvas) { c.reqH = screenunit.Px(h) }
 }
 
 func Background(name string) CanvasOption {
@@ -122,11 +129,11 @@ func New(parent widget.Caregiver, name string, opts ...CanvasOption) *Canvas {
 	widget.InitBase(&c.Base, w, app)
 	w.Class = "Canvas"
 
-	// Canvas defaults.
-	c.Base.Background, _ = app.ColorCache().Get("white")
-	c.UpdateBorder()
-	c.Win.ReqWidth = 300
-	c.Win.ReqHeight = 200
+	// Canvas defaults (tkUnixDefault.h: -width 10c -height 7c,
+	// -highlightthickness 1, normal background).
+	c.HighlightWidth = 1
+	c.reqW = screenunit.Px("10c")
+	c.reqH = screenunit.Px("7c")
 
 	// Apply options.
 	for _, opt := range opts {
@@ -134,6 +141,12 @@ func New(parent widget.Caregiver, name string, opts ...CanvasOption) *Canvas {
 	}
 
 	c.inset = c.BorderWidth + c.HighlightWidth
+	// xOrigin is the canvas coordinate at the inner (inset) edge; Tk starts
+	// with canvas 0 at window pixel 0, underneath the border.
+	c.xOrigin, c.yOrigin = c.inset, c.inset
+	// The requested size includes the inset (CanvasWorldChanged in tkCanvas.c).
+	w.ReqWidth = c.reqW + 2*c.inset
+	w.ReqHeight = c.reqH + 2*c.inset
 
 	// Store display function reference for idle callback.
 	c.displayFunc = c.Display
@@ -239,9 +252,13 @@ func (c *Canvas) Display() {
 
 	// Draw 3D border if configured.
 	if c.Border != nil && c.BorderWidth > 0 && c.Relief != option.ReliefFlat {
+		hl := c.HighlightWidth
 		draw.Draw3DRectangle(d, w.Drawable(), gc, c.Border,
-			0, 0, w.Width, w.Height, c.BorderWidth, c.Relief)
+			hl, hl, w.Width-2*hl, w.Height-2*hl, c.BorderWidth, c.Relief)
 	}
+	// The highlight ring sits outside the border (focus colour or
+	// -highlightbackground).
+	c.DrawHighlightBorder(false, 0)
 
 	d.Flush()
 	c.redrawPending = false
@@ -324,6 +341,14 @@ func (c *Canvas) Destroy() {
 func (c *Canvas) Configure(opts ...CanvasOption) {
 	for _, opt := range opts {
 		opt(c)
+	}
+	if inset := c.BorderWidth + c.HighlightWidth; inset != c.inset {
+		c.xOrigin += inset - c.inset
+		c.yOrigin += inset - c.inset
+		c.inset = inset
+	}
+	if rw, rh := c.reqW+2*c.inset, c.reqH+2*c.inset; rw != c.Win.ReqWidth || rh != c.Win.ReqHeight {
+		geometry.GeometryRequest(c.Win, rw, rh)
 	}
 	c.scheduleRedraw()
 }

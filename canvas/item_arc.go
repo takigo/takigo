@@ -82,10 +82,10 @@ func (a *ArcItem) updateBBox() {
 func (a *ArcItem) Display(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID,
 	clipX, clipY, clipW, clipH, originX, originY int) {
 
-	x1 := int(a.coords[0]) - originX
-	y1 := int(a.coords[1]) - originY
-	x2 := int(a.coords[2]) - originX
-	y2 := int(a.coords[3]) - originY
+	x1 := drawableCoord(a.coords[0], originX)
+	y1 := drawableCoord(a.coords[1], originY)
+	x2 := drawableCoord(a.coords[2], originX)
+	y2 := drawableCoord(a.coords[3], originY)
 	if x1 > x2 {
 		x1, x2 = x2, x1
 	}

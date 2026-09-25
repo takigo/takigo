@@ -26,6 +26,9 @@ func bindEntry(e *Entry, app widget.AppContext) {
 			w.Height = ev.ConfigHeight
 			e.computeGeometry()
 			e.Display()
+			// Tk's EntryUpdateScrollbar runs on every redisplay, so the
+			// scrollbar learns the real visible fraction once laid out.
+			e.notifyScrollbar()
 		}
 	})
 

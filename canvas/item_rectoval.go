@@ -82,10 +82,10 @@ func (r *RectOvalItem) updateBBox() {
 func (r *RectOvalItem) Display(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID,
 	clipX, clipY, clipW, clipH, originX, originY int) {
 
-	x1 := int(r.coords[0]) - originX
-	y1 := int(r.coords[1]) - originY
-	x2 := int(r.coords[2]) - originX
-	y2 := int(r.coords[3]) - originY
+	x1 := drawableCoord(r.coords[0], originX)
+	y1 := drawableCoord(r.coords[1], originY)
+	x2 := drawableCoord(r.coords[2], originX)
+	y2 := drawableCoord(r.coords[3], originY)
 	if x1 > x2 {
 		x1, x2 = x2, x1
 	}

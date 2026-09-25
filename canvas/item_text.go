@@ -219,8 +219,8 @@ func (t *TextItem) Display(d platform.DisplayServer, drawable platform.DrawableI
 	drawOriginX := t.x + fax*cosA + fay*sinA
 	drawOriginY := t.y + fay*cosA - fax*sinA
 	ascent := float64(m.Ascent)
-	baseX := int(drawOriginX+ascent*sinA) - originX
-	baseY := int(drawOriginY+ascent*cosA) - originY
+	baseX := drawableCoord(drawOriginX+ascent*sinA, originX)
+	baseY := drawableCoord(drawOriginY+ascent*cosA, originY)
 
 	if af, ok := t.font.(interface {
 		DrawStringAngle(platform.DrawableID, int, int, float64, string, uint64, uint16, uint16, uint16)

@@ -367,13 +367,8 @@ func (m *Message) Display() {
 	}
 
 	inset := m.BorderWidth + m.HighlightWidth
-	availW := max(0, w.Width-2*inset-2*m.PadX)
-	availH := max(0, w.Height-2*inset-2*m.PadY)
-	frameX := inset + m.PadX
-	frameY := inset + m.PadY
-
 	// Anchor the text block within the available area.
-	textX, textY := widget.AnchorText(m.Anchor, frameX, frameY, availW, availH, m.msgWidth, m.msgHeight)
+	textX, textY := widget.ComputeAnchor(m.Anchor, w.Width, w.Height, inset, m.PadX, m.PadY, m.msgWidth, m.msgHeight)
 
 	metrics := m.Font.Metrics()
 	if df, ok := m.Font.(platform.DrawableFont); ok {

@@ -153,8 +153,8 @@ func (l *LineItem) Display(d platform.DisplayServer, drawable platform.DrawableI
 	points := make([]platform.Point, len(displayCoords)/2)
 	for i := 0; i < len(displayCoords)-1; i += 2 {
 		points[i/2] = platform.Point{
-			X: int16(displayCoords[i]) - int16(originX),
-			Y: int16(displayCoords[i+1]) - int16(originY),
+			X: int16(drawableCoord(displayCoords[i], originX)),
+			Y: int16(drawableCoord(displayCoords[i+1], originY)),
 		}
 	}
 
@@ -228,12 +228,12 @@ func (l *LineItem) drawArrow(d platform.DisplayServer, drawable platform.Drawabl
 	// right_shaft_edge → right_wing → tip. The shaft edge points at
 	// the backup distance ensure seamless connection with the thick line.
 	arrowPoints := []platform.Point{
-		{X: int16(tipX) - int16(originX), Y: int16(tipY) - int16(originY)},
-		{X: int16(tipX-ux*b+px*c) - int16(originX), Y: int16(tipY-uy*b+py*c) - int16(originY)},
-		{X: int16(tipX-ux*backup+px*hw) - int16(originX), Y: int16(tipY-uy*backup+py*hw) - int16(originY)},
-		{X: int16(tipX-ux*backup-px*hw) - int16(originX), Y: int16(tipY-uy*backup-py*hw) - int16(originY)},
-		{X: int16(tipX-ux*b-px*c) - int16(originX), Y: int16(tipY-uy*b-py*c) - int16(originY)},
-		{X: int16(tipX) - int16(originX), Y: int16(tipY) - int16(originY)},
+		drawablePoint(tipX, tipY, originX, originY),
+		drawablePoint(tipX-ux*b+px*c, tipY-uy*b+py*c, originX, originY),
+		drawablePoint(tipX-ux*backup+px*hw, tipY-uy*backup+py*hw, originX, originY),
+		drawablePoint(tipX-ux*backup-px*hw, tipY-uy*backup-py*hw, originX, originY),
+		drawablePoint(tipX-ux*b-px*c, tipY-uy*b-py*c, originX, originY),
+		drawablePoint(tipX, tipY, originX, originY),
 	}
 
 	d.FillPolygon(drawable, gc, arrowPoints, platform.PolygonNonconvex, platform.CoordModeOrigin)

@@ -528,9 +528,13 @@ func (s *Spinbox) Display() {
 
 	// Border.
 	if s.Border != nil && s.BorderWidth > 0 {
+		hl := s.HighlightWidth
 		draw.Draw3DRectangle(d, w.Drawable(), gc, s.Border,
-			0, 0, w.Width, w.Height, s.BorderWidth, s.Relief)
+			hl, hl, w.Width-2*hl, w.Height-2*hl, s.BorderWidth, s.Relief)
 	}
+	// The highlight ring sits outside the border (focus colour or
+	// -highlightbackground).
+	s.DrawHighlightBorder(s.HasFocus, 0)
 
 	// Draw text.
 	xftFont, isXft := s.Font.(platform.DrawableFont)

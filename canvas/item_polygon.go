@@ -105,8 +105,8 @@ func (p *PolygonItem) Display(d platform.DisplayServer, drawable platform.Drawab
 	points := make([]platform.Point, len(displayCoords)/2)
 	for i := 0; i < len(displayCoords)-1; i += 2 {
 		points[i/2] = platform.Point{
-			X: int16(displayCoords[i]) - int16(originX),
-			Y: int16(displayCoords[i+1]) - int16(originY),
+			X: int16(drawableCoord(displayCoords[i], originX)),
+			Y: int16(drawableCoord(displayCoords[i+1], originY)),
 		}
 	}
 

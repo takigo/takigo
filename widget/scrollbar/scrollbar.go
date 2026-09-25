@@ -100,7 +100,7 @@ func New(parent widget.Caregiver, name string, opts ...ScrollbarOption) *Scrollb
 		Orient:    Vertical,
 		First:     0,
 		Last:      1,
-		Width:     15,
+		Width:     11, // DEF_SCROLLBAR_WIDTH
 		ElementBW: 1,
 	}
 
@@ -121,16 +121,18 @@ func New(parent widget.Caregiver, name string, opts ...ScrollbarOption) *Scrollb
 		opt(s)
 	}
 
-	// Set requested size.
+	// TkpComputeScrollbarGeometry (tk/unix/tkUnixScrlbr.c): the thickness is
+	// -width plus the inset; the length leaves room for both arrows, whose
+	// length is thickness - 2*inset + 1.
+	inset := s.BorderWidth + s.HighlightWidth
+	s.arrowSize = s.Width + 1
+	thick := s.Width + 2*inset
+	length := 2 * (s.arrowSize + s.BorderWidth + inset)
 	if s.Orient == Vertical {
-		w.ReqWidth = s.Width + 2*s.BorderWidth
-		w.ReqHeight = 100
+		w.ReqWidth, w.ReqHeight = thick, length
 	} else {
-		w.ReqWidth = 100
-		w.ReqHeight = s.Width + 2*s.BorderWidth
+		w.ReqWidth, w.ReqHeight = length, thick
 	}
-
-	s.arrowSize = s.Width
 
 	if s.Background != nil {
 		w.BackgroundPixel = s.Background.Pixel
@@ -158,113 +160,97 @@ func (s *Scrollbar) Set(first, last float64) {
 	s.Display()
 }
 
-// computeGeometry calculates thumb pixel positions.
+// computeGeometry ports the slider part of TkpComputeScrollbarGeometry
+// (tk/unix/tkUnixScrlbr.c).
 func (s *Scrollbar) computeGeometry() {
 	w := s.Win
-	var totalLen int
-	if s.Orient == Vertical {
-		totalLen = w.Height
-	} else {
-		totalLen = w.Width
+	inset := s.BorderWidth + s.HighlightWidth
+	thick, totalLen := w.Width, w.Height
+	if s.Orient == Horizontal {
+		thick, totalLen = w.Height, w.Width
 	}
-
-	bw := s.BorderWidth
-	s.troughStart = bw + s.arrowSize
-	s.troughEnd = totalLen - bw - s.arrowSize
-	troughLen := s.troughEnd - s.troughStart
-
-	if troughLen < 1 {
-		troughLen = 1
-	}
-
-	s.thumbStart = s.troughStart + int(s.First*float64(troughLen))
-	s.thumbEnd = s.troughStart + int(s.Last*float64(troughLen))
-
-	minThumb := s.Width / 2
-	if minThumb < 6 {
-		minThumb = 6
-	}
-	if s.thumbEnd-s.thumbStart < minThumb {
-		s.thumbEnd = s.thumbStart + minThumb
-		if s.thumbEnd > s.troughEnd {
-			s.thumbEnd = s.troughEnd
-			s.thumbStart = s.thumbEnd - minThumb
-		}
-	}
+	const minSliderLength = 5 // MIN_SLIDER_LENGTH
+	s.arrowSize = thick - 2*inset + 1
+	fieldLength := max(0, totalLen-2*(s.arrowSize+inset))
+	first := int(float64(fieldLength) * s.First)
+	last := int(float64(fieldLength) * s.Last)
+	first = max(0, min(first, fieldLength-minSliderLength))
+	last = min(max(last, first+minSliderLength), fieldLength)
+	s.troughStart = s.arrowSize + inset
+	s.troughEnd = s.troughStart + fieldLength
+	s.thumbStart = first + s.troughStart
+	s.thumbEnd = last + s.troughStart
 }
 
-// Display draws the scrollbar.
+// Display ports TkpDisplayScrollbar: highlight ring, outer border, trough,
+// 3D triangle arrows and the slider, the active element drawn with the
+// active background.
 func (s *Scrollbar) Display() {
 	if s.Destroyed {
 		return
 	}
 	w := s.Win
-	if w.PlatformID == platform.WindowID(0) {
+	if w.PlatformID == platform.WindowID(0) || s.Border == nil || s.Background == nil {
 		return
 	}
-
 	d := w.Display.Server
 	gc := w.GC
-
 	s.computeGeometry()
 
-	// Trough background.
+	hl := s.HighlightWidth
+	inset := s.BorderWidth + hl
+	width := w.Width - 2*inset
+	if s.Orient == Horizontal {
+		width = w.Height - 2*inset
+	}
+	ebw := s.ElementBW
+	if ebw < 0 {
+		ebw = s.BorderWidth
+	}
+
+	d.SetForeground(gc, s.Background.Pixel)
+	d.FillRectangle(w.Drawable(), gc, 0, 0, uint(w.Width), uint(w.Height))
+	s.DrawHighlightBorder(false, 0)
+	draw.Draw3DRectangle(d, w.Drawable(), gc, s.Border,
+		hl, hl, w.Width-2*hl, w.Height-2*hl, s.BorderWidth, s.Relief)
 	if s.TroughColor != nil {
 		d.SetForeground(gc, s.TroughColor.Pixel)
 	}
-	d.FillRectangle(w.Drawable(), gc, 0, 0, uint(w.Width), uint(w.Height))
+	d.FillRectangle(w.Drawable(), gc, inset, inset,
+		uint(max(0, w.Width-2*inset)), uint(max(0, w.Height-2*inset)))
 
-	// Outer border.
-	if s.Border != nil && s.BorderWidth > 0 {
-		draw.Draw3DRectangle(d, w.Drawable(), gc, s.Border,
-			0, 0, w.Width, w.Height, s.BorderWidth, s.Relief)
+	activeBorder := s.Border
+	if ac, err := s.App.ColorCache().Get(widget.DefActiveBackground); err == nil {
+		activeBorder = draw.NewBorder(ac.Red, ac.Green, ac.Blue)
 	}
-
-	if s.Border == nil || s.Background == nil {
-		d.Flush()
-		return
+	borderFor := func(r region) *draw.Border {
+		if s.activeRegion == r {
+			return activeBorder
+		}
+		return s.Border
 	}
-
-	bw := s.BorderWidth
+	pt := func(x, y int) platform.Point { return platform.Point{X: int16(x), Y: int16(y)} }
+	al := s.arrowSize
+	var top, bottom []platform.Point
+	if s.Orient == Vertical {
+		top = []platform.Point{pt(inset-1, al+inset-1), pt(width+inset, al+inset-1), pt(width/2+inset, inset-1)}
+		y0 := w.Height - al - inset + 1
+		bottom = []platform.Point{pt(inset, y0), pt(width/2+inset, w.Height-inset), pt(width+inset, y0)}
+	} else {
+		top = []platform.Point{pt(al+inset-1, inset-1), pt(inset, width/2+inset), pt(al+inset-1, width+inset)}
+		x0 := w.Width - al - inset + 1
+		bottom = []platform.Point{pt(x0, inset-1), pt(x0, width+inset), pt(w.Width-inset, width/2+inset)}
+	}
+	draw.Fill3DPolygon(d, w.Drawable(), gc, borderFor(regionArrow1), top, ebw, option.ReliefRaised)
+	draw.Fill3DPolygon(d, w.Drawable(), gc, borderFor(regionArrow2), bottom, ebw, option.ReliefRaised)
 
 	if s.Orient == Vertical {
-		sbWidth := w.Width - 2*bw
-
-		// Arrow 1 (up).
-		draw.Draw3DRectangle(d, w.Drawable(), gc, s.Border,
-			bw, bw, sbWidth, s.arrowSize, s.ElementBW, option.ReliefRaised)
-		// Arrow 2 (down).
-		draw.Draw3DRectangle(d, w.Drawable(), gc, s.Border,
-			bw, w.Height-bw-s.arrowSize, sbWidth, s.arrowSize, s.ElementBW, option.ReliefRaised)
-		// Thumb.
-		if s.thumbEnd > s.thumbStart {
-			d.SetForeground(gc, s.Background.Pixel)
-			d.FillRectangle(w.Drawable(), gc, bw, s.thumbStart,
-				uint(sbWidth), uint(s.thumbEnd-s.thumbStart))
-			draw.Draw3DRectangle(d, w.Drawable(), gc, s.Border,
-				bw, s.thumbStart, sbWidth, s.thumbEnd-s.thumbStart,
-				s.ElementBW, option.ReliefRaised)
-		}
+		draw.Fill3DRectangle(d, w.Drawable(), gc, borderFor(regionThumb),
+			inset, s.thumbStart, width, s.thumbEnd-s.thumbStart, ebw, option.ReliefRaised)
 	} else {
-		sbHeight := w.Height - 2*bw
-
-		// Arrow 1 (left).
-		draw.Draw3DRectangle(d, w.Drawable(), gc, s.Border,
-			bw, bw, s.arrowSize, sbHeight, s.ElementBW, option.ReliefRaised)
-		// Arrow 2 (right).
-		draw.Draw3DRectangle(d, w.Drawable(), gc, s.Border,
-			w.Width-bw-s.arrowSize, bw, s.arrowSize, sbHeight, s.ElementBW, option.ReliefRaised)
-		// Thumb.
-		if s.thumbEnd > s.thumbStart {
-			d.SetForeground(gc, s.Background.Pixel)
-			d.FillRectangle(w.Drawable(), gc, s.thumbStart, bw,
-				uint(s.thumbEnd-s.thumbStart), uint(sbHeight))
-			draw.Draw3DRectangle(d, w.Drawable(), gc, s.Border,
-				s.thumbStart, bw, s.thumbEnd-s.thumbStart, sbHeight,
-				s.ElementBW, option.ReliefRaised)
-		}
+		draw.Fill3DRectangle(d, w.Drawable(), gc, borderFor(regionThumb),
+			s.thumbStart, inset, s.thumbEnd-s.thumbStart, width, ebw, option.ReliefRaised)
 	}
-
 	d.Flush()
 }
 
@@ -277,18 +263,10 @@ func (s *Scrollbar) hitTest(x, y int) region {
 		pos = x
 	}
 
-	bw := s.BorderWidth
-	var totalLen int
-	if s.Orient == Vertical {
-		totalLen = s.Win.Height
-	} else {
-		totalLen = s.Win.Width
-	}
-
-	if pos < bw+s.arrowSize {
+	if pos < s.troughStart {
 		return regionArrow1
 	}
-	if pos >= totalLen-bw-s.arrowSize {
+	if pos >= s.troughEnd {
 		return regionArrow2
 	}
 	if pos >= s.thumbStart && pos < s.thumbEnd {

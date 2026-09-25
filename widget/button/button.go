@@ -115,6 +115,11 @@ func BorderWidth(w int) ButtonOption {
 	return func(b *Button) { b.BorderWidth = w }
 }
 
+// HighlightThickness sets -highlightthickness (width of the focus ring).
+func HighlightThickness(w any) ButtonOption {
+	return func(b *Button) { b.HighlightWidth = screenunit.Px(w) }
+}
+
 // ReliefOpt sets the border relief.
 func ReliefOpt(r option.Relief) ButtonOption {
 	return func(b *Button) { b.Relief = r }
@@ -170,6 +175,9 @@ var ButtonCompoundOpt = CompoundOpt
 
 // ButtonBorderWidth is an alias for BorderWidth.
 var ButtonBorderWidth = BorderWidth
+
+// ButtonHighlightThickness is an alias for HighlightThickness.
+var ButtonHighlightThickness = HighlightThickness
 
 // ButtonReliefOpt is an alias for ReliefOpt.
 var ButtonReliefOpt = ReliefOpt
@@ -365,10 +373,6 @@ func (b *Button) Display() {
 
 	// Draw content (image and/or text).
 	inset := b.BorderWidth + b.HighlightWidth
-	availW := max(0, w.Width-2*inset-2*b.PadX)
-	availH := max(0, w.Height-2*inset-2*b.PadY)
-	frameX := inset + b.PadX
-	frameY := inset + b.PadY
 
 	// Shift content 1px down-right when pressed (Tk behavior).
 	pressOff := 0
@@ -380,17 +384,15 @@ func (b *Button) Display() {
 	hasText := b.Font != nil && b.Text != "" && fgCol != nil
 
 	if hasImg && hasText && b.Compound != widget.CompoundNone {
-		drawCompoundButton(b, w, frameX, frameY, availW, availH, bgPixel, fgCol, pressOff)
+		drawCompoundButton(b, w, bgPixel, fgCol, pressOff)
 	} else if hasImg {
 		imgW := b.Img.Width()
 		imgH := b.Img.Height()
-		ix, iy := widget.AnchorText(b.Anchor, inset, inset,
-			max(0, w.Width-2*inset), max(0, w.Height-2*inset), imgW, imgH)
+		ix, iy := widget.ComputeAnchor(b.Anchor, w.Width, w.Height, inset, 0, 0, imgW, imgH)
 		b.Img.Draw(w.Display.Server, w.Drawable(), gc,
 			w.Depth, 0, 0, imgW, imgH, ix+pressOff, iy+pressOff, bgPixel)
 	} else if hasText {
-		textX, textY := widget.AnchorText(b.Anchor, frameX, frameY,
-			availW, availH, b.textWidth, b.textHeight)
+		textX, textY := widget.ComputeAnchor(b.Anchor, w.Width, w.Height, inset, b.PadX, b.PadY, b.textWidth, b.textHeight)
 		textX += pressOff
 		textY += pressOff
 		m := b.Font.Metrics()
@@ -409,7 +411,7 @@ func (b *Button) Display() {
 
 // drawCompoundButton draws image and text in compound mode for a button.
 func drawCompoundButton(b *Button, w *window.Window,
-	frameX, frameY, availW, availH int, bgPixel uint64,
+	bgPixel uint64,
 	fgCol *color.ColorRef, pressOff int) {
 
 	imgW := b.Img.Width()
@@ -424,7 +426,8 @@ func drawCompoundButton(b *Button, w *window.Window,
 		contentW, contentH = max(imgW, b.textWidth), max(imgH, b.textHeight)
 	}
 
-	cx, cy := widget.AnchorText(b.Anchor, frameX, frameY, availW, availH, contentW, contentH)
+	inset := b.BorderWidth + b.HighlightWidth
+	cx, cy := widget.ComputeAnchor(b.Anchor, w.Width, w.Height, inset, b.PadX, b.PadY, contentW, contentH)
 	cx += pressOff
 	cy += pressOff
 

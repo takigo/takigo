@@ -84,8 +84,8 @@ func (im *ImageItem) Display(d platform.DisplayServer, drawable platform.Drawabl
 	w := im.image.Width()
 	h := im.image.Height()
 	ax, ay := anchorOffset(im.anchor, w, h)
-	drawX := int(im.x) + ax - originX
-	drawY := int(im.y) + ay - originY
+	drawX := drawableCoord(im.x, originX) + ax
+	drawY := drawableCoord(im.y, originY) + ay
 
 	// Get depth/bgPixel from the canvas window.
 	win := im.canvas.Win

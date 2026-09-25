@@ -644,9 +644,13 @@ func (e *Entry) Display() {
 
 	// Border.
 	if e.Border != nil && e.BorderWidth > 0 {
+		hl := e.HighlightWidth
 		draw.Draw3DRectangle(d, w.Drawable(), gc, e.Border,
-			0, 0, w.Width, w.Height, e.BorderWidth, e.Relief)
+			hl, hl, w.Width-2*hl, w.Height-2*hl, e.BorderWidth, e.Relief)
 	}
+	// The highlight ring sits outside the border (focus colour or
+	// -highlightbackground).
+	e.DrawHighlightBorder(e.HasFocus, 0)
 
 	dt := e.displayText()
 	xftFont, isXft := e.Font.(platform.DrawableFont)

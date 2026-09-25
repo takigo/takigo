@@ -101,8 +101,37 @@ func TryPx(v any) (int, error) {
 	}
 }
 
-// tryParseDistance parses a Tk-style distance string into pixels.
+// Float converts a Tk-style screen distance to unrounded pixels, as
+// Tk_GetDoublePixelsFromObj does for canvas coordinates. Panics on invalid
+// input like Px.
+func Float(v any) float64 {
+	switch val := v.(type) {
+	case int:
+		return float64(val)
+	case float64:
+		return val
+	case string:
+		f, err := parseDistance(val)
+		if err != nil {
+			panic(err)
+		}
+		return f
+	default:
+		panic(fmt.Errorf("screenunit: unsupported type %T", v))
+	}
+}
+
+// tryParseDistance parses a Tk-style distance string into rounded pixels.
 func tryParseDistance(s string) (int, error) {
+	f, err := parseDistance(s)
+	if err != nil {
+		return 0, err
+	}
+	return int(math.Round(f)), nil
+}
+
+// parseDistance parses a Tk-style distance string into unrounded pixels.
+func parseDistance(s string) (float64, error) {
 	s = strings.TrimSpace(s)
 	if s == "" {
 		return 0, fmt.Errorf("screenunit: empty string")
@@ -132,7 +161,7 @@ func tryParseDistance(s string) (int, error) {
 		if err != nil {
 			return 0, fmt.Errorf("screenunit: invalid distance %q: %v", s, err)
 		}
-		return int(math.Round(val)), nil
+		return val, nil
 	}
 
 	numStr = strings.TrimSpace(numStr)
@@ -147,6 +176,5 @@ func tryParseDistance(s string) (int, error) {
 
 	// Convert: value_in_mm * pixels_per_mm
 	// pixels_per_mm = screenWidthPx / screenWidthMM
-	pixels := val * multiplier * float64(screenWidthPx) / float64(screenWidthMM)
-	return int(math.Round(pixels)), nil
+	return val * multiplier * float64(screenWidthPx) / float64(screenWidthMM), nil
 }

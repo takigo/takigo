@@ -275,6 +275,31 @@ func AnchorText(a option.Anchor, frameX, frameY, frameW, frameH, textW, textH in
 	return x, y
 }
 
+// ComputeAnchor ports TkComputeAnchor (tk/generic/tkUtil.c): place an
+// innerW x innerH box in a winW x winH window with internal border inset.
+// padX/padY only apply to edge anchors; centred axes ignore them, and the
+// centring division truncates toward zero as in C.
+func ComputeAnchor(a option.Anchor, winW, winH, inset, padX, padY, innerW, innerH int) (int, int) {
+	var x, y int
+	switch a {
+	case option.AnchorNW, option.AnchorW, option.AnchorSW:
+		x = inset + padX
+	case option.AnchorNE, option.AnchorE, option.AnchorSE:
+		x = winW - inset - padX - innerW
+	default:
+		x = (winW-innerW-2*inset)/2 + inset
+	}
+	switch a {
+	case option.AnchorNW, option.AnchorN, option.AnchorNE:
+		y = inset + padY
+	case option.AnchorSW, option.AnchorS, option.AnchorSE:
+		y = winH - inset - padY - innerH
+	default:
+		y = (winH-innerH-2*inset)/2 + inset
+	}
+	return x, y
+}
+
 // CompoundSize returns the bounding-box width and height of a compound
 // image+text layout, given the layout mode, an optional image, and the
 // measured text size. A nil image degrades to the text size; empty text

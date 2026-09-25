@@ -382,13 +382,9 @@ func (r *Radiobutton) Display() {
 	img := r.Img
 	var contentX, contentY int
 	if img != nil {
-		contentX, contentY = widget.AnchorText(r.Anchor, inset, inset,
-			max(0, w.Width-2*inset), max(0, w.Height-2*inset),
-			r.indicatorSpace+img.Width(), img.Height())
+		contentX, contentY = widget.ComputeAnchor(r.Anchor, w.Width, w.Height, inset, 0, 0, r.indicatorSpace+img.Width(), img.Height())
 	} else {
-		contentX, contentY = widget.AnchorText(r.Anchor, inset+r.PadX, inset+r.PadY,
-			max(0, w.Width-2*inset-2*r.PadX), max(0, w.Height-2*inset-2*r.PadY),
-			r.indicatorSpace+r.textWidth, r.textHeight)
+		contentX, contentY = widget.ComputeAnchor(r.Anchor, w.Width, w.Height, inset, r.PadX, r.PadY, r.indicatorSpace+r.textWidth, r.textHeight)
 	}
 	contentX += r.indicatorSpace
 
