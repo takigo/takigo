@@ -38,14 +38,15 @@ type Scale struct {
 	SliderLength int
 	Width        int // trough cross-axis width
 	TickInterval float64
-	// Length sets the preferred length along the primary axis in pixels.
-	// 0 means use the default (200px).
+	// Length is -length: the long-axis size in pixels (default 100).
 	Length  int
 	Command func(float64)
 
 	// Interaction state.
 	dragging   bool
 	dragOffset int
+	active     bool // pointer over the slider (Tk's "active" state)
+	focused    bool
 
 	// Colors.
 	TroughColor *color.ColorRef
@@ -136,10 +137,13 @@ func New(parent widget.Caregiver, name string, opts ...ScaleOption) *Scale {
 		ShowValue:    true,
 		SliderLength: 30,
 		Width:        15,
+		Length:       100,
 	}
 	widget.InitBase(&s.Base, w, app)
 	w.Class = "Scale"
+	w.Flags |= window.FlagFocusable
 	s.BorderWidth = 1
+	s.HighlightWidth = 1
 	s.Relief = option.ReliefFlat
 
 	if tc, err := app.ColorCache().Get("#c3c3c3"); err == nil {
@@ -179,11 +183,23 @@ func (s *Scale) Get() float64 {
 	return s.Value
 }
 
+// roundToResolution ports TkRoundValueToResolution.
 func (s *Scale) roundToResolution(v float64) float64 {
-	if s.Resolution <= 0 {
+	r := s.Resolution
+	if r <= 0 {
 		return v
 	}
-	return math.Round(v/s.Resolution) * s.Resolution
+	d := v - s.From
+	tick := math.Floor(d / r)
+	rounded := r * tick
+	if rem := d - rounded; rem < 0 {
+		if rem <= -r/2 {
+			rounded = (tick - 1) * r
+		}
+	} else if rem >= r/2 {
+		rounded = (tick + 1) * r
+	}
+	return rounded + s.From
 }
 
 func (s *Scale) clampValue(v float64) float64 {
@@ -200,118 +216,153 @@ func (s *Scale) clampValue(v float64) float64 {
 	return v
 }
 
-// pixelRange returns the available pixel range for the slider.
-func (s *Scale) pixelRange() (start, length int) {
-	w := s.Win
-	inset := s.BorderWidth + 2
-	if s.Orient == Horizontal {
-		start = inset
-		length = w.Width - 2*inset - s.SliderLength
-	} else {
-		start = inset
-		length = w.Height - 2*inset - s.SliderLength
+// spacing is SPACING in tkScale.h.
+const spacing = 2
+
+func (s *Scale) inset() int { return s.HighlightWidth + s.BorderWidth }
+
+func (s *Scale) fontHeight() int {
+	if s.Font == nil {
+		return 0
 	}
-	if length < 1 {
-		length = 1
-	}
-	return
+	return s.Font.Metrics().Linespace() + spacing
 }
 
-// valueToPixel converts a value to a pixel position.
+// pixelRange is the travel of the slider centre (TkScaleValueToPixel).
+func (s *Scale) pixelRange() int {
+	size := s.Win.Width
+	if s.Orient == Vertical {
+		size = s.Win.Height
+	}
+	return size - s.SliderLength - 2*s.inset() - 2*s.BorderWidth
+}
+
+// valueToPixel ports TkScaleValueToPixel: the slider centre for value.
 func (s *Scale) valueToPixel(value float64) int {
-	start, pxRange := s.pixelRange()
-	vRange := s.To - s.From
-	if vRange == 0 {
-		return start
+	pr := s.pixelRange()
+	y := 0
+	if vr := s.To - s.From; vr != 0 {
+		y = int(math.Floor((value-s.From)*float64(pr)/vr + 0.5))
+		y = max(0, min(pr, y))
 	}
-	fraction := (value - s.From) / vRange
-	return start + int(fraction*float64(pxRange))
+	return y + s.SliderLength/2 + s.inset() + s.BorderWidth
 }
 
-// pixelToValue converts a pixel position to a value.
+// pixelToValue ports TkScalePixelToValue.
 func (s *Scale) pixelToValue(pixel int) float64 {
-	start, pxRange := s.pixelRange()
-	if pxRange <= 0 {
-		return s.From
+	pr := s.pixelRange()
+	if pr <= 0 {
+		return s.Value
 	}
-	fraction := float64(pixel-start) / float64(pxRange)
-	if fraction < 0 {
-		fraction = 0
-	}
-	if fraction > 1 {
-		fraction = 1
-	}
-	return s.From + fraction*(s.To-s.From)
+	f := float64(pixel-(s.SliderLength/2+s.inset()+s.BorderWidth)) / float64(pr)
+	f = max(0, min(1, f))
+	return s.roundToResolution(s.From + f*(s.To-s.From))
 }
 
-// hitTest returns "slider", "trough1", or "trough2" for a pixel position.
+// hitTest ports TkpScaleElement: "slider", "trough1", "trough2" or "".
 func (s *Scale) hitTest(x, y int) string {
-	var pos int
-	if s.Orient == Horizontal {
-		pos = x
-	} else {
+	g := s.layout()
+	pos := x
+	if s.Orient == Vertical {
+		if x < g.troughX || x >= g.troughX+2*s.BorderWidth+s.Width ||
+			y < s.inset() || y >= s.Win.Height-s.inset() {
+			return ""
+		}
 		pos = y
+	} else if y < g.troughY || y >= g.troughY+2*s.BorderWidth+s.Width ||
+		x < s.inset() || x >= s.Win.Width-s.inset() {
+		return ""
 	}
-	sliderPos := s.valueToPixel(s.Value)
-	if pos >= sliderPos && pos < sliderPos+s.SliderLength {
-		return "slider"
-	}
-	if pos < sliderPos {
+	first := s.valueToPixel(s.Value) - s.SliderLength/2
+	switch {
+	case pos < first:
 		return "trough1"
+	case pos < first+s.SliderLength:
+		return "slider"
 	}
 	return "trough2"
 }
 
-func (s *Scale) computeGeometry() {
-	w := s.Win
-	preferredLength := 200
-	if s.Length > 0 {
-		preferredLength = s.Length
-	}
-	if s.Orient == Horizontal {
-		w.ReqWidth = preferredLength
-		w.ReqHeight = s.Width + 4
-		if s.ShowValue {
-			if s.Font != nil {
-				m := s.Font.Metrics()
-				w.ReqHeight += m.Linespace() + 2
-			}
-		}
-		if s.TickInterval > 0 && s.Font != nil {
-			m := s.Font.Metrics()
-			w.ReqHeight += 5 + m.Linespace() + 2 // tick line + label
-		}
-		if s.Label != "" && s.Font != nil {
-			m := s.Font.Metrics()
-			w.ReqHeight += m.Linespace() + 2
-		}
-	} else {
-		w.ReqWidth = s.Width + 4
-		w.ReqHeight = preferredLength
-		if s.ShowValue {
-			if s.Font != nil {
-				valStr := s.formatValue(s.To)
-				valW := s.Font.MeasureString(valStr)
-				w.ReqWidth += valW + 4
-			}
-		}
-		if s.TickInterval > 0 && s.Font != nil {
-			valStr := s.formatValue(s.To)
-			valW := s.Font.MeasureString(valStr)
-			extra := 5 + valW + 4 // tick line + label
-			if extra > w.ReqWidth-s.Width-4 {
-				w.ReqWidth = s.Width + 4 + extra
-			}
-		}
-		if s.Label != "" && s.Font != nil {
-			lblW := s.Font.MeasureString(s.Label)
-			if lblW+4 > w.ReqWidth {
-				w.ReqWidth = lblW + 4
-			}
-		}
-	}
+// scaleLayout holds ComputeScaleGeometry's positions.
+type scaleLayout struct {
+	labelY, valueY, troughY, tickY          int // horizontal
+	tickRightX, valueRightX, troughX, labelX int // vertical
 }
 
+// layout ports ComputeScaleGeometry; it also returns the requested size.
+func (s *Scale) layout() scaleLayout {
+	g, _, _ := s.geometry()
+	return g
+}
+
+func (s *Scale) geometry() (g scaleLayout, reqW, reqH int) {
+	inset := s.inset()
+	fh := s.fontHeight()
+	if s.Orient == Horizontal {
+		y, extra := inset, 0
+		if s.Label != "" {
+			g.labelY = y + spacing
+			y += fh
+			extra = spacing
+		}
+		if s.ShowValue {
+			g.valueY = y + spacing
+			y += fh
+			extra = spacing
+		} else {
+			g.valueY = y
+		}
+		y += extra
+		g.troughY = y
+		y += s.Width + 2*s.BorderWidth
+		if s.TickInterval != 0 {
+			g.tickY = y + spacing
+			y += fh + spacing
+		}
+		return g, s.Length + 2*inset, y + inset
+	}
+	valuePixels, tickPixels, ascent := 0, 0, 0
+	if s.Font != nil {
+		valuePixels = max(s.Font.MeasureString(s.formatValue(s.From)), s.Font.MeasureString(s.formatValue(s.To)))
+		tickPixels = max(s.Font.MeasureString(s.formatTick(s.From)), s.Font.MeasureString(s.formatTick(s.To)))
+		ascent = s.Font.Metrics().Ascent
+	}
+	x := inset
+	switch {
+	case s.TickInterval != 0 && s.ShowValue:
+		g.tickRightX = x + spacing + tickPixels
+		g.valueRightX = g.tickRightX + valuePixels + ascent/2
+		x = g.valueRightX + spacing
+	case s.TickInterval != 0:
+		g.tickRightX = x + spacing + tickPixels
+		g.valueRightX = g.tickRightX
+		x = g.tickRightX + spacing
+	case s.ShowValue:
+		g.tickRightX = x
+		g.valueRightX = x + spacing + valuePixels
+		x = g.valueRightX + spacing
+	default:
+		g.tickRightX, g.valueRightX = x, x
+	}
+	g.troughX = x
+	x += 2*s.BorderWidth + s.Width
+	if s.Label != "" && s.Font != nil {
+		g.labelX = x + ascent/2
+		x = g.labelX + ascent/2 + s.Font.MeasureString(s.Label)
+	}
+	return g, x + inset, s.Length + 2*inset
+}
+
+func (s *Scale) computeGeometry() {
+	_, w, h := s.geometry()
+	s.Win.ReqWidth, s.Win.ReqHeight = w, h
+	s.Win.InternalBorderLeft = s.inset()
+	s.Win.InternalBorderRight = s.inset()
+	s.Win.InternalBorderTop = s.inset()
+	s.Win.InternalBorderBottom = s.inset()
+}
+
+// formatValue and formatTick stand in for Tk's ComputeFormat digits.
 func (s *Scale) formatValue(v float64) string {
 	if s.Resolution >= 1 {
 		return fmt.Sprintf("%.0f", v)
@@ -319,157 +370,196 @@ func (s *Scale) formatValue(v float64) string {
 	return fmt.Sprintf("%.1f", v)
 }
 
-// troughRect returns the trough rectangle position.
-func (s *Scale) troughRect() (x, y, w, h int) {
-	win := s.Win
-	inset := s.BorderWidth
-	if s.Orient == Horizontal {
-		ty := inset
-		if s.ShowValue && s.Font != nil {
-			m := s.Font.Metrics()
-			ty += m.Linespace() + 2
-		}
-		return inset, ty, win.Width - 2*inset, s.Width
+func (s *Scale) formatTick(v float64) string { return s.formatValue(v) }
+
+// ticks returns the tick values, thinned so the labels do not overlap as
+// in DisplayHorizontalScale/DisplayVerticalScale.
+func (s *Scale) ticks() []float64 {
+	interval := s.TickInterval
+	if interval == 0 || s.Font == nil {
+		return nil
 	}
-	tx := inset
-	return tx, inset, s.Width, win.Height - 2*inset
+	n := math.Abs((s.To - s.From) / interval)
+	var maxTicks float64
+	if s.Orient == Horizontal {
+		maxTicks = float64(s.Win.Width) / float64(max(1, s.Font.MeasureString(s.formatTick(s.From))))
+	} else {
+		maxTicks = float64(s.Win.Height) / float64(max(1, s.fontHeight()))
+	}
+	if n > maxTicks {
+		interval *= n / maxTicks
+	}
+	var out []float64
+	for v := s.From; ; v += interval {
+		v = s.roundToResolution(v)
+		if (s.To >= s.From && v > s.To) || (s.To < s.From && v < s.To) {
+			break
+		}
+		out = append(out, v)
+	}
+	return out
 }
 
-// Display draws the scale.
+// Display ports TkpDisplayScale (tk/unix/tkUnixScale.c).
 func (s *Scale) Display() {
 	if s.Destroyed {
 		return
 	}
 	w := s.Win
-	if w.PlatformID == platform.WindowID(0) {
+	if w.PlatformID == platform.WindowID(0) || w.Width <= 0 || w.Height <= 0 {
 		return
 	}
-
 	d := w.Display.Server
 	gc := w.GC
+	pm := d.CreatePixmap(w.Drawable(), uint(w.Width), uint(w.Height), uint(w.Depth))
+	defer d.FreePixmap(pm)
+	pix := platform.PixmapDrawable(pm)
 
-	// Background.
+	bg := uint64(0xd9d9d9)
 	if s.Background != nil {
-		d.SetForeground(gc, s.Background.Pixel)
+		bg = s.Background.Pixel
 	}
-	d.FillRectangle(w.Drawable(), gc, 0, 0, uint(w.Width), uint(w.Height))
+	bgBorder := draw.NewBorderFromPixel(bg)
+	d.SetForeground(gc, bg)
+	d.FillRectangle(pix, gc, 0, 0, uint(w.Width), uint(w.Height))
 
-	// Trough.
-	tx, ty, tw, th := s.troughRect()
-	if s.TroughColor != nil {
-		d.SetForeground(gc, s.TroughColor.Pixel)
-		d.FillRectangle(w.Drawable(), gc, tx, ty, uint(tw), uint(th))
+	g := s.layout()
+	fg := uint64(0)
+	if s.Foreground != nil {
+		fg = s.Foreground.Pixel
 	}
-	if s.Border != nil {
-		draw.Draw3DRectangle(d, w.Drawable(), gc, s.Border,
-			tx, ty, tw, th, 1, option.ReliefSunken)
+	var m fontMetrics
+	df, _ := s.Font.(platform.DrawableFont)
+	if s.Font != nil {
+		fm := s.Font.Metrics()
+		m = fontMetrics{fm.Ascent, fm.Descent}
 	}
-
-	// Slider.
-	sliderPos := s.valueToPixel(s.Value)
-	if s.Orient == Horizontal {
-		sliderX := sliderPos
-		sliderY := ty
-		sliderW := s.SliderLength
-		sliderH := th
-		if s.Background != nil {
-			d.SetForeground(gc, s.Background.Pixel)
-			d.FillRectangle(w.Drawable(), gc, sliderX, sliderY,
-				uint(sliderW), uint(sliderH))
+	drawText := func(x, y int, str string) {
+		if df != nil {
+			r, gg, b := uint16(fg>>16&0xff)<<8, uint16(fg>>8&0xff)<<8, uint16(fg&0xff)<<8
+			df.DrawString(pix, x, y, str, fg, r, gg, b)
 		}
-		if s.Border != nil {
-			draw.Draw3DRectangle(d, w.Drawable(), gc, s.Border,
-				sliderX, sliderY, sliderW, sliderH, 2, option.ReliefRaised)
+	}
+	inset := s.inset()
+	bw := s.BorderWidth
+	sliderBorder := bgBorder
+	if s.active {
+		sliderBorder = draw.NewBorderFromPixel(s.activeBg())
+	}
+	shadow := max(1, bw/2)
+	trough := uint64(0xc3c3c3)
+	if s.TroughColor != nil {
+		trough = s.TroughColor.Pixel
+	}
+
+	if s.Orient == Horizontal {
+		// DisplayHorizontalValue: centred on the value's pixel, kept inside.
+		hval := func(v float64, top int, str string) {
+			if s.Font == nil {
+				return
+			}
+			width := s.Font.MeasureString(str)
+			x := s.valueToPixel(v) - width/2
+			if x < inset+spacing {
+				x = inset + spacing
+			}
+			if x+width >= w.Width-inset {
+				x = w.Width - inset - spacing - width
+			}
+			drawText(x, top+m.ascent, str)
+		}
+		for _, t := range s.ticks() {
+			hval(t, g.tickY, s.formatTick(t))
+		}
+		if s.ShowValue {
+			hval(s.Value, g.valueY, s.formatValue(s.Value))
+		}
+		y := g.troughY
+		draw.Draw3DRectangle(d, pix, gc, bgBorder, inset, y, w.Width-2*inset, s.Width+2*bw, bw, option.ReliefSunken)
+		d.SetForeground(gc, trough)
+		d.FillRectangle(pix, gc, inset+bw, y+bw, uint(w.Width-2*inset-2*bw), uint(s.Width))
+		half := s.SliderLength / 2
+		x := s.valueToPixel(s.Value) - half
+		y += bw
+		height := s.Width
+		draw.Draw3DRectangle(d, pix, gc, sliderBorder, x, y, 2*half, height, shadow, option.ReliefRaised)
+		x += shadow
+		y += shadow
+		half -= shadow
+		height -= 2 * shadow
+		draw.Fill3DRectangle(d, pix, gc, sliderBorder, x, y, half, height, shadow, option.ReliefRaised)
+		draw.Fill3DRectangle(d, pix, gc, sliderBorder, x+half, y, half, height, shadow, option.ReliefRaised)
+		if s.Label != "" {
+			drawText(inset+m.ascent/2, g.labelY+m.ascent, s.Label)
 		}
 	} else {
-		sliderX := tx
-		sliderY := sliderPos
-		sliderW := tw
-		sliderH := s.SliderLength
-		if s.Background != nil {
-			d.SetForeground(gc, s.Background.Pixel)
-			d.FillRectangle(w.Drawable(), gc, sliderX, sliderY,
-				uint(sliderW), uint(sliderH))
-		}
-		if s.Border != nil {
-			draw.Draw3DRectangle(d, w.Drawable(), gc, s.Border,
-				sliderX, sliderY, sliderW, sliderH, 2, option.ReliefRaised)
-		}
-	}
-
-	// Tick marks and labels.
-	if s.TickInterval > 0 && s.Font != nil && s.Foreground != nil {
-		if df, ok := s.Font.(platform.DrawableFont); ok {
-			m := s.Font.Metrics()
-			_, ty, tw2, th := s.troughRect()
-			vRange := s.To - s.From
-			if vRange != 0 && s.TickInterval > 0 {
-				_, pxRange := s.pixelRange()
-				pxStart, _ := s.pixelRange()
-				if s.Orient == Horizontal {
-					tickY := ty + th + 2
-					for tv := s.From; tv <= s.To+s.TickInterval*0.001; tv += s.TickInterval {
-						px := pxStart + int((tv-s.From)/vRange*float64(pxRange)) + s.SliderLength/2
-						d.SetForeground(gc, s.Foreground.Pixel)
-						d.DrawLine(w.Drawable(), gc, px, tickY, px, tickY+4)
-						label := s.formatValue(tv)
-						lw := s.Font.MeasureString(label)
-						df.DrawString(w.Drawable(), px-lw/2, tickY+5+m.Ascent, label,
-							s.Foreground.Pixel, s.Foreground.Red, s.Foreground.Green, s.Foreground.Blue)
-					}
-				} else {
-					tickX := s.BorderWidth + tw2 + 2
-					for tv := s.From; tv <= s.To+s.TickInterval*0.001; tv += s.TickInterval {
-						py := pxStart + int((tv-s.From)/vRange*float64(pxRange)) + s.SliderLength/2
-						d.SetForeground(gc, s.Foreground.Pixel)
-						d.DrawLine(w.Drawable(), gc, tickX, py, tickX+4, py)
-						label := s.formatValue(tv)
-						df.DrawString(w.Drawable(), tickX+6, py+m.Ascent/2, label,
-							s.Foreground.Pixel, s.Foreground.Red, s.Foreground.Green, s.Foreground.Blue)
-					}
-				}
+		// DisplayVerticalValue: right-aligned, centred on the value's pixel.
+		vval := func(v float64, right int, str string) {
+			if s.Font == nil {
+				return
 			}
-		}
-	}
-
-	// Value text.
-	if s.ShowValue && s.Font != nil && s.Foreground != nil {
-		valStr := s.formatValue(s.Value)
-		if df, ok := s.Font.(platform.DrawableFont); ok {
-			m := s.Font.Metrics()
-			if s.Orient == Horizontal {
-				valW := s.Font.MeasureString(valStr)
-				vx := sliderPos + s.SliderLength/2 - valW/2
-				vy := s.BorderWidth + m.Ascent
-				df.DrawString(w.Drawable(), vx, vy, valStr,
-					s.Foreground.Pixel, s.Foreground.Red, s.Foreground.Green, s.Foreground.Blue)
-			} else {
-				vx := tx + tw + 4
-				vy := sliderPos + s.SliderLength/2 + m.Ascent/2
-				df.DrawString(w.Drawable(), vx, vy, valStr,
-					s.Foreground.Pixel, s.Foreground.Red, s.Foreground.Green, s.Foreground.Blue)
+			y := s.valueToPixel(v) + m.ascent/2
+			width := s.Font.MeasureString(str)
+			if y-m.ascent < inset+spacing {
+				y = inset + spacing + m.ascent
 			}
-		}
-	}
-
-	// Label text.
-	if s.Label != "" && s.Font != nil && s.Foreground != nil {
-		if df, ok := s.Font.(platform.DrawableFont); ok {
-			m := s.Font.Metrics()
-			if s.Orient == Horizontal {
-				_, _, _, troughH := s.troughRect()
-				ly := s.BorderWidth + troughH
-				if s.ShowValue {
-					ly += m.Linespace() + 2
-				}
-				ly += m.Ascent + 2
-				df.DrawString(w.Drawable(), s.BorderWidth+4, ly, s.Label,
-					s.Foreground.Pixel, s.Foreground.Red, s.Foreground.Green, s.Foreground.Blue)
+			if y+m.descent > w.Height-inset-spacing {
+				y = w.Height - inset - spacing - m.descent
 			}
+			drawText(right-width, y, str)
+		}
+		for _, t := range s.ticks() {
+			vval(t, g.tickRightX, s.formatTick(t))
+		}
+		if s.ShowValue {
+			vval(s.Value, g.valueRightX, s.formatValue(s.Value))
+		}
+		draw.Draw3DRectangle(d, pix, gc, bgBorder, g.troughX, inset, s.Width+2*bw, w.Height-2*inset, bw, option.ReliefSunken)
+		d.SetForeground(gc, trough)
+		d.FillRectangle(pix, gc, g.troughX+bw, inset+bw, uint(s.Width), uint(w.Height-2*inset-2*bw))
+		half := s.SliderLength / 2
+		width := s.Width
+		x := g.troughX + bw
+		y := s.valueToPixel(s.Value) - half
+		draw.Draw3DRectangle(d, pix, gc, sliderBorder, x, y, width, 2*half, shadow, option.ReliefRaised)
+		x += shadow
+		y += shadow
+		width -= 2 * shadow
+		half -= shadow
+		draw.Fill3DRectangle(d, pix, gc, sliderBorder, x, y, width, half, shadow, option.ReliefRaised)
+		draw.Fill3DRectangle(d, pix, gc, sliderBorder, x, y+half, width, half, shadow, option.ReliefRaised)
+		if s.Label != "" {
+			drawText(g.labelX, inset+3*m.ascent/2, s.Label)
 		}
 	}
 
+	hl := s.HighlightWidth
+	if s.Relief != option.ReliefFlat {
+		draw.Draw3DRectangle(d, pix, gc, bgBorder, hl, hl, w.Width-2*hl, w.Height-2*hl, bw, s.Relief)
+	}
+	if hl > 0 {
+		pixel := bg
+		if s.focused && s.HighlightColor != nil {
+			pixel = s.HighlightColor.Pixel
+		} else if s.HighlightBackground != nil {
+			pixel = s.HighlightBackground.Pixel
+		}
+		d.SetForeground(gc, pixel)
+		for i := 0; i < hl; i++ {
+			d.DrawRectangle(pix, gc, i, i, uint(w.Width-1-2*i), uint(w.Height-1-2*i))
+		}
+	}
+	d.CopyArea(pix, w.Drawable(), gc, 0, 0, uint(w.Width), uint(w.Height), 0, 0)
 	d.Flush()
+}
+
+type fontMetrics struct{ ascent, descent int }
+
+func (s *Scale) activeBg() uint64 {
+	if c, err := s.App.ColorCache().Get(widget.DefActiveBackground); err == nil {
+		return c.Pixel
+	}
+	return 0xececec
 }
 
 // Configure applies options.
@@ -580,9 +670,19 @@ func bindScale(s *Scale, app widget.AppContext) {
 		s.dragging = false
 	})
 
-	// Motion (drag).
-	app.Dispatcher().Bind(w.PlatformID, event.MotionMask, func(ev *event.Event) {
-		if !s.dragging {
+	app.Dispatcher().Bind(w.PlatformID, event.FocusChangeMask, func(ev *event.Event) {
+		s.focused = ev.Type == event.FocusInType
+		s.Display()
+	})
+
+	// Motion: scale.tcl's tk::ScaleActivate, then drag.
+	app.Dispatcher().Bind(w.PlatformID, event.MotionMask|event.LeaveMask, func(ev *event.Event) {
+		active := ev.Type == event.MotionType && (s.dragging || s.hitTest(ev.X, ev.Y) == "slider")
+		if active != s.active {
+			s.active = active
+			s.Display()
+		}
+		if ev.Type != event.MotionType || !s.dragging {
 			return
 		}
 		var pos int

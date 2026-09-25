@@ -47,9 +47,10 @@ func main() {
 	grid.Grid(btns, grid.Row(3), grid.Column(0), grid.ColumnSpan(3), grid.Sticky(grid.EW))
 
 	// Variables
-	sizeVar := widget.NewVariable("12")
-	colorVar := widget.NewVariable("red")
-	alignVar := widget.NewVariable("top")
+	// The Tcl variables start unset, which reads as "".
+	sizeVar := widget.NewVariable("")
+	colorVar := widget.NewVariable("")
+	alignVar := widget.NewVariable("")
 	vars["size"] = sizeVar
 	vars["color"] = colorVar
 	vars["align"] = alignVar
@@ -110,6 +111,7 @@ func main() {
 			radiobutton.Text(c),
 			radiobutton.Value(colorName),
 			radiobutton.Var(colorVar),
+			radiobutton.Anchor(option.AnchorW),
 			radiobutton.TristateValueOpt("multi"),
 			radiobutton.Command(func() {
 				col, err := app.ColorCache().Get(colorName)
@@ -124,9 +126,9 @@ func main() {
 
 	l := label.New(right, "l", label.Text("Label"),
 		label.Bitmap("questhead"),
-		label.CompoundOpt(widget.CompoundTop))
-	// $w.right.l configure -width [winfo reqwidth $w.right.l] -compound top
-	// $w.right.l configure -height [winfo reqheight $w.right.l]
+		label.CompoundOpt(widget.CompoundLeft))
+	l.Apply(label.Width(l.Win.ReqWidth), label.CompoundOpt(widget.CompoundTop))
+	l.Apply(label.Height(l.Win.ReqHeight))
 
 	// Update center label compound when alignment changes.
 	alignVar.OnChange(func(_, v string) {

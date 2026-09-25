@@ -48,7 +48,7 @@ func main() {
 			menubutton.Text(text),
 			menubutton.UnderlineOpt(0),
 			menubutton.DirectionOpt(dir),
-			menubutton.IndicatorOnOpt(false),
+			menubutton.Relief(option.ReliefRaised),
 		)
 		m := menu.New(mb, "m")
 		m.AddCommand(text+" menu: first item", func() {

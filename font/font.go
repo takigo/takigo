@@ -236,3 +236,20 @@ func parseSimple(desc string) (Attributes, error) {
 
 	return attrs, nil
 }
+
+// Underline ports the Xft font's underlinePos/underlineHeight
+// (tk/unix/tkUnixRFont.c InitFont): half the descent below the baseline,
+// a third of the width of "I" thick, kept inside the descent.
+func Underline(f Font) (pos, height int) {
+	m := f.Metrics()
+	pos = m.Descent / 2
+	height = max(1, f.MeasureString("I")/3)
+	if height+pos > m.Descent {
+		height = m.Descent - pos
+		if height == 0 {
+			pos--
+			height = 1
+		}
+	}
+	return pos, height
+}

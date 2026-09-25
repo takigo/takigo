@@ -403,12 +403,11 @@ func (c *Checkbutton) Display() {
 		if selected {
 			btnRelief = option.ReliefSunken
 		}
-		bw := 2
 		border := c.Border
 		if border == nil {
 			border = draw.NewBorderFromPixel(widgetBg)
 		}
-		draw.Draw3DRectangle(d, w.Drawable(), gc, border, hlw, hlw, w.Width-2*hlw, w.Height-2*hlw, bw, btnRelief)
+		draw.Draw3DRectangle(d, w.Drawable(), gc, border, hlw, hlw, w.Width-2*hlw, w.Height-2*hlw, c.BorderWidth, btnRelief)
 	} else if c.Border != nil && c.BorderWidth > 0 {
 		draw.Draw3DRectangle(d, w.Drawable(), gc, c.Border,
 			hlw, hlw, w.Width-2*hlw, w.Height-2*hlw, c.BorderWidth, c.Relief)
@@ -438,9 +437,6 @@ func (c *Checkbutton) Display() {
 	}
 
 	inset := c.BorderWidth + c.HighlightWidth
-	if !c.IndicatorOn {
-		inset = 2 + c.HighlightWidth
-	}
 	img := c.activeImage()
 	var contentX, contentY int
 	if img != nil {

@@ -59,7 +59,7 @@ func main() {
 
 	// Create initial polygon and line items with dummy coords.
 	c.CreatePolygon([]float64{0, 0, 1, 1, 2, 2},
-		canvas.FillColor("deepskyblue"), canvas.Tags("poly"))
+		canvas.FillColor("DeepSkyBlue3"), canvas.Tags("poly"))
 	c.CreateLine([]float64{0, 0, 1, 1, 2, 2, 0, 0},
 		canvas.OutlineColor("black"), canvas.Tags("line"))
 

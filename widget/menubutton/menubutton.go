@@ -10,8 +10,10 @@ import (
 	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/event"
+	"github.com/msorc/takigo/font"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/menu"
 	"github.com/msorc/takigo/window"
@@ -36,8 +38,10 @@ type Menubutton struct {
 	Direction   Direction
 	Anchor      option.Anchor
 	Underline   int  // index of underlined character for Alt+letter, -1=none
-	IndicatorOn bool // whether to draw the dropdown arrow indicator
-	OptionMenu  bool // draw a horizontal rectangle indicator instead of triangle
+	IndicatorOn bool // -indicatoron: draw the raised option-menu indicator
+
+	indicatorWidth, indicatorHeight int
+	OptionMenu                      bool // draw a horizontal rectangle indicator instead of triangle
 
 	// Active colors.
 	ActiveBg *color.ColorRef
@@ -61,6 +65,9 @@ func PadY(p int) MenubuttonOption               { return func(mb *Menubutton) { 
 func UnderlineOpt(i int) MenubuttonOption       { return func(mb *Menubutton) { mb.Underline = i } }
 func IndicatorOnOpt(on bool) MenubuttonOption   { return func(mb *Menubutton) { mb.IndicatorOn = on } }
 func OptionMenuOpt(on bool) MenubuttonOption    { return func(mb *Menubutton) { mb.OptionMenu = on } }
+
+// Relief sets -relief.
+func Relief(r option.Relief) MenubuttonOption { return func(mb *Menubutton) { mb.Relief = r } }
 
 func Background(name string) MenubuttonOption {
 	return func(mb *Menubutton) {
@@ -107,6 +114,9 @@ var MenubuttonPadY = PadY
 // MenubuttonUnderlineOpt is an alias for UnderlineOpt.
 var MenubuttonUnderlineOpt = UnderlineOpt
 
+// MenubuttonRelief is an alias for Relief.
+var MenubuttonRelief = Relief
+
 // MenubuttonIndicatorOnOpt is an alias for IndicatorOnOpt.
 var MenubuttonIndicatorOnOpt = IndicatorOnOpt
 
@@ -126,17 +136,17 @@ func New(parent widget.Caregiver, name string, opts ...MenubuttonOption) *Menubu
 	window.MakeWindowExist(w)
 
 	mb := &Menubutton{
-		Direction:   Below,
-		Anchor:      option.AnchorCenter,
-		Underline:   -1,
-		IndicatorOn: true,
+		Direction: Below,
+		Anchor:    option.AnchorCenter,
+		Underline: -1,
 	}
 	widget.InitBase(&mb.Base, w, app)
 	w.Class = "Menubutton"
-	mb.BorderWidth = widget.DefBorderWidth
-	mb.Relief = option.ReliefRaised
-	mb.PadX = 4
-	mb.PadY = 2
+	// tkUnixDefault.h DEF_MENUBUTTON_*.
+	mb.BorderWidth = 1
+	mb.Relief = option.ReliefFlat
+	mb.PadX = screenunit.Px("4p")
+	mb.PadY = screenunit.Px("3p")
 
 	// Active colors.
 	if ac, err := app.ColorCache().Get(widget.DefActiveBackground); err == nil {
@@ -149,6 +159,13 @@ func New(parent widget.Caregiver, name string, opts ...MenubuttonOption) *Menubu
 	for _, opt := range opts {
 		opt(mb)
 	}
+	if mb.OptionMenu {
+		// tk_optionMenu (library/optMenu.tcl).
+		mb.IndicatorOn = true
+		mb.Relief = option.ReliefRaised
+		mb.HighlightWidth = 1
+		mb.Anchor = option.AnchorCenter
+	}
 
 	mb.computeGeometry()
 
@@ -160,25 +177,29 @@ func New(parent widget.Caregiver, name string, opts ...MenubuttonOption) *Menubu
 	return mb
 }
 
+// computeGeometry ports TkpComputeMenuButtonGeometry (tkUnixMenubu.c) for
+// text menubuttons; the indicator's size follows the screen density.
 func (mb *Menubutton) computeGeometry() {
 	if mb.Font == nil {
 		return
 	}
 	mb.textWidth = mb.Font.MeasureString(mb.Text)
+	mb.textHeight = mb.Font.Metrics().Linespace()
+	width := mb.textWidth + 2*mb.PadX
+	height := mb.textHeight + 2*mb.PadY
+	mb.indicatorWidth, mb.indicatorHeight = 0, 0
 	if mb.IndicatorOn {
-		if mb.OptionMenu {
-			mb.textWidth += 18 // space for option-menu rectangle indicator
-		} else {
-			mb.textWidth += 12 // space for dropdown arrow
-		}
+		dpi := screenunit.DPI()
+		mb.indicatorHeight = int(17 * dpi / 254)
+		mb.indicatorWidth = int(40*dpi/254) + 2*mb.indicatorHeight
+		width += mb.indicatorWidth
 	}
-	m := mb.Font.Metrics()
-	mb.textHeight = m.Linespace()
-
 	inset := mb.BorderWidth + mb.HighlightWidth
 	w := mb.Win
-	w.ReqWidth = mb.textWidth + 2*mb.PadX + 2*inset
-	w.ReqHeight = mb.textHeight + 2*mb.PadY + 2*inset
+	w.ReqWidth = width + 2*inset
+	w.ReqHeight = height + 2*inset
+	w.InternalBorderLeft, w.InternalBorderRight = inset, inset
+	w.InternalBorderTop, w.InternalBorderBottom = inset, inset
 }
 
 // PostMenu posts the associated menu.
@@ -238,60 +259,52 @@ func (mb *Menubutton) Display() {
 		fgCol = mb.ActiveFg
 	}
 
-	// Fill background.
+	// TkpDisplayMenuButton: background, text, indicator, then the border
+	// and highlight on top.
 	d.SetForeground(gc, bgPixel)
 	d.FillRectangle(w.Drawable(), gc, 0, 0, uint(w.Width), uint(w.Height))
+	border := draw.NewBorderFromPixel(bgPixel)
+	inset := mb.BorderWidth + mb.HighlightWidth
 
-	// Border.
-	border := mb.Border
-	if mb.State == widget.StateActive && mb.ActiveBg != nil {
-		border = draw.NewBorder(mb.ActiveBg.Red, mb.ActiveBg.Green, mb.ActiveBg.Blue)
-	}
-	if border != nil && mb.BorderWidth > 0 {
-		draw.Draw3DRectangle(d, w.Drawable(), gc, border,
-			0, 0, w.Width, w.Height, mb.BorderWidth, mb.Relief)
-	}
-
-	// Text.
-	if mb.Font != nil && mb.Text != "" && fgCol != nil {
-		inset := mb.BorderWidth + mb.HighlightWidth
+	if mb.Font != nil && fgCol != nil {
 		m := mb.Font.Metrics()
-		textX := inset + mb.PadX
-		textY := inset + mb.PadY + m.Ascent
-
-		if df, ok := mb.Font.(platform.DrawableFont); ok {
-			df.DrawString(w.Drawable(), textX, textY, mb.Text,
+		x, y := widget.ComputeAnchor(mb.Anchor, w.Width, w.Height, inset, mb.PadX, mb.PadY,
+			mb.textWidth+mb.indicatorWidth, mb.textHeight)
+		if df, ok := mb.Font.(platform.DrawableFont); ok && mb.Text != "" {
+			df.DrawString(w.Drawable(), x, y+m.Ascent, mb.Text,
 				fgCol.Pixel, fgCol.Red, fgCol.Green, fgCol.Blue)
-
-			// Draw underline for Alt+letter mnemonic.
-			if mb.Underline >= 0 && mb.Underline < len(mb.Text) {
-				prefix := mb.Text[:mb.Underline]
-				ch := string([]rune(mb.Text)[mb.Underline])
-				ulX := textX + mb.Font.MeasureString(prefix)
-				ulW := mb.Font.MeasureString(ch)
-				ulY := textY + 2
+			if mb.Underline >= 0 && mb.Underline < len([]rune(mb.Text)) {
+				runes := []rune(mb.Text)
+				ulX := x + mb.Font.MeasureString(string(runes[:mb.Underline]))
+				ulW := mb.Font.MeasureString(string(runes[mb.Underline]))
 				d.SetForeground(gc, fgCol.Pixel)
-				d.DrawLine(w.Drawable(), gc, ulX, ulY, ulX+ulW, ulY)
+				ulPos, ulH := font.Underline(mb.Font)
+				d.FillRectangle(w.Drawable(), gc, ulX, y+m.Ascent+ulPos, uint(ulW), uint(ulH))
 			}
+		}
+	}
 
-			// Draw indicator.
-			if mb.IndicatorOn {
-				if mb.OptionMenu {
-					// Horizontal rectangle indicator (option-menu style).
-					rectW := 10
-					rectH := 3
-					rectX := w.Width - inset - mb.PadX - rectW - 4
-					rectY := textY - m.Ascent/2 - rectH/2
-					d.SetForeground(gc, fgCol.Pixel)
-					d.FillRectangle(w.Drawable(), gc, rectX, rectY, uint(rectW), uint(rectH))
-				} else {
-					// Dropdown triangle.
-					triX := w.Width - inset - mb.PadX - 10
-					triY := textY - m.Ascent/2
-					df.DrawString(w.Drawable(), triX, triY+m.Ascent, "\u25bc",
-						fgCol.Pixel, fgCol.Red, fgCol.Green, fgCol.Blue)
-				}
-			}
+	if mb.IndicatorOn {
+		ibw := max(1, (mb.indicatorHeight+1)/3)
+		draw.Fill3DRectangle(d, w.Drawable(), gc, border,
+			w.Width-inset-mb.indicatorWidth+mb.indicatorHeight,
+			(w.Height-mb.indicatorHeight)/2,
+			mb.indicatorWidth-2*mb.indicatorHeight, mb.indicatorHeight, ibw, option.ReliefRaised)
+	}
+
+	hl := mb.HighlightWidth
+	if mb.Relief != option.ReliefFlat {
+		draw.Draw3DRectangle(d, w.Drawable(), gc, border, hl, hl,
+			w.Width-2*hl, w.Height-2*hl, mb.BorderWidth, mb.Relief)
+	}
+	if hl > 0 {
+		pixel := bgPixel
+		if mb.HighlightBackground != nil {
+			pixel = mb.HighlightBackground.Pixel
+		}
+		d.SetForeground(gc, pixel)
+		for i := 0; i < hl; i++ {
+			d.DrawRectangle(w.Drawable(), gc, i, i, uint(w.Width-1-2*i), uint(w.Height-1-2*i))
 		}
 	}
 

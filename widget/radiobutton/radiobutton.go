@@ -280,11 +280,7 @@ func (r *Radiobutton) computeGeometry() {
 		avg = r.Font.MeasureString("0")
 	}
 
-	bw := r.BorderWidth
-	if !r.IndicatorOn {
-		bw = 2 // button-mode always uses 2px border
-	}
-	inset := bw + r.HighlightWidth
+	inset := r.BorderWidth + r.HighlightWidth
 	img := r.Img
 	var width, height int
 	r.indicatorSpace = 0
@@ -359,26 +355,28 @@ func (r *Radiobutton) Display() {
 	// Draw border (inset by highlight width so highlight ring is outermost).
 	hlw := r.HighlightWidth
 	if !r.IndicatorOn {
-		// When indicator is off, render as a toggle button: raised or sunken.
+		// TkpDisplayButton: selected -> sunken on -selectcolor, otherwise
+		// -offrelief (raised by default).
 		btnRelief := option.ReliefRaised
-		if selected {
-			btnRelief = option.ReliefSunken
-		}
-		bw := 2
 		border := r.Border
 		if border == nil {
 			border = draw.NewBorderFromPixel(bgPixel)
 		}
-		draw.Draw3DRectangle(d, w.Drawable(), gc, border, hlw, hlw, w.Width-2*hlw, w.Height-2*hlw, bw, btnRelief)
+		if selected {
+			btnRelief = option.ReliefSunken
+			if r.SelectColor != nil {
+				border = draw.NewBorderFromPixel(r.SelectColor.Pixel)
+				d.SetForeground(gc, border.BgPixel)
+				d.FillRectangle(w.Drawable(), gc, hlw, hlw, uint(w.Width-2*hlw), uint(w.Height-2*hlw))
+			}
+		}
+		draw.Draw3DRectangle(d, w.Drawable(), gc, border, hlw, hlw, w.Width-2*hlw, w.Height-2*hlw, r.BorderWidth, btnRelief)
 	} else if r.Border != nil && r.BorderWidth > 0 {
 		draw.Draw3DRectangle(d, w.Drawable(), gc, r.Border,
 			hlw, hlw, w.Width-2*hlw, w.Height-2*hlw, r.BorderWidth, r.Relief)
 	}
 
 	inset := r.BorderWidth + r.HighlightWidth
-	if !r.IndicatorOn {
-		inset = 2 + r.HighlightWidth
-	}
 	img := r.Img
 	var contentX, contentY int
 	if img != nil {
