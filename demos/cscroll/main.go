@@ -15,9 +15,10 @@ import (
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/screenunit"
-	"github.com/msorc/takigo/ttk"
+	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
+	"github.com/msorc/takigo/widget/scrollbar"
 )
 
 func main() {
@@ -53,14 +54,12 @@ func main() {
 	c := canvas.New(gf, "c",
 		canvas.ReliefOpt(option.ReliefSunken),
 		canvas.BorderWidthOpt(2),
-		canvas.Width(screenunit.Px("15c")),
-		canvas.Height(screenunit.Px("10c")),
-		canvas.ScrollRegion(-416, -416, 1890, 756),
+		canvas.ScrollRegion(screenunit.Px("-11c"), screenunit.Px("-11c"), screenunit.Px("50c"), screenunit.Px("20c")),
 	)
 
-	vscroll := ttk.NewScrollbar(gf, "vscroll",
-		ttk.ScrollbarOrientOpt(ttk.Vertical),
-		ttk.ScrollbarCommandOpt(func(args ...any) {
+	vscroll := scrollbar.New(gf, "vscroll",
+		scrollbar.OrientOpt(scrollbar.Vertical),
+		scrollbar.CommandOpt(func(args ...any) {
 			if len(args) < 1 {
 				return
 			}
@@ -81,9 +80,9 @@ func main() {
 		}),
 	)
 
-	hscroll := ttk.NewScrollbar(gf, "hscroll",
-		ttk.ScrollbarOrientOpt(ttk.Horizontal),
-		ttk.ScrollbarCommandOpt(func(args ...any) {
+	hscroll := scrollbar.New(gf, "hscroll",
+		scrollbar.OrientOpt(scrollbar.Horizontal),
+		scrollbar.CommandOpt(func(args ...any) {
 			if len(args) < 1 {
 				return
 			}
@@ -120,29 +119,25 @@ func main() {
 	grid.RowConfigure(gf, 0, grid.Weight(1), grid.MinSize(0))
 	grid.ColumnConfigure(gf, 0, grid.Weight(1), grid.MinSize(0))
 
-	// Create a 20x10 grid of rectangles, matching Tk's cscroll.tcl.
-	// Tk uses centimeter units: each cell is 2c x 2c with 3c spacing.
-	// 1c ~ 37.8px, so 2c ~ 75.6px, 3c ~ 113.4px.
-	cellPx := 75.6     // 2c in pixels
-	spacingPx := 113.4 // 3c in pixels
-	startX := -378.0   // -10c in pixels
-	startY := -378.0   // -10c in pixels
-	bg := "white"      // canvas background color, used as default fill
+	// 20x10 grid of 2c rectangles every 3c, filled with the canvas background
+	// ([$c config -bg]); coordinates in cm, converted like Tk canvas coords.
+	cm := func(v int) float64 { return screenunit.Float(fmt.Sprintf("%dc", v)) }
+	bg := widget.DefBackground
 
 	// Track old fill for enter/leave highlighting.
 	var oldFill string
 
 	for i := 0; i < 20; i++ {
-		x := startX + spacingPx*float64(i)
+		xc := -10 + 3*i
 		for j := 0; j < 10; j++ {
-			y := startY + spacingPx*float64(j)
+			yc := -10 + 3*j
 			label := fmt.Sprintf("%d,%d", i, j)
 
-			rectID := c.CreateRectangle(x, y, x+cellPx, y+cellPx,
+			rectID := c.CreateRectangle(cm(xc), cm(yc), cm(xc+2), cm(yc+2),
 				canvas.FillColor(bg),
 				canvas.Tags("rect"))
 
-			c.CreateText(x+cellPx/2, y+cellPx/2,
+			c.CreateText(cm(xc+1), cm(yc+1),
 				canvas.TextOpt(label),
 				canvas.AnchorOpt(option.AnchorCenter),
 				canvas.Tags("text"))

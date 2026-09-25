@@ -31,7 +31,7 @@ func main() {
 	msg := label.New(f, "msg",
 		label.WrapLength("3.5i"),
 		label.JustifyOpt(option.JustifyLeft),
-		label.Text("A label tied to a horizontal scale is displayed below. If you click or drag mouse button 1 in the scale, you can change the contents of the label; a callback command is used to couple the slider to both the text and the coloring of the label."),
+		label.Text("A label tied to a horizontal scale is displayed below.  If you click or drag mouse button 1 in the scale, you can change the contents of the label; a callback command is used to couple the slider to both the text and the coloring of the label."),
 	)
 	pack.Pack(msg, pack.SideOpt(pack.Top), pack.PadX(".5c"))
 

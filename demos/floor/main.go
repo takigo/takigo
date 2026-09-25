@@ -87,7 +87,7 @@ func main() {
 	msg := label.New(f, "msg",
 		label.WrapLength("8i"),
 		label.JustifyOpt(option.JustifyLeft),
-		label.Text("This window contains a canvas widget showing the floorplan of Digital Equipment Corporation's Western Research Laboratory. It has three levels. At any given time one of the levels is active, meaning that you can see its room structure. To activate a level, click the left mouse button anywhere on it. As the mouse moves over the active level, the room under the mouse lights up and its room number appears in the \"Room:\" entry. You can also type a room number in the entry and the room will light up."),
+		label.Text("This window contains a canvas widget showing the floorplan of Digital Equipment Corporation's Western Research Laboratory.  It has three levels.  At any given time one of the levels is active, meaning that you can see its room structure.  To activate a level, click the left mouse button anywhere on it.  As the mouse moves over the active level, the room under the mouse lights up and its room number appears in the \"Room:\" entry.  You can also type a room number in the entry and the room will light up."),
 	)
 	pack.Pack(msg, pack.SideOpt(pack.Top))
 

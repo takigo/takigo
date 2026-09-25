@@ -35,7 +35,7 @@ func main() {
 	msg := label.New(f, "msg",
 		label.WrapLength("5i"),
 		label.JustifyOpt(option.JustifyLeft),
-		label.Text("Three different themed spin-boxes are displayed below. You can add characters by pointing, clicking and typing. The normal Motif editing characters are supported, along with many Emacs bindings. For example, Backspace and Control-h delete the character to the left of the insertion cursor and Delete and Control-d delete the chararacter to the right of the insertion cursor. For values that are too large to fit in the window all at once, you can scan through the value by dragging with mouse button2 pressed. Note that the first spin-box will only permit you to type in integers, and the third selects from a list of Australian cities."),
+		label.Text("Three different themed spin-boxes are displayed below.  You can add characters by pointing, clicking and typing.  The normal Motif editing characters are supported, along with many Emacs bindings.  For example, Backspace and Control-h delete the character to the left of the insertion cursor and Delete and Control-d delete the chararacter to the right of the insertion cursor.  For values that are too large to fit in the window all at once, you can scan through the value by dragging with mouse button2 pressed.  Note that the first spin-box will only permit you to type in integers, and the third selects from a list of Australian cities."),
 	)
 	pack.Pack(msg, pack.SideOpt(pack.Top))
 

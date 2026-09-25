@@ -32,7 +32,7 @@ func main() {
 	msg := label.New(f, "msg",
 		label.WrapLength("5i"),
 		label.JustifyOpt(option.JustifyLeft),
-		label.Text("This window displays a string of text to demonstrate the text facilities of canvas widgets. You can click in the boxes to adjust the position of the text relative to its positioning point or change its justification, and on a pie slice to change its angle. The text also supports the following simple bindings for editing:\n  1. You can point, click, and type.\n  2. You can also select with button 1.\n  3. You can copy the selection to the mouse position with button 2.\n  4. Backspace and Control+h delete the selection if there is one;\n     otherwise they delete the character just before the insertion cursor.\n  5. Delete deletes the selection if there is one; otherwise it deletes\n     the character just after the insertion cursor."),
+		label.Text("This window displays a string of text to demonstrate the text facilities of canvas widgets.  You can click in the boxes to adjust the position of the text relative to its positioning point or change its justification, and on a pie slice to change its angle.  The text also supports the following simple bindings for editing:\n  1. You can point, click, and type.\n  2. You can also select with button 1.\n  3. You can copy the selection to the mouse position with button 2.\n  4. Backspace and Control+h delete the selection if there is one;\n     otherwise they delete the character just before the insertion cursor.\n  5. Delete deletes the selection if there is one; otherwise it deletes\n     the character just after the insertion cursor."),
 	)
 	pack.Pack(msg, pack.SideOpt(pack.Top))
 

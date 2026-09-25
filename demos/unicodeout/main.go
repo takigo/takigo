@@ -53,7 +53,7 @@ func main() {
 		{"Simpl. Chinese", "汉语"},
 		{"French", "Langue française"},
 		{"Greek", "Ελληνική γλώσσα"},
-		{"Hebrew", "כתב עברית"},
+		{"Hebrew", "תירבע בתכ"}, // X11 presentation order, as usePresentationFormsFor
 		{"Hindi", "हिन्दी भाषा"},
 		{"Icelandic", "Íslenska"},
 		{"Japanese", "日本語のひらがな, 漢字とカタカナ"},
@@ -64,12 +64,12 @@ func main() {
 	}
 
 	for i, s := range samples {
-		langLabel := label.New(samples_f, fmt.Sprintf("l%d", i),
+		langLabel := label.New(samples_f, fmt.Sprintf("l%d", i+1),
 			label.Text(s.lang+":"),
 			label.Anchor(option.AnchorNW),
 			label.PadY(0),
 		)
-		sampleLabel := label.New(samples_f, fmt.Sprintf("s%d", i),
+		sampleLabel := label.New(samples_f, fmt.Sprintf("s%d", i+1),
 			label.Text(s.text),
 			label.Anchor(option.AnchorNW),
 			label.PadY(0),

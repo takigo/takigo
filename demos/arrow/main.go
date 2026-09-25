@@ -41,8 +41,8 @@ func main() {
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	c := canvas.New(f, "c",
-		canvas.Width(750),
-		canvas.Height(525),
+		canvas.Width("375p"),
+		canvas.Height("262.5p"),
 		canvas.ReliefOpt(option.ReliefSunken),
 		canvas.BorderWidthOpt(2),
 	)

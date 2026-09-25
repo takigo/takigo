@@ -122,9 +122,9 @@ func main() {
 			btn := button.New(puzzleFrame, fmt.Sprintf("%d", num),
 				button.Text(fmt.Sprintf("%d", num)),
 				button.BorderWidth(0),
+				button.HighlightThickness(0),
 				button.Command(func() { tryMove(n) }),
 			)
-			btn.HighlightWidth = 0
 			placePiece(btn.Window(), col, row)
 			buttons = append(buttons, btn)
 			btnMap[num] = btn

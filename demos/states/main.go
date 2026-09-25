@@ -43,7 +43,7 @@ func main() {
 	msg := label.New(f, "msg",
 		label.WrapLength("4i"),
 		label.JustifyOpt(option.JustifyLeft),
-		label.Text("A listbox containing the 50 states is displayed below, along with a scrollbar. You can scan the list either using the scrollbar or by scanning. To scan, press button 2 in the widget and drag up or down."),
+		label.Text("A listbox containing the 50 states is displayed below, along with a scrollbar.  You can scan the list either using the scrollbar or by scanning.  To scan, press button 2 in the widget and drag up or down."),
 	)
 	pack.Pack(msg, pack.SideOpt(pack.Top))
 

@@ -14,6 +14,7 @@ import (
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
+	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
 )
@@ -47,7 +48,7 @@ func main() {
 	msg := label.New(f, "msg",
 		label.WrapLength("5i"),
 		label.JustifyOpt(option.JustifyLeft),
-		label.Text("This canvas widget shows a mock-up of a ruler. You can create tab stops by dragging them out of the well to the right of the ruler. You can also drag existing tab stops. If you drag a tab stop far enough up or down so that it turns dim, it will be deleted when you release the mouse button."),
+		label.Text("This canvas widget shows a mock-up of a ruler.  You can create tab stops by dragging them out of the well to the right of the ruler.  You can also drag existing tab stops.  If you drag a tab stop far enough up or down so that it turns dim, it will be deleted when you release the mouse button."),
 	)
 	pack.Pack(msg, pack.SideOpt(pack.Top))
 
@@ -55,9 +56,8 @@ func main() {
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	c := canvas.New(f, "c",
-		canvas.Background("white"),
-		canvas.Width(562), // 14.8c
-		canvas.Height(95), // 2.5c
+		canvas.Width("14.8c"),
+		canvas.Height("2.5c"),
 	)
 	pack.Pack(c, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
 
@@ -100,7 +100,7 @@ func main() {
 
 	// Well rectangle (source of new tabs).
 	c.CreateRectangle(wellLeft, wellTop, wellRight, rulerTop,
-		canvas.FillColor("white"),
+		canvas.FillColor(widget.DefBackground),
 		canvas.Tags("well"))
 
 	// Well tab (the prototype tab in the well).

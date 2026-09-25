@@ -37,7 +37,7 @@ func main() {
 	msg := label.New(f, "msg",
 		label.WrapLength("5i"),
 		label.JustifyOpt(option.JustifyLeft),
-		label.Text("Four different entries are displayed below. You can add characters by pointing, clicking and typing, though each is constrained in what it will accept. The first only accepts 32-bit integers or the empty string (checking when focus leaves it) and will flash to indicate any problem. The second only accepts strings with fewer than ten characters and sounds the bell when an attempt to go over the limit is made. The third accepts US phone numbers, mapping letters to their digit equivalent and sounding the bell on encountering an illegal character or if trying to type over a character that is not a digit. The fourth is a password field that accepts up to eight characters (silently ignoring further ones), and displaying them as asterisk characters."),
+		label.Text("Four different entries are displayed below.  You can add characters by pointing, clicking and typing, though each is constrained in what it will accept.  The first only accepts 32-bit integers or the empty string (checking when focus leaves it) and will flash to indicate any problem.  The second only accepts strings with fewer than ten characters and sounds the bell when an attempt to go over the limit is made.  The third accepts US phone numbers, mapping letters to their digit equivalent and sounding the bell on encountering an illegal character or if trying to type over a character that is not a digit.  The fourth is a password field that accepts up to eight characters (silently ignoring further ones), and displaying them as asterisk characters."),
 	)
 
 	// Bottom buttons (packed before msg/mid to match Tcl pack order).
