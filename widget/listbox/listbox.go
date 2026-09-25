@@ -162,7 +162,7 @@ func New(parent widget.Caregiver, name string, opts ...ListboxOption) *Listbox {
 	widget.InitBase(&lb.Base, w, app)
 	w.Class = "Listbox"
 
-	lb.BorderWidth = 2
+	lb.BorderWidth = widget.DefBorderWidth
 	lb.Relief = option.ReliefSunken
 	lb.HighlightWidth = 1
 
@@ -444,8 +444,9 @@ func (lb *Listbox) computeGeometry() {
 		return
 	}
 	m := lb.Font.Metrics()
-	lb.lineHeight = m.Linespace() + 2
-	lb.inset = lb.BorderWidth + lb.HighlightWidth + 1
+	// ListboxComputeGeometry (tkListbox.c): -selectborderwidth is 0 here.
+	lb.lineHeight = m.Linespace() + 1
+	lb.inset = lb.BorderWidth + lb.HighlightWidth
 
 	avgW := lb.Font.MeasureString("0")
 	if avgW < 1 {
@@ -516,17 +517,17 @@ func (lb *Listbox) Display() {
 		rowY := lb.inset + i*lb.lineHeight
 		text := lb.items[itemIdx]
 		textW := lb.Font.MeasureString(text)
-		availW := clipRight - lb.inset - 4
+		// DisplayListbox text placement.
 		var textX int
 		switch lb.Justify {
 		case option.JustifyCenter:
-			textX = lb.inset + 2 + (availW-textW)/2
+			textX = (w.Width-textW)/2 - lb.xOffset
 		case option.JustifyRight:
-			textX = clipRight - 2 - textW
+			textX = clipRight - textW - lb.xOffset
 		default: // JustifyLeft
-			textX = lb.inset + 2 - lb.xOffset
+			textX = lb.inset - lb.xOffset
 		}
-		textY := rowY + m.Ascent + 1
+		textY := rowY + m.Ascent
 
 		isSelected := lb.selected[itemIdx]
 

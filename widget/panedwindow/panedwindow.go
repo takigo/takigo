@@ -55,6 +55,8 @@ func (pw *PanedWindow) propagateReqSize() {
 		}
 		reqH += totalSashSpace
 	}
+	reqW += 2 * pw.BorderWidth
+	reqH += 2 * pw.BorderWidth
 	if reqW < 1 {
 		reqW = 1
 	}
@@ -76,7 +78,35 @@ const (
 type pane struct {
 	win     *window.Window
 	minSize int
-	size    int // allocated size along orient axis
+	size    int // Tk paneWidth/paneHeight: requested or sash-set size, 0 = unset
+	disp    int // size after the last ArrangePanes (stretch applied)
+	stretch Stretch
+	userSet bool // size fixed by a sash move (Tk's -width/-height)
+}
+
+// Stretch is Tk's pane -stretch: which panes absorb extra or missing space.
+type Stretch int
+
+const (
+	StretchLast Stretch = iota
+	StretchFirst
+	StretchMiddle
+	StretchAlways
+	StretchNever
+)
+
+func isStretchable(s Stretch, i, first, last int) bool {
+	switch s {
+	case StretchAlways:
+		return true
+	case StretchFirst:
+		return i == first
+	case StretchLast:
+		return i == last
+	case StretchMiddle:
+		return i != first && i != last
+	}
+	return false
 }
 
 // PanedWindow manages resizable child panes separated by sashes.
@@ -89,6 +119,15 @@ type PanedWindow struct {
 	HandleSize int
 	// FlatSash renders a thin flat sash instead of a 3D raised sash.
 	FlatSash bool
+	GripSize int // grip length for FlatSash
+
+	// mapped mirrors Tk_IsMapped for ArrangePanes: set on the first
+	// MapNotify, which the event loop delivers after setup code has run.
+	mapped bool
+
+	// ShowHandle is Tk's -showhandle (default off): draw a raised sash and
+	// handle instead of the default flat, invisible sash.
+	ShowHandle bool
 
 	// Sash interaction.
 	dragSash      int // index of sash being dragged, -1 = none
@@ -150,14 +189,14 @@ func New(parent widget.Caregiver, name string, opts ...PanedWindowOption) *Paned
 
 	pw := &PanedWindow{
 		Orient:     Horizontal,
-		SashWidth:  8,
+		SashWidth:  3, // DEF_PANEDWINDOW_SASHWIDTH
 		HandleSize: 8,
 		dragSash:   -1,
 	}
 	pw.geomMgr = &pwGeomMgr{pw: pw}
 	widget.InitBase(&pw.Base, w, app)
 	w.Class = "Panedwindow"
-	pw.BorderWidth = 0
+	pw.BorderWidth = widget.DefBorderWidth
 	pw.Relief = option.ReliefFlat
 
 	for _, opt := range opts {
@@ -174,8 +213,8 @@ func New(parent widget.Caregiver, name string, opts ...PanedWindowOption) *Paned
 
 // Add adds a child window as a pane.
 func (pw *PanedWindow) Add(child *window.Window, minSize int) {
-	if minSize < 1 {
-		minSize = 1
+	if minSize < 0 {
+		minSize = 0
 	}
 	geometry.ManageGeometry(child, pw.geomMgr)
 	pw.panes = append(pw.panes, pane{
@@ -184,6 +223,16 @@ func (pw *PanedWindow) Add(child *window.Window, minSize int) {
 		size:    0,
 	})
 	pw.propagateReqSize()
+	pw.arrangePanes()
+}
+
+// SetStretch sets the -stretch mode of the pane holding child.
+func (pw *PanedWindow) SetStretch(child *window.Window, s Stretch) {
+	for i := range pw.panes {
+		if pw.panes[i].win == child {
+			pw.panes[i].stretch = s
+		}
+	}
 	pw.arrangePanes()
 }
 
@@ -218,62 +267,80 @@ func (pw *PanedWindow) arrangePanes() {
 	w := pw.Win
 	d := w.Display.Server
 
-	totalSashSpace := (len(pw.panes) - 1) * pw.SashWidth
-	var totalAvail int
+	// ArrangePanes (tkPanedWindow.c): panes keep their base size and the
+	// stretchable ones share what is left over, in proportion to size.
+	bw := pw.BorderWidth
+	n := len(pw.panes)
+	pwSize := w.Height - 2*bw
 	if pw.Orient == Horizontal {
-		totalAvail = w.Width - totalSashSpace
-	} else {
-		totalAvail = w.Height - totalSashSpace
+		pwSize = w.Width - 2*bw
 	}
-	if totalAvail < 0 {
-		totalAvail = 0
-	}
-
-	// If any pane has size=0 (initial), distribute equally.
-	needInit := false
-	for _, p := range pw.panes {
-		if p.size == 0 {
-			needInit = true
-			break
-		}
-	}
-	if needInit {
-		each := totalAvail / len(pw.panes)
-		if each < 1 {
-			each = 1
-		}
-		for i := range pw.panes {
-			pw.panes[i].size = each
-			if pw.panes[i].size < pw.panes[i].minSize {
-				pw.panes[i].size = pw.panes[i].minSize
+	mapped := pw.mapped
+	for i := range pw.panes {
+		p := &pw.panes[i]
+		// PanedWindowReqProc only tracks requests until the widget is mapped.
+		if !p.userSet && (!mapped || p.size == 0) {
+			if pw.Orient == Horizontal {
+				p.size = p.win.ReqWidth
+			} else {
+				p.size = p.win.ReqHeight
 			}
 		}
 	}
-
-	// Ensure total matches available. Last pane gets remainder.
-	usedByFixed := 0
-	for i := 0; i < len(pw.panes)-1; i++ {
-		if pw.panes[i].size < pw.panes[i].minSize {
-			pw.panes[i].size = pw.panes[i].minSize
+	reserve := pwSize - (n-1)*pw.SashWidth
+	dynSize, dynMin := 0, 0
+	for i, p := range pw.panes {
+		reserve -= p.size
+		if isStretchable(p.stretch, i, 0, n-1) && mapped {
+			dynSize += p.size
+			dynMin += p.minSize
 		}
-		usedByFixed += pw.panes[i].size
 	}
-	lastSize := totalAvail - usedByFixed
-	lastIdx := len(pw.panes) - 1
-	if lastSize < pw.panes[lastIdx].minSize {
-		lastSize = pw.panes[lastIdx].minSize
-	}
-	pw.panes[lastIdx].size = lastSize
-
-	// Position each pane.
-	pos := 0
 	for i := range pw.panes {
 		p := &pw.panes[i]
-		paneW, paneH := p.size, w.Height
-		paneX, paneY := pos, 0
+		size := p.size
+		if isStretchable(p.stretch, i, 0, n-1) {
+			var frac float64
+			if dynSize > 0 {
+				frac = float64(size) / float64(dynSize)
+			} else if pwSize > 0 {
+				frac = float64(size) / float64(pwSize)
+			}
+			dynSize -= size
+			dynMin -= p.minSize
+			amount := int(frac * float64(reserve))
+			if size+amount >= p.minSize {
+				reserve -= amount
+				size += amount
+			} else {
+				reserve += size - p.minSize
+				size = p.minSize
+			}
+			if i == n-1 && reserve > 0 {
+				size += reserve
+				reserve = 0
+			}
+		} else if dynSize-dynMin+reserve < 0 {
+			if size+dynSize-dynMin+reserve <= p.minSize {
+				reserve += size - p.minSize
+				size = p.minSize
+			} else {
+				size += dynSize - dynMin + reserve
+				reserve = dynMin - dynSize
+			}
+		}
+		p.disp = size
+	}
+
+	// Position each pane.
+	pos := bw
+	for i := range pw.panes {
+		p := &pw.panes[i]
+		paneW, paneH := p.disp, w.Height-2*bw
+		paneX, paneY := pos, bw
 		if pw.Orient == Vertical {
-			paneW, paneH = w.Width, p.size
-			paneX, paneY = 0, pos
+			paneW, paneH = w.Width-2*bw, p.disp
+			paneX, paneY = bw, pos
 		}
 		if paneW < 1 {
 			paneW = 1
@@ -288,12 +355,9 @@ func (pw *PanedWindow) arrangePanes() {
 		p.win.Width = paneW
 		p.win.Height = paneH
 		d.MapWindow(p.win.PlatformID)
+		p.win.Flags |= window.FlagMapped
 
-		if pw.Orient == Horizontal {
-			pos += p.size + pw.SashWidth
-		} else {
-			pos += p.size + pw.SashWidth
-		}
+		pos += p.disp + pw.SashWidth
 	}
 }
 
@@ -310,9 +374,9 @@ func (pw *PanedWindow) hitSash(x, y int) int {
 		pos = y
 	}
 
-	offset := 0
+	offset := pw.BorderWidth
 	for i := 0; i < len(pw.panes)-1; i++ {
-		offset += pw.panes[i].size
+		offset += pw.panes[i].disp
 		if pos >= offset && pos < offset+pw.SashWidth {
 			return i
 		}
@@ -330,19 +394,24 @@ func (pw *PanedWindow) moveSash(sashIdx, newPaneSize int) {
 	p1 := &pw.panes[sashIdx]
 	p2 := &pw.panes[sashIdx+1]
 
-	oldSize := p1.size
+	oldSize := p1.disp
 	if newPaneSize < p1.minSize {
 		newPaneSize = p1.minSize
 	}
 
-	maxSize := p1.size + p2.size - p2.minSize
+	maxSize := p1.disp + p2.disp - p2.minSize
 	if newPaneSize > maxSize {
 		newPaneSize = maxSize
 	}
 
 	delta := newPaneSize - oldSize
+	// MoveSash/PlaceSash: every pane's size becomes its current size.
+	for i := range pw.panes {
+		pw.panes[i].size = pw.panes[i].disp
+		pw.panes[i].userSet = true
+	}
 	p1.size = newPaneSize
-	p2.size -= delta
+	p2.size = p2.disp - delta
 
 	pw.arrangePanes()
 	pw.Display()
@@ -369,24 +438,31 @@ func (pw *PanedWindow) Display() {
 
 	// Draw sashes.
 	if pw.FlatSash {
-		// Flat TTK-style sash: a single thin line with a small grip dot.
-		d.SetForeground(gc, uint64(0x9e9e9e))
-		offset := 0
+		// ttk::panedwindow Sash layout (ttkPanedwindow.c): an invisible
+		// sash with a GripSize-long grip in the border's dark colour.
+		if pw.Border != nil {
+			d.SetForeground(gc, pw.Border.DarkPixel)
+		}
+		offset := pw.BorderWidth
 		for i := 0; i < len(pw.panes)-1; i++ {
-			offset += pw.panes[i].size
-			if pw.Orient == Horizontal {
-				midX := offset + pw.SashWidth/2
-				d.DrawLine(w.Drawable(), gc, midX, 0, midX, w.Height)
-			} else {
-				midY := offset + pw.SashWidth/2
-				d.DrawLine(w.Drawable(), gc, 0, midY, w.Width, midY)
+			offset += pw.panes[i].disp
+			if pw.SashWidth > 2 {
+				if pw.Orient == Horizontal {
+					d.FillRectangle(w.Drawable(), gc, offset+1, (w.Height-pw.GripSize)/2,
+						uint(pw.SashWidth-2), uint(pw.GripSize))
+				} else {
+					d.FillRectangle(w.Drawable(), gc, (w.Width-pw.GripSize)/2, offset+1,
+						uint(pw.GripSize), uint(pw.SashWidth-2))
+				}
 			}
 			offset += pw.SashWidth
 		}
-	} else if pw.Border != nil {
-		offset := 0
+	} else if pw.Border != nil && pw.ShowHandle {
+		// Tk's defaults (-sashrelief flat, -showhandle 0) draw nothing
+		// over the background; this raised sash is the -showhandle look.
+		offset := pw.BorderWidth
 		for i := 0; i < len(pw.panes)-1; i++ {
-			offset += pw.panes[i].size
+			offset += pw.panes[i].disp
 			if pw.Orient == Horizontal {
 				draw.Draw3DRectangle(d, w.Drawable(), gc, pw.Border,
 					offset, 0, pw.SashWidth, w.Height, 1, option.ReliefRaised)
@@ -443,6 +519,10 @@ func bindPanedWindow(pw *PanedWindow, app widget.AppContext) {
 
 	// Configure (resize).
 	app.Dispatcher().Bind(w.PlatformID, event.StructureNotifyMask, func(ev *event.Event) {
+		if ev.Type == event.MapType && !pw.mapped {
+			pw.mapped = true
+			return
+		}
 		if ev.Type == event.ConfigureType {
 			w.Width = ev.ConfigWidth
 			w.Height = ev.ConfigHeight
@@ -464,7 +544,7 @@ func bindPanedWindow(pw *PanedWindow, app widget.AppContext) {
 			} else {
 				pw.dragStartPos = ev.Y
 			}
-			pw.dragStartSize = pw.panes[sash].size
+			pw.dragStartSize = pw.panes[sash].disp
 		}
 	})
 
@@ -500,19 +580,19 @@ func bindPanedWindow(pw *PanedWindow, app widget.AppContext) {
 		switch ev.KeySym {
 		case platform.XK_Left:
 			if pw.Orient == Horizontal {
-				pw.moveSash(sashIdx, pw.panes[sashIdx].size-step)
+				pw.moveSash(sashIdx, pw.panes[sashIdx].disp-step)
 			}
 		case platform.XK_Right:
 			if pw.Orient == Horizontal {
-				pw.moveSash(sashIdx, pw.panes[sashIdx].size+step)
+				pw.moveSash(sashIdx, pw.panes[sashIdx].disp+step)
 			}
 		case platform.XK_Up:
 			if pw.Orient == Vertical {
-				pw.moveSash(sashIdx, pw.panes[sashIdx].size-step)
+				pw.moveSash(sashIdx, pw.panes[sashIdx].disp-step)
 			}
 		case platform.XK_Down:
 			if pw.Orient == Vertical {
-				pw.moveSash(sashIdx, pw.panes[sashIdx].size+step)
+				pw.moveSash(sashIdx, pw.panes[sashIdx].disp+step)
 			}
 		}
 	})

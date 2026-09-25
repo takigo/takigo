@@ -150,6 +150,12 @@ func init() {
 			ttk.L("border", ttk.Expand|ttk.FillF|ttk.Border,
 				ttk.L("padding", ttk.Expand|ttk.FillF))))
 
+	// TLabelframe (defaults.tcl) and FrameLayout-style Labelframe.border.
+	tlabelframe := theme.GetStyle("TLabelframe")
+	tlabelframe.Defaults["-relief"] = option.ReliefGroove
+	tlabelframe.Defaults["-borderwidth"] = 2
+	theme.RegisterLayout("TLabelframe", ttk.L("border", ttk.Expand|ttk.FillF))
+
 	// TLabel: border → padding → label
 	theme.RegisterLayout("TLabel",
 		ttk.L("background", ttk.Expand|ttk.FillF,
@@ -262,12 +268,14 @@ func init() {
 	tentry.Defaults["-padding"] = ttk.Padding{Left: 1, Top: 1, Right: 1, Bottom: 1}
 	tentry.Defaults["-insertcolor"] = uint64(0x000000)
 
-	// TEntry layout: background → highlight → border → padding
+	tentry.Defaults["-focuswidth"] = 2
+	tentry.Defaults["-focuscolor"] = uint64(0x4a6984)
+
+	// EntryLayout (ttkEntry.c).
 	theme.RegisterLayout("TEntry",
-		ttk.L("background", ttk.Expand|ttk.FillF,
-			ttk.L("highlight", ttk.Expand|ttk.FillF,
-				ttk.L("border", ttk.Expand|ttk.FillF|ttk.Border,
-					ttk.L("padding", ttk.Expand|ttk.FillF)))))
+		ttk.L("field", ttk.FillF|ttk.Border,
+			ttk.L("padding", ttk.FillF,
+				ttk.L("textarea", ttk.FillF))))
 
 	// TSizegrip style.
 	tsizegrip := theme.GetStyle("TSizegrip")

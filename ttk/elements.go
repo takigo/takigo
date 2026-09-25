@@ -58,6 +58,103 @@ func (e *BorderElement) Draw(d platform.DisplayServer, drawable platform.Drawabl
 		box.X, box.Y, box.Width, box.Height, bw, relief)
 }
 
+// AltBorderElement is the alt theme's border (ttkDefaultTheme.c, which
+// despite its name implements "alt"): DrawBorder's corner shading.
+type AltBorderElement struct{ BorderElement }
+
+func NewAltBorderElementFactory(ctx *DrawContext) Element {
+	return &AltBorderElement{BorderElement{ctx: ctx}}
+}
+
+func (e *AltBorderElement) Draw(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID, box Box, state State) {
+	bg := LookupColor(e.ctx.Style, "-background", state, 0xd9d9d9)
+	bw := LookupInt(e.ctx.Style, "-borderwidth", state, 2)
+	relief := LookupRelief(e.ctx.Style, "-relief", state, option.ReliefFlat)
+	if bw <= 0 || relief == option.ReliefFlat {
+		return
+	}
+	border := draw.NewBorderFromPixel(bg)
+	borderColor := LookupColor(e.ctx.Style, "-bordercolor", state, 0x414141)
+	drawAltBorder(d, drawable, gc, border, borderColor, box, bw, relief)
+}
+
+type shade int
+
+const (
+	shFlat shade = iota
+	shLite
+	shDark
+	shBrdr
+)
+
+// Top-left outer, top-left inner, bottom-right inner, bottom-right outer.
+var altShadowColors = map[option.Relief][4]shade{
+	option.ReliefGroove: {shDark, shLite, shDark, shLite},
+	option.ReliefRaised: {shLite, shFlat, shDark, shBrdr},
+	option.ReliefRidge:  {shLite, shDark, shLite, shDark},
+	option.ReliefSolid:  {shBrdr, shBrdr, shBrdr, shBrdr},
+	option.ReliefSunken: {shBrdr, shDark, shFlat, shLite},
+}
+
+var altThinShadowColors = map[option.Relief][2]shade{
+	option.ReliefGroove: {shDark, shLite},
+	option.ReliefRaised: {shLite, shDark},
+	option.ReliefRidge:  {shLite, shDark},
+	option.ReliefSolid:  {shBrdr, shBrdr},
+	option.ReliefSunken: {shDark, shLite},
+}
+
+// drawCorner ports DrawCorner (ttkDefaultTheme.c, the alt theme).
+func drawCorner(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID,
+	border *draw.Border, borderColor uint64, x, y, w, h int, bottomRight bool, c shade) {
+	pixel := border.BgPixel
+	switch c {
+	case shLite:
+		pixel = border.LightPixel
+	case shDark:
+		pixel = border.DarkPixel
+	case shBrdr:
+		pixel = borderColor
+	}
+	w--
+	h--
+	pts := []platform.Point{{X: int16(x), Y: int16(y + h)}, {X: int16(x), Y: int16(y)}, {X: int16(x + w), Y: int16(y)}}
+	if bottomRight {
+		pts[1] = platform.Point{X: int16(x + w), Y: int16(y + h)}
+		// Measured against Tk under X11: the bottom-right corner leaves both
+		// of its endpoints to the top-left corner's colour.
+		if h > 0 && w > 0 {
+			pts[0].X++
+			pts[2].Y++
+		}
+	}
+	d.SetForeground(gc, pixel)
+	d.DrawLines(drawable, gc, pts, 0)
+}
+
+// drawAltBorder ports DrawBorder (ttkDefaultTheme.c): 1- and 2-pixel
+// borders are drawn as corners from the shadow tables, wider ones Motif-style.
+func drawAltBorder(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID,
+	border *draw.Border, borderColor uint64, b Box, bw int, relief option.Relief) {
+	corner := func(x, y, w, h int, bottomRight bool, c shade) {
+		drawCorner(d, drawable, gc, border, borderColor, x, y, w, h, bottomRight, c)
+	}
+	switch bw {
+	case 2:
+		sc := altShadowColors[relief]
+		corner(b.X, b.Y, b.Width, b.Height, false, sc[0])
+		corner(b.X+1, b.Y+1, b.Width-2, b.Height-2, false, sc[1])
+		corner(b.X+1, b.Y+1, b.Width-2, b.Height-2, true, sc[2])
+		corner(b.X, b.Y, b.Width, b.Height, true, sc[3])
+	case 1:
+		sc := altThinShadowColors[relief]
+		corner(b.X, b.Y, b.Width, b.Height, false, sc[0])
+		corner(b.X, b.Y, b.Width, b.Height, true, sc[1])
+	default:
+		draw.Draw3DRectangle(d, drawable, gc, border, b.X, b.Y, b.Width, b.Height, bw, relief)
+	}
+}
+
 // --- PaddingElement ---
 
 // PaddingElement provides spacing but draws nothing.
@@ -299,32 +396,86 @@ func NewFieldElementFactory(ctx *DrawContext) Element {
 	return &FieldElement{ctx: ctx}
 }
 
+// Size and Draw port FieldElementSize/FieldElementDraw (ttkElements.c):
+// a sunken border in the -fieldbackground colour, widened to the focus ring.
 func (e *FieldElement) Size(state State) (int, int, Padding) {
 	bw := LookupInt(e.ctx.Style, "-borderwidth", state, 2)
+	fw := LookupInt(e.ctx.Style, "-focuswidth", state, 2)
+	if fw > 0 && bw < 2 {
+		bw = fw
+	}
 	return 0, 0, UniformPadding(bw)
 }
 
 func (e *FieldElement) Draw(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID, box Box, state State) {
 	fieldBg := LookupColor(e.ctx.Style, "-fieldbackground", state, 0xffffff)
 	bw := LookupInt(e.ctx.Style, "-borderwidth", state, 2)
-	bg := LookupColor(e.ctx.Style, "-background", state, 0xd9d9d9)
+	fw := LookupInt(e.ctx.Style, "-focuswidth", state, 2)
+	border := draw.NewBorderFromPixel(fieldBg)
+	if fw > 0 && state&StateFocus != 0 {
+		focusColor := LookupColor(e.ctx.Style, "-focuscolor", state, 0x4a6984)
+		if fw > 1 && box.Width >= 2 && box.Height >= 2 {
+			drawFocusField(d, drawable, gc, box, focusColor, fieldBg)
+			return
+		}
+		draw.Fill3DRectangle(d, drawable, gc, border, box.X, box.Y, box.Width, box.Height, bw, option.ReliefSunken)
+		d.SetForeground(gc, focusColor)
+		d.DrawRectangle(drawable, gc, box.X, box.Y, uint(box.Width-1), uint(box.Height-1))
+		return
+	}
+	draw.Fill3DRectangle(d, drawable, gc, border, box.X, box.Y, box.Width, box.Height, bw, option.ReliefSunken)
+}
 
-	// Fill field background.
+// drawFocusField is the 2-pixel rounded focus ring both field elements draw.
+func drawFocusField(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID,
+	box Box, focusColor, fieldBg uint64) {
+	x1, y1 := box.X, box.Y
+	x2, y2 := box.X+box.Width-1, box.Y+box.Height-1
+	d.SetForeground(gc, focusColor)
+	d.DrawLine(drawable, gc, x1+1, y1, x2-1, y1)
+	d.DrawLine(drawable, gc, x1+1, y2, x2-1, y2)
+	d.DrawLine(drawable, gc, x1, y1+1, x1, y2-1)
+	d.DrawLine(drawable, gc, x2, y1+1, x2, y2-1)
+	d.DrawRectangle(drawable, gc, x1+1, y1+1, uint(box.Width-3), uint(box.Height-3))
+	d.SetForeground(gc, fieldBg)
+	d.FillRectangle(drawable, gc, x1+2, y1+2, uint(box.Width-4), uint(box.Height-4))
+}
+
+// AltFieldElement is the alt theme's field (ttkDefaultTheme.c).
+type AltFieldElement struct{ FieldElement }
+
+func NewAltFieldElementFactory(ctx *DrawContext) Element {
+	return &AltFieldElement{FieldElement{ctx: ctx}}
+}
+
+// Size and Draw port the alt theme's FieldElementSize/FieldElementDraw:
+// a 2-pixel DrawFieldBorder in -fieldbackground shades.
+func (e *AltFieldElement) Size(state State) (int, int, Padding) {
+	return 0, 0, UniformPadding(2)
+}
+
+func (e *AltFieldElement) Draw(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID, box Box, state State) {
+	fieldBg := LookupColor(e.ctx.Style, "-fieldbackground", state, 0xffffff)
+	borderColor := LookupColor(e.ctx.Style, "-bordercolor", state, 0x000000)
+	fw := LookupInt(e.ctx.Style, "-focuswidth", state, 2)
+	border := draw.NewBorderFromPixel(fieldBg)
+	x1, y1 := box.X, box.Y
+	focus := fw > 0 && state&StateFocus != 0
+	focusColor := LookupColor(e.ctx.Style, "-focuscolor", state, 0x4a6984)
+
+	if focus && fw > 1 && box.Width >= 2 && box.Height >= 2 {
+		drawFocusField(d, drawable, gc, box, focusColor, fieldBg)
+		return
+	}
 	d.SetForeground(gc, fieldBg)
 	d.FillRectangle(drawable, gc, box.X, box.Y, uint(box.Width), uint(box.Height))
-
-	// Sunken border.
-	if bw > 0 {
-		border := draw.NewBorderFromPixel(bg)
-		draw.Draw3DRectangle(d, drawable, gc, border, box.X, box.Y, box.Width, box.Height, bw, option.ReliefSunken)
-	}
-
-	// Focus ring inside border.
-	if state&StateFocus != 0 {
-		focusColor := LookupColor(e.ctx.Style, "-focuscolor", state, 0x4a6984)
+	drawCorner(d, drawable, gc, border, borderColor, box.X, box.Y, box.Width, box.Height, false, shDark)
+	drawCorner(d, drawable, gc, border, borderColor, box.X+1, box.Y+1, box.Width-2, box.Height-2, false, shBrdr)
+	drawCorner(d, drawable, gc, border, borderColor, box.X+1, box.Y+1, box.Width-2, box.Height-2, true, shLite)
+	drawCorner(d, drawable, gc, border, borderColor, box.X, box.Y, box.Width, box.Height, true, shFlat)
+	if focus {
 		d.SetForeground(gc, focusColor)
-		d.DrawRectangle(drawable, gc, box.X+bw-1, box.Y+bw-1,
-			uint(box.Width-2*bw+1), uint(box.Height-2*bw+1))
+		d.DrawRectangle(drawable, gc, x1, y1, uint(box.Width-1), uint(box.Height-1))
 	}
 }
 

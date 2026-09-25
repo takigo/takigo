@@ -73,6 +73,7 @@ func main() {
 			radiobutton.Value(icon),
 			radiobutton.Var(iconVar),
 			radiobutton.Anchor(option.AnchorW),
+			radiobutton.Width(16),
 		)
 		pack.Pack(rb, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
 			pack.PadY("1.5p"), pack.Anchor(option.AnchorW))
@@ -101,6 +102,7 @@ func main() {
 			radiobutton.Value(t),
 			radiobutton.Var(typeVar),
 			radiobutton.Anchor(option.AnchorW),
+			radiobutton.Width(16),
 		)
 		pack.Pack(rb, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
 			pack.PadY("1.5p"), pack.Anchor(option.AnchorW))

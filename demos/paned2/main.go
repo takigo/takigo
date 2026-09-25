@@ -106,7 +106,8 @@ func main() {
 
 	pack.Pack(lbScroll, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
 	pack.Pack(lb, pack.FillOpt(pack.FillBoth), pack.Expand(true))
-	pw.Add(topFrame.Window(), 100)
+	pw.Add(topFrame.Window(), 0)
+	pw.SetStretch(topFrame.Window(), panedwindow.StretchAlways)
 
 	// Bottom pane: text widget with x+y scrollbars (grid layout).
 	bottomFrame := frame.New(pw, "bottom")
@@ -178,7 +179,8 @@ func main() {
 
 	tw.Insert("1.0", "This is just a normal text widget")
 
-	pw.Add(bottomFrame.Window(), 100)
+	pw.Add(bottomFrame.Window(), 0)
+	pw.SetStretch(bottomFrame.Window(), panedwindow.StretchAlways)
 
 	app.Run()
 }

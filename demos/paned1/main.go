@@ -54,8 +54,10 @@ func main() {
 		label.Background("cyan"),
 		label.Foreground("black"),
 	)
-	pw.Add(leftLabel.Window(), 150)
-	pw.Add(rightLabel.Window(), 150)
+	pw.Add(leftLabel.Window(), 0)
+	pw.Add(rightLabel.Window(), 0)
+	pw.SetStretch(leftLabel.Window(), panedwindow.StretchAlways)
+	pw.SetStretch(rightLabel.Window(), panedwindow.StretchAlways)
 
 	app.Run()
 }

@@ -1,6 +1,7 @@
 package ttk
 
 import (
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/panedwindow"
 )
@@ -20,6 +21,8 @@ func NewPanedwindow(parent widget.Caregiver, name string, opts ...PanedwindowOpt
 	pw := panedwindow.New(parent, name, opts...)
 	pw.Win.Class = "TPanedwindow"
 	pw.FlatSash = true
-	pw.SashWidth = 6
+	pw.BorderWidth = 0 // ttk::panedwindow has no border
+	pw.SashWidth = screenunit.Px("3.75p")
+	pw.GripSize = screenunit.Px("15p")
 	return &Panedwindow{PanedWindow: pw}
 }

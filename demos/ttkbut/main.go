@@ -20,7 +20,6 @@ import (
 	_ "github.com/msorc/takigo/ttk/defaulttheme"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/frame"
-	"github.com/msorc/takigo/widget/labelframe"
 )
 
 // ttkRef tracks a TTK widget with its concrete Display method.
@@ -91,8 +90,8 @@ func main() {
 	}
 
 	// -- Group 1: Buttons (theme switchers) --
-	btnFrame := labelframe.New(container, "buttons",
-		labelframe.Text("Buttons"),
+	btnFrame := ttk.NewLabelframe(container, "buttons",
+		ttk.LabelframeText("Buttons"),
 	)
 
 	themes := ttk.ThemeNames()
@@ -114,8 +113,8 @@ func main() {
 	}
 
 	// -- Group 2: Checkbuttons --
-	chkFrame := labelframe.New(container, "checks",
-		labelframe.Text("Checkbuttons"),
+	chkFrame := ttk.NewLabelframe(container, "checks",
+		ttk.LabelframeText("Checkbuttons"),
 	)
 
 	c1 := ttk.NewCheckbutton(chkFrame, "c1",
@@ -157,8 +156,8 @@ func main() {
 	)
 
 	// -- Group 3: Radiobuttons --
-	radFrame := labelframe.New(container, "radios",
-		labelframe.Text("Radiobuttons"),
+	radFrame := ttk.NewLabelframe(container, "radios",
+		ttk.LabelframeText("Radiobuttons"),
 	)
 
 	for i, item := range []struct{ text, value string }{
@@ -180,12 +179,11 @@ func main() {
 	}
 
 	// -- Group 4: Toggleswitch (enable/disable all widgets) --
-	togFrame := labelframe.New(container, "toggle",
-		labelframe.Text("Toggleswitch"),
+	togFrame := ttk.NewLabelframe(container, "toggle",
+		ttk.LabelframeText("Toggleswitch"),
 	)
 
-	// Classic widgets to disable (msg label, labelframes).
-	classicLabelframes := []*labelframe.Labelframe{btnFrame, chkFrame, radFrame}
+	labelframes := []*ttk.Labelframe{btnFrame, chkFrame, radFrame}
 
 	togLabel := ttk.NewLabel(togFrame, "l",
 		ttk.LabelText("Enable/disable widgets"),
@@ -210,9 +208,12 @@ func main() {
 				msg.State &^= ttk.StateDisabled
 			}
 			msg.Display()
-			// Toggle classic labelframes.
-			for _, lf := range classicLabelframes {
-				lf.Disabled = disabled
+			for _, lf := range labelframes {
+				if disabled {
+					lf.State |= ttk.StateDisabled
+				} else {
+					lf.State &^= ttk.StateDisabled
+				}
 				lf.Display()
 			}
 		}),

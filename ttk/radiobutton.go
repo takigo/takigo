@@ -252,45 +252,17 @@ func (r *Radiobutton) Display() {
 			d.DrawLine(win.Drawable(), gc, indX+3, lineY+1, indX+indSize-4, lineY+1)
 		}
 	} else {
-		// Default style: solid filled circle with optional center dot/line
-		// indicator, matching Tcl's default theme SVG indicator.
-		// The Tcl SVG uses a solid filled circle for selected/alternate
-		// states.
-		if r.State&StateDisabled == 0 {
-			// Solid filled circle with indicatorbackground.
-			d.SetForeground(gc, indFill)
-			d.FillArc(win.Drawable(), gc, indX, indY, uint(indSize), uint(indSize), 0, 360*64)
-			// 1px border using -bordercolor for the "sunken" 3D look
-			// matching Tcl's SVG rendering. Disabled state is flat.
-			if r.State&StateAlternate != 0 {
-				borderColor := LookupColor(r.Context.Style, "-bordercolor", r.State, 0x414141)
-				d.SetForeground(gc, borderColor)
-				d.DrawArc(win.Drawable(), gc, indX, indY, uint(indSize-1), uint(indSize-1), 0, 360*64)
-			}
-		} else {
-			// Disabled: simple flat circle outline.
-			borderColor := LookupColor(r.Context.Style, "-bordercolor", r.State, 0x414141)
-			d.SetForeground(gc, indFill)
-			d.FillArc(win.Drawable(), gc, indX, indY, uint(indSize), uint(indSize), 0, 360*64)
-			d.SetForeground(gc, borderColor)
-			d.DrawArc(win.Drawable(), gc, indX, indY, uint(indSize-1), uint(indSize-1), 0, 360*64)
+		// IndicatorElementDraw (ttkElements.c): -bordercolor is not set by
+		// the default theme, so the element default #888888 applies.
+		st := draw.IndicatorOff
+		if r.State&StateAlternate != 0 {
+			st = draw.IndicatorTristate
+		} else if selected {
+			st = draw.IndicatorOn
 		}
-
-		// Inner dot when selected, horizontal line when alternate.
-		if selected {
-			dotDiam := indSize / 2
-			dotX := indX + (indSize-dotDiam)/2
-			dotY := indY + (indSize-dotDiam)/2
-			d.SetForeground(gc, indColor)
-			d.FillArc(win.Drawable(), gc, dotX, dotY, uint(dotDiam), uint(dotDiam), 0, 360*64)
-		} else if r.State&StateAlternate != 0 {
-			lineY := indY + indSize/2
-			d.SetForeground(gc, indColor)
-			d.DrawLine(win.Drawable(), gc, indX+indSize*3/16, lineY,
-				indX+indSize*13/16, lineY)
-			d.DrawLine(win.Drawable(), gc, indX+indSize*3/16, lineY+1,
-				indX+indSize*13/16, lineY+1)
-		}
+		indBg := LookupColor(r.Context.Style, "-indicatorbackground", r.State, 0xffffff)
+		draw.DrawTtkIndicator(d, win.Drawable(), gc, win.Depth, indX, indY, indSize, true,
+			st, indBg, indColor, 0x888888, bgColor)
 	}
 
 	// Text label.

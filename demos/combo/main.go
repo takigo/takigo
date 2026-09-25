@@ -17,7 +17,6 @@ import (
 	_ "github.com/msorc/takigo/ttk/defaulttheme"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/frame"
-	"github.com/msorc/takigo/widget/labelframe"
 )
 
 func main() {
@@ -59,7 +58,7 @@ func main() {
 		"Adelaide", "Brisbane", "Hobart", "Darwin", "Alice Springs",
 	}
 
-	editFrame := labelframe.New(body, "c1", labelframe.Text("Fully Editable"))
+	editFrame := ttk.NewLabelframe(body, "c1", ttk.LabelframeText("Fully Editable"))
 	pack.Pack(editFrame, pack.SideOpt(pack.Top), pack.PadY("3p"), pack.PadX("7.5p"))
 
 	editCombo := ttk.NewCombobox(editFrame, "c",
@@ -67,7 +66,7 @@ func main() {
 	)
 	pack.Pack(editCombo, pack.PadY("3p"), pack.PadX("7.5p"))
 
-	disFrame := labelframe.New(body, "c2", labelframe.Text("Disabled"))
+	disFrame := ttk.NewLabelframe(body, "c2", ttk.LabelframeText("Disabled"))
 	pack.Pack(disFrame, pack.SideOpt(pack.Top), pack.PadY("3p"), pack.PadX("7.5p"))
 
 	disCombo := ttk.NewCombobox(disFrame, "c",
@@ -76,7 +75,7 @@ func main() {
 	)
 	pack.Pack(disCombo, pack.PadY("3p"), pack.PadX("7.5p"))
 
-	roFrame := labelframe.New(body, "c3", labelframe.Text("Defined List Only"))
+	roFrame := ttk.NewLabelframe(body, "c3", ttk.LabelframeText("Defined List Only"))
 	pack.Pack(roFrame, pack.SideOpt(pack.Top), pack.PadY("3p"), pack.PadX("7.5p"))
 
 	roCombo := ttk.NewCombobox(roFrame, "c",

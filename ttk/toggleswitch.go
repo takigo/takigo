@@ -1,18 +1,16 @@
 package ttk
 
 import (
+	goimage "image"
+	"math"
+
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/font"
 	"github.com/msorc/takigo/platform"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/window"
 )
-
-// toggleswitchW is the width of the trough in pixels (matches Tcl Toggleswitch1 rendered size ~57px).
-const toggleswitchW = 57
-
-// toggleswitchH is the height of the trough in pixels (matches Tcl Toggleswitch1 rendered size ~29px).
-const toggleswitchH = 29
 
 // Toggleswitch is a TTK sliding on/off toggle switch.
 type Toggleswitch struct {
@@ -85,23 +83,67 @@ func NewToggleswitch(parent widget.Caregiver, name string, opts ...ToggleswitchO
 	return ts
 }
 
+// Toggleswitch2 geometry (tk/library/ttk/elements.tcl, troughData(2) and
+// sliderData(2)) at 100% scaling; the images are SVGs scaled by
+// ::tk::scalingPct.
+const (
+	tglTroughW, tglTroughH = 40, 20
+	tglSliderW, tglSliderH = 20, 16
+)
+
+func tglScale() float64 { return float64(screenunit.ScalingPct()) / 100 }
+
+// tglInset is the Tglswitch.focus ring plus the style's -padding 0.75p.
+func tglInset() int { return 1 + screenunit.Px("0.75p") }
+
 func (ts *Toggleswitch) computeSize() {
-	w := ts.Win
-	textW, textH := 0, 0
+	sc := tglScale()
+	w := int(tglTroughW*sc) + 2*tglInset()
+	h := int(tglTroughH*sc) + 2*tglInset()
 	if ts.Font != nil && ts.Text != "" {
-		textW = ts.Font.MeasureString(ts.Text)
-		textH = ts.Font.Metrics().Linespace()
+		w += 6 + ts.Font.MeasureString(ts.Text)
+		h = max(h, ts.Font.Metrics().Linespace()+2*tglInset())
 	}
-	h := max(textH, toggleswitchH)
-	gap := 0
-	if ts.Text != "" {
-		gap = 6
-	}
-	w.ReqWidth = toggleswitchW + gap + textW + 6
-	w.ReqHeight = h + 6
+	ts.Win.ReqWidth, ts.Win.ReqHeight = w, h
 }
 
-// Display draws the toggle switch.
+// troughColor ports CreateElements_genericLight's state map for the trough
+// image on a background no lighter than #d9d9d9.
+func (ts *Toggleswitch) troughColor() uint64 {
+	st := ts.State
+	sel := st&StateSelected != 0
+	selBg := uint64(0x4a6984)
+	if ts.Context != nil && ts.Context.Style != nil {
+		if c := LookupColor(ts.Context.Style, "-selectbackground", 0, selBg); !colorIsLight(c) {
+			selBg = c
+		}
+	}
+	h, s, v := rgbToHsv(selBg)
+	dv := -10.0
+	if v < 80 {
+		dv = 10
+	}
+	switch {
+	case sel && st&StateDisabled != 0:
+		return hsvToRgb(h, 33.3, 100)
+	case sel && st&StatePressed != 0:
+		return hsvToRgb(h, s, v+2*dv)
+	case sel && st&StateHover != 0:
+		return hsvToRgb(h, s, v+dv)
+	case sel:
+		return selBg
+	case st&StateDisabled != 0:
+		return 0xd1d1d1
+	case st&StatePressed != 0:
+		return 0xa3a3a3
+	case st&StateHover != 0:
+		return 0xb3b3b3
+	}
+	return 0xc3c3c3
+}
+
+// Display draws the Toggleswitch2 layout: the trough centred in the padding
+// box and the slider at its left (or right when selected) end.
 func (ts *Toggleswitch) Display() {
 	if ts.Destroyed {
 		return
@@ -110,91 +152,168 @@ func (ts *Toggleswitch) Display() {
 	if win.PlatformID == 0 {
 		return
 	}
-
 	d := win.Display.Server
 	gc := win.GC
-	width := win.Width
-	height := win.Height
+	width, height := win.Width, win.Height
 	if width <= 0 || height <= 0 {
 		return
 	}
+	if ts.pixmap == 0 || ts.pixmapW != width || ts.pixmapH != height {
+		if ts.pixmap != 0 {
+			d.FreePixmap(ts.pixmap)
+		}
+		ts.pixmap = d.CreatePixmap(win.Drawable(), uint(width), uint(height), uint(win.Depth))
+		ts.pixmapW, ts.pixmapH = width, height
+	}
+	if ts.pixmap == 0 {
+		return
+	}
+	pix := platform.PixmapDrawable(ts.pixmap)
 
-	bgColor := uint64(0xd9d9d9)
+	bg := uint64(0xd9d9d9)
 	if ts.Context != nil && ts.Context.Style != nil {
-		bgColor = LookupColor(ts.Context.Style, "-background", ts.State, bgColor)
+		bg = LookupColor(ts.Context.Style, "-background", ts.State, bg)
 	}
+	d.SetForeground(gc, bg)
+	d.FillRectangle(pix, gc, 0, 0, uint(width), uint(height))
 
-	// Window background.
-	d.SetForeground(gc, bgColor)
-	d.FillRectangle(win.Drawable(), gc, 0, 0, uint(width), uint(height))
-
-	// Trough position (vertically centered).
-	troughX := 3
-	troughY := (height - toggleswitchH) / 2
-	troughW := toggleswitchW
-	troughH := toggleswitchH
-	radius := troughH / 2
-
-	// Trough color: dark navy when on, gray when off.
-	var troughColor uint64
-	if ts.selected {
-		troughColor = 0x4a6984
-		if ts.State&StateDisabled != 0 {
-			troughColor = 0x90a0b0
-		}
-	} else {
-		troughColor = 0xaaaaaa
-		if ts.State&StateDisabled != 0 {
-			troughColor = 0xcccccc
-		}
+	sc := tglScale()
+	tw, th := int(tglTroughW*sc), int(tglTroughH*sc)
+	sw := int(tglSliderW * sc)
+	inset := tglInset()
+	boxW := width - 2*inset
+	if ts.Font != nil && ts.Text != "" {
+		boxW = tw
 	}
-
-	// Draw rounded trough using filled rectangles + circles.
-	d.SetForeground(gc, troughColor)
-	// Center rectangle.
-	d.FillRectangle(win.Drawable(), gc, troughX+radius, troughY, uint(troughW-2*radius), uint(troughH))
-	// Left circle.
-	d.FillArc(win.Drawable(), gc, troughX, troughY, uint(troughH), uint(troughH), 0, 360*64)
-	// Right circle.
-	d.FillArc(win.Drawable(), gc, troughX+troughW-troughH, troughY, uint(troughH), uint(troughH), 0, 360*64)
-
-	// Thumb (white circle).
-	thumbDiam := troughH - 4
-	thumbY := troughY + 2
-	var thumbX int
-	if ts.selected {
-		thumbX = troughX + troughW - thumbDiam - 2
-	} else {
-		thumbX = troughX + 2
+	tx := inset + (boxW-tw)/2
+	ty := inset + (height-2*inset-th)/2
+	sliderX := 0.0
+	if ts.State&StateSelected != 0 {
+		sliderX = float64(tw - sw)
 	}
+	img := rasterizeToggleswitch(tw, th, sc, ts.troughColor(), sliderX)
+	d.PutImageRGBA(pix, gc, win.Depth, img.Pix, img.Stride, tw, th, 0, 0, tx, ty, tw, th, bg)
 
-	d.SetForeground(gc, uint64(0xffffff))
-	d.FillArc(win.Drawable(), gc, thumbX, thumbY, uint(thumbDiam), uint(thumbDiam), 0, 360*64)
-
-	// Text label.
 	if ts.Font != nil && ts.Text != "" {
 		if df, ok := ts.Font.(platform.DrawableFont); ok {
-			fgColor := uint64(0x000000)
-			if ts.Context != nil && ts.Context.Style != nil {
-				fgColor = LookupColor(ts.Context.Style, "-foreground", ts.State, fgColor)
-			}
+			fg := LookupColor(ts.Context.Style, "-foreground", ts.State, 0x000000)
 			m := ts.Font.Metrics()
-			textX := troughX + troughW + 6
-			textY := (height-m.Linespace())/2 + m.Ascent
-			r := uint16((fgColor>>16)&0xFF) << 8
-			g := uint16((fgColor>>8)&0xFF) << 8
-			b := uint16((fgColor)&0xFF) << 8
-			df.DrawString(win.Drawable(), textX, textY, ts.Text, fgColor, r, g, b)
+			r := uint16((fg>>16)&0xFF) << 8
+			g := uint16((fg>>8)&0xFF) << 8
+			b := uint16(fg&0xFF) << 8
+			df.DrawString(pix, tx+tw+6, (height-m.Linespace())/2+m.Ascent, ts.Text, fg, r, g, b)
 		}
 	}
 
-	// Focus ring.
 	if ts.State&StateFocus != 0 {
-		d.SetForeground(gc, uint64(0x000000))
-		d.DrawRectangle(win.Drawable(), gc, 0, 0, uint(width-1), uint(height-1))
+		d.SetForeground(gc, LookupColor(ts.Context.Style, "-focuscolor", ts.State, 0x000000))
+		d.DrawRectangle(pix, gc, 0, 0, uint(width-1), uint(height-1))
 	}
 
+	d.CopyArea(pix, win.Drawable(), gc, 0, 0, uint(width), uint(height), 0, 0)
 	d.Flush()
+}
+
+// rasterizeToggleswitch renders the trough (a rect with rx = height/2) and
+// the white slider circle (sliderData: r = 8 centred in a 20x16 box, the box
+// vertically centred and offset sliderX) with 8x8 supersampling.
+func rasterizeToggleswitch(w, h int, sc float64, trough uint64, sliderX float64) *goimage.RGBA {
+	img := goimage.NewRGBA(goimage.Rect(0, 0, w, h))
+	fw, fh := float64(w), float64(h)
+	r := fh / 2
+	scx := sliderX + tglSliderW*sc/2
+	scy := fh / 2
+	sr := 8 * sc
+	inTrough := func(x, y float64) bool {
+		if x < 0 || x > fw || y < 0 || y > fh {
+			return false
+		}
+		cx := math.Max(r, math.Min(fw-r, x))
+		return (x-cx)*(x-cx)+(y-r)*(y-r) <= r*r
+	}
+	const ss = 8
+	tr, tg, tb := float64(trough>>16&0xff), float64(trough>>8&0xff), float64(trough&0xff)
+	for py := range h {
+		for px := range w {
+			var ar, ag, ab, aa float64
+			for sy := range ss {
+				for sx := range ss {
+					x := float64(px) + (float64(sx)+0.5)/ss
+					y := float64(py) + (float64(sy)+0.5)/ss
+					switch {
+					case (x-scx)*(x-scx)+(y-scy)*(y-scy) <= sr*sr:
+						ar, ag, ab, aa = ar+255, ag+255, ab+255, aa+1
+					case inTrough(x, y):
+						ar, ag, ab, aa = ar+tr, ag+tg, ab+tb, aa+1
+					}
+				}
+			}
+			const n = ss * ss
+			i := img.PixOffset(px, py)
+			img.Pix[i+0] = uint8(math.Round(ar / n))
+			img.Pix[i+1] = uint8(math.Round(ag / n))
+			img.Pix[i+2] = uint8(math.Round(ab / n))
+			img.Pix[i+3] = uint8(math.Round(aa / n * 255))
+		}
+	}
+	return img
+}
+
+// colorIsLight ports ttk::toggleswitch::IsColorLight.
+func colorIsLight(c uint64) bool {
+	r, g, b := c>>16&0xff, c>>8&0xff, c&0xff
+	return 5*g+2*r+b > 8*192
+}
+
+// rgbToHsv ports ttk::toggleswitch::Rgb2Hsv (s and v in percent).
+func rgbToHsv(c uint64) (h, s, v float64) {
+	r, g, b := float64(c>>16&0xff)/255, float64(c>>8&0xff)/255, float64(c&0xff)/255
+	mn, mx := math.Min(r, math.Min(g, b)), math.Max(r, math.Max(g, b))
+	d := mx - mn
+	if mx != 0 {
+		s = 100 * d / mx
+	}
+	v = 100 * mx
+	switch {
+	case d == 0:
+	case mx == r:
+		f := math.Mod((g-b)/d, 6)
+		if f < 0 {
+			f += 6
+		}
+		h = 60 * f
+	case mx == g:
+		h = 60 * ((b-r)/d + 2)
+	default:
+		h = 60 * ((r-g)/d + 4)
+	}
+	return
+}
+
+// hsvToRgb ports ttk::toggleswitch::Hsv2Rgb.
+func hsvToRgb(h, s, v float64) uint64 {
+	s, v = s/100, v/100
+	c := s * v
+	h /= 60
+	x := c * (1 - math.Abs(math.Mod(h, 2)-1))
+	var r, g, b float64
+	switch int(h) {
+	case 0:
+		r, g = c, x
+	case 1:
+		r, g = x, c
+	case 2:
+		g, b = c, x
+	case 3:
+		g, b = x, c
+	case 4:
+		r, b = x, c
+	default:
+		r, b = c, x
+	}
+	m := v - c
+	ch := func(f float64) uint64 { return uint64(math.Max(0, math.Min(255, math.Round(255*(f+m))))) }
+	return ch(r)<<16 | ch(g)<<8 | ch(b)
 }
 
 // Toggle flips the switch state.

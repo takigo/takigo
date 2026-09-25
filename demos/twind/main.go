@@ -142,7 +142,8 @@ func main() {
 	// Horizontal scrollbar (added/removed by Turn On/Off buttons).
 	var hscroll *ttk.Scrollbar
 
-	pw.Add(tf.Window(), 100)
+	pw.Add(tf.Window(), 0)
+	pw.SetStretch(tf.Window(), panedwindow.StretchAlways)
 	pack.Pack(pw, pack.Expand(true), pack.FillOpt(pack.FillBoth))
 
 	// Peer text widget for Split Windows (nil when not shown).
@@ -368,7 +369,8 @@ func main() {
 					text.BorderWidthOpt(0),
 				)
 				peerTw.HighlightWidth = 0
-				pw.Add(peerTw.Win, 50)
+				pw.Add(peerTw.Win, 0)
+				pw.SetStretch(peerTw.Win, panedwindow.StretchAlways)
 			}
 		}),
 	)

@@ -17,32 +17,37 @@ type FrameOption func(*Frame)
 // FramePadding sets the internal padding.
 func FramePadding(p Padding) FrameOption {
 	return func(f *Frame) {
-		s := f.Context.Style
-		s.Defaults["-padding"] = p
+		f.SetWidgetOption("-padding", p)
 	}
 }
 
 // FrameBorderWidth sets the border width.
 func FrameBorderWidth(w int) FrameOption {
 	return func(f *Frame) {
-		s := f.Context.Style
-		s.Defaults["-borderwidth"] = w
+		f.SetWidgetOption("-borderwidth", w)
 	}
 }
 
 // FrameRelief sets the border relief.
 func FrameRelief(r option.Relief) FrameOption {
 	return func(f *Frame) {
-		s := f.Context.Style
-		s.Defaults["-relief"] = r
+		f.SetWidgetOption("-relief", r)
 	}
 }
 
 // FrameBackground sets the background color pixel.
 func FrameBackground(pixel uint64) FrameOption {
 	return func(f *Frame) {
-		s := f.Context.Style
-		s.Defaults["-background"] = pixel
+		f.SetWidgetOption("-background", pixel)
+	}
+}
+
+// FrameStyleOpt sets the -style, e.g. "TEntry" to draw a frame like an
+// entry field (as the ttkpane demo does around a classic text widget).
+func FrameStyleOpt(name string) FrameOption {
+	return func(f *Frame) {
+		f.StyleName = name
+		f.RefreshTheme()
 	}
 }
 

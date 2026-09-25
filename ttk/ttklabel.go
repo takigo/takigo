@@ -54,8 +54,7 @@ func LabelTextVariable(v *widget.Variable[string]) LabelOption {
 		l.TextVar = v
 		l.Text = v.Get()
 		l.unsub = v.OnChange(func(_, new string) {
-			l.Text = new
-			l.Display()
+			l.SetText(new)
 		})
 	}
 }
@@ -146,18 +145,33 @@ func NewLabel(parent widget.Caregiver, name string, opts ...LabelOption) *Label 
 		opt(l)
 	}
 
-	// Recompute size after options.
-	if l.Layout != nil {
-		rw, rh := l.Layout.Size(l.State)
-		if rw > 0 {
-			win.ReqWidth = rw
-		}
-		if rh > 0 {
-			win.ReqHeight = rh
-		}
-	}
-
+	l.updateReqSize()
 	return l
+}
+
+// SetText changes the text; like Tk's -text/-textvariable traces it
+// re-requests the widget size (TtkResizeWidget) before redrawing.
+func (l *Label) SetText(s string) {
+	l.Text = s
+	w, h := l.Win.ReqWidth, l.Win.ReqHeight
+	l.updateReqSize()
+	if (w != l.Win.ReqWidth || h != l.Win.ReqHeight) && l.Win.GeomManager != nil {
+		l.Win.GeomManager.RequestProc(l.Win)
+	}
+	l.Display()
+}
+
+func (l *Label) updateReqSize() {
+	if l.Layout == nil {
+		return
+	}
+	rw, rh := l.Layout.Size(l.State)
+	if rw > 0 {
+		l.Win.ReqWidth = rw
+	}
+	if rh > 0 {
+		l.Win.ReqHeight = rh
+	}
 }
 
 // newLayoutWithLabel instantiates a layout, overriding the "label" element with a bound factory.

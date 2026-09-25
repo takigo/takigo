@@ -1,9 +1,9 @@
 # Demo parity baseline -- written by: bash scripts/demo_batch.sh --retake --update-baseline (or demo_gate.sh --accept)
 # Headless Xvfb 96dpi, pinned DejaVu fonts, frozen timers. pixel_pct = odiff % (lower is better);
 # tree_diffs = cmd/demodiff structural differences; exact = both 0.
-# summary: exact 13 / close 49 / failed 0
+# summary: exact 14 / close 48 / failed 0
 # demo	tcl	pixel_pct	tree_diffs	go_size	tcl_size	status	note
-anilabel	anilabel	13.01	13	386x290	386x296	close	
+anilabel	anilabel	0	0	386x296	386x296	exact	
 aniwave	aniwave	0.07	1	371x353	371x353	close	
 arrow	arrow	11.23	1	506x504	506x504	close	
 bind	bind	0.59	2	501x456	501x456	close	
@@ -11,8 +11,8 @@ bitmap	bitmap	0	0	470x206	470x206	exact
 button	button	0	0	388x254	388x254	exact	
 check	check	0	0	382x290	382x290	exact	
 clrpick	clrpick	0	0	355x174	355x174	exact	
-colors	colors	9.89	7	379x480	379x460	close	
-combo	combo	12.16	16	481x366	481x354	close	
+colors	colors	0.00	1	379x460	379x460	close	
+combo	combo	12.19	13	481x366	481x354	close	
 cscroll	cscroll	0.13	1	403x421	403x421	close	
 ctext	ctext	2.56	1	502x602	502x602	close	
 dialog1	dialog1	0	0	438x307	438x307	exact	
@@ -20,48 +20,48 @@ dialog2	dialog2	0	0	441x288	441x288	exact
 entry1	entry1	0.00	1	477x275	477x275	close	
 entry2	entry2	0.02	4	475x353	475x353	close	
 entry3	entry3	0	0	477x353	477x353	exact	
-filebox	filebox	0.89	4	469x189	469x189	close	
+filebox	filebox	0.84	3	469x189	469x189	close	
 floor	floor	0.27	2	927x572	927x572	close	
 fontchoose	fontchoose	15.02	10	339x176	343x180	close	
 form	form	0	0	390x232	390x232	exact	
-goldberg	goldberg	68.69	31	596x407	677x542	close	
+goldberg	goldberg	69.07	31	596x407	677x542	close	
 hscale	hscale	8.06	7	361x229	361x230	close	
 icon	icon	0.06	2	481x272	481x272	close	
 image1	image1	0	0	335x492	335x492	exact	
-image2	image2	10.45	16	380x463	380x449	close	
+image2	image2	2.23	9	380x449	380x449	close	
 items	items	5.72	5	588x564	588x564	close	
 knightstour	knightstour	86.86	32	422x579	381x332	close	random knight start square differs between Go and Tcl (Tcl seeded with srand(1))
 label	label	0	0	382x340	382x340	exact	
 labelframe	labelframe	0.10	1	371x229	371x229	close	
-mclist	mclist	2.22	4	404x414	404x414	close	
+mclist	mclist	2.19	3	404x414	404x414	close	
 menu	menu	18.76	14	386x266	386x273	close	
 menubu	menubu	10.91	22	409x466	413x480	close	
-msgbox	msgbox	21.25	36	476x303	394x303	close	
-paned1	paned1	8.17	10	388x173	388x175	close	
-paned2	paned2	13.58	20	388x498	388x481	close	
-pendulum	pendulum	9.68	18	668x426	665x428	close	
+msgbox	msgbox	0	8	394x303	394x303	close	
+paned1	paned1	0.67	2	388x175	388x175	close	
+paned2	paned2	0.41	5	388x481	388x481	close	
+pendulum	pendulum	1.32	3	665x428	665x428	close	
 plot	plot	0.19	1	452x399	452x399	close	
 print	print	4.57	3	1026x559	1026x559	close	
 puzzle	puzzle	0	0	376x327	376x327	exact	
 radio	radio	7.89	30	523x407	519x407	close	
 ruler	ruler	1.12	1	562x211	562x211	close	
-sayings	sayings	9.79	8	386x332	386x333	close	
+sayings	sayings	7.09	6	386x318	386x333	close	
 search	search	2.46	2	661x534	661x534	close	
 spin	spin	6.23	8	478x298	478x292	close	
-states	states	9.10	10	388x436	388x420	close	
+states	states	0.02	4	388x420	388x420	close	
 style	style	5.63	2	721x656	721x656	close	
 text	text	13.19	6	661x594	661x558	close	
 textpeer	textpeer	5.07	4	765x394	765x394	close	
-toolbar	toolbar	8.35	21	422x427	385x427	close	
+toolbar	toolbar	8.33	21	422x427	385x427	close	
 tree	tree	2.61	4	404x414	404x414	close	
-ttkbut	ttkbut	10.15	12	383x433	383x422	close	
+ttkbut	ttkbut	0	6	383x422	383x422	close	
 ttkmenu	ttkmenu	12.00	19	477x326	435x327	close	
 ttknote	ttknote	1.29	6	394x273	394x273	close	
-ttkpane	ttkpane	34.42	4	369x596	369x595	close	clock pane shows wall-clock time: small nondeterministic diff
+ttkpane	ttkpane	0.78	12	369x595	369x595	close	clock pane shows wall-clock time: small nondeterministic diff
 ttkprogress	ttkprogress	0.00	2	376x244	376x244	close	
 ttkscale	ttkscale	14.25	11	363x208	363x186	close	
 ttkspin	ttkspin	7.61	6	477x296	477x287	close	
-twind	twind	18.23	11	581x643	583x645	close	
+twind	twind	14.23	9	583x645	583x645	close	
 unicodeout	unicodeout	0	0	386x367	386x367	exact	
 vscale	vscale	7.96	7	370x401	370x405	close	
 windowicons	windowicons	0	0	222x202	222x202	exact	was mis-mapped to icon.tcl before; now compared with windowicons.tcl

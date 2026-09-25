@@ -84,7 +84,9 @@ func New(parent widget.Caregiver, name string, opts ...FrameOption) *Frame {
 	widget.InitBase(&f.Base, w, app)
 	w.Class = "Frame"
 
-	// Frame-specific defaults.
+	// Frame-specific defaults. Like a Tk frame without -width/-height, it
+	// requests no size of its own (Tk windows start at 1x1).
+	w.ReqWidth, w.ReqHeight = 1, 1
 	f.BorderWidth = 0
 	f.Relief = option.ReliefFlat
 

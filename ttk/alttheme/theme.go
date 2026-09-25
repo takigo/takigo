@@ -24,6 +24,8 @@ const (
 func init() {
 	defaultTheme := ttk.CurrentTheme()
 	theme := ttk.NewTheme("alt", defaultTheme)
+	theme.RegisterElement("border", ttk.NewAltBorderElementFactory)
+	theme.RegisterElement("field", ttk.NewAltFieldElementFactory)
 
 	// Root style ".".
 	root := theme.GetStyle(".")
