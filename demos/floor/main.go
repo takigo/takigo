@@ -15,6 +15,7 @@ import (
 	"github.com/msorc/takigo/geometry/grid"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/ttk"
 	"github.com/msorc/takigo/widget/entry"
 	"github.com/msorc/takigo/widget/frame"
@@ -202,20 +203,22 @@ func main() {
 		c.Raise("room")
 
 		// Offset floors diagonally from each other.
-		c.Move("floor1", 76, 76)
-		c.Move("floor2", 38, 38)
+		c.Move("floor1", screenunit.Float("2c"), screenunit.Float("2c"))
+		c.Move("floor2", screenunit.Float("1c"), screenunit.Float("1c"))
 
 		// Room entry and label embedded in canvas.
-		c.CreateWindow(600, 100, ent.Win, canvas.AnchorOpt(option.AnchorW))
-		c.CreateText(600, 100,
+		c.CreateWindow(screenunit.Float("450p"), screenunit.Float("75p"), ent.Win, canvas.AnchorOpt(option.AnchorW))
+		c.CreateText(screenunit.Float("450p"), screenunit.Float("75p"),
 			canvas.TextOpt("Room: "),
 			canvas.AnchorOpt(option.AnchorE))
 
-		// Set scroll region to encompass all content.
+		// Scroll region = bbox all; size = bbox + 20px (floor.tcl).
+		x1, y1, x2, y2 := c.BBox("all")
+		morePx := 20 * screenunit.ScalingPct() / 100
 		c.Configure(
-			canvas.ScrollRegion(-10, -10, 920, 500),
-			canvas.Width(900),
-			canvas.Height(490),
+			canvas.ScrollRegion(x1, y1, x2, y2),
+			canvas.Width(x2-x1+morePx),
+			canvas.Height(y2-y1+morePx),
 		)
 		c.Display()
 	}

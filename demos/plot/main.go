@@ -10,6 +10,7 @@ import (
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
@@ -41,72 +42,44 @@ func main() {
 
 	// Canvas.
 	c := canvas.New(f, "c",
-		canvas.Background("white"),
-		canvas.Width(450),  // 337.5p
-		canvas.Height(300), // 225p
+		canvas.Width("337.5p"),
+		canvas.Height("225p"),
 		canvas.ReliefOpt(option.ReliefRaised),
 	)
 	pack.Pack(c, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
 
-	// Plot area dimensions (in pixels at 96 DPI, matching Tcl point values).
-	const (
-		plotLeft   = 100 // 75p
-		plotRight  = 400 // 300p
-		plotTop    = 50  // 37.5p
-		plotBottom = 250 // 187.5p
-	)
+	// Coordinates are in points, as in plot.tcl.
+	pt := func(v float64) float64 { return screenunit.Float(fmt.Sprintf("%gp", v)) }
+	lineW := screenunit.Px("1.5p")
+	const plotFont = "Helvetica 16"
 
-	// Draw axes.
-	c.CreateLine([]float64{plotLeft, plotBottom, plotRight, plotBottom},
-		canvas.OutlineColor("black"), canvas.OutlineWidth(2)) // 1.5p
-	c.CreateLine([]float64{plotLeft, plotBottom, plotLeft, plotTop},
-		canvas.OutlineColor("black"), canvas.OutlineWidth(2)) // 1.5p
+	c.CreateLine([]float64{pt(75), pt(187.5), pt(300), pt(187.5)}, canvas.OutlineWidth(lineW))
+	c.CreateLine([]float64{pt(75), pt(187.5), pt(75), pt(37.5)}, canvas.OutlineWidth(lineW))
+	c.CreateText(pt(168.75), pt(15),
+		canvas.TextOpt("A Simple Plot"), canvas.FontOpt(plotFont), canvas.FillColor("brown"))
 
-	// Title (168.75p = 225px, 15p = 20px).
-	c.CreateText(225, 20,
-		canvas.TextOpt("A Simple Plot"), canvas.AnchorOpt(option.AnchorCenter),
-		canvas.FontOpt("Helvetica 16"), canvas.FillColor("brown"))
-
-	// Tick marks and labels — x: 0-100 every 10, y: 0-250 every 50.
 	for i := 0; i <= 10; i++ {
-		x := plotLeft + i*30 // 22.5p step = 30px
-		c.CreateLine([]float64{float64(x), plotBottom, float64(x), plotBottom - 5},
-			canvas.OutlineColor("black"), canvas.OutlineWidth(2)) // 1.5p
-		c.CreateText(float64(x), plotBottom+4, // 190.5p = 254px
-			canvas.TextOpt(fmt.Sprintf("%d", i*10)),
-			canvas.AnchorOpt(option.AnchorN), canvas.FontOpt("Helvetica 16"))
+		x := 75 + float64(i)*22.5
+		c.CreateLine([]float64{pt(x), pt(187.5), pt(x), pt(183.75)}, canvas.OutlineWidth(lineW))
+		c.CreateText(pt(x), pt(190.5),
+			canvas.TextOpt(fmt.Sprintf("%d", 10*i)),
+			canvas.AnchorOpt(option.AnchorN), canvas.FontOpt(plotFont))
 	}
 	for i := 0; i <= 5; i++ {
-		y := plotBottom - i*(plotBottom-plotTop)/5
-		c.CreateLine([]float64{plotLeft, float64(y), plotLeft + 5, float64(y)},
-			canvas.OutlineColor("black"), canvas.OutlineWidth(2)) // 1.5p
-		c.CreateText(plotLeft-4, float64(y), // 72p = 96px
+		y := 187.5 - float64(i)*30
+		c.CreateLine([]float64{pt(75), pt(y), pt(78.75), pt(y)}, canvas.OutlineWidth(lineW))
+		c.CreateText(pt(72), pt(y),
 			canvas.TextOpt(fmt.Sprintf("%d.0", i*50)),
-			canvas.AnchorOpt(option.AnchorE), canvas.FontOpt("Helvetica 16"))
+			canvas.AnchorOpt(option.AnchorE), canvas.FontOpt(plotFont))
 	}
 
-	// Data points matching Tk's plot.tcl exactly.
-	dataX := []float64{9, 15, 24.75, 24, 45.75, 56.25, 73.5}
-	dataY := []float64{42, 70.5, 73.5, 90, 135, 120, 167.25}
-
-	// Convert data to pixel coordinates.
-	// Tcl: x_pt = 75 + 2.25*dataX, y_pt = 187.5 - 0.6*dataY (in points).
-	// At 96 DPI (1p = 4/3 px): x_px = 100 + 3*dataX, y_px = 250 - 0.8*dataY.
-	toPixelX := func(v float64) float64 {
-		return plotLeft + 3*v
-	}
-	toPixelY := func(v float64) float64 {
-		return plotBottom - 0.8*v
-	}
-
-	// Draw data points as small filled circles (4.5p radius = 6px).
-	ptSize := 6.0
-	for i := range dataX {
-		px := toPixelX(dataX[i])
-		py := toPixelY(dataY[i])
-		c.CreateOval(px-ptSize, py-ptSize, px+ptSize, py+ptSize,
-			canvas.FillColor("SkyBlue2"), canvas.OutlineColor("black"), canvas.OutlineWidth(1),
-			canvas.Tags("point"))
+	points := [][2]float64{{9, 42}, {15, 70.5}, {24.75, 73.5}, {24, 90}, {45.75, 135}, {56.25, 120}, {73.5, 167.25}}
+	for _, p := range points {
+		x := 75 + 2.25*p[0]
+		y := 187.5 - 3*p[1]/5
+		c.CreateOval(pt(x-4.5), pt(y-4.5), pt(x+4.5), pt(y+4.5),
+			canvas.OutlineWidth(screenunit.Px("0.75p")), canvas.OutlineColor("black"),
+			canvas.FillColor("SkyBlue2"), canvas.Tags("point"))
 	}
 
 	// Drag state.

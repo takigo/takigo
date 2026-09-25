@@ -32,6 +32,7 @@ func bindCanvas(c *Canvas) {
 		if ev.Type == event.ConfigureType {
 			w.Width = ev.ConfigWidth
 			w.Height = ev.ConfigHeight
+			c.setOrigin(c.xOrigin, c.yOrigin)
 			c.scheduleRedraw()
 			c.notifyScrollbars()
 		} else if ev.Type == event.DestroyType {

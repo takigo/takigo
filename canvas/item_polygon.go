@@ -62,32 +62,31 @@ func (p *PolygonItem) Configure(opts []ItemOption) error {
 	return nil
 }
 
+// updateBBox ports ComputePolygonBbox (tk/generic/tkCanvPoly.c): the first
+// point truncated, the others rounded (TkIncludePoint), grown by half the
+// outline width and by Tk's extra pixel of fudge.
 func (p *PolygonItem) updateBBox() {
-	if len(p.coords) < 4 {
+	if len(p.coords) < 2 {
 		return
 	}
-	hw := float64(p.outlineWidth)/2.0 + 1
-	minX, minY := p.coords[0], p.coords[1]
-	maxX, maxY := minX, minY
-	for i := 2; i < len(p.coords)-1; i += 2 {
-		x, y := p.coords[i], p.coords[i+1]
-		if x < minX {
-			minX = x
-		}
-		if x > maxX {
-			maxX = x
-		}
-		if y < minY {
-			minY = y
-		}
-		if y > maxY {
-			maxY = y
-		}
+	p.X1, p.X2 = int(p.coords[0]), int(p.coords[0])
+	p.Y1, p.Y2 = int(p.coords[1]), int(p.coords[1])
+	for i := 2; i+1 < len(p.coords); i += 2 {
+		x, y := int(p.coords[i]+0.5), int(p.coords[i+1]+0.5)
+		p.X1, p.X2 = min(p.X1, x), max(p.X2, x)
+		p.Y1, p.Y2 = min(p.Y1, y), max(p.Y2, y)
 	}
-	p.X1 = int(math.Floor(minX - hw))
-	p.Y1 = int(math.Floor(minY - hw))
-	p.X2 = int(math.Ceil(maxX + hw))
-	p.Y2 = int(math.Ceil(maxY + hw))
+	if p.outline != nil && p.outlineWidth > 0 {
+		grow := int((float64(p.outlineWidth) + 1.5) / 2)
+		p.X1 -= grow
+		p.X2 += grow
+		p.Y1 -= grow
+		p.Y2 += grow
+	}
+	p.X1--
+	p.X2++
+	p.Y1--
+	p.Y2++
 }
 
 func (p *PolygonItem) Display(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID,

@@ -1,6 +1,7 @@
 package canvas
 
 import (
+	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/window"
 )
@@ -11,11 +12,11 @@ type WindowItem struct {
 	ItemBase
 	x, y   float64
 	win    *window.Window
-	anchor string // "nw" (default) or other anchor strings (currently only nw supported)
+	anchor option.Anchor
 }
 
 func newWindowItem(x, y float64, win *window.Window, c *Canvas) *WindowItem {
-	item := &WindowItem{x: x, y: y, win: win}
+	item := &WindowItem{x: x, y: y, win: win, anchor: option.AnchorCenter}
 	item.ItemBase.canvas = c
 	item.updateBBox()
 	return item
@@ -52,23 +53,44 @@ func (wi *WindowItem) Configure(opts []ItemOption) error {
 	return nil
 }
 
+// updateBBox ports ComputeWindowBbox (tk/generic/tkCanvWind.c): the
+// rounded position, the window's requested size and the anchor.
 func (wi *WindowItem) updateBBox() {
-	wi.X1 = int(wi.x)
-	wi.Y1 = int(wi.y)
-	wi.X2 = int(wi.x)
-	wi.Y2 = int(wi.y)
-	if wi.win != nil {
-		w := wi.win.ReqWidth
-		h := wi.win.ReqHeight
-		if w == 0 {
-			w = wi.win.Width
+	round := func(v float64) int {
+		if v >= 0 {
+			return int(v + 0.5)
 		}
-		if h == 0 {
-			h = wi.win.Height
-		}
-		wi.X2 = wi.X1 + w
-		wi.Y2 = wi.Y1 + h
+		return int(v - 0.5)
 	}
+	x, y := round(wi.x), round(wi.y)
+	if wi.win == nil {
+		wi.X1, wi.Y1, wi.X2, wi.Y2 = x, y, x+1, y+1
+		return
+	}
+	w, h := max(1, wi.win.ReqWidth), max(1, wi.win.ReqHeight)
+	switch wi.anchor {
+	case option.AnchorN:
+		x -= w / 2
+	case option.AnchorNE:
+		x -= w
+	case option.AnchorE:
+		x -= w
+		y -= h / 2
+	case option.AnchorSE:
+		x -= w
+		y -= h
+	case option.AnchorS:
+		x -= w / 2
+		y -= h
+	case option.AnchorSW:
+		y -= h
+	case option.AnchorW:
+		y -= h / 2
+	case option.AnchorCenter:
+		x -= w / 2
+		y -= h / 2
+	}
+	wi.X1, wi.Y1, wi.X2, wi.Y2 = x, y, x+w, y+h
 }
 
 // Display is a no-op: window positioning is done in Canvas.positionWindowItems.

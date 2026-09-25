@@ -292,10 +292,13 @@ func (c *Canvas) positionWindowItems() {
 		screenY := wi.Y1 - c.yOrigin + c.inset
 		// Check visibility.
 		if screenX+w > 0 && screenX < winW && screenY+h > 0 && screenY < winH {
+			wi.win.X, wi.win.Y, wi.win.Width, wi.win.Height = screenX, screenY, w, h
 			d.MoveResizeWindow(wi.win.PlatformID, screenX, screenY, uint(w), uint(h))
 			d.MapWindow(wi.win.PlatformID)
+			wi.win.Flags |= window.FlagMapped
 		} else {
 			d.UnmapWindow(wi.win.PlatformID)
+			wi.win.Flags &^= window.FlagMapped
 		}
 	}
 }
@@ -350,6 +353,7 @@ func (c *Canvas) Configure(opts ...CanvasOption) {
 	if rw, rh := c.reqW+2*c.inset, c.reqH+2*c.inset; rw != c.Win.ReqWidth || rh != c.Win.ReqHeight {
 		geometry.GeometryRequest(c.Win, rw, rh)
 	}
+	c.setOrigin(c.xOrigin, c.yOrigin)
 	c.scheduleRedraw()
 }
 
@@ -699,11 +703,22 @@ func (c *Canvas) Find(mode string, args ...float64) []int64 {
 
 // BBox returns the bounding box of the first item matching tagOrID.
 func (c *Canvas) BBox(tagOrID string) (x1, y1, x2, y2 int) {
-	entries := c.resolve(tagOrID)
-	if len(entries) == 0 {
-		return 0, 0, 0, 0
+	// Tk's "bbox" is the union over all matching items.
+	found := false
+	for _, e := range c.resolve(tagOrID) {
+		a1, b1, a2, b2 := e.item.BBox()
+		if a2 < a1 || b2 < b1 {
+			continue
+		}
+		if !found {
+			x1, y1, x2, y2 = a1, b1, a2, b2
+			found = true
+			continue
+		}
+		x1, y1 = min(x1, a1), min(y1, b1)
+		x2, y2 = max(x2, a2), max(y2, b2)
 	}
-	return entries[0].item.BBox()
+	return x1, y1, x2, y2
 }
 
 // GetTags returns the tags of the first item matching tagOrID.

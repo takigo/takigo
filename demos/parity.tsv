@@ -1,7 +1,7 @@
 # Demo parity baseline -- written by: bash scripts/demo_batch.sh --retake --update-baseline (or demo_gate.sh --accept)
 # Headless Xvfb 96dpi, pinned DejaVu fonts, frozen timers. pixel_pct = odiff % (lower is better);
 # tree_diffs = cmd/demodiff structural differences; exact = both 0.
-# summary: exact 7 / close 55 / failed 0
+# summary: exact 12 / close 50 / failed 0
 # demo	tcl	pixel_pct	tree_diffs	go_size	tcl_size	status	note
 anilabel	anilabel	13.01	13	386x290	386x296	close	
 aniwave	aniwave	0.07	1	371x353	371x353	close	
@@ -14,14 +14,14 @@ clrpick	clrpick	0	0	355x174	355x174	exact
 colors	colors	9.89	7	379x480	379x460	close	
 combo	combo	19.15	24	483x368	481x354	close	
 cscroll	cscroll	0.13	1	403x421	403x421	close	
-ctext	ctext	6.01	2	502x602	502x602	close	
-dialog1	dialog1	45.81	19	379x226	438x307	close	
-dialog2	dialog2	45.53	19	385x209	441x288	close	
+ctext	ctext	5.46	1	502x602	502x602	close	
+dialog1	dialog1	0	0	438x307	438x307	exact	
+dialog2	dialog2	0	0	441x288	441x288	exact	
 entry1	entry1	0.00	1	477x275	477x275	close	
 entry2	entry2	0.02	4	475x353	475x353	close	
-entry3	entry3	1.37	1	477x353	477x353	close	
+entry3	entry3	0	0	477x353	477x353	exact	
 filebox	filebox	13.72	11	469x199	469x189	close	
-floor	floor	39.46	17	925x646	927x572	close	
+floor	floor	39.18	16	925x646	927x572	close	
 fontchoose	fontchoose	15.02	10	339x176	343x180	close	
 form	form	0	0	390x232	390x232	exact	
 goldberg	goldberg	69.23	31	596x407	677x542	close	
@@ -42,13 +42,13 @@ paned2	paned2	13.58	20	388x498	388x481	close
 pendulum	pendulum	9.68	18	668x426	665x428	close	
 plot	plot	71.22	1	452x399	452x399	close	
 print	print	4.57	3	1026x559	1026x559	close	
-puzzle	puzzle	0.28	15	376x327	376x327	close	
+puzzle	puzzle	0	0	376x327	376x327	exact	
 radio	radio	7.89	30	523x407	519x407	close	
-ruler	ruler	6.08	3	562x211	562x211	close	
+ruler	ruler	1.12	1	562x211	562x211	close	
 sayings	sayings	9.79	8	386x332	386x333	close	
 search	search	26.46	7	661x589	661x534	close	
-spin	spin	9.02	13	474x298	478x292	close	
-states	states	10.83	16	384x436	388x420	close	
+spin	spin	6.23	8	478x298	478x292	close	
+states	states	9.10	10	388x436	388x420	close	
 style	style	5.63	2	721x656	721x656	close	
 text	text	13.19	6	661x594	661x558	close	
 textpeer	textpeer	5.07	4	765x394	765x394	close	
@@ -57,11 +57,11 @@ tree	tree	29.98	20	419x456	404x414	close
 ttkbut	ttkbut	26.72	20	385x475	383x422	close	
 ttkmenu	ttkmenu	22.55	24	477x328	435x327	close	
 ttknote	ttknote	12.87	24	394x280	394x273	close	
-ttkpane	ttkpane	35.95	12	371x600	369x595	close	clock pane shows wall-clock time: small nondeterministic diff
+ttkpane	ttkpane	35.98	12	371x600	369x595	close	clock pane shows wall-clock time: small nondeterministic diff
 ttkprogress	ttkprogress	29.24	19	378x277	376x244	close	
-ttkscale	ttkscale	20.85	18	365x210	363x186	close	
-ttkspin	ttkspin	18.85	12	483x298	477x287	close	
+ttkscale	ttkscale	20.75	18	365x210	363x186	close	
+ttkspin	ttkspin	17.41	12	479x298	477x287	close	
 twind	twind	18.23	11	581x643	583x645	close	
-unicodeout	unicodeout	0.06	36	386x367	386x367	close	
+unicodeout	unicodeout	0	0	386x367	386x367	exact	
 vscale	vscale	7.96	7	370x401	370x405	close	
 windowicons	windowicons	34.48	7	222x266	222x202	close	was mis-mapped to icon.tcl before; now compared with windowicons.tcl

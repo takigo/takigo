@@ -1,33 +1,15 @@
 package canvas
 
-// setOrigin sets the canvas scroll origin and schedules a redraw.
+// setOrigin ports CanvasSetOrigin (tk/generic/tkCanvas.c) without scroll
+// increments. x, y are the canvas coordinates at the inner (inset) edge, i.e.
+// Tk's xOrigin + inset. With a scroll region (-confine is always on) the view
+// is only shifted when one side is outside the region and the other has room.
 func (c *Canvas) setOrigin(x, y int) {
-	// Clamp to scroll region if set.
 	if c.hasScrollRegion {
-		winW := c.Win.Width - 2*c.inset
-		winH := c.Win.Height - 2*c.inset
-
-		if x < c.scrollRegion[0] {
-			x = c.scrollRegion[0]
-		}
-		maxX := c.scrollRegion[2] - winW
-		if maxX < c.scrollRegion[0] {
-			maxX = c.scrollRegion[0]
-		}
-		if x > maxX {
-			x = maxX
-		}
-
-		if y < c.scrollRegion[1] {
-			y = c.scrollRegion[1]
-		}
-		maxY := c.scrollRegion[3] - winH
-		if maxY < c.scrollRegion[1] {
-			maxY = c.scrollRegion[1]
-		}
-		if y > maxY {
-			y = maxY
-		}
+		innerW := c.Win.Width - 2*c.inset
+		innerH := c.Win.Height - 2*c.inset
+		x = confine(x, x+innerW, c.scrollRegion[0], c.scrollRegion[2])
+		y = confine(y, y+innerH, c.scrollRegion[1], c.scrollRegion[3])
 	}
 
 	if x == c.xOrigin && y == c.yOrigin {
@@ -175,4 +157,18 @@ func (c *Canvas) YVisibleRange() (float64, float64) {
 		last = 1
 	}
 	return first, last
+}
+
+// confine shifts the visible span [lo, hi) toward the region [r1, r2] the way
+// CanvasSetOrigin does and returns the new lo.
+func confine(lo, hi, r1, r2 int) int {
+	left := lo - r1
+	right := r2 - hi
+	switch {
+	case left < 0 && right > 0:
+		return lo + min(-left, right)
+	case right < 0 && left > 0:
+		return lo - min(-right, left)
+	}
+	return lo
 }

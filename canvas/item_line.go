@@ -72,36 +72,29 @@ func (l *LineItem) Configure(opts []ItemOption) error {
 	return nil
 }
 
+// updateBBox ports ComputeLineBbox (tk/generic/tkCanvLine.c): the first
+// point truncated, the others rounded (TkIncludePoint), grown by the rounded
+// line width and by Tk's extra pixel of fudge. Arrowheads are approximated
+// by their shape length instead of Tk's exact arrow polygon points.
 func (l *LineItem) updateBBox() {
 	if len(l.coords) < 2 {
 		return
 	}
-	hw := float64(l.width)/2.0 + 1
-	minX, minY := l.coords[0], l.coords[1]
-	maxX, maxY := minX, minY
-	for i := 2; i < len(l.coords)-1; i += 2 {
-		x, y := l.coords[i], l.coords[i+1]
-		if x < minX {
-			minX = x
-		}
-		if x > maxX {
-			maxX = x
-		}
-		if y < minY {
-			minY = y
-		}
-		if y > maxY {
-			maxY = y
-		}
+	l.X1, l.X2 = int(l.coords[0]), int(l.coords[0])
+	l.Y1, l.Y2 = int(l.coords[1]), int(l.coords[1])
+	for i := 2; i+1 < len(l.coords); i += 2 {
+		x, y := int(l.coords[i]+0.5), int(l.coords[i+1]+0.5)
+		l.X1, l.X2 = min(l.X1, x), max(l.X2, x)
+		l.Y1, l.Y2 = min(l.Y1, y), max(l.Y2, y)
 	}
-	// Expand for arrow heads.
+	grow := int(math.Max(float64(l.width), 1) + 0.5)
 	if l.arrow != ArrowNone {
-		hw += l.arrowShapeB
+		grow += int(math.Ceil(l.arrowShapeB))
 	}
-	l.X1 = int(math.Floor(minX - hw))
-	l.Y1 = int(math.Floor(minY - hw))
-	l.X2 = int(math.Ceil(maxX + hw))
-	l.Y2 = int(math.Ceil(maxY + hw))
+	l.X1 -= grow + 1
+	l.X2 += grow + 1
+	l.Y1 -= grow + 1
+	l.Y2 += grow + 1
 }
 
 func (l *LineItem) Display(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID,

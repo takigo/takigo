@@ -106,6 +106,8 @@ func AnchorOpt(a option.Anchor) ItemOption {
 			it.anchor = a
 		case *BitmapItem:
 			it.anchor = a
+		case *WindowItem:
+			it.anchor = a
 		}
 		return nil
 	}

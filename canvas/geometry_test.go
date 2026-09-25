@@ -232,3 +232,21 @@ func TestGenerateBezierSplineClosedWraps(t *testing.T) {
 		t.Errorf("closed spline should wrap: first=(%f,%f), last=(%f,%f)", firstX, firstY, lastX, lastY)
 	}
 }
+
+func TestConfine(t *testing.T) {
+	tests := []struct {
+		name                 string
+		lo, hi, r1, r2, want int
+	}{
+		{"inside stays", 10, 50, 0, 100, 10},
+		{"left out, room on right", -20, 20, 0, 100, 0},
+		{"right out, room on left", 80, 120, 0, 100, 60},
+		{"region smaller than view stays", -5, 200, 0, 100, -5},
+		{"shift limited by room", -20, 90, 0, 100, -10},
+	}
+	for _, tt := range tests {
+		if got := confine(tt.lo, tt.hi, tt.r1, tt.r2); got != tt.want {
+			t.Errorf("%s: confine(%d,%d,%d,%d) = %d, want %d", tt.name, tt.lo, tt.hi, tt.r1, tt.r2, got, tt.want)
+		}
+	}
+}
