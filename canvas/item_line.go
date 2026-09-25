@@ -105,6 +105,7 @@ func (l *LineItem) Display(d platform.DisplayServer, drawable platform.DrawableI
 	}
 
 	d.SetForeground(gc, l.color.Pixel)
+	defer l.canvas.stippleOn(d, drawable, gc, l.stipple, originX, originY)()
 	lineStyle := platform.LineSolid
 	if len(l.dash) > 0 {
 		lineStyle = platform.LineOnOffDash

@@ -1,11 +1,11 @@
 # Demo parity baseline -- written by: bash scripts/demo_batch.sh --retake --update-baseline (or demo_gate.sh --accept)
 # Headless Xvfb 96dpi, pinned DejaVu fonts, frozen timers. pixel_pct = odiff % (lower is better);
 # tree_diffs = cmd/demodiff structural differences; exact = both 0.
-# summary: exact 22 / close 40 / failed 0
+# summary: exact 24 / close 38 / failed 0
 # demo	tcl	pixel_pct	tree_diffs	go_size	tcl_size	status	note
 anilabel	anilabel	0	0	386x296	386x296	exact	
 aniwave	aniwave	0.07	1	371x353	371x353	close	
-arrow	arrow	11.23	1	506x504	506x504	close	
+arrow	arrow	0.01	1	506x504	506x504	close	
 bind	bind	0.59	2	501x456	501x456	close	
 bitmap	bitmap	0	0	470x206	470x206	exact	
 button	button	0	0	388x254	388x254	exact	
@@ -13,15 +13,15 @@ check	check	0	0	382x290	382x290	exact
 clrpick	clrpick	0	0	355x174	355x174	exact	
 colors	colors	0.00	1	379x460	379x460	close	
 combo	combo	0	0	481x354	481x354	exact	
-cscroll	cscroll	0.13	1	403x421	403x421	close	
-ctext	ctext	2.56	1	502x602	502x602	close	
+cscroll	cscroll	0	0	403x421	403x421	exact	
+ctext	ctext	0.09	1	502x602	502x602	close	
 dialog1	dialog1	0	0	438x307	438x307	exact	
 dialog2	dialog2	0	0	441x288	441x288	exact	
 entry1	entry1	0.00	1	477x275	477x275	close	
 entry2	entry2	0.02	4	475x353	475x353	close	
 entry3	entry3	0	0	477x353	477x353	exact	
 filebox	filebox	0.84	3	469x189	469x189	close	
-floor	floor	0.27	2	927x572	927x572	close	
+floor	floor	0.00	2	927x572	927x572	close	
 fontchoose	fontchoose	2.64	2	343x180	343x180	close	
 form	form	0	0	390x232	390x232	exact	
 goldberg	goldberg	69.07	31	596x407	677x542	close	
@@ -29,7 +29,7 @@ hscale	hscale	0	0	361x230	361x230	exact
 icon	icon	0.06	2	481x272	481x272	close	
 image1	image1	0	0	335x492	335x492	exact	
 image2	image2	2.23	9	380x449	380x449	close	
-items	items	5.72	5	588x564	588x564	close	
+items	items	3.15	3	588x564	588x564	close	
 knightstour	knightstour	86.93	32	422x583	381x332	close	random knight start square differs between Go and Tcl (Tcl seeded with srand(1))
 label	label	0	0	382x340	382x340	exact	
 labelframe	labelframe	0.10	1	371x229	371x229	close	
@@ -45,9 +45,9 @@ print	print	4.57	3	1026x559	1026x559	close
 puzzle	puzzle	0	0	376x327	376x327	exact	
 radio	radio	0	11	519x407	519x407	close	
 ruler	ruler	1.12	1	562x211	562x211	close	
-sayings	sayings	7.09	6	386x318	386x333	close	
+sayings	sayings	0.01	3	386x333	386x333	close	
 search	search	2.46	2	661x534	661x534	close	
-spin	spin	6.23	8	478x298	478x292	close	
+spin	spin	0	0	478x292	478x292	exact	
 states	states	0.02	4	388x420	388x420	close	
 style	style	5.63	2	721x656	721x656	close	
 text	text	13.19	6	661x594	661x558	close	
@@ -57,7 +57,7 @@ tree	tree	2.61	4	404x414	404x414	close
 ttkbut	ttkbut	0	6	383x422	383x422	close	
 ttkmenu	ttkmenu	0	0	435x327	435x327	exact	
 ttknote	ttknote	1.29	6	394x273	394x273	close	
-ttkpane	ttkpane	0.82	12	369x595	369x595	close	clock pane shows wall-clock time: small nondeterministic diff
+ttkpane	ttkpane	0.78	12	369x595	369x595	close	clock pane shows wall-clock time: small nondeterministic diff
 ttkprogress	ttkprogress	0.00	2	376x244	376x244	close	
 ttkscale	ttkscale	0	0	363x186	363x186	exact	
 ttkspin	ttkspin	0	0	477x287	477x287	exact	

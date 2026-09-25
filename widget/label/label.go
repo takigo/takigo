@@ -320,7 +320,7 @@ func (l *Label) computeGeometry() {
 		// not the wrapLength, so the label only requests what it needs.
 		l.textWidth = 0
 		for _, line := range lines {
-			w := l.Font.MeasureString(line)
+			w := font.TextWidth(l.Font, line)
 			if w > l.textWidth {
 				l.textWidth = w
 			}
@@ -446,7 +446,7 @@ func (l *Label) Display() {
 				lx := textX
 				// Apply justify for multiline.
 				if len(lines) > 1 {
-					lw := l.Font.MeasureString(line)
+					lw := font.TextWidth(l.Font, line)
 					switch l.Justify {
 					case option.JustifyCenter:
 						lx = textX + (l.textWidth-lw)/2
@@ -454,8 +454,10 @@ func (l *Label) Display() {
 						lx = textX + l.textWidth - lw
 					}
 				}
-				df.DrawString(w.Drawable(), lx, baseline, line,
-					fgPixel, fgR, fgG, fgB)
+				for _, seg := range font.Segments(l.Font, line) {
+					df.DrawString(w.Drawable(), lx+seg.X, baseline, seg.Text,
+						fgPixel, fgR, fgG, fgB)
+				}
 			}
 		}
 	}

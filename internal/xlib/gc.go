@@ -66,6 +66,11 @@ func (d *Display) SetStipple(gc GC, stipple Pixmap) {
 	C.XSetStipple(d.ptr, C.GC(gc), C.Pixmap(stipple))
 }
 
+// SetTSOrigin sets the tile/stipple origin of a GC.
+func (d *Display) SetTSOrigin(gc GC, x, y int) {
+	C.XSetTSOrigin(d.ptr, C.GC(gc), C.int(x), C.int(y))
+}
+
 // CreateBitmapFromData creates a depth-1 pixmap from XBM-format bit data.
 func (d *Display) CreateBitmapFromData(drawable Drawable, bits []byte, width, height uint) Pixmap {
 	return Pixmap(C.XCreateBitmapFromData(d.ptr, C.Drawable(drawable),

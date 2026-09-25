@@ -4,6 +4,7 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"os"
 
 	"github.com/msorc/takigo"
@@ -13,6 +14,7 @@ import (
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
 )
@@ -48,128 +50,82 @@ func main() {
 	)
 	pack.Pack(c, pack.Expand(true), pack.FillOpt(pack.FillBoth))
 
-	// Arrow parameters (mutable state shared by closures).
-	// Values are prescaled at 150% (matching Tk's scl() at scalingPct=150).
-	a := 12.0   // arrowhead length along shaft (scl(8))
-	b := 15.0   // arrowhead total back distance (scl(10))
-	cc := 5.0   // arrowhead halfwidth (scl(3))
-	w := 3.0    // line width (scl(2))
-	x1 := 60.0  // arrow start (scl(40))
-	x2 := 525.0 // arrow end (tip) (scl(350))
-	y := 225.0  // arrow center Y (scl(150))
-	bs := 8.0   // control box half-size (scl(5))
+	// scl scales an integer by ::tk::scalingPct, as the Tcl demo's proc does.
+	scl := func(n int) float64 {
+		return float64(int(math.Round(float64(n) * float64(screenunit.ScalingPct()) / 100)))
+	}
+	pt := func(v string) float64 { return float64(screenunit.Px(v)) }
+
+	a, b, cc, w := scl(8), scl(10), scl(3), scl(2)
+	x1, x2, y := scl(40), scl(350), scl(150)
+	smallA, smallB, smallC := pt("3.75p"), pt("3.75p"), pt("1.5p")
+	boxW := screenunit.Px("0.75p")
 
 	activeDragger := 0 // 0=none, 1=box1, 2=box2, 3=box3
 
+	// arrowSetup regenerates everything, as the Tcl proc does.
 	var redraw func()
 	redraw = func() {
 		c.Delete("all")
 
-		// Big arrow (10x scale).
 		c.CreateLine([]float64{x1, y, x2, y},
 			canvas.OutlineColor("LightSeaGreen"),
 			canvas.OutlineWidth(int(10*w)),
 			canvas.Arrow(canvas.ArrowLast),
 			canvas.ArrowShape(10*a, 10*b, 10*cc))
-
-		// Arrow outline showing arrowhead geometry.
 		xtip := x2 - 10*b
 		deltaY := 10*cc + 5*w
-		c.CreateLine([]float64{
-			x2, y,
-			xtip, y + deltaY,
-			x2 - 10*a, y,
-			xtip, y - deltaY,
-			x2, y,
-		}, canvas.OutlineColor("black"), canvas.OutlineWidth(2),
+		c.CreateLine([]float64{x2, y, xtip, y + deltaY, x2 - 10*a, y, xtip, y - deltaY, x2, y},
+			canvas.OutlineWidth(screenunit.Px("1.5p")),
 			canvas.CapStyleOpt(platform.CapRound), canvas.JoinStyleOpt(platform.JoinRound))
 
-		// Control boxes.
-		c.CreateRectangle(x2-10*a-bs, y-bs, x2-10*a+bs, y+bs,
-			canvas.OutlineColor("black"), canvas.OutlineWidth(1),
-			canvas.Tags("box", "box1"))
-		c.CreateRectangle(xtip-bs, y-deltaY-bs, xtip+bs, y-deltaY+bs,
-			canvas.OutlineColor("black"), canvas.OutlineWidth(1),
-			canvas.Tags("box", "box2"))
-		c.CreateRectangle(x1-bs, y-5*w-bs, x1+bs, y-5*w+bs,
-			canvas.OutlineColor("black"), canvas.OutlineWidth(1),
-			canvas.Tags("box", "box3"))
+		s5 := scl(5)
+		box := func(x0, y0, x1, y1 float64, tag string) {
+			c.CreateRectangle(x0, y0, x1, y1, canvas.OutlineWidth(boxW), canvas.Tags(tag, "box"))
+		}
+		box(x2-10*a-s5, y-s5, x2-10*a+s5, y+s5, "box1")
+		box(xtip-s5, y-deltaY-s5, xtip+s5, y-deltaY+s5, "box2")
+		box(x1-s5, y-5*w-s5, x1+s5, y-5*w+s5, "box3")
 
-		// Separator line.
-		c.CreateLine([]float64{x2 + 75, 0, x2 + 75, 2000},
-			canvas.OutlineColor("black"), canvas.OutlineWidth(2))
+		s10, s15, s25, s50, s75, s125 := scl(10), scl(15), scl(25), scl(50), scl(75), scl(125)
+		c.CreateLine([]float64{x2 + s50, 0, x2 + s50, pt("750p")}, canvas.OutlineWidth(screenunit.Px("1.5p")))
+		tmp := x2 + scl(100)
+		example := func(pts []float64) {
+			c.CreateLine(pts, canvas.OutlineWidth(int(w)), canvas.Arrow(canvas.ArrowBoth), canvas.ArrowShape(a, b, cc))
+		}
+		example([]float64{tmp, y - s125, tmp, y - s75})
+		example([]float64{tmp - s25, y, tmp + s25, y})
+		example([]float64{tmp - s25, y + s75, tmp + s25, y + s125})
 
-		// Three small example arrows on the right.
-		tmp := x2 + 150
-		c.CreateLine([]float64{tmp, y - 188, tmp, y - 113},
-			canvas.OutlineWidth(int(w)),
-			canvas.Arrow(canvas.ArrowBoth),
-			canvas.ArrowShape(a, b, cc))
-		c.CreateLine([]float64{tmp - 38, y, tmp + 38, y},
-			canvas.OutlineWidth(int(w)),
-			canvas.Arrow(canvas.ArrowBoth),
-			canvas.ArrowShape(a, b, cc))
-		c.CreateLine([]float64{tmp - 38, y + 113, tmp + 38, y + 188},
-			canvas.OutlineWidth(int(w)),
-			canvas.Arrow(canvas.ArrowBoth),
-			canvas.ArrowShape(a, b, cc))
+		dim := func(pts []float64) {
+			c.CreateLine(pts, canvas.Arrow(canvas.ArrowBoth), canvas.ArrowShape(smallA, smallB, smallC))
+		}
+		num := func(v float64) string { return fmt.Sprintf("%.0f", v) }
+		tmp = x2 + s10
+		dim([]float64{tmp, y - 5*w, tmp, y - deltaY})
+		c.CreateText(x2+s15, y-deltaY+5*cc, canvas.TextOpt(num(cc)), canvas.AnchorOpt(option.AnchorW))
+		tmp = x1 - s10
+		dim([]float64{tmp, y - 5*w, tmp, y + 5*w})
+		c.CreateText(x1-s15, y, canvas.TextOpt(num(w)), canvas.AnchorOpt(option.AnchorE))
+		tmp = y + 5*w + 10*cc + s10
+		dim([]float64{x2 - 10*a, tmp, x2, tmp})
+		c.CreateText(x2-5*a, tmp+s5, canvas.TextOpt(num(a)), canvas.AnchorOpt(option.AnchorN))
+		tmp += s25
+		dim([]float64{x2 - 10*b, tmp, x2, tmp})
+		c.CreateText(x2-5*b, tmp+s5, canvas.TextOpt(num(b)), canvas.AnchorOpt(option.AnchorN))
 
-		// Dimension annotation arrows (small arrows showing measured values).
-		// smallTips: 3.75p × 1.5 scale ≈ 6px, 6px, 2px
-		sa, sb, sc := 8.0, 8.0, 3.0
-
-		// c (halfwidth) annotation.
-		tx := x2 + 15
-		c.CreateLine([]float64{tx, y - 5*w, tx, y - deltaY},
-			canvas.Arrow(canvas.ArrowBoth),
-			canvas.ArrowShape(sa, sb, sc))
-		c.CreateText(x2+23, y-deltaY+5*cc,
-			canvas.TextOpt(fmt.Sprintf("%.0f", cc)),
-			canvas.AnchorOpt(option.AnchorW))
-
-		// width annotation.
-		tx = x1 - 15
-		c.CreateLine([]float64{tx, y - 5*w, tx, y + 5*w},
-			canvas.Arrow(canvas.ArrowBoth),
-			canvas.ArrowShape(sa, sb, sc))
-		c.CreateText(x1-23, y,
-			canvas.TextOpt(fmt.Sprintf("%.0f", w)),
-			canvas.AnchorOpt(option.AnchorE))
-
-		// a (vertex distance) annotation.
-		ty := y + 5*w + 10*cc + 15
-		c.CreateLine([]float64{x2 - 10*a, ty, x2, ty},
-			canvas.Arrow(canvas.ArrowBoth),
-			canvas.ArrowShape(sa, sb, sc))
-		c.CreateText(x2-5*a, ty+8,
-			canvas.TextOpt(fmt.Sprintf("%.0f", a)),
-			canvas.AnchorOpt(option.AnchorN))
-
-		// b (total back distance) annotation.
-		ty += 38
-		c.CreateLine([]float64{x2 - 10*b, ty, x2, ty},
-			canvas.Arrow(canvas.ArrowBoth),
-			canvas.ArrowShape(sa, sb, sc))
-		c.CreateText(x2-5*b, ty+8,
-			canvas.TextOpt(fmt.Sprintf("%.0f", b)),
-			canvas.AnchorOpt(option.AnchorN))
-
-		// Parameter text at bottom (232.5p and 247.5p at 144 DPI = 465px, 495px).
-		c.CreateText(x1, 465,
-			canvas.TextOpt(fmt.Sprintf("-width  %.0f", w)),
-			canvas.AnchorOpt(option.AnchorW),
-			canvas.FontOpt("Helvetica 18"))
-		c.CreateText(x1, 495,
-			canvas.TextOpt(fmt.Sprintf("-arrowshape  {%.0f  %.0f  %.0f}", a, b, cc)),
-			canvas.AnchorOpt(option.AnchorW),
-			canvas.FontOpt("Helvetica 18"))
+		c.CreateText(x1, pt("232.5p"), canvas.TextOpt("-width  "+num(w)),
+			canvas.AnchorOpt(option.AnchorW), canvas.FontOpt("Helvetica 18"))
+		c.CreateText(x1, pt("247.5p"),
+			canvas.TextOpt(fmt.Sprintf("-arrowshape  {%s  %s  %s}", num(a), num(b), num(cc))),
+			canvas.AnchorOpt(option.AnchorW), canvas.FontOpt("Helvetica 18"))
 	}
 
 	redraw()
 
 	// Box hover: fill red on Enter, clear fill on Leave.
 	c.BindItem("box", event.EnterMask, func(ev *event.Event) {
-		c.ItemConfigure("current", canvas.FillColor("red"))
+		c.ItemConfigure("current", canvas.FillColor("red"), canvas.OutlineWidth(boxW))
 	})
 	c.BindItem("box", event.LeaveMask, func(ev *event.Event) {
 		c.ItemConfigure("current", canvas.FillNone())
@@ -197,49 +153,25 @@ func main() {
 		if ev.State&platform.Button1Mask == 0 || activeDragger == 0 {
 			return
 		}
-		mx := float64(ev.X)
-		my := float64(ev.Y)
+		mx := math.Round(c.CanvasX(ev.X))
+		my := math.Round(c.CanvasY(ev.Y))
+		clamp := func(v, hi float64) float64 { return math.Max(0, math.Min(hi, v)) }
 		switch activeDragger {
-		case 1: // box1 → controls a (arrowhead vertex length)
-			newA := (x2 + bs - mx) / 10
-			if newA < 0 {
-				newA = 0
-			}
-			if newA > 38 {
-				newA = 38
-			}
+		case 1: // arrowMove1
+			newA := clamp(math.Floor((x2+scl(5)-mx)/10), scl(25))
 			if newA != a {
 				c.Move("box1", 10*(a-newA), 0)
 				a = newA
 			}
-		case 2: // box2 → controls b (back distance) and c (halfwidth)
-			newB := (x2 + bs - mx) / 10
-			if newB < 0 {
-				newB = 0
-			}
-			if newB > 38 {
-				newB = 38
-			}
-			newC := (y + bs - my - 5*w) / 10
-			if newC < 0 {
-				newC = 0
-			}
-			if newC > 30 {
-				newC = 30
-			}
+		case 2: // arrowMove2
+			newB := clamp(math.Floor((x2+scl(5)-mx)/10), scl(25))
+			newC := clamp(math.Floor((y+scl(5)-my-5*w)/10), scl(20))
 			if newB != b || newC != cc {
 				c.Move("box2", 10*(b-newB), 10*(cc-newC))
-				b = newB
-				cc = newC
+				b, cc = newB, newC
 			}
-		case 3: // box3 → controls w (line width)
-			newW := (y + 3 - my) / 5
-			if newW < 0 {
-				newW = 0
-			}
-			if newW > 30 {
-				newW = 30
-			}
+		case 3: // arrowMove3
+			newW := clamp(math.Floor((y+scl(2)-my)/5), scl(20))
 			if newW != w {
 				c.Move("box3", 0, 5*(w-newW))
 				w = newW

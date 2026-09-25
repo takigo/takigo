@@ -105,9 +105,35 @@ func main() {
 		yscroll.Set(first, last)
 	}
 
-	// Grid layout: listbox row 0 col 0, yscroll row 0 col 1.
+	xscroll := ttk.NewScrollbar(lbFrame, "xscroll",
+		ttk.ScrollbarOrientOpt(ttk.Horizontal),
+		ttk.ScrollbarCommandOpt(func(args ...any) {
+			if len(args) < 1 {
+				return
+			}
+			switch args[0] {
+			case "moveto":
+				if len(args) >= 2 {
+					if f, ok := args[1].(float64); ok {
+						lb.XViewMoveTo(f)
+					}
+				}
+			case "scroll":
+				if len(args) >= 3 {
+					n, _ := args[1].(int)
+					unit, _ := args[2].(string)
+					lb.XViewScroll(n, unit == "pages")
+				}
+			}
+		}),
+	)
+	lb.XScrollCmd = func(first, last float64) {
+		xscroll.Set(first, last)
+	}
+
 	grid.Grid(lb, grid.Row(0), grid.Column(0), grid.Sticky(grid.NSEW))
 	grid.Grid(yscroll, grid.Row(0), grid.Column(1), grid.Sticky(grid.NSEW))
+	grid.Grid(xscroll, grid.Row(1), grid.Column(0), grid.Sticky(grid.NSEW))
 	grid.RowConfigure(lbFrame, 0, grid.Weight(1))
 	grid.ColumnConfigure(lbFrame, 0, grid.Weight(1))
 

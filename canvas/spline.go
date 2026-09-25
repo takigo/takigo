@@ -1,118 +1,76 @@
 package canvas
 
-// generateBezierSpline generates a smooth Bezier spline through the given
-// control points. Port of Tk's TkMakeBezierCurve.
-//
-// coords: alternating x,y values (length must be even, >= 4)
-// closed: if true, the curve wraps around
-// steps: number of intermediate points per segment (default 12)
-//
-// Returns a new slice of alternating x,y values.
+// generateBezierSpline ports TkMakeBezierCurve (tk/generic/tkTrig.c) for
+// alternating x,y coords. A curve whose first and last points coincide is
+// treated as closed; closed forces that by appending the first point, as
+// tkCanvPoly.c does for smoothed polygons. Open curves with fewer than three
+// points are returned unchanged, since Tk's line item draws them straight.
 func generateBezierSpline(coords []float64, closed bool, steps int) []float64 {
 	n := len(coords) / 2
-	if n < 2 {
-		return coords
-	}
 	if steps <= 0 {
 		steps = 12
 	}
-
-	// For open curves with < 3 points, just return the input.
-	if n < 3 && !closed {
-		out := make([]float64, len(coords))
-		copy(out, coords)
-		return out
+	if n < 2 || (n < 3 && !closed) {
+		return append([]float64(nil), coords...)
+	}
+	pts := coords
+	if closed && (coords[0] != coords[2*n-2] || coords[1] != coords[2*n-1]) {
+		pts = append(append([]float64(nil), coords...), coords[0], coords[1])
+		n++
 	}
 
-	var result []float64
-
-	if closed {
-		result = generateClosedSpline(coords, n, steps)
+	var out []float64
+	var ctl [8]float64
+	nc := 2 * n
+	isClosed := pts[0] == pts[nc-2] && pts[1] == pts[nc-1]
+	if isClosed {
+		ctl = [8]float64{
+			0.5*pts[nc-4] + 0.5*pts[0], 0.5*pts[nc-3] + 0.5*pts[1],
+			0.167*pts[nc-4] + 0.833*pts[0], 0.167*pts[nc-3] + 0.833*pts[1],
+			0.833*pts[0] + 0.167*pts[2], 0.833*pts[1] + 0.167*pts[3],
+			0.5*pts[0] + 0.5*pts[2], 0.5*pts[1] + 0.5*pts[3],
+		}
+		out = append(out, ctl[0], ctl[1])
+		out = bezierPoints(out, ctl, steps)
 	} else {
-		result = generateOpenSpline(coords, n, steps)
+		out = append(out, pts[0], pts[1])
 	}
-
-	return result
+	for i := 2; i < n; i++ {
+		p := pts[2*(i-2):]
+		if i == 2 && !isClosed {
+			ctl[0], ctl[1] = p[0], p[1]
+			ctl[2], ctl[3] = 0.333*p[0]+0.667*p[2], 0.333*p[1]+0.667*p[3]
+		} else {
+			ctl[0], ctl[1] = 0.5*p[0]+0.5*p[2], 0.5*p[1]+0.5*p[3]
+			ctl[2], ctl[3] = 0.167*p[0]+0.833*p[2], 0.167*p[1]+0.833*p[3]
+		}
+		if i == n-1 && !isClosed {
+			ctl[4], ctl[5] = .667*p[2]+.333*p[4], .667*p[3]+.333*p[5]
+			ctl[6], ctl[7] = p[4], p[5]
+		} else {
+			ctl[4], ctl[5] = .833*p[2]+.167*p[4], .833*p[3]+.167*p[5]
+			ctl[6], ctl[7] = 0.5*p[2]+0.5*p[4], 0.5*p[3]+0.5*p[5]
+		}
+		if (p[0] == p[2] && p[1] == p[3]) || (p[2] == p[4] && p[3] == p[5]) {
+			out = append(out, ctl[6], ctl[7])
+			continue
+		}
+		out = bezierPoints(out, ctl, steps)
+	}
+	return out
 }
 
-func generateOpenSpline(coords []float64, n, steps int) []float64 {
-	var result []float64
-
-	// First point.
-	result = append(result, coords[0], coords[1])
-
-	for i := 0; i <= n-3; i++ {
-		// Control points for this segment.
-		// p0 = midpoint of segment i to i+1 (or point 0 for first segment)
-		// p1 = point i+1
-		// p2 = midpoint of segment i+1 to i+2 (or point n-1 for last segment)
-		var p0x, p0y, p1x, p1y, p2x, p2y float64
-
-		if i == 0 {
-			p0x = coords[0]
-			p0y = coords[1]
-		} else {
-			p0x = (coords[i*2] + coords[(i+1)*2]) / 2
-			p0y = (coords[i*2+1] + coords[(i+1)*2+1]) / 2
-		}
-
-		p1x = coords[(i+1)*2]
-		p1y = coords[(i+1)*2+1]
-
-		if i == n-3 {
-			p2x = coords[(n-1)*2]
-			p2y = coords[(n-1)*2+1]
-		} else {
-			p2x = (coords[(i+1)*2] + coords[(i+2)*2]) / 2
-			p2y = (coords[(i+1)*2+1] + coords[(i+2)*2+1]) / 2
-		}
-
-		// Generate Bezier curve points for this quadratic segment.
-		for s := 1; s <= steps; s++ {
-			t := float64(s) / float64(steps)
-			t2 := t * t
-			u := 1 - t
-			u2 := u * u
-
-			x := u2*p0x + 2*u*t*p1x + t2*p2x
-			y := u2*p0y + 2*u*t*p1y + t2*p2y
-			result = append(result, x, y)
-		}
+// bezierPoints ports TkBezierPoints: steps points along the cubic Bezier
+// with the four control points in ctl (t = 1/steps .. 1).
+func bezierPoints(out []float64, ctl [8]float64, steps int) []float64 {
+	for i := 1; i <= steps; i++ {
+		t := float64(i) / float64(steps)
+		t2, t3 := t*t, t*t*t
+		u := 1 - t
+		u2, u3 := u*u, u*u*u
+		out = append(out,
+			ctl[0]*u3+3*(ctl[2]*t*u2+ctl[4]*t2*u)+ctl[6]*t3,
+			ctl[1]*u3+3*(ctl[3]*t*u2+ctl[5]*t2*u)+ctl[7]*t3)
 	}
-
-	return result
-}
-
-func generateClosedSpline(coords []float64, n, steps int) []float64 {
-	var result []float64
-
-	for i := 0; i < n; i++ {
-		i0 := i
-		i1 := (i + 1) % n
-		i2 := (i + 2) % n
-
-		p0x := (coords[i0*2] + coords[i1*2]) / 2
-		p0y := (coords[i0*2+1] + coords[i1*2+1]) / 2
-		p1x := coords[i1*2]
-		p1y := coords[i1*2+1]
-		p2x := (coords[i1*2] + coords[i2*2]) / 2
-		p2y := (coords[i1*2+1] + coords[i2*2+1]) / 2
-
-		if i == 0 {
-			result = append(result, p0x, p0y)
-		}
-
-		for s := 1; s <= steps; s++ {
-			t := float64(s) / float64(steps)
-			t2 := t * t
-			u := 1 - t
-			u2 := u * u
-
-			x := u2*p0x + 2*u*t*p1x + t2*p2x
-			y := u2*p0y + 2*u*t*p1y + t2*p2y
-			result = append(result, x, y)
-		}
-	}
-
-	return result
+	return out
 }

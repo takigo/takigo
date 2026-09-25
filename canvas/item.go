@@ -71,6 +71,8 @@ type ItemBase struct {
 	X1, Y1, X2, Y2 int // integer bounding box in canvas coords
 	state ItemState
 	canvas         *Canvas // back-pointer for color/font/visual resolution
+
+	stipple, outlineStipple string // -stipple / -outlinestipple bitmap specs
 }
 
 // State returns the item's per-item state.

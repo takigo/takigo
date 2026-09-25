@@ -21,6 +21,8 @@ type Canvas struct {
 	tagIndex map[string]map[int64]*itemEntry // tag name → item IDs for O(1) tag lookup
 	nextID   int64
 
+	stipples map[string]platform.PixmapID // depth-1 pixmaps by bitmap spec
+
 	// Scroll state.
 	xOrigin, yOrigin int
 	scrollRegion     [4]int
@@ -860,3 +862,9 @@ func (c *Canvas) Dchars(tagOrID string, first string, last string) {
 	}
 	c.scheduleRedraw()
 }
+
+// CanvasX ports "$canvas canvasx x": the canvas coordinate of window x.
+func (c *Canvas) CanvasX(x int) float64 { return float64(x + c.xOrigin - c.inset) }
+
+// CanvasY ports "$canvas canvasy y": the canvas coordinate of window y.
+func (c *Canvas) CanvasY(y int) float64 { return float64(y + c.yOrigin - c.inset) }

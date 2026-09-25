@@ -111,7 +111,9 @@ func (p *PolygonItem) Display(d platform.DisplayServer, drawable platform.Drawab
 
 	if p.fill != nil && len(points) >= 3 {
 		d.SetForeground(gc, p.fill.Pixel)
+		off := p.canvas.stippleOn(d, drawable, gc, p.stipple, originX, originY)
 		d.FillPolygon(drawable, gc, points, platform.PolygonComplex, platform.CoordModeOrigin)
+		off()
 	}
 
 	if p.outline != nil && p.outlineWidth > 0 && len(points) >= 2 {

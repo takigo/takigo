@@ -112,6 +112,9 @@ type GCManager interface {
 
 	// SetStipple sets the stipple pixmap (depth-1 bitmap) for a GC.
 	SetStipple(gc GCID, stipple PixmapID)
+
+	// SetTSOrigin sets the tile/stipple origin of a GC (XSetTSOrigin).
+	SetTSOrigin(gc GCID, x, y int)
 }
 
 // PixmapManager manages offscreen pixmaps.

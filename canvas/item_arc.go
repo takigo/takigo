@@ -10,6 +10,11 @@ import (
 // ArcItem implements an arc/chord/pieslice canvas item.
 type ArcItem struct {
 	ItemBase
+
+	// Per-Display state for the outline stipple (see setLineAttrs).
+	drawable         platform.DrawableID
+	originX, originY int
+	stippleOff       func()
 	coords       [4]float64 // bounding box of the ellipse
 	start        float64    // start angle in degrees
 	extent       float64    // angular extent in degrees
@@ -81,6 +86,7 @@ func (a *ArcItem) updateBBox() {
 
 func (a *ArcItem) Display(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID,
 	clipX, clipY, clipW, clipH, originX, originY int) {
+	a.drawable, a.originX, a.originY = drawable, originX, originY
 
 	x1 := drawableCoord(a.coords[0], originX)
 	y1 := drawableCoord(a.coords[1], originY)
@@ -168,10 +174,15 @@ func (a *ArcItem) setLineAttrs(d platform.DisplayServer, gc platform.GCID) {
 		d.SetDashes(gc, 0, a.dash)
 	}
 	d.SetLineAttributes(gc, uint(a.outlineWidth), lineStyle, platform.CapButt, platform.JoinMiter)
+	a.stippleOff = a.canvas.stippleOn(d, a.drawable, gc, a.outlineStipple, a.originX, a.originY)
 }
 
 func (a *ArcItem) resetLineAttrs(d platform.DisplayServer, gc platform.GCID) {
 	d.SetLineAttributes(gc, 1, platform.LineSolid, platform.CapButt, platform.JoinMiter)
+	if a.stippleOff != nil {
+		a.stippleOff()
+		a.stippleOff = nil
+	}
 }
 
 func (a *ArcItem) PointDistance(x, y float64) float64 {

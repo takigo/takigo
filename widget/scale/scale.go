@@ -130,7 +130,7 @@ func New(parent widget.Caregiver, name string, opts ...ScaleOption) *Scale {
 	window.MakeWindowExist(w)
 
 	s := &Scale{
-		Orient:       Horizontal,
+		Orient:       Vertical, // DEF_SCALE_ORIENT
 		From:         0,
 		To:           100,
 		Resolution:   1,

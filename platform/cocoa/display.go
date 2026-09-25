@@ -230,6 +230,7 @@ func (d *CocoaDisplay) SetFillStyle(gc platform.GCID, fillStyle int) {
 func (d *CocoaDisplay) SetStipple(gc platform.GCID, stipple platform.PixmapID) {
 	// TODO: implement stipple pattern support via CGPatternRef.
 }
+func (d *CocoaDisplay) SetTSOrigin(gc platform.GCID, x, y int) {}
 
 // --- PixmapManager ---
 

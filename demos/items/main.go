@@ -165,10 +165,11 @@ func main() {
 	}, canvas.OutlineColor(red), canvas.OutlineWidth(px("2.25p")),
 		canvas.Tags("item")), "", red)
 
-	// Thick dashed-look line with double-headed arrows (stippled in Tcl — use dash).
+	gray25 := "@" + findImage("gray25.xbm")
+
 	record(c.CreateLine([]float64{p(1), p(5), p(7), p(5), p(7), p(7), p(9), p(7)},
 		canvas.OutlineWidth(px("0.5c")),
-		canvas.Dash(4, 4),
+		canvas.Stipple(gray25),
 		canvas.Arrow(canvas.ArrowBoth),
 		canvas.ArrowShape(15, 15, 7),
 		canvas.Tags("item")), "", "black")
@@ -195,13 +196,13 @@ func main() {
 		canvas.OutlineWidth(px("2.25p")),
 		canvas.Tags("item")), "", "black")
 
-	// Thick stippled (rendered as dashed) closed smooth curve in red.
 	record(c.CreateLine([]float64{
 		p(12), p(6), p(13.5), p(4.5), p(16.5), p(7.5), p(18), p(6),
 		p(16.5), p(4.5), p(13.5), p(7.5), p(12), p(6),
 	}, canvas.OutlineColor(red), canvas.Smooth(true),
 		canvas.OutlineWidth(px("3m")),
 		canvas.CapStyleOpt(platform.CapRound),
+		canvas.Stipple(gray25),
 		canvas.Tags("item")), "", red)
 
 	// ---- Section 3: Polygons (col 2, row 0) ----
@@ -221,11 +222,10 @@ func main() {
 	}, canvas.FillColor(red), canvas.OutlineNone(), canvas.Smooth(true),
 		canvas.Tags("item")), red, "")
 
-	// L-shaped stippled polygon in blue (stipple not supported, use solid).
 	record(c.CreatePolygon([]float64{
 		p(22), p(4.5), p(25), p(4.5), p(25), p(6.75), p(28), p(6.75),
 		p(28), p(5.25), p(24), p(5.25), p(24), p(6.0), p(26), p(6), p(26), p(7.5), p(22), p(7.5),
-	}, canvas.FillColor(blue), canvas.OutlineNone(),
+	}, canvas.FillColor(blue), canvas.OutlineNone(), canvas.Stipple(gray25),
 		canvas.Tags("item")), blue, "")
 
 	// ---- Section 4: Rectangles (col 0, row 1) ----
@@ -241,9 +241,8 @@ func main() {
 		canvas.FillColor(green),
 		canvas.Tags("item")), green, "black")
 
-	// Blue stippled rectangle, no outline (stipple not supported, use solid blue).
 	record(c.CreateRectangle(p(6), p(10), p(9), p(15),
-		canvas.FillColor(blue), canvas.OutlineNone(),
+		canvas.FillColor(blue), canvas.OutlineNone(), canvas.Stipple(gray25),
 		canvas.Tags("item")), blue, "")
 
 	// ---- Section 5: Ovals (col 1, row 1) ----
@@ -259,9 +258,8 @@ func main() {
 		canvas.FillColor(green),
 		canvas.Tags("item")), green, "black")
 
-	// Blue stippled oval, no outline (stipple not supported, use solid blue).
 	record(c.CreateOval(p(16), p(10), p(19), p(15),
-		canvas.FillColor(blue), canvas.OutlineNone(),
+		canvas.FillColor(blue), canvas.OutlineNone(), canvas.Stipple(gray25),
 		canvas.Tags("item")), blue, "")
 
 	// ---- Section 6: Text (col 2, row 1) ----
@@ -313,9 +311,8 @@ func main() {
 		canvas.ArcStyleOpt(canvas.ArcStylePieslice),
 		canvas.Tags("item")), green, "black")
 
-	// Blue arc (style=arc), stipple skipped.
 	record(c.CreateArc(p(6.5), p(17), p(9.5), p(20),
-		canvas.OutlineColor(blue), canvas.OutlineWidth(px("4m")),
+		canvas.OutlineColor(blue), canvas.OutlineWidth(px("4m")), canvas.OutlineStipple(gray25),
 		canvas.StartAngle(-135), canvas.Extent(270),
 		canvas.ArcStyleOpt(canvas.ArcStyleArc),
 		canvas.Tags("item")), "", blue)

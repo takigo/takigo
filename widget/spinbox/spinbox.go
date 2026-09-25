@@ -55,7 +55,9 @@ type Spinbox struct {
 	PrefWidth   int
 
 	// Colors.
-	SelBg    *color.ColorRef
+	SelBg *color.ColorRef
+	// ButtonBg is -buttonbackground (default DEF_BUTTON_BG_COLOR).
+	ButtonBg *color.ColorRef
 	SelFg    *color.ColorRef
 	InsertBg *color.ColorRef
 
@@ -86,6 +88,17 @@ func WidthOpt(w int) SpinboxOption             { return func(s *Spinbox) { s.Pre
 func ValidateOpt(v string) SpinboxOption       { return func(s *Spinbox) { s.Validate = v } }
 func ValidateCmdOpt(fn func(string) bool) SpinboxOption {
 	return func(s *Spinbox) { s.ValidateCmd = fn }
+}
+
+// ButtonBackground sets -buttonbackground.
+func ButtonBackground(name string) SpinboxOption {
+	return func(s *Spinbox) {
+		if c, err := s.App.ColorCache().Get(name); err == nil {
+			s.ButtonBg = c.Ref()
+		} else {
+			log.Printf("spinbox: failed to get color %q: %v", name, err)
+		}
+	}
 }
 
 func Background(name string) SpinboxOption {
@@ -157,7 +170,7 @@ func New(parent widget.Caregiver, name string, opts ...SpinboxOption) *Spinbox {
 	widget.InitBase(&s.Base, w, app)
 	w.Class = "Spinbox"
 
-	s.BorderWidth = 2
+	s.BorderWidth = 1 // DEF_ENTRY_BORDER_WIDTH
 	s.Relief = option.ReliefSunken
 	s.HighlightWidth = 1
 
@@ -429,6 +442,8 @@ func (s *Spinbox) computeGeometry() {
 		s.avgWidth = 1
 	}
 
+	// EntryWorldChanged: the button column is one "0" plus 2*(1+XPAD).
+	s.buttonWidth = max(11, s.avgWidth+4)
 	w := s.Win
 	w.ReqWidth = s.PrefWidth*s.avgWidth + 2*s.inset + s.buttonWidth
 	w.ReqHeight = m.Linespace() + 2*s.inset
@@ -494,17 +509,26 @@ func (s *Spinbox) closestGap(x int) int {
 	return idx
 }
 
+// buttonBox returns the button column left edge, top and half height as
+// drawn by DisplayEntry.
+func (s *Spinbox) buttonBox() (startx, top, height int) {
+	in := s.inset - 1
+	return s.Win.Width - (s.buttonWidth + in), in, (s.Win.Height - 2*in) / 2
+}
+
 // hitButton returns "up", "down", or "" for the button area.
 func (s *Spinbox) hitButton(x, y int) string {
-	btnLeft := s.Win.Width - s.buttonWidth
-	if x < btnLeft {
+	startx, top, h := s.buttonBox()
+	if x < startx || x >= startx+s.buttonWidth || y < top {
 		return ""
 	}
-	midY := s.Win.Height / 2
-	if y < midY {
+	if y < top+h {
 		return "up"
 	}
-	return "down"
+	if y < top+2*h {
+		return "down"
+	}
+	return ""
 }
 
 // Display draws the spinbox.
@@ -525,16 +549,6 @@ func (s *Spinbox) Display() {
 		d.SetForeground(gc, s.Background.Pixel)
 	}
 	d.FillRectangle(w.Drawable(), gc, 0, 0, uint(w.Width), uint(w.Height))
-
-	// Border.
-	if s.Border != nil && s.BorderWidth > 0 {
-		hl := s.HighlightWidth
-		draw.Draw3DRectangle(d, w.Drawable(), gc, s.Border,
-			hl, hl, w.Width-2*hl, w.Height-2*hl, s.BorderWidth, s.Relief)
-	}
-	// The highlight ring sits outside the border (focus colour or
-	// -highlightbackground).
-	s.DrawHighlightBorder(s.HasFocus, 0)
 
 	// Draw text.
 	xftFont, isXft := s.Font.(platform.DrawableFont)
@@ -576,63 +590,74 @@ func (s *Spinbox) Display() {
 		}
 	}
 
-	// Draw buttons.
 	s.drawButtons(d, gc)
+
+	// DisplayEntry draws the border and focus highlight last.
+	if s.Border != nil && s.BorderWidth > 0 {
+		hl := s.HighlightWidth
+		draw.Draw3DRectangle(d, w.Drawable(), gc, s.Border,
+			hl, hl, w.Width-2*hl, w.Height-2*hl, s.BorderWidth, s.Relief)
+	}
+	s.DrawHighlightBorder(s.HasFocus, 0)
 
 	d.Flush()
 }
 
+// drawButtons ports the spin button drawing in DisplayEntry (tkEntry.c).
 func (s *Spinbox) drawButtons(d platform.DisplayServer, gc platform.GCID) {
 	w := s.Win
-	btnLeft := w.Width - s.buttonWidth
-	midY := w.Height / 2
-
-	// Button background.
-	if s.Background != nil {
-		d.SetForeground(gc, s.Background.Pixel)
-		d.FillRectangle(w.Drawable(), gc, btnLeft, 0, uint(s.buttonWidth), uint(w.Height))
+	startx, in, height := s.buttonBox()
+	bb := draw.NewBorderFromPixel(0xd9d9d9)
+	if s.ButtonBg != nil {
+		bb = draw.NewBorderFromPixel(s.ButtonBg.Pixel)
 	}
-
-	// Button borders.
-	if s.Border != nil {
-		upRelief := option.ReliefRaised
-		downRelief := option.ReliefRaised
-		if s.pressedButton == "up" {
-			upRelief = option.ReliefSunken
-		}
-		if s.pressedButton == "down" {
-			downRelief = option.ReliefSunken
-		}
-		draw.Draw3DRectangle(d, w.Drawable(), gc, s.Border,
-			btnLeft, 0, s.buttonWidth, midY, 1, upRelief)
-		draw.Draw3DRectangle(d, w.Drawable(), gc, s.Border,
-			btnLeft, midY, s.buttonWidth, w.Height-midY, 1, downRelief)
+	upRelief, downRelief := option.ReliefRaised, option.ReliefRaised
+	if s.pressedButton == "up" {
+		upRelief = option.ReliefSunken
 	}
-
-	// Draw triangles.
-	if s.Foreground != nil {
-		d.SetForeground(gc, s.Foreground.Pixel)
-
-		// Up triangle.
-		cx := btnLeft + s.buttonWidth/2
-		upCy := midY / 2
-		sz := 3
-		for row := 0; row < sz; row++ {
-			x1 := cx - row
-			x2 := cx + row
-			y := upCy - sz/2 + row
-			d.DrawLine(w.Drawable(), gc, x1, y, x2, y)
-		}
-
-		// Down triangle (inverted).
-		downCy := midY + (w.Height-midY)/2
-		for row := 0; row < sz; row++ {
-			x1 := cx - row
-			x2 := cx + row
-			y := downCy + sz/2 - row
-			d.DrawLine(w.Drawable(), gc, x1, y, x2, y)
-		}
+	if s.pressedButton == "down" {
+		downRelief = option.ReliefSunken
 	}
+	draw.Fill3DRectangle(d, w.Drawable(), gc, bb, startx, in, s.buttonWidth, height, 1, upRelief)
+	draw.Fill3DRectangle(d, w.Drawable(), gc, bb, startx, in+height, s.buttonWidth, height, 1, downRelief)
+	if s.Foreground == nil {
+		return
+	}
+	const pad = 2 // XPAD + 1
+	xw := s.buttonWidth - 2*pad
+	if xw <= 1 {
+		return
+	}
+	space := height - 2*pad
+	if xw%2 == 0 {
+		xw++
+	}
+	th := min((xw+1)/2, space)
+	space = (space - th) / 2
+	startx += pad
+	d.SetForeground(gc, s.Foreground.Pixel)
+	b2i := func(b bool) int {
+		if b {
+			return 1
+		}
+		return 0
+	}
+	off := b2i(s.pressedButton == "up")
+	starty := in + height - pad - space
+	y0 := starty - 1 + off
+	d.FillPolygon(w.Drawable(), gc, []platform.Point{
+		{X: int16(startx + off), Y: int16(y0)},
+		{X: int16(startx + xw/2 + off), Y: int16(starty - th - 1 + off)},
+		{X: int16(startx + xw + off), Y: int16(y0)},
+	}, 2, 0)
+	off = b2i(s.pressedButton == "down")
+	starty = in + height + pad + space
+	y0 = starty + off
+	d.FillPolygon(w.Drawable(), gc, []platform.Point{
+		{X: int16(startx + 1 + off), Y: int16(y0)},
+		{X: int16(startx + xw/2 + off), Y: int16(starty + th - 1 + off)},
+		{X: int16(startx - 1 + xw + off), Y: int16(y0)},
+	}, 2, 0)
 }
 
 // Configure applies options.

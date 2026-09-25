@@ -37,13 +37,13 @@ func WrapLines(f Measurer, text string, wrapLength int) []string {
 // fitLine returns the longest prefix of s that fits in wrapLength, preferring
 // to end at a word boundary.
 func fitLine(f Measurer, s string, wrapLength int) string {
-	if f.MeasureString(s) <= wrapLength {
+	if TextWidth(f, s) <= wrapLength {
 		return s
 	}
 	best := -1
 	for i := 1; i < len(s); i++ {
 		if (s[i] == ' ' || s[i] == '\t') && s[i-1] != ' ' && s[i-1] != '\t' {
-			if f.MeasureString(s[:i]) > wrapLength {
+			if TextWidth(f, s[:i]) > wrapLength {
 				break
 			}
 			best = i
@@ -58,4 +58,45 @@ func fitLine(f Measurer, s string, wrapLength int) string {
 		n++
 	}
 	return string(runes[:n])
+}
+
+// Segment is a run of text without tabs and its x offset within its line.
+type Segment struct {
+	Text string
+	X    int
+}
+
+// TabWidth ports fontPtr->tabWidth (tkFont.c): 8 widths of "0".
+func TabWidth(f Measurer) int {
+	return max(1, 8*f.MeasureString("0"))
+}
+
+// Segments splits a line at tabs; like Tk_ComputeTextLayout, a tab moves
+// to the next multiple of TabWidth from the line start.
+func Segments(f Measurer, line string) []Segment {
+	parts := strings.Split(line, "\t")
+	segs := make([]Segment, 0, len(parts))
+	x, tw := 0, 0
+	for i, p := range parts {
+		if i > 0 {
+			if tw == 0 {
+				tw = TabWidth(f)
+			}
+			x += tw
+			x -= x % tw
+		}
+		segs = append(segs, Segment{p, x})
+		x += f.MeasureString(p)
+	}
+	return segs
+}
+
+// TextWidth measures a line with tabs expanded.
+func TextWidth(f Measurer, line string) int {
+	if !strings.Contains(line, "\t") {
+		return f.MeasureString(line)
+	}
+	segs := Segments(f, line)
+	last := segs[len(segs)-1]
+	return last.X + f.MeasureString(last.Text)
 }

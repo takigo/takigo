@@ -462,6 +462,81 @@ func (lb *Listbox) notifyYScrollbar() {
 		first, last := lb.YVisibleRange()
 		lb.YScrollCmd(first, last)
 	}
+	lb.notifyXScrollbar()
+}
+
+// maxWidth is Tk's listPtr->maxWidth: the widest element in pixels.
+func (lb *Listbox) maxWidth() int {
+	mw := 0
+	if lb.Font != nil {
+		for _, it := range lb.items {
+			mw = max(mw, lb.Font.MeasureString(it))
+		}
+	}
+	return mw
+}
+
+func (lb *Listbox) xScrollUnit() int {
+	if lb.Font == nil {
+		return 1
+	}
+	return max(1, lb.Font.MeasureString("0"))
+}
+
+// maxOffset ports GetMaxOffset (-selectborderwidth is 0 here).
+func (lb *Listbox) maxOffset() int {
+	u := lb.xScrollUnit()
+	m := max(0, lb.maxWidth()-(lb.Win.Width-2*lb.inset)+u-1)
+	return m - m%u
+}
+
+// XVisibleRange ports "xview" with no arguments.
+func (lb *Listbox) XVisibleRange() (float64, float64) {
+	mw := lb.maxWidth()
+	if mw == 0 {
+		return 0, 1
+	}
+	ww := lb.Win.Width - 2*lb.inset
+	return float64(lb.xOffset) / float64(mw), min(1, float64(lb.xOffset+ww)/float64(mw))
+}
+
+// changeOffset ports ChangeListboxOffset: round to whole units and clamp.
+func (lb *Listbox) changeOffset(offset int) {
+	u := lb.xScrollUnit()
+	offset += u / 2
+	offset = max(0, min(lb.maxOffset(), offset))
+	offset -= offset % u
+	if offset != lb.xOffset {
+		lb.xOffset = offset
+		lb.notifyXScrollbar()
+		lb.Display()
+	}
+}
+
+// XView scrolls so that character column index is at the left edge.
+func (lb *Listbox) XView(index int) { lb.changeOffset(index * lb.xScrollUnit()) }
+
+// XViewMoveTo ports "xview moveto".
+func (lb *Listbox) XViewMoveTo(fraction float64) {
+	lb.changeOffset(int(fraction*float64(lb.maxWidth()) + 0.5))
+}
+
+// XViewScroll ports "xview scroll n units|pages".
+func (lb *Listbox) XViewScroll(n int, pages bool) {
+	u := lb.xScrollUnit()
+	if pages {
+		if wu := (lb.Win.Width - 2*lb.inset) / u; wu > 2 {
+			lb.changeOffset(lb.xOffset + n*u*(wu-2))
+			return
+		}
+	}
+	lb.changeOffset(lb.xOffset + n*u)
+}
+
+func (lb *Listbox) notifyXScrollbar() {
+	if lb.XScrollCmd != nil {
+		lb.XScrollCmd(lb.XVisibleRange())
+	}
 }
 
 // Display draws the listbox.
@@ -521,9 +596,9 @@ func (lb *Listbox) Display() {
 		var textX int
 		switch lb.Justify {
 		case option.JustifyCenter:
-			textX = (w.Width-textW)/2 - lb.xOffset
+			textX = (w.Width-textW)/2 - lb.xOffset + lb.maxOffset()/2
 		case option.JustifyRight:
-			textX = clipRight - textW - lb.xOffset
+			textX = clipRight - textW - lb.xOffset + lb.maxOffset()
 		default: // JustifyLeft
 			textX = lb.inset - lb.xOffset
 		}

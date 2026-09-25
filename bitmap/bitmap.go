@@ -5,6 +5,7 @@ package bitmap
 import (
 	goimage "image"
 	gocolor "image/color"
+	"os"
 	"strconv"
 	"strings"
 
@@ -151,4 +152,22 @@ static unsigned char question_bits[] = {
 static unsigned char warning_bits[] = {
    0x0c, 0x16, 0x2b, 0x15, 0x2b, 0x15, 0x2b, 0x16, 0x0a, 0x16, 0x0a, 0x16,
    0x0a, 0x00, 0x00, 0x1e, 0x0a, 0x16, 0x0a};`,
+}
+
+// Data returns the bits of a Tk bitmap spec: a built-in name or "@file"
+// with an XBM file (Tk_GetBitmap). ok is false if it cannot be loaded.
+func Data(spec string) (w, h int, bits []byte, ok bool) {
+	src, found := builtins[spec]
+	if strings.HasPrefix(spec, "@") {
+		b, err := os.ReadFile(spec[1:])
+		if err != nil {
+			return 0, 0, nil, false
+		}
+		src, found = string(b), true
+	}
+	if !found {
+		return 0, 0, nil, false
+	}
+	w, h, bits = parseXBM(src)
+	return w, h, bits, w > 0 && h > 0 && len(bits) >= (w+7)/8*h
 }

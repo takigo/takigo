@@ -121,6 +121,28 @@ func (t *TextItem) Configure(opts []ItemOption) error {
 	return nil
 }
 
+// layout ports Tk_ComputeTextLayout for the item: lines broken at
+// newlines and -width, the layout as wide as its widest line, and each
+// line's x offset for -justify.
+func (t *TextItem) layout() (lines []string, xs []int, w, h int) {
+	lines = font.WrapLines(t.font, t.text, t.wrapLength)
+	widths := make([]int, len(lines))
+	for i, l := range lines {
+		widths[i] = font.TextWidth(t.font, l)
+		w = max(w, widths[i])
+	}
+	xs = make([]int, len(lines))
+	for i := range lines {
+		switch t.justify {
+		case option.JustifyCenter:
+			xs[i] = (w - widths[i]) / 2
+		case option.JustifyRight:
+			xs[i] = w - widths[i]
+		}
+	}
+	return lines, xs, w, len(lines) * t.font.Metrics().Linespace()
+}
+
 func (t *TextItem) updateBBox() {
 	if t.font == nil || len(t.text) == 0 {
 		t.X1 = int(t.x)
@@ -130,15 +152,13 @@ func (t *TextItem) updateBBox() {
 		return
 	}
 
-	textW := t.font.MeasureString(t.text)
-	m := t.font.Metrics()
-	textH := m.Linespace()
+	_, _, textW, textH := t.layout()
 
 	ax, ay := anchorOffset(t.anchor, textW, textH)
 
 	if t.angle == 0 {
-		t.X1 = int(t.x) + ax
-		t.Y1 = int(t.y) + ay
+		t.X1 = int(math.Floor(t.x + float64(ax) + 0.5))
+		t.Y1 = int(math.Floor(t.y + float64(ay) + 0.5))
 		t.X2 = t.X1 + textW
 		t.Y2 = t.Y1 + textH
 		return
@@ -183,20 +203,25 @@ func (t *TextItem) Display(d platform.DisplayServer, drawable platform.DrawableI
 	}
 
 	m := t.font.Metrics()
-	textW := t.font.MeasureString(t.text)
-	textH := m.Linespace()
+	lines, xs, textW, textH := t.layout()
+	ls := m.Linespace()
 
 	ax, ay := anchorOffset(t.anchor, textW, textH)
 
 	if t.angle == 0 {
-		drawX := int(t.x) + ax - originX
-		drawY := int(t.y) + ay - originY
+		// DisplayCanvText: drawOrigin = (x, y) + anchor offset, rounded by
+		// Tk_CanvasDrawableCoords.
+		drawX := drawableCoord(t.x+float64(ax), originX)
+		drawY := drawableCoord(t.y+float64(ay), originY)
 
 		if df, ok := t.font.(platform.DrawableFont); ok {
-			if len(t.text) > 0 {
-				df.DrawString(drawable,
-					drawX, drawY+m.Ascent,
-					t.text, t.color.Pixel, t.color.Red, t.color.Green, t.color.Blue)
+			for i, line := range lines {
+				for _, seg := range font.Segments(t.font, line) {
+					if seg.Text != "" {
+						df.DrawString(drawable, drawX+xs[i]+seg.X, drawY+i*ls+m.Ascent,
+							seg.Text, t.color.Pixel, t.color.Red, t.color.Green, t.color.Blue)
+					}
+				}
 			}
 		}
 
@@ -207,28 +232,31 @@ func (t *TextItem) Display(d platform.DisplayServer, drawable platform.DrawableI
 				cursorX += t.font.MeasureString(t.text[:t.cursorPos])
 			}
 			d.SetForeground(gc, t.color.Pixel)
-			d.FillRectangle(drawable, gc, cursorX, drawY, 2, uint(textH))
+			d.FillRectangle(drawable, gc, cursorX, drawY, 2, uint(ls))
 		}
 		return
 	}
 
-	// Rotated text: compute baseline position in rotated coordinates.
+	// Rotated text: each line's baseline origin is rotated about the anchor
+	// point, as the whole layout is in DisplayCanvText.
 	rad := t.angle * math.Pi / 180.0
 	cosA, sinA := math.Cos(rad), math.Sin(rad)
-	fax, fay := float64(ax), float64(ay)
-	drawOriginX := t.x + fax*cosA + fay*sinA
-	drawOriginY := t.y + fay*cosA - fax*sinA
-	ascent := float64(m.Ascent)
-	baseX := drawableCoord(drawOriginX+ascent*sinA, originX)
-	baseY := drawableCoord(drawOriginY+ascent*cosA, originY)
-
-	if af, ok := t.font.(interface {
+	af, ok := t.font.(interface {
 		DrawStringAngle(platform.DrawableID, int, int, float64, string, uint64, uint16, uint16, uint16)
-	}); ok {
-		if len(t.text) > 0 {
-			af.DrawStringAngle(drawable, baseX, baseY, t.angle,
-				t.text, t.color.Pixel, t.color.Red, t.color.Green, t.color.Blue)
+	})
+	if !ok {
+		return
+	}
+	for i, line := range lines {
+		if line == "" {
+			continue
 		}
+		fx := float64(ax + xs[i])
+		fy := float64(ay+i*ls) + float64(m.Ascent)
+		bx := drawableCoord(t.x+fx*cosA+fy*sinA, originX)
+		by := drawableCoord(t.y+fy*cosA-fx*sinA, originY)
+		af.DrawStringAngle(drawable, bx, by, t.angle,
+			line, t.color.Pixel, t.color.Red, t.color.Green, t.color.Blue)
 	}
 }
 

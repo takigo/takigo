@@ -256,6 +256,9 @@ func (s *X11Display) SetFillStyle(gc platform.GCID, fillStyle int) {
 func (s *X11Display) SetStipple(gc platform.GCID, stipple platform.PixmapID) {
 	s.dpy.SetStipple(toXGC(gc), xlib.Pixmap(stipple))
 }
+func (s *X11Display) SetTSOrigin(gc platform.GCID, x, y int) {
+	s.dpy.SetTSOrigin(toXGC(gc), x, y)
+}
 
 // --- PixmapManager ---
 
