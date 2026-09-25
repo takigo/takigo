@@ -31,7 +31,7 @@ type Radiobutton struct {
 
 	// Indicator.
 	IndicatorOn   bool
-	TristateValue string          // if non-empty and variable==TristateValue, show indeterminate dash
+	TristateValue string          // Tk -tristatevalue (default ""): variable==TristateValue shows the tri-state look
 	SelectColor   *color.ColorRef // indicator fill when selected
 
 	// Image (displayed instead of text when set).
@@ -47,10 +47,11 @@ type Radiobutton struct {
 	// WidthChars sets the requested width in characters of the default font (Tk's -width).
 	WidthChars int
 
-	textWidth  int
-	textHeight int
-	pressed    bool
-	HasFocus   bool
+	textWidth      int
+	textHeight     int
+	indicatorSpace int // Tk butPtr->indicatorSpace
+	pressed        bool
+	HasFocus       bool
 }
 
 // RadiobuttonOption configures a Radiobutton.
@@ -126,9 +127,9 @@ func Anchor(a option.Anchor) RadiobuttonOption {
 	return func(r *Radiobutton) { r.Anchor = a }
 }
 
-// TristateValueOpt sets the value that triggers an indeterminate (dash) display.
-// When the linked variable equals this value, the radiobutton shows a horizontal
-// dash instead of the dot, indicating a mixed/indeterminate state.
+// TristateValueOpt sets Tk's -tristatevalue: when the linked variable equals
+// it (and not -value), the radiobutton shows the tri-state look. The default
+// is "", so an empty variable shows the tri-state look.
 func TristateValueOpt(v string) RadiobuttonOption {
 	return func(r *Radiobutton) { r.TristateValue = v }
 }
@@ -209,9 +210,6 @@ var RadiobuttonImageOpt = ImageOpt
 // RadiobuttonWidth is an alias for Width.
 var RadiobuttonWidth = Width
 
-// indicatorSize is the diameter of the circle indicator.
-const indicatorSize = 13
-
 // New creates a new Radiobutton widget.
 func New(parent widget.Caregiver, name string, opts ...RadiobuttonOption) *Radiobutton {
 	app := parent.AppContext()
@@ -221,14 +219,14 @@ func New(parent widget.Caregiver, name string, opts ...RadiobuttonOption) *Radio
 	w.Flags |= window.FlagFocusable
 
 	r := &Radiobutton{
-		Anchor:      option.AnchorW,
+		Anchor:      option.AnchorCenter,
 		IndicatorOn: true,
 	}
 	widget.InitBase(&r.Base, w, app)
 	w.Class = "Radiobutton"
 
 	// Radiobutton-specific defaults.
-	r.BorderWidth = 0
+	r.BorderWidth = widget.DefBorderWidth
 	r.Relief = option.ReliefFlat
 	r.PadX = 1
 	r.PadY = 1
@@ -248,7 +246,7 @@ func New(parent widget.Caregiver, name string, opts ...RadiobuttonOption) *Radio
 	}
 
 	// Select color.
-	if sc, err := app.ColorCache().Get("#b03060"); err == nil {
+	if sc, err := app.ColorCache().Get(widget.DefSelectColor); err == nil {
 		r.SelectColor = sc.Ref()
 	}
 
@@ -270,14 +268,16 @@ func New(parent widget.Caregiver, name string, opts ...RadiobuttonOption) *Radio
 	return r
 }
 
+// computeGeometry ports TkpComputeButtonGeometry (tk/unix/tkUnixButton.c)
+// for check/radio buttons: the indicator gets its own column
+// (indicatorSpace) left of the content.
 func (r *Radiobutton) computeGeometry() {
-	if r.Font != nil && r.Text != "" {
+	r.textWidth, r.textHeight = 0, 0
+	avg := 0
+	if r.Font != nil {
 		r.textWidth = r.Font.MeasureString(r.Text)
-		m := r.Font.Metrics()
-		r.textHeight = m.Linespace()
-	} else {
-		r.textWidth = 0
-		r.textHeight = 0
+		r.textHeight = r.Font.Metrics().Linespace()
+		avg = r.Font.MeasureString("0")
 	}
 
 	bw := r.BorderWidth
@@ -285,30 +285,29 @@ func (r *Radiobutton) computeGeometry() {
 		bw = 2 // button-mode always uses 2px border
 	}
 	inset := bw + r.HighlightWidth
-
-	var contentW, contentH int
-	if r.Img != nil {
-		contentW = r.Img.Width()
-		contentH = r.Img.Height()
+	img := r.Img
+	var width, height int
+	r.indicatorSpace = 0
+	if img != nil {
+		width, height = img.Width(), img.Height()
+		if r.IndicatorOn {
+			r.indicatorSpace = height
+		}
 	} else {
-		contentW = r.textWidth
-		contentH = r.textHeight
-		if r.WidthChars > 0 && r.Font != nil {
-			if minW := r.WidthChars * r.Font.MeasureString("0"); minW > contentW {
-				contentW = minW
-			}
+		width, height = r.textWidth, r.textHeight
+		if r.WidthChars > 0 {
+			width = r.WidthChars * avg
 		}
-	}
-	if r.IndicatorOn {
-		contentW += indicatorSize + 4
-		if indicatorSize > contentH {
-			contentH = indicatorSize
+		if r.IndicatorOn {
+			r.indicatorSpace = r.textHeight + avg
 		}
+		width += 2 * r.PadX
+		height += 2 * r.PadY
 	}
 
 	w := r.Win
-	w.ReqWidth = contentW + 2*r.PadX + 2*inset
-	w.ReqHeight = contentH + 2*r.PadY + 2*inset
+	w.ReqWidth = width + r.indicatorSpace + 2*inset
+	w.ReqHeight = height + 2*inset
 }
 
 // Selected returns whether this radiobutton is currently selected.
@@ -330,7 +329,8 @@ func (r *Radiobutton) Display() {
 	gc := w.GC
 
 	selected := r.Selected()
-	tristate := r.TristateValue != "" && r.Variable.Get() == r.TristateValue
+	// Tk: the -value match wins, then -tristatevalue (default "").
+	tristate := !selected && r.Variable.Get() == r.TristateValue
 
 	// Choose colors based on state.
 	bgPixel := uint64(0)
@@ -379,78 +379,58 @@ func (r *Radiobutton) Display() {
 	if !r.IndicatorOn {
 		inset = 2 + r.HighlightWidth
 	}
-	availW := max(0, w.Width-2*inset-2*r.PadX)
-	availH := max(0, w.Height-2*inset-2*r.PadY)
-	frameX := inset + r.PadX
-	frameY := inset + r.PadY
+	img := r.Img
+	var contentX, contentY int
+	if img != nil {
+		contentX, contentY = widget.AnchorText(r.Anchor, inset, inset,
+			max(0, w.Width-2*inset), max(0, w.Height-2*inset),
+			r.indicatorSpace+img.Width(), img.Height())
+	} else {
+		contentX, contentY = widget.AnchorText(r.Anchor, inset+r.PadX, inset+r.PadY,
+			max(0, w.Width-2*inset-2*r.PadX), max(0, w.Height-2*inset-2*r.PadY),
+			r.indicatorSpace+r.textWidth, r.textHeight)
+	}
+	contentX += r.indicatorSpace
 
-	indW := 0
 	if r.IndicatorOn {
-		indW = indicatorSize + 4
-
-		// Draw circle indicator.
-		indX := frameX
-		indY := frameY + (availH-indicatorSize)/2
-
-		// Fill circle: white background or select color.
-		if selected && r.SelectColor != nil {
-			d.SetForeground(gc, r.SelectColor.Pixel)
-		} else {
-			d.SetForeground(gc, uint64(0xffffff))
+		// Tk centres the indicator in its column and on the window's mid-line.
+		state := draw.IndicatorOff
+		switch {
+		case tristate:
+			state = draw.IndicatorTristate
+		case selected:
+			state = draw.IndicatorOn
 		}
-		// FillArc uses 64ths of a degree; full circle = 0 to 360*64.
-		d.FillArc(w.Drawable(), gc, indX, indY, uint(indicatorSize), uint(indicatorSize), 0, 360*64)
-
-		// Draw circle border (dark outer ring).
-		indBorder := r.Border
-		if indBorder == nil {
-			indBorder = draw.NewBorderFromPixel(bgPixel)
+		selPixel := uint64(0xffffff)
+		if r.SelectColor != nil {
+			selPixel = r.SelectColor.Pixel
 		}
-		// Dark outer arc (top-left shadow).
-		d.SetForeground(gc, indBorder.DarkPixel)
-		d.DrawArc(w.Drawable(), gc, indX, indY, uint(indicatorSize-1), uint(indicatorSize-1), 45*64, 180*64)
-		// Light inner arc (bottom-right highlight).
-		d.SetForeground(gc, indBorder.LightPixel)
-		d.DrawArc(w.Drawable(), gc, indX, indY, uint(indicatorSize-1), uint(indicatorSize-1), 225*64, 180*64)
-
-		if tristate && fgCol != nil {
-			// Indeterminate: draw a horizontal dash inside the circle.
-			midY := indY + indicatorSize/2
-			d.SetForeground(gc, fgCol.Pixel)
-			d.DrawLine(w.Drawable(), gc, indX+3, midY, indX+indicatorSize-4, midY)
-			d.DrawLine(w.Drawable(), gc, indX+3, midY+1, indX+indicatorSize-4, midY+1)
-		} else if selected && fgCol != nil {
-			// Draw dot when selected.
-			dotSize := indicatorSize - 6
-			dotX := indX + 3
-			dotY := indY + 3
-			d.SetForeground(gc, fgCol.Pixel)
-			d.FillArc(w.Drawable(), gc, dotX, dotY, uint(dotSize), uint(dotSize), 0, 360*64)
+		var fgPixel, disPixel uint64 = 0, 0xa3a3a3
+		if r.Foreground != nil {
+			fgPixel = r.Foreground.Pixel
 		}
+		if r.DisabledFg != nil {
+			disPixel = r.DisabledFg.Pixel
+		}
+		draw.DrawCheckIndicator(d, w.Drawable(), gc, w.Depth,
+			contentX-r.indicatorSpace/2, w.Height/2, draw.RadioIndicator,
+			draw.NewBorderFromPixel(bgPixel), fgPixel, selPixel, disPixel,
+			state, r.State == widget.StateDisabled)
 	}
 
 	// Draw image (if set) or text.
-	if r.Img != nil {
-		imgW := r.Img.Width()
-		imgH := r.Img.Height()
-		imgX := frameX + indW + (availW-indW-imgW)/2
-		imgY := frameY + (availH-imgH)/2
-		if photo, ok := r.Img.(interface {
+	if img != nil {
+		imgW := img.Width()
+		imgH := img.Height()
+		imgX, imgY := contentX, contentY
+		if photo, ok := img.(interface {
 			Draw(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID,
 				depth int, imgX, imgY, w, h, dstX, dstY int, bgPixel uint64)
 		}); ok {
 			photo.Draw(d, w.Drawable(), gc, w.Depth, 0, 0, imgW, imgH, imgX, imgY, bgPixel)
 		}
 	} else if r.Font != nil && r.Text != "" && fgCol != nil {
-		textX := frameX + indW
-		textY := frameY + (availH-r.textHeight)/2
-		remainW := availW - indW
-		switch r.Anchor {
-		case option.AnchorCenter, option.AnchorN, option.AnchorS:
-			textX += (remainW - r.textWidth) / 2
-		case option.AnchorE, option.AnchorNE, option.AnchorSE:
-			textX += remainW - r.textWidth
-		}
+		textX, textY := contentX, contentY
 		m := r.Font.Metrics()
 		baseline := textY + m.Ascent
 		if df, ok := r.Font.(platform.DrawableFont); ok {

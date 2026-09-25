@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/screenunit"
 )
 
 // Style holds defaults and state maps for a named widget style.
@@ -52,8 +53,11 @@ func LookupInt(s *Style, name string, state State, fallback int) int {
 	if !ok {
 		return fallback
 	}
-	if n, ok := v.(int); ok {
+	switch n := v.(type) {
+	case int:
 		return n
+	case string:
+		return screenunit.Px(n)
 	}
 	return fallback
 }
@@ -76,8 +80,11 @@ func LookupPadding(s *Style, name string, state State, fallback Padding) Padding
 	if !ok {
 		return fallback
 	}
-	if p, ok := v.(Padding); ok {
+	switch p := v.(type) {
+	case Padding:
 		return p
+	case string:
+		return ParsePadding(p)
 	}
 	return fallback
 }

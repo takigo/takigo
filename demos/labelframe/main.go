@@ -35,7 +35,7 @@ func main() {
 	msg := label.New(f, "msg",
 		label.WrapLength("4i"),
 		label.JustifyOpt(option.JustifyLeft),
-		label.Text("Labelframes are used to group related widgets together. The label may be either plain text or another widget."),
+		label.Text("Labelframes are used to group related widgets together.  The label may be either  plain text or another widget."),
 	)
 	pack.Pack(msg, pack.SideOpt(pack.Top))
 
@@ -54,7 +54,7 @@ func main() {
 	)
 	grid.Grid(lfValue, grid.Row(0), grid.Column(0), grid.PadX("2m"), grid.PadY("2m"))
 
-	valueVar := widget.NewVariable("1")
+	valueVar := widget.NewVariable("") // lfdummy starts unset in the Tcl demo
 	for _, v := range []string{"1", "2", "3", "4"} {
 		rb := radiobutton.New(lfValue, "b"+v,
 			radiobutton.Text("This is value "+v),

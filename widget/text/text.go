@@ -123,7 +123,7 @@ func New(parent widget.Caregiver, name string, opts ...TextOption) *TextWidget {
 	w.Class = "Text"
 
 	// Text widget defaults.
-	t.BorderWidth = 2
+	t.BorderWidth = widget.DefBorderWidth
 	t.Relief = option.ReliefSunken
 	t.HighlightWidth = 1
 
@@ -202,7 +202,7 @@ func NewPeer(doc *Document, parent widget.Caregiver, name string, opts ...TextOp
 	widget.InitBase(&t.Base, w, app)
 	w.Class = "Text"
 
-	t.BorderWidth = 2
+	t.BorderWidth = widget.DefBorderWidth
 	t.Relief = option.ReliefSunken
 	t.HighlightWidth = 1
 

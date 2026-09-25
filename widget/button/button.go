@@ -5,6 +5,7 @@ package button
 
 import (
 	"log"
+	"strings"
 
 	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/draw"
@@ -248,31 +249,64 @@ func New(parent widget.Caregiver, name string, opts ...ButtonOption) *Button {
 }
 
 // computeGeometry computes text/image size and sets requested window size.
+// computeGeometry ports TkpComputeButtonGeometry (tk/unix/tkUnixButton.c)
+// for TYPE_BUTTON: -width is in characters for text and in pixels when an
+// image is shown, the compound gap is padX/padY, and non-Motif push buttons
+// get 2 extra pixels each way.
 func (b *Button) computeGeometry() {
-	if b.Font != nil && b.Text != "" {
-		b.textWidth = b.Font.MeasureString(b.Text)
-		m := b.Font.Metrics()
-		b.textHeight = m.Linespace()
-	} else {
-		b.textWidth = 0
-		b.textHeight = 0
-	}
-
-	contentW, contentH := widget.CompoundSize(b.Compound, b.Img, b.textWidth, b.textHeight)
-
-	if b.WidthChars > 0 && b.Font != nil {
-		if b.zeroCharWidth == 0 {
-			b.zeroCharWidth = b.Font.MeasureString("0")
-		}
-		if minW := b.WidthChars * b.zeroCharWidth; minW > contentW {
-			contentW = minW
+	b.textWidth, b.textHeight = 0, 0
+	if b.Font != nil {
+		// Tk_ComputeTextLayout lays out "" as one empty line.
+		for _, line := range strings.Split(b.Text, "\n") {
+			b.textWidth = max(b.textWidth, b.Font.MeasureString(line))
+			b.textHeight += b.Font.Metrics().Linespace()
 		}
 	}
+	haveText := b.textWidth != 0 && b.textHeight != 0
+
+	var width, height int
+	switch {
+	case b.Img != nil && b.Compound != widget.CompoundNone && haveText:
+		width, height = b.Img.Width(), b.Img.Height()
+		switch b.Compound {
+		case widget.CompoundTop, widget.CompoundBottom:
+			height += b.textHeight + b.PadY
+			width = max(width, b.textWidth)
+		case widget.CompoundLeft, widget.CompoundRight:
+			width += b.textWidth + b.PadX
+			height = max(height, b.textHeight)
+		default:
+			width = max(width, b.textWidth)
+			height = max(height, b.textHeight)
+		}
+		if b.WidthChars > 0 {
+			width = b.WidthChars
+		}
+		width += 2 * b.PadX
+		height += 2 * b.PadY
+	case b.Img != nil:
+		width, height = b.Img.Width(), b.Img.Height()
+		if b.WidthChars > 0 {
+			width = b.WidthChars
+		}
+	default:
+		width, height = b.textWidth, b.textHeight
+		if b.WidthChars > 0 && b.Font != nil {
+			if b.zeroCharWidth == 0 {
+				b.zeroCharWidth = b.Font.MeasureString("0")
+			}
+			width = b.WidthChars * b.zeroCharWidth
+		}
+		width += 2 * b.PadX
+		height += 2 * b.PadY
+	}
+	width += 2
+	height += 2
 
 	inset := b.BorderWidth + b.HighlightWidth
 	w := b.Win
-	w.ReqWidth = contentW + 2*b.PadX + 2*inset
-	w.ReqHeight = contentH + 2*b.PadY + 2*inset
+	w.ReqWidth = width + 2*inset
+	w.ReqHeight = height + 2*inset
 }
 
 // Display draws the button.
@@ -350,7 +384,8 @@ func (b *Button) Display() {
 	} else if hasImg {
 		imgW := b.Img.Width()
 		imgH := b.Img.Height()
-		ix, iy := widget.AnchorText(b.Anchor, frameX, frameY, availW, availH, imgW, imgH)
+		ix, iy := widget.AnchorText(b.Anchor, inset, inset,
+			max(0, w.Width-2*inset), max(0, w.Height-2*inset), imgW, imgH)
 		b.Img.Draw(w.Display.Server, w.Drawable(), gc,
 			w.Depth, 0, 0, imgW, imgH, ix+pressOff, iy+pressOff, bgPixel)
 	} else if hasText {
@@ -379,7 +414,15 @@ func drawCompoundButton(b *Button, w *window.Window,
 
 	imgW := b.Img.Width()
 	imgH := b.Img.Height()
-	contentW, contentH := widget.CompoundSize(b.Compound, b.Img, b.textWidth, b.textHeight)
+	contentW, contentH := imgW, imgH
+	switch b.Compound {
+	case widget.CompoundLeft, widget.CompoundRight:
+		contentW, contentH = imgW+b.PadX+b.textWidth, max(imgH, b.textHeight)
+	case widget.CompoundTop, widget.CompoundBottom:
+		contentW, contentH = max(imgW, b.textWidth), imgH+b.PadY+b.textHeight
+	case widget.CompoundCenter:
+		contentW, contentH = max(imgW, b.textWidth), max(imgH, b.textHeight)
+	}
 
 	cx, cy := widget.AnchorText(b.Anchor, frameX, frameY, availW, availH, contentW, contentH)
 	cx += pressOff
@@ -390,23 +433,23 @@ func drawCompoundButton(b *Button, w *window.Window,
 	case widget.CompoundLeft:
 		imgX = cx
 		imgY = cy + (contentH-imgH)/2
-		textX = cx + imgW + 4
+		textX = cx + imgW + b.PadX
 		textY = cy + (contentH-b.textHeight)/2
 	case widget.CompoundRight:
 		textX = cx
 		textY = cy + (contentH-b.textHeight)/2
-		imgX = cx + b.textWidth + 4
+		imgX = cx + b.textWidth + b.PadX
 		imgY = cy + (contentH-imgH)/2
 	case widget.CompoundTop:
 		imgX = cx + (contentW-imgW)/2
 		imgY = cy
 		textX = cx + (contentW-b.textWidth)/2
-		textY = cy + imgH + 4
+		textY = cy + imgH + b.PadY
 	case widget.CompoundBottom:
 		textX = cx + (contentW-b.textWidth)/2
 		textY = cy
 		imgX = cx + (contentW-imgW)/2
-		imgY = cy + b.textHeight + 4
+		imgY = cy + b.textHeight + b.PadY
 	case widget.CompoundCenter:
 		imgX = cx + (contentW-imgW)/2
 		imgY = cy + (contentH-imgH)/2

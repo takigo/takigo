@@ -223,7 +223,7 @@ func New(parent widget.Caregiver, name string, opts ...EntryOption) *Entry {
 	w.Class = "Entry"
 
 	// Entry-specific defaults.
-	e.BorderWidth = 2
+	e.BorderWidth = widget.DefBorderWidth
 	e.Relief = option.ReliefSunken
 	e.HighlightWidth = 1
 

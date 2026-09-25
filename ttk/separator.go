@@ -39,14 +39,10 @@ func NewSeparator(parent widget.Caregiver, name string, opts ...SeparatorOption)
 
 	InitTtkWidget(&s.TtkWidget, win, app, styleName)
 
-	// Set sensible minimum size.
-	if s.Orient == Horizontal {
-		win.ReqWidth = 20
-		win.ReqHeight = 2
-	} else {
-		win.ReqWidth = 2
-		win.ReqHeight = 20
-	}
+	// SeparatorElementSize in tk/generic/ttk/ttkElements.c: 2x2 for both
+	// orientations; the geometry manager stretches it.
+	win.ReqWidth = 2
+	win.ReqHeight = 2
 
 	return s
 }

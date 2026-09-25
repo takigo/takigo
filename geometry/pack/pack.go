@@ -360,38 +360,27 @@ func (p *packer) arrange() {
 // children consume theirs, so their max height is added to the Top/Bottom sum
 // (not max'd). This matches how pass 2 allocates cavity space.
 func (p *packer) computeSize() (int, int) {
-	var tbWidth, tbHeight int
-	var lrWidth, lrMaxHeight int
-
+	// ArrangePacking (tk/generic/tkPack.c): walk the content in packing order,
+	// tracking the space already used on the other axis, so that e.g. a
+	// right-packed scrollbar adds to the width of a later top-packed text.
+	var width, height, maxWidth, maxHeight int
 	for _, e := range p.entries {
 		cfg := &e.config
 		child := e.window
 		bw2 := 2 * child.BorderWidth
-
 		childW := child.ReqWidth + bw2 + cfg.iPadX*2 + cfg.padX*2
 		childH := child.ReqHeight + bw2 + cfg.iPadY*2 + cfg.padY*2
 
 		switch cfg.side {
 		case Top, Bottom:
-			tbHeight += childH
-			if childW > tbWidth {
-				tbWidth = childW
-			}
+			maxWidth = max(maxWidth, childW+width)
+			height += childH
 		case Left, Right:
-			lrWidth += childW
-			if childH > lrMaxHeight {
-				lrMaxHeight = childH
-			}
+			maxHeight = max(maxHeight, childH+height)
+			width += childW
 		}
 	}
-
-	width := tbWidth
-	if lrWidth > width {
-		width = lrWidth
-	}
-	height := tbHeight + lrMaxHeight
-
-	return width, height
+	return max(maxWidth, width), max(maxHeight, height)
 }
 
 // expansion computes extra space for an expanding child along one axis.

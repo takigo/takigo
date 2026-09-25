@@ -59,12 +59,12 @@ func TestLabelOptions(t *testing.T) {
 
 	// Test Width/Height
 	Width(50)(l)
-	if l.Win.ReqWidth != 50 {
-		t.Errorf("ReqWidth = %d, want 50", l.Win.ReqWidth)
+	if l.WidthChars != 50 {
+		t.Errorf("WidthChars = %d, want 50", l.WidthChars)
 	}
 	Height(30)(l)
-	if l.Win.ReqHeight != 30 {
-		t.Errorf("ReqHeight = %d, want 30", l.Win.ReqHeight)
+	if l.HeightChars != 30 {
+		t.Errorf("HeightChars = %d, want 30", l.HeightChars)
 	}
 
 	// Test WrapLength
@@ -165,47 +165,23 @@ func TestLabelTextLinesWithWrap(t *testing.T) {
 
 func TestLabelCompoundSize(t *testing.T) {
 	img := &mockImage{w: 20, h: 30}
-
-	// No image
-	w, h := compoundSize(widget.CompoundNone, nil, 50, 60)
-	if w != 50 || h != 60 {
-		t.Errorf("compoundSize(nil) = (%d, %d), want (50, 60)", w, h)
+	tests := []struct {
+		compound widget.Compound
+		w, h     int
+	}{
+		{widget.CompoundNone, 20, 30},
+		{widget.CompoundLeft, 73, 60},
+		{widget.CompoundRight, 73, 60},
+		{widget.CompoundTop, 50, 92},
+		{widget.CompoundBottom, 50, 92},
+		{widget.CompoundCenter, 50, 60},
 	}
-
-	// Image only
-	w, h = compoundSize(widget.CompoundNone, img, 0, 0)
-	if w != 20 || h != 30 {
-		t.Errorf("compoundSize(img, 0, 0) = (%d, %d), want (20, 30)", w, h)
-	}
-
-	// CompoundLeft
-	w, h = compoundSize(widget.CompoundLeft, img, 50, 60)
-	if w != 74 || h != 60 {
-		t.Errorf("compoundSize(Left) = (%d, %d), want (74, 60)", w, h)
-	}
-
-	// CompoundRight
-	w, h = compoundSize(widget.CompoundRight, img, 50, 60)
-	if w != 74 || h != 60 {
-		t.Errorf("compoundSize(Right) = (%d, %d), want (74, 60)", w, h)
-	}
-
-	// CompoundTop
-	w, h = compoundSize(widget.CompoundTop, img, 50, 60)
-	if w != 50 || h != 94 {
-		t.Errorf("compoundSize(Top) = (%d, %d), want (50, 94)", w, h)
-	}
-
-	// CompoundBottom
-	w, h = compoundSize(widget.CompoundBottom, img, 50, 60)
-	if w != 50 || h != 94 {
-		t.Errorf("compoundSize(Bottom) = (%d, %d), want (50, 94)", w, h)
-	}
-
-	// CompoundCenter
-	w, h = compoundSize(widget.CompoundCenter, img, 50, 60)
-	if w != 50 || h != 60 {
-		t.Errorf("compoundSize(Center) = (%d, %d), want (50, 60)", w, h)
+	for _, tt := range tests {
+		l := &Label{Img: img, Compound: tt.compound, textWidth: 50, textHeight: 60}
+		l.PadX, l.PadY = 3, 2
+		if w, h := l.compoundSize(); w != tt.w || h != tt.h {
+			t.Errorf("compoundSize(%v) = (%d, %d), want (%d, %d)", tt.compound, w, h, tt.w, tt.h)
+		}
 	}
 }
 

@@ -25,13 +25,13 @@ type Checkbutton struct {
 	State   widget.State
 
 	// Variable linkage. The variable holds a string equal to OnValue, OffValue,
-	// or TristateValue (when set). The checkbutton renders a checkmark when the
+	// or TristateValue. The checkbutton renders a checkmark when the
 	// variable equals OnValue, an empty box when OffValue, and a dash when
 	// TristateValue. Mirrors Tk's `-variable -onvalue -offvalue -tristatevalue`.
 	Variable      *widget.Variable[string]
 	OnValue       string // value meaning "on" (default "1")
 	OffValue      string // value meaning "off" (default "0")
-	TristateValue string // optional value that renders a dash (partial/tri-state)
+	TristateValue string // Tk -tristatevalue (default "")
 	unsub         func()
 
 	// Indicator.
@@ -49,10 +49,11 @@ type Checkbutton struct {
 	// Disabled foreground (used when State == StateDisabled).
 	DisabledFg *color.ColorRef
 
-	textWidth  int
-	textHeight int
-	pressed    bool
-	HasFocus   bool
+	textWidth      int
+	textHeight     int
+	indicatorSpace int // Tk butPtr->indicatorSpace
+	pressed        bool
+	HasFocus       bool
 }
 
 // CheckbuttonOption configures a Checkbutton.
@@ -96,9 +97,8 @@ func OffValueOpt(v string) CheckbuttonOption {
 }
 
 // TristateValueOpt sets the value of the linked variable that renders the
-// checkbutton in the indeterminate (partial/tri-state) dash state. Mirrors
-// Tk's -tristatevalue. When unset (the default), the checkbutton only ever
-// shows on or off.
+// checkbutton in the tri-state look. Mirrors Tk's -tristatevalue, whose
+// default is "": an empty variable shows the tri-state look.
 func TristateValueOpt(v string) CheckbuttonOption {
 	return func(c *Checkbutton) { c.TristateValue = v }
 }
@@ -221,9 +221,6 @@ var CheckbuttonSelectImageOpt = SelectImageOpt
 // CheckbuttonIndicatorOnOpt is an alias for IndicatorOnOpt.
 var CheckbuttonIndicatorOnOpt = IndicatorOnOpt
 
-// indicatorSize is the side length of the square indicator.
-const indicatorSize = 13
-
 // New creates a new Checkbutton widget as a child of parent.
 func New(parent widget.Caregiver, name string, opts ...CheckbuttonOption) *Checkbutton {
 	app := parent.AppContext()
@@ -233,7 +230,7 @@ func New(parent widget.Caregiver, name string, opts ...CheckbuttonOption) *Check
 	w.Flags |= window.FlagFocusable
 
 	c := &Checkbutton{
-		Anchor:      option.AnchorW,
+		Anchor:      option.AnchorCenter,
 		IndicatorOn: true,
 		OnValue:     "1",
 		OffValue:    "0",
@@ -242,7 +239,7 @@ func New(parent widget.Caregiver, name string, opts ...CheckbuttonOption) *Check
 	w.Class = "Checkbutton"
 
 	// Checkbutton-specific defaults.
-	c.BorderWidth = 0
+	c.BorderWidth = widget.DefBorderWidth
 	c.Relief = option.ReliefFlat
 	c.PadX = 1
 	c.PadY = 1
@@ -262,7 +259,7 @@ func New(parent widget.Caregiver, name string, opts ...CheckbuttonOption) *Check
 	}
 
 	// Select color (indicator fill when checked).
-	if sc, err := app.ColorCache().Get("#b03060"); err == nil {
+	if sc, err := app.ColorCache().Get(widget.DefSelectColor); err == nil {
 		c.SelectColor = sc.Ref()
 	}
 
@@ -287,37 +284,39 @@ func New(parent widget.Caregiver, name string, opts ...CheckbuttonOption) *Check
 	return c
 }
 
+// computeGeometry ports TkpComputeButtonGeometry (tk/unix/tkUnixButton.c)
+// for check/radio buttons: the indicator gets its own column
+// (indicatorSpace) left of the content.
 func (c *Checkbutton) computeGeometry() {
-	if c.Font != nil && c.Text != "" {
+	c.textWidth, c.textHeight = 0, 0
+	avg := 0
+	if c.Font != nil {
 		c.textWidth = c.Font.MeasureString(c.Text)
-		m := c.Font.Metrics()
-		c.textHeight = m.Linespace()
-	} else {
-		c.textWidth = 0
-		c.textHeight = 0
+		c.textHeight = c.Font.Metrics().Linespace()
+		avg = c.Font.MeasureString("0")
 	}
 
-	// Determine content size from image or text.
-	img := c.activeImage()
 	inset := c.BorderWidth + c.HighlightWidth
-	var contentW, contentH int
+	img := c.activeImage()
+	var width, height int
+	c.indicatorSpace = 0
 	if img != nil {
-		contentW = img.Width()
-		contentH = img.Height()
-	} else {
-		contentW = c.textWidth
-		contentH = c.textHeight
-	}
-	if c.IndicatorOn {
-		contentW += indicatorSize + 4 // indicator + gap
-		if indicatorSize > contentH {
-			contentH = indicatorSize
+		width, height = img.Width(), img.Height()
+		if c.IndicatorOn {
+			c.indicatorSpace = height
 		}
+	} else {
+		width, height = c.textWidth, c.textHeight
+		if c.IndicatorOn {
+			c.indicatorSpace = c.textHeight + avg
+		}
+		width += 2 * c.PadX
+		height += 2 * c.PadY
 	}
 
 	w := c.Win
-	w.ReqWidth = contentW + 2*c.PadX + 2*inset
-	w.ReqHeight = contentH + 2*c.PadY + 2*inset
+	w.ReqWidth = width + c.indicatorSpace + 2*inset
+	w.ReqHeight = height + 2*inset
 }
 
 // activeImage returns the image to display based on current state.
@@ -336,8 +335,11 @@ func (c *Checkbutton) Selected() bool {
 
 // tristate returns whether the checkbutton is in the indeterminate state
 // (variable equals TristateValue, when configured).
+// isTristate follows Tk's check order: the on-value wins, then a match with
+// -tristatevalue (default "", so an empty variable shows the tri-state look).
 func (c *Checkbutton) isTristate() bool {
-	return c.TristateValue != "" && c.Variable.Get() == c.TristateValue
+	v := c.Variable.Get()
+	return v != c.OnValue && v == c.TristateValue
 }
 
 // Display draws the checkbutton.
@@ -439,63 +441,50 @@ func (c *Checkbutton) Display() {
 	if !c.IndicatorOn {
 		inset = 2 + c.HighlightWidth
 	}
-	availW := max(0, w.Width-2*inset-2*c.PadX)
-	availH := max(0, w.Height-2*inset-2*c.PadY)
-	frameX := inset + c.PadX
-	frameY := inset + c.PadY
+	img := c.activeImage()
+	var contentX, contentY int
+	if img != nil {
+		contentX, contentY = widget.AnchorText(c.Anchor, inset, inset,
+			max(0, w.Width-2*inset), max(0, w.Height-2*inset),
+			c.indicatorSpace+img.Width(), img.Height())
+	} else {
+		contentX, contentY = widget.AnchorText(c.Anchor, inset+c.PadX, inset+c.PadY,
+			max(0, w.Width-2*inset-2*c.PadX), max(0, w.Height-2*inset-2*c.PadY),
+			c.indicatorSpace+c.textWidth, c.textHeight)
+	}
+	contentX += c.indicatorSpace
 
-	indW := 0
 	if c.IndicatorOn {
-		indW = indicatorSize + 4
-
-		// Draw square indicator.
-		indX := frameX
-		indY := frameY + (availH-indicatorSize)/2
-
-		// Sunken border for indicator box.
-		indBorder := c.Border
-		if indBorder == nil {
-			indBorder = draw.NewBorderFromPixel(bgPixel)
+		// Tk centres the indicator in its column and on the window's mid-line.
+		state := draw.IndicatorOff
+		switch {
+		case tristate:
+			state = draw.IndicatorTristate
+		case selected:
+			state = draw.IndicatorOn
 		}
-
-		// Fill indicator.
-		if (selected || tristate) && c.SelectColor != nil {
-			d.SetForeground(gc, c.SelectColor.Pixel)
-		} else {
-			d.SetForeground(gc, uint64(0xffffff)) // white background
+		selPixel := uint64(0xffffff)
+		if c.SelectColor != nil {
+			selPixel = c.SelectColor.Pixel
 		}
-		d.FillRectangle(w.Drawable(), gc, indX+2, indY+2,
-			uint(indicatorSize-4), uint(indicatorSize-4))
-
-		// Draw sunken border around indicator.
-		draw.Draw3DRectangle(d, w.Drawable(), gc, indBorder,
-			indX, indY, indicatorSize, indicatorSize, 2, option.ReliefSunken)
-
-		if tristate && fgCol != nil {
-			// Draw a horizontal dash for the indeterminate/partial state.
-			d.SetForeground(gc, fgCol.Pixel)
-			midY := indY + indicatorSize/2
-			d.DrawLine(w.Drawable(), gc, indX+3, midY, indX+indicatorSize-4, midY)
-			d.DrawLine(w.Drawable(), gc, indX+3, midY+1, indX+indicatorSize-4, midY+1)
-		} else if selected && fgCol != nil {
-			// Draw checkmark when selected.
-			d.SetForeground(gc, fgCol.Pixel)
-			cx := indX + 3
-			cy := indY + indicatorSize/2
-			d.DrawLine(w.Drawable(), gc, cx, cy, cx+2, cy+3)
-			d.DrawLine(w.Drawable(), gc, cx+1, cy, cx+3, cy+3)
-			d.DrawLine(w.Drawable(), gc, cx+2, cy+3, cx+7, cy-2)
-			d.DrawLine(w.Drawable(), gc, cx+3, cy+3, cx+8, cy-2)
+		var fgPixel, disPixel uint64 = 0, 0xa3a3a3
+		if c.Foreground != nil {
+			fgPixel = c.Foreground.Pixel
 		}
+		if c.DisabledFg != nil {
+			disPixel = c.DisabledFg.Pixel
+		}
+		draw.DrawCheckIndicator(d, w.Drawable(), gc, w.Depth,
+			contentX-c.indicatorSpace/2, w.Height/2, draw.CheckIndicator,
+			draw.NewBorderFromPixel(bgPixel), fgPixel, selPixel, disPixel,
+			state, c.State == widget.StateDisabled)
 	}
 
 	// Draw image (if set) or text.
-	img := c.activeImage()
 	if img != nil {
 		imgW := img.Width()
 		imgH := img.Height()
-		imgX := frameX + indW + (availW-indW-imgW)/2
-		imgY := frameY + (availH-imgH)/2
+		imgX, imgY := contentX, contentY
 		if photo, ok := img.(interface {
 			Draw(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID,
 				depth int, imgX, imgY, w, h, dstX, dstY int, bgPixel uint64)
@@ -503,16 +492,7 @@ func (c *Checkbutton) Display() {
 			photo.Draw(d, w.Drawable(), gc, w.Depth, 0, 0, imgW, imgH, imgX, imgY, bgPixel)
 		}
 	} else if c.Font != nil && c.Text != "" && fgCol != nil {
-		textX := frameX + indW
-		textY := frameY + (availH-c.textHeight)/2
-		// Apply anchor for remaining space.
-		remainW := availW - indW
-		switch c.Anchor {
-		case option.AnchorCenter, option.AnchorN, option.AnchorS:
-			textX += (remainW - c.textWidth) / 2
-		case option.AnchorE, option.AnchorNE, option.AnchorSE:
-			textX += remainW - c.textWidth
-		}
+		textX, textY := contentX, contentY
 		m := c.Font.Metrics()
 		baseline := textY + m.Ascent
 		if df, ok := c.Font.(platform.DrawableFont); ok {

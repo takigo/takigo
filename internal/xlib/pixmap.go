@@ -47,10 +47,13 @@ static void put_rgba_image(Display *dpy, Drawable d, GC gc, Visual *visual,
 				dst[2] = bgR;
 				dst[3] = 0;
 			} else {
-				// Pre-composite alpha against background.
-				dst[0] = (b * a + bgB * (255 - a)) / 255;
-				dst[1] = (g * a + bgG * (255 - a)) / 255;
-				dst[2] = (r * a + bgR * (255 - a)) / 255;
+				// Go's image.RGBA is premultiplied: out = src + bg*(1-a).
+				int ob = b + bgB * (255 - a) / 255;
+				int og = g + bgG * (255 - a) / 255;
+				int or_ = r + bgR * (255 - a) / 255;
+				dst[0] = ob > 255 ? 255 : ob;
+				dst[1] = og > 255 ? 255 : og;
+				dst[2] = or_ > 255 ? 255 : or_;
 				dst[3] = 0;
 			}
 			src += 4;

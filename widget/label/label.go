@@ -11,6 +11,7 @@ import (
 	"github.com/msorc/takigo/bitmap"
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/event"
+	"github.com/msorc/takigo/font"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/screenunit"
@@ -38,6 +39,11 @@ type Label struct {
 	// TextVariable linkage — when set, the variable's value overrides Text.
 	TextVar *widget.Variable[string]
 	unsub   func()
+
+	// WidthChars/HeightChars are Tk's -width/-height: characters and lines
+	// for text, pixels when an image is shown. 0 = natural size.
+	WidthChars  int
+	HeightChars int
 
 	textWidth  int
 	textHeight int
@@ -168,14 +174,14 @@ func Bitmap(name string) LabelOption {
 	}
 }
 
-// Width sets the requested width (in characters, approximately).
+// Width sets -width: characters for text, pixels when an image is shown.
 func Width(w int) LabelOption {
-	return func(l *Label) { l.Win.ReqWidth = w }
+	return func(l *Label) { l.WidthChars = w }
 }
 
-// Height sets the requested height (in lines, approximately).
+// Height sets -height: lines for text, pixels when an image is shown.
 func Height(h int) LabelOption {
-	return func(l *Label) { l.Win.ReqHeight = h }
+	return func(l *Label) { l.HeightChars = h }
 }
 
 // WrapLength sets the maximum line width for text wrapping.
@@ -296,30 +302,10 @@ func (l *Label) textLines() []string {
 	if l.Text == "" {
 		return nil
 	}
-	paragraphs := strings.Split(l.Text, "\n")
 	if l.WrapLen <= 0 || l.Font == nil {
-		return paragraphs
+		return strings.Split(l.Text, "\n")
 	}
-	var result []string
-	for _, para := range paragraphs {
-		words := strings.Fields(para)
-		if len(words) == 0 {
-			result = append(result, "")
-			continue
-		}
-		current := words[0]
-		for _, word := range words[1:] {
-			candidate := current + " " + word
-			if l.Font.MeasureString(candidate) <= l.WrapLen {
-				current = candidate
-			} else {
-				result = append(result, current)
-				current = word
-			}
-		}
-		result = append(result, current)
-	}
-	return result
+	return font.WrapLines(l.Font, l.Text, l.WrapLen)
 }
 
 // computeGeometry computes the text/image size and sets the requested window size.
@@ -340,16 +326,56 @@ func (l *Label) computeGeometry() {
 			}
 		}
 	} else {
+		// Tk_ComputeTextLayout lays out "" as one empty line.
 		l.textWidth = 0
 		l.textHeight = 0
+		if l.Font != nil {
+			l.textHeight = l.Font.Metrics().Linespace()
+		}
 	}
 
-	contentW, contentH := compoundSize(l.Compound, l.Img, l.textWidth, l.textHeight)
+	// The rest ports TkpComputeButtonGeometry (tk/unix/tkUnixButton.c) for
+	// TYPE_LABEL: no padding around an image-only label, padX/padY as the
+	// compound gap, -width/-height in chars/lines for text.
+	haveText := l.textWidth != 0 && l.textHeight != 0
+	var width, height int
+	switch {
+	case l.Img != nil && l.Compound != widget.CompoundNone && haveText:
+		width, height = l.compoundSize()
+		if l.WidthChars > 0 {
+			width = l.WidthChars
+		}
+		if l.HeightChars > 0 {
+			height = l.HeightChars
+		}
+		width += 2 * l.PadX
+		height += 2 * l.PadY
+	case l.Img != nil:
+		width, height = l.Img.Width(), l.Img.Height()
+		if l.WidthChars > 0 {
+			width = l.WidthChars
+		}
+		if l.HeightChars > 0 {
+			height = l.HeightChars
+		}
+	default:
+		width, height = l.textWidth, l.textHeight
+		if l.Font != nil {
+			if l.WidthChars > 0 {
+				width = l.WidthChars * l.Font.MeasureString("0")
+			}
+			if l.HeightChars > 0 {
+				height = l.HeightChars * l.Font.Metrics().Linespace()
+			}
+		}
+		width += 2 * l.PadX
+		height += 2 * l.PadY
+	}
 
 	inset := l.BorderWidth + l.HighlightWidth
 	w := l.Win
-	w.ReqWidth = contentW + 2*l.PadX + 2*inset
-	w.ReqHeight = contentH + 2*l.PadY + 2*inset
+	w.ReqWidth = width + 2*inset
+	w.ReqHeight = height + 2*inset
 }
 
 // Display draws the label.
@@ -407,10 +433,11 @@ func (l *Label) Display() {
 	if hasImg && hasText && l.Compound != widget.CompoundNone {
 		drawCompound(l, w, frameX, frameY, availW, availH, bgPixel, fgPixel, fgR, fgG, fgB)
 	} else if hasImg {
-		// Image only.
+		// Image only: Tk anchors it inside the inset, ignoring padx/pady.
 		imgW := l.Img.Width()
 		imgH := l.Img.Height()
-		ix, iy := widget.AnchorText(l.Anchor, frameX, frameY, availW, availH, imgW, imgH)
+		ix, iy := widget.AnchorText(l.Anchor, inset, inset,
+			max(0, w.Width-2*inset), max(0, w.Height-2*inset), imgW, imgH)
 		l.Img.Draw(w.Display.Server, w.Drawable(), gc,
 			w.Depth, 0, 0, imgW, imgH, ix, iy, bgPixel)
 	} else if hasText {
@@ -442,27 +469,18 @@ func (l *Label) Display() {
 	d.Flush()
 }
 
-// compoundSize computes the total content size for a compound image+text layout.
-func compoundSize(c widget.Compound, img widget.WidgetImage, textW, textH int) (int, int) {
-	if img == nil {
-		return textW, textH
-	}
-	imgW := img.Width()
-	imgH := img.Height()
-
-	if textW == 0 && textH == 0 {
-		return imgW, imgH
-	}
-
-	switch c {
+// compoundSize computes the image+text block size; the gap is padX/padY,
+// as in TkpComputeButtonGeometry.
+func (l *Label) compoundSize() (int, int) {
+	imgW, imgH := l.Img.Width(), l.Img.Height()
+	switch l.Compound {
 	case widget.CompoundLeft, widget.CompoundRight:
-		w := imgW + 4 + textW // 4px gap
-		return w, max(imgH, textH)
+		return imgW + l.PadX + l.textWidth, max(imgH, l.textHeight)
 	case widget.CompoundTop, widget.CompoundBottom:
-		return max(imgW, textW), imgH + 4 + textH
+		return max(imgW, l.textWidth), imgH + l.PadY + l.textHeight
 	case widget.CompoundCenter:
-		return max(imgW, textW), max(imgH, textH)
-	default: // CompoundNone — show image only when both present
+		return max(imgW, l.textWidth), max(imgH, l.textHeight)
+	default:
 		return imgW, imgH
 	}
 }
@@ -474,7 +492,7 @@ func drawCompound(l *Label, w *window.Window,
 
 	imgW := l.Img.Width()
 	imgH := l.Img.Height()
-	contentW, contentH := compoundSize(l.Compound, l.Img, l.textWidth, l.textHeight)
+	contentW, contentH := l.compoundSize()
 
 	// Anchor the content block.
 	cx, cy := widget.AnchorText(l.Anchor, frameX, frameY, availW, availH, contentW, contentH)
@@ -484,23 +502,23 @@ func drawCompound(l *Label, w *window.Window,
 	case widget.CompoundLeft:
 		imgX = cx
 		imgY = cy + (contentH-imgH)/2
-		textX = cx + imgW + 4
+		textX = cx + imgW + l.PadX
 		textY = cy + (contentH-l.textHeight)/2
 	case widget.CompoundRight:
 		textX = cx
 		textY = cy + (contentH-l.textHeight)/2
-		imgX = cx + l.textWidth + 4
+		imgX = cx + l.textWidth + l.PadX
 		imgY = cy + (contentH-imgH)/2
 	case widget.CompoundTop:
 		imgX = cx + (contentW-imgW)/2
 		imgY = cy
 		textX = cx + (contentW-l.textWidth)/2
-		textY = cy + imgH + 4
+		textY = cy + imgH + l.PadY
 	case widget.CompoundBottom:
 		textX = cx + (contentW-l.textWidth)/2
 		textY = cy
 		imgX = cx + (contentW-imgW)/2
-		imgY = cy + l.textHeight + 4
+		imgY = cy + l.textHeight + l.PadY
 	case widget.CompoundCenter:
 		imgX = cx + (contentW-imgW)/2
 		imgY = cy + (contentH-imgH)/2

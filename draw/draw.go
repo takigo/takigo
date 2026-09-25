@@ -95,40 +95,108 @@ func Draw3DRectangle(d platform.DisplayServer, drawable platform.DrawableID, gc 
 		return
 	}
 
-	// Clamp border width.
-	if borderWidth > width/2 {
+	// Tk_Draw3DRectangle (tk/generic/tk3d.c): the vertical bevels first,
+	// then mitered horizontal bevels on top of them.
+	if width < 2*borderWidth {
 		borderWidth = width / 2
 	}
-	if borderWidth > height/2 {
+	if height < 2*borderWidth {
 		borderWidth = height / 2
 	}
-
 	switch relief {
-	case option.ReliefRaised:
-		drawBevel(d, drawable, gc, border, x, y, width, height, borderWidth, true)
-	case option.ReliefSunken:
-		drawBevel(d, drawable, gc, border, x, y, width, height, borderWidth, false)
-	case option.ReliefGroove:
-		half := borderWidth / 2
-		if half < 1 {
-			half = 1
-		}
-		drawBevel(d, drawable, gc, border, x, y, width, height, half, false)
-		drawBevel(d, drawable, gc, border, x+half, y+half, width-2*half, height-2*half, borderWidth-half, true)
-	case option.ReliefRidge:
-		half := borderWidth / 2
-		if half < 1 {
-			half = 1
-		}
-		drawBevel(d, drawable, gc, border, x, y, width, height, half, true)
-		drawBevel(d, drawable, gc, border, x+half, y+half, width-2*half, height-2*half, borderWidth-half, false)
+	case option.ReliefFlat:
+		return
 	case option.ReliefSolid:
 		d.SetForeground(gc, 0) // black
 		for i := range borderWidth {
 			d.DrawRectangle(drawable, gc, x+i, y+i, uint(width-2*i-1), uint(height-2*i-1))
 		}
-	case option.ReliefFlat:
-		// No border to draw.
+		return
+	}
+	verticalBevel(d, drawable, gc, border, x, y, borderWidth, height, true, relief)
+	verticalBevel(d, drawable, gc, border, x+width-borderWidth, y, borderWidth, height, false, relief)
+	horizontalBevel(d, drawable, gc, border, x, y, width, borderWidth, true, true, true, relief)
+	horizontalBevel(d, drawable, gc, border, x, y+height-borderWidth, width, borderWidth, false, false, false, relief)
+}
+
+// verticalBevel ports Tk_3DVerticalBevel (tk/unix/tkUnix3d.c).
+func verticalBevel(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID,
+	border *Border, x, y, width, height int, leftBevel bool, relief option.Relief) {
+	fill := func(pixel uint64, x, y, w, h int) {
+		if w <= 0 || h <= 0 {
+			return
+		}
+		d.SetForeground(gc, pixel)
+		d.FillRectangle(drawable, gc, x, y, uint(w), uint(h))
+	}
+	switch relief {
+	case option.ReliefRaised, option.ReliefSunken:
+		pixel := border.LightPixel
+		if leftBevel != (relief == option.ReliefRaised) {
+			pixel = border.DarkPixel
+		}
+		fill(pixel, x, y, width, height)
+	case option.ReliefRidge, option.ReliefGroove:
+		left, right := border.LightPixel, border.DarkPixel
+		if relief == option.ReliefGroove {
+			left, right = right, left
+		}
+		half := width / 2
+		if !leftBevel && width&1 != 0 {
+			half++
+		}
+		fill(left, x, y, half, height)
+		fill(right, x+half, y, width-half, height)
+	}
+}
+
+// horizontalBevel ports Tk_3DHorizontalBevel (tk/unix/tkUnix3d.c): one
+// line per row, with ends that slope in or out to miter the corners.
+func horizontalBevel(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID,
+	border *Border, x, y, width, height int, leftIn, rightIn, topBevel bool, relief option.Relief) {
+	var topPixel, bottomPixel uint64
+	switch relief {
+	case option.ReliefGroove:
+		topPixel, bottomPixel = border.DarkPixel, border.LightPixel
+	case option.ReliefRidge:
+		topPixel, bottomPixel = border.LightPixel, border.DarkPixel
+	case option.ReliefRaised, option.ReliefSunken:
+		topPixel = border.LightPixel
+		if topBevel != (relief == option.ReliefRaised) {
+			topPixel = border.DarkPixel
+		}
+		bottomPixel = topPixel
+	default:
+		return
+	}
+
+	x1, x2 := x, x+width
+	x1Delta, x2Delta := -1, 1
+	if leftIn {
+		x1Delta = 1
+	} else {
+		x1 += height
+	}
+	if rightIn {
+		x2Delta = -1
+	} else {
+		x2 -= height
+	}
+	halfway := y + height/2
+	if !topBevel && height&1 != 0 {
+		halfway++
+	}
+	for bottom := y + height; y < bottom; y++ {
+		if x1 < x2 {
+			pixel := bottomPixel
+			if y < halfway {
+				pixel = topPixel
+			}
+			d.SetForeground(gc, pixel)
+			d.FillRectangle(drawable, gc, x1, y, uint(x2-x1), 1)
+		}
+		x1 += x1Delta
+		x2 += x2Delta
 	}
 }
 
@@ -148,42 +216,6 @@ func Fill3DRectangle(d platform.DisplayServer, drawable platform.DrawableID, gc 
 
 	// Draw the 3D border.
 	Draw3DRectangle(d, drawable, gc, border, x, y, width, height, borderWidth, relief)
-}
-
-// drawBevel draws a single raised or sunken bevel.
-func drawBevel(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID,
-	border *Border, x, y, width, height, bw int, raised bool) {
-
-	var topLeftPixel, bottomRightPixel uint64
-	if raised {
-		topLeftPixel = border.LightPixel
-		bottomRightPixel = border.DarkPixel
-	} else {
-		topLeftPixel = border.DarkPixel
-		bottomRightPixel = border.LightPixel
-	}
-
-	// Top edge.
-	d.SetForeground(gc, topLeftPixel)
-	for i := range bw {
-		d.FillRectangle(drawable, gc, x+i, y+i, uint(width-2*i), 1)
-	}
-
-	// Left edge.
-	for i := range bw {
-		d.FillRectangle(drawable, gc, x+i, y+i, 1, uint(height-2*i))
-	}
-
-	// Bottom edge.
-	d.SetForeground(gc, bottomRightPixel)
-	for i := range bw {
-		d.FillRectangle(drawable, gc, x+i, y+height-1-i, uint(width-2*i), 1)
-	}
-
-	// Right edge.
-	for i := range bw {
-		d.FillRectangle(drawable, gc, x+width-1-i, y+i, 1, uint(height-2*i))
-	}
 }
 
 // lightColor computes the light shadow from Tk's algorithm.

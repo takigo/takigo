@@ -97,6 +97,27 @@ func TestComputeSize(t *testing.T) {
 			wantH: 90,  // top 30 + left 60
 		},
 		{
+			// Tk order matters: the right-packed scrollbar narrows the cavity
+			// for the text packed after it (tkPack.c ArrangePacking).
+			name: "style_demo_bottom_right_top",
+			entries: []*packEntry{
+				{window: &window.Window{ReqWidth: 222, ReqHeight: 42}, config: packConfig{side: Bottom}},
+				{window: &window.Window{ReqWidth: 15, ReqHeight: 38}, config: packConfig{side: Right}},
+				{window: &window.Window{ReqWidth: 706, ReqHeight: 614}, config: packConfig{side: Top}},
+			},
+			wantW: 721,
+			wantH: 656,
+		},
+		{
+			name: "left_then_top",
+			entries: []*packEntry{
+				{window: &window.Window{ReqWidth: 50, ReqHeight: 60}, config: packConfig{side: Left}},
+				{window: &window.Window{ReqWidth: 100, ReqHeight: 30}, config: packConfig{side: Top}},
+			},
+			wantW: 150,
+			wantH: 60,
+		},
+		{
 			name: "with_padding",
 			entries: []*packEntry{
 				{window: &window.Window{ReqWidth: 100, ReqHeight: 30}, config: packConfig{side: Top, padX: 5, padY: 10}},

@@ -2,10 +2,11 @@
 package demohelper
 
 import (
+	"embed"
 	"fmt"
 	goimage "image"
-	"image/color"
-	"math"
+	"image/draw"
+	"image/png"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -28,6 +29,9 @@ import (
 	"github.com/msorc/takigo/widget/toplevel"
 	"github.com/msorc/takigo/window"
 )
+
+//go:embed icons/*.png
+var icons embed.FS
 
 var (
 	img map[string]*tkimage.Photo
@@ -59,8 +63,9 @@ type DemoVars[T comparable] map[string]*widget.Variable[T]
 
 func init() {
 	img = make(map[string]*tkimage.Photo)
-	img["view"] = makeViewIcon()
-	img["delete"] = makeDeleteIcon()
+	for _, name := range []string{"view", "delete", "refresh", "print"} {
+		img[name] = loadIcon(name)
+	}
 }
 
 // DemoDir returns the absolute path to a subdirectory under demos/.
@@ -276,61 +281,22 @@ func AddBottomButtons(parent widget.Caregiver, varsFunc func(*ttk.Frame) *ttk.Bu
 }
 
 // makeViewIcon creates a 16x16 magnifying glass icon (matches Tk's ::img::view).
-func makeViewIcon() *tkimage.Photo {
-	const sz = 16
-	img := goimage.NewRGBA(goimage.Rect(0, 0, sz, sz))
-	black := color.RGBA{R: 0, G: 0, B: 0, A: 255}
-
-	// Draw circle: center (6,6), radius 5.
-	cx, cy, r := 6.0, 6.0, 5.0
-	for y := range sz {
-		for x := range sz {
-			dx := float64(x) + 0.5 - cx
-			dy := float64(y) + 0.5 - cy
-			dist := math.Sqrt(dx*dx + dy*dy)
-			d := math.Abs(dist - r)
-			if d < 1.0 {
-				a := uint8((1.0 - d) * 255)
-				img.SetRGBA(x, y, color.RGBA{0, 0, 0, a})
-			}
-		}
+// loadIcon decodes one of the launcher icons that Tk itself rasterized from
+// the SVGs in tk/library/demos/widget (scripts/export_launcher_icons.tcl), so
+// the See Code / Dismiss buttons are pixel-identical to Tk's.
+func loadIcon(name string) *tkimage.Photo {
+	f, err := icons.Open("icons/" + name + ".png")
+	if err != nil {
+		panic(err)
 	}
-	// Draw handle: thick diagonal from (10,10) to (14,14).
-	for i := 0; i < 5; i++ {
-		fi := float64(i)
-		px, py := 10+int(fi), 10+int(fi)
-		for dx := -1; dx <= 0; dx++ {
-			for dy := -1; dy <= 0; dy++ {
-				nx, ny := px+dx, py+dy
-				if nx >= 0 && nx < sz && ny >= 0 && ny < sz {
-					img.SetRGBA(nx, ny, black)
-				}
-			}
-		}
+	defer f.Close()
+	src, err := png.Decode(f)
+	if err != nil {
+		panic(err)
 	}
-	return tkimage.NewPhoto("_dh_view", img)
-}
-
-// makeDeleteIcon creates a 16x16 red X icon (matches Tk's ::img::delete).
-func makeDeleteIcon() *tkimage.Photo {
-	const sz = 16
-	img := goimage.NewRGBA(goimage.Rect(0, 0, sz, sz))
-	red := color.RGBA{R: 208, G: 0, B: 0, A: 255}
-
-	// Draw two diagonal lines forming an X.
-	// Line 1: top-left to bottom-right (3,3)→(12,12)
-	// Line 2: top-right to bottom-left (12,3)→(3,12)
-	for i := 0; i < 10; i++ {
-		for t := 0; t <= 1; t++ {
-			// Line 1.
-			img.SetRGBA(3+i, 3+i+t, red)
-			img.SetRGBA(3+i+t, 3+i, red)
-			// Line 2.
-			img.SetRGBA(12-i, 3+i+t, red)
-			img.SetRGBA(12-i-t, 3+i, red)
-		}
-	}
-	return tkimage.NewPhoto("_dh_delete", img)
+	rgba := goimage.NewRGBA(src.Bounds())
+	draw.Draw(rgba, rgba.Bounds(), src, src.Bounds().Min, draw.Src)
+	return tkimage.NewPhoto("::img::"+name, rgba)
 }
 
 // codeWindow is the single reusable "See Code" toplevel (nil until first use).

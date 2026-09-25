@@ -193,52 +193,129 @@ func New(parent widget.Caregiver, name string, opts ...LabelframeOption) *Labelf
 	return lf
 }
 
-func (lf *Labelframe) computeTextSize() {
-	if lf.Font != nil && lf.Text != "" {
-		lf.textWidth = lf.Font.MeasureString(lf.Text)
-		m := lf.Font.Metrics()
-		lf.textHeight = m.Linespace()
-	} else {
-		lf.textWidth = 0
-		lf.textHeight = 0
-	}
-	// Compute effective label dimensions (widget takes priority over text).
-	if lf.LabelWidget != nil {
-		lw := lf.LabelWidget.Window()
-		lf.labelWidth = lw.ReqWidth
-		lf.labelHeight = lw.ReqHeight
-	} else {
-		lf.labelWidth = lf.textWidth
-		lf.labelHeight = lf.textHeight
+// Tk's labelframe constants (tk/generic/tkFrame.c).
+const (
+	labelSpacing = 1 // LABELSPACING: space around the label text
+	labelMargin  = 4 // LABELMARGIN: distance of the label from the corner
+)
+
+// hasLabel reports whether a text or widget label is shown.
+func (lf *Labelframe) hasLabel() bool {
+	return lf.LabelWidget != nil || (lf.Font != nil && lf.Text != "")
+}
+
+// labelSide classifies LabelAnchor into Tk's label sides.
+func (lf *Labelframe) labelSide() (top, bottom, left, right bool) {
+	switch lf.LabelAnchor {
+	case option.AnchorS, option.AnchorSW, option.AnchorSE:
+		return false, true, false, false
+	case option.AnchorW:
+		return false, false, true, false
+	case option.AnchorE:
+		return false, false, false, true
+	default:
+		return true, false, false, false
 	}
 }
 
+func (lf *Labelframe) computeTextSize() {
+	lf.textWidth, lf.textHeight = 0, 0
+	lf.labelWidth, lf.labelHeight = 0, 0
+	if lf.Font != nil && lf.Text != "" {
+		lf.textWidth = lf.Font.MeasureString(lf.Text)
+		lf.textHeight = lf.Font.Metrics().Linespace()
+	}
+	switch {
+	case lf.LabelWidget != nil:
+		lw := lf.LabelWidget.Window()
+		lf.labelWidth, lf.labelHeight = lw.ReqWidth, lw.ReqHeight
+	case lf.hasLabel():
+		lf.labelWidth = lf.textWidth + 2*labelSpacing
+		lf.labelHeight = lf.textHeight + 2*labelSpacing
+	default:
+		return
+	}
+	// The label is at least as big as the border.
+	top, bottom, _, _ := lf.labelSide()
+	if top || bottom {
+		lf.labelHeight = max(lf.labelHeight, lf.BorderWidth)
+	} else {
+		lf.labelWidth = max(lf.labelWidth, lf.BorderWidth)
+	}
+}
+
+// updateInternalBorder ports the labelframe part of FrameWorldChanged and
+// ComputeFrameGeometry: children go inside border+highlight+pad, the label
+// side grows by the label size, and the frame requests room for the label.
 func (lf *Labelframe) updateInternalBorder() {
 	w := lf.Win
-	bw := lf.BorderWidth
-	// Tk C: bWidthTop = borderWidth + (labelReqHeight - borderWidth) = labelReqHeight
-	// The full label height replaces the top border width, since the label
-	// sits centered on the border and the content area starts below it.
-	topBorder := bw
-	if lf.labelHeight > 0 {
-		topBorder = lf.labelHeight
+	bw, hl := lf.BorderWidth, lf.HighlightWidth
+	left, right := bw+hl+lf.PadX, bw+hl+lf.PadX
+	top, bottom := bw+hl+lf.PadY, bw+hl+lf.PadY
+	w.MinReqWidth, w.MinReqHeight = 0, 0
+	if lf.hasLabel() {
+		onTop, onBottom, onLeft, _ := lf.labelSide()
+		switch {
+		case onTop:
+			top += lf.labelHeight - bw
+		case onBottom:
+			bottom += lf.labelHeight - bw
+		case onLeft:
+			left += lf.labelWidth - bw
+		default:
+			right += lf.labelWidth - bw
+		}
+		padding := hl
+		if bw > 0 {
+			padding += bw + labelMargin
+		}
+		padding *= 2
+		if onTop || onBottom {
+			w.MinReqWidth = lf.labelWidth + padding
+			w.MinReqHeight = lf.labelHeight + bw + hl
+		} else {
+			w.MinReqHeight = lf.labelHeight + padding
+			w.MinReqWidth = lf.labelWidth + bw + hl
+		}
 	}
-	// Tk C: padX/padY are added to all four internal borders.
-	w.InternalBorderLeft = bw + lf.PadX
-	w.InternalBorderRight = bw + lf.PadX
-	w.InternalBorderTop = topBorder + lf.PadY
-	w.InternalBorderBottom = bw + lf.PadY
+	w.InternalBorderLeft, w.InternalBorderRight = left, right
+	w.InternalBorderTop, w.InternalBorderBottom = top, bottom
+}
 
-	// Tk C: Tk_SetMinimumRequestSize — ensure the frame is wide/tall enough
-	// to fit the label. For top/bottom anchors (N/NW/NE/S/SW/SE), add
-	// padding = 2*(borderWidth + LABELMARGIN) to the label width.
-	if lf.labelWidth > 0 {
-		const labelMargin = 4
-		padding := 2 * (bw + labelMargin)
-		w.MinReqWidth = lf.labelWidth + padding + 3
-	} else {
-		w.MinReqWidth = 0
+// labelBox returns where a label of size lw×lh goes (LabelframeLayout in
+// tkFrame.c); it is used both for the clipped label box and the text.
+func (lf *Labelframe) labelBox(lw, lh int) (x, y int) {
+	W, H := lf.Win.Width, lf.Win.Height
+	bw, hl := lf.BorderWidth, lf.HighlightWidth
+	top, bottom, _, right := lf.labelSide()
+	otherW, otherH := W-lw, H-lh
+	padding := hl
+	switch {
+	case right:
+		x = otherW - padding
+	case top:
+		y = padding
+	case bottom:
+		y = otherH - padding
+	default:
+		x = padding
 	}
+	if bw > 0 {
+		padding += bw + labelMargin
+	}
+	switch lf.LabelAnchor {
+	case option.AnchorSW, option.AnchorNW:
+		x = padding
+	case option.AnchorN, option.AnchorS:
+		x = otherW / 2
+	case option.AnchorNE, option.AnchorSE:
+		x = otherW - padding
+	case option.AnchorE, option.AnchorW:
+		y = otherH / 2
+	default:
+		x = padding
+	}
+	return x, y
 }
 
 // Display draws the labelframe.
@@ -263,134 +340,95 @@ func (lf *Labelframe) Display() {
 	d.SetForeground(gc, bgPixel)
 	d.FillRectangle(w.Drawable(), gc, 0, 0, uint(w.Width), uint(w.Height))
 
-	bw := lf.BorderWidth
-	hasTextLabel := lf.LabelWidget == nil && lf.Font != nil && lf.Text != "" && lf.textHeight > 0
-	hasWidgetLabel := lf.LabelWidget != nil && lf.labelHeight > 0
-	hasLabel := hasTextLabel || hasWidgetLabel
+	border := lf.Border
+	if border == nil {
+		border = draw.NewBorderFromPixel(bgPixel)
+	}
+	bw, hl := lf.BorderWidth, lf.HighlightWidth
 
-	if bw > 0 && lf.Relief != option.ReliefFlat {
-		border := lf.Border
-		if border == nil {
-			border = draw.NewBorderFromPixel(bgPixel)
-		}
-
-		if hasLabel {
-			lf.drawBorderWithGap(d, gc, border, bw)
-		} else {
-			draw.Draw3DRectangle(d, w.Drawable(), gc, border,
-				0, 0, w.Width, w.Height, bw, lf.Relief)
-		}
+	if !lf.hasLabel() {
+		draw.Draw3DRectangle(d, w.Drawable(), gc, border,
+			hl, hl, w.Width-2*hl, w.Height-2*hl, bw, lf.Relief)
+		d.Flush()
+		return
 	}
 
-	// Draw label text (only when no label widget).
-	if hasTextLabel && lf.Foreground != nil {
-		labelX := lf.labelX()
-		labelY := 0 // label top is at y=0
-		m := lf.Font.Metrics()
-		baseline := labelY + m.Ascent
-		if df, ok := lf.Font.(platform.DrawableFont); ok {
-			fgPixel := lf.Foreground.Pixel
-			fgR, fgG, fgB := lf.Foreground.Red, lf.Foreground.Green, lf.Foreground.Blue
-			if lf.Disabled {
-				fgPixel = 0xa3a3a3
-				fgR, fgG, fgB = 0xa300, 0xa300, 0xa300
+	// Label box, clamped to the room left by the border (LabelframeLayout).
+	padding := hl
+	if bw > 0 {
+		padding += bw + labelMargin
+	}
+	padding *= 2
+	top, bottom, left, _ := lf.labelSide()
+	boxW, boxH := lf.labelWidth, lf.labelHeight
+	if top || bottom {
+		boxW = min(boxW, max(1, w.Width-padding))
+	} else {
+		boxH = min(boxH, max(1, w.Height-padding))
+	}
+	boxX, boxY := lf.labelBox(boxW, boxH)
+
+	// The border runs through the middle of the label (DisplayFrame).
+	bdX1, bdY1 := hl, hl
+	bdX2, bdY2 := w.Width-hl, w.Height-hl
+	switch {
+	case top:
+		bdY1 += (boxH - bw + 1) / 2
+	case bottom:
+		bdY2 -= (boxH - bw) / 2
+	case left:
+		bdX1 += (boxW - bw) / 2
+	default:
+		bdX2 -= (boxW - bw) / 2
+	}
+	draw.Draw3DRectangle(d, w.Drawable(), gc, border,
+		bdX1, bdY1, bdX2-bdX1, bdY2-bdY1, bw, lf.Relief)
+
+	if lf.LabelWidget == nil {
+		d.SetForeground(gc, bgPixel)
+		d.FillRectangle(w.Drawable(), gc, boxX, boxY, uint(boxW), uint(boxH))
+		if lf.Foreground != nil {
+			textX, textY := lf.labelBox(lf.labelWidth, lf.labelHeight)
+			baseline := textY + labelSpacing + lf.Font.Metrics().Ascent
+			if df, ok := lf.Font.(platform.DrawableFont); ok {
+				fgPixel := lf.Foreground.Pixel
+				fgR, fgG, fgB := lf.Foreground.Red, lf.Foreground.Green, lf.Foreground.Blue
+				if lf.Disabled {
+					fgPixel = 0xa3a3a3
+					fgR, fgG, fgB = 0xa300, 0xa300, 0xa300
+				}
+				df.DrawString(w.Drawable(), textX+labelSpacing, baseline, lf.Text,
+					fgPixel, fgR, fgG, fgB)
 			}
-			df.DrawString(w.Drawable(), labelX, baseline, lf.Text,
-				fgPixel, fgR, fgG, fgB)
 		}
-	}
-
-	// Position label widget on the border.
-	if hasWidgetLabel {
-		lw := lf.LabelWidget.Window()
-		labelX := lf.labelX()
-		labelY := 0
-		d.MoveResizeWindow(lw.PlatformID, labelX, labelY, uint(lf.labelWidth), uint(lf.labelHeight))
-		d.MapWindow(lw.PlatformID)
+	} else {
+		lf.placeLabelWidget(boxX, boxY, boxW, boxH)
 	}
 
 	d.Flush()
 }
 
-// labelX returns the x position for the label.
-func (lf *Labelframe) labelX() int {
-	bw := lf.BorderWidth
-	gap := 8 // gap from border edge to label
-	switch lf.LabelAnchor {
-	case option.AnchorNW, option.AnchorW, option.AnchorSW:
-		return bw + gap
-	case option.AnchorNE, option.AnchorE, option.AnchorSE:
-		return lf.Win.Width - bw - gap - lf.labelWidth
-	default: // center
-		return (lf.Win.Width - lf.labelWidth) / 2
-	}
-}
-
-// drawBorderWithGap draws the 3D border with a gap in the top for the label.
-func (lf *Labelframe) drawBorderWithGap(d platform.DisplayServer, gc platform.GCID, border *draw.Border, bw int) {
-	w := lf.Win
-	labelX := lf.labelX()
-	gapLeft := labelX - 4
-	gapRight := labelX + lf.labelWidth + 4
-
-	// The border frame is offset down by half the label height.
-	frameY := lf.labelHeight / 2
-	frameH := w.Height - frameY
-
-	// Draw left, right, bottom borders normally.
-	// Left border.
-	for i := 0; i < bw; i++ {
-		lp, dp := borderPixels(border, lf.Relief, i, bw)
-		d.SetForeground(gc, lp)
-		d.DrawLine(w.Drawable(), gc, i, frameY+i, i, frameY+frameH-1-i)
-		_ = dp
-	}
-	// Right border.
-	for i := 0; i < bw; i++ {
-		_, dp := borderPixels(border, lf.Relief, i, bw)
-		d.SetForeground(gc, dp)
-		d.DrawLine(w.Drawable(), gc, w.Width-1-i, frameY+i, w.Width-1-i, frameY+frameH-1-i)
-	}
-	// Bottom border.
-	for i := 0; i < bw; i++ {
-		_, dp := borderPixels(border, lf.Relief, i, bw)
-		d.SetForeground(gc, dp)
-		d.DrawLine(w.Drawable(), gc, i, frameY+frameH-1-i, w.Width-1-i, frameY+frameH-1-i)
-	}
-	// Top border — split around gap.
-	for i := 0; i < bw; i++ {
-		lp, _ := borderPixels(border, lf.Relief, i, bw)
-		d.SetForeground(gc, lp)
-		// Left part of top.
-		if gapLeft > i {
-			d.DrawLine(w.Drawable(), gc, i, frameY+i, gapLeft, frameY+i)
+// placeLabelWidget puts the -labelwidget window on the label box, like
+// Tk_MaintainGeometry does for a label window that need not be a child.
+func (lf *Labelframe) placeLabelWidget(x, y, width, height int) {
+	lw := lf.LabelWidget.Window()
+	for anc := lf.Win; anc != nil && anc != lw.Parent; anc = anc.Parent {
+		if anc.Parent == nil {
+			return
 		}
-		// Right part of top.
-		if gapRight < w.Width-1-i {
-			d.DrawLine(w.Drawable(), gc, gapRight, frameY+i, w.Width-1-i, frameY+i)
-		}
+		x += anc.X
+		y += anc.Y
 	}
-}
-
-// borderPixels returns the light and dark pixels for the given border layer.
-func borderPixels(border *draw.Border, relief option.Relief, layer, bw int) (light, dark uint64) {
-	switch relief {
-	case option.ReliefRaised:
-		return border.LightPixel, border.DarkPixel
-	case option.ReliefSunken:
-		return border.DarkPixel, border.LightPixel
-	case option.ReliefGroove:
-		if layer < bw/2 {
-			return border.DarkPixel, border.LightPixel
-		}
-		return border.LightPixel, border.DarkPixel
-	case option.ReliefRidge:
-		if layer < bw/2 {
-			return border.LightPixel, border.DarkPixel
-		}
-		return border.DarkPixel, border.LightPixel
-	default:
-		return border.BgPixel, border.BgPixel
+	lw.X, lw.Y, lw.Width, lw.Height = x, y, width, height
+	if lw.PlatformID == platform.WindowID(0) {
+		return
+	}
+	d := lf.Win.Display.Server
+	d.MoveResizeWindow(lw.PlatformID, x, y, uint(width), uint(height))
+	d.RaiseWindow(lw.PlatformID)
+	if lw.Flags&window.FlagMapped == 0 {
+		d.MapWindow(lw.PlatformID)
+		lw.Flags |= window.FlagMapped
 	}
 }
 

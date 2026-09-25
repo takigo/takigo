@@ -73,7 +73,7 @@ func main() {
 			label.Text(s.text),
 			label.Anchor(option.AnchorNW),
 			label.PadY(0),
-			label.Width(240), // ~30 chars at average 8px/char
+			label.Width(30),
 		)
 		// padx "1m" only on language label (column 0), not on sample label.
 		grid.Grid(langLabel, grid.Row(i), grid.Column(0),

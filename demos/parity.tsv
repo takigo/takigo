@@ -1,67 +1,67 @@
-# Demo parity baseline -- written by: bash scripts/demo_batch.sh --retake --update-baseline
+# Demo parity baseline -- written by: bash scripts/demo_batch.sh --retake --update-baseline (or demo_gate.sh --accept)
 # Headless Xvfb 96dpi, pinned DejaVu fonts, frozen timers. pixel_pct = odiff % (lower is better);
 # tree_diffs = cmd/demodiff structural differences; exact = both 0.
-# summary: exact 0 / close 62 / failed 0
+# summary: exact 6 / close 56 / failed 0
 # demo	tcl	pixel_pct	tree_diffs	go_size	tcl_size	status	note
-anilabel	anilabel	61.09	26	913x289	386x294	close	
-aniwave	aniwave	2.87	14	371x352	371x351	close	
-arrow	arrow	51.69	16	750x674	506x502	close	
-bind	bind	24.79	18	488x559	501x454	close	
-bitmap	bitmap	29.75	77	374x211	470x204	close	
-button	button	8.20	21	387x247	388x252	close	
-check	check	10.23	23	387x283	382x288	close	
-clrpick	clrpick	8.41	16	355x171	355x172	close	
-colors	colors	8.32	20	375x461	379x458	close	
-combo	combo	17.82	35	483x363	481x352	close	
-cscroll	cscroll	59.87	21	587x531	403x418	close	
-ctext	ctext	55.69	16	500x601	502x600	close	
-dialog1	dialog1	46.16	22	379x225	438x307	close	
-dialog2	dialog2	45.89	22	385x208	441x288	close	
-entry1	entry1	15.65	22	473x282	477x273	close	
-entry2	entry2	22.68	38	471x340	475x351	close	
-entry3	entry3	6.81	21	477x354	477x351	close	
-filebox	filebox	21.93	34	486x202	469x187	close	
-floor	floor	54.61	28	921x643	927x570	close	
-fontchoose	fontchoose	12.74	19	339x178	343x178	close	
-form	form	23.65	40	388x223	390x230	close	
-goldberg	goldberg	69.36	34	592x405	676x541	close	
-hscale	hscale	11.01	17	357x230	361x228	close	
-icon	icon	14.19	22	477x253	481x270	close	
-image1	image1	11.92	16	335x497	335x490	close	
-image2	image2	13.25	22	380x462	380x447	close	
-items	items	67.21	26	581x559	587x562	close	
-knightstour	knightstour	87.03	35	420x576	381x330	close	random knight start square differs between Go and Tcl (Tcl seeded with srand(1))
-label	label	7.32	21	382x343	382x338	close	
-labelframe	labelframe	14.51	39	371x220	371x227	close	
-mclist	mclist	33.08	27	619x457	404x412	close	
-menu	menu	19.26	21	386x265	386x271	close	
-menubu	menubu	10.38	29	409x467	413x478	close	
-msgbox	msgbox	25.44	54	476x292	394x301	close	
-paned1	paned1	8.51	22	386x174	388x173	close	
-paned2	paned2	24.60	37	385x601	388x479	close	
-pendulum	pendulum	13.03	27	656x419	665x426	close	
-plot	plot	75.17	15	450x398	452x397	close	
-print	print	7.79	24	948x560	980x557	close	
-puzzle	puzzle	13.89	30	387x311	376x325	close	
-radio	radio	20.02	57	503x387	519x405	close	
-ruler	ruler	52.13	16	562x210	561x208	close	
-sayings	sayings	20.24	22	386x313	386x331	close	
-search	search	23.96	38	648x688	661x532	close	
-spin	spin	9.82	20	474x299	478x290	close	
-states	states	14.91	29	384x395	388x418	close	
-style	style	15.69	18	708x724	721x654	close	
-text	text	25.09	20	648x698	661x556	close	
-textpeer	textpeer	11.84	29	765x399	765x392	close	
-toolbar	toolbar	42.79	38	430x353	385x425	close	
-tree	tree	29.85	26	419x457	404x412	close	
-ttkbut	ttkbut	26.66	28	385x472	383x420	close	
-ttkmenu	ttkmenu	23.49	32	465x337	435x325	close	
-ttknote	ttknote	31.93	31	394x368	394x271	close	
-ttkpane	ttkpane	41.89	20	371x697	369x593	close	clock pane shows wall-clock time: small nondeterministic diff
-ttkprogress	ttkprogress	30.07	26	378x278	376x242	close	
-ttkscale	ttkscale	17.75	25	365x174	363x184	close	
-ttkspin	ttkspin	19.83	19	483x299	477x285	close	
-twind	twind	26.73	20	564x724	583x643	close	
-unicodeout	unicodeout	2.27	61	386x368	386x365	close	
-vscale	vscale	17.51	18	370x382	370x403	close	
-windowicons	windowicons	39.28	23	240x259	218x200	close	was mis-mapped to icon.tcl before; now compared with windowicons.tcl
+anilabel	anilabel	13.01	13	386x290	386x296	close	
+aniwave	aniwave	3.22	4	371x351	371x353	close	
+arrow	arrow	51.83	8	750x673	506x504	close	
+bind	bind	2.18	2	501x456	501x456	close	
+bitmap	bitmap	0	0	470x206	470x206	exact	
+button	button	0	0	388x254	388x254	exact	
+check	check	0	0	382x290	382x290	exact	
+clrpick	clrpick	0	0	355x174	355x174	exact	
+colors	colors	10.14	7	379x480	379x460	close	
+combo	combo	19.15	24	483x368	481x354	close	
+cscroll	cscroll	61.75	13	588x530	403x421	close	
+ctext	ctext	55.41	9	500x600	502x602	close	
+dialog1	dialog1	45.81	19	379x226	438x307	close	
+dialog2	dialog2	45.53	19	385x209	441x288	close	
+entry1	entry1	2.18	3	477x275	477x275	close	
+entry2	entry2	4.99	6	475x353	475x353	close	
+entry3	entry3	2.25	5	477x353	477x353	close	
+filebox	filebox	13.64	11	469x199	469x189	close	
+floor	floor	54.61	17	925x646	927x572	close	
+fontchoose	fontchoose	14.20	10	339x176	343x180	close	
+form	form	3.47	5	390x232	390x232	close	
+goldberg	goldberg	69.46	31	594x405	677x542	close	
+hscale	hscale	8.06	7	361x229	361x230	close	
+icon	icon	0.06	2	481x272	481x272	close	
+image1	image1	0	0	335x492	335x492	exact	
+image2	image2	10.69	16	380x463	380x449	close	
+items	items	67.38	16	582x558	588x564	close	
+knightstour	knightstour	86.82	32	420x577	381x332	close	random knight start square differs between Go and Tcl (Tcl seeded with srand(1))
+label	label	0	0	382x340	382x340	exact	
+labelframe	labelframe	0.10	1	371x229	371x229	close	
+mclist	mclist	34.53	22	619x456	404x414	close	
+menu	menu	18.76	14	386x266	386x273	close	
+menubu	menubu	10.91	22	409x466	413x480	close	
+msgbox	msgbox	21.25	36	476x303	394x303	close	
+paned1	paned1	8.17	10	388x173	388x175	close	
+paned2	paned2	13.47	20	388x498	388x481	close	
+pendulum	pendulum	12.57	22	656x420	665x428	close	
+plot	plot	75.45	8	450x397	452x399	close	
+print	print	7.70	12	946x559	1026x559	close	
+puzzle	puzzle	0.28	15	376x327	376x327	close	
+radio	radio	7.89	30	523x407	519x407	close	
+ruler	ruler	52.86	5	562x209	562x211	close	
+sayings	sayings	10.46	8	386x332	386x333	close	
+search	search	26.51	9	661x589	661x534	close	
+spin	spin	9.16	13	474x298	478x292	close	
+states	states	11.44	16	384x436	388x420	close	
+style	style	6.60	2	721x656	721x656	close	
+text	text	14.04	6	661x594	661x558	close	
+textpeer	textpeer	6.73	4	765x394	765x394	close	
+toolbar	toolbar	43.06	32	430x351	385x427	close	
+tree	tree	29.69	20	419x456	404x414	close	
+ttkbut	ttkbut	26.72	20	385x475	383x422	close	
+ttkmenu	ttkmenu	22.55	24	477x328	435x327	close	
+ttknote	ttknote	12.87	24	394x280	394x273	close	
+ttkpane	ttkpane	35.85	12	371x600	369x595	close	clock pane shows wall-clock time: small nondeterministic diff
+ttkprogress	ttkprogress	29.24	19	378x277	376x244	close	
+ttkscale	ttkscale	20.85	18	365x210	363x186	close	
+ttkspin	ttkspin	18.85	12	483x298	477x287	close	
+twind	twind	17.93	11	581x643	583x645	close	
+unicodeout	unicodeout	0.06	36	386x367	386x367	close	
+vscale	vscale	13.65	7	370x401	370x405	close	
+windowicons	windowicons	34.48	7	222x266	222x202	close	was mis-mapped to icon.tcl before; now compared with windowicons.tcl

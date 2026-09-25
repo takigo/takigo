@@ -71,7 +71,9 @@ func NewPaddingElementFactory(ctx *DrawContext) Element {
 
 func (e *PaddingElement) Size(state State) (int, int, Padding) {
 	p := LookupPadding(e.ctx.Style, "-padding", state, Padding{})
-	return 0, 0, p
+	relief := LookupRelief(e.ctx.Style, "-relief", state, option.ReliefFlat)
+	shift := LookupInt(e.ctx.Style, "-shiftrelief", state, 0)
+	return 0, 0, RelievePadding(p, relief, shift)
 }
 
 func (e *PaddingElement) Draw(platform.DisplayServer, platform.DrawableID, platform.GCID, Box, State) {

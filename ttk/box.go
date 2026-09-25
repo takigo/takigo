@@ -1,6 +1,11 @@
 package ttk
 
-import "github.com/msorc/takigo/screenunit"
+import (
+	"strings"
+
+	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/screenunit"
+)
 
 // Box represents a rectangular area. Ported from ttkLayout.c.
 type Box struct {
@@ -53,6 +58,47 @@ func PaddingFromAny(left, top, right, bottom any) Padding {
 func UniformPaddingFromAny(v any) Padding {
 	n := screenunit.Px(v)
 	return Padding{n, n, n, n}
+}
+
+// ParsePadding parses a Tk padding spec of 1-4 distances ("2.25p",
+// "7.5p 2.25p", "1.5p 0 7.5p 0"), as Ttk_GetPaddingFromObj does: missing
+// right/bottom values default to left/top.
+func ParsePadding(spec string) Padding {
+	f := strings.Fields(spec)
+	px := func(i int) int { return screenunit.Px(f[i]) }
+	switch len(f) {
+	case 0:
+		return Padding{}
+	case 1:
+		return UniformPadding(px(0))
+	case 2:
+		return Padding{px(0), px(1), px(0), px(1)}
+	case 3:
+		return Padding{px(0), px(1), px(2), px(1)}
+	default:
+		return Padding{px(0), px(1), px(2), px(3)}
+	}
+}
+
+// RelievePadding adds n pixels of padding according to relief, simulating
+// a pressed-in look (Ttk_RelievePadding in tk/generic/ttk/ttkLayout.c).
+func RelievePadding(p Padding, relief option.Relief, n int) Padding {
+	switch relief {
+	case option.ReliefRaised:
+		p.Right += n
+		p.Bottom += n
+	case option.ReliefSunken:
+		p.Left += n
+		p.Top += n
+	default:
+		h1 := n / 2
+		h2 := h1 + n%2
+		p.Left += h1
+		p.Top += h1
+		p.Right += h2
+		p.Bottom += h2
+	}
+	return p
 }
 
 // Side specifies which side to pack from.

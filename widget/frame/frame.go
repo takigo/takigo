@@ -91,6 +91,7 @@ func New(parent widget.Caregiver, name string, opts ...FrameOption) *Frame {
 	for _, opt := range opts {
 		opt(f)
 	}
+	f.updateInternalBorder()
 
 	// Update X window background.
 	if f.Background != nil {
@@ -133,6 +134,7 @@ func (f *Frame) Display() {
 func (f *Frame) Configure(opts ...option.Option) {
 	option.Apply(f, opts)
 	f.UpdateBorder()
+	f.updateInternalBorder()
 	if f.Background != nil {
 		f.Win.BackgroundPixel = f.Background.Pixel
 	}
@@ -151,6 +153,13 @@ func (f *Frame) Destroy() {
 // Window returns the underlying window.
 func (f *Frame) Window() *window.Window {
 	return f.Win
+}
+
+// updateInternalBorder keeps children inside the border and highlight ring,
+// as FrameWorldChanged (tk/generic/tkFrame.c) does via Tk_SetInternalBorderEx.
+func (f *Frame) updateInternalBorder() {
+	b := f.BorderWidth + f.HighlightWidth
+	f.SetInternalBorder(b, b, b, b)
 }
 
 // SetInternalBorder sets the internal border for child layout.

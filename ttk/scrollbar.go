@@ -83,11 +83,14 @@ func NewScrollbar(parent widget.Caregiver, name string, opts ...ScrollbarOption)
 	InitTtkWidget(&s.TtkWidget, win, app, styleName)
 	s.DisplayFunc = s.Display
 
+	// Minimum length as in Tk's default theme: two arrow boxes plus the
+	// 8px minimum thumb (38px for the default 9p arrows).
+	minLen := 2*s.sbWidth + 8
 	if s.Orient == Vertical {
 		win.ReqWidth = s.sbWidth
-		win.ReqHeight = 100
+		win.ReqHeight = minLen
 	} else {
-		win.ReqWidth = 100
+		win.ReqWidth = minLen
 		win.ReqHeight = s.sbWidth
 	}
 
