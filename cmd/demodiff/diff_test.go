@@ -89,6 +89,30 @@ func TestCompare(t *testing.T) {
 	}
 }
 
+func TestCompareGridIn(t *testing.T) {
+	// Tk: .d.l1 is a child of .d but gridded -in .d.mid; Go nests it.
+	tclTree := &treedump.Dump{
+		Toplevels: []treedump.Toplevel{{Path: ".d", Title: "D", W: 100, H: 100}},
+		Widgets: []treedump.Widget{
+			wd(".d", "Toplevel", "", ".d", 0, 0, 0, 100, 100),
+			wd(".d.mid", "Frame", ".d", ".d", 0, 0, 0, 100, 60),
+			wd(".d.l1", "Labelframe", ".d", ".d", 1, 10, 10, 80, 40),
+		},
+	}
+	goTree := &treedump.Dump{
+		Toplevels: []treedump.Toplevel{{Path: ".", Title: "D", W: 100, H: 100}},
+		Widgets: []treedump.Widget{
+			wd(".", "", "", ".", 0, 0, 0, 100, 100),
+			wd(".mid", "Frame", ".", ".", 0, 0, 0, 100, 60),
+			wd(".mid.l1", "Labelframe", ".mid", ".", 0, 10, 10, 80, 40),
+		},
+	}
+	res := Compare(goTree, tclTree)
+	if len(res.Diffs) != 0 {
+		t.Fatalf("want no diffs, got %+v", res.Diffs)
+	}
+}
+
 func TestCompareFonts(t *testing.T) {
 	f := treedump.Font{Size: 10, Weight: "normal", Slant: "roman", Ascent: 13, Descent: 4, Linespace: 17, Sample: 377}
 	g := f

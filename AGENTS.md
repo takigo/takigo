@@ -247,6 +247,7 @@ skill and script pipeline for comparing and fixing them.
   bash scripts/demo_refine.sh <demo> [--retake] # screenshot + show paths
   bash scripts/demo_batch.sh  [--retake] [--stability N] [--update-baseline] [pfx]
                                                 # all demos headless, sorted by score
+  bash scripts/demo_gate.sh                     # latest batch vs demos/parity.tsv; exit 1 on regression
   bash scripts/demo_interact.sh <demo> ...      # xdotool-driven behavioural test
   bash scripts/fix_demo.sh  <demo>             # single demo, LLM-driven fix
   bash scripts/fix_all.sh   [--status]          # resumable batch fix
@@ -268,6 +269,10 @@ skill and script pipeline for comparing and fixing them.
   committed baseline `demos/parity.tsv` is regenerated with
   `bash scripts/demo_batch.sh --retake --stability 3 --update-baseline`; only
   compare scores produced under the same settings (batch runs headless).
+  For core changes: `demo_batch.sh --retake`, then `demo_gate.sh`; accept
+  with `demo_gate.sh --accept` once the regressions are understood. Pixel %
+  can rise while tree diffs fall (a partly fixed layout shifts); judge by the
+  tree diff first.
 - **Structural diff:** every compare also dumps both widget trees and runs
   `cmd/demodiff`, writing `tmp/screenshots/<demo>_tree.txt` (Go path ⇄ Tcl
   path, root causes first). Read it before the images; REQSIZE/FONT/RENDER

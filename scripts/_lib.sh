@@ -30,7 +30,9 @@ mkdir -p "$SS_DIR" "$LOGS_DIR" "$BIN_DIR"
 # the script's own arguments:  maybe_xvfb "$@"
 # Force headless with HEADLESS=1; otherwise auto-detect an unset/unconnectable
 # DISPLAY. The _XVFB_RUNNING guard prevents infinite re-exec. Xvfb runs at a
-# fixed 1280x1024x24 / 96dpi so captures are deterministic.
+# fixed 4000x3000x24 / 96dpi so captures are deterministic; the large screen
+# keeps the pointer (stuck at the screen centre, xdotool cannot move it under
+# Xvfb) outside demo windows placed at +300+300, so nothing starts hovered.
 maybe_xvfb() {
     [[ -n "${_XVFB_RUNNING:-}" ]] && return 0
     local need=0
@@ -44,7 +46,7 @@ maybe_xvfb() {
             exit 1
         }
         export _XVFB_RUNNING=1
-        exec xvfb-run -a -s "-screen 0 1280x1024x24 -dpi 96" "$0" "$@"
+        exec xvfb-run -a -s "-screen 0 4000x3000x24 -dpi 96" "$0" "$@"
     fi
 }
 
@@ -288,4 +290,41 @@ run_compare() {
     rm -f "$err_log"
     # Score line format: "Diff score: <number>  (odiff diff % ...)"
     echo "$out" | awk '/^Diff score:/ {print $3}'
+}
+
+# update_baseline SCORES_TSV
+# Merges a demo_batch.sh scores.tsv into the committed demos/parity.tsv:
+# processed demos get new numbers and status, others and all notes are kept.
+update_baseline() {
+    local scores="$1"
+    local baseline="$PROJECT_DIR/demos/parity.tsv"
+    local tmp_base summary
+    tmp_base="$baseline.tmp"
+    awk -F'\t' -v OFS='\t' '
+        FNR == 1 && FILENAME == ARGV[1] { next }
+        FILENAME == ARGV[1] {
+            st = ($3 == "9999") ? "failed" : (($3 == "0" && $4 == "0") ? "exact" : "close")
+            new[$1] = $1 OFS $2 OFS $3 OFS $4 OFS $5 OFS $6 OFS st
+            next
+        }
+        /^#/ || NF < 7 { next }
+        { old[$1] = $0; note[$1] = $NF }
+        END {
+            for (d in old) if (!(d in new)) rows[d] = old[d]
+            for (d in new) rows[d] = new[d] OFS note[d]
+            n = asorti(rows, keys)
+            for (i = 1; i <= n; i++) print rows[keys[i]]
+        }' "$scores" "$( [[ -f "$baseline" ]] && echo "$baseline" || echo /dev/null )" > "$tmp_base.rows"
+    summary=$(awk -F'\t' '{c[$7]++} END {printf "exact %d / close %d / failed %d", c["exact"], c["close"], c["failed"]}' "$tmp_base.rows")
+    {
+        echo "# Demo parity baseline -- written by: bash scripts/demo_batch.sh --retake --update-baseline (or demo_gate.sh --accept)"
+        echo "# Headless Xvfb 96dpi, pinned DejaVu fonts, frozen timers. pixel_pct = odiff % (lower is better);"
+        echo "# tree_diffs = cmd/demodiff structural differences; exact = both 0."
+        echo "# summary: $summary"
+        printf '# demo\ttcl\tpixel_pct\ttree_diffs\tgo_size\ttcl_size\tstatus\tnote\n'
+        cat "$tmp_base.rows"
+    } > "$tmp_base"
+    rm -f "$tmp_base.rows"
+    mv "$tmp_base" "$baseline"
+    echo "Baseline updated: $baseline ($summary)"
 }

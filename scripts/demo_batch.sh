@@ -90,6 +90,14 @@ for go_name in $(printf '%s\n' "${!DEMO_MAP[@]}" | sort); do
     DEMOS+=("$go_name")
 done
 
+# Build every demo up front so the whole run measures one snapshot of the
+# source, even if files are edited while it runs.
+export DEMO_BIN_DIR="$BIN_DIR/demos"
+rm -rf "$DEMO_BIN_DIR"
+mkdir -p "$DEMO_BIN_DIR"
+echo "Building ${#DEMOS[@]} demos into $DEMO_BIN_DIR ..."
+(cd "$PROJECT_DIR" && go build -o "$DEMO_BIN_DIR/" $(printf './demos/%s ' "${DEMOS[@]}"))
+
 TOTAL=${#DEMOS[@]}
 COUNT=0
 for go_name in "${DEMOS[@]}"; do
@@ -142,35 +150,8 @@ if (( STABILITY > 1 )); then
 fi
 
 if [[ "$UPDATE_BASELINE" == "1" ]]; then
-    TMP_BASE="$BASELINE.tmp"
-    awk -F'\t' -v OFS='\t' '
-        FNR == 1 && FILENAME == ARGV[1] { next }
-        FILENAME == ARGV[1] {
-            st = ($3 == "9999") ? "failed" : (($3 == "0" && $4 == "0") ? "exact" : "close")
-            new[$1] = $1 OFS $2 OFS $3 OFS $4 OFS $5 OFS $6 OFS st
-            next
-        }
-        /^#/ || NF < 7 { next }
-        { old[$1] = $0; note[$1] = $NF }
-        END {
-            for (d in old) if (!(d in new)) rows[d] = old[d]
-            for (d in new) rows[d] = new[d] OFS note[d]
-            n = asorti(rows, keys)
-            for (i = 1; i <= n; i++) print rows[keys[i]]
-        }' "$SCORES_TSV" "$( [[ -f "$BASELINE" ]] && echo "$BASELINE" || echo /dev/null )" > "$TMP_BASE.rows"
-    SUMMARY=$(awk -F'\t' '{c[$7]++} END {printf "exact %d / close %d / failed %d", c["exact"], c["close"], c["failed"]}' "$TMP_BASE.rows")
-    {
-        echo "# Demo parity baseline -- written by: bash scripts/demo_batch.sh --retake --update-baseline"
-        echo "# Headless Xvfb 96dpi, pinned DejaVu fonts, frozen timers. pixel_pct = odiff % (lower is better);"
-        echo "# tree_diffs = cmd/demodiff structural differences; exact = both 0."
-        echo "# summary: $SUMMARY"
-        printf '# demo\ttcl\tpixel_pct\ttree_diffs\tgo_size\ttcl_size\tstatus\tnote\n'
-        cat "$TMP_BASE.rows"
-    } > "$TMP_BASE"
-    rm -f "$TMP_BASE.rows"
-    mv "$TMP_BASE" "$BASELINE"
     echo ""
-    echo "Baseline updated: $BASELINE ($SUMMARY)"
+    update_baseline "$SCORES_TSV"
 fi
 
 echo ""

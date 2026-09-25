@@ -12,6 +12,8 @@
 #   TIMEOUT_SECS  : max wait for window to appear (default 15)
 #   PIN_FONTS     : 1 (default) = private DejaVu-only fontconfig, see pin_fonts
 #   TAKIGO_FREEZE_TIMERS : 1 (default) = drop positive-delay timers on both sides
+#   DEMO_BIN_DIR  : use prebuilt demo binaries from this directory
+#                   (<dir>/<demo>) instead of building (demo_batch.sh sets it)
 #   DUMP_TREE     : 1 (default) = also write <output>.tree.json (widget tree,
 #                   see internal/treedump and tk_dump_tree.tcl)
 
@@ -151,17 +153,22 @@ screenshot_go() {
     for sid in $(find_windows_exact "$title"); do xdotool windowkill "$sid" 2>/dev/null; done
     sleep 0.3
 
-    binary="$(mktemp /tmp/takigo_demo_XXXXXX)"
-
-    echo "  Building demos/$demo..." >&2
-    if ! (cd "$PROJECT_DIR" && go build -o "$binary" "./demos/$demo/" 2>&1); then
-        rm -f "$binary"
-        echo "Build failed for demos/$demo" >&2
-        return 1
+    local prebuilt=0
+    if [[ -n "${DEMO_BIN_DIR:-}" && -x "$DEMO_BIN_DIR/$demo" ]]; then
+        binary="$DEMO_BIN_DIR/$demo"
+        prebuilt=1
+    else
+        binary="$(mktemp /tmp/takigo_demo_XXXXXX)"
+        echo "  Building demos/$demo..." >&2
+        if ! (cd "$PROJECT_DIR" && go build -o "$binary" "./demos/$demo/" 2>&1); then
+            rm -f "$binary"
+            echo "Build failed for demos/$demo" >&2
+            return 1
+        fi
+        chmod +x "$binary"
     fi
-    chmod +x "$binary"
 
-    trap 'if [[ -n "${demo_pid:-}" ]]; then kill "$demo_pid" 2>/dev/null || true; wait "$demo_pid" 2>/dev/null || true; fi; rm -f "$binary"' RETURN
+    trap 'if [[ -n "${demo_pid:-}" ]]; then kill "$demo_pid" 2>/dev/null || true; wait "$demo_pid" 2>/dev/null || true; fi; [[ "$prebuilt" == 1 ]] || rm -f "$binary"' RETURN
 
     echo "  Running Go demo: $demo  (expecting title: \"$title\")" >&2
     env $(tree_dump_env "$out") nohup "$binary" > /tmp/takigo_go_out.txt 2>&1 &

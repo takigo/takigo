@@ -58,6 +58,11 @@ type Pair struct {
 type Result struct {
 	Pairs []Pair `json:"-"`
 	Diffs []Diff `json:"diffs"`
+
+	// Children left unmatched under their parent, retried across the whole
+	// toplevel: Tk widgets can be managed by a geometry master other than
+	// their parent (grid/pack -in), so the trees need not line up.
+	orphanGo, orphanTcl []*node
 }
 
 func buildTrees(d *treedump.Dump) map[string]*node {
@@ -188,7 +193,9 @@ func Compare(goDump, tclDump *treedump.Dump) *Result {
 			continue
 		}
 		res.Pairs = append(res.Pairs, Pair{g, t})
+		res.orphanGo, res.orphanTcl = nil, nil
 		res.matchChildren(g, t)
+		res.matchOrphans()
 	}
 	for _, tt := range tclDump.Toplevels {
 		if !usedTcl[tt.Path] {
@@ -240,20 +247,71 @@ func (r *Result) matchChildren(g, t *node) {
 	}
 	for i, a := range gc {
 		if !gUsed[i] && a.w.Mapped {
-			r.add(Diff{Kind: KindExtra, Class: a.w.Class, Go: a.w.Path, depth: a.depth,
-				Detail: fmt.Sprintf("only in Go (%dx%d at %d,%d)", a.w.W, a.w.H, a.w.X, a.w.Y)})
+			r.orphanGo = append(r.orphanGo, a)
 		}
 	}
 	for j, b := range tc {
 		if !tUsed[j] && b.w.Mapped {
-			r.add(Diff{Kind: KindMissing, Class: b.w.Class, Tcl: b.w.Path, depth: b.depth,
-				Detail: fmt.Sprintf("missing in Go (%dx%d at %d,%d)", b.w.W, b.w.H, b.w.X, b.w.Y)})
+			r.orphanTcl = append(r.orphanTcl, b)
 		}
 	}
 	for _, m := range matches {
 		r.Pairs = append(r.Pairs, Pair{m.a, m.b})
 		r.comparePair(m.a, m.b, gOrigin, tOrigin)
 		r.matchChildren(m.a, m.b)
+	}
+}
+
+// matchOrphans pairs leftover widgets of one toplevel by class and absolute
+// position, then reports the rest as EXTRA/MISSING.
+func (r *Result) matchOrphans() {
+	for len(r.orphanGo) > 0 || len(r.orphanTcl) > 0 {
+		gs, ts := r.orphanGo, r.orphanTcl
+		r.orphanGo, r.orphanTcl = nil, nil
+		type cand struct {
+			i, j int
+			s    float64
+		}
+		var cands []cand
+		for i, a := range gs {
+			for j, b := range ts {
+				if a.w.Class != b.w.Class {
+					continue
+				}
+				if s := score(a, b, [2]int{}, [2]int{}); s >= 10 {
+					cands = append(cands, cand{i, j, s})
+				}
+			}
+		}
+		sort.SliceStable(cands, func(x, y int) bool { return cands[x].s > cands[y].s })
+		gUsed, tUsed := make([]bool, len(gs)), make([]bool, len(ts))
+		matched := false
+		for _, c := range cands {
+			if gUsed[c.i] || tUsed[c.j] {
+				continue
+			}
+			gUsed[c.i], tUsed[c.j] = true, true
+			matched = true
+			a, b := gs[c.i], ts[c.j]
+			r.Pairs = append(r.Pairs, Pair{a, b})
+			r.comparePair(a, b, [2]int{}, [2]int{})
+			r.matchChildren(a, b)
+		}
+		for i, a := range gs {
+			if !gUsed[i] {
+				r.add(Diff{Kind: KindExtra, Class: a.w.Class, Go: a.w.Path, depth: a.depth,
+					Detail: fmt.Sprintf("only in Go (%dx%d at %d,%d)", a.w.W, a.w.H, a.w.X, a.w.Y)})
+			}
+		}
+		for j, b := range ts {
+			if !tUsed[j] {
+				r.add(Diff{Kind: KindMissing, Class: b.w.Class, Tcl: b.w.Path, depth: b.depth,
+					Detail: fmt.Sprintf("missing in Go (%dx%d at %d,%d)", b.w.W, b.w.H, b.w.X, b.w.Y)})
+			}
+		}
+		if !matched {
+			break
+		}
 	}
 }
 
