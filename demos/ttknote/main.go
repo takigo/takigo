@@ -15,7 +15,6 @@ import (
 	"github.com/msorc/takigo/ttk"
 	_ "github.com/msorc/takigo/ttk/clamtheme"
 	_ "github.com/msorc/takigo/ttk/defaulttheme"
-	"github.com/msorc/takigo/widget/label"
 	"github.com/msorc/takigo/widget/text"
 )
 
@@ -29,7 +28,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	ttk.SetCurrentTheme("clam")
 
 	// pack [addSeeDismiss $w.seeDismiss $w] -side bottom -fill x
 	btns := demohelper.AddSeeDismiss(app)
@@ -49,19 +47,11 @@ func main() {
 	page1 := ttk.NewFrame(nb, "msg")
 
 	// ttk::label ... -wraplength 4i -justify left -anchor n
-	descLabel := label.New(page1, "m",
-		label.Text("Ttk is the new Tk themed widget set. One of the widgets "+
-			"it includes is the notebook widget, which provides a set "+
-			"of tabs that allow the selection of a group of panels, "+
-			"each with distinct content. They are a feature of many "+
-			"modern user interfaces. Not only can the tabs be selected "+
-			"with the mouse, but they can also be switched between "+
-			"using Ctrl+Tab when the notebook page heading itself is "+
-			"selected. Note that the second tab is disabled, and "+
-			"cannot be selected."),
-		label.WrapLength("4i"),
-		label.JustifyOpt(option.JustifyLeft),
-		label.Anchor(option.AnchorN),
+	descLabel := ttk.NewLabel(page1, "m",
+		ttk.LabelText("Ttk is the new Tk themed widget set. One of the widgets it includes is the notebook widget, which provides a set of tabs that allow the selection of a group of panels, each with distinct content. They are a feature of many modern user interfaces. Not only can the tabs be selected with the mouse, but they can also be switched between using Ctrl+Tab when the notebook page heading itself is selected. Note that the second tab is disabled, and cannot be selected."),
+		ttk.LabelWrapLength("4i"),
+		ttk.LabelJustify(option.JustifyLeft),
+		ttk.LabelAnchor(option.AnchorN),
 	)
 	// grid $w.note.msg.m - -sticky new -pady 1.5p
 	grid.Grid(descLabel, grid.Row(0), grid.Column(0), grid.ColumnSpan(2),
@@ -92,6 +82,7 @@ func main() {
 
 	// $w.note add $w.note.msg -text "Description" -underline 0
 	nb.Add(page1.Window(), "Description")
+	nb.SetPanePadding(0, "1.5p")
 	nb.SetTabUnderline(0, 0)
 
 	// --- Tab 2: Disabled ---

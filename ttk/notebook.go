@@ -13,9 +13,10 @@ import (
 type notebookTab struct {
 	Text      string
 	Window    *window.Window
-	State     State // tab-specific state (disabled, etc.)
-	Padding   Padding
-	Underline int // index of character to underline for keyboard shortcut; -1 = none
+	State     State   // tab-specific state (disabled, etc.)
+	Padding   Padding // tab edge to label: tab border, -padding, focus ring
+	PanePad   Padding // the tab's -padding option: space around the pane
+	Underline int     // index of character to underline for keyboard shortcut; -1 = none
 }
 
 // Notebook is a themed tabbed container widget.
@@ -63,9 +64,11 @@ func NewNotebook(parent widget.Caregiver, name string, opts ...NotebookOption) *
 // Add appends a tab to the notebook.
 func (nb *Notebook) Add(pane *window.Window, text string) {
 	tab := notebookTab{
-		Text:      text,
-		Window:    pane,
-		Padding:   Padding{Left: 8, Top: 4, Right: 8, Bottom: 4},
+		Text:   text,
+		Window: pane,
+		// Default theme: TabElement border {1 1 1 0}, TNotebook.Tab
+		// -padding {3p 1.5p}, and a 1px focus ring around the label.
+		Padding:   Padding{Left: 1 + 4 + 1, Top: 1 + 2 + 1, Right: 1 + 4 + 1, Bottom: 0 + 2 + 1},
 		Underline: -1,
 	}
 	nb.tabs = append(nb.tabs, tab)
@@ -78,6 +81,7 @@ func (nb *Notebook) Add(pane *window.Window, text string) {
 	} else {
 		// Unmap the new pane (not selected).
 		pane.Display.Server.UnmapWindow(pane.PlatformID)
+		pane.Flags &^= window.FlagMapped
 		nb.Display()
 	}
 }
@@ -86,11 +90,11 @@ func (nb *Notebook) Add(pane *window.Window, text string) {
 // pane content size plus the tab bar height and content border.
 // This mirrors Tk's NotebookSize in ttkNotebook.c.
 func (nb *Notebook) updateReqSize() {
-	bw := 2 // content border width
+	bw := nbClientBorder
 	maxW, maxH := 0, 0
 	for _, tab := range nb.tabs {
-		pw := tab.Window.ReqWidth
-		ph := tab.Window.ReqHeight
+		pw := tab.Window.ReqWidth + tab.PanePad.Width()
+		ph := tab.Window.ReqHeight + tab.PanePad.Height()
 		if pw > maxW {
 			maxW = pw
 		}
@@ -121,14 +125,33 @@ func (nb *Notebook) Select(index int) {
 	// Map selected pane, unmap others.
 	for i, tab := range nb.tabs {
 		if i == index {
-			nb.layoutPane(tab.Window)
+			nb.layoutPane(tab)
 			tab.Window.Display.Server.MapWindow(tab.Window.PlatformID)
+			tab.Window.Flags |= window.FlagMapped
 		} else {
 			tab.Window.Display.Server.UnmapWindow(tab.Window.PlatformID)
+			tab.Window.Flags &^= window.FlagMapped
 		}
 		_ = old
 	}
 
+	nb.Display()
+}
+
+// nbClientBorder is the default theme's Notebook.client border width.
+const nbClientBorder = 1
+
+// SetPanePadding sets a tab's -padding (a Tk padding spec such as "1.5p"):
+// extra space between the notebook's client area and the pane.
+func (nb *Notebook) SetPanePadding(index int, spec string) {
+	if index < 0 || index >= len(nb.tabs) {
+		return
+	}
+	nb.tabs[index].PanePad = ParsePadding(spec)
+	nb.updateReqSize()
+	if index == nb.selected {
+		nb.layoutPane(nb.tabs[index])
+	}
 	nb.Display()
 }
 
@@ -184,13 +207,14 @@ func (nb *Notebook) computeTabGeometry() {
 }
 
 // layoutPane positions the pane window in the content area.
-func (nb *Notebook) layoutPane(pane *window.Window) {
+func (nb *Notebook) layoutPane(tab notebookTab) {
+	pane := tab.Window
 	win := nb.Win
-	bw := 2 // content border width
-	x := bw
-	y := nb.tabHeight + bw
-	w := win.Width - 2*bw
-	h := win.Height - nb.tabHeight - 2*bw
+	bw := nbClientBorder
+	x := bw + tab.PanePad.Left
+	y := nb.tabHeight + bw + tab.PanePad.Top
+	w := win.Width - 2*bw - tab.PanePad.Width()
+	h := win.Height - nb.tabHeight - 2*bw - tab.PanePad.Height()
 	if w < 1 {
 		w = 1
 	}
@@ -198,6 +222,7 @@ func (nb *Notebook) layoutPane(pane *window.Window) {
 		h = 1
 	}
 	pane.Display.Server.MoveResizeWindow(pane.PlatformID, x, y, uint(w), uint(h))
+	pane.X, pane.Y = x, y
 	pane.Width = w
 	pane.Height = h
 }
@@ -348,7 +373,7 @@ func (nb *Notebook) Display() {
 
 	// Re-layout selected pane.
 	if nb.selected >= 0 && nb.selected < len(nb.tabs) {
-		nb.layoutPane(nb.tabs[nb.selected].Window)
+		nb.layoutPane(nb.tabs[nb.selected])
 	}
 }
 

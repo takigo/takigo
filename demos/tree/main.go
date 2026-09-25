@@ -123,7 +123,6 @@ func main() {
 	btns := demohelper.AddSeeDismiss(f)
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
-	ttk.SetCurrentTheme("clam")
 
 	// Dummy frame for grid layout of treeview + scrollbars.
 	tvFrame := frame.New(f, "dummy")

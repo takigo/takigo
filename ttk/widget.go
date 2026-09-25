@@ -209,6 +209,16 @@ func (w *TtkWidget) AppContext() widget.AppContext {
 	return w.App
 }
 
+// redisplay draws with the concrete widget's DisplayFunc when it has one
+// (widgets without a layout, e.g. progressbar), else the layout display.
+func (w *TtkWidget) redisplay() {
+	if w.DisplayFunc != nil {
+		w.DisplayFunc()
+		return
+	}
+	w.Display()
+}
+
 // bindTtkCommon binds common TTK events: Expose, Configure, Enter, Leave, Focus.
 func bindTtkCommon(w *TtkWidget, app widget.AppContext) {
 	win := w.Win
@@ -218,7 +228,7 @@ func bindTtkCommon(w *TtkWidget, app widget.AppContext) {
 		if ev.ExposeCount > 0 {
 			return
 		}
-		w.Display()
+		w.redisplay()
 	})
 
 	// Configure (resize).
@@ -226,7 +236,7 @@ func bindTtkCommon(w *TtkWidget, app widget.AppContext) {
 		if ev.Type == event.ConfigureType {
 			win.Width = ev.ConfigWidth
 			win.Height = ev.ConfigHeight
-			w.Display()
+			w.redisplay()
 			if win.ConfigureCallback != nil {
 				win.ConfigureCallback()
 			}

@@ -3,7 +3,10 @@ package ttk
 import (
 	"time"
 
+	"github.com/msorc/takigo/draw"
+	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/window"
 )
@@ -71,7 +74,7 @@ func NewProgressbar(parent widget.Caregiver, name string, opts ...ProgressbarOpt
 	p := &Progressbar{
 		Maximum:  100,
 		Orient:   Horizontal,
-		Length:   200,
+		Length:   screenunit.Px("75p"), // ttkProgress.c -length default
 		phaseDir: 1,
 	}
 
@@ -87,17 +90,20 @@ func NewProgressbar(parent widget.Caregiver, name string, opts ...ProgressbarOpt
 	InitTtkWidget(&p.TtkWidget, win, app, styleName)
 	p.DisplayFunc = p.Display
 
-	// Override requested size.
+	// -length along the bar; across it the pbar -thickness inside the
+	// trough's 1px sunken border.
+	thick := LookupInt(p.Context.Style, "-thickness", p.State, screenunit.Px("3p")) + 2*pbTroughBorder
 	if p.Orient == Horizontal {
-		win.ReqWidth = p.Length
-		win.ReqHeight = 20
+		win.ReqWidth, win.ReqHeight = p.Length, thick
 	} else {
-		win.ReqWidth = 20
-		win.ReqHeight = p.Length
+		win.ReqWidth, win.ReqHeight = thick, p.Length
 	}
 
 	return p
 }
+
+// pbTroughBorder is the default theme trough's sunken border width.
+const pbTroughBorder = 1
 
 // Display draws the progressbar.
 func (p *Progressbar) Display() {
@@ -138,65 +144,40 @@ func (p *Progressbar) Display() {
 	d.SetForeground(gc, bg)
 	d.FillRectangle(pixDrawable, gc, 0, 0, uint(width), uint(height))
 
-	// Trough (sunken area).
+	// Trough: filled with -troughcolor inside a sunken border of its shades.
 	troughColor := LookupColor(p.Context.Style, "-troughcolor", p.State, 0xc3c3c3)
-	borderW := 1
-	troughX := borderW
-	troughY := borderW
-	troughW := width - 2*borderW
-	troughH := height - 2*borderW
-
+	bw := pbTroughBorder
+	troughX, troughY := bw, bw
+	troughW, troughH := width-2*bw, height-2*bw
 	d.SetForeground(gc, troughColor)
-	d.FillRectangle(pixDrawable, gc, troughX, troughY, uint(troughW), uint(troughH))
+	d.FillRectangle(pixDrawable, gc, 0, 0, uint(width), uint(height))
+	draw.Draw3DRectangle(d, pixDrawable, gc, draw.NewBorderFromPixel(troughColor),
+		0, 0, width, height, bw, option.ReliefSunken)
 
-	// Draw trough border (sunken).
-	d.SetForeground(gc, uint64(0x9e9a91)) // dark
-	d.DrawLine(pixDrawable, gc, 0, 0, width-1, 0)
-	d.DrawLine(pixDrawable, gc, 0, 0, 0, height-1)
-	d.SetForeground(gc, uint64(0xffffff)) // light
-	d.DrawLine(pixDrawable, gc, 0, height-1, width-1, height-1)
-	d.DrawLine(pixDrawable, gc, width-1, 0, width-1, height-1)
-
-	// Progress bar.
+	// Bar (pbar element) in -barcolor: the value fraction of the trough, or a
+	// -barsize long block in indeterminate mode.
 	barColor := LookupColor(p.Context.Style, "-barcolor", p.State, 0x4a6984)
-
+	d.SetForeground(gc, barColor)
+	length := troughW
+	if p.Orient == Vertical {
+		length = troughH
+	}
+	var start, size int
 	if p.Mode == ProgressDeterminate {
 		if p.Maximum > 0 && p.Value > 0 {
-			frac := p.Value / p.Maximum
-			if frac > 1 {
-				frac = 1
-			}
-			if p.Orient == Horizontal {
-				barW := int(frac * float64(troughW))
-				if barW > 0 {
-					d.SetForeground(gc, barColor)
-					d.FillRectangle(pixDrawable, gc, troughX, troughY, uint(barW), uint(troughH))
-				}
-			} else {
-				barH := int(frac * float64(troughH))
-				if barH > 0 {
-					d.SetForeground(gc, barColor)
-					d.FillRectangle(pixDrawable, gc, troughX, troughY+troughH-barH, uint(troughW), uint(barH))
-				}
-			}
+			size = int(min(p.Value/p.Maximum, 1) * float64(length))
 		}
 	} else {
-		// Indeterminate: bouncing bar.
-		barLen := troughW / 5
-		if barLen < 20 {
-			barLen = 20
+		size = min(LookupInt(p.Context.Style, "-barsize", p.State, screenunit.Px("22.5p")), length)
+		if maxPhase := length - size; maxPhase > 0 {
+			start = p.phase % (maxPhase + 1)
 		}
-		maxPhase := troughW - barLen
-		if maxPhase < 1 {
-			maxPhase = 1
-		}
-		pos := p.phase % (maxPhase + 1)
+	}
+	if size > 0 {
 		if p.Orient == Horizontal {
-			d.SetForeground(gc, barColor)
-			d.FillRectangle(pixDrawable, gc, troughX+pos, troughY, uint(barLen), uint(troughH))
+			d.FillRectangle(pixDrawable, gc, troughX+start, troughY, uint(size), uint(troughH))
 		} else {
-			d.SetForeground(gc, barColor)
-			d.FillRectangle(pixDrawable, gc, troughX, troughY+pos, uint(troughW), uint(barLen))
+			d.FillRectangle(pixDrawable, gc, troughX, troughY+troughH-start-size, uint(troughW), uint(size))
 		}
 	}
 

@@ -39,7 +39,7 @@ func main() {
 
 	root := app.Window()
 
-	// Load the Tk feather icon for both the button image and _NET_WM_ICON.
+	// Load the globe icon (windowicons.tcl's embedded PNG) for both the button image and _NET_WM_ICON.
 	iconPhoto := loadIconPhoto()
 	setWindowIcon(root)
 
@@ -55,7 +55,7 @@ func main() {
 	// Set icon button with image (matches Tcl's $w.i).
 	var iconBtnOpts []button.ButtonOption
 	iconBtnOpts = append(iconBtnOpts,
-		button.Text("Set Window Icon to Feather"),
+		button.Text("Set Window Icon to Globe"),
 		button.Command(func() { setWindowIcon(root) }),
 	)
 	if iconPhoto != nil {
@@ -94,9 +94,9 @@ func demoImagesDir() string {
 	return filepath.Join(filepath.Dir(file), "..", "images")
 }
 
-// loadIconPhoto loads the Tk feather PNG as a Photo for use as a button image.
+// loadIconPhoto loads the globe PNG as a Photo for use as a button image.
 func loadIconPhoto() *tkimage.Photo {
-	imgPath := filepath.Join(demoImagesDir(), "Tk_feather.png")
+	imgPath := filepath.Join(demoImagesDir(), "windowicons_globe.png")
 	photo, err := tkimage.NewPhotoFromFile("icon", imgPath)
 	if err != nil {
 		return nil
@@ -104,11 +104,11 @@ func loadIconPhoto() *tkimage.Photo {
 	return photo
 }
 
-// setWindowIcon sets the Tk feather icon via _NET_WM_ICON.
+// setWindowIcon sets the globe icon via _NET_WM_ICON.
 // Falls back to a procedurally generated icon if the PNG cannot be loaded.
 func setWindowIcon(win *window.Window) {
-	imgPath := filepath.Join(demoImagesDir(), "Tk_feather.png")
-	photo, err := tkimage.NewPhotoFromFile("feather", imgPath)
+	imgPath := filepath.Join(demoImagesDir(), "windowicons_globe.png")
+	photo, err := tkimage.NewPhotoFromFile("globe", imgPath)
 	if err != nil {
 		setFallbackIcon(win)
 		return

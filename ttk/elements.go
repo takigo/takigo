@@ -123,8 +123,16 @@ func NewLabelElementFactory(provider TextProvider) ElementFactory {
 func (e *LabelElement) textLines(state State) (lines []string, tw, th int) {
 	text := e.provider.GetText()
 	f := e.provider.GetFont()
-	if f == nil || text == "" {
+	if f == nil {
 		return nil, 0, 0
+	}
+	if text == "" {
+		// Tk_ComputeTextLayout lays out "" as one empty line; with an image
+		// the text part is not set up at all (LabelSetup).
+		if e.provider.GetImage() != nil {
+			return nil, 0, 0
+		}
+		return nil, 0, f.Metrics().Linespace()
 	}
 	wrap := 0
 	if e.ctx.Style != nil {

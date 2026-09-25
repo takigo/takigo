@@ -34,7 +34,6 @@ func main() {
 	f := frame.New(app, "f")
 	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
-	ttk.SetCurrentTheme("clam")
 
 	// Toolbar frame (classic frame, matching Tcl's "Must be a frame!").
 	toolbar := frame.New(f, "toolbar")
@@ -47,7 +46,7 @@ func main() {
 	// Description label.
 	msg := ttk.NewLabel(f, "msg",
 		ttk.LabelWrapLength("4i"),
-		ttk.LabelText("This is a demonstration of how to do a toolbar that is styled correctly. The buttons are configured to be \"toolbar style\" buttons by telling them that they are to use the Toolbutton style. Below the toolbar is a text widget that shows messages when toolbar items are activated."),
+		ttk.LabelText("This is a demonstration of how to do a toolbar that is styled correctly and which can be torn off. The buttons are configured to be “toolbar style” buttons by telling them that they are to use the Toolbutton style. At the left end of the toolbar is a simple marker that the cursor changes to a movement icon over; drag that away from the toolbar to tear off the whole toolbar into a separate toplevel widget. When the dragged-off toolbar is no longer needed, just close it like any normal toplevel and it will reattach to the window it was torn off from."),
 	)
 	grid.Grid(msg, grid.Sticky(grid.EW))
 
