@@ -19,8 +19,10 @@ func (tv *Treeview) Display() {
 
 	d := win.Display.Server
 	gc := win.GC
-	width := win.Width
-	height := win.Height
+	// Content is drawn in the area inside the Treeview.field border.
+	fb := treeviewFieldBorder
+	width := win.Width - 2*fb
+	height := win.Height - 2*fb
 
 	if width <= 0 || height <= 0 {
 		return
@@ -62,7 +64,7 @@ func (tv *Treeview) Display() {
 
 	df, isDF := tv.Font.(platform.DrawableFont)
 	if !isDF {
-		d.CopyArea(pixDrawable, win.Drawable(), gc, 0, 0, uint(width), uint(height), 0, 0)
+		d.CopyArea(pixDrawable, win.Drawable(), gc, 0, 0, uint(width), uint(height), fb, fb)
 		d.Flush()
 		return
 	}
@@ -229,12 +231,10 @@ func (tv *Treeview) Display() {
 		}
 	}
 
-	// Sunken border.
+	// Copy inside the field border, then draw the border around it.
+	d.CopyArea(pixDrawable, win.Drawable(), gc, 0, 0, uint(width), uint(height), fb, fb)
 	border := draw.NewBorderFromPixel(bg)
-	draw.Draw3DRectangle(d, pixDrawable, gc, border, 0, 0, width, height, 1, option.ReliefSunken)
-
-	// Copy to window.
-	d.CopyArea(pixDrawable, win.Drawable(), gc, 0, 0, uint(width), uint(height), 0, 0)
+	draw.Draw3DRectangle(d, win.Drawable(), gc, border, 0, 0, win.Width, win.Height, fb, option.ReliefSunken)
 	d.Flush()
 }
 

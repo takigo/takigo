@@ -109,22 +109,16 @@ func NewCheckbutton(parent widget.Caregiver, name string, opts ...CheckbuttonOpt
 }
 
 func (c *Checkbutton) computeSize() {
-	w := c.Win
-	indSize := ttkIndicatorSize
-	if c.Context != nil && c.Context.Style != nil {
-		if sz := LookupInt(c.Context.Style, "-indicatorsize", c.State, 0); sz > 0 {
-			indSize = sz
-		}
-	}
-	indW := indSize + 4
 	textW, textH := 0, 0
-	if c.Font != nil && c.Text != "" {
+	if c.Font != nil {
 		textW = c.Font.MeasureString(c.Text)
 		textH = c.Font.Metrics().Linespace()
 	}
-	h := max(textH, indSize)
-	w.ReqWidth = indW + textW + 8
-	w.ReqHeight = h + 6
+	var style *Style
+	if c.Context != nil {
+		style = c.Context.Style
+	}
+	c.Win.ReqWidth, c.Win.ReqHeight = newIndicatorLayout(style, c.State).reqSize(textW, textH)
 }
 
 // Display renders the checkbutton with custom drawing.
@@ -178,8 +172,17 @@ func (c *Checkbutton) Display() {
 	}
 
 	// Indicator (checkbox square).
-	indX := 3
-	indY := (height - indSize) / 2
+	textH := 0
+	if c.Font != nil {
+		textH = c.Font.Metrics().Linespace()
+	}
+	var layoutStyle *Style
+	if c.Context != nil {
+		layoutStyle = c.Context.Style
+	}
+	lay := newIndicatorLayout(layoutStyle, c.State)
+	indX, indY, labelX, labelY := lay.place(height, textH)
+	indSize = lay.size
 
 	// Indicator fill and color.
 	indFill := uint64(0xffffff)
@@ -303,8 +306,8 @@ func (c *Checkbutton) Display() {
 	if c.Font != nil && c.Text != "" {
 		if df, ok := c.Font.(platform.DrawableFont); ok {
 			m := c.Font.Metrics()
-			textX := indX + indSize + 4
-			textY := (height-m.Linespace())/2 + m.Ascent
+			textX := labelX
+			textY := labelY + m.Ascent
 			r := uint16((fgColor>>16)&0xFF) << 8
 			g := uint16((fgColor>>8)&0xFF) << 8
 			b := uint16((fgColor)&0xFF) << 8
@@ -319,7 +322,13 @@ func (c *Checkbutton) Display() {
 			focusColor = LookupColor(c.Context.Style, "-focuscolor", c.State, focusColor)
 		}
 		d.SetForeground(gc, focusColor)
-		d.DrawRectangle(win.Drawable(), gc, 0, 0, uint(width-1), uint(height-1))
+		// The focus element surrounds the label only.
+		textW := 0
+		if c.Font != nil {
+			textW = c.Font.MeasureString(c.Text)
+		}
+		d.DrawRectangle(win.Drawable(), gc, labelX-focusThickness, labelY-focusThickness,
+			uint(textW+2*focusThickness-1), uint(textH+2*focusThickness-1))
 	}
 
 	d.Flush()

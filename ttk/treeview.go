@@ -95,6 +95,7 @@ type Treeview struct {
 	Font          font.Font
 	rowHeight     int
 	headingHeight int
+	heightRows    int // -height: rows requested (default 10)
 	indent        int // pixels per depth level (default 20)
 	hasFocus      bool
 
@@ -157,15 +158,7 @@ func TreeviewShow(parts ...string) TreeviewOption {
 
 // TreeviewHeight sets the number of visible rows.
 func TreeviewHeight(rows int) TreeviewOption {
-	return func(tv *Treeview) {
-		if tv.rowHeight > 0 {
-			headH := 0
-			if tv.showHeadings {
-				headH = tv.headingHeight
-			}
-			tv.Win.ReqHeight = rows*tv.rowHeight + headH + 4
-		}
-	}
+	return func(tv *Treeview) { tv.heightRows = rows }
 }
 
 // TreeviewSelectMode sets the selection mode.
@@ -183,6 +176,9 @@ func TreeviewXScrollCommand(fn func(float64, float64)) TreeviewOption {
 	return func(tv *Treeview) { tv.XScrollCmd = fn }
 }
 
+// treeviewFieldBorder is the default theme's Treeview.field border width.
+const treeviewFieldBorder = 1
+
 // NewTreeview creates a themed treeview widget.
 func NewTreeview(parent widget.Caregiver, name string, opts ...TreeviewOption) *Treeview {
 	app := parent.AppContext()
@@ -199,14 +195,17 @@ func NewTreeview(parent widget.Caregiver, name string, opts ...TreeviewOption) *
 		selectMode:      TreeSelectExtended,
 		selAnchor:       -1,
 		indent:          20,
+		heightRows:      10,
 		resizeCol:       -1,
 	}
 
 	tv.Font, _ = app.FontRegistry().Get(font.TkDefaultFont)
 	if tv.Font != nil {
 		m := tv.Font.Metrics()
-		tv.rowHeight = m.Linespace() + 6
-		tv.headingHeight = m.Linespace() + 8
+		// ttk::setTreeviewRowHeight: linespace + 2; the heading layout is
+		// the text plus the Treeheading.border's 1px on each side.
+		tv.rowHeight = m.Linespace() + 2
+		tv.headingHeight = m.Linespace() + 2
 	} else {
 		tv.rowHeight = 20
 		tv.headingHeight = 24
@@ -222,13 +221,7 @@ func NewTreeview(parent widget.Caregiver, name string, opts ...TreeviewOption) *
 		opt(tv)
 	}
 
-	// Set requested size.
-	headH := 0
-	if tv.showHeadings {
-		headH = tv.headingHeight
-	}
-	win.ReqHeight = 10*tv.rowHeight + headH + 4
-	win.ReqWidth = tv.totalWidth() + 4
+	tv.requestSize()
 
 	win.Flags |= window.FlagFocusable
 	bindTreeview(tv, app)
@@ -531,7 +524,28 @@ func (tv *Treeview) ColumnConfigure(id string, opts ...ColumnOption) {
 	for _, opt := range opts {
 		opt(col)
 	}
+	tv.requestSize()
 	tv.Display()
+}
+
+// requestSize ports TreeviewSize: the displayed columns by -height rows plus
+// the heading, inside the Treeview.field border; a change re-runs the
+// parent's geometry manager like Tk_GeometryRequest.
+func (tv *Treeview) requestSize() {
+	headH := 0
+	if tv.showHeadings {
+		headH = tv.headingHeight
+	}
+	w := tv.totalWidth() + 2*treeviewFieldBorder
+	h := tv.heightRows*tv.rowHeight + headH + 2*treeviewFieldBorder
+	win := tv.Win
+	if w == win.ReqWidth && h == win.ReqHeight {
+		return
+	}
+	win.ReqWidth, win.ReqHeight = w, h
+	if win.GeomManager != nil {
+		win.GeomManager.RequestProc(win)
+	}
 }
 
 // HeadingOption configures a column heading.
@@ -688,7 +702,7 @@ func (tv *Treeview) visibleRows() int {
 	if tv.rowHeight <= 0 {
 		return 1
 	}
-	avail := tv.Win.Height - tv.headerOffset() - 4
+	avail := tv.Win.Height - tv.headerOffset() - 2*treeviewFieldBorder
 	if avail < 1 {
 		return 1
 	}
@@ -758,9 +772,6 @@ func (tv *Treeview) totalWidth() int {
 	}
 	for _, col := range tv.columns {
 		w += col.Width
-	}
-	if w < 200 {
-		w = 200
 	}
 	return w
 }

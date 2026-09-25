@@ -118,32 +118,38 @@ func NewLabelElementFactory(provider TextProvider) ElementFactory {
 	}
 }
 
-func (e *LabelElement) Size(state State) (int, int, Padding) {
+// textLines lays the text out like the text part of Tk's label element
+// (ttkLabel.c TextSetup): Tk_ComputeTextLayout with -wraplength.
+func (e *LabelElement) textLines(state State) (lines []string, tw, th int) {
 	text := e.provider.GetText()
+	f := e.provider.GetFont()
+	if f == nil || text == "" {
+		return nil, 0, 0
+	}
+	wrap := 0
+	if e.ctx.Style != nil {
+		wrap = LookupInt(e.ctx.Style, "-wraplength", state, 0)
+	}
+	lines = font.WrapLines(f, text, wrap)
+	for _, l := range lines {
+		tw = max(tw, f.MeasureString(l))
+	}
+	return lines, tw, len(lines) * f.Metrics().Linespace()
+}
+
+func (e *LabelElement) Size(state State) (int, int, Padding) {
 	f := e.provider.GetFont()
 	img := e.provider.GetImage()
 	compound := e.provider.GetCompound()
+	_, tw, th := e.textLines(state)
 
-	tw, th := 0, 0
-	if f != nil && text != "" {
-		tw = f.MeasureString(text)
-		th = f.Metrics().Linespace()
-	}
-
-	// Check -width style option (in characters).
-	// Negative width means minimum width: abs(width) average characters.
-	// Positive width means exact width.
+	// TextReqWidth: -width in average characters; negative is a minimum.
 	if f != nil && e.ctx.Style != nil {
 		if styleWidth := LookupInt(e.ctx.Style, "-width", state, 0); styleWidth != 0 {
 			avgCharWidth := f.MeasureString("0")
 			if styleWidth < 0 {
-				// Minimum width.
-				minW := -styleWidth * avgCharWidth
-				if tw < minW {
-					tw = minW
-				}
+				tw = max(tw, -styleWidth*avgCharWidth)
 			} else {
-				// Exact width.
 				tw = styleWidth * avgCharWidth
 			}
 		}
@@ -153,32 +159,41 @@ func (e *LabelElement) Size(state State) (int, int, Padding) {
 	return w, h, Padding{}
 }
 
+// Draw anchors the content in the box with -anchor (Ttk_AnchorBox, element
+// default "w") and draws multi-line text with -justify.
 func (e *LabelElement) Draw(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID, box Box, state State) {
-	text := e.provider.GetText()
 	f := e.provider.GetFont()
 	img := e.provider.GetImage()
 	compound := e.provider.GetCompound()
 
 	fg := LookupColor(e.ctx.Style, "-foreground", state, 0x000000)
 	bg := LookupColor(e.ctx.Style, "-background", state, 0xd9d9d9)
-
-	tw, th := 0, 0
-	if f != nil && text != "" {
-		tw = f.MeasureString(text)
-		th = f.Metrics().Linespace()
+	anchor := option.AnchorW
+	justify := option.JustifyLeft
+	if e.ctx.Style != nil {
+		if v, ok := e.ctx.Style.Lookup("-anchor", state); ok {
+			if a, ok := v.(option.Anchor); ok {
+				anchor = a
+			}
+		}
+		if v, ok := e.ctx.Style.Lookup("-justify", state); ok {
+			if j, ok := v.(option.Justify); ok {
+				justify = j
+			}
+		}
 	}
 
+	lines, tw, th := e.textLines(state)
 	contentW, contentH := widget.CompoundSize(compound, img, tw, th)
-
-	// Center content in box.
-	cx := box.X + (box.Width-contentW)/2
-	cy := box.Y + (box.Height-contentH)/2
+	cx, cy := widget.ComputeAnchor(anchor, box.Width, box.Height, 0, 0, 0, contentW, contentH)
+	cx += box.X
+	cy += box.Y
 
 	hasImg := img != nil
-	hasText := f != nil && text != ""
+	hasText := len(lines) > 0
 
 	if hasImg && hasText && compound != widget.CompoundNone {
-		drawCompound(d, drawable, gc, img, f, text, compound,
+		drawCompound(d, drawable, gc, img, f, lines, justify, compound,
 			cx, cy, contentW, contentH, tw, th, fg, bg, e.ctx)
 	} else if hasImg {
 		imgW := img.Width()
@@ -188,7 +203,24 @@ func (e *LabelElement) Draw(d platform.DisplayServer, drawable platform.Drawable
 		img.Draw(d, drawable, gc, e.ctx.Depth,
 			0, 0, imgW, imgH, ix, iy, bg)
 	} else if hasText {
-		drawText(d, drawable, f, text, cx, cy, fg)
+		drawTextLines(d, drawable, f, lines, justify, cx, cy, tw, fg)
+	}
+}
+
+// drawTextLines draws laid-out lines inside a block tw wide, each line
+// positioned by justify like Tk_DrawTextLayout.
+func drawTextLines(d platform.DisplayServer, drawable platform.DrawableID, f font.Font,
+	lines []string, justify option.Justify, x, y, tw int, fgPixel uint64) {
+	ls := f.Metrics().Linespace()
+	for i, line := range lines {
+		lx := x
+		switch justify {
+		case option.JustifyCenter:
+			lx = x + (tw-f.MeasureString(line))/2
+		case option.JustifyRight:
+			lx = x + tw - f.MeasureString(line)
+		}
+		drawText(d, drawable, f, line, lx, y+i*ls, fgPixel)
 	}
 }
 
@@ -207,7 +239,7 @@ func drawText(_ platform.DisplayServer, drawable platform.DrawableID, f font.Fon
 }
 
 func drawCompound(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID,
-	img widget.WidgetImage, f font.Font, text string,
+	img widget.WidgetImage, f font.Font, lines []string, justify option.Justify,
 	compound widget.Compound, cx, cy, contentW, contentH, tw, th int,
 	fgPixel, bgPixel uint64, ctx *DrawContext) {
 
@@ -245,7 +277,7 @@ func drawCompound(d platform.DisplayServer, drawable platform.DrawableID, gc pla
 
 	img.Draw(d, drawable, gc, ctx.Depth,
 		0, 0, imgW, imgH, imgX, imgY, bgPixel)
-	drawText(d, drawable, f, text, textX, textY, fgPixel)
+	drawTextLines(d, drawable, f, lines, justify, textX, textY, tw, fgPixel)
 }
 
 // --- FieldElement ---

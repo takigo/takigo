@@ -65,6 +65,7 @@ func init() {
 	// TButton style overrides (matches clamTheme.tcl).
 	// Clam buttons keep raised relief even when disabled — no relief map.
 	tbutton := theme.GetStyle("TButton")
+	tbutton.Defaults["-anchor"] = option.AnchorCenter
 	tbutton.Defaults["-padding"] = ttk.Padding{Left: 8, Top: 4, Right: 8, Bottom: 4}
 	tbutton.Defaults["-relief"] = option.ReliefRaised
 	tbutton.Defaults["-borderwidth"] = 2
@@ -76,6 +77,7 @@ func init() {
 
 	// Toolbutton style for clam (matches clamTheme.tcl).
 	toolbutton := theme.GetStyle("Toolbutton")
+	toolbutton.Defaults["-anchor"] = option.AnchorCenter
 	toolbutton.Defaults["-padding"] = ttk.Padding{Left: 8, Top: 4, Right: 8, Bottom: 4}
 	toolbutton.Defaults["-relief"] = option.ReliefFlat
 	toolbutton.Defaults["-borderwidth"] = 2
@@ -177,8 +179,9 @@ func init() {
 	// TCheckbutton style — clam-style flat indicators.
 	// Matches Tcl clam: white fill with light blue (#5895bc) alternate.
 	tcheckbutton := theme.GetStyle("TCheckbutton")
-	tcheckbutton.Defaults["-indicatorsize"] = 24
-	tcheckbutton.Defaults["-upperbordercolor"] = darkestColor
+	tcheckbutton.Defaults["-padding"] = "1.5p"
+	tcheckbutton.Defaults["-indicatormargin"] = "0.75p 0.75p 3p 0.75p"
+		tcheckbutton.Defaults["-upperbordercolor"] = darkestColor
 	tcheckbutton.Defaults["-lowerbordercolor"] = darkColor
 	tcheckbutton.Defaults["-indicatorbackground"] = lightColor
 	tcheckbutton.Defaults["-indicatorforeground"] = uint64(0x000000)
@@ -194,8 +197,9 @@ func init() {
 
 	// TRadiobutton style — clam-style flat indicators.
 	tradiobutton := theme.GetStyle("TRadiobutton")
-	tradiobutton.Defaults["-indicatorsize"] = 24
-	tradiobutton.Defaults["-upperbordercolor"] = darkestColor
+	tradiobutton.Defaults["-padding"] = "1.5p"
+	tradiobutton.Defaults["-indicatormargin"] = "0.75p 0.75p 3p 0.75p"
+		tradiobutton.Defaults["-upperbordercolor"] = darkestColor
 	tradiobutton.Defaults["-lowerbordercolor"] = darkColor
 	tradiobutton.Defaults["-indicatorbackground"] = lightColor
 	tradiobutton.Defaults["-indicatorforeground"] = uint64(0x000000)

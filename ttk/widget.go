@@ -33,6 +33,11 @@ type TtkWidget struct {
 	NeedRedraw bool
 	Destroyed  bool
 
+	// widgetOpts holds widget-level element options (e.g. a label's
+	// -padding or -wraplength). Tk resolves element options on the widget
+	// before its style, so this is a child style layered over the real one.
+	widgetOpts *Style
+
 	// DisplayFunc is the concrete widget's Display method.
 	// Set by widgets with custom Display (notebook, scrollbar, etc.)
 	// so ChangeState calls the right method.
@@ -157,7 +162,8 @@ func (w *TtkWidget) RefreshTheme() {
 	w.Theme = theme
 
 	style := theme.ResolveStyle(w.StyleName)
-	w.Context.Style = style
+	w.setStyle(style)
+	style = w.Context.Style
 
 	tmpl := theme.GetLayout(w.StyleName)
 	if tmpl != nil {
@@ -252,6 +258,36 @@ func bindTtkHover(w *TtkWidget, app widget.AppContext) {
 	app.Dispatcher().Bind(win.PlatformID, event.LeaveMask, func(ev *event.Event) {
 		w.ChangeState(0, StateHover|StateActive|StatePressed)
 	})
+}
+
+// setStyle installs style for the widget, keeping widget-level options
+// layered on top of it.
+func (w *TtkWidget) setStyle(style *Style) {
+	if w.widgetOpts != nil {
+		w.widgetOpts.Parent = style
+		w.Context.Style = w.widgetOpts
+		return
+	}
+	w.Context.Style = style
+}
+
+// SetWidgetOption sets a widget-level element option such as "-padding",
+// "-wraplength", "-justify" or "-anchor"; it takes precedence over the
+// style, as Tk's widget options do. Call RequestSize afterwards.
+func (w *TtkWidget) SetWidgetOption(name string, value any) {
+	if w.Context == nil || w.Context.Style == nil {
+		return
+	}
+	if w.widgetOpts == nil {
+		w.widgetOpts = &Style{
+			Name:     w.Context.Style.Name,
+			Parent:   w.Context.Style,
+			Defaults: map[string]any{},
+			Maps:     map[string]StateMap[any]{},
+		}
+		w.Context.Style = w.widgetOpts
+	}
+	w.widgetOpts.Defaults[name] = value
 }
 
 // classForStyle derives the Tk widget class from a style name, e.g.

@@ -135,7 +135,7 @@ func bindTreeview(tv *Treeview, app widget.AppContext) {
 		app.Server().SetInputFocus(win.PlatformID, platform.RevertToParent, platform.CurrentTime)
 
 		if ev.Button == 1 {
-			hit := tv.hitTest(ev.X, ev.Y)
+			hit := tv.hitTest(ev.X-treeviewFieldBorder, ev.Y-treeviewFieldBorder)
 			switch hit.region {
 			case hitSeparator:
 				// Start column resize.

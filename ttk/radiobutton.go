@@ -101,22 +101,16 @@ func NewRadiobutton(parent widget.Caregiver, name string, opts ...RadiobuttonOpt
 }
 
 func (r *Radiobutton) computeSize() {
-	w := r.Win
-	indSize := ttkRadioIndicatorSize
-	if r.Context != nil && r.Context.Style != nil {
-		if sz := LookupInt(r.Context.Style, "-indicatorsize", r.State, 0); sz > 0 {
-			indSize = sz
-		}
-	}
-	indW := indSize + 4
 	textW, textH := 0, 0
-	if r.Font != nil && r.Text != "" {
+	if r.Font != nil {
 		textW = r.Font.MeasureString(r.Text)
 		textH = r.Font.Metrics().Linespace()
 	}
-	h := max(textH, indSize)
-	w.ReqWidth = indW + textW + 8
-	w.ReqHeight = h + 6
+	var style *Style
+	if r.Context != nil {
+		style = r.Context.Style
+	}
+	r.Win.ReqWidth, r.Win.ReqHeight = newIndicatorLayout(style, r.State).reqSize(textW, textH)
 }
 
 // Selected returns whether this radiobutton is currently selected.
@@ -180,8 +174,17 @@ func (r *Radiobutton) Display() {
 	selected := r.Selected()
 
 	// Indicator (circle).
-	indX := 3
-	indY := (height - indSize) / 2
+	textH := 0
+	if r.Font != nil {
+		textH = r.Font.Metrics().Linespace()
+	}
+	var layoutStyle *Style
+	if r.Context != nil {
+		layoutStyle = r.Context.Style
+	}
+	lay := newIndicatorLayout(layoutStyle, r.State)
+	indX, indY, labelX, labelY := lay.place(height, textH)
+	indSize = lay.size
 
 	// Indicator fill and color.
 	indFill := uint64(0xffffff)
@@ -294,8 +297,8 @@ func (r *Radiobutton) Display() {
 	if r.Font != nil && r.Text != "" {
 		if df, ok := r.Font.(platform.DrawableFont); ok {
 			m := r.Font.Metrics()
-			textX := indX + indSize + 4
-			textY := (height-m.Linespace())/2 + m.Ascent
+			textX := labelX
+			textY := labelY + m.Ascent
 			rv := uint16((fgColor>>16)&0xFF) << 8
 			gv := uint16((fgColor>>8)&0xFF) << 8
 			bv := uint16((fgColor)&0xFF) << 8
@@ -310,7 +313,13 @@ func (r *Radiobutton) Display() {
 			focusColor = LookupColor(r.Context.Style, "-focuscolor", r.State, focusColor)
 		}
 		d.SetForeground(gc, focusColor)
-		d.DrawRectangle(win.Drawable(), gc, 0, 0, uint(width-1), uint(height-1))
+		// The focus element surrounds the label only.
+		textW := 0
+		if r.Font != nil {
+			textW = r.Font.MeasureString(r.Text)
+		}
+		d.DrawRectangle(win.Drawable(), gc, labelX-focusThickness, labelY-focusThickness,
+			uint(textW+2*focusThickness-1), uint(textH+2*focusThickness-1))
 	}
 
 	d.Flush()

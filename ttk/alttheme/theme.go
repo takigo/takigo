@@ -55,6 +55,7 @@ func init() {
 
 	// TButton style.
 	tbutton := theme.GetStyle("TButton")
+	tbutton.Defaults["-anchor"] = option.AnchorCenter
 	tbutton.Defaults["-padding"] = ttk.Padding{Left: 8, Top: 4, Right: 8, Bottom: 4}
 	tbutton.Defaults["-relief"] = option.ReliefRaised
 	tbutton.Defaults["-borderwidth"] = 2
@@ -89,6 +90,8 @@ func init() {
 	// In alt theme, indicators are white by default, with state maps
 	// changing alternate/disabled/pressed to grays.
 	tcheckbutton := theme.GetStyle("TCheckbutton")
+	tcheckbutton.Defaults["-padding"] = "1.5p"
+	tcheckbutton.Defaults["-indicatormargin"] = "0 1.5p 3p 1.5p"
 	tcheckbutton.Defaults["-indicatorbackground"] = windowColor
 	tcheckbutton.Defaults["-indicatorforeground"] = windowColor
 	tcheckbutton.Maps["-indicatorbackground"] = ttk.StateMap[any]{
@@ -100,6 +103,8 @@ func init() {
 
 	// TRadiobutton style (overrides default theme).
 	tradiobutton := theme.GetStyle("TRadiobutton")
+	tradiobutton.Defaults["-padding"] = "1.5p"
+	tradiobutton.Defaults["-indicatormargin"] = "0 1.5p 3p 1.5p"
 	tradiobutton.Defaults["-indicatorbackground"] = windowColor
 	tradiobutton.Defaults["-indicatorforeground"] = windowColor
 	tradiobutton.Maps["-indicatorbackground"] = ttk.StateMap[any]{

@@ -4,6 +4,8 @@ import (
 	"log"
 
 	"github.com/msorc/takigo/font"
+	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/window"
 )
@@ -60,9 +62,7 @@ func LabelTextVariable(v *widget.Variable[string]) LabelOption {
 
 // LabelForeground sets the text color (pixel value) in the style.
 func LabelForeground(pixel uint64) LabelOption {
-	return func(l *Label) {
-		l.Context.Style.Defaults["-foreground"] = pixel
-	}
+	return func(l *Label) { l.SetWidgetOption("-foreground", pixel) }
 }
 
 // LabelFont sets the font.
@@ -80,6 +80,26 @@ func LabelFont(name string) LabelOption {
 // LabelImage sets the image.
 func LabelImage(img widget.WidgetImage) LabelOption {
 	return func(l *Label) { l.Img = img }
+}
+
+// LabelWrapLength sets -wraplength (a Tk distance such as "4i").
+func LabelWrapLength(v any) LabelOption {
+	return func(l *Label) { l.SetWidgetOption("-wraplength", screenunit.Px(v)) }
+}
+
+// LabelJustify sets -justify for multi-line text.
+func LabelJustify(j option.Justify) LabelOption {
+	return func(l *Label) { l.SetWidgetOption("-justify", j) }
+}
+
+// LabelAnchor sets -anchor: where the content sits in the label.
+func LabelAnchor(a option.Anchor) LabelOption {
+	return func(l *Label) { l.SetWidgetOption("-anchor", a) }
+}
+
+// LabelPadding sets -padding as a Tk padding spec ("10 2 10 6", "2.25p").
+func LabelPadding(spec string) LabelOption {
+	return func(l *Label) { l.SetWidgetOption("-padding", spec) }
 }
 
 // LabelCompound sets how text and image are combined.

@@ -111,7 +111,8 @@ func NewButton(parent widget.Caregiver, name string, opts ...ButtonOption) *Butt
 	// If style was overridden, rebuild layout with the new style.
 	if b.StyleName != "TButton" && b.Theme != nil {
 		style := b.Theme.ResolveStyle(b.StyleName)
-		b.Context.Style = style
+		b.setStyle(style)
+		style = b.Context.Style
 		labelFactory := NewLabelElementFactory(b)
 		tmpl := b.Theme.GetLayout(b.StyleName)
 		if tmpl == nil {

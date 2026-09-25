@@ -520,6 +520,7 @@ func init() {
 
 	// TButton style — classic Motif raised button.
 	tbutton := theme.GetStyle("TButton")
+	tbutton.Defaults["-anchor"] = option.AnchorCenter
 	tbutton.Defaults["-padding"] = ttk.Padding{Left: 8, Top: 4, Right: 8, Bottom: 4}
 	tbutton.Defaults["-relief"] = option.ReliefRaised
 	tbutton.Defaults["-borderwidth"] = 2

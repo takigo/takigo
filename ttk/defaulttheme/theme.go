@@ -55,9 +55,10 @@ func init() {
 	// turns dark navy when selected/alternate, lighter blue when pressed,
 	// gray when disabled.
 	tcheckbutton := theme.GetStyle("TCheckbutton")
+	tcheckbutton.Defaults["-padding"] = "0.75p"
+	tcheckbutton.Defaults["-indicatormargin"] = "0 1.5p 3p 1.5p"
 	tcheckbutton.Defaults["-indicatorbackground"] = uint64(0xffffff)
 	tcheckbutton.Defaults["-indicatorforeground"] = uint64(0xffffff)
-	tcheckbutton.Defaults["-indicatormargin"] = ttk.Padding{Left: 0, Top: 1, Right: 3, Bottom: 1}
 	tcheckbutton.Maps["-indicatorbackground"] = ttk.StateMap[any]{
 		{Spec: ttk.StateSpec{OnBits: ttk.StateAlternate | ttk.StateDisabled}, Value: uint64(0xa3a3a3)},
 		{Spec: ttk.StateSpec{OnBits: ttk.StateAlternate | ttk.StatePressed}, Value: uint64(0x5895bc)},
@@ -71,9 +72,10 @@ func init() {
 
 	// TRadiobutton style.
 	tradiobutton := theme.GetStyle("TRadiobutton")
+	tradiobutton.Defaults["-padding"] = "0.75p"
+	tradiobutton.Defaults["-indicatormargin"] = "0 1.5p 3p 1.5p"
 	tradiobutton.Defaults["-indicatorbackground"] = uint64(0xffffff)
 	tradiobutton.Defaults["-indicatorforeground"] = uint64(0xffffff)
-	tradiobutton.Defaults["-indicatormargin"] = ttk.Padding{Left: 0, Top: 1, Right: 3, Bottom: 1}
 	tradiobutton.Maps["-indicatorbackground"] = ttk.StateMap[any]{
 		{Spec: ttk.StateSpec{OnBits: ttk.StateAlternate | ttk.StateDisabled}, Value: uint64(0xa3a3a3)},
 		{Spec: ttk.StateSpec{OnBits: ttk.StateAlternate | ttk.StatePressed}, Value: uint64(0x5895bc)},
@@ -91,6 +93,7 @@ func init() {
 
 	// TButton style.
 	tbutton := theme.GetStyle("TButton")
+	tbutton.Defaults["-anchor"] = option.AnchorCenter
 	tbutton.Defaults["-padding"] = "2.25p"
 	tbutton.Defaults["-width"] = -9
 	tbutton.Defaults["-relief"] = option.ReliefRaised

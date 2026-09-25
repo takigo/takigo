@@ -111,7 +111,8 @@ func NewMenubutton(parent widget.Caregiver, name string, opts ...MenubuttonOptio
 	// If style was overridden, rebuild layout with the new style.
 	if mb.StyleName != "TMenubutton" && mb.Theme != nil {
 		style := mb.Theme.ResolveStyle(mb.StyleName)
-		mb.Context.Style = style
+		mb.setStyle(style)
+		style = mb.Context.Style
 		labelFactory := NewLabelElementFactory(mb)
 		tmpl := mb.Theme.GetLayout(mb.StyleName)
 		if tmpl == nil {
