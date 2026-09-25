@@ -46,6 +46,68 @@ maybe_xvfb() {
     fi
 }
 
+# pin_fonts
+# Points fontconfig (used by both takigo's Xft backend and Tk's Xft build) at
+# a private config exposing only the DejaVu Sans/Serif/Mono families, with
+# every other family aliased onto them and fixed Xft render settings. This
+# removes host font-set and fallback differences from the comparison.
+# Disable with PIN_FONTS=0. Idempotent; the generated tree lives in tmp/.
+pin_fonts() {
+    [[ "${PIN_FONTS:-1}" == "1" ]] || return 0
+    [[ -n "${_TAKIGO_FONTS_PINNED:-}" ]] && return 0
+    local root="$PROJECT_DIR/tmp/fontconfig"
+    local conf="$root/fonts.conf"
+    if [[ ! -f "$conf" ]]; then
+        mkdir -p "$root/fonts" "$root/cache"
+        local files
+        files=$(env -u FONTCONFIG_FILE fc-list -f '%{file}\n' |
+            grep -E '/DejaVu(Sans|SansMono|Serif)(-Bold|-Oblique|-BoldOblique|-Italic|-BoldItalic)?\.ttf$' | sort -u)
+        if [[ -z "$files" ]]; then
+            echo "pin_fonts: DejaVu fonts not found; set PIN_FONTS=0 or install ttf-dejavu" >&2
+            return 1
+        fi
+        local f
+        while read -r f; do ln -sf "$f" "$root/fonts/$(basename "$f")"; done <<<"$files"
+        {
+            cat <<EOF
+<?xml version="1.0"?>
+<!DOCTYPE fontconfig SYSTEM "urn:fontconfig:fonts.dtd">
+<fontconfig>
+  <dir>$root/fonts</dir>
+  <cachedir>$root/cache</cachedir>
+EOF
+            local fam target
+            for fam in sans-serif Helvetica Arial "Liberation Sans" "Noto Sans" system-ui; do
+                printf '  <alias binding="same"><family>%s</family><prefer><family>DejaVu Sans</family></prefer></alias>\n' "$fam"
+            done
+            for fam in serif Times "Times New Roman" "Liberation Serif"; do
+                printf '  <alias binding="same"><family>%s</family><prefer><family>DejaVu Serif</family></prefer></alias>\n' "$fam"
+            done
+            for fam in monospace Courier "Courier New" fixed "Liberation Mono" "Noto Sans Mono"; do
+                printf '  <alias binding="same"><family>%s</family><prefer><family>DejaVu Sans Mono</family></prefer></alias>\n' "$fam"
+            done
+            cat <<'EOF'
+  <match target="pattern">
+    <edit name="family" mode="append_last"><string>DejaVu Sans</string></edit>
+  </match>
+  <match target="font">
+    <edit name="antialias" mode="assign"><bool>true</bool></edit>
+    <edit name="hinting" mode="assign"><bool>true</bool></edit>
+    <edit name="hintstyle" mode="assign"><const>hintslight</const></edit>
+    <edit name="autohint" mode="assign"><bool>false</bool></edit>
+    <edit name="rgba" mode="assign"><const>none</const></edit>
+    <edit name="lcdfilter" mode="assign"><const>lcdnone</const></edit>
+    <edit name="embeddedbitmap" mode="assign"><bool>false</bool></edit>
+  </match>
+</fontconfig>
+EOF
+        } > "$conf.tmp"
+        mv "$conf.tmp" "$conf"
+    fi
+    export FONTCONFIG_FILE="$conf"
+    export _TAKIGO_FONTS_PINNED=1
+}
+
 # LLM_TOOL — selects the LLM used by fix_demo.sh / fix_all.sh for auto-fixes.
 # It points to a predefined id (see LLM_TOOLS below); each id maps to a full
 # launch command. The prompt is piped on stdin; the tool must write its

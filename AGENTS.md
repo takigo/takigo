@@ -244,7 +244,8 @@ skill and script pipeline for comparing and fixing them.
   ```bash
   bash scripts/demo_compare.sh <demo> [tcl]    # screenshot Go+Tk, compute odiff diff %
   bash scripts/demo_refine.sh <demo> [--retake] # screenshot + show paths
-  bash scripts/demo_batch.sh  [--retake] [pfx]  # all demos, sorted by score
+  bash scripts/demo_batch.sh  [--retake] [--stability N] [--update-baseline] [pfx]
+                                                # all demos headless, sorted by score
   bash scripts/demo_interact.sh <demo> ...      # xdotool-driven behavioural test
   bash scripts/fix_demo.sh  <demo>             # single demo, LLM-driven fix
   bash scripts/fix_all.sh   [--status]          # resumable batch fix
@@ -261,6 +262,11 @@ skill and script pipeline for comparing and fixing them.
 - **Diff score:** odiff diff % in `[0, 100]` (anti-aliasing ignored) from
   `scripts/demo_compare.sh`. Lower = closer to Tk. Older notes quoting
   normalized-MAE values in `[0, 1]` use a different scale — don't compare them.
+- **Determinism:** screenshots pin fonts (`PIN_FONTS`), freeze timers
+  (`TAKIGO_FREEZE_TIMERS`) and wait until two consecutive grabs match. The
+  committed baseline `demos/parity.tsv` is regenerated with
+  `bash scripts/demo_batch.sh --retake --stability 3 --update-baseline`; only
+  compare scores produced under the same settings (batch runs headless).
 - **Headless:** `HEADLESS=1` (or an unset/unreachable `DISPLAY`) re-execs
   the screenshot scripts under `xvfb-run`.
 - **Debug aid:** `TAKIGO_DEBUG_NAME_WIDGETS=1` calls `XStoreName` on each
@@ -327,6 +333,8 @@ lookup.
 | `XFT_DPI` | Pushed into Tk resources by `demo_wrapper.tcl` so Tk-side fonts match the Go side |
 | `SKIP_IF_EXISTS=1` | Reuse existing screenshots in `demo_compare.sh` |
 | `SETTLE_SECS` / `TIMEOUT_SECS` | Demo screenshot wait tuning (see `scripts/README.md`) |
+| `PIN_FONTS` | `1` (default in screenshot scripts) = private DejaVu-only fontconfig for both sides |
+| `TAKIGO_FREEZE_TIMERS=1` | `event.Loop.After` drops positive-delay timers (and `demo_wrapper.tcl` does the same to `after`); set by the screenshot scripts |
 | `HEADLESS=1` | Run screenshot/interact scripts under `xvfb-run` |
 | `LLM_TOOL` | LLM CLI used by `fix_demo.sh` / `fix_all.sh` (default `claude`) |
 | `WISH` | Override path to Tk 9.1 wish binary (default `./tk/unix/wish`) |

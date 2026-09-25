@@ -18,8 +18,6 @@
 declare -A DEMO_MAP
 
 # --- Explicit overrides ------------------------------------------------------
-# Different names
-DEMO_MAP[windowicons]=icon
 # Go-only despite a .tcl existing (the system-tray icon isn't captured by a
 # plain window screenshot, so there is nothing useful to compare).
 DEMO_MAP[systray]=-

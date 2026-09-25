@@ -30,6 +30,23 @@ if {"TkDefaultFont" in [font names]} {
 }
 set font mainFont
 
+# ---- Frozen timers (deterministic screenshots) -----------------------------
+# Mirrors event.Loop.After on the Go side: with TAKIGO_FREEZE_TIMERS=1 every
+# `after <ms>` with ms > 0 is dropped, so animations stay on their first frame.
+# Cursor blinking is a C-level timer, so disable it through the option db.
+if {[info exists ::env(TAKIGO_FREEZE_TIMERS)] && $::env(TAKIGO_FREEZE_TIMERS) eq "1"} {
+    option add *insertOffTime 0 startupFile
+    expr {srand(1)}
+    rename after ::_takigo_real_after
+    proc after {args} {
+        set ms [lindex $args 0]
+        if {[string is entier -strict $ms] && $ms > 0} {
+            return after#frozen
+        }
+        uplevel 1 [list ::_takigo_real_after {*}$args]
+    }
+}
+
 # ---- Required globals -------------------------------------------------------
 set widgetDemo 1
 
@@ -240,6 +257,9 @@ proc showCode {show} {
 set demoDir [file normalize [file join [file dirname [info script]] .. tk library demos]]
 set tk_demoDirectory $demoDir
 set demoName [lindex $argv 0]
+# Demos like knightstour pass $argv on to their own procs; hide our argument.
+set argv [lrange $argv 1 end]
+set argc [llength $argv]
 
 if {$demoName eq ""} {
     puts stderr "Usage: wish demo_wrapper.tcl <demoname>"

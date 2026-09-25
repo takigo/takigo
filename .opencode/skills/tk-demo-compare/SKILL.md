@@ -69,11 +69,11 @@ PNG" failures.
 
 | Script | Purpose |
 |---|---|
-| `scripts/demo_map.sh`         | Map Go demo name → Tcl demo name (auto-derived from the filesystem; overrides: `windowicons → icon`, `systray → -`). Run with no args for the full list, or with one arg for the mapping of that demo. |
+| `scripts/demo_map.sh`         | Map Go demo name → Tcl demo name (auto-derived from the filesystem; override: `systray → -`). Run with no args for the full list, or with one arg for the mapping of that demo. |
 | `scripts/demo_screenshot.sh <go_demo> {go\|tcl} <out.png> [tcl_name]` | Build, launch, screenshot one side. Reads the window title from `demos/<go_demo>/main.go` via `cmd/demotitle` and waits for it via `xdotool search` (no window manager required). Honours `DEMO_GEOMETRY` and `XFT_DPI` env vars to align with the Go side. Re-execs under `xvfb-run` when `HEADLESS=1` or `DISPLAY` is unset. |
 | `scripts/demo_compare.sh <demo> [tcl_demo]` | Screenshots both sides, normalises sizes, computes the **odiff diff %** (0–100, lower = more similar, anti-aliasing ignored), and produces four outputs: `<demo>_go.png`, `<demo>_tcl.png`, `<demo>_diff.png`, and a side-by-side montage `<demo>_side.png`. Per-demo compare failures are written to `tmp/logs/<demo>.compare.err`. |
 | `scripts/demo_refine.sh <demo> [--retake]` | One-shot wrapper around `demo_compare.sh`; re-prints the paths so they can be `Read`. |
-| `scripts/demo_batch.sh [--retake] [prefix]` | Screenshot and score every comparable demo (uses `demo_map.sh`); skips animated demos (`anilabel aniwave pendulum knightstour twind`). Produces `tmp/screenshots/scores_sorted.txt`. |
+| `scripts/demo_batch.sh [--retake] [--stability N] [--update-baseline] [prefix]` | Screenshot and score every comparable demo headless (uses `demo_map.sh`). Timers are frozen on both sides, so animated demos are included. Produces `tmp/screenshots/scores_sorted.txt` and `scores.tsv`; `--update-baseline` writes the committed `demos/parity.tsv`. |
 | `scripts/demo_wrapper.tcl`    | Run a Tk demo standalone (no widget launcher). Used internally by the screenshot scripts. Reads `DEMO_GEOMETRY` from env. |
 | `scripts/demo_interact.sh`    | Drive a Go demo through `xdotool` events (key, type, click, wait), capture before/after PNGs, optionally diff (odiff). Use this for **behavioural** verification — does clicking this button do X? does typing into the entry update the variable? See step 5b below. |
 | `scripts/_lib.sh`             | Shared helpers (`tcl_demo_for`, `run_compare`, `set_skip_if_exists`, `odiff_score`, `find_windows_exact`, `maybe_xvfb`). Source this from any new script that needs them. |
@@ -82,8 +82,11 @@ PNG" failures.
 | `scripts/fix_all.sh`          | **Deprecated.** Out-of-session batch wrapper. Same caveats as `fix_demo.sh`. |
 
 Outputs live in `tmp/screenshots/`. Set `SKIP_IF_EXISTS=0` to force retakes,
-`SKIP_IF_EXISTS=1` (default) to reuse. `SETTLE_SECS` (default `1.5`) controls
-how long to wait after the window appears before capturing.
+`SKIP_IF_EXISTS=1` (default) to reuse. `SETTLE_SECS` (default `5`) is the maximum
+wait for the window to stop changing before capturing. Fonts are pinned to
+DejaVu (`PIN_FONTS=1`) and timers frozen (`TAKIGO_FREEZE_TIMERS=1`) on both
+sides by default, so scores are reproducible; `demos/parity.tsv` holds the
+committed baseline.
 
 ---
 
@@ -97,8 +100,8 @@ Parse the user's input. Common forms:
 - `demos/label/main.go` → go_demo = `label`
 - `tk/library/demos/label.tcl` → go_demo = `label` (look up the Go side)
 - `label` → go_demo = `label`
-- `windowicons` → go_demo = `windowicons`, tcl_demo = `icon` (different
-  names — always consult `scripts/demo_map.sh`)
+- names can differ or be Go-only (`systray → -`) — always consult
+  `scripts/demo_map.sh`
 
 Resolve the Tcl counterpart with `bash scripts/demo_map.sh <go_demo>`. If it
 returns `-`, the demo is Go-only and there is nothing to compare — stop and

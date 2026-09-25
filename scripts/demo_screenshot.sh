@@ -8,8 +8,10 @@
 # Environment:
 #   DISPLAY       : X display (default :0)
 #   HEADLESS      : 1 = run under xvfb-run (also auto-fallback when DISPLAY unset)
-#   SETTLE_SECS   : wait after window appears before capture (default 1.5)
+#   SETTLE_SECS   : max wait for the window content to stop changing (default 5)
 #   TIMEOUT_SECS  : max wait for window to appear (default 15)
+#   PIN_FONTS     : 1 (default) = private DejaVu-only fontconfig, see pin_fonts
+#   TAKIGO_FREEZE_TIMERS : 1 (default) = drop positive-delay timers on both sides
 
 set -euo pipefail
 
@@ -27,8 +29,10 @@ OUTPUT="$3"
 TCL_DEMO="${4:-$GO_DEMO}"
 
 export DISPLAY="${DISPLAY:-:0}"
-SETTLE_SECS="${SETTLE_SECS:-1.5}"
+SETTLE_SECS="${SETTLE_SECS:-5}"
 TIMEOUT_SECS="${TIMEOUT_SECS:-15}"
+export TAKIGO_FREEZE_TIMERS="${TAKIGO_FREEZE_TIMERS:-1}"
+pin_fonts
 
 # Use the project's Tk 9.1 wish (system wish is 8.6 and incompatible).
 # Matches: LD_LIBRARY_PATH="./tcl/unix:./tk/unix" ./tk/unix/wish
@@ -74,15 +78,33 @@ wait_for_titled_window() {
 
 # ---------------------------------------------------------------------------
 # capture_window HEX_WID OUTPUT
-# Raises/focuses the window, waits for it to settle, then screenshots it.
+# Raises/focuses the window, then grabs it repeatedly until two consecutive
+# grabs have the same pixel signature (or SETTLE_SECS elapses, in which case
+# the last grab is kept and a warning is printed).
 # ---------------------------------------------------------------------------
 capture_window() {
     local wid="$1"
     local out="$2"
+    local tmp="${out%.png}.settle.png"
+    local prev="" sig="" deadline
     xdotool windowraise  "$wid" 2>/dev/null || true
     xdotool windowfocus --sync "$wid" 2>/dev/null || true
-    sleep "$SETTLE_SECS"
-    import -window "$wid" "$out"
+    sleep 0.3
+    deadline=$(( $(date +%s%N) + $(awk -v s="$SETTLE_SECS" 'BEGIN { printf "%d", s * 1e9 }') ))
+    while :; do
+        import -window "$wid" "$tmp"
+        sig=$(magick identify -format '%#' "$tmp" 2>/dev/null) || sig=""
+        if [[ -n "$sig" && "$sig" == "$prev" ]]; then
+            break
+        fi
+        if (( $(date +%s%N) >= deadline )); then
+            echo "  WARNING: window did not settle within ${SETTLE_SECS}s" >&2
+            break
+        fi
+        prev="$sig"
+        sleep 0.25
+    done
+    mv "$tmp" "$out"
 }
 
 # ---------------------------------------------------------------------------

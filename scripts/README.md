@@ -79,7 +79,7 @@ Ctrl+C at any time — the next run resumes from the first pending demo.
 | `demo_compare.sh <demo> [tcl_name]` | Screenshot both sides, compute odiff diff % (0–100, lower = more similar), generate montage |
 | `demo_screenshot.sh <demo> go\|tcl <out.png> [tcl_name]` | Screenshot one side |
 | `demo_refine.sh <demo> [--retake]` | Compare + print image paths for manual Claude analysis |
-| `demo_batch.sh [--retake] [prefix]` | Screenshot all demos (skips animated), output `tmp/screenshots/scores_sorted.txt` |
+| `demo_batch.sh [--retake] [--stability N] [--update-baseline] [prefix]` | Score all demos headless (timers frozen, so animated demos are included); `--stability N` recaptures each side N times and flags self-diff > 0; `--update-baseline` writes `demos/parity.tsv` |
 | `demo_map.sh [demo]` | Print Go↔Tcl name mapping (or Tcl name for one demo) |
 | `demo_interact.sh <demo> [events...]` | Drive a Go demo with xdotool (`--key`, `--type`, `--click X,Y\|<name>`, `--wait`), capture before/after PNGs, `--diff` for odiff %, `--list-widgets` to discover names (needs `TAKIGO_DEBUG_NAME_WIDGETS=1`) |
 | `_lib.sh` | Shared helpers (`tcl_demo_for`, `run_compare`, `odiff_score`, `maybe_xvfb`, `LLM_TOOL` launch configs); source it from new scripts |
@@ -95,6 +95,9 @@ tmp/screenshots/<demo>_tcl.png     Tcl/Tk screenshot
 tmp/screenshots/<demo>_side.png    Side-by-side montage with diff score
 tmp/screenshots/<demo>_diff.png    Pixel-level diff heatmap
 tmp/screenshots/scores_sorted.txt  Batch scores ranked worst-first
+tmp/screenshots/scores.tsv         Batch scores with window sizes and self-diff
+tmp/fontconfig/                    Generated pinned fontconfig (see PIN_FONTS)
+demos/parity.tsv                   Committed per-demo baseline (score, sizes, status, note)
 tmp/fix_all_progress.tsv           Per-demo status: pending/done/failed/skipped
 tmp/logs/<demo>_iter1.log          the LLM's output for each fix attempt
 ```
@@ -104,8 +107,10 @@ tmp/logs/<demo>_iter1.log          the LLM's output for each fix attempt
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `DISPLAY` | `:0` | X display |
-| `HEADLESS` | `0` | `1` = run screenshots under `xvfb-run` (also auto-falls back when `DISPLAY` is unset) |
-| `SETTLE_SECS` | `1.5` | Wait after window appears before screenshot |
+| `HEADLESS` | `0` (`1` in `demo_batch.sh`) | `1` = run screenshots under `xvfb-run` (also auto-falls back when `DISPLAY` is unset) |
+| `SETTLE_SECS` | `5` | Max wait for the window content to stop changing; capture happens as soon as two consecutive grabs are identical |
+| `PIN_FONTS` | `1` | `1` = both sides use a private fontconfig with only DejaVu Sans/Serif/Mono, all other families aliased onto them, fixed antialias/hinting |
+| `TAKIGO_FREEZE_TIMERS` | `1` | `1` = drop every timer with a positive delay on both sides (Go `event.Loop.After`, Tcl `after`) and disable cursor blink, so captures are deterministic |
 | `TIMEOUT_SECS` | `15` | Max wait for demo window to appear |
 | `SKIP_IF_EXISTS` | `0` | `1` = reuse an existing screenshot (`demo_refine.sh`/`demo_batch.sh` set it to `1` unless `--retake`) |
 | `WISH` | `./tk/unix/wish` | Path to Tk 9.1 wish binary |

@@ -2,6 +2,7 @@ package event
 
 import (
 	"context"
+	"os"
 	"time"
 
 	"github.com/msorc/takigo/platform"
@@ -265,8 +266,16 @@ func (l *Loop) DoWhenIdle(fn func()) {
 	}
 }
 
+// freezeTimers drops every After with a positive delay so demo screenshots
+// are deterministic; scripts/demo_wrapper.tcl applies the same rule to Tcl's
+// after command.
+var freezeTimers = os.Getenv("TAKIGO_FREEZE_TIMERS") == "1"
+
 // After schedules a function to run after the given duration.
 func (l *Loop) After(d time.Duration, fn func()) {
+	if freezeTimers && d > 0 {
+		return
+	}
 	time.AfterFunc(d, func() {
 		select {
 		case l.timerCh <- fn:
