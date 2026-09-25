@@ -10,6 +10,7 @@ import (
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/ttk"
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
 	"github.com/msorc/takigo/widget/scale"
@@ -28,10 +29,10 @@ func main() {
 	f := frame.New(app, "f")
 	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
-	msg := label.New(f, "msg",
-		label.WrapLength("3.5i"),
-		label.JustifyOpt(option.JustifyLeft),
-		label.Text("A label tied to a horizontal scale is displayed below.  If you click or drag mouse button 1 in the scale, you can change the contents of the label; a callback command is used to couple the slider to both the text and the coloring of the label."),
+	msg := ttk.NewLabel(f, "msg",
+		ttk.LabelWrapLength("3.5i"),
+		ttk.LabelJustify(option.JustifyLeft),
+		ttk.LabelText("A label tied to a horizontal scale is displayed below.  If you click or drag mouse button 1 in the scale, you can change the contents of the label; a callback command is used to couple the slider to both the text and the coloring of the label."),
 	)
 	pack.Pack(msg, pack.SideOpt(pack.Top), pack.PadX(".5c"))
 

@@ -20,7 +20,6 @@ import (
 	_ "github.com/msorc/takigo/ttk/defaulttheme"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/frame"
-	"github.com/msorc/takigo/widget/label"
 	"github.com/msorc/takigo/widget/labelframe"
 )
 
@@ -43,10 +42,10 @@ func main() {
 	f := frame.New(app, "f")
 	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
-	msg := label.New(f, "msg",
-		label.WrapLength("4i"),
-		label.JustifyOpt(option.JustifyLeft),
-		label.Text("Ttk is the new Tk themed widget set. This is a Ttk themed label, "+
+	msg := ttk.NewLabel(f, "msg",
+		ttk.LabelWrapLength("4i"),
+		ttk.LabelJustify(option.JustifyLeft),
+		ttk.LabelText("Ttk is the new Tk themed widget set. This is a Ttk themed label, "+
 			"and below are four groups of Ttk widgets in Ttk labelframes. "+
 			"The first group are all buttons that set the current application "+
 			"theme when pressed. The second group contains two sets of "+
@@ -204,8 +203,12 @@ func main() {
 				}
 				ref.display()
 			}
-			// Toggle classic label.
-			msg.Disabled = disabled
+			// The message is a ttk label too.
+			if disabled {
+				msg.State |= ttk.StateDisabled
+			} else {
+				msg.State &^= ttk.StateDisabled
+			}
 			msg.Display()
 			// Toggle classic labelframes.
 			for _, lf := range classicLabelframes {

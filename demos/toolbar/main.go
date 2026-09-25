@@ -17,7 +17,6 @@ import (
 	_ "github.com/msorc/takigo/ttk/defaulttheme"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/frame"
-	"github.com/msorc/takigo/widget/label"
 	"github.com/msorc/takigo/widget/menu"
 	"github.com/msorc/takigo/widget/text"
 )
@@ -46,9 +45,9 @@ func main() {
 	grid.Grid(sep, grid.Sticky(grid.EW))
 
 	// Description label.
-	msg := label.New(f, "msg",
-		label.WrapLength("4i"),
-		label.Text("This is a demonstration of how to do a toolbar that is styled correctly. The buttons are configured to be \"toolbar style\" buttons by telling them that they are to use the Toolbutton style. Below the toolbar is a text widget that shows messages when toolbar items are activated."),
+	msg := ttk.NewLabel(f, "msg",
+		ttk.LabelWrapLength("4i"),
+		ttk.LabelText("This is a demonstration of how to do a toolbar that is styled correctly. The buttons are configured to be \"toolbar style\" buttons by telling them that they are to use the Toolbutton style. Below the toolbar is a text widget that shows messages when toolbar items are activated."),
 	)
 	grid.Grid(msg, grid.Sticky(grid.EW))
 

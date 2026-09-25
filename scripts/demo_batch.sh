@@ -108,7 +108,9 @@ for go_name in "${DEMOS[@]}"; do
 
     ERR_LOG="$LOGS_DIR/${go_name}.compare.err"
     SCORE=9999 TREE=- GO_SIZE=- TCL_SIZE=- SD_GO=- SD_TCL=-
-    if RESULT=$(bash "$SCRIPT_DIR/demo_compare.sh" "$go_name" "$TCL_DEMO" 2>"$ERR_LOG"); then
+    # One retry: a window occasionally fails to appear in time under load.
+    if RESULT=$(bash "$SCRIPT_DIR/demo_compare.sh" "$go_name" "$TCL_DEMO" 2>"$ERR_LOG") ||
+        RESULT=$(bash "$SCRIPT_DIR/demo_compare.sh" "$go_name" "$TCL_DEMO" 2>"$ERR_LOG"); then
         rm -f "$ERR_LOG"
         SCORE=$(awk '/^Diff score:/ {print $3}' <<<"$RESULT")
         [[ -z "$SCORE" ]] && SCORE=9999

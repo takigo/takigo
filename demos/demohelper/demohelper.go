@@ -245,7 +245,22 @@ func variableGet(v any) any {
 
 func AddBottomButtons(parent widget.Caregiver, varsFunc func(*ttk.Frame) *ttk.Button) *ttk.Frame {
 	_, callerFile, _, _ := runtime.Caller(2)
+	return bottomButtons(parent, callerFile, func(f *ttk.Frame) window.Windower {
+		if b := varsFunc(f); b != nil {
+			return b
+		}
+		return nil
+	})
+}
 
+// AddSeeDismissExtra is addSeeDismiss with an extra widget (the launcher's
+// "extra" argument): it is gridded between the empty column and See Code.
+func AddSeeDismissExtra(parent widget.Caregiver, extra func(*ttk.Frame) window.Windower) *ttk.Frame {
+	_, callerFile, _, _ := runtime.Caller(1)
+	return bottomButtons(parent, callerFile, extra)
+}
+
+func bottomButtons(parent widget.Caregiver, callerFile string, extra func(*ttk.Frame) window.Windower) *ttk.Frame {
 	btnFrame := ttk.NewFrame(parent, "bottom_buttons")
 
 	sep := ttk.NewSeparator(btnFrame, "sep")
@@ -268,10 +283,11 @@ func AddBottomButtons(parent widget.Caregiver, varsFunc func(*ttk.Frame) *ttk.Bu
 	buttons := []window.Windower{grid.Relative(grid.RelEmpty), codeBtn, dismissBtn}
 	lastBottomButtons = []*ttk.Button{codeBtn, dismissBtn}
 
-	varsButton := varsFunc(btnFrame)
-	if varsButton != nil {
-		buttons = []window.Windower{grid.Relative(grid.RelEmpty), varsButton, codeBtn, dismissBtn}
-		lastBottomButtons = []*ttk.Button{varsButton, codeBtn, dismissBtn}
+	if w := extra(btnFrame); w != nil {
+		buttons = []window.Windower{grid.Relative(grid.RelEmpty), w, codeBtn, dismissBtn}
+		if b, ok := w.(*ttk.Button); ok {
+			lastBottomButtons = []*ttk.Button{b, codeBtn, dismissBtn}
+		}
 	}
 
 	grid.Grid(geometry.Group(buttons), grid.PadX("3p"), grid.PadY("3p"))

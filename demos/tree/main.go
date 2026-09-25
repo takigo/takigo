@@ -21,7 +21,6 @@ import (
 	_ "github.com/msorc/takigo/ttk/defaulttheme"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/frame"
-	"github.com/msorc/takigo/widget/label"
 )
 
 // makeFolderIcon creates a 16x16 yellow folder icon.
@@ -112,10 +111,12 @@ func main() {
 	f := frame.New(app, "f")
 	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
-	msg := label.New(f, "msg",
-		label.WrapLength("4i"),
-		label.JustifyOpt(option.JustifyLeft),
-		label.Text("Ttk is the new Tk themed widget set. One of the widgets it includes is a tree widget, which allows the user to browse a hierarchical data-set such as a filesystem. The tree widget not only allows for the tree part itself, but it also supports an arbitrary number of additional columns which can show additional data (in this case, the size of the files found in your filesystem). You can also change the width of the columns by dragging the boundary between them."),
+	msg := ttk.NewLabel(f, "msg",
+		ttk.LabelWrapLength("4i"),
+		ttk.LabelJustify(option.JustifyLeft),
+		ttk.LabelAnchor(option.AnchorN),
+		ttk.LabelPadding("10 2 10 6"),
+		ttk.LabelText("Ttk is the new Tk themed widget set. One of the widgets it includes is a tree widget, which allows the user to browse a hierarchical data-set such as a filesystem. The tree widget not only allows for the tree part itself, but it also supports an arbitrary number of additional columns which can show additional data (in this case, the size of the files found in your filesystem). You can also change the width of the columns by dragging the boundary between them."),
 	)
 	pack.Pack(msg, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
 

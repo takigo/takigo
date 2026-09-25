@@ -18,7 +18,6 @@ import (
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/entry"
 	"github.com/msorc/takigo/widget/frame"
-	"github.com/msorc/takigo/widget/label"
 )
 
 func main() {
@@ -34,10 +33,10 @@ func main() {
 	f := frame.New(app, "f")
 	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
-	msg := label.New(f, "msg",
-		label.WrapLength("4i"),
-		label.JustifyOpt(option.JustifyLeft),
-		label.Text("Enter a file name in the entry box or click on the \"Browse\" buttons to select a file name using the file selection dialog."),
+	msg := ttk.NewLabel(f, "msg",
+		ttk.LabelWrapLength("4i"),
+		ttk.LabelJustify(option.JustifyLeft),
+		ttk.LabelText("Enter a file name in the entry box or click on the \"Browse\" buttons to select a file name using the file selection dialog."),
 	)
 	pack.Pack(msg, pack.SideOpt(pack.Top))
 

@@ -9,15 +9,17 @@ import (
 
 	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/demos/demohelper"
+	"github.com/msorc/takigo/font"
 	"github.com/msorc/takigo/geometry/grid"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/ttk"
 	_ "github.com/msorc/takigo/ttk/clamtheme"
 	_ "github.com/msorc/takigo/ttk/defaulttheme"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/frame"
-	"github.com/msorc/takigo/widget/label"
+	"github.com/msorc/takigo/window"
 )
 
 type countryData struct {
@@ -57,27 +59,27 @@ func main() {
 	f := frame.New(app, "f")
 	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
-	msg := label.New(f, "msg",
-		label.WrapLength("4i"),
-		label.JustifyOpt(option.JustifyLeft),
-		label.Text("Ttk is the new Tk themed widget set. One of the widgets it includes is a tree widget, which can be configured to display multiple columns of informational data without displaying the tree itself. This is a simple way to build a listbox that has multiple columns. Clicking on the heading for a column will sort the data by that column. You can also change the width of the columns by dragging the boundary between them."),
+	msg := ttk.NewLabel(f, "msg",
+		ttk.LabelWrapLength("4i"),
+		ttk.LabelJustify(option.JustifyLeft),
+		ttk.LabelAnchor(option.AnchorN),
+		ttk.LabelPadding("10 2 10 6"),
+		ttk.LabelText("Ttk is the new Tk themed widget set. One of the widgets it includes is a tree widget, which can be configured to display multiple columns of informational data without displaying the tree itself. This is a simple way to build a listbox that has multiple columns. Clicking on the heading for a column will sort the data by that column. You can also change the width of the columns by dragging the boundary between them."),
 	)
 	pack.Pack(msg, pack.FillOpt(pack.FillX))
 
-	btns := demohelper.AddSeeDismiss(f)
-	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
-
-	// Grid checkbox — added to btns frame in the expanding column (row 1, col 0).
-	// Toggling enables alternating row stripes and per-column separator lines,
-	// matching the Tcl mclist.tcl demo's tglGrid proc.
+	// Grid checkbutton: the "extra" widget of addSeeDismiss. Toggling it
+	// enables row stripes and column separators (tglGrid in mclist.tcl).
 	gridVar := widget.NewVariable(false)
-	gridCb := ttk.NewCheckbutton(btns, "cb1",
-		ttk.CheckbuttonText("Grid"),
-		ttk.CheckbuttonVar(gridVar),
-	)
-	grid.Grid(gridCb, grid.Row(1), grid.Column(0), grid.Sticky(grid.StickW), grid.PadX("3p"))
-
-	ttk.SetCurrentTheme("clam")
+	var gridCb *ttk.Checkbutton
+	btns := demohelper.AddSeeDismissExtra(f, func(bf *ttk.Frame) window.Windower {
+		gridCb = ttk.NewCheckbutton(bf, "cb1",
+			ttk.CheckbuttonText("Grid"),
+			ttk.CheckbuttonVar(gridVar),
+		)
+		return gridCb
+	})
+	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	// Container frame (grid layout for treeview + scrollbars).
 	tvFrame := ttk.NewFrame(f, "container")
@@ -88,10 +90,23 @@ func main() {
 		ttk.TreeviewShow("headings"),
 	)
 
-	// Configure columns.
-	tv.ColumnConfigure("country", ttk.ColWidth(180))
-	tv.ColumnConfigure("capital", ttk.ColWidth(180))
-	tv.ColumnConfigure("currency", ttk.ColWidth(80))
+	// Column widths as in mclist.tcl: the heading text in the heading font
+	// plus the 16px noArrow image and 4px, widened to fit "value  ".
+	headFont, _ := app.FontRegistry().Get(font.TkHeadingFont)
+	rowFont, _ := app.FontRegistry().Get(font.TkDefaultFont)
+	morePx := 16 + 4*screenunit.ScalingPct()/100
+	colWidth := map[string]int{}
+	for col, name := range map[string]string{"country": "Country", "capital": "Capital", "currency": "Currency"} {
+		colWidth[col] = headFont.MeasureString(name) + morePx
+	}
+	for _, c := range countries {
+		for col, v := range map[string]string{"country": c.Country, "capital": c.Capital, "currency": c.Currency} {
+			colWidth[col] = max(colWidth[col], rowFont.MeasureString(v+"  "))
+		}
+	}
+	for col, w := range colWidth {
+		tv.ColumnConfigure(col, ttk.ColWidth(w))
+	}
 
 	// Wire Grid checkbox command now that tv exists.
 	gridCb.Command = func() {
