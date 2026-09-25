@@ -71,6 +71,11 @@ func BorderWidthOpt(w int) TextOption {
 	return func(t *TextWidget) { t.BorderWidth = w }
 }
 
+// HighlightThickness sets -highlightthickness.
+func HighlightThickness(n int) TextOption {
+	return func(t *TextWidget) { t.HighlightWidth = n }
+}
+
 // TabWidth sets the tab width in characters.
 func TabWidth(w int) TextOption {
 	return func(t *TextWidget) { t.tabWidth = w }

@@ -6,7 +6,7 @@
 anilabel	anilabel	0	0	386x296	386x296	exact	
 aniwave	aniwave	0.07	1	371x353	371x353	close	
 arrow	arrow	0.01	1	506x504	506x504	close	
-bind	bind	0.59	2	501x456	501x456	close	
+bind	bind	0.00	1	501x456	501x456	close	
 bitmap	bitmap	0	0	470x206	470x206	exact	
 button	button	0	0	388x254	388x254	exact	
 check	check	0	0	382x290	382x290	exact	
@@ -22,7 +22,7 @@ entry2	entry2	0.02	4	475x353	475x353	close
 entry3	entry3	0	0	477x353	477x353	exact	
 filebox	filebox	0.84	3	469x189	469x189	close	
 floor	floor	0.00	2	927x572	927x572	close	
-fontchoose	fontchoose	2.64	2	343x180	343x180	close	
+fontchoose	fontchoose	1.55	1	343x180	343x180	close	
 form	form	0	0	390x232	390x232	exact	
 goldberg	goldberg	69.07	31	596x407	677x542	close	
 hscale	hscale	0	0	361x230	361x230	exact	
@@ -38,20 +38,20 @@ menu	menu	14.19	14	386x270	386x273	close
 menubu	menubu	0	0	413x480	413x480	exact	
 msgbox	msgbox	0	8	394x303	394x303	close	
 paned1	paned1	0.67	2	388x175	388x175	close	
-paned2	paned2	0.41	5	388x481	388x481	close	
+paned2	paned2	0.09	4	388x481	388x481	close	
 pendulum	pendulum	1.32	3	665x428	665x428	close	
 plot	plot	0.19	1	452x399	452x399	close	
-print	print	4.57	3	1026x559	1026x559	close	
+print	print	3.86	3	1026x559	1026x559	close	
 puzzle	puzzle	0	0	376x327	376x327	exact	
 radio	radio	0	11	519x407	519x407	close	
 ruler	ruler	1.12	1	562x211	562x211	close	
 sayings	sayings	0.01	3	386x333	386x333	close	
-search	search	2.46	2	661x534	661x534	close	
+search	search	0.00	1	661x534	661x534	close	
 spin	spin	0	0	478x292	478x292	exact	
 states	states	0.02	4	388x420	388x420	close	
-style	style	5.63	2	721x656	721x656	close	
-text	text	13.19	6	661x594	661x558	close	
-textpeer	textpeer	5.07	4	765x394	765x394	close	
+style	style	0.17	2	721x656	721x656	close	
+text	text	0.00	2	661x558	661x558	close	
+textpeer	textpeer	0.00	2	765x394	765x394	close	
 toolbar	toolbar	0	0	385x427	385x427	exact	
 tree	tree	2.61	4	404x414	404x414	close	
 ttkbut	ttkbut	0	6	383x422	383x422	close	
@@ -61,7 +61,7 @@ ttkpane	ttkpane	0.78	12	369x595	369x595	close	clock pane shows wall-clock time: 
 ttkprogress	ttkprogress	0.00	2	376x244	376x244	close	
 ttkscale	ttkscale	0	0	363x186	363x186	exact	
 ttkspin	ttkspin	0	0	477x287	477x287	exact	
-twind	twind	14.23	9	583x645	583x645	close	
+twind	twind	0.20	1	583x645	583x645	close	
 unicodeout	unicodeout	0	0	386x367	386x367	exact	
 vscale	vscale	0	0	370x405	370x405	exact	
 windowicons	windowicons	0	0	222x202	222x202	exact	was mis-mapped to icon.tcl before; now compared with windowicons.tcl

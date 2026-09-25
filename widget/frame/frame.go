@@ -3,6 +3,7 @@
 package frame
 
 import (
+	"github.com/msorc/takigo/draw"
 	"log"
 
 	"github.com/msorc/takigo/event"
@@ -46,6 +47,11 @@ func Relief(r option.Relief) FrameOption {
 }
 
 // Width sets the requested width.
+// HighlightThickness sets -highlightthickness.
+func HighlightThickness(n int) FrameOption {
+	return func(f *Frame) { f.HighlightWidth = n }
+}
+
 func Width(w int) FrameOption {
 	return func(f *Frame) { f.Win.ReqWidth = w }
 }
@@ -179,6 +185,17 @@ func (f *Frame) DrawBackground() {
 	if w.PlatformID == platform.WindowID(0) {
 		return
 	}
-	f.Base.DrawBackground()
-	w.Display.Server.Flush()
+	// DisplayFrame (tkFrame.c): border inside the highlight ring, ring last.
+	d := w.Display.Server
+	if f.Background != nil {
+		d.SetForeground(w.GC, f.Background.Pixel)
+	}
+	d.FillRectangle(w.Drawable(), w.GC, 0, 0, uint(w.Width), uint(w.Height))
+	hl := f.HighlightWidth
+	if f.Border != nil && f.BorderWidth > 0 && f.Relief != option.ReliefFlat {
+		draw.Draw3DRectangle(d, w.Drawable(), w.GC, f.Border,
+			hl, hl, w.Width-2*hl, w.Height-2*hl, f.BorderWidth, f.Relief)
+	}
+	f.DrawHighlightBorder(false, 0)
+	d.Flush()
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/msorc/takigo/font"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/window"
 )
@@ -31,8 +32,9 @@ type embeddedImage struct {
 // The window's position is tracked by a mark in the document so it
 // adjusts automatically as surrounding text is inserted or deleted.
 type embeddedWin struct {
-	markName string
-	win      *window.Window
+	markName   string
+	win        *window.Window
+	padX, padY int // -padx / -pady
 }
 
 // TextWidget is a multi-line text editor widget.
@@ -121,6 +123,9 @@ func New(parent widget.Caregiver, name string, opts ...TextOption) *TextWidget {
 	}
 	widget.InitBase(&t.Base, w, app)
 	w.Class = "Text"
+	if f, err := app.FontRegistry().Get(font.TkFixedFont); err == nil {
+		t.Font = f // DEF_TEXT_FONT
+	}
 
 	// Text widget defaults.
 	t.BorderWidth = widget.DefBorderWidth
@@ -201,6 +206,9 @@ func NewPeer(doc *Document, parent widget.Caregiver, name string, opts ...TextOp
 	}
 	widget.InitBase(&t.Base, w, app)
 	w.Class = "Text"
+	if f, err := app.FontRegistry().Get(font.TkFixedFont); err == nil {
+		t.Font = f // DEF_TEXT_FONT
+	}
 
 	t.BorderWidth = widget.DefBorderWidth
 	t.Relief = option.ReliefSunken
@@ -614,6 +622,11 @@ func (t *TextWidget) EndIndex() string {
 // A placeholder character is inserted into the document so that text wraps
 // around the window, and the position is tracked by a mark.
 func (t *TextWidget) WindowCreate(indexStr string, w *window.Window) {
+	t.WindowCreatePad(indexStr, w, 0, 0)
+}
+
+// WindowCreatePad is "window create" with -padx and -pady (Tk distances).
+func (t *TextWidget) WindowCreatePad(indexStr string, w *window.Window, padX, padY any) {
 	idx, ok := ParseIndex(t.doc, indexStr)
 	if !ok {
 		return
@@ -627,7 +640,8 @@ func (t *TextWidget) WindowCreate(indexStr string, w *window.Window) {
 	if m, mok := t.doc.Marks[markName]; mok {
 		m.Gravity = GravityLeft
 	}
-	t.embeddedWindows = append(t.embeddedWindows, embeddedWin{markName: markName, win: w})
+	t.embeddedWindows = append(t.embeddedWindows, embeddedWin{markName: markName, win: w,
+		padX: screenunit.Px(padX), padY: screenunit.Px(padY)})
 }
 
 // ImageCreate embeds an image at the given text index, treating it as an inline element.
@@ -741,13 +755,13 @@ func (t *TextWidget) positionEmbeddedWindows(dlines []displayLine) {
 				}
 			}
 
-			wx := t.insetX + dl.leftMargin + justifyOffset - t.xOffset + xBefore
+			wx := t.insetX + dl.leftMargin + justifyOffset - t.xOffset + xBefore + ew.padX
 			ww := ew.win.ReqWidth
 			wh := ew.win.ReqHeight
 			if wh == 0 {
 				wh = dl.height
 			}
-			// Vertically center the window within the display line (Tk default: -align center).
+			// EmbWinDisplayProc, -align center: centred in the line.
 			wy := t.insetY + dl.y + (dl.height-wh)/2
 			d.MoveResizeWindow(ew.win.PlatformID, wx, wy, uint(ww), uint(wh))
 			d.MapWindow(ew.win.PlatformID)

@@ -4,6 +4,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/msorc/takigo/font"
 	"os"
 	"os/exec"
 
@@ -33,6 +34,7 @@ func main() {
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	tw := text.New(f, "text",
+		text.FontOpt(font.TkDefaultFont),
 		text.Width(60),
 		text.Height(24),
 		text.SetGridOpt(true),
@@ -63,7 +65,7 @@ func main() {
 	pack.Pack(tw, pack.Expand(true), pack.FillOpt(pack.FillBoth))
 
 	// Insert intro paragraph.
-	tw.Insert("0.0", "The same tag mechanism that controls display styles in text "+
+	tw.Insert("0.0", " The same tag mechanism that controls display styles in text "+
 		"widgets can also be used to associate Tcl commands with regions of "+
 		"text, so that mouse or keyboard actions on the text cause "+
 		"particular Tcl commands to be invoked.  For example, in the text "+

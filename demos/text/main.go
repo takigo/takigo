@@ -13,6 +13,7 @@ import (
 	"github.com/msorc/takigo/ttk"
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/text"
+	"github.com/msorc/takigo/window"
 )
 
 func main() {
@@ -28,10 +29,23 @@ func main() {
 	f := frame.New(app, "f")
 	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
-	btns := demohelper.AddSeeDismiss(f)
+	var tw *text.TextWidget
+	btns := demohelper.AddSeeDismissExtra(f, func(bf *ttk.Frame) window.Windower {
+		return ttk.NewButton(bf, "fontchooser",
+			ttk.ButtonText("Show Font Dialog"),
+			ttk.ButtonCommand(func() {
+				if f, ok := dialog.ChooseFont(app); ok {
+					if parsed, err := app.FontRegistry().Get(f); err == nil {
+						tw.Font = parsed
+						tw.Display()
+					}
+				}
+			}),
+		)
+	})
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
-	tw := text.New(f, "text",
+	tw = text.New(f, "text",
 		text.Height(30),
 		text.WrapModeOpt(text.WrapChar),
 		text.UndoOpt(true),
@@ -63,19 +77,6 @@ func main() {
 	tw.YScrollCmd = func(first, last float64) {
 		yscroll.Set(first, last)
 	}
-
-	fontBtn := ttk.NewButton(f, "fontchooser",
-		ttk.ButtonText("Show Font Dialog"),
-		ttk.ButtonCommand(func() {
-			if f, ok := dialog.ChooseFont(app); ok {
-				if parsed, err := app.FontRegistry().Get(f); err == nil {
-					tw.Font = parsed
-					tw.Display()
-				}
-			}
-		}),
-	)
-	pack.Pack(fontBtn, pack.SideOpt(pack.Bottom), pack.PadX(4), pack.PadY(4))
 
 	pack.Pack(yscroll, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
 	pack.Pack(tw, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))

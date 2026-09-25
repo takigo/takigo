@@ -4,6 +4,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/msorc/takigo/font"
 	"os"
 
 	"github.com/msorc/takigo"
@@ -38,6 +39,7 @@ func main() {
 
 	// Text widget + scrollbar in row 0 of cf (grid layout inside cf).
 	tw := text.New(cf, "msg",
+		text.FontOpt(font.TkDefaultFont),
 		text.Width(40),
 		text.Height(6),
 		text.WrapModeOpt(text.WrapWord),

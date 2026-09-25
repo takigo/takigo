@@ -42,6 +42,7 @@ type displayLine struct {
 	endChar      int // exclusive
 	y            int // pixel Y in content area (relative to visible area)
 	height       int // pixel height (excluding spacing)
+	ascent       int // baseline offset from the top of the line
 	spacingAbove int // extra pixels above (Spacing1 for first frag, Spacing2 for rest)
 	spacingBelow int // extra pixels below (Spacing3 for last frag of logical line)
 	leftMargin   int // left margin pixels (LMargin1 for first frag, LMargin2 for rest)
@@ -125,7 +126,7 @@ func (t *TextWidget) measureRange(lineIdx, startChar, endChar int) int {
 			continue
 		}
 		if m.Pos.Char >= startChar && m.Pos.Char < endChar {
-			wins = append(wins, winInfo{char: m.Pos.Char, width: ew.win.ReqWidth})
+			wins = append(wins, winInfo{char: m.Pos.Char, width: ew.win.ReqWidth + 2*ew.padX})
 		}
 	}
 
@@ -242,12 +243,21 @@ func (t *TextWidget) wrapLine(lineIdx, availWidth, lm1, lm2, rm int) []displayLi
 		}
 
 		if t.wrapMode == WrapWord {
-			wb := breakAt
-			for wb > start && line.Text[wb-1] != ' ' && line.Text[wb-1] != '\t' {
-				wb--
-			}
-			if wb > start {
-				breakAt = wb
+			isSpace := func(i int) bool { return line.Text[i] == ' ' || line.Text[i] == '\t' }
+			if breakAt < end && isSpace(breakAt) {
+				// TkTextCharLayoutProc: whitespace after the last word
+				// that fits may run past the right edge.
+				for breakAt < end && isSpace(breakAt) {
+					breakAt++
+				}
+			} else {
+				wb := breakAt
+				for wb > start && !isSpace(wb-1) {
+					wb--
+				}
+				if wb > start {
+					breakAt = wb
+				}
 			}
 		}
 
@@ -275,6 +285,73 @@ func (t *TextWidget) wrapLine(lineIdx, availWidth, lm1, lm2, rm int) []displayLi
 	return result
 }
 
+// lineMetrics ports how TkTextCharLayoutProc/LayoutDLine size a display
+// line: the largest ascent and descent over its chunks (a tag -offset
+// raises the ascent and lowers the descent), counting the terminating
+// newline's tags on the last fragment of a logical line.
+func (t *TextWidget) lineMetrics(lineIdx, start, end int, last bool) (ascent, descent int) {
+	add := func(f font.Font, offset int) {
+		if f == nil {
+			return
+		}
+		m := f.Metrics()
+		ascent = max(ascent, m.Ascent+offset)
+		descent = max(descent, m.Descent-offset)
+	}
+	for _, seg := range t.segmentsForRange(lineIdx, start, end) {
+		f := seg.font
+		if f == nil {
+			f = t.Font
+		}
+		add(f, seg.offset)
+	}
+	if last || start >= end {
+		f := t.Font
+		off := 0
+		n := len(t.doc.Lines[lineIdx-1].Text)
+		for _, tag := range t.doc.TagsAt(Index{Line: lineIdx, Char: n}) {
+			if tag.Font != nil {
+				f = tag.Font
+			}
+			if tag.OffsetSet {
+				off = tag.Offset
+			}
+		}
+		add(f, off)
+	}
+	return ascent, descent
+}
+
+// setMetrics ports LayoutDLine's height: the chunks' ascent+descent, at
+// least the -align center minHeight of embedded windows and images in that
+// fragment, with the baseline centred in any extra height.
+func (t *TextWidget) setMetrics(lineIdx int, dls []displayLine) []displayLine {
+	in := func(i int, char int) bool {
+		dl := dls[i]
+		return (char >= dl.startChar && char < dl.endChar) || (dl.startChar == dl.endChar && char == dl.startChar)
+	}
+	for i := range dls {
+		a, d := t.lineMetrics(lineIdx, dls[i].startChar, dls[i].endChar, i == len(dls)-1)
+		minH := 0
+		for _, ei := range t.embeddedImages {
+			if ei.index.Line == lineIdx && in(i, ei.index.Char) {
+				minH = max(minH, ei.img.Height())
+			}
+		}
+		for _, ew := range t.embeddedWindows {
+			if m, ok := t.doc.Marks[ew.markName]; ok && m.Pos.Line == lineIdx && in(i, m.Pos.Char) {
+				minH = max(minH, ew.win.ReqHeight+2*ew.padY)
+			}
+		}
+		dls[i].height, dls[i].ascent = a+d, a
+		if minH > a+d {
+			dls[i].height = minH
+			dls[i].ascent = a + (minH-a-d)/2
+		}
+	}
+	return dls
+}
+
 // computeVisibleLines returns the display lines visible from the current scroll position.
 func (t *TextWidget) computeVisibleLines() []displayLine {
 	availWidth := t.Win.Width - 2*t.insetX
@@ -288,7 +365,7 @@ func (t *TextWidget) computeVisibleLines() []displayLine {
 
 	for lineIdx := t.topLine; lineIdx <= t.doc.LineCount() && y < availHeight; lineIdx++ {
 		props := t.resolveLineProps(lineIdx)
-		dls := t.wrapLine(lineIdx, availWidth, props.lm1, props.lm2, props.rm)
+		dls := t.setMetrics(lineIdx, t.wrapLine(lineIdx, availWidth, props.lm1, props.lm2, props.rm))
 		startDL := 0
 		if lineIdx == t.topLine {
 			startDL = t.topCharOffset
@@ -512,7 +589,7 @@ func (t *TextWidget) renderToPixmap() {
 	dlines := t.computeVisibleLines()
 
 	for _, dl := range dlines {
-		baseY := t.insetY + dl.y + m.Ascent
+		baseY := t.insetY + dl.y + dl.ascent
 		segments := t.segmentsForRange(dl.logicalLine, dl.startChar, dl.endChar)
 
 		// Compute total segment width for justification.

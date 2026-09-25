@@ -4,6 +4,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/msorc/takigo/font"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -41,8 +42,8 @@ func makePeer(app *takigo.App, doc *text.Document) {
 		text.Width(70), text.Height(20),
 		text.WrapModeOpt(text.WrapWord),
 		text.BorderWidthOpt(0),
+		text.HighlightThickness(0),
 	)
-	pt.HighlightWidth = 0
 	pack.Pack(pt, pack.Expand(true), pack.FillOpt(pack.FillBoth))
 
 	ps := ttk.NewScrollbar(w, "scroll")
@@ -105,16 +106,18 @@ func main() {
 
 	// Frame with sunken border to hold the main text widget (matches $w.f).
 	tf := frame.New(pw, "tf",
+		frame.HighlightThickness(1),
 		frame.BorderWidth(1),
 		frame.Relief(option.ReliefSunken),
 	)
 
 	tw := text.New(tf, "text",
+		text.FontOpt(font.TkDefaultFont), // -font $font (mainFont)
 		text.Width(70), text.Height(35),
 		text.WrapModeOpt(text.WrapWord),
 		text.BorderWidthOpt(0),
+		text.HighlightThickness(0),
 	)
-	tw.HighlightWidth = 0
 	pack.Pack(tw, pack.Expand(true), pack.FillOpt(pack.FillBoth))
 
 	scroll := ttk.NewScrollbar(f, "scroll")
@@ -363,12 +366,11 @@ func main() {
 				peerTw.Destroy()
 				peerTw = nil
 			} else {
+				// "$textW peer create $w.peer -yscrollcommand ...": defaults otherwise.
 				peerTw = text.NewPeer(doc, f, "peertext",
 					text.Width(35), text.Height(35),
 					text.WrapModeOpt(text.WrapWord),
-					text.BorderWidthOpt(0),
 				)
-				peerTw.HighlightWidth = 0
 				pw.Add(peerTw.Win, 0)
 				pw.SetStretch(peerTw.Win, panedwindow.StretchAlways)
 			}
@@ -377,7 +379,7 @@ func main() {
 
 	tw.Insert("end", "You can also create multiple text widgets each of which ")
 	tw.Insert("end", "display the same underlying text. Click this button to ")
-	tw.WindowCreate(tw.EndIndex(), makePeerBtn.Window())
+	tw.WindowCreatePad(tw.EndIndex(), makePeerBtn.Window(), "3p", 0)
 	tw.Insert("end", " widget.  Notice how peer widgets can have different ")
 	tw.Insert("end", "font settings, and by default contain all the images ")
 	tw.Insert("end", "of the 'parent', but that the embedded windows, ")
@@ -387,7 +389,7 @@ func main() {
 	tw.Insert("end", "(The plot above and the 'Make A Peer' button are ")
 	tw.Insert("end", "designed to show up in all peers.)  A good use of ")
 	tw.Insert("end", "peers is for ")
-	tw.WindowCreate(tw.EndIndex(), splitBtn.Window())
+	tw.WindowCreatePad(tw.EndIndex(), splitBtn.Window(), "3p", 0)
 	tw.Insert("end", " \n\n")
 
 	tw.Insert("end", "Users of previous versions of Tk will also be interested ")
@@ -418,7 +420,7 @@ func main() {
 			tw.Display()
 		}),
 	)
-	tw.WindowCreate(defaultBtnLine, defaultBtn.Window())
+	tw.WindowCreatePad(defaultBtnLine, defaultBtn.Window(), "3p", 0)
 
 	// Toggle button "Short" / "A much longer string".
 	var toggleLong bool
@@ -437,7 +439,7 @@ func main() {
 			tw.Display()
 		}),
 	)
-	tw.WindowCreate(toggleBtnLine, toggleBtn.Window())
+	tw.WindowCreatePad(toggleBtnLine, toggleBtn.Window(), "3p", "1.5p")
 
 	// Color buttons.
 	colors := []string{
@@ -458,7 +460,7 @@ func main() {
 				tw.Display()
 			}),
 		)
-		tw.WindowCreate(btnLine, clrBtn.Window())
+		tw.WindowCreatePad(btnLine, clrBtn.Window(), "3p", "1.5p")
 	}
 
 	// Tag the buttons section.
