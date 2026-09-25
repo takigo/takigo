@@ -2,6 +2,7 @@ package ttk
 
 import (
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/window"
 )
@@ -9,6 +10,8 @@ import (
 // Frame is a themed container widget.
 type Frame struct {
 	TtkWidget
+	padding     Padding
+	borderWidth int
 }
 
 // FrameOption configures a Frame.
@@ -17,14 +20,16 @@ type FrameOption func(*Frame)
 // FramePadding sets the internal padding.
 func FramePadding(p Padding) FrameOption {
 	return func(f *Frame) {
+		f.padding = p
 		f.SetWidgetOption("-padding", p)
 	}
 }
 
-// FrameBorderWidth sets the border width.
-func FrameBorderWidth(w int) FrameOption {
+// FrameBorderWidth sets the border width (a Tk distance).
+func FrameBorderWidth(w any) FrameOption {
 	return func(f *Frame) {
-		f.SetWidgetOption("-borderwidth", w)
+		f.borderWidth = screenunit.Px(w)
+		f.SetWidgetOption("-borderwidth", f.borderWidth)
 	}
 }
 
@@ -63,6 +68,13 @@ func NewFrame(parent widget.Caregiver, name string, opts ...FrameOption) *Frame 
 	for _, opt := range opts {
 		opt(f)
 	}
+
+	// FrameMargins: the widget's own -padding plus -borderwidth (not the
+	// style's) become the content margins.
+	win.InternalBorderLeft = f.padding.Left + f.borderWidth
+	win.InternalBorderRight = f.padding.Right + f.borderWidth
+	win.InternalBorderTop = f.padding.Top + f.borderWidth
+	win.InternalBorderBottom = f.padding.Bottom + f.borderWidth
 
 	// Re-resolve size after options.
 	if f.Layout != nil {

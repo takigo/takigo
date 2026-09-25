@@ -129,11 +129,8 @@ func NewMenubutton(parent widget.Caregiver, name string, opts ...MenubuttonOptio
 		}
 	}
 
-	// Recompute size.
 	if mb.Layout != nil {
 		rw, rh := mb.Layout.Size(mb.State)
-		// Add space for arrow indicator.
-		rw += 16
 		if rw > 0 {
 			win.ReqWidth = rw
 		}
@@ -158,23 +155,7 @@ func (mb *Menubutton) Display() {
 		return
 	}
 
-	// Use base TTK display for the main widget.
 	mb.TtkWidget.Display()
-
-	// Draw arrow indicator on top.
-	d := win.Display.Server
-	gc := win.GC
-
-	fg := LookupColor(mb.Context.Style, "-foreground", mb.State, 0x000000)
-	d.SetForeground(gc, fg)
-
-	// Draw small downward arrow on the right side.
-	arrowX := win.Width - 12
-	arrowY := win.Height / 2
-	for row := 0; row < 3; row++ {
-		d.DrawLine(win.Drawable(), gc, arrowX-2+row, arrowY-1+row, arrowX+2-row, arrowY-1+row)
-	}
-	d.Flush()
 }
 
 func bindMenubutton(mb *Menubutton, app widget.AppContext) {

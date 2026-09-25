@@ -138,8 +138,10 @@ func init() {
 
 	// TSeparator styles.
 	tsepH := theme.GetStyle("TSeparator.Horizontal")
+	tsepH.Parent = theme.GetStyle("TSeparator") // takigo-only name, not a Tk style
 	tsepH.Defaults["-relief"] = option.ReliefFlat
 	tsepV := theme.GetStyle("TSeparator.Vertical")
+	tsepV.Parent = theme.GetStyle("TSeparator") // takigo-only name, not a Tk style
 	tsepV.Defaults["-relief"] = option.ReliefFlat
 
 	// Layout templates.
@@ -201,6 +203,12 @@ func init() {
 	tmenubutton := theme.GetStyle("TMenubutton")
 	tmenubutton.Defaults["-padding"] = "7.5p 2.25p"
 	tmenubutton.Defaults["-relief"] = option.ReliefRaised
+	tmenubutton.Defaults["-arrowsize"] = "3.75p"
+	tmenubutton.Defaults["-arrowpadding"] = "2.25p"
+	tmenubutton.Defaults["-arrowcolor"] = uint64(0x000000)
+	tmenubutton.Maps["-arrowcolor"] = ttk.StateMap[any]{
+		{Spec: ttk.StateSpec{OnBits: ttk.StateDisabled}, Value: uint64(0xa3a3a3)},
+	}
 
 	// TMenubutton layout: border → focus → [indicator(right) + padding → label]
 	theme.RegisterLayout("TMenubutton",
@@ -256,6 +264,18 @@ func init() {
 	tspinbox.Defaults["-background"] = uint64(0xd9d9d9)
 	tspinbox.Defaults["-foreground"] = uint64(0x000000)
 	tspinbox.Defaults["-fieldbackground"] = uint64(0xffffff)
+	tspinbox.Defaults["-arrowsize"] = "7.5p"
+	tspinbox.Defaults["-arrowcolor"] = uint64(0x000000)
+	tspinbox.Defaults["-padding"] = "1.5p 0 7.5p 0"
+	tspinbox.Defaults["-focuswidth"] = 1
+	tspinbox.Defaults["-focuscolor"] = uint64(0x4a6984)
+	tspinbox.Maps["-fieldbackground"] = ttk.StateMap[any]{
+		{Spec: ttk.StateSpec{OnBits: ttk.StateReadonly}, Value: uint64(0xd9d9d9)},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateDisabled}, Value: uint64(0xd9d9d9)},
+	}
+	tspinbox.Maps["-arrowcolor"] = ttk.StateMap[any]{
+		{Spec: ttk.StateSpec{OnBits: ttk.StateDisabled}, Value: uint64(0xa3a3a3)},
+	}
 
 	// TEntry style.
 	tentry := theme.GetStyle("TEntry")
@@ -280,6 +300,33 @@ func init() {
 	// TSizegrip style.
 	tsizegrip := theme.GetStyle("TSizegrip")
 	tsizegrip.Defaults["-background"] = uint64(0xd9d9d9)
+
+	// TCombobox (defaults.tcl).
+	tcombo := theme.GetStyle("TCombobox")
+	tcombo.Defaults["-arrowsize"] = "9p"
+	tcombo.Defaults["-arrowcolor"] = uint64(0x000000)
+	tcombo.Defaults["-fieldbackground"] = uint64(0xffffff)
+	tcombo.Defaults["-padding"] = ttk.UniformPadding(1)
+	tcombo.Defaults["-focuswidth"] = 1
+	tcombo.Defaults["-focuscolor"] = uint64(0x4a6984)
+	tcombo.Maps["-fieldbackground"] = ttk.StateMap[any]{
+		{Spec: ttk.StateSpec{OnBits: ttk.StateReadonly}, Value: uint64(0xd9d9d9)},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateDisabled}, Value: uint64(0xd9d9d9)},
+	}
+	tcombo.Maps["-arrowcolor"] = ttk.StateMap[any]{
+		{Spec: ttk.StateSpec{OnBits: ttk.StateDisabled}, Value: uint64(0xa3a3a3)},
+	}
+
+	// TScale (defaults.tcl).
+	tscale := theme.GetStyle("TScale")
+	tscale.Defaults["-innercolor"] = uint64(0x4a6984)
+	tscale.Defaults["-outercolor"] = uint64(0xffffff)
+	tscale.Defaults["-bordercolor"] = uint64(0xc3c3c3)
+	tscale.Defaults["-troughcolor"] = uint64(0xc3c3c3)
+	tscale.Defaults["-groovewidth"] = "3p"
+	tscale.Maps["-outercolor"] = ttk.StateMap[any]{
+		{Spec: ttk.StateSpec{OnBits: ttk.StateHover}, Value: uint64(0xececec)},
+	}
 
 	// Progressbar styles.
 	hProgress := theme.GetStyle("Horizontal.TProgressbar")

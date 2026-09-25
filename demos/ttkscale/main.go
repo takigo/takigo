@@ -11,9 +11,6 @@ import (
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/ttk"
-	"github.com/msorc/takigo/widget/frame"
-	"github.com/msorc/takigo/widget/label"
-	"github.com/msorc/takigo/widget/scale"
 )
 
 func main() {
@@ -26,8 +23,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	f := frame.New(app, "f")
-	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+	f := ttk.NewFrame(app, "f")
+	pack.Pack(f, pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	msg := ttk.NewLabel(f, "msg",
 		ttk.LabelWrapLength("3.5i"),
@@ -39,44 +36,24 @@ func main() {
 	btns := demohelper.AddSeeDismiss(f)
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
-	// Rainbow color list — use X11 named colors matching Tcl.
 	colorList := []string{"Red", "Orange", "Yellow", "Green", "Blue", "Violet"}
 
-	// Inner frame with border (matches Tcl's `ttk::frame $w.frame -borderwidth 7.5p`).
-	fr := frame.New(f, "frame",
-		frame.BorderWidth(10), // 7.5p ≈ 10px
-	)
+	fr := ttk.NewFrame(f, "frame", ttk.FrameBorderWidth("7.5p"))
 	pack.Pack(fr, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
 
-	// Color label display — packed first (label before scale, matching Tcl).
-	valueLabel := label.New(fr, "label")
-
-	// Command callback to update label text and color from scale value.
-	updateLabel := func(v float64) {
-		idx := int(v)
-		if idx < 0 {
-			idx = 0
-		}
-		if idx >= len(colorList) {
-			idx = len(colorList) - 1
-		}
-		c := colorList[idx]
-		valueLabel.Text = fmt.Sprintf("Color: %s", c)
-		col, err := app.ColorCache().Get(c)
-		if err == nil {
-			valueLabel.Foreground = col
-		}
-		valueLabel.Display()
-	}
-
-	sc := scale.New(fr, "scale",
-		scale.OrientOpt(scale.Horizontal),
-		scale.FromOpt(0),
-		scale.ToOpt(5),
-		scale.CommandOpt(updateLabel),
+	valueLabel := ttk.NewLabel(fr, "label")
+	sc := ttk.NewScale(fr, "scale",
+		ttk.ScaleFrom(0),
+		ttk.ScaleTo(5),
+		ttk.ScaleCommand(func(v float64) {
+			c := colorList[int(v)]
+			if col, err := app.ColorCache().Get(c); err == nil {
+				valueLabel.SetWidgetOption("-foreground", col.Pixel)
+			}
+			valueLabel.SetText("Color: " + c)
+		}),
 	)
-	// Trigger initial label text (matches Tcl's "$w.frame.scale set 0").
-	updateLabel(0)
+	sc.Set(0)
 	pack.Pack(valueLabel)
 	pack.Pack(sc)
 

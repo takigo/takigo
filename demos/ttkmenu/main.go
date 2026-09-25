@@ -47,6 +47,8 @@ func main() {
 	// Container frame for the compass grid layout.
 	cf := ttk.NewFrame(f, "cf")
 	pack.Pack(cf, pack.FillOpt(pack.FillX))
+	f1 := ttk.NewFrame(f, "f1")
+	pack.Pack(f1, pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	// Create five menubuttons in compass directions: above, left, center, right, below.
 	m1 := ttk.NewMenubutton(cf, "m1",

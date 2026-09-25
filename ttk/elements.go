@@ -481,7 +481,8 @@ func (e *AltFieldElement) Draw(d platform.DisplayServer, drawable platform.Drawa
 
 // --- MenubuttonIndicatorElement ---
 
-// MenubuttonIndicatorElement draws a small downward-pointing arrow for TMenubutton.
+// MenubuttonIndicatorElement ports MenuIndicatorElement (ttkElements.c): a
+// filled down arrow of -arrowsize inside -arrowpadding.
 type MenubuttonIndicatorElement struct {
 	ctx *DrawContext
 }
@@ -491,30 +492,49 @@ func NewMenubuttonIndicatorElementFactory(ctx *DrawContext) Element {
 }
 
 func (e *MenubuttonIndicatorElement) Size(state State) (int, int, Padding) {
-	// Compact arrow: 11px wide, fills height, with 4px left margin.
-	return 11 + 4, 0, Padding{}
+	h := LookupInt(e.ctx.Style, "-arrowsize", state, 5)
+	p := LookupPadding(e.ctx.Style, "-arrowpadding", state, UniformPadding(3))
+	return 2*h + 1 + p.Left + p.Right, h + 1 + p.Top + p.Bottom, Padding{}
 }
 
 func (e *MenubuttonIndicatorElement) Draw(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID, box Box, state State) {
-	fg := LookupColor(e.ctx.Style, "-foreground", state, 0x000000)
-	if state&StateDisabled != 0 {
-		fg = LookupColor(e.ctx.Style, "-foreground", StateDisabled, 0xa3a3a3)
+	h := LookupInt(e.ctx.Style, "-arrowsize", state, 5)
+	w, ht := 2*h+1, h+1
+	b := Box{box.X + (box.Width-w)/2, box.Y + (box.Height-ht)/2, w, ht}
+	d.SetForeground(gc, LookupColor(e.ctx.Style, "-arrowcolor", state, 0x000000))
+	// TtkFillArrow fills the triangle, then outlines it (closing the path)
+	// and plots the third point, so the edges X leaves out are drawn too.
+	pts := arrowDownPoints(b)
+	d.FillPolygon(drawable, gc, pts, 2, 0)
+	d.DrawLines(drawable, gc, append(pts, pts[0]), 0)
+	d.DrawLine(drawable, gc, int(pts[2].X), int(pts[2].Y), int(pts[2].X), int(pts[2].Y))
+}
+
+// arrowUpPoints ports ArrowPoints (ttkDefaultTheme.c) for ARROW_UP.
+func arrowUpPoints(b Box) []platform.Point {
+	h := (b.Width - 1) / 2
+	cx, cy := b.X+h, b.Y
+	if b.Height <= h {
+		h = b.Height - 1
 	}
+	return []platform.Point{
+		{X: int16(cx), Y: int16(cy)},
+		{X: int16(cx - h), Y: int16(cy + h)},
+		{X: int16(cx + h), Y: int16(cy + h)},
+	}
+}
 
-	// Draw a small centered downward triangle.
-	aw := 7 // arrow width (odd for symmetric look)
-	ah := 4 // arrow height
-	ax := box.X + 4 + (box.Width-4-aw)/2
-	ay := box.Y + (box.Height-ah)/2
-
-	d.SetForeground(gc, fg)
-	for i := range ah {
-		x0 := ax + i
-		x1 := ax + aw - 1 - i
-		y := ay + i
-		if x0 <= x1 {
-			d.DrawLine(drawable, gc, x0, y, x1, y)
-		}
+// arrowDownPoints ports ArrowPoints (ttkDefaultTheme.c) for ARROW_DOWN.
+func arrowDownPoints(b Box) []platform.Point {
+	h := (b.Width - 1) / 2
+	cx, cy := b.X+h, b.Y+b.Height-1
+	if b.Height <= h {
+		h = b.Height - 1
+	}
+	return []platform.Point{
+		{X: int16(cx), Y: int16(cy)},
+		{X: int16(cx - h), Y: int16(cy - h)},
+		{X: int16(cx + h), Y: int16(cy - h)},
 	}
 }
 

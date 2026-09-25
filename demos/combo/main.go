@@ -62,7 +62,7 @@ func main() {
 	pack.Pack(editFrame, pack.SideOpt(pack.Top), pack.PadY("3p"), pack.PadX("7.5p"))
 
 	editCombo := ttk.NewCombobox(editFrame, "c",
-		ttk.ComboboxText("Enter text here"),
+		ttk.ComboboxPlaceholder("Enter text here"),
 	)
 	pack.Pack(editCombo, pack.PadY("3p"), pack.PadX("7.5p"))
 

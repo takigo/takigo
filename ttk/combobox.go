@@ -8,6 +8,7 @@ import (
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/ttk/entrytext"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/window"
 )
@@ -32,6 +33,8 @@ type Combobox struct {
 	CbState  ComboboxState
 	Font     font.Font
 	Command  func(value string) // called when value changes
+	// Placeholder is -placeholder: shown while the text is empty.
+	Placeholder string
 	selBg    uint64             // selection highlight background
 	selFg    uint64             // selection text foreground
 
@@ -64,6 +67,11 @@ func ComboboxText(s string) ComboboxOption {
 // ComboboxCbState sets the combobox state.
 func ComboboxCbState(s ComboboxState) ComboboxOption {
 	return func(c *Combobox) { c.CbState = s }
+}
+
+// ComboboxPlaceholder sets -placeholder.
+func ComboboxPlaceholder(s string) ComboboxOption {
+	return func(c *Combobox) { c.Placeholder = s }
 }
 
 // ComboboxCommand sets the value change callback.
@@ -100,16 +108,10 @@ func NewCombobox(parent widget.Caregiver, name string, opts ...ComboboxOption) *
 	InitTtkWidget(&c.TtkWidget, win, app, "TCombobox")
 	c.DisplayFunc = c.Display
 
-	// Set reasonable size.
-	if c.Font != nil {
-		m := c.Font.Metrics()
-		win.ReqWidth = 200
-		win.ReqHeight = m.Linespace() + 2*c.insetY + 4
-	}
-
 	for _, opt := range opts {
 		opt(c)
 	}
+	c.requestSize()
 
 	if c.CbState == ComboDisabled {
 		c.ChangeState(StateDisabled, 0)
@@ -125,6 +127,41 @@ func NewCombobox(parent widget.Caregiver, name string, opts ...ComboboxOption) *
 	bindCombobox(c, app)
 
 	return c
+}
+
+// fieldPad ports FieldElementSize: -borderwidth widened to -focuswidth.
+func (c *Combobox) fieldPad() int {
+	bw := LookupInt(c.Context.Style, "-borderwidth", c.State, 2)
+	fw := LookupInt(c.Context.Style, "-focuswidth", c.State, 2)
+	if fw > 0 && bw < 2 {
+		bw = fw
+	}
+	return bw
+}
+
+// arrowSize ports BoxArrowElementSize for the down arrow.
+func (c *Combobox) arrowSize() (int, int) {
+	pad := 3 * screenunit.ScalingPct() / 100
+	size := LookupInt(c.Context.Style, "-arrowsize", c.State, 14) - 2*pad +
+		2*((screenunit.ScalingPct()+50)/100)
+	return 2*(size/2) + 1 + 2*pad, size/2 + 1 + 2*pad
+}
+
+// requestSize ports the ComboboxLayout size: field, arrow packed right,
+// -padding, and a textarea of -width 20 average ("0") characters.
+func (c *Combobox) requestSize() {
+	if c.Context == nil || c.Font == nil {
+		return
+	}
+	fp := c.fieldPad()
+	aw, ah := c.arrowSize()
+	p := LookupPadding(c.Context.Style, "-padding", c.State, Padding{})
+	m := c.Font.Metrics()
+	c.Win.ReqWidth = 2*fp + aw + p.Left + p.Right + 20*c.Font.MeasureString("0")
+	c.Win.ReqHeight = 2*fp + max(ah, m.Linespace()+p.Top+p.Bottom)
+	c.arrowWidth = aw
+	c.insetX = fp + p.Left
+	c.edit.TextX = c.insetX
 }
 
 // Get returns the current text value.
@@ -174,44 +211,51 @@ func (c *Combobox) Display() {
 
 	pixDrawable := platform.PixmapDrawable(c.pixmap)
 
-	bg := LookupColor(c.Context.Style, "-background", c.State, 0xd9d9d9)
-	fg := LookupColor(c.Context.Style, "-foreground", c.State, 0x000000)
+	st := c.Context.Style
+	bg := LookupColor(st, "-background", c.State, 0xd9d9d9)
+	fg := LookupColor(st, "-foreground", c.State, 0x000000)
+	c.selBg = LookupColor(st, "-selectbackground", c.State, 0x4a6984)
+	c.selFg = LookupColor(st, "-selectforeground", c.State, 0xffffff)
 
-	// Entry field background (white for editable).
-	fieldBg := uint64(0xffffff)
-	if c.CbState == ComboDisabled {
-		fieldBg = bg
+	// Combobox.field (FieldElementDraw, ttkElements.c).
+	fieldBg := LookupColor(st, "-fieldbackground", c.State, 0xffffff)
+	bw := LookupInt(st, "-borderwidth", c.State, 2)
+	fw := LookupInt(st, "-focuswidth", c.State, 2)
+	draw.Fill3DRectangle(d, pixDrawable, gc, draw.NewBorderFromPixel(fieldBg),
+		0, 0, width, height, bw, option.ReliefSunken)
+	if fw > 0 && c.State&StateFocus != 0 {
+		d.SetForeground(gc, LookupColor(st, "-focuscolor", c.State, 0x4a6984))
+		d.DrawRectangle(pixDrawable, gc, 0, 0, uint(width-1), uint(height-1))
 	}
 
-	// Fill entry area with field background.
-	d.SetForeground(gc, fieldBg)
-	d.FillRectangle(pixDrawable, gc, 0, 0, uint(width), uint(height))
-
-	// Arrow button area: fill with bg and draw 3D relief (sunken when pressed).
-	arrowX := width - c.arrowWidth
+	// Combobox.downarrow (BoxArrowElementDraw), packed right, filling Y.
+	fp := c.fieldPad()
+	ab := Box{width - fp - c.arrowWidth, fp, c.arrowWidth, height - 2*fp}
+	arrowX := ab.X
 	border := draw.NewBorderFromPixel(bg)
-	d.SetForeground(gc, bg)
-	d.FillRectangle(pixDrawable, gc, arrowX, 0, uint(c.arrowWidth), uint(height))
-	btnRelief := option.ReliefRaised
+	relief := LookupRelief(st, "-relief", c.State, option.ReliefRaised)
 	if c.arrowPressed {
-		btnRelief = option.ReliefSunken
+		relief = option.ReliefSunken
 	}
-	draw.Draw3DRectangle(d, pixDrawable, gc, border, arrowX, 0, c.arrowWidth, height, 2, btnRelief)
-
-	// Flat outer border around the whole widget.
-	d.SetForeground(gc, uint64(0x9e9a91))
-	d.DrawRectangle(pixDrawable, gc, 0, 0, uint(width-1), uint(height-1))
-
-	// Draw arrow.
-	arrowCX := arrowX + c.arrowWidth/2
-	arrowCY := height / 2
-	d.SetForeground(gc, fg)
-	for row := 0; row < 4; row++ {
-		d.DrawLine(pixDrawable, gc, arrowCX-3+row, arrowCY-2+row, arrowCX+3-row, arrowCY-2+row)
+	draw.Fill3DRectangle(d, pixDrawable, gc, border, ab.X, ab.Y, ab.Width, ab.Height,
+		LookupInt(st, "-borderwidth", c.State, 1), relief)
+	d.SetForeground(gc, border.DarkPixel)
+	d.DrawLine(pixDrawable, gc, ab.X, ab.Y+1, ab.X, ab.Y+ab.Height-1)
+	pad := 3 * screenunit.ScalingPct() / 100
+	ib := Box{ab.X + pad, ab.Y + pad, ab.Width - 2*pad, ab.Height - 2*pad}
+	cx, cy := 2*(ib.Width/2)+1, ib.Width/2+1
+	if (ib.Height-cy)%2 == 1 {
+		cy++
 	}
+	arrowBox := Box{ib.X + (ib.Width-cx)/2, ib.Y + (ib.Height-cy)/2, cx, cy}
+	d.SetForeground(gc, LookupColor(st, "-arrowcolor", c.State, 0x000000))
+	pts := arrowDownPoints(arrowBox)
+	d.FillPolygon(pixDrawable, gc, pts, 2, 0)
+	d.DrawLines(pixDrawable, gc, append(pts, pts[0]), 0)
+	d.DrawLine(pixDrawable, gc, int(pts[2].X), int(pts[2].Y), int(pts[2].X), int(pts[2].Y))
 
 	// Draw text (with optional selection highlight).
-	textX := c.insetX + 1
+	textX := c.insetX
 	if c.Font != nil {
 		m := c.Font.Metrics()
 		textY := (height-m.Linespace())/2 + m.Ascent
@@ -273,9 +317,20 @@ func (c *Combobox) Display() {
 		}
 	}
 
+	if len(c.edit.Text) == 0 && c.Placeholder != "" && c.Font != nil {
+		if df, ok := c.Font.(platform.DrawableFont); ok {
+			ph := LookupColor(st, "-placeholderforeground", c.State, 0xb3b3b3)
+			m := c.Font.Metrics()
+			r := uint16((ph>>16)&0xFF) << 8
+			g := uint16((ph>>8)&0xFF) << 8
+			b := uint16(ph&0xFF) << 8
+			df.DrawString(pixDrawable, textX, (height-m.Linespace())/2+m.Ascent, c.Placeholder, ph, r, g, b)
+		}
+	}
+
 	// Draw insertion cursor when focused and editable.
 	if c.State&StateFocus != 0 && c.CbState == ComboNormal {
-		textX := c.insetX + 1
+		textX := c.insetX
 		cursorX := textX
 		if c.Font != nil && c.edit.InsertPos > 0 {
 			cursorX = textX + c.Font.MeasureString(string(c.edit.Text[:c.edit.InsertPos]))

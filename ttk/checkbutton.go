@@ -26,6 +26,26 @@ type Checkbutton struct {
 
 	selected bool
 	unsub    func()
+	// layoutMode is set for styles such as Toolbutton whose layout has no
+	// indicator: the widget is drawn from the style's layout like a button.
+	layoutMode bool
+}
+
+// GetText implements TextProvider.
+func (c *Checkbutton) GetText() string { return c.Text }
+
+// GetFont implements TextProvider.
+func (c *Checkbutton) GetFont() font.Font { return c.Font }
+
+// GetImage implements TextProvider.
+func (c *Checkbutton) GetImage() widget.WidgetImage { return nil }
+
+// GetCompound implements TextProvider.
+func (c *Checkbutton) GetCompound() widget.Compound { return widget.CompoundNone }
+
+// CheckbuttonStyleOpt sets -style, e.g. "Toolbutton".
+func CheckbuttonStyleOpt(name string) CheckbuttonOption {
+	return func(c *Checkbutton) { c.StyleName = name }
 }
 
 // CheckbuttonOption configures a Checkbutton.
@@ -101,6 +121,16 @@ func NewCheckbutton(parent widget.Caregiver, name string, opts ...CheckbuttonOpt
 		})
 	}
 
+	if c.StyleName != "TCheckbutton" && c.Theme != nil {
+		if tmpl := c.Theme.GetLayout(c.StyleName); tmpl != nil {
+			c.setStyle(c.Theme.ResolveStyle(c.StyleName))
+			c.LabelFactory = NewLabelElementFactory(c)
+			c.Layout = newLayoutWithLabel(tmpl, c.Theme, c.Context, c.Context.Style, c.LabelFactory)
+			c.layoutMode = true
+			bindTtkHover(&c.TtkWidget, app)
+		}
+	}
+
 	// Compute initial size.
 	c.computeSize()
 
@@ -109,6 +139,10 @@ func NewCheckbutton(parent widget.Caregiver, name string, opts ...CheckbuttonOpt
 }
 
 func (c *Checkbutton) computeSize() {
+	if c.layoutMode {
+		c.Win.ReqWidth, c.Win.ReqHeight = c.Layout.Size(c.State)
+		return
+	}
 	textW, textH := 0, 0
 	if c.Font != nil {
 		textW = c.Font.MeasureString(c.Text)
@@ -128,6 +162,10 @@ func (c *Checkbutton) Display() {
 	}
 	win := c.Win
 	if win.PlatformID == 0 {
+		return
+	}
+	if c.layoutMode {
+		c.TtkWidget.Display()
 		return
 	}
 

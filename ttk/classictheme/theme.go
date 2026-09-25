@@ -587,8 +587,10 @@ func init() {
 
 	// TSeparator styles.
 	tsepH := theme.GetStyle("TSeparator.Horizontal")
+	tsepH.Parent = theme.GetStyle("TSeparator") // takigo-only name, not a Tk style
 	tsepH.Defaults["-relief"] = option.ReliefFlat
 	tsepV := theme.GetStyle("TSeparator.Vertical")
+	tsepV.Parent = theme.GetStyle("TSeparator") // takigo-only name, not a Tk style
 	tsepV.Defaults["-relief"] = option.ReliefFlat
 
 	// TScrollbar styles.

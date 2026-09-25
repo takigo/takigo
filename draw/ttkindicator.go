@@ -123,3 +123,36 @@ func rasterizeLayers(layers []shape, size int, unit float64) *image.RGBA {
 	}
 	return img
 }
+
+type ttkSliderKey struct {
+	size                 int
+	inner, outer, border uint64
+}
+
+var ttkSliderCache = map[ttkSliderKey]*image.RGBA{}
+
+// DrawTtkSlider ports SliderElementDraw (ttkElements.c): the sliderData SVG
+// (a circle r 7.5 in -outercolor stroked with -bordercolor, and an r 4 dot
+// in -innercolor) at size x size pixels with its top-left corner at (x, y).
+func DrawTtkSlider(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID,
+	depth, x, y, size int, inner, outer, border, bgPixel uint64) {
+	k := ttkSliderKey{size, inner, outer, border}
+	indicatorMu.Lock()
+	img, ok := ttkSliderCache[k]
+	if !ok {
+		circle := func(r float64) func(x, y float64) bool {
+			return func(x, y float64) bool { return (x-8)*(x-8)+(y-8)*(y-8) <= r*r }
+		}
+		solid := func(p uint64, inside func(x, y float64) bool) shape {
+			c := pixelColor(p, 1)
+			return func(x, y float64) (rgba, bool) { return c, inside(x, y) }
+		}
+		img = rasterizeLayers([]shape{
+			solid(border, circle(8)), solid(outer, circle(7)), solid(inner, circle(4)),
+		}, size, 16/float64(size))
+		ttkSliderCache[k] = img
+	}
+	indicatorMu.Unlock()
+	d.PutImageRGBA(drawable, gc, depth, img.Pix, img.Stride, size, size,
+		0, 0, x, y, size, size, bgPixel)
+}

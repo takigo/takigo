@@ -42,7 +42,10 @@ func main() {
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	// Integer spinbox (1-10).
-	s1 := ttk.NewSpinbox(f, "s1",
+	inner := ttk.NewFrame(f, "f")
+	pack.Pack(inner, pack.FillOpt(pack.FillBoth), pack.Expand(true))
+
+	s1 := ttk.NewSpinbox(inner, "s1",
 		ttk.SpinboxFrom(1),
 		ttk.SpinboxTo(10),
 		ttk.SpinboxWidth(10),
@@ -58,7 +61,7 @@ func main() {
 	s1.Set("1")
 
 	// Float spinbox (0-3 step 0.5).
-	s2 := ttk.NewSpinbox(f, "s2",
+	s2 := ttk.NewSpinbox(inner, "s2",
 		ttk.SpinboxFrom(0),
 		ttk.SpinboxTo(3),
 		ttk.SpinboxIncrement(0.5),
@@ -68,7 +71,7 @@ func main() {
 	s2.Set("00.00")
 
 	// Values spinbox (Australian cities).
-	s3 := ttk.NewSpinbox(f, "s3",
+	s3 := ttk.NewSpinbox(inner, "s3",
 		ttk.SpinboxValues([]string{
 			"Canberra", "Sydney", "Melbourne", "Perth",
 			"Adelaide", "Brisbane", "Hobart", "Darwin", "Alice Springs",

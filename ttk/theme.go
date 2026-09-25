@@ -145,9 +145,10 @@ func (t *Theme) GetStyle(name string) *Style {
 			}
 		}
 	} else {
-		// Named styles parent to local root via dot-separated naming.
-		if dot := strings.LastIndex(name, "."); dot >= 0 {
-			s.Parent = t.GetStyle(name[:dot])
+		// Tk's style inheritance (ttkTheme.c Ttk_GetStyle): "a.b.c"
+		// inherits from "b.c", the name minus its leading component.
+		if dot := strings.Index(name, "."); dot >= 0 {
+			s.Parent = t.GetStyle(name[dot+1:])
 		} else {
 			s.Parent = t.GetStyle(".")
 		}
@@ -174,13 +175,20 @@ func (t *Theme) RegisterLayout(name string, tmpl *LayoutTemplate) {
 }
 
 // GetLayout returns the layout template for name, falling back to parent.
+// Like Ttk_CreateLayout, "a.b.c" falls back to the layout of "b.c", then "c".
 func (t *Theme) GetLayout(name string) *LayoutTemplate {
-	for cur := t; cur != nil; cur = cur.Parent {
-		if tmpl, ok := cur.Layouts[name]; ok {
-			return tmpl
+	for {
+		for cur := t; cur != nil; cur = cur.Parent {
+			if tmpl, ok := cur.Layouts[name]; ok {
+				return tmpl
+			}
 		}
+		dot := strings.Index(name, ".")
+		if dot < 0 {
+			return nil
+		}
+		name = name[dot+1:]
 	}
-	return nil
 }
 
 // Package-level theme registry.

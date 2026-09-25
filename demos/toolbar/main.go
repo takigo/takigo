@@ -8,6 +8,7 @@ import (
 	"sort"
 
 	"github.com/msorc/takigo"
+	"github.com/msorc/takigo/cursor"
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/font"
 	"github.com/msorc/takigo/geometry/grid"
@@ -38,6 +39,19 @@ func main() {
 	// Toolbar frame (classic frame, matching Tcl's "Must be a frame!").
 	toolbar := frame.New(f, "toolbar")
 	grid.Grid(toolbar, grid.Sticky(grid.EW))
+	tearoff := ttk.NewFrame(toolbar, "tearoff")
+	tearoff.Win.SetCursor(uint(cursor.Fleur))
+	to := ttk.NewSeparator(tearoff, "to", ttk.SeparatorOrient(ttk.Vertical))
+	to2 := ttk.NewSeparator(tearoff, "to2", ttk.SeparatorOrient(ttk.Vertical))
+	pack.Pack(to, pack.FillOpt(pack.FillY), pack.Expand(true), pack.PadX("3p"), pack.SideOpt(pack.Left))
+	pack.Pack(to2, pack.FillOpt(pack.FillY), pack.Expand(true), pack.SideOpt(pack.Left))
+	// The toolbar items are gridded "-in" contents in Tk; takigo's grid has
+	// no -in, so they are its children.
+	contents := ttk.NewFrame(toolbar, "contents")
+	grid.Grid(tearoff, grid.Row(0), grid.Column(0), grid.Sticky(grid.NSEW))
+	grid.Grid(contents, grid.Row(0), grid.Column(1), grid.Sticky(grid.NSEW))
+	grid.ColumnConfigure(toolbar, 1, grid.Weight(1))
+	grid.ColumnConfigure(contents, 1000, grid.Weight(1))
 
 	// Separator below toolbar.
 	sep := ttk.NewSeparator(f, "sep")
@@ -72,15 +86,15 @@ func main() {
 	// --- Toolbar contents (matches Tk's toolbar.tcl) ---
 
 	// Button (Toolbutton style: flat, raised on hover).
-	btnNew := ttk.NewButton(toolbar, "button",
+	btnNew := ttk.NewButton(contents, "button",
 		ttk.ButtonStyleOpt("Toolbutton"),
 		ttk.ButtonText("Button"),
 		ttk.ButtonCommand(func() { appendMsg("Button Pressed") }),
 	)
 
-	// Check button (TTK checkbutton, Tcl uses -style Toolbutton but not available in Go).
 	checkVar := widget.NewVariable(false)
-	checkBtn := ttk.NewCheckbutton(toolbar, "check",
+	checkBtn := ttk.NewCheckbutton(contents, "check",
+		ttk.CheckbuttonStyleOpt("Toolbutton"),
 		ttk.CheckbuttonText("Check"),
 		ttk.CheckbuttonVar(checkVar),
 		ttk.CheckbuttonCommand(func() {
@@ -94,7 +108,7 @@ func main() {
 	exMenu.AddCommand("An", func() { appendMsg("An") })
 	exMenu.AddCommand("Example", func() { appendMsg("Example") })
 
-	menuBtn := ttk.NewMenubutton(toolbar, "menu",
+	menuBtn := ttk.NewMenubutton(contents, "menu",
 		ttk.MenubuttonText("Menu"),
 		ttk.MenubuttonMenu(exMenu),
 	)
@@ -102,7 +116,7 @@ func main() {
 	// Font family combobox.
 	families := font.ListFamilies()
 	sort.Strings(families)
-	combo := ttk.NewCombobox(toolbar, "combo",
+	combo := ttk.NewCombobox(contents, "combo",
 		ttk.ComboboxValues(families),
 		ttk.ComboboxCbState(ttk.ComboReadonly),
 		ttk.ComboboxCommand(func(val string) {

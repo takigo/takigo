@@ -9,7 +9,9 @@ import (
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/font"
+	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/ttk/entrytext"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/window"
@@ -287,32 +289,64 @@ func (s *Spinbox) tryEdit(prospective string) bool {
 	return s.tryValidate(entrytext.ValidateKey, prospective)
 }
 
+// fieldPad ports FieldElementSize: -borderwidth widened to -focuswidth.
+func (s *Spinbox) fieldPad() int {
+	bw := LookupInt(s.Context.Style, "-borderwidth", s.State, 2)
+	fw := LookupInt(s.Context.Style, "-focuswidth", s.State, 2)
+	if fw > 0 && bw < 2 {
+		bw = fw
+	}
+	return bw
+}
+
+// arrowSize ports BoxArrowElementSize for the up/down arrows.
+func (s *Spinbox) arrowSize() (int, int) {
+	pad := 3 * screenunit.ScalingPct() / 100
+	size := LookupInt(s.Context.Style, "-arrowsize", s.State, 14) - 2*pad +
+		2*((screenunit.ScalingPct()+50)/100)
+	return 2*(size/2) + 1 + 2*pad, size/2 + 1 + 2*pad
+}
+
+// computeGeometry ports the SpinboxLayout size: the field around the
+// right-packed arrow pair and the -padding'd textarea of -width "0"s.
 func (s *Spinbox) computeGeometry() {
-	if s.Font == nil {
+	if s.Font == nil || s.Context == nil {
 		return
 	}
 	m := s.Font.Metrics()
-	s.avgWidth = s.Font.MeasureString("0")
-	if s.avgWidth < 1 {
-		s.avgWidth = 1
-	}
-
+	s.avgWidth = max(1, s.Font.MeasureString("0"))
+	fp := s.fieldPad()
+	aw, ah := s.arrowSize()
+	p := LookupPadding(s.Context.Style, "-padding", s.State, Padding{})
+	s.buttonWidth = aw
+	s.insetX = fp + p.Left
+	s.edit.TextX = s.insetX
 	win := s.Win
-	win.ReqWidth = s.prefWidth*s.avgWidth + 2*s.insetX + s.buttonWidth + 4
-	win.ReqHeight = m.Linespace() + 2*s.insetY + 4
+	win.ReqWidth = 2*fp + aw + p.Left + p.Right + s.prefWidth*s.avgWidth
+	win.ReqHeight = 2*fp + max(2*ah, m.Linespace()+p.Top+p.Bottom)
+}
+
+// arrowBoxes returns the up and down arrow parcels: the "null" group is
+// packed right and centred vertically, up at its top, down at its bottom.
+func (s *Spinbox) arrowBoxes() (Box, Box) {
+	fp := s.fieldPad()
+	aw, ah := s.arrowSize()
+	x := s.Win.Width - fp - aw
+	y := fp + (s.Win.Height-2*fp-2*ah)/2
+	return Box{x, y, aw, ah}, Box{x, y + ah, aw, ah}
 }
 
 // hitButton returns "up", "down", or "" based on click position.
 func (s *Spinbox) hitButton(x, y int) string {
-	btnLeft := s.Win.Width - s.buttonWidth
-	if x < btnLeft {
-		return ""
-	}
-	midY := s.Win.Height / 2
-	if y < midY {
+	up, down := s.arrowBoxes()
+	in := func(b Box) bool { return x >= b.X && x < b.X+b.Width && y >= b.Y && y < b.Y+b.Height }
+	switch {
+	case in(up):
 		return "up"
+	case in(down):
+		return "down"
 	}
-	return "down"
+	return ""
 }
 
 func (s *Spinbox) closestGap(x int) int { return s.edit.ClosestGap(x) }
@@ -351,72 +385,54 @@ func (s *Spinbox) Display() {
 
 	pixDrawable := platform.PixmapDrawable(s.pixmap)
 
-	bg := LookupColor(s.Context.Style, "-background", s.State, 0xd9d9d9)
-	fg := LookupColor(s.Context.Style, "-foreground", s.State, 0x000000)
+	st := s.Context.Style
+	bg := LookupColor(st, "-background", s.State, 0xd9d9d9)
+	fg := LookupColor(st, "-foreground", s.State, 0x000000)
 
-	// Entry field background (white for editable).
-	fieldBg := uint64(0xffffff)
-	if s.State&StateDisabled != 0 {
-		fieldBg = bg
+	// Spinbox.field (FieldElementDraw, ttkElements.c).
+	fieldBg := LookupColor(st, "-fieldbackground", s.State, 0xffffff)
+	draw.Fill3DRectangle(d, pixDrawable, gc, draw.NewBorderFromPixel(fieldBg),
+		0, 0, width, height, LookupInt(st, "-borderwidth", s.State, 2), option.ReliefSunken)
+	if LookupInt(st, "-focuswidth", s.State, 2) > 0 && s.hasFocus {
+		d.SetForeground(gc, LookupColor(st, "-focuscolor", s.State, 0x4a6984))
+		d.DrawRectangle(pixDrawable, gc, 0, 0, uint(width-1), uint(height-1))
 	}
 
-	// Fill entry area.
-	d.SetForeground(gc, fieldBg)
-	d.FillRectangle(pixDrawable, gc, 0, 0, uint(width), uint(height))
-
-	// Draw border.
-	d.SetForeground(gc, uint64(0x9e9a91))
-	d.DrawLine(pixDrawable, gc, 0, 0, width-1, 0)
-	d.DrawLine(pixDrawable, gc, 0, 0, 0, height-1)
+	// Spinbox.uparrow / Spinbox.downarrow (BoxArrowElementDraw).
+	up, down := s.arrowBoxes()
+	btnLeft := up.X
 	border := draw.NewBorderFromPixel(bg)
-	d.SetForeground(gc, border.LightPixel)
-	d.DrawLine(pixDrawable, gc, 0, height-1, width-1, height-1)
-	d.DrawLine(pixDrawable, gc, width-1, 0, width-1, height-1)
-
-	// Button area.
-	btnLeft := width - s.buttonWidth
-	midY := height / 2
-
-	// Button background.
-	d.SetForeground(gc, bg)
-	d.FillRectangle(pixDrawable, gc, btnLeft, 1, uint(s.buttonWidth-1), uint(height-2))
-
-	// Separator line.
-	d.SetForeground(gc, uint64(0x9e9a91))
-	d.DrawLine(pixDrawable, gc, btnLeft, 1, btnLeft, height-2)
-
-	// Horizontal divider between up and down.
-	d.DrawLine(pixDrawable, gc, btnLeft+1, midY, width-2, midY)
-
-	// Up/down button relief.
-	if s.pressedButton == "up" {
+	arrowColor := LookupColor(st, "-arrowcolor", s.State, 0x000000)
+	pad := 3 * screenunit.ScalingPct() / 100
+	for i, ab := range []Box{up, down} {
+		relief := LookupRelief(st, "-relief", s.State, option.ReliefRaised)
+		if (i == 0 && s.pressedButton == "up") || (i == 1 && s.pressedButton == "down") {
+			relief = option.ReliefSunken
+		}
+		draw.Fill3DRectangle(d, pixDrawable, gc, border, ab.X, ab.Y, ab.Width, ab.Height,
+			LookupInt(st, "-borderwidth", s.State, 1), relief)
 		d.SetForeground(gc, border.DarkPixel)
-		d.DrawLine(pixDrawable, gc, btnLeft+1, 1, width-2, 1)
-		d.DrawLine(pixDrawable, gc, btnLeft+1, 1, btnLeft+1, midY-1)
-	} else if s.pressedButton == "down" {
-		d.SetForeground(gc, border.DarkPixel)
-		d.DrawLine(pixDrawable, gc, btnLeft+1, midY+1, width-2, midY+1)
-		d.DrawLine(pixDrawable, gc, btnLeft+1, midY+1, btnLeft+1, height-2)
-	}
-
-	// Draw arrows.
-	d.SetForeground(gc, fg)
-	cx := btnLeft + s.buttonWidth/2
-	// Up arrow.
-	upCy := midY / 2
-	for row := 0; row < 3; row++ {
-		d.DrawLine(pixDrawable, gc, cx-row, upCy-1+row, cx+row, upCy-1+row)
-	}
-	// Down arrow.
-	downCy := midY + (height-midY)/2
-	for row := 0; row < 3; row++ {
-		d.DrawLine(pixDrawable, gc, cx-row, downCy+1-row, cx+row, downCy+1-row)
+		d.DrawLine(pixDrawable, gc, ab.X, ab.Y+1, ab.X, ab.Y+ab.Height-1)
+		ib := Box{ab.X + pad, ab.Y + pad, ab.Width - 2*pad, ab.Height - 2*pad}
+		cx, cy := 2*(ib.Width/2)+1, ib.Width/2+1
+		if (ib.Height-cy)%2 == 1 {
+			cy++
+		}
+		b := Box{ib.X + (ib.Width-cx)/2, ib.Y + (ib.Height-cy)/2, cx, cy}
+		pts := arrowDownPoints(b)
+		if i == 0 {
+			pts = arrowUpPoints(b)
+		}
+		d.SetForeground(gc, arrowColor)
+		d.FillPolygon(pixDrawable, gc, pts, 2, 0)
+		d.DrawLines(pixDrawable, gc, append(pts, pts[0]), 0)
+		d.DrawLine(pixDrawable, gc, int(pts[2].X), int(pts[2].Y), int(pts[2].X), int(pts[2].Y))
 	}
 
 	// Draw text.
 	if s.Font != nil && len(s.edit.Text) > 0 {
 		m := s.Font.Metrics()
-		textX := s.insetX + 2
+		textX := s.insetX
 		textY := (height-m.Linespace())/2 + m.Ascent
 
 		// Selection highlight.
