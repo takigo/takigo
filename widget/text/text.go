@@ -131,6 +131,7 @@ func New(parent widget.Caregiver, name string, opts ...TextOption) *TextWidget {
 	t.BorderWidth = widget.DefBorderWidth
 	t.Relief = option.ReliefSunken
 	t.HighlightWidth = 1
+	t.PadX, t.PadY = 1, 1 // DEF_TEXT_PADX, DEF_TEXT_PADY
 
 	// White background.
 	if bg, err := app.ColorCache().Get("#ffffff"); err == nil {
@@ -169,7 +170,7 @@ func New(parent widget.Caregiver, name string, opts ...TextOption) *TextWidget {
 		opt(t)
 	}
 
-	t.inset = t.BorderWidth + t.HighlightWidth + 1
+	t.inset = t.BorderWidth + t.HighlightWidth
 	t.insetX = t.inset + t.PadX
 	t.insetY = t.inset + t.PadY
 	t.computeGeometry()
@@ -213,6 +214,7 @@ func NewPeer(doc *Document, parent widget.Caregiver, name string, opts ...TextOp
 	t.BorderWidth = widget.DefBorderWidth
 	t.Relief = option.ReliefSunken
 	t.HighlightWidth = 1
+	t.PadX, t.PadY = 1, 1 // DEF_TEXT_PADX, DEF_TEXT_PADY
 
 	if bg, err := app.ColorCache().Get("#ffffff"); err == nil {
 		t.Background = bg
@@ -234,7 +236,7 @@ func NewPeer(doc *Document, parent widget.Caregiver, name string, opts ...TextOp
 		opt(t)
 	}
 
-	t.inset = t.BorderWidth + t.HighlightWidth + 1
+	t.inset = t.BorderWidth + t.HighlightWidth
 	t.insetX = t.inset + t.PadX
 	t.insetY = t.inset + t.PadY
 	t.computeGeometry()
@@ -580,7 +582,7 @@ func (t *TextWidget) XViewScroll(count int, pages bool) {
 func (t *TextWidget) Configure(opts ...option.Option) {
 	option.Apply(t, opts)
 	t.UpdateBorder()
-	t.inset = t.BorderWidth + t.HighlightWidth + 1
+	t.inset = t.BorderWidth + t.HighlightWidth
 	t.insetX = t.inset + t.PadX
 	t.insetY = t.inset + t.PadY
 	t.computeGeometry()
@@ -951,7 +953,7 @@ func (t *TextWidget) notifyXScrollbar() {
 		return
 	}
 	maxW := t.estimateMaxLineWidth()
-	availW := t.Win.Width - 2*t.inset
+	availW := t.Win.Width - 2*t.insetX
 	if maxW <= 0 {
 		t.XScrollCmd(0, 1)
 		return

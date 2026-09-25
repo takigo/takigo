@@ -2,7 +2,7 @@
 
 // Package cocoa provides the macOS/Cocoa backend for the platform abstraction layer.
 //
-// Known gaps
+// # Known gaps
 //
 // The backend currently satisfies platform.DisplayServer with a number of
 // no-op or zero-returning stubs. They are intentionally left empty so the
@@ -26,8 +26,8 @@
 package cocoa
 
 import (
-	clib "github.com/msorc/takigo/internal/cocoa"
 	"github.com/msorc/takigo/font"
+	clib "github.com/msorc/takigo/internal/cocoa"
 	"github.com/msorc/takigo/platform"
 )
 
@@ -68,17 +68,17 @@ func NewDisplayServer(displayName string) (platform.DisplayServer, font.FontOpen
 		},
 	}
 	ds := platform.NewDisplayServer(
-		core,        // DisplayCore
-		core,        // WindowManager
-		core,        // Drawer
-		core,        // GCManager
-		core,        // PixmapManager
-		core,        // EventSource
-		core,        // GrabManager
-		core,        // SelectionManager
-		core,        // CursorManager
-		core,        // PropertyManager
-		core,        // InputMethodManager
+		core, // DisplayCore
+		core, // WindowManager
+		core, // Drawer
+		core, // GCManager
+		core, // PixmapManager
+		core, // EventSource
+		core, // GrabManager
+		core, // SelectionManager
+		core, // CursorManager
+		core, // PropertyManager
+		core, // InputMethodManager
 	)
 	return ds, core.FontOpener(core.DefaultScreen()), nil
 }

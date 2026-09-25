@@ -1,6 +1,7 @@
 package canvas
 
 import (
+	"github.com/msorc/takigo/geometry/place"
 	"unicode/utf8"
 
 	"github.com/msorc/takigo/event"
@@ -35,6 +36,7 @@ func bindCanvas(c *Canvas) {
 			c.setOrigin(c.xOrigin, c.yOrigin)
 			c.scheduleRedraw()
 			c.notifyScrollbars()
+			place.ArrangeContainer(w)
 		} else if ev.Type == event.DestroyType {
 			c.Destroy()
 		}
@@ -158,6 +160,18 @@ func (c *Canvas) setCurrentItem(entry *itemEntry, triggerEvent *event.Event) {
 	if entry != nil {
 		c.dispatchToItem(entry, &event.Event{Type: event.EnterType})
 	}
+	// -activefill and friends depend on which item is current.
+	if hasActive(old) || hasActive(entry) {
+		c.scheduleRedraw()
+	}
+}
+
+func hasActive(e *itemEntry) bool {
+	if e == nil {
+		return false
+	}
+	b := itemBase(e.item)
+	return b != nil && b.activeFill != nil
 }
 
 // dispatchItemEvent dispatches an event to the current item's bindings.

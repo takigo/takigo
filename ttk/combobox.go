@@ -7,8 +7,8 @@ import (
 	"github.com/msorc/takigo/font"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
-	"github.com/msorc/takigo/ttk/entrytext"
 	"github.com/msorc/takigo/screenunit"
+	"github.com/msorc/takigo/ttk/entrytext"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/window"
 )
@@ -28,15 +28,15 @@ const (
 // Combobox is a themed entry with a dropdown list.
 type Combobox struct {
 	TtkWidget
-	Values   []string
-	edit     entrytext.Helper
-	CbState  ComboboxState
-	Font     font.Font
-	Command  func(value string) // called when value changes
+	Values  []string
+	edit    entrytext.Helper
+	CbState ComboboxState
+	Font    font.Font
+	Command func(value string) // called when value changes
 	// Placeholder is -placeholder: shown while the text is empty.
 	Placeholder string
-	selBg    uint64             // selection highlight background
-	selFg    uint64             // selection text foreground
+	selBg       uint64 // selection highlight background
+	selFg       uint64 // selection text foreground
 
 	// Dropdown state.
 	dropWin      *window.Window
@@ -97,11 +97,11 @@ func NewCombobox(parent widget.Caregiver, name string, opts ...ComboboxOption) *
 	c.Font, _ = app.FontRegistry().Get(font.TkDefaultFont)
 
 	c.edit = entrytext.Helper{
-		Font:    c.Font,
-		TextX:   c.insetX + 1,
-		App:     app,
-		Win:     win,
-		Redraw:  c.Display,
+		Font:     c.Font,
+		TextX:    c.insetX + 1,
+		App:      app,
+		Win:      win,
+		Redraw:   c.Display,
 		Editable: func() bool { return c.CbState == ComboNormal },
 	}
 

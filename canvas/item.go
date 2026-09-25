@@ -3,6 +3,7 @@
 package canvas
 
 import (
+	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/platform"
 )
 
@@ -69,10 +70,25 @@ type ItemBase struct {
 	ID             int64
 	Tags           []string
 	X1, Y1, X2, Y2 int // integer bounding box in canvas coords
-	state ItemState
+	state          ItemState
 	canvas         *Canvas // back-pointer for color/font/visual resolution
 
 	stipple, outlineStipple string // -stipple / -outlinestipple bitmap specs
+
+	activeFill, disabledFill *color.ColorRef // -activefill / -disabledfill
+}
+
+// fillFor picks the fill for the item's state, as the item display procs
+// do: -disabledfill when disabled, -activefill when it is the current item.
+func (b *ItemBase) fillFor(fill *color.ColorRef) *color.ColorRef {
+	if b.state == ItemStateDisabled && b.disabledFill != nil {
+		return b.disabledFill
+	}
+	if b.state != ItemStateDisabled && b.activeFill != nil && b.canvas != nil &&
+		b.canvas.currentItem != nil && b.canvas.currentItem.id == b.ID {
+		return b.activeFill
+	}
+	return fill
 }
 
 // State returns the item's per-item state.

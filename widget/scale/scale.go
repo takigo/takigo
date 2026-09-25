@@ -285,7 +285,7 @@ func (s *Scale) hitTest(x, y int) string {
 
 // scaleLayout holds ComputeScaleGeometry's positions.
 type scaleLayout struct {
-	labelY, valueY, troughY, tickY          int // horizontal
+	labelY, valueY, troughY, tickY           int // horizontal
 	tickRightX, valueRightX, troughX, labelX int // vertical
 }
 

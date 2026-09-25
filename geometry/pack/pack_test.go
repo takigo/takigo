@@ -120,7 +120,7 @@ func TestComputeSize(t *testing.T) {
 		{
 			name: "with_padding",
 			entries: []*packEntry{
-				{window: &window.Window{ReqWidth: 100, ReqHeight: 30}, config: packConfig{side: Top, padX: 5, padY: 10}},
+				{window: &window.Window{ReqWidth: 100, ReqHeight: 30}, config: packConfig{side: Top, padX: 10, padY: 20, padLeft: 5, padTop: 10}},
 			},
 			wantW: 110, // 100 + 5*2
 			wantH: 50,  // 30 + 10*2

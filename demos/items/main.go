@@ -112,7 +112,7 @@ func main() {
 	px := screenunit.Px
 
 	// Colors matching Tk's color depth >1 defaults.
-	const blue = "#009ACD"   // DeepSkyBlue3
+	const blue = "#009ACD" // DeepSkyBlue3
 	const red = "red"
 	const green = "SeaGreen3"
 

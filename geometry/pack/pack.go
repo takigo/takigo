@@ -34,14 +34,15 @@ const (
 type PackOption func(*packConfig)
 
 type packConfig struct {
-	side   Side
-	fill   Fill
-	expand bool
-	anchor option.Anchor
-	padX   int
-	padY   int
-	iPadX  int
-	iPadY  int
+	side            Side
+	fill            Fill
+	expand          bool
+	anchor          option.Anchor
+	padX            int // total horizontal padding (left + right), as in tkPack.c
+	padY            int // total vertical padding (top + bottom)
+	padLeft, padTop int
+	iPadX           int
+	iPadY           int
 }
 
 // Side sets the packing side.
@@ -58,11 +59,31 @@ func Anchor(a option.Anchor) PackOption { return func(c *packConfig) { c.anchor 
 
 // PadX sets the exterior horizontal padding.
 // Accepts int (pixels), float64 (rounded pixels), or string with unit suffix ("3p", "2m", "1c", "0.5i").
-func PadX(p any) PackOption { return func(c *packConfig) { c.padX = screenunit.Px(p) } }
+func PadX(p any) PackOption {
+	return func(c *packConfig) { c.padLeft = screenunit.Px(p); c.padX = 2 * c.padLeft }
+}
+
+// PadXPair sets asymmetric exterior horizontal padding (-padx {left right}).
+func PadXPair(left, right any) PackOption {
+	return func(c *packConfig) {
+		c.padLeft = screenunit.Px(left)
+		c.padX = c.padLeft + screenunit.Px(right)
+	}
+}
 
 // PadY sets the exterior vertical padding.
 // Accepts int (pixels), float64 (rounded pixels), or string with unit suffix ("3p", "2m", "1c", "0.5i").
-func PadY(p any) PackOption { return func(c *packConfig) { c.padY = screenunit.Px(p) } }
+func PadY(p any) PackOption {
+	return func(c *packConfig) { c.padTop = screenunit.Px(p); c.padY = 2 * c.padTop }
+}
+
+// PadYPair sets asymmetric exterior vertical padding (-pady {top bottom}).
+func PadYPair(top, bottom any) PackOption {
+	return func(c *packConfig) {
+		c.padTop = screenunit.Px(top)
+		c.padY = c.padTop + screenunit.Px(bottom)
+	}
+}
 
 // IPadX sets the interior horizontal padding.
 // Accepts int (pixels), float64 (rounded pixels), or string with unit suffix ("3p", "2m", "1c", "0.5i").
@@ -257,7 +278,7 @@ func (p *packer) arrange() {
 			frameX = cavityX
 			frameY = cavityY
 			frameW = cavityW
-			frameH = childReqH + cfg.padY*2
+			frameH = childReqH + cfg.padY
 			if cfg.expand {
 				frameH += yExpansion(p.entries, e, cavityH)
 			}
@@ -270,7 +291,7 @@ func (p *packer) arrange() {
 		case Bottom:
 			frameX = cavityX
 			frameW = cavityW
-			frameH = childReqH + cfg.padY*2
+			frameH = childReqH + cfg.padY
 			if cfg.expand {
 				frameH += yExpansion(p.entries, e, cavityH)
 			}
@@ -284,7 +305,7 @@ func (p *packer) arrange() {
 			frameX = cavityX
 			frameY = cavityY
 			frameH = cavityH
-			frameW = childReqW + cfg.padX*2
+			frameW = childReqW + cfg.padX
 			if cfg.expand {
 				frameW += xExpansion(p.entries, e, cavityW)
 			}
@@ -297,7 +318,7 @@ func (p *packer) arrange() {
 		case Right:
 			frameY = cavityY
 			frameH = cavityH
-			frameW = childReqW + cfg.padX*2
+			frameW = childReqW + cfg.padX
 			if cfg.expand {
 				frameW += xExpansion(p.entries, e, cavityW)
 			}
@@ -313,10 +334,10 @@ func (p *packer) arrange() {
 		childH := childReqH
 
 		if cfg.fill == FillX || cfg.fill == FillBoth {
-			childW = frameW - cfg.padX*2
+			childW = frameW - cfg.padX
 		}
 		if cfg.fill == FillY || cfg.fill == FillBoth {
-			childH = frameH - cfg.padY*2
+			childH = frameH - cfg.padY
 		}
 
 		if childW < 1 {
@@ -327,8 +348,8 @@ func (p *packer) arrange() {
 		}
 
 		// Apply anchor.
-		childX, childY := anchorPosition(cfg.anchor, frameX+cfg.padX, frameY+cfg.padY,
-			frameW-cfg.padX*2, frameH-cfg.padY*2, childW, childH)
+		childX, childY := anchorPosition(cfg.anchor, frameX+cfg.padLeft, frameY+cfg.padTop,
+			frameW-cfg.padX, frameH-cfg.padY, childW, childH)
 
 		// Move and resize the child window.
 		child.X = childX
@@ -368,8 +389,8 @@ func (p *packer) computeSize() (int, int) {
 		cfg := &e.config
 		child := e.window
 		bw2 := 2 * child.BorderWidth
-		childW := child.ReqWidth + bw2 + cfg.iPadX*2 + cfg.padX*2
-		childH := child.ReqHeight + bw2 + cfg.iPadY*2 + cfg.padY*2
+		childW := child.ReqWidth + bw2 + cfg.iPadX*2 + cfg.padX
+		childH := child.ReqHeight + bw2 + cfg.iPadY*2 + cfg.padY
 
 		switch cfg.side {
 		case Top, Bottom:
@@ -419,7 +440,7 @@ func xExpansion(entries []*packEntry, target *packEntry, cavityW int) int {
 	return expansion(entries, target, cavityW,
 		func(s Side) bool { return s == Left || s == Right },
 		func(e *packEntry) int {
-			return e.window.ReqWidth + 2*e.window.BorderWidth + e.config.iPadX*2 + e.config.padX*2
+			return e.window.ReqWidth + 2*e.window.BorderWidth + e.config.iPadX*2 + e.config.padX
 		})
 }
 
@@ -428,7 +449,7 @@ func yExpansion(entries []*packEntry, target *packEntry, cavityH int) int {
 	return expansion(entries, target, cavityH,
 		func(s Side) bool { return s == Top || s == Bottom },
 		func(e *packEntry) int {
-			return e.window.ReqHeight + 2*e.window.BorderWidth + e.config.iPadY*2 + e.config.padY*2
+			return e.window.ReqHeight + 2*e.window.BorderWidth + e.config.iPadY*2 + e.config.padY
 		})
 }
 

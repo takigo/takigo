@@ -99,8 +99,8 @@ func (r *RectOvalItem) Display(d platform.DisplayServer, drawable platform.Drawa
 	}
 
 	if r.typeName == "rectangle" {
-		if r.fill != nil {
-			d.SetForeground(gc, r.fill.Pixel)
+		if fill := r.fillFor(r.fill); fill != nil {
+			d.SetForeground(gc, fill.Pixel)
 			off := r.canvas.stippleOn(d, drawable, gc, r.stipple, originX, originY)
 			d.FillRectangle(drawable, gc, x1, y1, uint(w), uint(h))
 			off()
@@ -117,8 +117,8 @@ func (r *RectOvalItem) Display(d platform.DisplayServer, drawable platform.Drawa
 			d.SetLineAttributes(gc, 1, platform.LineSolid, platform.CapButt, platform.JoinMiter)
 		}
 	} else { // oval
-		if r.fill != nil {
-			d.SetForeground(gc, r.fill.Pixel)
+		if fill := r.fillFor(r.fill); fill != nil {
+			d.SetForeground(gc, fill.Pixel)
 			off := r.canvas.stippleOn(d, drawable, gc, r.stipple, originX, originY)
 			d.FillArc(drawable, gc, x1, y1, uint(w), uint(h), 0, 360*64)
 			off()

@@ -24,7 +24,7 @@ func bindText(t *TextWidget, app widget.AppContext) {
 		if ev.Type == event.ConfigureType {
 			w.Width = ev.ConfigWidth
 			w.Height = ev.ConfigHeight
-			t.inset = t.BorderWidth + t.HighlightWidth + 1
+			t.inset = t.BorderWidth + t.HighlightWidth
 			t.notifyYScrollbar()
 			t.Display()
 		}
@@ -141,7 +141,7 @@ func bindText(t *TextWidget, app widget.AppContext) {
 			}
 
 		case platform.XK_Prior: // PageUp
-			visLines := (t.Win.Height - 2*t.inset) / t.lineHeight()
+			visLines := (t.Win.Height - 2*t.insetY) / t.lineHeight()
 			if visLines < 1 {
 				visLines = 1
 			}
@@ -155,7 +155,7 @@ func bindText(t *TextWidget, app widget.AppContext) {
 			t.notifyYScrollbar()
 
 		case platform.XK_Next: // PageDown
-			visLines := (t.Win.Height - 2*t.inset) / t.lineHeight()
+			visLines := (t.Win.Height - 2*t.insetY) / t.lineHeight()
 			if visLines < 1 {
 				visLines = 1
 			}

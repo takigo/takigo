@@ -370,16 +370,16 @@ func NewDisplayServer(
 	im InputMethodManager,
 ) DisplayServer {
 	return &displayServer{
-		DisplayCore:       core,
-		WindowManager:     wm,
-		Drawer:            drawer,
-		GCManager:         gc,
-		PixmapManager:     pixmap,
-		EventSource:       eventSrc,
-		GrabManager:       grab,
-		SelectionManager:  sel,
-		CursorManager:     cursor,
-		PropertyManager:   prop,
+		DisplayCore:        core,
+		WindowManager:      wm,
+		Drawer:             drawer,
+		GCManager:          gc,
+		PixmapManager:      pixmap,
+		EventSource:        eventSrc,
+		GrabManager:        grab,
+		SelectionManager:   sel,
+		CursorManager:      cursor,
+		PropertyManager:    prop,
 		InputMethodManager: im,
 	}
 }

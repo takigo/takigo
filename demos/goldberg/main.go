@@ -11,12 +11,20 @@ import (
 
 	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/canvas"
+	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/event"
+	"github.com/msorc/takigo/geometry"
+	"github.com/msorc/takigo/geometry/grid"
 	"github.com/msorc/takigo/geometry/pack"
+	"github.com/msorc/takigo/geometry/place"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
-	"github.com/msorc/takigo/widget/button"
+	"github.com/msorc/takigo/screenunit"
+	"github.com/msorc/takigo/ttk"
+	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/frame"
+	"github.com/msorc/takigo/widget/label"
+	"github.com/msorc/takigo/window"
 )
 
 // Animation modes.
@@ -1940,40 +1948,119 @@ func main() {
 	}
 	app.WmInfo().SetResizable(false, false)
 
-	// Control buttons — pack first so they get space before the canvas expands.
-	ctrl := frame.New(app, "ctrl")
-	pack.Pack(ctrl, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY), pack.PadX(3), pack.PadY(3))
-
-	c := canvas.New(app, "goldberg",
-		canvas.Width(506), canvas.Height(405),
-		canvas.Background(colors["bg"]),
-		canvas.ScrollRegion(0, 0, 563, 563),
-	)
-	pack.Pack(c, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+	// BaseDimensions (CanX 675, CanY 540, ScrX/ScrY 750) times
+	// overallFactor 0.75, in points.
+	dim := func(base float64) int { return screenunit.Px(fmt.Sprintf("%gp", base*0.75)) }
 
 	g := &goldberg{
 		app:     app,
-		c:       c,
-		sf:      0.75,
+		sf:      float64(screenunit.ScalingPct()) / 100 * 0.75,
 		mode:    mStart,
 		speed:   5,
-		message: "\nWelcome\nto\nGo/Tk!",
+		message: "\nWelcome\nto\nTcl/Tk!",
 		active:  []int{0},
 		step:    make(map[int]int),
 	}
 
-	bStart := button.New(ctrl, "start", button.Text("Start"), button.Command(func() { g.doButton(0) }))
-	pack.Pack(bStart, pack.FillOpt(pack.FillX), pack.PadY(2))
-	bReset := button.New(ctrl, "reset", button.Text("Reset"), button.Command(func() { g.doButton(3) }))
-	pack.Pack(bReset, pack.FillOpt(pack.FillX), pack.PadY(2))
-	bStep := button.New(ctrl, "step", button.Text("Step"), button.Command(func() { g.doButton(2) }))
-	pack.Pack(bStep, pack.FillOpt(pack.FillX), pack.PadY(2))
-	bBig := button.New(ctrl, "bstep", button.Text("Big Step"), button.Command(func() { g.doButton(4) }))
-	pack.Pack(bBig, pack.FillOpt(pack.FillX), pack.PadY(2))
+	// DoDisplay.
+	ctrl := ttk.NewFrame(app, "ctrl", ttk.FrameRelief(option.ReliefRidge),
+		ttk.FrameBorderWidth(1), ttk.FramePadding(ttk.UniformPadding(screenunit.Px("3p"))))
+	screen := frame.New(app, "screen", frame.BorderWidth(1), frame.Relief(option.ReliefRaised))
+	pack.Pack(screen, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+	c := canvas.New(screen, "c",
+		canvas.Width(dim(675)), canvas.Height(dim(540)),
+		canvas.Background(colors["bg"]),
+		canvas.HighlightWidthOpt(0),
+		canvas.ScrollRegion(0, 0, dim(750), dim(750)),
+	)
+	g.c = c
+	pack.Pack(c, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+	c.Win.ConfigureCallback = func() { c.YViewMoveTo(0.06) }
+
+	// DoCtrlFrame: the widgets are gridded -in ctrl in Tk; here they are
+	// its children.
+	pause := widget.NewVariable(false)
+	start := ttk.NewButton(ctrl, "start", ttk.ButtonText("Start"), ttk.ButtonCommand(func() { g.doButton(0) }))
+	pauseCb := ttk.NewCheckbutton(ctrl, "pause", ttk.CheckbuttonText("Pause"), ttk.CheckbuttonVar(pause),
+		ttk.CheckbuttonCommand(func() { g.pause = pause.Get(); g.doButton(1) }))
+	step := ttk.NewButton(ctrl, "step", ttk.ButtonText("Single Step"), ttk.ButtonCommand(func() { g.doButton(2) }))
+	bstep := ttk.NewButton(ctrl, "bstep", ttk.ButtonText("Big Step"), ttk.ButtonCommand(func() { g.doButton(4) }))
+	reset := ttk.NewButton(ctrl, "reset", ttk.ButtonText("Reset"), ttk.ButtonCommand(func() { g.doButton(3) }))
+	details := ttk.NewLabelframe(ctrl, "details", ttk.LabelframeText("Details"))
+	message := ttk.NewLabelframe(ctrl, "message", ttk.LabelframeText("Message"))
+	msgEntry := ttk.NewEntry(message, "e", ttk.EntryText(g.message), ttk.EntryJustify(option.JustifyCenter))
+	speedLf := ttk.NewLabelframe(ctrl, "speed", ttk.LabelframeText("Speed: 0"))
+	speedVar := widget.NewVariable(5.0)
+	speedScale := ttk.NewScale(speedLf, "scale", ttk.ScaleOrient(ttk.Horizontal), ttk.ScaleFrom(1),
+		ttk.ScaleTo(10), ttk.ScaleVariable(speedVar), ttk.ScaleCommand(func(v float64) { g.speed = int(v) }))
+	about := ttk.NewButton(ctrl, "about", ttk.ButtonText("About"))
+	row := 0
+	gridRow := func(w geometry.Elementer, opts ...grid.GridOption) {
+		grid.Grid(w, append([]grid.GridOption{grid.Row(row), grid.Column(0), grid.Sticky(grid.EW)}, opts...)...)
+		row++
+	}
+	gridRow(start)
+	grid.RowConfigure(ctrl, 1, grid.MinSize(screenunit.Px("3p")))
+	row = 2
+	gridRow(pauseCb)
+	gridRow(step, grid.PadY("1.5p"))
+	gridRow(bstep)
+	gridRow(reset, grid.PadY("1.5p"))
+	grid.RowConfigure(ctrl, 10, grid.MinSize(screenunit.Px("3p")))
+	row = 11
+	gridRow(details)
+	grid.RowConfigure(ctrl, 11, grid.MinSize(screenunit.Px("3p")))
+	grid.RowConfigure(ctrl, 50, grid.Weight(1))
+	row = 98
+	gridRow(message, grid.PadYPair(0, "3p"))
+	grid.Grid(msgEntry, grid.Sticky(grid.NSEW))
+	gridRow(speedLf, grid.PadYPair(0, "3p"))
+	pack.Pack(speedScale, pack.FillOpt(pack.FillBoth), pack.Expand(true))
+	gridRow(about)
+	gridRow(ttk.NewSeparator(ctrl, "sep"), grid.PadYPair("3p", "1.5p"))
+	// "See Code / Dismiss buttons hack!": copies of the two buttons, stacked.
+	gridRow(ttk.NewButton(ctrl, "b1", ttk.ButtonText("See Code"), ttk.ButtonImage(demohelper.Image("view")),
+		ttk.ButtonCompound(widget.CompoundLeft), ttk.ButtonCommand(func() { demohelper.ShowCode(app) })),
+		grid.PadYPair("1.5p", 0))
+	gridRow(ttk.NewButton(ctrl, "b2", ttk.ButtonText("Dismiss"), ttk.ButtonImage(demohelper.Image("delete")),
+		ttk.ButtonCompound(widget.CompoundLeft), ttk.ButtonCommand(app.Quit)),
+		grid.PadYPair("1.5p", 0))
+
+	show := ttk.NewButton(c, "show", ttk.ButtonText("▶"), ttk.ButtonWidth(2))
+	show.Command = func() {
+		if ctrl.Win.Flags&window.FlagMapped != 0 {
+			pack.Forget(ctrl)
+			show.Text = "▶"
+		} else {
+			pack.Pack(ctrl, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillBoth), pack.IPadY(5))
+			show.Text = "◀"
+		}
+		show.Display()
+	}
+	place.Place(show, place.RelX(1), place.RelY(0), place.Anchor(option.AnchorNE))
 
 	g.drawAll()
 	c.YViewMoveTo(0.06)
 	g.go_()
+
+	// StartMessage / PlacedDialog.
+	placedDialog := func(msg, fnt string) {
+		mf := frame.New(c, "messframe", frame.Relief(option.ReliefRaised), frame.BorderWidth(screenunit.Px("3p")))
+		lab := label.New(mf, "lab", label.FontOpt(fnt), label.WrapLength("3i"),
+			label.JustifyOpt(option.JustifyLeft), label.Text(msg))
+		but := ttk.NewButton(mf, "but", ttk.ButtonText("OK"))
+		but.Command = func() { mf.Destroy() }
+		pack.Pack(lab, pack.PadX("10p"), pack.PadYPair("10p", "5p"))
+		pack.Pack(but, pack.PadX("10p"), pack.PadYPair(0, "10p"))
+		place.Place(mf, place.Anchor(option.AnchorCenter), place.RelX(0.5), place.RelY(0.5))
+	}
+	about.Command = func() {
+		placedDialog("Tk Goldberg\nby Keith Vetter, March 2003\n(Reproduced by kind permission of the author)\n\n"+
+			"\"Man will always find a difficult means to perform a simple task.\"\n - Rube Goldberg", "Helvetica 12 bold")
+	}
+	placedDialog("This is a demonstration of just how complex you can make your animations become. "+
+		"Close this dialog and click the ball to start things moving!\n\n"+
+		"\"Man will always find a difficult means to perform a simple task\"\n - Rube Goldberg", "Helvetica 12")
 
 	app.Run()
 }

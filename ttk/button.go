@@ -68,6 +68,12 @@ func ButtonFont(name string) ButtonOption {
 	}
 }
 
+// ButtonWidth sets -width: in average characters, a negative value being
+// a minimum (as in the style's -width -9).
+func ButtonWidth(n int) ButtonOption {
+	return func(b *Button) { b.SetWidgetOption("-width", n) }
+}
+
 // ButtonStyleOpt overrides the TTK style name (e.g. "Toolbutton").
 // Must be applied before other options that depend on the layout.
 func ButtonStyleOpt(name string) ButtonOption {

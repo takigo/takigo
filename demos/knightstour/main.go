@@ -1,9 +1,11 @@
 // Demo: Calculate a Knight's tour of a chessboard.
-// Ported from Tk's knightstour.tcl demo.
+// Ported from Tk's knightstour.tcl demo (Warnsdorff's rule with the
+// Edgemost tie-break).
 package main
 
 import (
 	"fmt"
+	"math"
 	"os"
 	"time"
 
@@ -11,85 +13,58 @@ import (
 	"github.com/msorc/takigo/canvas"
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/event"
+	"github.com/msorc/takigo/font"
+	"github.com/msorc/takigo/geometry/grid"
 	"github.com/msorc/takigo/geometry/pack"
-	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/screenunit"
+	"github.com/msorc/takigo/ttk"
 	"github.com/msorc/takigo/widget"
-	"github.com/msorc/takigo/widget/button"
-	"github.com/msorc/takigo/widget/checkbutton"
 	"github.com/msorc/takigo/widget/frame"
-	"github.com/msorc/takigo/widget/label"
-	"github.com/msorc/takigo/widget/scale"
+	"github.com/msorc/takigo/widget/text"
 )
 
-const boardSize = 8
+// tclRand ports Tcl's rand() (tclBasic.c ExprRandFunc), a Park-Miller
+// generator, so a seeded run picks the same squares as the Tcl demo.
+type tclRand struct{ seed int64 }
 
-var knightMoves = [][2]int{{-2, -1}, {-2, 1}, {-1, -2}, {-1, 2}, {1, -2}, {1, 2}, {2, -1}, {2, 1}}
-
-func degree(visited [][]bool, r, c int) int {
-	count := 0
-	for _, m := range knightMoves {
-		nr, nc := r+m[0], c+m[1]
-		if nr >= 0 && nr < boardSize && nc >= 0 && nc < boardSize && !visited[nr][nc] {
-			count++
-		}
+func newTclRand(seed int64) *tclRand {
+	s := seed & 0x7fffffff
+	if s == 0 || s == 0x7fffffff {
+		s ^= 123459876
 	}
-	return count
+	return &tclRand{s}
 }
 
-// edgeDistance returns the minimum distance of (r,c) from any board edge.
-// Lower = closer to edge. Used as secondary tiebreaker (Edgemost heuristic).
-func edgeDistance(r, c int) int {
-	d := r
-	if boardSize-1-r < d {
-		d = boardSize - 1 - r
+func (r *tclRand) float() float64 {
+	const ia, im, iq, ir = 16807, 2147483647, 127773, 2836
+	tmp := r.seed / iq
+	r.seed = ia*(r.seed-tmp*iq) - ir*tmp
+	if r.seed < 0 {
+		r.seed += im
 	}
-	if c < d {
-		d = c
-	}
-	if boardSize-1-c < d {
-		d = boardSize - 1 - c
-	}
-	return d
+	return float64(r.seed) / im
 }
 
-// findTour finds a knight's tour starting at (startR, startC) using
-// Warnsdorff's heuristic with Edgemost tiebreaking.
-func findTour(startR, startC int) [][2]int {
-	visited := make([][]bool, boardSize)
-	for i := range visited {
-		visited[i] = make([]bool, boardSize)
-	}
-
-	path := make([][2]int, 0, boardSize*boardSize)
-	r, cc := startR, startC
-	visited[r][cc] = true
-	path = append(path, [2]int{r, cc})
-
-	for len(path) < boardSize*boardSize {
-		bestDeg := 9
-		bestEdge := boardSize
-		bestR, bestC := -1, -1
-		for _, m := range knightMoves {
-			nr, nc := r+m[0], cc+m[1]
-			if nr >= 0 && nr < boardSize && nc >= 0 && nc < boardSize && !visited[nr][nc] {
-				d := degree(visited, nr, nc)
-				e := edgeDistance(nr, nc)
-				if d < bestDeg || (d == bestDeg && e < bestEdge) {
-					bestDeg = d
-					bestEdge = e
-					bestR, bestC = nr, nc
-				}
-			}
+func validMoves(square int) []int {
+	var moves []int
+	for _, p := range [][2]int{{-1, -2}, {-2, -1}, {-2, 1}, {-1, 2}, {1, 2}, {2, 1}, {2, -1}, {1, -2}} {
+		col, row := square%8+p[0], square/8+p[1]
+		if row >= 0 && row < 8 && col >= 0 && col < 8 {
+			moves = append(moves, row*8+col)
 		}
-		if bestR < 0 {
-			break
-		}
-		r, cc = bestR, bestC
-		visited[r][cc] = true
-		path = append(path, [2]int{r, cc})
 	}
-	return path
+	return moves
 }
+
+func edgemost(a, b int) int {
+	f := func(v int) int { return 3 - int(math.Abs(3.5-float64(v))) }
+	if f(a%8)*f(a/8) < f(b%8)*f(b/8) {
+		return a
+	}
+	return b
+}
+
+func squareName(sq int) string { return fmt.Sprintf("%c%d", 'a'+sq%8, sq/8+1) }
 
 func main() {
 	app, err := takigo.NewApp(takigo.Title("Knight's Tour"),
@@ -101,234 +76,217 @@ func main() {
 		os.Exit(1)
 	}
 
-	f := frame.New(app, "f")
-	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+	// The screenshot scripts run the Tcl side with srand(1).
+	rnd := newTclRand(time.Now().UnixNano())
+	if os.Getenv("TAKIGO_FREEZE_TIMERS") == "1" {
+		// Like the wrapper's "expr {srand(1)}", which returns (and so
+		// consumes) the first number.
+		rnd = newTclRand(1)
+		rnd.float()
+	}
 
-	btns := demohelper.AddSeeDismiss(f)
-	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
+	dlg := frame.New(app, "f")
+	pack.Pack(dlg, pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
-	statusLabel := label.New(f, "status",
-		label.Text("Click a square to set start, then Start."),
-		label.Anchor(option.AnchorW),
-		label.Background("#e8e8e8"),
-		label.PadX(5), label.PadY(2),
-	)
-	pack.Pack(statusLabel, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
-
-	c := canvas.New(f, "c",
-		canvas.Background("white"),
-		canvas.Width(400),
-		canvas.Height(400),
-	)
-	pack.Pack(c, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
-		pack.Expand(true), pack.PadX(10), pack.PadY(5))
-
-	const cellSize = 400.0 / float64(boardSize)
-	const margin = 0.0
-
-	// Draw chessboard.
-	drawBoard := func() {
-		c.Delete("board")
-		for row := range boardSize {
-			for col := range boardSize {
-				x1 := margin + float64(col)*cellSize
-				y1 := margin + float64(row)*cellSize
-				x2 := x1 + cellSize
-				y2 := y1 + cellSize
-				fill := "#f0d9b5"
-				if (row+col)%2 == 1 {
-					fill = "#b58863"
+	f := ttk.NewFrame(dlg, "f")
+	pt := screenunit.Float
+	c := canvas.New(f, "c", canvas.Width("192p"), canvas.Height("192p"))
+	txt := text.New(f, "txt", text.Width(12), text.Height(1),
+		text.PadXOpt(screenunit.Px("3p")), text.FontOpt(font.TkFixedFont))
+	vs := ttk.NewScrollbar(f, "vs", ttk.ScrollbarOrientOpt(ttk.Vertical),
+		ttk.ScrollbarCommandOpt(func(args ...any) {
+			if len(args) >= 2 && args[0] == "moveto" {
+				if v, ok := args[1].(float64); ok {
+					txt.YViewMoveTo(v)
 				}
-				c.CreateRectangle(x1, y1, x2, y2,
-					canvas.FillColor(fill), canvas.OutlineColor("#888888"),
-					canvas.Tags("board"))
+			} else if len(args) >= 3 && args[0] == "scroll" {
+				n, _ := args[1].(int)
+				unit, _ := args[2].(string)
+				txt.YViewScroll(n, unit == "pages")
 			}
-		}
-	}
-	drawBoard()
+		}))
+	txt.YScrollCmd = vs.Set
 
-	// State.
-	startRow, startCol := 0, 0
-	tour := findTour(startRow, startCol)
-	step := 0
-	running := false
-	delayMs := 300.0
-	var animateFunc func()
+	speed := widget.NewVariable(1400.0)
+	delay := 2000 - 1400
+	continuous := widget.NewVariable(false)
 
-	// Highlight starting square.
-	highlightStart := func() {
-		c.Delete("startmark")
-		x := margin + (float64(startCol)+0.15)*cellSize
-		y := margin + (float64(startRow)+0.15)*cellSize
-		r := cellSize * 0.7
-		c.CreateOval(x, y, x+r, y+r,
-			canvas.FillColor("#2ecc71"), canvas.OutlineColor("black"),
-			canvas.OutlineWidth(2), canvas.Tags("startmark"))
-	}
-	highlightStart()
+	tf := ttk.NewFrame(dlg, "tf")
+	ls := ttk.NewLabel(tf, "ls", ttk.LabelText("Speed"))
+	sc := ttk.NewScale(tf, "sc", ttk.ScaleFrom(0), ttk.ScaleTo(1992),
+		ttk.ScaleVariable(speed),
+		ttk.ScaleCommand(func(v float64) { delay = 2000 - int(v) }))
+	cc := ttk.NewCheckbutton(tf, "cc", ttk.CheckbuttonText("Repeat"),
+		ttk.CheckbuttonVar(continuous))
 
-	// Button bar.
-	btnFrame := frame.New(f, "tf")
-	pack.Pack(btnFrame, pack.SideOpt(pack.Top), pack.PadX(10), pack.PadY(5))
+	var squares [64]int64
+	var visited []int
+	var initial int
+	var b1 *ttk.Button
+	var tour func(square int)
+	gen := 0 // cancels pending moves, like "after cancel $aid"
 
-	startBtn := button.New(btnFrame, "b1",
-		button.Text("Start"),
-		button.PadX(10), button.PadY(4),
-	)
-	stopBtn := button.New(btnFrame, "stop",
-		button.Text("Stop"),
-		button.PadX(10), button.PadY(4),
-	)
-	resetBtn := button.New(btnFrame, "reset",
-		button.Text("Reset"),
-		button.PadX(10), button.PadY(4),
-	)
-	stopBtn.State = widget.StateDisabled
-	stopBtn.Display()
-
-	pack.Pack(startBtn, pack.SideOpt(pack.Left), pack.PadX(4))
-	pack.Pack(stopBtn, pack.SideOpt(pack.Left), pack.PadX(4))
-	pack.Pack(resetBtn, pack.SideOpt(pack.Left), pack.PadX(4))
-
-	// Repeat checkbutton.
-	repeatVar := widget.NewVariable("0")
-	repeatChk := checkbutton.New(btnFrame, "cc",
-		checkbutton.Text("Repeat"),
-		checkbutton.Var(repeatVar),
-	)
-	pack.Pack(repeatChk, pack.SideOpt(pack.Left), pack.PadX(4))
-
-	// Speed slider.
-	speedScale := scale.New(f, "sc",
-		scale.OrientOpt(scale.Horizontal),
-		scale.FromOpt(50),
-		scale.ToOpt(800),
-		scale.ValueOpt(delayMs),
-		scale.ResolutionOpt(10),
-		scale.LabelOpt("Delay (ms)"),
-		scale.ShowValueOpt(true),
-	)
-	speedScale.Command = func(v float64) { delayMs = v }
-	pack.Pack(speedScale, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
-		pack.PadX(10), pack.PadY(2))
-
-	updateButtons := func() {
-		if running {
-			startBtn.State = widget.StateDisabled
-			stopBtn.State = widget.StateNormal
-		} else {
-			startBtn.State = widget.StateNormal
-			stopBtn.State = widget.StateDisabled
-		}
-		startBtn.Display()
-		stopBtn.Display()
-	}
-
-	animateFunc = func() {
-		if !running {
-			return
-		}
-		if step >= len(tour) {
-			running = false
-			updateButtons()
-			if repeatVar.Get() == "1" {
-				// Restart from same square.
-				step = 0
-				c.Delete("knight")
-				c.Delete("path")
-				tour = findTour(startRow, startCol)
-				running = true
-				updateButtons()
-				animateFunc()
-			} else {
-				statusLabel.Text = fmt.Sprintf("Tour complete! %d moves.", len(tour))
-				statusLabel.Display()
+	sq := 0
+	for row := 7; row >= 0; row-- {
+		for col := 0; col < 8; col++ {
+			fill, dfill := "bisque", "bisque3"
+			if (col&1)^(row&1) != 0 {
+				fill, dfill = "tan3", "tan4"
 			}
+			squares[sq] = c.CreateRectangle(
+				pt(fmt.Sprintf("%dp", col*24+3)), pt(fmt.Sprintf("%dp", row*24+3)),
+				pt(fmt.Sprintf("%dp", col*24+24)), pt(fmt.Sprintf("%dp", row*24+24)),
+				canvas.FillColor(fill), canvas.DisabledFill(dfill),
+				canvas.OutlineWidth(screenunit.Px("1.5p")),
+				canvas.StateOpt(canvas.ItemStateDisabled), canvas.OutlineColor("black"))
+			sq++
+		}
+	}
+	// On X11 the demo draws the knight as a polygon.
+	knight := c.CreatePolygon([]float64{
+		2, 25, 24, 25, 21, 19, 20, 8, 14, 0, 10, 0, 0, 13, 0, 16,
+		2, 17, 4, 14, 5, 15, 3, 17, 5, 17, 9, 14, 10, 15, 5, 21,
+	}, canvas.Tags("knight"), canvas.FillColor("black"), canvas.ActiveFill("#600000"))
+	_ = knight
+	scaleFactor := float64(screenunit.ScalingPct()) / 100
+	c.Scale("knight", 0, 0, scaleFactor, scaleFactor)
+	moveKnightTo := func(square int) {
+		xy := c.ItemCoords(fmt.Sprint(squares[square]))
+		c.MoveTo("knight", xy[0], xy[1])
+	}
+	moveKnightTo(int(rnd.float() * 64))
+
+	var dragging []int
+	c.BindItem("knight", event.ButtonPressMask, func(ev *event.Event) {
+		if ev.Button != 1 {
 			return
 		}
-
-		pos := tour[step]
-		cx := margin + (float64(pos[1])+0.5)*cellSize
-		cy := margin + (float64(pos[0])+0.5)*cellSize
-
-		if step > 0 {
-			prev := tour[step-1]
-			px := margin + (float64(prev[1])+0.5)*cellSize
-			py := margin + (float64(prev[0])+0.5)*cellSize
-			c.CreateLine([]float64{px, py, cx, cy},
-				canvas.OutlineColor("#3498db"), canvas.OutlineWidth(2),
-				canvas.Tags("path"))
-		}
-
-		c.Delete("knight")
-		r := cellSize * 0.3
-		c.CreateOval(cx-r, cy-r, cx+r, cy+r,
-			canvas.FillColor("#e74c3c"), canvas.OutlineColor("black"),
-			canvas.OutlineWidth(2), canvas.Tags("knight"))
-		c.CreateText(cx, cy,
-			canvas.TextOpt(fmt.Sprintf("%d", step+1)),
-			canvas.FontOpt("Sans Bold 9"), canvas.TextColor("white"),
-			canvas.AnchorOpt(option.AnchorCenter), canvas.Tags("knight"))
-
-		statusLabel.Text = fmt.Sprintf("Move: %d / %d", step+1, len(tour))
-		statusLabel.Display()
-		step++
-		app.After(time.Duration(delayMs)*time.Millisecond, animateFunc)
-	}
-
-	startBtn.Command = func() {
-		if running {
-			return
-		}
-		c.Delete("knight")
-		c.Delete("path")
-		c.Delete("startmark")
-		step = 0
-		tour = findTour(startRow, startCol)
-		running = true
-		updateButtons()
-		animateFunc()
-	}
-
-	stopBtn.Command = func() {
-		running = false
-		updateButtons()
-		statusLabel.Text = fmt.Sprintf("Stopped at move %d / %d", step, len(tour))
-		statusLabel.Display()
-	}
-
-	resetBtn.Command = func() {
-		running = false
-		step = 0
-		c.Delete("knight")
-		c.Delete("path")
-		highlightStart()
-		updateButtons()
-		statusLabel.Text = "Click a square to set start, then Start."
-		statusLabel.Display()
-	}
-
-	// Click on canvas to set start square (only when not running).
-	app.Dispatcher().Bind(c.Win.PlatformID, event.ButtonPressMask, func(ev *event.Event) {
-		if ev.Button != 1 || running {
-			return
-		}
-		col := int(float64(ev.X) / cellSize)
-		row := int(float64(ev.Y) / cellSize)
-		if row < 0 || row >= boardSize || col < 0 || col >= boardSize {
-			return
-		}
-		startRow = row
-		startCol = col
-		step = 0
-		tour = findTour(startRow, startCol)
-		c.Delete("knight")
-		c.Delete("path")
-		highlightStart()
-		statusLabel.Text = fmt.Sprintf("Start: %c%d — click Start to run.",
-			rune('a'+col), boardSize-row)
-		statusLabel.Display()
+		c.DeleteTag("selected", "all")
+		c.AddTag("selected", "current")
+		dragging = []int{ev.X, ev.Y}
 	})
+	c.BindItem("knight", event.MotionMask, func(ev *event.Event) {
+		if dragging != nil {
+			c.Move("selected", float64(ev.X-dragging[0]), float64(ev.Y-dragging[1]))
+			dragging = []int{ev.X, ev.Y}
+		}
+	})
+	c.BindItem("knight", event.ButtonReleaseMask, func(ev *event.Event) {
+		if ev.Button != 1 {
+			return
+		}
+		id := c.FindClosest(float64(ev.X), float64(ev.Y), 0, fmt.Sprint(knight))
+		xy := c.ItemCoords(fmt.Sprint(id))
+		c.MoveTo("selected", xy[0], xy[1])
+		c.DeleteTag("selected", "all")
+		dragging = nil
+	})
+
+	visitedHas := func(s int) bool {
+		for _, v := range visited {
+			if v == s {
+				return true
+			}
+		}
+		return false
+	}
+	checkSquare := func(s int) int {
+		n := 0
+		for _, t := range validMoves(s) {
+			if !visitedHas(t) {
+				n++
+			}
+		}
+		return n
+	}
+	next := func(s int) int {
+		minimum, nextSq := 9, -1
+		for _, t := range validMoves(s) {
+			if visitedHas(t) {
+				continue
+			}
+			if n := checkSquare(t); n < minimum {
+				minimum, nextSq = n, t
+			} else if n == minimum {
+				nextSq = edgemost(nextSq, t)
+			}
+		}
+		return nextSq
+	}
+	setOutline := func(s int, color string) {
+		c.ItemConfigure(fmt.Sprint(squares[s]), canvas.StateOpt(canvas.ItemStateNormal), canvas.OutlineColor(color))
+	}
+	var movePiece func(g, last, square int)
+	movePiece = func(g, last, square int) {
+		if g != gen {
+			return
+		}
+		txt.Insert("end", fmt.Sprintf("%2d. %s .. %s\n", len(visited), squareName(last), squareName(square)))
+		txt.See("end")
+		setOutline(last, "black")
+		setOutline(square, "red")
+		moveKnightTo(square)
+		visited = append(visited, square)
+		if n := next(square); n != -1 {
+			app.After(time.Duration(delay)*time.Millisecond, func() { movePiece(g, square, n) })
+			return
+		}
+		b1.ChangeState(0, ttk.StateDisabled)
+		switch {
+		case len(visited) != 64:
+			txt.Insert("end", "FAILED!")
+		case initial == square:
+			txt.Insert("end", "Closed tour!")
+		default:
+			txt.Insert("end", "Success")
+			if continuous.Get() {
+				app.After(time.Duration(delay*2)*time.Millisecond, func() { tour(int(rnd.float() * 64)) })
+			}
+		}
+	}
+	tour = func(square int) {
+		visited = nil
+		txt.Delete("1.0", "end")
+		b1.ChangeState(ttk.StateDisabled, 0)
+		for _, id := range squares {
+			c.ItemConfigure(fmt.Sprint(id), canvas.StateOpt(canvas.ItemStateDisabled), canvas.OutlineColor("black"))
+		}
+		if square < 0 {
+			xy := c.ItemCoords("knight")
+			id := c.FindClosest(xy[0], xy[1], 0, fmt.Sprint(knight))
+			for i, s := range squares {
+				if s == id {
+					square = i
+				}
+			}
+		}
+		initial = square
+		gen++
+		g := gen
+		app.DoWhenIdle(func() { movePiece(g, square, square) })
+	}
+
+	b1 = ttk.NewButton(tf, "b1", ttk.ButtonText("Start"), ttk.ButtonCommand(func() { tour(-1) }))
+	// Exit (b2) exists but is only packed outside the widget demo.
+	ttk.NewButton(tf, "b2", ttk.ButtonText("Exit"), ttk.ButtonCommand(app.Quit))
+
+	grid.Grid(c, grid.Row(0), grid.Column(0), grid.Sticky(grid.NSEW))
+	grid.Grid(txt, grid.Row(0), grid.Column(1), grid.Sticky(grid.NSEW))
+	grid.Grid(vs, grid.Row(0), grid.Column(2), grid.Sticky(grid.NSEW))
+	grid.RowConfigure(f, 0, grid.Weight(1))
+	grid.ColumnConfigure(f, 1, grid.Weight(1))
+	grid.Grid(f, grid.Row(0), grid.Column(0), grid.ColumnSpan(6), grid.Sticky(grid.NSEW))
+
+	right := []pack.PackOption{pack.SideOpt(pack.Right), pack.PadX("1.5p"), pack.PadY("1.5p")}
+	pack.Pack(b1, right...)
+	pack.Pack(cc, right...)
+	pack.Pack(sc, right...)
+	pack.Pack(ls, right...)
+	grid.Grid(tf, grid.Row(1), grid.Column(0), grid.ColumnSpan(6), grid.Sticky(grid.EW))
+	btns := demohelper.AddSeeDismiss(dlg)
+	grid.Grid(btns, grid.Row(2), grid.Column(0), grid.ColumnSpan(6), grid.Sticky(grid.EW))
+	grid.RowConfigure(dlg, 0, grid.Weight(1))
+	grid.ColumnConfigure(dlg, 0, grid.Weight(1))
 
 	app.Run()
 }

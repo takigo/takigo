@@ -76,16 +76,8 @@ func NewFrame(parent widget.Caregiver, name string, opts ...FrameOption) *Frame 
 	win.InternalBorderTop = f.padding.Top + f.borderWidth
 	win.InternalBorderBottom = f.padding.Bottom + f.borderWidth
 
-	// Re-resolve size after options.
-	if f.Layout != nil {
-		rw, rh := f.Layout.Size(f.State)
-		if rw > win.ReqWidth {
-			win.ReqWidth = rw
-		}
-		if rh > win.ReqHeight {
-			win.ReqHeight = rh
-		}
-	}
+	// FrameSize requests no size of its own: only the margins count.
+	win.ReqWidth, win.ReqHeight = 1, 1
 
 	return f
 }

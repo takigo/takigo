@@ -46,17 +46,17 @@ func NewDisplayServer(name string) (platform.DisplayServer, font.FontOpener, err
 	}
 	// All capabilities are implemented by the same core struct.
 	ds := platform.NewDisplayServer(
-		core,        // DisplayCore
-		core,        // WindowManager
-		core,        // Drawer
-		core,        // GCManager
-		core,        // PixmapManager
-		core,        // EventSource
-		core,        // GrabManager
-		core,        // SelectionManager
-		core,        // CursorManager
-		core,        // PropertyManager
-		core,        // InputMethodManager
+		core, // DisplayCore
+		core, // WindowManager
+		core, // Drawer
+		core, // GCManager
+		core, // PixmapManager
+		core, // EventSource
+		core, // GrabManager
+		core, // SelectionManager
+		core, // CursorManager
+		core, // PropertyManager
+		core, // InputMethodManager
 	)
 	return ds, core.FontOpener(core.dpy.DefaultScreen()), nil
 }
@@ -359,7 +359,7 @@ func (s *X11Display) SetCursorShape(w platform.WindowID, shape uint) {
 	s.dpy.DefineCursorFromFont(xlib.Window(w), x11Shape)
 }
 
-func (s *X11Display) UndefineCursor(w platform.WindowID) { s.dpy.UndefineCursor(xlib.Window(w)) }
+func (s *X11Display) UndefineCursor(w platform.WindowID)  { s.dpy.UndefineCursor(xlib.Window(w)) }
 func (s *X11Display) FreeCursor(cursor platform.CursorID) { s.dpy.FreeCursor(xlib.Cursor(cursor)) }
 
 // --- PropertyManager ---

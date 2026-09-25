@@ -17,6 +17,7 @@ import (
 	tkimage "github.com/msorc/takigo/image"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/ttk"
 	"github.com/msorc/takigo/widget/button"
 	"github.com/msorc/takigo/widget/frame"
@@ -515,8 +516,8 @@ func main() {
 	bigPBtn := button.New(tw, "bigP",
 		button.Text("Big pad"),
 		button.Command(func() {
-			tw.SetPadX(12)
-			tw.SetPadY(12)
+			tw.SetPadX(screenunit.Px("12p"))
+			tw.SetPadY(screenunit.Px("12p"))
 		}),
 	)
 	tw.WindowCreate(tw.EndIndex(), bigPBtn.Window())

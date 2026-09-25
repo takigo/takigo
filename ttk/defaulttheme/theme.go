@@ -48,7 +48,6 @@ func init() {
 	// TFrame style.
 	tframe := theme.GetStyle("TFrame")
 	tframe.Defaults["-relief"] = option.ReliefFlat
-	tframe.Defaults["-borderwidth"] = 0
 
 	// TCheckbutton style.
 	// Matches Tcl's default theme: indicatorbackground defaults to white and

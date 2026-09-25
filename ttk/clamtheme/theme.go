@@ -183,7 +183,7 @@ func init() {
 	tcheckbutton := theme.GetStyle("TCheckbutton")
 	tcheckbutton.Defaults["-padding"] = "1.5p"
 	tcheckbutton.Defaults["-indicatormargin"] = "0.75p 0.75p 3p 0.75p"
-		tcheckbutton.Defaults["-upperbordercolor"] = darkestColor
+	tcheckbutton.Defaults["-upperbordercolor"] = darkestColor
 	tcheckbutton.Defaults["-lowerbordercolor"] = darkColor
 	tcheckbutton.Defaults["-indicatorbackground"] = lightColor
 	tcheckbutton.Defaults["-indicatorforeground"] = uint64(0x000000)
@@ -201,7 +201,7 @@ func init() {
 	tradiobutton := theme.GetStyle("TRadiobutton")
 	tradiobutton.Defaults["-padding"] = "1.5p"
 	tradiobutton.Defaults["-indicatormargin"] = "0.75p 0.75p 3p 0.75p"
-		tradiobutton.Defaults["-upperbordercolor"] = darkestColor
+	tradiobutton.Defaults["-upperbordercolor"] = darkestColor
 	tradiobutton.Defaults["-lowerbordercolor"] = darkColor
 	tradiobutton.Defaults["-indicatorbackground"] = lightColor
 	tradiobutton.Defaults["-indicatorforeground"] = uint64(0x000000)

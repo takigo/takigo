@@ -35,7 +35,6 @@ func main() {
 	f := frame.New(app, "f")
 	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
-
 	// Toolbar frame (classic frame, matching Tcl's "Must be a frame!").
 	toolbar := frame.New(f, "toolbar")
 	grid.Grid(toolbar, grid.Sticky(grid.EW))

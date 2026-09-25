@@ -15,14 +15,14 @@ type ArcItem struct {
 	drawable         platform.DrawableID
 	originX, originY int
 	stippleOff       func()
-	coords       [4]float64 // bounding box of the ellipse
-	start        float64    // start angle in degrees
-	extent       float64    // angular extent in degrees
-	style        ArcStyle
-	fill         *color.ColorRef
-	outline      *color.ColorRef
-	outlineWidth int
-	dash         []byte
+	coords           [4]float64 // bounding box of the ellipse
+	start            float64    // start angle in degrees
+	extent           float64    // angular extent in degrees
+	style            ArcStyle
+	fill             *color.ColorRef
+	outline          *color.ColorRef
+	outlineWidth     int
+	dash             []byte
 }
 
 func newArcItem(x1, y1, x2, y2 float64, c *Canvas) *ArcItem {

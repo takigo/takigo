@@ -59,6 +59,10 @@ func BottomButtons() []*ttk.Button {
 	return lastBottomButtons
 }
 
+// Image returns one of the launcher icons ("view", "delete", "refresh",
+// "print"), as the Tcl demos' ::img::<name> images.
+func Image(name string) *tkimage.Photo { return img[name] }
+
 type DemoVars[T comparable] map[string]*widget.Variable[T]
 
 func init() {
