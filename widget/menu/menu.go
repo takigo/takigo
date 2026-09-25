@@ -167,6 +167,7 @@ func New(parent widget.Caregiver, name string, opts ...MenuOption) *Menu {
 		app:         app,
 	}
 	widget.InitBase(&m.Base, w, app)
+	w.Class = "Menu"
 	m.BorderWidth = 1
 	m.Relief = option.ReliefRaised
 

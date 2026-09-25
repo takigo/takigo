@@ -160,6 +160,7 @@ func New(parent widget.Caregiver, name string, opts ...ListboxOption) *Listbox {
 		PrefHeight:  10,
 	}
 	widget.InitBase(&lb.Base, w, app)
+	w.Class = "Listbox"
 
 	lb.BorderWidth = 2
 	lb.Relief = option.ReliefSunken

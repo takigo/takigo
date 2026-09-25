@@ -138,6 +138,7 @@ func New(parent widget.Caregiver, name string, opts ...ScaleOption) *Scale {
 		Width:        15,
 	}
 	widget.InitBase(&s.Base, w, app)
+	w.Class = "Scale"
 	s.BorderWidth = 1
 	s.Relief = option.ReliefFlat
 

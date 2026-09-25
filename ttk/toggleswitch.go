@@ -51,6 +51,7 @@ func NewToggleswitch(parent widget.Caregiver, name string, opts ...ToggleswitchO
 	win := window.NewChildWindow(parent.Window(), name, 0, 0, 1, 1)
 	window.MakeWindowExist(win)
 
+	win.Class = "Toggleswitch"
 	ts := &Toggleswitch{}
 	ts.Font, _ = app.FontRegistry().Get(font.TkDefaultFont)
 

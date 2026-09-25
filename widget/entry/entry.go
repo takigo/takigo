@@ -220,6 +220,7 @@ func New(parent widget.Caregiver, name string, opts ...EntryOption) *Entry {
 		Justify:     option.JustifyLeft,
 	}
 	widget.InitBase(&e.Base, w, app)
+	w.Class = "Entry"
 
 	// Entry-specific defaults.
 	e.BorderWidth = 2

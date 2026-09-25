@@ -107,6 +107,7 @@ func New(parent widget.Caregiver, name string, opts ...ScrollbarOption) *Scrollb
 	w := window.NewChildWindow(parent.Window(), name, 0, 0, 1, 1)
 	window.MakeWindowExist(w)
 	widget.InitBase(&s.Base, w, app)
+	w.Class = "Scrollbar"
 
 	s.BorderWidth = 1
 	s.Relief = option.ReliefSunken

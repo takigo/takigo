@@ -3,6 +3,8 @@
 package ttk
 
 import (
+	"strings"
+
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/widget"
@@ -43,6 +45,9 @@ func InitTtkWidget(w *TtkWidget, win *window.Window, app widget.AppContext, styl
 	w.App = app
 	w.StyleName = styleName
 	w.Theme = CurrentTheme()
+	if win.Class == "" {
+		win.Class = classForStyle(styleName)
+	}
 
 	if w.Theme == nil {
 		return
@@ -247,4 +252,21 @@ func bindTtkHover(w *TtkWidget, app widget.AppContext) {
 	app.Dispatcher().Bind(win.PlatformID, event.LeaveMask, func(ev *event.Event) {
 		w.ChangeState(0, StateHover|StateActive|StatePressed)
 	})
+}
+
+// classForStyle derives the Tk widget class from a style name, e.g.
+// "Vertical.TScrollbar" -> "TScrollbar". ttk::treeview's class is "Treeview".
+func classForStyle(styleName string) string {
+	parts := strings.Split(styleName, ".")
+	class := parts[len(parts)-1]
+	for _, p := range parts {
+		if len(p) > 1 && p[0] == 'T' && p[1] >= 'A' && p[1] <= 'Z' {
+			class = p
+			break
+		}
+	}
+	if class == "TTreeview" {
+		return "Treeview"
+	}
+	return class
 }

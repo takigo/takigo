@@ -158,6 +158,7 @@ func New(parent widget.Caregiver, name string, opts ...ToplevelOption) *Toplevel
 
 	t := &Toplevel{}
 	widget.InitBase(&t.Base, w, app)
+	w.Class = "Toplevel"
 
 	// Initialize WM state.
 	t.WmInfo = wm.Init(w)

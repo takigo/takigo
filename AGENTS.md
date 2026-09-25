@@ -68,6 +68,7 @@ platform/x11/                                      — Linux/BSD backend (uses i
 platform/cocoa/                                    — macOS backend (uses internal/cocoa cgo)
 platform/windows/                                  — Windows backend (uses internal/win32 cgo)
 internal/xlib/, internal/cocoa/, internal/win32/   — low-level bindings (cgo where needed)
+internal/treedump/                                 — widget-tree JSON dump (TAKIGO_DUMP_TREE) shared with scripts/tk_dump_tree.tcl
 internal/testutil/                                 — helpers for tests that need a real display
 
 geometry/                                          — shared manager infrastructure, Elementer, Group
@@ -88,7 +89,7 @@ demos/images/                                      — image assets only (gif/pn
 demos/widget_demo/                                 — launcher, Go counterpart of tk/library/demos/widget
 
 cmd/                                               — top-level test programs (demo, bind_demo,
-                                                    canvas_demo, dialog_demo, text_demo, dialog_test_debug, demotitle)
+                                                    canvas_demo, dialog_demo, text_demo, dialog_test_debug, demotitle, demodiff)
 
 scripts/                                           — bash + tcl screenshot/compare pipeline (see below)
 docs/architecture-review.md                        — architecture review snapshot (2026-08-31)
@@ -267,6 +268,11 @@ skill and script pipeline for comparing and fixing them.
   committed baseline `demos/parity.tsv` is regenerated with
   `bash scripts/demo_batch.sh --retake --stability 3 --update-baseline`; only
   compare scores produced under the same settings (batch runs headless).
+- **Structural diff:** every compare also dumps both widget trees and runs
+  `cmd/demodiff`, writing `tmp/screenshots/<demo>_tree.txt` (Go path ⇄ Tcl
+  path, root causes first). Read it before the images; REQSIZE/FONT/RENDER
+  entries that repeat across demos for one widget class are core bugs.
+  `window.Window.Class` carries the Tk class name for this.
 - **Headless:** `HEADLESS=1` (or an unset/unreachable `DISPLAY`) re-execs
   the screenshot scripts under `xvfb-run`.
 - **Debug aid:** `TAKIGO_DEBUG_NAME_WIDGETS=1` calls `XStoreName` on each
@@ -334,6 +340,7 @@ lookup.
 | `SKIP_IF_EXISTS=1` | Reuse existing screenshots in `demo_compare.sh` |
 | `SETTLE_SECS` / `TIMEOUT_SECS` | Demo screenshot wait tuning (see `scripts/README.md`) |
 | `PIN_FONTS` | `1` (default in screenshot scripts) = private DejaVu-only fontconfig for both sides |
+| `TAKIGO_DUMP_TREE=<file>` | Go apps (and `demo_wrapper.tcl`) rewrite the widget tree as JSON every 250ms when it changes (`internal/treedump`); compared by `cmd/demodiff` |
 | `TAKIGO_FREEZE_TIMERS=1` | `event.Loop.After` drops positive-delay timers (and `demo_wrapper.tcl` does the same to `after`); set by the screenshot scripts |
 | `HEADLESS=1` | Run screenshot/interact scripts under `xvfb-run` |
 | `LLM_TOOL` | LLM CLI used by `fix_demo.sh` / `fix_all.sh` (default `claude`) |

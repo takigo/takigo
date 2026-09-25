@@ -120,6 +120,7 @@ func New(parent widget.Caregiver, name string, opts ...CanvasOption) *Canvas {
 		closeEnough:  1.0,
 	}
 	widget.InitBase(&c.Base, w, app)
+	w.Class = "Canvas"
 
 	// Canvas defaults.
 	c.Base.Background, _ = app.ColorCache().Get("white")

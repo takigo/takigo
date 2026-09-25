@@ -132,6 +132,7 @@ func New(parent widget.Caregiver, name string, opts ...MenubuttonOption) *Menubu
 		IndicatorOn: true,
 	}
 	widget.InitBase(&mb.Base, w, app)
+	w.Class = "Menubutton"
 	mb.BorderWidth = widget.DefBorderWidth
 	mb.Relief = option.ReliefRaised
 	mb.PadX = 4

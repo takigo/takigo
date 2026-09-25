@@ -66,6 +66,13 @@ run_llm() {
     eval "$LLM_COMMAND" 2>&1 <<EOF | tee "$log"
 Fix the Go demo '$DEMO' to visually match the Tcl/Tk original.
 
+Structural diff (widget trees, Go path ⇄ Tcl path, root causes first) — Read it first:
+  $SS_DIR/${DEMO}_tree.txt
+  Kinds: MISSING/EXTRA/CLASS = demo structure; REQSIZE = a widget asks for a
+  different size (demo options if they differ from the Tcl source, else a core
+  widget bug — report it, don't hack the demo); POS usually follows an earlier
+  REQSIZE; FONT = core font issue, not the demo.
+
 Screenshot files — Read ALL THREE before editing anything:
   Go version:        $SS_DIR/${DEMO}_go.png
   Tcl/Tk original:   $SS_DIR/${TCL_DEMO}_tcl.png

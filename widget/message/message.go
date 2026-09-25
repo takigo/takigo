@@ -182,6 +182,7 @@ func New(parent widget.Caregiver, name string, opts ...MessageOption) *Message {
 		Aspect:  150,
 	}
 	widget.InitBase(&m.Base, w, app)
+	w.Class = "Message"
 
 	// Message-specific defaults (from tkUnixDefault.h).
 	m.BorderWidth = 1

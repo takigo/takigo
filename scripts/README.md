@@ -82,6 +82,8 @@ Ctrl+C at any time — the next run resumes from the first pending demo.
 | `demo_batch.sh [--retake] [--stability N] [--update-baseline] [prefix]` | Score all demos headless (timers frozen, so animated demos are included); `--stability N` recaptures each side N times and flags self-diff > 0; `--update-baseline` writes `demos/parity.tsv` |
 | `demo_map.sh [demo]` | Print Go↔Tcl name mapping (or Tcl name for one demo) |
 | `demo_interact.sh <demo> [events...]` | Drive a Go demo with xdotool (`--key`, `--type`, `--click X,Y\|<name>`, `--wait`), capture before/after PNGs, `--diff` for odiff %, `--list-widgets` to discover names (needs `TAKIGO_DEBUG_NAME_WIDGETS=1`) |
+| `tk_dump_tree.tcl` | Sourced by `demo_wrapper.tcl` when `TAKIGO_DUMP_TREE=<file>`: writes the Tk widget tree as JSON (same schema as `internal/treedump`, which the Go side writes via the same env var) |
+| `go run ./cmd/demodiff [-json] [-go-png F -tcl-png F] go.tree.json tcl.tree.json` | Structural diff of two tree dumps: TOPLEVEL/FONT/CLASS/MISSING/EXTRA/REQSIZE/SIZE/POS/RENDER, root causes first; run automatically by `demo_compare.sh` |
 | `_lib.sh` | Shared helpers (`tcl_demo_for`, `run_compare`, `odiff_score`, `maybe_xvfb`, `LLM_TOOL` launch configs); source it from new scripts |
 | `demo_wrapper.tcl <demo>` | Run a Tk 9.1 demo standalone (used by screenshot scripts) |
 
@@ -94,6 +96,8 @@ tmp/screenshots/<demo>_go.png      Go screenshot
 tmp/screenshots/<demo>_tcl.png     Tcl/Tk screenshot
 tmp/screenshots/<demo>_side.png    Side-by-side montage with diff score
 tmp/screenshots/<demo>_diff.png    Pixel-level diff heatmap
+tmp/screenshots/<demo>_{go,tcl}.tree.json  Widget-tree dumps (geometry, class, Tk options, fonts)
+tmp/screenshots/<demo>_tree.txt    Structural diff (also _tree.json)
 tmp/screenshots/scores_sorted.txt  Batch scores ranked worst-first
 tmp/screenshots/scores.tsv         Batch scores with window sizes and self-diff
 tmp/fontconfig/                    Generated pinned fontconfig (see PIN_FONTS)
@@ -109,6 +113,7 @@ tmp/logs/<demo>_iter1.log          the LLM's output for each fix attempt
 | `DISPLAY` | `:0` | X display |
 | `HEADLESS` | `0` (`1` in `demo_batch.sh`) | `1` = run screenshots under `xvfb-run` (also auto-falls back when `DISPLAY` is unset) |
 | `SETTLE_SECS` | `5` | Max wait for the window content to stop changing; capture happens as soon as two consecutive grabs are identical |
+| `DUMP_TREE` | `1` | `1` = both sides write a widget-tree dump next to the screenshot and `demo_compare.sh` runs `cmd/demodiff` |
 | `PIN_FONTS` | `1` | `1` = both sides use a private fontconfig with only DejaVu Sans/Serif/Mono, all other families aliased onto them, fixed antialias/hinting |
 | `TAKIGO_FREEZE_TIMERS` | `1` | `1` = drop every timer with a positive delay on both sides (Go `event.Loop.After`, Tcl `after`) and disable cursor blink, so captures are deterministic |
 | `TIMEOUT_SECS` | `15` | Max wait for demo window to appear |

@@ -120,6 +120,7 @@ func New(parent widget.Caregiver, name string, opts ...TextOption) *TextWidget {
 		undoEnabled: true,
 	}
 	widget.InitBase(&t.Base, w, app)
+	w.Class = "Text"
 
 	// Text widget defaults.
 	t.BorderWidth = 2
@@ -199,6 +200,7 @@ func NewPeer(doc *Document, parent widget.Caregiver, name string, opts ...TextOp
 		undoEnabled: false, // peers share history via the primary
 	}
 	widget.InitBase(&t.Base, w, app)
+	w.Class = "Text"
 
 	t.BorderWidth = 2
 	t.Relief = option.ReliefSunken

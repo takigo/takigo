@@ -239,6 +239,7 @@ func New(parent widget.Caregiver, name string, opts ...CheckbuttonOption) *Check
 		OffValue:    "0",
 	}
 	widget.InitBase(&c.Base, w, app)
+	w.Class = "Checkbutton"
 
 	// Checkbutton-specific defaults.
 	c.BorderWidth = 0

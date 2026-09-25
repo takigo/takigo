@@ -82,6 +82,7 @@ func New(parent widget.Caregiver, name string, opts ...FrameOption) *Frame {
 
 	f := &Frame{}
 	widget.InitBase(&f.Base, w, app)
+	w.Class = "Frame"
 
 	// Frame-specific defaults.
 	f.BorderWidth = 0

@@ -4,8 +4,11 @@
 package takigo
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"log"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -16,6 +19,7 @@ import (
 	"github.com/msorc/takigo/focus"
 	"github.com/msorc/takigo/font"
 	"github.com/msorc/takigo/image"
+	"github.com/msorc/takigo/internal/treedump"
 	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/selection"
@@ -233,7 +237,35 @@ func (a *App) MainLoop() {
 	a.display.Server.MapWindow(a.root.PlatformID)
 	a.root.Flags |= window.FlagMapped
 	a.display.Server.Flush()
+	if path := os.Getenv("TAKIGO_DUMP_TREE"); path != "" {
+		a.startTreeDump(path)
+	}
 	a.loop.Run()
+}
+
+// startTreeDump rewrites the widget-tree JSON at path whenever it changes,
+// polling from a plain ticker so TAKIGO_FREEZE_TIMERS does not stop it.
+// Used by scripts/demo_screenshot.sh for structural comparison with Tk.
+func (a *App) startTreeDump(path string) {
+	var last []byte
+	dump := func() {
+		b, err := treedump.Marshal(treedump.Collect(a.display, a.fontReg))
+		if err != nil || bytes.Equal(b, last) {
+			return
+		}
+		if err := treedump.WriteFileAtomic(path, b); err != nil {
+			log.Printf("takigo: tree dump: %v", err)
+			return
+		}
+		last = b
+	}
+	go func() {
+		t := time.NewTicker(250 * time.Millisecond)
+		defer t.Stop()
+		for range t.C {
+			a.loop.RunOnMain(dump)
+		}
+	}()
 }
 
 // Quit stops the event loop and cleans up resources.

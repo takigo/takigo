@@ -10,6 +10,8 @@
 #   - find_windows_exact <title>       — list window IDs by exact WM_NAME
 #   - maybe_xvfb "$@"                  — re-exec under xvfb-run when headless
 #   - demotitle_bin                    — cached path to the built demotitle CLI
+#   - demodiff_bin                     — cached path to the built demodiff CLI
+#   - pin_fonts                        — private DejaVu-only fontconfig
 #
 # Not executable on its own; sourced by other scripts.
 
@@ -152,6 +154,21 @@ demotitle_bin() {
     local src="$PROJECT_DIR/cmd/demotitle/main.go"
     if [[ ! -x "$bin" || "$src" -nt "$bin" ]]; then
         (cd "$PROJECT_DIR" && go build -o "$bin" ./cmd/demotitle) || return 1
+    fi
+    echo "$bin"
+}
+
+# demodiff_bin
+# Builds cmd/demodiff once into tmp/bin (rebuilt when its sources or
+# internal/treedump change) and echoes the path.
+demodiff_bin() {
+    local bin="$BIN_DIR/demodiff"
+    local newer
+    if [[ -x "$bin" ]]; then
+        newer=$(find "$PROJECT_DIR/cmd/demodiff" "$PROJECT_DIR/internal/treedump" -name '*.go' -newer "$bin" | head -1)
+    fi
+    if [[ ! -x "$bin" || -n "$newer" ]]; then
+        (cd "$PROJECT_DIR" && go build -o "$bin" ./cmd/demodiff) || return 1
     fi
     echo "$bin"
 }

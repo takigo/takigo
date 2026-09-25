@@ -119,13 +119,36 @@ bash scripts/demo_compare.sh <go_demo> <tcl_demo>
 ```
 
 Wait for it to finish. The script prints:
-- `Diff score: <number>` — mean absolute error, 0 = identical, higher = worse
-- Paths to all four PNGs
+- `Diff score: <number>` — odiff diff %, 0 = identical, higher = worse
+- `Tree diffs: <n>` — structural differences found by `cmd/demodiff`
+- Paths to all four PNGs and `tmp/screenshots/<go_demo>_tree.txt`
 
-If the score is `0` (or empty/very small), the demo already matches —
-report success and stop unless the user asked for behavioural fixes too.
+If both numbers are `0`, the demo already matches — report success and stop
+unless the user asked for behavioural fixes too.
 
-### 3. Visual analysis (Read the images)
+### 3. Structural analysis (Read the tree diff first)
+
+`tmp/screenshots/<go_demo>_tree.txt` lists concrete differences between the
+widget trees (Go path ⇄ Tcl path), most likely root causes first:
+
+| Kind | Meaning | Usual fix location |
+|---|---|---|
+| `TOPLEVEL` | window size differs | consequence — fix the others |
+| `FONT` | a named font resolves differently | `font/` (core, not the demo) |
+| `CLASS` | ttk vs classic, wrong widget type | demo |
+| `MISSING` / `EXTRA` | widget only on one side | demo |
+| `REQSIZE` | widget asks for a different size | demo options (-width, -padx, font…) if they differ from the Tcl source; otherwise the widget's size computation in core |
+| `SIZE` | same request, different allocated size | pack/grid options in the demo, or the geometry manager |
+| `POS` | offset inside parent differs | usually follows an earlier REQSIZE; fix those first |
+| `RENDER` | geometry identical, pixels differ (`[pixels N%]`) | drawing code of that widget class (core) |
+
+The deepest REQSIZE entries are listed first — they cause the shifts below
+them. If the same REQSIZE shows up for a widget class whose options match
+the Tcl source exactly (e.g. every `TButton` from `AddSeeDismiss`), it is a
+**core** bug: say so and fix the widget, not the demo. Widget options on the
+Tcl side (`opts`) are in `tmp/screenshots/<tcl_demo>_tcl.tree.json`.
+
+### 3b. Visual analysis (Read the images)
 
 Use the Read tool on **all three** of:
 - `tmp/screenshots/<go_demo>_go.png`

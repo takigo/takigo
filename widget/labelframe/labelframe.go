@@ -154,6 +154,7 @@ func New(parent widget.Caregiver, name string, opts ...LabelframeOption) *Labelf
 		LabelAnchor: option.AnchorNW,
 	}
 	widget.InitBase(&lf.Base, w, app)
+	w.Class = "Labelframe"
 
 	// Labelframe defaults.
 	lf.BorderWidth = 2

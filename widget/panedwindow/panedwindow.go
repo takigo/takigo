@@ -156,6 +156,7 @@ func New(parent widget.Caregiver, name string, opts ...PanedWindowOption) *Paned
 	}
 	pw.geomMgr = &pwGeomMgr{pw: pw}
 	widget.InitBase(&pw.Base, w, app)
+	w.Class = "Panedwindow"
 	pw.BorderWidth = 0
 	pw.Relief = option.ReliefFlat
 

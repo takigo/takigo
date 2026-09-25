@@ -252,6 +252,7 @@ func New(parent widget.Caregiver, name string, opts ...LabelOption) *Label {
 		Underline: -1,
 	}
 	widget.InitBase(&l.Base, w, app)
+	w.Class = "Label"
 
 	// Label-specific defaults from tkUnixDefault.h.
 	l.BorderWidth = 1

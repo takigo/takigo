@@ -18,6 +18,7 @@ type PanedwindowOption = panedwindow.PanedWindowOption
 // NewPanedwindow creates a TTK-styled panedwindow with a flat sash.
 func NewPanedwindow(parent widget.Caregiver, name string, opts ...PanedwindowOption) *Panedwindow {
 	pw := panedwindow.New(parent, name, opts...)
+	pw.Win.Class = "TPanedwindow"
 	pw.FlatSash = true
 	pw.SashWidth = 6
 	return &Panedwindow{PanedWindow: pw}

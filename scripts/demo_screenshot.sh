@@ -12,6 +12,8 @@
 #   TIMEOUT_SECS  : max wait for window to appear (default 15)
 #   PIN_FONTS     : 1 (default) = private DejaVu-only fontconfig, see pin_fonts
 #   TAKIGO_FREEZE_TIMERS : 1 (default) = drop positive-delay timers on both sides
+#   DUMP_TREE     : 1 (default) = also write <output>.tree.json (widget tree,
+#                   see internal/treedump and tk_dump_tree.tcl)
 
 set -euo pipefail
 
@@ -108,6 +110,29 @@ capture_window() {
 }
 
 # ---------------------------------------------------------------------------
+# tree_dump_env OUTPUT -- prints the env assignment for the tree dump of the
+# screenshot OUTPUT (empty when DUMP_TREE=0) and removes a stale dump.
+# wait_tree_dump OUTPUT -- waits for the dumper (250ms poll) to catch up.
+# ---------------------------------------------------------------------------
+tree_path() { echo "${1%.png}.tree.json"; }
+tree_dump_env() {
+    [[ "${DUMP_TREE:-1}" == "1" ]] || return 0
+    rm -f "$(tree_path "$1")"
+    echo "TAKIGO_DUMP_TREE=$(tree_path "$1")"
+}
+wait_tree_dump() {
+    [[ "${DUMP_TREE:-1}" == "1" ]] || return 0
+    local f
+    f=$(tree_path "$1")
+    sleep 0.6
+    for _ in $(seq 1 10); do
+        [[ -s "$f" ]] && return 0
+        sleep 0.2
+    done
+    echo "  WARNING: no tree dump written to $f" >&2
+}
+
+# ---------------------------------------------------------------------------
 # screenshot_go GO_DEMO OUTPUT TITLE
 # ---------------------------------------------------------------------------
 screenshot_go() {
@@ -139,7 +164,7 @@ screenshot_go() {
     trap 'if [[ -n "${demo_pid:-}" ]]; then kill "$demo_pid" 2>/dev/null || true; wait "$demo_pid" 2>/dev/null || true; fi; rm -f "$binary"' RETURN
 
     echo "  Running Go demo: $demo  (expecting title: \"$title\")" >&2
-    nohup "$binary" > /tmp/takigo_go_out.txt 2>&1 &
+    env $(tree_dump_env "$out") nohup "$binary" > /tmp/takigo_go_out.txt 2>&1 &
     demo_pid=$!
 
     if ! wid=$(wait_for_titled_window "$title"); then
@@ -156,6 +181,7 @@ screenshot_go() {
 
     echo "  Capturing window $wid..." >&2
     capture_window "$wid" "$out"
+    wait_tree_dump "$out"
 
     echo "  Saved: $out" >&2
 }
@@ -181,7 +207,7 @@ screenshot_tcl() {
     trap 'if [[ -n "${tcl_pid:-}" ]]; then kill "$tcl_pid" 2>/dev/null || true; wait "$tcl_pid" 2>/dev/null || true; fi' RETURN
 
     echo "  Running Tcl demo: $demo  (expecting title: \"$title\")" >&2
-    nohup "$WISH" "$SCRIPT_DIR/demo_wrapper.tcl" "$demo" > /tmp/takigo_tcl_out.txt 2>&1 &
+    env $(tree_dump_env "$out") nohup "$WISH" "$SCRIPT_DIR/demo_wrapper.tcl" "$demo" > /tmp/takigo_tcl_out.txt 2>&1 &
     tcl_pid=$!
 
     if ! wid=$(wait_for_titled_window "$title"); then
@@ -196,6 +222,7 @@ screenshot_tcl() {
 
     echo "  Capturing window $wid..." >&2
     capture_window "$wid" "$out"
+    wait_tree_dump "$out"
     echo "  Saved: $out" >&2
 }
 

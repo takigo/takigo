@@ -49,6 +49,7 @@ type WmInfo interface {
 	Children []*Window
 	PathName string // full path like ".frame1.button1"
 	Name     string // local name within parent
+	Class    string // widget class like "Button" or "TButton" (TkWindow.classUid)
 
 	// Geometry.
 	X, Y          int

@@ -199,6 +199,7 @@ func New(parent widget.Caregiver, name string, opts ...ButtonOption) *Button {
 		OffRelief:  option.ReliefFlat,
 	}
 	widget.InitBase(&b.Base, w, app)
+	w.Class = "Button"
 
 	// Button-specific defaults (Tk: padx=3m, pady=1m, borderwidth=1, highlightthickness=1).
 	b.BorderWidth = widget.DefBorderWidth

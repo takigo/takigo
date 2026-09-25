@@ -128,6 +128,7 @@ func New(parent widget.Caregiver, name string, opts ...SquareOption) *Square {
 		DoubleBuffer: true,
 	}
 	widget.InitBase(&s.Base, w, app)
+	w.Class = "Square"
 
 	// Square-specific defaults from tkSquare.c.
 	s.BorderWidth = 2

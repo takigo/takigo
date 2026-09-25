@@ -155,6 +155,7 @@ func New(parent widget.Caregiver, name string, opts ...SpinboxOption) *Spinbox {
 		buttonWidth: 16,
 	}
 	widget.InitBase(&s.Base, w, app)
+	w.Class = "Spinbox"
 
 	s.BorderWidth = 2
 	s.Relief = option.ReliefSunken

@@ -9,6 +9,8 @@
 #   <demo>_tcl.png      -- Tcl screenshot
 #   <demo>_diff.png     -- Pixel-level difference heatmap
 #   <demo>_side.png     -- Side-by-side montage for easy viewing
+#   <demo>_tree.txt     -- Structural diff (cmd/demodiff), when both sides
+#   <demo>_tree.json       wrote a widget-tree dump (DUMP_TREE=1, default)
 #
 # Prints a diff score (odiff diff percentage, lower = more similar) to stdout.
 #
@@ -125,6 +127,21 @@ montage \
 rm -f "$PAD_GO" "$PAD_TCL"
 
 # ---------------------------------------------------------------------------
+# Structural diff of the widget trees
+# ---------------------------------------------------------------------------
+GO_TREE="$SS_DIR/${DEMO}_go.tree.json"
+TCL_TREE="$SS_DIR/${TCL_DEMO}_tcl.tree.json"
+TREE_TXT="$SS_DIR/${DEMO}_tree.txt"
+TREE_JSON="$SS_DIR/${DEMO}_tree.json"
+TREE_DIFFS="-"
+if [[ -s "$GO_TREE" && -s "$TCL_TREE" ]] && DD=$(demodiff_bin); then
+    "$DD" -go-png "$GO_IMG" -tcl-png "$TCL_IMG" "$GO_TREE" "$TCL_TREE" > "$TREE_TXT" || true
+    "$DD" -json -go-png "$GO_IMG" -tcl-png "$TCL_IMG" "$GO_TREE" "$TCL_TREE" > "$TREE_JSON" || true
+    TREE_DIFFS=$(sed -n 's/^summary: \([0-9]*\) diffs.*/\1/p' "$TREE_TXT")
+    [[ -z "$TREE_DIFFS" ]] && TREE_DIFFS="-"
+fi
+
+# ---------------------------------------------------------------------------
 # Report
 # ---------------------------------------------------------------------------
 echo ""
@@ -132,5 +149,6 @@ echo "Demo:       $DEMO"
 echo "Go image:   $GO_IMG  (${W_GO}x${H_GO})"
 echo "Tcl image:  $TCL_IMG  (${W_TCL}x${H_TCL})"
 echo "Diff score: $SCORE  (odiff diff % 0-100 — lower is more similar)"
+echo "Tree diffs: $TREE_DIFFS  (structural differences, see $TREE_TXT)"
 echo "Side-by-side: $SIDE_IMG"
 echo "Diff heatmap: $DIFF_IMG"

@@ -275,4 +275,8 @@ if {![file exists $demoFile]} {
 # Hide the root window — demos create their own toplevels
 wm withdraw .
 
+if {[info exists ::env(TAKIGO_DUMP_TREE)] && $::env(TAKIGO_DUMP_TREE) ne ""} {
+    source [file join [file dirname [info script]] tk_dump_tree.tcl]
+}
+
 source -encoding utf-8 $demoFile
