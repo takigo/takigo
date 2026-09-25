@@ -17,7 +17,6 @@ import (
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
 	"github.com/msorc/takigo/widget/menu"
-	"github.com/msorc/takigo/widget/menubutton"
 )
 
 // demoImagesDir returns the path to demos/images/.
@@ -47,7 +46,6 @@ func main() {
 		label.Relief(option.ReliefSunken),
 		label.BorderWidth(1),
 		label.FontOpt("Helvetica 10"),
-		label.PadX(2),
 	)
 	pack.Pack(statusLabel, pack.SideOpt(pack.Left), pack.Expand(true), pack.FillOpt(pack.FillBoth), pack.PadX(2))
 	pack.Pack(statusBar, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX), pack.PadY(2))
@@ -55,12 +53,9 @@ func main() {
 	btns := demohelper.AddSeeDismiss(f)
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
-	// Menu bar frame — packed top first so it appears above the message.
-	menuBar := frame.New(f, "menubar",
-		frame.Relief(option.ReliefRaised),
-		frame.BorderWidth(1),
-	)
-	pack.Pack(menuBar, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
+	// "toplevel $w -menu $w.menu": the menubar clone is named
+	// "#menu#menu" after the Tcl menu path.
+	menuBar := menu.NewMenubar(app, "#menu#menu")
 
 	msg := label.New(f, "msg",
 		label.WrapLength("4i"),
@@ -86,13 +81,7 @@ func main() {
 	fileMenu.AddSeparator()
 	fileMenu.AddCommand("Dismiss Menus Demo", func() { app.Quit() })
 
-	fileMb := menubutton.New(menuBar, "filemb",
-		menubutton.Text("File"),
-		menubutton.MenuOpt(fileMenu),
-		menubutton.IndicatorOnOpt(false),
-		menubutton.UnderlineOpt(0),
-	)
-	pack.Pack(fileMb, pack.SideOpt(pack.Left))
+	menuBar.AddCascade("File", 0, fileMenu)
 
 	// ── Basic menu ──
 	basicMenu := menu.New(app, "basicmenu")
@@ -105,13 +94,7 @@ func main() {
 		})
 	}
 
-	basicMb := menubutton.New(menuBar, "basicmb",
-		menubutton.Text("Basic"),
-		menubutton.MenuOpt(basicMenu),
-		menubutton.IndicatorOnOpt(false),
-		menubutton.UnderlineOpt(0),
-	)
-	pack.Pack(basicMb, pack.SideOpt(pack.Left))
+	menuBar.AddCascade("Basic", 0, basicMenu)
 
 	// ── Cascades menu ──
 	cascadeMenu := menu.New(app, "cascademenu")
@@ -173,13 +156,7 @@ func main() {
 
 	cascadeMenu.AddCascadeUL("Radio buttons", 0, radioMenu)
 
-	cascadeMb := menubutton.New(menuBar, "cascademb",
-		menubutton.Text("Cascades"),
-		menubutton.MenuOpt(cascadeMenu),
-		menubutton.IndicatorOnOpt(false),
-		menubutton.UnderlineOpt(0),
-	)
-	pack.Pack(cascadeMb, pack.SideOpt(pack.Left))
+	menuBar.AddCascade("Cascades", 0, cascadeMenu)
 
 	// ── Icons menu ── (matches Tcl's menu.tcl order: before More)
 	iconsMenu := menu.New(app, "iconsmenu")
@@ -195,13 +172,7 @@ func main() {
 		iconsMenu.AddCommand("(earthmenu.png not found)", nil)
 	}
 
-	iconsMb := menubutton.New(menuBar, "iconsmb",
-		menubutton.Text("Icons"),
-		menubutton.MenuOpt(iconsMenu),
-		menubutton.IndicatorOnOpt(false),
-		menubutton.UnderlineOpt(0),
-	)
-	pack.Pack(iconsMb, pack.SideOpt(pack.Left))
+	menuBar.AddCascade("Icons", 0, iconsMenu)
 
 	// ── More menu ──
 	moreMenu := menu.New(app, "moremenu")
@@ -228,13 +199,7 @@ func main() {
 		})
 	}
 
-	moreMb := menubutton.New(menuBar, "moremb",
-		menubutton.Text("More"),
-		menubutton.MenuOpt(moreMenu),
-		menubutton.IndicatorOnOpt(false),
-		menubutton.UnderlineOpt(0),
-	)
-	pack.Pack(moreMb, pack.SideOpt(pack.Left))
+	menuBar.AddCascade("More", 0, moreMenu)
 
 	// ── Colors menu ── (tearoff enabled; per-entry colored backgrounds)
 	colorsMenu := menu.New(app, "colorsmenu", menu.TearOffOpt(true))
@@ -245,20 +210,8 @@ func main() {
 		})
 	}
 
-	colorsMb := menubutton.New(menuBar, "colorsmb",
-		menubutton.Text("Colors"),
-		menubutton.MenuOpt(colorsMenu),
-		menubutton.IndicatorOnOpt(false),
-		menubutton.UnderlineOpt(1), // 'o' in Colors, matching Tcl's -underline 1
-	)
-	pack.Pack(colorsMb, pack.SideOpt(pack.Left))
+	menuBar.AddCascade("Colors", 1, colorsMenu)
 
 	_ = statusLabel
-	_ = fileMb
-	_ = basicMb
-	_ = cascadeMb
-	_ = iconsMb
-	_ = moreMb
-	_ = colorsMb
 	app.Run()
 }

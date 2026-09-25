@@ -81,6 +81,11 @@ type WmInfo interface {
 	// Graphics context for basic drawing.
 	GC platform.GCID
 
+	// Menubar is a toplevel's -menu window. Tk draws it in the wrapper
+	// above the toplevel; takigo draws it at the top of the toplevel with
+	// the content pushed below (InternalBorderTop).
+	Menubar *Window
+
 	// ConfigureCallback is called when the window is resized.
 	// Set by geometry managers (e.g. pack) to re-layout children.
 	ConfigureCallback func()

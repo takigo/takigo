@@ -82,7 +82,7 @@ func Collect(d *window.Display, fonts *font.Registry) *Dump {
 	}
 	sort.Slice(tops, func(i, j int) bool { return tops[i].PathName < tops[j].PathName })
 	for _, top := range tops {
-		t := Toplevel{Path: top.PathName, W: top.Width, H: top.Height}
+		t := Toplevel{Path: top.PathName, W: top.Width, H: top.Height - menubarHeight(top)}
 		if info, ok := top.WmData.(*wm.WmInfo); ok {
 			t.Title = info.Title
 		}
@@ -108,20 +108,32 @@ func walk(out *Dump, top, w *window.Window, index, x, y int) {
 	if w.GeomManager != nil {
 		manager = w.GeomManager.Name()
 	}
+	h, reqH := w.Height, w.ReqHeight
 	if w == top {
-		x, y = 0, 0
+		// Like Tk, measure the toplevel without its menubar, which sits in
+		// the wrapper above it: children are reported relative to the area
+		// below the menubar, so the menubar itself gets a negative y.
+		mb := menubarHeight(top)
+		x, y, h, reqH = 0, 0, h-mb, reqH-mb
+	}
+	if w == top.Menubar {
+		manager = "menubar"
 	}
 	out.Widgets = append(out.Widgets, Widget{
 		Path: w.PathName, Class: w.Class, Toplevel: top.PathName, Parent: parent,
-		Index: index, X: x, Y: y, W: w.Width, H: w.Height,
-		ReqW: w.ReqWidth, ReqH: w.ReqHeight, Manager: manager, Mapped: w.IsMapped(),
+		Index: index, X: x, Y: y, W: w.Width, H: h,
+		ReqW: w.ReqWidth, ReqH: reqH, Manager: manager, Mapped: w.IsMapped(),
 	})
+	base := y
+	if w == top {
+		base = -menubarHeight(top)
+	}
 	i := 0
 	for _, c := range w.Children {
 		if c.IsTopLevel() {
 			continue
 		}
-		walk(out, top, c, i, x+c.X+w.BorderWidth, y+c.Y+w.BorderWidth)
+		walk(out, top, c, i, x+c.X+w.BorderWidth, base+c.Y+w.BorderWidth)
 		i++
 	}
 }
@@ -182,4 +194,11 @@ func WriteFileAtomic(path string, b []byte) error {
 		return err
 	}
 	return os.Rename(tmp.Name(), path)
+}
+
+func menubarHeight(top *window.Window) int {
+	if top.Menubar == nil || !top.Menubar.IsMapped() {
+		return 0
+	}
+	return top.Menubar.Height
 }
