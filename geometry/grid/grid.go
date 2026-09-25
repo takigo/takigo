@@ -161,6 +161,23 @@ func newGridder(container *window.Window) *gridder {
 	}
 }
 
+// gridderFor returns the container's gridder, creating it with the resize
+// hook that re-arranges the grid (whichever of grid, rowconfigure,
+// columnconfigure or anchor touches the container first).
+func gridderFor(container *window.Window) *gridder {
+	if g, ok := gridders[container]; ok {
+		return g
+	}
+	g := newGridder(container)
+	gridders[container] = g
+	container.ConfigureCallback = func() {
+		if gg, ok := gridders[container]; ok {
+			gg.arrange()
+		}
+	}
+	return g
+}
+
 // singleton manager instance.
 var mgr = &gridManager{}
 
@@ -282,16 +299,7 @@ func Grid(children geometry.Elementer, opts ...GridOption) {
 		return
 	}
 
-	g, ok := gridders[parent]
-	if !ok {
-		g = newGridder(parent)
-		gridders[parent] = g
-		parent.ConfigureCallback = func() {
-			if gg, ok2 := gridders[parent]; ok2 {
-				gg.arrange()
-			}
-		}
-	}
+	g := gridderFor(parent)
 
 	// Auto-assign row if not specified.
 	row := cfg.row
@@ -397,11 +405,7 @@ func RowConfigure(container window.Windower, row int, opts ...SlotOption) {
 	for _, opt := range opts {
 		opt(&conf)
 	}
-	g, ok := gridders[w]
-	if !ok {
-		g = newGridder(w)
-		gridders[w] = g
-	}
+	g := gridderFor(w)
 	g.rowConf[row] = &conf
 	g.arrange()
 }
@@ -413,11 +417,7 @@ func ColumnConfigure(container window.Windower, col int, opts ...SlotOption) {
 	for _, opt := range opts {
 		opt(&conf)
 	}
-	g, ok := gridders[w]
-	if !ok {
-		g = newGridder(w)
-		gridders[w] = g
-	}
+	g := gridderFor(w)
 	g.colConf[col] = &conf
 	g.arrange()
 }
@@ -426,11 +426,7 @@ func ColumnConfigure(container window.Windower, col int, opts ...SlotOption) {
 // an unweighted grid is placed within its container. Default is NW.
 func SetAnchor(container window.Windower, anchor option.Anchor) {
 	w := container.Window()
-	g, ok := gridders[w]
-	if !ok {
-		g = newGridder(w)
-		gridders[w] = g
-	}
+	g := gridderFor(w)
 	g.anchor = anchor
 	g.arrange()
 }
@@ -448,11 +444,7 @@ func GetAnchor(container window.Windower) option.Anchor {
 // its container. Default is true.
 func SetPropagate(container window.Windower, propagate bool) {
 	w := container.Window()
-	g, ok := gridders[w]
-	if !ok {
-		g = newGridder(w)
-		gridders[w] = g
-	}
+	g := gridderFor(w)
 	g.propagate = propagate
 	g.arrange()
 }

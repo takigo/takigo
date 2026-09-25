@@ -547,6 +547,20 @@ func (l *Label) Configure(opts ...option.Option) {
 	l.Display()
 }
 
+// Apply sets label options after construction, like Tk's configure: the
+// geometry is recomputed and the geometry manager re-arranges the parent.
+func (l *Label) Apply(opts ...LabelOption) {
+	for _, opt := range opts {
+		opt(l)
+	}
+	l.UpdateBorder()
+	l.computeGeometry()
+	if l.Win.GeomManager != nil {
+		l.Win.GeomManager.RequestProc(l.Win)
+	}
+	l.Display()
+}
+
 // SetImage sets or clears the label image at runtime, recomputing geometry
 // and requesting re-layout from the geometry manager.
 func (l *Label) SetImage(img widget.WidgetImage) {

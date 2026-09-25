@@ -47,7 +47,20 @@ type Button struct {
 	zeroCharWidth int  // cached MeasureString("0") for WidthChars
 	pressed       bool // button1 is held down
 	HasFocus      bool // whether button currently has keyboard focus
+
+	// Default is Tk's -default: room for (and, when active, a drawn)
+	// default ring around the button.
+	Default DefaultState
 }
+
+// DefaultState is the value of Tk's -default option.
+type DefaultState int
+
+const (
+	DefaultDisabled DefaultState = iota
+	DefaultNormal
+	DefaultActive
+)
 
 // ButtonOption configures a Button.
 type ButtonOption func(*Button)
@@ -115,6 +128,12 @@ func BorderWidth(w int) ButtonOption {
 	return func(b *Button) { b.BorderWidth = w }
 }
 
+// Default sets -default: DefaultNormal leaves 5px for a default ring,
+// DefaultActive also draws it (TkpDisplayButton).
+func Default(state DefaultState) ButtonOption {
+	return func(b *Button) { b.Default = state }
+}
+
 // HighlightThickness sets -highlightthickness (width of the focus ring).
 func HighlightThickness(w any) ButtonOption {
 	return func(b *Button) { b.HighlightWidth = screenunit.Px(w) }
@@ -175,6 +194,9 @@ var ButtonCompoundOpt = CompoundOpt
 
 // ButtonBorderWidth is an alias for BorderWidth.
 var ButtonBorderWidth = BorderWidth
+
+// ButtonDefault is an alias for Default.
+var ButtonDefault = Default
 
 // ButtonHighlightThickness is an alias for HighlightThickness.
 var ButtonHighlightThickness = HighlightThickness
@@ -257,6 +279,15 @@ func New(parent widget.Caregiver, name string, opts ...ButtonOption) *Button {
 }
 
 // computeGeometry computes text/image size and sets requested window size.
+// inset is butPtr->inset: border, highlight and the default ring's room.
+func (b *Button) inset() int {
+	inset := b.BorderWidth + b.HighlightWidth
+	if b.Default != DefaultDisabled {
+		inset += 5
+	}
+	return inset
+}
+
 // computeGeometry ports TkpComputeButtonGeometry (tk/unix/tkUnixButton.c)
 // for TYPE_BUTTON: -width is in characters for text and in pixels when an
 // image is shown, the compound gap is padX/padY, and non-Motif push buttons
@@ -311,7 +342,7 @@ func (b *Button) computeGeometry() {
 	width += 2
 	height += 2
 
-	inset := b.BorderWidth + b.HighlightWidth
+	inset := b.inset()
 	w := b.Win
 	w.ReqWidth = width + 2*inset
 	w.ReqHeight = height + 2*inset
@@ -365,14 +396,40 @@ func (b *Button) Display() {
 			border = draw.NewBorder(b.ActiveBackground.Red, b.ActiveBackground.Green, b.ActiveBackground.Blue)
 		}
 	}
-	if border != nil && b.BorderWidth > 0 {
-		hlw := b.HighlightWidth
+	if border != nil && relief != option.ReliefFlat {
+		ringInset := b.HighlightWidth
+		ring := b.Border
+		if b.HighlightBackground != nil {
+			ring = draw.NewBorder(b.HighlightBackground.Red, b.HighlightBackground.Green, b.HighlightBackground.Blue)
+		}
+		rect := func(in, bw int, rel option.Relief) {
+			if rel == option.ReliefFlat {
+				d.SetForeground(gc, ring.BgPixel)
+				for i := range bw {
+					d.DrawRectangle(w.Drawable(), gc, in+i, in+i,
+						uint(w.Width-2*(in+i)-1), uint(w.Height-2*(in+i)-1))
+				}
+				return
+			}
+			draw.Draw3DRectangle(d, w.Drawable(), gc, ring, in, in, w.Width-2*in, w.Height-2*in, bw, rel)
+		}
+		switch b.Default {
+		case DefaultActive:
+			// 2px space, 1px sunken ring, 2px space (TkpDisplayButton).
+			rect(ringInset, 2, option.ReliefFlat)
+			rect(ringInset+2, 1, option.ReliefSunken)
+			rect(ringInset+3, 2, option.ReliefFlat)
+			ringInset += 5
+		case DefaultNormal:
+			rect(0, 5, option.ReliefFlat)
+			ringInset += 5
+		}
 		draw.Draw3DRectangle(d, w.Drawable(), gc, border,
-			hlw, hlw, w.Width-2*hlw, w.Height-2*hlw, b.BorderWidth, relief)
+			ringInset, ringInset, w.Width-2*ringInset, w.Height-2*ringInset, b.BorderWidth, relief)
 	}
 
 	// Draw content (image and/or text).
-	inset := b.BorderWidth + b.HighlightWidth
+	inset := b.inset()
 
 	// Shift content 1px down-right when pressed (Tk behavior).
 	pressOff := 0
@@ -404,7 +461,12 @@ func (b *Button) Display() {
 	}
 
 	// Draw focus highlight ring.
-	b.DrawHighlightBorder(b.HasFocus, 0)
+	// The focus ring shrink-wraps the button, not the default ring's room.
+	focusPad := 0
+	if b.Default == DefaultNormal {
+		focusPad = 5
+	}
+	b.DrawHighlightBorder(b.HasFocus, focusPad)
 
 	d.Flush()
 }
@@ -426,7 +488,7 @@ func drawCompoundButton(b *Button, w *window.Window,
 		contentW, contentH = max(imgW, b.textWidth), max(imgH, b.textHeight)
 	}
 
-	inset := b.BorderWidth + b.HighlightWidth
+	inset := b.inset()
 	cx, cy := widget.ComputeAnchor(b.Anchor, w.Width, w.Height, inset, b.PadX, b.PadY, contentW, contentH)
 	cx += pressOff
 	cy += pressOff

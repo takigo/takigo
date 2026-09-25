@@ -305,6 +305,13 @@ var codeText *text.TextWidget
 
 // showCode opens (or raises) a toplevel window displaying the demo source.
 // Uses TTK widgets for the button bar (matching Tk's showCode proc).
+// ShowCode opens the See Code window for the calling demo's source file,
+// like the launcher's showCode proc.
+func ShowCode(app widget.AppContext) {
+	_, callerFile, _, _ := runtime.Caller(1)
+	showCode(app, callerFile)
+}
+
 func showCode(app widget.AppContext, srcFile string) {
 	source, err := os.ReadFile(srcFile)
 	if err != nil {
