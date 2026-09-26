@@ -187,17 +187,29 @@ func NewFocusElementFactory(ctx *DrawContext) Element {
 	return &FocusElement{ctx: ctx}
 }
 
-func (e *FocusElement) Size(State) (int, int, Padding) {
-	return 0, 0, UniformPadding(1)
+func (e *FocusElement) Size(state State) (int, int, Padding) {
+	return 0, 0, UniformPadding(LookupInt(e.ctx.Style, "-focusthickness", state, 1))
 }
 
+// Draw ports FocusElementDraw/DrawFocusRing: a dotted ring by default, or
+// a solid one -focusthickness wide with -focussolid.
 func (e *FocusElement) Draw(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID, box Box, state State) {
 	if state&StateFocus == 0 {
 		return
 	}
-	focusColor := LookupColor(e.ctx.Style, "-focuscolor", state, 0x000000)
-	d.SetForeground(gc, focusColor)
-	d.DrawRectangle(drawable, gc, box.X, box.Y, uint(box.Width-1), uint(box.Height-1))
+	d.SetForeground(gc, LookupColor(e.ctx.Style, "-focuscolor", state, 0x000000))
+	t := LookupInt(e.ctx.Style, "-focusthickness", state, 1)
+	if LookupInt(e.ctx.Style, "-focussolid", state, 0) == 0 {
+		drawDottedRect(d, drawable, gc, box.X, box.Y, box.Width, box.Height)
+		return
+	}
+	t = max(t, 1)
+	if box.Width >= 2*t && box.Height >= 2*t {
+		d.FillRectangle(drawable, gc, box.X, box.Y, uint(box.Width), uint(t))
+		d.FillRectangle(drawable, gc, box.X, box.Y+box.Height-t, uint(box.Width), uint(t))
+		d.FillRectangle(drawable, gc, box.X, box.Y+t, uint(t), uint(box.Height-2*t))
+		d.FillRectangle(drawable, gc, box.X+box.Width-t, box.Y+t, uint(t), uint(box.Height-2*t))
+	}
 }
 
 // --- LabelElement ---

@@ -287,16 +287,33 @@ func fill3DRectangle(d platform.DisplayServer, drawable platform.DrawableID, gc 
 	draw.Fill3DRectangle(d, drawable, gc, border, b.X, b.Y, b.Width, b.Height, bw, relief)
 }
 
-// drawDottedRect approximates TtkDrawFocusRing's dotted rectangle.
+// drawDottedRect ports TkDrawDottedRect (tkUtil.c): four 1-on/1-off dashed
+// lines, each starting its pattern afresh, with ends that depend on the
+// parity of the size.
 func drawDottedRect(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID, x, y, w, h int) {
-	for i := 0; i < w; i += 2 {
-		d.DrawLine(drawable, gc, x+i, y, x+i, y)
-		d.DrawLine(drawable, gc, x+i, y+h-1, x+i, y+h-1)
+	x2, y2 := x+w-1, y+h-1
+	dash := func(x0, y0, x1, y1 int) {
+		for px, py := x0, y0; px <= x1 && py <= y1; {
+			d.DrawLine(drawable, gc, px, py, px, py)
+			if y0 == y1 {
+				px += 2
+			} else {
+				py += 2
+			}
+		}
 	}
-	for i := 0; i < h; i += 2 {
-		d.DrawLine(drawable, gc, x, y+i, x, y+i)
-		d.DrawLine(drawable, gc, x+w-1, y+i, x+w-1, y+i)
+	if w%2 == 0 && h%2 == 0 {
+		dash(x+1, y, x2-1, y)
+		dash(x+2, y2, x2, y2)
+		dash(x, y+2, x, y2)
+		dash(x2, y+1, x2, y2-1)
+		return
 	}
+	dx, dy := 1-w%2, 1-h%2
+	dash(x+1, y, x2-dx, y)
+	dash(x+1, y2, x2-dx, y2)
+	dash(x, y+1, x, y2-dy)
+	dash(x2, y+1, x2, y2-dy)
 }
 
 func (s *Scale) inSlider(x, y int) bool {

@@ -536,6 +536,8 @@ func init() {
 	toolbutton.Defaults["-padding"] = ttk.Padding{Left: 8, Top: 4, Right: 8, Bottom: 4}
 	toolbutton.Defaults["-relief"] = option.ReliefFlat
 	toolbutton.Defaults["-borderwidth"] = 2
+	toolbutton.Defaults["-focussolid"] = 1
+	theme.GetStyle("TNotebook.Tab").Defaults["-focussolid"] = 1
 	toolbutton.Maps["-relief"] = ttk.StateMap[any]{
 		{Spec: ttk.StateSpec{OnBits: ttk.StateDisabled}, Value: option.ReliefFlat},
 		{Spec: ttk.StateSpec{OnBits: ttk.StateSelected}, Value: option.ReliefSunken},

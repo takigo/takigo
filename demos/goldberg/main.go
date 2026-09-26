@@ -2048,11 +2048,12 @@ func main() {
 		mf := frame.New(c, "messframe", frame.Relief(option.ReliefRaised), frame.BorderWidth(screenunit.Px("3p")))
 		lab := label.New(mf, "lab", label.FontOpt(fnt), label.WrapLength("3i"),
 			label.JustifyOpt(option.JustifyLeft), label.Text(msg))
-		but := ttk.NewButton(mf, "but", ttk.ButtonText("OK"))
+		but := ttk.NewButton(mf, "but", ttk.ButtonText("OK"), ttk.ButtonUnderline(0))
 		but.Command = func() { mf.Destroy() }
 		pack.Pack(lab, pack.PadX("10p"), pack.PadYPair("10p", "5p"))
 		pack.Pack(but, pack.PadX("10p"), pack.PadYPair(0, "10p"))
 		place.Place(mf, place.Anchor(option.AnchorCenter), place.RelX(0.5), place.RelY(0.5))
+		app.After(0, func() { app.FocusManager().SetFocus(but.Window()) }) // focus $w.but
 	}
 	about.Command = func() {
 		placedDialog("Tk Goldberg\nby Keith Vetter, March 2003\n(Reproduced by kind permission of the author)\n\n"+

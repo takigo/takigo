@@ -177,8 +177,17 @@ func (p *placer) arrange() {
 		bw2 := 2 * child.BorderWidth
 
 		// Compute position.
-		x := cfg.x + int(cfg.relX*float64(containerW)) + container.InternalBorderLeft
-		y := cfg.y + int(cfg.relY*float64(containerH)) + container.InternalBorderTop
+		// RecomputePlacement rounds the anchor point, and relative sizes
+		// via the rounded far edge.
+		round := func(v float64) int {
+			if v > 0 {
+				return int(v + 0.5)
+			}
+			return int(v - 0.5)
+		}
+		x1 := float64(cfg.x+container.InternalBorderLeft) + cfg.relX*float64(containerW)
+		y1 := float64(cfg.y+container.InternalBorderTop) + cfg.relY*float64(containerH)
+		x, y := round(x1), round(y1)
 
 		// Compute size.
 		var childW, childH int
@@ -189,7 +198,7 @@ func (p *placer) arrange() {
 				childW += cfg.width
 			}
 			if !math.IsNaN(cfg.relWidth) {
-				childW += int(cfg.relWidth * float64(containerW))
+				childW += round(x1+cfg.relWidth*float64(containerW)) - x
 			}
 		} else {
 			childW = child.ReqWidth + bw2
@@ -201,7 +210,7 @@ func (p *placer) arrange() {
 				childH += cfg.height
 			}
 			if !math.IsNaN(cfg.relHeight) {
-				childH += int(cfg.relHeight * float64(containerH))
+				childH += round(y1+cfg.relHeight*float64(containerH)) - y
 			}
 		} else {
 			childH = child.ReqHeight + bw2
