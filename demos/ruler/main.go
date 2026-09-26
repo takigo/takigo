@@ -4,6 +4,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/msorc/takigo/screenunit"
 	"os"
 	"strconv"
 
@@ -19,18 +20,13 @@ import (
 	"github.com/msorc/takigo/widget/label"
 )
 
-// Ruler geometry (pixels at ~38px/cm).
-const (
-	rulerLeft   = 38.0  // 1c
-	rulerRight  = 494.0 // 13c
-	rulerTop    = 38.0  // 1c  — ruler bottom edge / tab zone top
-	rulerBottom = 57.0  // 1.5c — tab zone bottom (below = delete zone)
-	tabSize     = 8.0   // 0.2c — half-size of tab triangle
-	gridPx      = 9.5   // 0.25c — grid snap increment
-	wellLeft    = 502.0 // 13.2c
-	wellRight   = 524.0 // 13.8c
-	wellTop     = 19.0  // 0.5c
+// Ruler geometry: demo_rulerInfo, set from Tk distances once the DPI is known.
+var (
+	rulerLeft, rulerRight, rulerTop, rulerBottom float64
+	tabSize, gridPx                              float64
 )
+
+func cm(v float64) float64 { return screenunit.Float(fmt.Sprintf("%gc", v)) }
 
 func main() {
 	app, err := takigo.NewApp(takigo.Title("Ruler Demonstration"),
@@ -55,6 +51,10 @@ func main() {
 	btns := demohelper.AddSeeDismiss(f)
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
+	rulerLeft, rulerRight = cm(1), cm(13)
+	rulerTop, rulerBottom = cm(1), cm(1.5)
+	tabSize, gridPx = cm(.2), cm(.25)
+
 	c := canvas.New(f, "c",
 		canvas.Width("14.8c"),
 		canvas.Height("2.5c"),
@@ -65,47 +65,30 @@ func main() {
 	mkTab := func(x, y float64, tags ...string) int64 {
 		return c.CreatePolygon(
 			[]float64{x, y, x + tabSize, y + tabSize, x - tabSize, y + tabSize},
-			canvas.FillColor("black"),
+			canvas.FillColor("black"), canvas.OutlineNone(),
 			canvas.Tags(tags...),
 		)
 	}
 
-	// Draw ruler border: two vertical sides + bottom line.
-	c.CreateLine([]float64{rulerLeft, wellTop, rulerLeft, rulerTop, rulerRight, rulerTop, rulerRight, wellTop},
-		canvas.OutlineColor("black"), canvas.OutlineWidth(1))
-
-	// Draw tick marks and labels (12 centimeter marks, 0-11).
+	line := func(pts ...float64) {
+		c.CreateLine(pts, canvas.OutlineColor("black"), canvas.OutlineWidth(1))
+	}
+	line(cm(1), cm(.5), cm(1), cm(1), cm(13), cm(1), cm(13), cm(.5))
 	for i := 0; i < 12; i++ {
-		xi := float64(i + 1) // cm position 1-12
-		x := rulerLeft + xi*38
-
-		// Full cm tick (full height).
-		c.CreateLine([]float64{x, rulerTop, x, rulerTop - 15.2},
-			canvas.OutlineColor("black"), canvas.OutlineWidth(1))
-		// Half-cm tick.
-		c.CreateLine([]float64{x + 19, rulerTop, x + 19, rulerTop - 11.4},
-			canvas.OutlineColor("black"), canvas.OutlineWidth(1))
-		// Quarter-cm ticks.
-		c.CreateLine([]float64{x + 9.5, rulerTop, x + 9.5, rulerTop - 7.6},
-			canvas.OutlineColor("black"), canvas.OutlineWidth(1))
-		c.CreateLine([]float64{x + 28.5, rulerTop, x + 28.5, rulerTop - 7.6},
-			canvas.OutlineColor("black"), canvas.OutlineWidth(1))
-
-		// Label i at just past cm mark.
-		c.CreateText(x+5.7, rulerTop-9.5,
-			canvas.TextOpt(fmt.Sprintf("%d", i)),
-			canvas.FontOpt("Sans 7"),
+		x := float64(i + 1)
+		line(cm(x), cm(1), cm(x), cm(.6))
+		line(cm(x+.25), cm(1), cm(x+.25), cm(.8))
+		line(cm(x+.5), cm(1), cm(x+.5), cm(.7))
+		line(cm(x+.75), cm(1), cm(x+.75), cm(.8))
+		c.CreateText(cm(x+.15), cm(.75), canvas.TextOpt(fmt.Sprint(i)),
 			canvas.AnchorOpt(option.AnchorSW))
 	}
 
-	// Well rectangle (source of new tabs).
-	c.CreateRectangle(wellLeft, wellTop, wellRight, rulerTop,
-		canvas.FillColor(widget.DefBackground),
-		canvas.Tags("well"))
-
-	// Well tab (the prototype tab in the well).
-	wellTabID := mkTab((wellLeft+wellRight)/2, 24.7, "well", "welltab")
-	_ = wellTabID
+	// The well: a rectangle in the canvas background and a prototype tab
+	// at [winfo pixels 13.5c], [winfo pixels .65c].
+	c.CreateRectangle(cm(13.2), cm(1), cm(13.8), cm(.5),
+		canvas.FillColor(widget.DefBackground), canvas.Tags("well"))
+	mkTab(float64(screenunit.Px("13.5c")), float64(screenunit.Px(".65c")), "well", "welltab")
 
 	// Drag state.
 	activeID := int64(0) // 0 = nothing being dragged

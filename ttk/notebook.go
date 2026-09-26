@@ -5,8 +5,10 @@ import (
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/font"
 	"github.com/msorc/takigo/platform"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/window"
+	"math"
 )
 
 // notebookTab holds information about a single notebook tab.
@@ -275,15 +277,12 @@ func (nb *Notebook) Display() {
 		isSelected := i == nb.selected
 		isHover := i == nb.hoverTab && !isSelected
 
-		// Tab background.
-		tabBg := bg
+		// TNotebook.Tab -background: -darker, the frame colour when selected.
+		tabBg := uint64(0xc3c3c3)
 		if isSelected {
 			tabBg = bg
-		} else if isHover {
-			tabBg = LookupColor(nb.Context.Style, "-background", StateHover, 0xececec)
-		} else {
-			tabBg = LookupColor(nb.Context.Style, "-background", StateBackground, 0xd0d0d0)
 		}
+		_ = isHover
 
 		tabY := 0
 		tabH := th
@@ -292,16 +291,34 @@ func (nb *Notebook) Display() {
 			tabH -= 2
 		}
 
-		// Fill tab background.
+		// TabElementDraw (ttkElements.c), tabs on the north side: a polygon
+		// with cut corners, a selected tab reaching 1px over the client
+		// border, 3D edges, and the -highlightcolor stripe when selected.
+		b := Box{tabX, tabY, tw, tabH}
+		if isSelected {
+			b.Height++
+		}
+		cut := int(math.Round(2 * float64(screenunit.ScalingPct()) / 100))
+		pts := []platform.Point{
+			{X: int16(b.X), Y: int16(b.Y + b.Height - 1)},
+			{X: int16(b.X), Y: int16(b.Y + cut)},
+			{X: int16(b.X + cut), Y: int16(b.Y)},
+			{X: int16(b.X + b.Width - 1 - cut), Y: int16(b.Y)},
+			{X: int16(b.X + b.Width - 1), Y: int16(b.Y + cut)},
+			{X: int16(b.X + b.Width - 1), Y: int16(b.Y + b.Height)},
+		}
+		tb := draw.NewBorderFromPixel(tabBg)
 		d.SetForeground(gc, tabBg)
-		d.FillRectangle(pixDrawable, gc, tabX, tabY, uint(tw), uint(tabH))
-
-		// Tab border: top, left, right.
-		d.SetForeground(gc, border.LightPixel)
-		d.DrawLine(pixDrawable, gc, tabX, tabY, tabX+tw-1, tabY)   // top
-		d.DrawLine(pixDrawable, gc, tabX, tabY, tabX, tabY+tabH-1) // left
-		d.SetForeground(gc, border.DarkPixel)
-		d.DrawLine(pixDrawable, gc, tabX+tw-1, tabY, tabX+tw-1, tabY+tabH-1) // right
+		d.FillPolygon(pixDrawable, gc, pts, 2, 0)
+		pts[5].Y--
+		d.SetForeground(gc, tb.LightPixel)
+		d.DrawLines(pixDrawable, gc, pts[:4], 0)
+		d.SetForeground(gc, tb.DarkPixel)
+		d.DrawLines(pixDrawable, gc, pts[3:], 0)
+		if isSelected && b.Width >= 2*cut {
+			d.SetForeground(gc, LookupColor(nb.Context.Style, "-selectbackground", 0, 0x4a6984))
+			d.FillRectangle(pixDrawable, gc, b.X+cut, b.Y, uint(b.Width-2*cut), uint(cut))
+		}
 
 		// Tab text.
 		if nb.Font != nil && tab.Text != "" {

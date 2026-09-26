@@ -1,7 +1,7 @@
 # Demo parity baseline -- written by: bash scripts/demo_batch.sh --retake --update-baseline (or demo_gate.sh --accept)
 # Headless Xvfb 96dpi, pinned DejaVu fonts, frozen timers. pixel_pct = odiff % (lower is better);
 # tree_diffs = cmd/demodiff structural differences; exact = both 0.
-# summary: exact 27 / close 35 / failed 0
+# summary: exact 28 / close 34 / failed 0
 # demo	tcl	pixel_pct	tree_diffs	go_size	tcl_size	status	note
 anilabel	anilabel	0	0	386x296	386x296	exact	
 aniwave	aniwave	0.07	1	371x353	371x353	close	
@@ -39,12 +39,12 @@ menubu	menubu	0	0	413x480	413x480	exact
 msgbox	msgbox	0	8	394x303	394x303	close	
 paned1	paned1	0	0	388x175	388x175	exact	
 paned2	paned2	0.09	4	388x481	388x481	close	
-pendulum	pendulum	1.32	3	665x428	665x428	close	
+pendulum	pendulum	0.30	2	665x428	665x428	close	
 plot	plot	0.19	1	452x399	452x399	close	
 print	print	0	0	1026x559	1026x559	exact	
 puzzle	puzzle	0	0	376x327	376x327	exact	
 radio	radio	0	11	519x407	519x407	close	
-ruler	ruler	1.12	1	562x211	562x211	close	
+ruler	ruler	0	0	562x211	562x211	exact	
 sayings	sayings	0.01	3	386x333	386x333	close	
 search	search	0.00	1	661x534	661x534	close	
 spin	spin	0	0	478x292	478x292	exact	
@@ -56,8 +56,8 @@ toolbar	toolbar	0	0	385x427	385x427	exact
 tree	tree	0.25	3	404x414	404x414	close	
 ttkbut	ttkbut	0	6	383x422	383x422	close	
 ttkmenu	ttkmenu	0	0	435x327	435x327	exact	
-ttknote	ttknote	1.29	6	394x273	394x273	close	
-ttkpane	ttkpane	1.10	12	369x595	369x595	close	clock pane shows wall-clock time: small nondeterministic diff
+ttknote	ttknote	1.08	6	394x273	394x273	close	
+ttkpane	ttkpane	0.82	12	369x595	369x595	close	clock pane shows wall-clock time: small nondeterministic diff
 ttkprogress	ttkprogress	0.00	2	376x244	376x244	close	
 ttkscale	ttkscale	0	0	363x186	363x186	exact	
 ttkspin	ttkspin	0	0	477x287	477x287	exact	
