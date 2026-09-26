@@ -24,7 +24,7 @@ filebox	filebox	0	0	469x189	469x189	exact
 floor	floor	0.00	0	927x572	927x572	close	
 fontchoose	fontchoose	0	0	343x180	343x180	exact	
 form	form	0	0	390x232	390x232	exact	
-goldberg	goldberg	0.14	11	677x542	677x542	close	
+goldberg	goldberg	0.14	6	677x542	677x542	close	
 hscale	hscale	0	0	361x230	361x230	exact	
 icon	icon	0	0	481x272	481x272	exact	
 image1	image1	0	0	335x492	335x492	exact	

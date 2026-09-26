@@ -1967,36 +1967,37 @@ func main() {
 		ttk.FrameBorderWidth(1), ttk.FramePadding(ttk.UniformPadding(screenunit.Px("3p"))))
 	screen := frame.New(app, "screen", frame.BorderWidth(1), frame.Relief(option.ReliefRaised))
 	pack.Pack(screen, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.Expand(true))
-	c := canvas.New(screen, "c",
+	c := canvas.New(app, "c",
 		canvas.Width(dim(675)), canvas.Height(dim(540)),
 		canvas.Background(colors["bg"]),
 		canvas.HighlightWidthOpt(0),
 		canvas.ScrollRegion(0, 0, dim(750), dim(750)),
 	)
 	g.c = c
-	pack.Pack(c, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+	pack.Pack(c, pack.In(screen), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 	c.Win.ConfigureCallback = func() { c.YViewMoveTo(0.06) }
 
-	// DoCtrlFrame: the widgets are gridded -in ctrl in Tk; here they are
-	// its children.
+	// DoCtrlFrame: the widgets are children of the toplevel gridded -in ctrl.
 	pause := widget.NewVariable(false)
-	start := ttk.NewButton(ctrl, "start", ttk.ButtonText("Start"), ttk.ButtonCommand(func() { g.doButton(0) }))
-	pauseCb := ttk.NewCheckbutton(ctrl, "pause", ttk.CheckbuttonText("Pause"), ttk.CheckbuttonVar(pause),
+	start := ttk.NewButton(app, "start", ttk.ButtonText("Start"), ttk.ButtonCommand(func() { g.doButton(0) }))
+	pauseCb := ttk.NewCheckbutton(app, "pause", ttk.CheckbuttonText("Pause"), ttk.CheckbuttonVar(pause),
 		ttk.CheckbuttonCommand(func() { g.pause = pause.Get(); g.doButton(1) }))
-	step := ttk.NewButton(ctrl, "step", ttk.ButtonText("Single Step"), ttk.ButtonCommand(func() { g.doButton(2) }))
-	bstep := ttk.NewButton(ctrl, "bstep", ttk.ButtonText("Big Step"), ttk.ButtonCommand(func() { g.doButton(4) }))
-	reset := ttk.NewButton(ctrl, "reset", ttk.ButtonText("Reset"), ttk.ButtonCommand(func() { g.doButton(3) }))
-	details := ttk.NewLabelframe(ctrl, "details", ttk.LabelframeText("Details"))
-	message := ttk.NewLabelframe(ctrl, "message", ttk.LabelframeText("Message"))
+	step := ttk.NewButton(app, "step", ttk.ButtonText("Single Step"), ttk.ButtonCommand(func() { g.doButton(2) }))
+	bstep := ttk.NewButton(app, "bstep", ttk.ButtonText("Big Step"), ttk.ButtonCommand(func() { g.doButton(4) }))
+	reset := ttk.NewButton(app, "reset", ttk.ButtonText("Reset"), ttk.ButtonCommand(func() { g.doButton(3) }))
+	details := ttk.NewLabelframe(app, "details")
+	detailsVar := widget.NewVariable(false)
+	detailsCb := ttk.NewCheckbutton(details, "cb", ttk.CheckbuttonText("Details"), ttk.CheckbuttonVar(detailsVar))
+	message := ttk.NewLabelframe(app, "message", ttk.LabelframeText("Message"))
 	msgEntry := ttk.NewEntry(message, "e", ttk.EntryText(g.message), ttk.EntryJustify(option.JustifyCenter))
-	speedLf := ttk.NewLabelframe(ctrl, "speed", ttk.LabelframeText("Speed: 0"))
+	speedLf := ttk.NewLabelframe(app, "speed", ttk.LabelframeText("Speed: 0"))
 	speedVar := widget.NewVariable(5.0)
 	speedScale := ttk.NewScale(speedLf, "scale", ttk.ScaleOrient(ttk.Horizontal), ttk.ScaleFrom(1),
 		ttk.ScaleTo(10), ttk.ScaleVariable(speedVar), ttk.ScaleCommand(func(v float64) { g.speed = int(v) }))
-	about := ttk.NewButton(ctrl, "about", ttk.ButtonText("About"))
+	about := ttk.NewButton(app, "about", ttk.ButtonText("About"))
 	row := 0
 	gridRow := func(w geometry.Elementer, opts ...grid.GridOption) {
-		grid.Grid(w, append([]grid.GridOption{grid.Row(row), grid.Column(0), grid.Sticky(grid.EW)}, opts...)...)
+		grid.Grid(w, append([]grid.GridOption{grid.In(ctrl), grid.Row(row), grid.Column(0), grid.Sticky(grid.EW)}, opts...)...)
 		row++
 	}
 	gridRow(start)
@@ -2009,6 +2010,8 @@ func main() {
 	grid.RowConfigure(ctrl, 10, grid.MinSize(screenunit.Px("3p")))
 	row = 11
 	gridRow(details)
+	details.SetLabelWidget(detailsCb)
+	grid.Grid(ttk.NewFrame(details, "b", ttk.FrameHeight(1))) // "Work around minor bug"
 	grid.RowConfigure(ctrl, 11, grid.MinSize(screenunit.Px("3p")))
 	grid.RowConfigure(ctrl, 50, grid.Weight(1))
 	row = 98
@@ -2018,7 +2021,9 @@ func main() {
 	pack.Pack(speedScale, pack.FillOpt(pack.FillBoth), pack.Expand(true))
 	gridRow(about)
 	gridRow(ttk.NewSeparator(ctrl, "sep"), grid.PadYPair("3p", "1.5p"))
-	// "See Code / Dismiss buttons hack!": copies of the two buttons, stacked.
+	// "See Code / Dismiss buttons hack!": the standard button bar is made
+	// (and left unmanaged), and copies of its two buttons are stacked.
+	demohelper.AddSeeDismiss(ctrl)
 	gridRow(ttk.NewButton(ctrl, "b1", ttk.ButtonText("See Code"), ttk.ButtonImage(demohelper.Image("view")),
 		ttk.ButtonCompound(widget.CompoundLeft), ttk.ButtonCommand(func() { demohelper.ShowCode(app) })),
 		grid.PadYPair("1.5p", 0))
@@ -2026,7 +2031,7 @@ func main() {
 		ttk.ButtonCompound(widget.CompoundLeft), ttk.ButtonCommand(app.Quit)),
 		grid.PadYPair("1.5p", 0))
 
-	show := ttk.NewButton(c, "show", ttk.ButtonText("▶"), ttk.ButtonWidth(2))
+	show := ttk.NewButton(app, "show", ttk.ButtonText("▶"), ttk.ButtonWidth(2))
 	show.Command = func() {
 		if ctrl.Win.Flags&window.FlagMapped != 0 {
 			pack.Forget(ctrl)
@@ -2037,7 +2042,7 @@ func main() {
 		}
 		show.Display()
 	}
-	place.Place(show, place.RelX(1), place.RelY(0), place.Anchor(option.AnchorNE))
+	place.Place(show, place.In(c), place.RelX(1), place.RelY(0), place.Anchor(option.AnchorNE))
 
 	g.drawAll()
 	c.YViewMoveTo(0.06)

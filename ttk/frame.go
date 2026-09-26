@@ -12,10 +12,18 @@ type Frame struct {
 	TtkWidget
 	padding     Padding
 	borderWidth int
+	width       int // -width; 0 = none
+	height      int // -height; 0 = none
 }
 
 // FrameOption configures a Frame.
 type FrameOption func(*Frame)
+
+// FrameWidth sets -width (a Tk distance).
+func FrameWidth(v any) FrameOption { return func(f *Frame) { f.width = screenunit.Px(v) } }
+
+// FrameHeight sets -height (a Tk distance).
+func FrameHeight(v any) FrameOption { return func(f *Frame) { f.height = screenunit.Px(v) } }
 
 // FramePadding sets the internal padding.
 func FramePadding(p Padding) FrameOption {
@@ -76,8 +84,9 @@ func NewFrame(parent widget.Caregiver, name string, opts ...FrameOption) *Frame 
 	win.InternalBorderTop = f.padding.Top + f.borderWidth
 	win.InternalBorderBottom = f.padding.Bottom + f.borderWidth
 
-	// FrameSize requests no size of its own: only the margins count.
-	win.ReqWidth, win.ReqHeight = 1, 1
+	// FrameSize requests only -width/-height (0 when unset); the margins
+	// are added on top.
+	win.ReqWidth, win.ReqHeight = max(f.width, 1), max(f.height, 1)
 
 	return f
 }

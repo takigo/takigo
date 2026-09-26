@@ -11,8 +11,9 @@ import (
 // border element and a text label placed on its top-left edge.
 type Labelframe struct {
 	TtkWidget
-	Text string
-	Font font.Font
+	Text        string
+	Font        font.Font
+	LabelWidget *window.Window // -labelwidget, drawn instead of -text
 }
 
 // LabelframeOption configures a Labelframe.
@@ -26,6 +27,22 @@ func LabelframeText(s string) LabelframeOption {
 // LabelframePadding sets -padding as a Tk padding spec.
 func LabelframePadding(spec string) LabelframeOption {
 	return func(lf *Labelframe) { lf.SetWidgetOption("-padding", spec) }
+}
+
+// LabelframeLabelWidget sets -labelwidget: a widget (usually a child of the
+// labelframe) shown in the label's place instead of -text.
+func LabelframeLabelWidget(w window.Windower) LabelframeOption {
+	return func(lf *Labelframe) { lf.LabelWidget = w.Window() }
+}
+
+// SetLabelWidget is "configure -labelwidget" after creation.
+func (lf *Labelframe) SetLabelWidget(w window.Windower) {
+	lf.LabelWidget = w.Window()
+	lf.updateMargins()
+	if lf.Win.GeomManager != nil {
+		lf.Win.GeomManager.RequestProc(lf.Win)
+	}
+	lf.Display()
 }
 
 // LabelframeBorderWidth sets -borderwidth.
@@ -62,6 +79,9 @@ func (lf *Labelframe) borderWidth() int {
 }
 
 func (lf *Labelframe) labelSize() (int, int) {
+	if lf.LabelWidget != nil {
+		return lf.LabelWidget.ReqWidth, lf.LabelWidget.ReqHeight
+	}
 	if lf.Text == "" || lf.Font == nil {
 		return 0, 0
 	}
@@ -133,7 +153,23 @@ func (lf *Labelframe) Display() {
 	lf.Layout.Place(lf.State, Box{0, borderY, width, height - borderY})
 	lf.Layout.Draw(lf.State, DrawArgs{Display: d, Drawable: pix, GC: gc})
 
-	if lw > 0 {
+	if lwin := lf.LabelWidget; lwin != nil {
+		// LabelframePlaceContent: the label widget sits in the label parcel.
+		moved := lwin.X != labelframeInset || lwin.Y != 0
+		lwin.X, lwin.Y = labelframeInset, 0
+		lwin.Width, lwin.Height = max(lwin.ReqWidth, 1), max(lh, 1)
+		if lwin.PlatformID != 0 {
+			d.MoveResizeWindow(lwin.PlatformID, lwin.X, lwin.Y, uint(lwin.Width), uint(lwin.Height))
+			d.RaiseWindow(lwin.PlatformID)
+			if !lwin.IsMapped() && win.IsMapped() {
+				d.MapWindow(lwin.PlatformID)
+				window.MarkMapped(lwin)
+			}
+		}
+		if moved {
+			window.NotifyMoved(lwin)
+		}
+	} else if lw > 0 {
 		lx := labelframeInset
 		d.SetForeground(gc, bg)
 		d.FillRectangle(pix, gc, lx, 0, uint(lw), uint(lh))
