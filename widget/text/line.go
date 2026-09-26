@@ -373,7 +373,7 @@ func (d *Document) adjustTagRangesInsert(idx Index, runes []rune) {
 		// This matches Tk's behavior where inserting at a tag's End does NOT
 		// expand the tag to cover the newly inserted text.
 		tr.Start = adjustIdxInsert(tr.Start, idx, newlineCount, lastLineLen, false)
-		tr.End = adjustIdxInsert(tr.End, idx, newlineCount, lastLineLen, true)
+		tr.End = adjustIdxInsert(tr.End, idx, newlineCount, lastLineLen, !tr.ToEnd)
 	}
 }
 

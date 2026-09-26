@@ -1,5 +1,7 @@
 package text
 
+import "strings"
+
 // Tag methods on *TextWidget. Tags are stored in t.doc.TagRanges;
 // per-tag bindings and hover state live on the widget itself
 // (t.tagBindings, t.hoverTags).
@@ -11,7 +13,11 @@ func (t *TextWidget) TagAdd(tagName, startIndex, endIndex string) {
 	if !ok1 || !ok2 {
 		return
 	}
+	n := len(t.doc.TagRanges)
 	t.doc.TagAdd(tagName, start, end)
+	if strings.TrimSpace(endIndex) == "end" && len(t.doc.TagRanges) > n {
+		t.doc.TagRanges[n].ToEnd = true
+	}
 }
 
 // TagRemove removes a tag from the given range.

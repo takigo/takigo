@@ -486,8 +486,9 @@ func (t *TextWidget) segmentsForRange(lineIdx, startChar, endChar int) []textSeg
 
 		// Handle embedded window placeholder: use window width, empty text.
 		if segEnd-segStart == 1 && text[segStart] == runeEmbeddedWindow {
-			if w := t.embeddedWindowAt(lineIdx, startChar+segStart); w != nil {
-				segWidth = w.ReqWidth
+			if ew := t.embeddedWinAt(lineIdx, startChar+segStart); ew != nil {
+				// EmbWinLayoutProc: the chunk is the window plus -padx each side.
+				segWidth = ew.win.ReqWidth + 2*ew.padX
 				segText = ""
 			}
 		}

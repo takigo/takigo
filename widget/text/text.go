@@ -780,10 +780,18 @@ func (t *TextWidget) positionEmbeddedWindows(dlines []displayLine) {
 
 // embeddedWindowAt returns the embedded window at the given document position, or nil.
 func (t *TextWidget) embeddedWindowAt(lineIdx, charIdx int) *window.Window {
-	for _, ew := range t.embeddedWindows {
+	if ew := t.embeddedWinAt(lineIdx, charIdx); ew != nil {
+		return ew.win
+	}
+	return nil
+}
+
+func (t *TextWidget) embeddedWinAt(lineIdx, charIdx int) *embeddedWin {
+	for i := range t.embeddedWindows {
+		ew := &t.embeddedWindows[i]
 		if m, ok := t.doc.Marks[ew.markName]; ok {
 			if m.Pos.Line == lineIdx && m.Pos.Char == charIdx {
-				return ew.win
+				return ew
 			}
 		}
 	}

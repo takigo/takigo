@@ -462,7 +462,7 @@ func main() {
 	}
 
 	// Tag the buttons section.
-	tw.TagAdd("buttons", defaultBtnLine, tw.EndIndex())
+	tw.TagAdd("buttons", defaultBtnLine, "end")
 
 	// Border/highlight/pad buttons.
 	tw.Insert("end", "\nYou can also change the usual border width and ")

@@ -53,6 +53,10 @@ type TagRange struct {
 	TagName string
 	Start   Index
 	End     Index
+	// ToEnd marks a range added up to "end", which in Tk covers the final
+	// newline: text inserted at the end has tagged characters on both sides
+	// and so inherits the tag.
+	ToEnd bool
 }
 
 // TagOption configures a Tag.

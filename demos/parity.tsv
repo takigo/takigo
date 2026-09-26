@@ -1,7 +1,7 @@
 # Demo parity baseline -- written by: bash scripts/demo_batch.sh --retake --update-baseline (or demo_gate.sh --accept)
 # Headless Xvfb 96dpi, pinned DejaVu fonts, frozen timers. pixel_pct = odiff % (lower is better);
 # tree_diffs = cmd/demodiff structural differences; exact = both 0.
-# summary: exact 42 / close 20 / failed 0
+# summary: exact 43 / close 19 / failed 0
 # demo	tcl	pixel_pct	tree_diffs	go_size	tcl_size	status	note
 anilabel	anilabel	0	0	386x296	386x296	exact	
 aniwave	aniwave	0.07	1	371x353	371x353	close	
@@ -61,7 +61,7 @@ ttkpane	ttkpane	0	0	369x595	369x595	exact
 ttkprogress	ttkprogress	0	0	376x244	376x244	exact	
 ttkscale	ttkscale	0	0	363x186	363x186	exact	
 ttkspin	ttkspin	0	0	477x287	477x287	exact	
-twind	twind	0.19	1	583x645	583x645	close	
+twind	twind	0	0	583x645	583x645	exact	
 unicodeout	unicodeout	0	0	386x367	386x367	exact	
 vscale	vscale	0	0	370x405	370x405	exact	
 windowicons	windowicons	0	0	222x202	222x202	exact	was mis-mapped to icon.tcl before; now compared with windowicons.tcl
