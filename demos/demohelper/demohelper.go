@@ -13,6 +13,7 @@ import (
 	"runtime"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/geometry"
@@ -62,6 +63,15 @@ func BottomButtons() []*ttk.Button {
 
 // Image returns one of the launcher icons ("view", "delete", "refresh",
 // "print"), as the Tcl demos' ::img::<name> images.
+// Now is time.Now, except under TAKIGO_FREEZE_TIMERS=1, where it returns the
+// fixed instant scripts/demo_wrapper.tcl gives [clock seconds].
+func Now() time.Time {
+	if os.Getenv("TAKIGO_FREEZE_TIMERS") == "1" {
+		return time.Unix(1700000000, 0)
+	}
+	return time.Now()
+}
+
 func Image(name string) *tkimage.Photo { return img[name] }
 
 type DemoVars[T comparable] map[string]*widget.Variable[T]

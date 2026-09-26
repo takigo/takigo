@@ -177,9 +177,7 @@ func (s *Scrollbar) Display() {
 	trough := draw.NewBorderFromPixel(troughColor)
 	border := draw.NewBorderFromPixel(bgColor)
 
-	d.SetForeground(gc, troughColor)
-	d.FillRectangle(w.Drawable(), gc, 0, 0, uint(w.Width), uint(w.Height))
-	draw.Draw3DRectangle(d, w.Drawable(), gc, trough, 0, 0, w.Width, w.Height,
+	fill3DRectangle(d, w.Drawable(), gc, trough, Box{0, 0, w.Width, w.Height},
 		sbTroughBorder, option.ReliefSunken)
 
 	// rect maps (along, across, length, thickness) to window coordinates.

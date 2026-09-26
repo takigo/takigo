@@ -1,6 +1,7 @@
 package ttk
 
 import (
+	"math"
 	"time"
 
 	"github.com/msorc/takigo/draw"
@@ -30,9 +31,6 @@ type Progressbar struct {
 	Orient  Orientation
 	Length  int // requested length in pixels
 
-	// Animation state for indeterminate mode.
-	phase     int
-	phaseDir  int // +1 or -1
 	animating bool
 	stopChan  chan struct{}
 }
@@ -72,10 +70,9 @@ func NewProgressbar(parent widget.Caregiver, name string, opts ...ProgressbarOpt
 	window.MakeWindowExist(win)
 
 	p := &Progressbar{
-		Maximum:  100,
-		Orient:   Horizontal,
-		Length:   screenunit.Px("75p"), // ttkProgress.c -length default
-		phaseDir: 1,
+		Maximum: 100,
+		Orient:  Horizontal,
+		Length:  screenunit.Px("75p"), // ttkProgress.c -length default
 	}
 
 	for _, opt := range opts {
@@ -149,10 +146,8 @@ func (p *Progressbar) Display() {
 	bw := pbTroughBorder
 	troughX, troughY := bw, bw
 	troughW, troughH := width-2*bw, height-2*bw
-	d.SetForeground(gc, troughColor)
-	d.FillRectangle(pixDrawable, gc, 0, 0, uint(width), uint(height))
-	draw.Draw3DRectangle(d, pixDrawable, gc, draw.NewBorderFromPixel(troughColor),
-		0, 0, width, height, bw, option.ReliefSunken)
+	fill3DRectangle(d, pixDrawable, gc, draw.NewBorderFromPixel(troughColor),
+		Box{0, 0, width, height}, bw, option.ReliefSunken)
 
 	// Bar (pbar element) in -barcolor: the value fraction of the trough, or a
 	// -barsize long block in indeterminate mode.
@@ -169,9 +164,15 @@ func (p *Progressbar) Display() {
 		}
 	} else {
 		size = min(LookupInt(p.Context.Style, "-barsize", p.State, screenunit.Px("22.5p")), length)
-		if maxPhase := length - size; maxPhase > 0 {
-			start = p.phase % (maxPhase + 1)
+		// ProgressbarIndeterminateLayout: value/maximum bounces over 0..2.
+		f := 0.0
+		if p.Maximum != 0 {
+			f = math.Mod(math.Abs(p.Value/p.Maximum), 2)
 		}
+		if f > 1 {
+			f = 2 - f
+		}
+		start = int(f * float64(length-size))
 	}
 	if size > 0 {
 		if p.Orient == Horizontal {
@@ -192,7 +193,18 @@ func (p *Progressbar) SetValue(v float64) {
 	p.Display()
 }
 
-// Start begins the animation for indeterminate mode.
+// Step ports ProgressbarStepCommand: add amount to the value, wrapping at
+// -maximum in determinate mode.
+func (p *Progressbar) Step(amount float64) {
+	p.Value += amount
+	if p.Mode == ProgressDeterminate && p.Maximum != 0 {
+		p.Value = math.Mod(p.Value, p.Maximum)
+	}
+	p.Display()
+}
+
+// Start ports ttk::progressbar::start (library/ttk/progress.tcl): step by 1
+// now and then every interval.
 func (p *Progressbar) Start(interval time.Duration) {
 	if p.animating {
 		return
@@ -210,37 +222,10 @@ func (p *Progressbar) Start(interval time.Duration) {
 		if !p.animating || p.Destroyed {
 			return
 		}
-		if p.Mode == ProgressDeterminate {
-			// Advance value, wrapping at maximum.
-			p.Value += 1
-			if p.Value >= p.Maximum {
-				p.Value = 0
-			}
-		} else {
-			// Advance phase for bouncing bar.
-			troughW := p.Win.Width - 2
-			barLen := troughW / 5
-			if barLen < 20 {
-				barLen = 20
-			}
-			maxPhase := troughW - barLen
-			if maxPhase < 1 {
-				maxPhase = 1
-			}
-
-			p.phase += p.phaseDir * 3
-			if p.phase >= maxPhase {
-				p.phase = maxPhase
-				p.phaseDir = -1
-			} else if p.phase <= 0 {
-				p.phase = 0
-				p.phaseDir = 1
-			}
-		}
-		p.Display()
 		p.App.After(interval, tick)
+		p.Step(1)
 	}
-	p.App.After(interval, tick)
+	tick()
 }
 
 // Stop stops the animation.

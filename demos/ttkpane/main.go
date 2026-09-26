@@ -144,7 +144,7 @@ func main() {
 	// Update all clocks every second (matches Tcl's every 1000).
 	var updateClocks func()
 	updateClocks = func() {
-		now := time.Now()
+		now := demohelper.Now()
 		for _, c := range clocks {
 			c.timeLbl.SetText(now.In(c.loc).Format("15:04:05"))
 		}

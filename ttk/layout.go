@@ -2,12 +2,15 @@ package ttk
 
 import "github.com/msorc/takigo/platform"
 
-// Position flags for layout elements. Ported from ttkLayout.c.
+// Position flags for layout elements. Ported from ttkLayout.c. As with
+// TTK_PACK_*, a node without a Pack flag is given the whole cavity and does
+// not consume it.
 const (
-	PackTop    = 0x0 // default: pack from top
-	PackBottom = 0x1
-	PackLeft   = 0x2
-	PackRight  = 0x3
+	packSet    = 0x40
+	PackTop    = packSet | 0x0
+	PackBottom = packSet | 0x1
+	PackLeft   = packSet | 0x2
+	PackRight  = packSet | 0x3
 	_packMask  = 0x3
 
 	Expand = 0x4  // expand to fill available space
@@ -101,15 +104,16 @@ func nodeSize(n *LayoutNode, state State) (int, int) {
 	w := max(ew, cw) + epad.Width()
 	h := max(eh, ch) + epad.Height()
 
-	// Accumulate siblings.
+	// Accumulate siblings (Ttk_NodeListSize).
 	if n.Next != nil {
 		nw, nh := nodeSize(n.Next, state)
-		side := Side(n.Flags & _packMask)
-		switch side {
-		case SideTop, SideBottom:
+		switch {
+		case n.Flags&packSet == 0:
+			w, h = max(w, nw), max(h, nh)
+		case Side(n.Flags&_packMask) == SideTop || Side(n.Flags&_packMask) == SideBottom:
 			w = max(w, nw)
 			h += nh
-		case SideLeft, SideRight:
+		default:
 			w += nw
 			h = max(h, nh)
 		}
@@ -159,8 +163,11 @@ func placeNodes(n *LayoutNode, state State, cavity Box) {
 			}
 		}
 
-		// Carve parcel from cavity.
-		parcel := PackBox(&cavity, reqW, reqH, side)
+		// Carve parcel from cavity (Ttk_PositionBox).
+		parcel := cavity
+		if cur.Flags&packSet != 0 {
+			parcel = PackBox(&cavity, reqW, reqH, side)
+		}
 
 		// Apply sticky.
 		sticky := Sticky(0)

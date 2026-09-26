@@ -50,6 +50,9 @@ if {[info exists ::env(TAKIGO_FREEZE_TIMERS)] && $::env(TAKIGO_FREEZE_TIMERS) eq
         }
         uplevel 1 [list ::_takigo_real_after {*}$args]
     }
+    # Wall-clock time is frozen too (demohelper.Now on the Go side).
+    rename ::tcl::clock::seconds ::_takigo_real_clock_seconds
+    proc ::tcl::clock::seconds {args} { return 1700000000 }
 }
 
 # ---- Launcher environment ---------------------------------------------------
