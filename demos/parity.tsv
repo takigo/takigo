@@ -28,7 +28,7 @@ goldberg	goldberg	0.01	1	677x542	677x542	close
 hscale	hscale	0	0	361x230	361x230	exact	
 icon	icon	0	0	481x272	481x272	exact	
 image1	image1	0	0	335x492	335x492	exact	
-image2	image2	0.11	1	380x449	380x449	close	
+image2	image2	0.11	1	380x449	380x449	close	directory entry shows each side's own images path
 items	items	0.00	1	588x564	588x564	close	
 knightstour	knightstour	0	0	381x332	381x332	exact	
 label	label	0	0	382x340	382x340	exact	
