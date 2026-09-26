@@ -86,6 +86,11 @@ type Drawer interface {
 		rgbaData []byte, stride int, imgW, imgH int,
 		srcX, srcY, dstX, dstY, w, h int, bgPixel uint64)
 
+	// GetImageRGBA reads a w x h area of a drawable as opaque RGBA, for
+	// blending partly transparent images over what is already drawn (Tk's
+	// BlendComplexAlpha does XGetImage). It returns nil when unsupported.
+	GetImageRGBA(drawable DrawableID, x, y, w, h int) []byte
+
 	// SetDashes sets the dash pattern for a GC.
 	SetDashes(gc GCID, dashOffset int, dashList []byte)
 }

@@ -8,6 +8,54 @@ package xlib
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 
+// get_rgba_image reads an area with XGetImage into RGBA (alpha 255).
+static int get_image_failed;
+
+static int get_image_error(Display *dpy, XErrorEvent *ev)
+{
+	get_image_failed = 1;
+	return 0;
+}
+
+// Images of pixmaps carry no colour masks, so visual's are used then.
+// XGetImage fails with BadMatch on unviewable windows; like Tk, trap that.
+static int get_rgba_image(Display *dpy, Drawable d, Visual *visual,
+	int x, int y, int w, int h, unsigned char *out)
+{
+	XSync(dpy, False);
+	get_image_failed = 0;
+	int (*old)(Display *, XErrorEvent *) = XSetErrorHandler(get_image_error);
+	XImage *img = XGetImage(dpy, d, x, y, w, h, AllPlanes, ZPixmap);
+	XSync(dpy, False);
+	XSetErrorHandler(old);
+	if (get_image_failed) {
+		if (img) XDestroyImage(img);
+		return 0;
+	}
+	if (!img) return 0;
+	unsigned long rm = img->red_mask, gm = img->green_mask, bm = img->blue_mask;
+	if (!rm || !gm || !bm) {
+		rm = visual->red_mask; gm = visual->green_mask; bm = visual->blue_mask;
+	}
+	int rs = 0, gs = 0, bs = 0;
+	if (!rm || !gm || !bm) { XDestroyImage(img); return 0; }
+	while (!((rm >> rs) & 1)) rs++;
+	while (!((gm >> gs) & 1)) gs++;
+	while (!((bm >> bs) & 1)) bs++;
+	for (int j = 0; j < h; j++) {
+		for (int i = 0; i < w; i++) {
+			unsigned long p = XGetPixel(img, i, j);
+			unsigned char *o = out + (j * w + i) * 4;
+			o[0] = (p & rm) >> rs;
+			o[1] = (p & gm) >> gs;
+			o[2] = (p & bm) >> bs;
+			o[3] = 255;
+		}
+	}
+	XDestroyImage(img);
+	return 1;
+}
+
 // put_rgba_image converts Go RGBA data to X11 BGRA format, pre-composites
 // alpha against bgPixel, and puts the image onto a drawable.
 static void put_rgba_image(Display *dpy, Drawable d, GC gc, Visual *visual,
@@ -109,6 +157,20 @@ func (d *Display) PutImageRGBA(drawable Drawable, gc GC, visual *Visual, depth i
 		C.int(dstX), C.int(dstY),
 		C.int(w), C.int(h),
 		C.ulong(bgPixel))
+}
+
+// GetImageRGBA reads a w x h area of drawable with XGetImage and returns it as
+// opaque RGBA, decomposing pixels with the image's colour masks.
+func (d *Display) GetImageRGBA(drawable Drawable, visual *Visual, x, y, w, h int) []byte {
+	if w <= 0 || h <= 0 {
+		return nil
+	}
+	out := make([]byte, w*h*4)
+	if C.get_rgba_image(d.ptr, C.Drawable(drawable), visual.ptr, C.int(x), C.int(y), C.int(w), C.int(h),
+		(*C.uchar)(unsafe.Pointer(&out[0]))) == 0 {
+		return nil
+	}
+	return out
 }
 
 // PixmapDrawable converts a Pixmap to a Drawable for use in drawing functions.

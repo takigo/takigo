@@ -1,11 +1,13 @@
 package ttk
 
 import (
-	goimage "image"
+	"fmt"
 	"math"
 
+	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/font"
+	"github.com/msorc/takigo/internal/nanosvg"
 	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/widget"
@@ -187,12 +189,12 @@ func (ts *Toggleswitch) Display() {
 	}
 	tx := inset + (boxW-tw)/2
 	ty := inset + (height-2*inset-th)/2
-	sliderX := 0.0
+	sliderX := 0
 	if ts.State&StateSelected != 0 {
-		sliderX = float64(tw - sw)
+		sliderX = tw - sw
 	}
-	img := rasterizeToggleswitch(tw, th, sc, ts.troughColor(), sliderX)
-	d.PutImageRGBA(pix, gc, win.Depth, img.Pix, img.Stride, tw, th, 0, 0, tx, ty, tw, th, bg)
+	px := toggleswitchPixels(tw, th, float32(sc), ts.troughColor(), sliderX, bg)
+	d.PutImageRGBA(pix, gc, win.Depth, px, tw*4, tw, th, 0, 0, tx, ty, tw, th, bg)
 
 	if ts.Font != nil && ts.Text != "" {
 		if df, ok := ts.Font.(platform.DrawableFont); ok {
@@ -214,49 +216,26 @@ func (ts *Toggleswitch) Display() {
 	d.Flush()
 }
 
-// rasterizeToggleswitch renders the trough (a rect with rx = height/2) and
-// the white slider circle (sliderData: r = 8 centred in a 20x16 box, the box
-// vertically centred and offset sliderX) with 8x8 supersampling.
-func rasterizeToggleswitch(w, h int, sc float64, trough uint64, sliderX float64) *goimage.RGBA {
-	img := goimage.NewRGBA(goimage.Rect(0, 0, w, h))
-	fw, fh := float64(w), float64(h)
-	r := fh / 2
-	scx := sliderX + tglSliderW*sc/2
-	scy := fh / 2
-	sr := 8 * sc
-	inTrough := func(x, y float64) bool {
-		if x < 0 || x > fw || y < 0 || y > fh {
-			return false
-		}
-		cx := math.Max(r, math.Min(fw-r, x))
-		return (x-cx)*(x-cx)+(y-r)*(y-r) <= r*r
+// toggleswitchPixels draws the Tglswitch2.trough image (troughData(2) of
+// library/ttk/elements.tcl filled with trough) over bg, then the white
+// Tglswitch2.slider image at sliderX, centred vertically, each blended like a
+// Tk photo over what lies beneath.
+func toggleswitchPixels(tw, th int, sc float32, trough uint64, sliderX int, bg uint64) []uint8 {
+	troughSVG := fmt.Sprintf(`<svg width="40" height="20" version="1.1" xmlns="http://www.w3.org/2000/svg">
+ <rect x="0" y="0" width="40" height="20" rx="10" fill='#%06x'/>
+</svg>`, trough&0xffffff)
+	const sliderSVG = `<svg width="20" height="16" version="1.1" xmlns="http://www.w3.org/2000/svg">
+ <circle cx="10" cy="8" r="8" fill='#ffffff'/>
+</svg>`
+	out := make([]uint8, tw*th*4)
+	for i := 0; i < len(out); i += 4 {
+		out[i], out[i+1], out[i+2], out[i+3] = uint8(bg>>16), uint8(bg>>8), uint8(bg), 255
 	}
-	const ss = 8
-	tr, tg, tb := float64(trough>>16&0xff), float64(trough>>8&0xff), float64(trough&0xff)
-	for py := range h {
-		for px := range w {
-			var ar, ag, ab, aa float64
-			for sy := range ss {
-				for sx := range ss {
-					x := float64(px) + (float64(sx)+0.5)/ss
-					y := float64(py) + (float64(sy)+0.5)/ss
-					switch {
-					case (x-scx)*(x-scx)+(y-scy)*(y-scy) <= sr*sr:
-						ar, ag, ab, aa = ar+255, ag+255, ab+255, aa+1
-					case inTrough(x, y):
-						ar, ag, ab, aa = ar+tr, ag+tg, ab+tb, aa+1
-					}
-				}
-			}
-			const n = ss * ss
-			i := img.PixOffset(px, py)
-			img.Pix[i+0] = uint8(math.Round(ar / n))
-			img.Pix[i+1] = uint8(math.Round(ag / n))
-			img.Pix[i+2] = uint8(math.Round(ab / n))
-			img.Pix[i+3] = uint8(math.Round(aa / n * 255))
-		}
-	}
-	return img
+	tp, w, h := draw.SVGImage(troughSVG, sc)
+	nanosvg.Blend(out, tw, (tw-w)/2, (th-h)/2, tp, w, h)
+	sp, w, h := draw.SVGImage(sliderSVG, sc)
+	nanosvg.Blend(out, tw, sliderX, (th-h)/2, sp, w, h)
+	return out
 }
 
 // colorIsLight ports ttk::toggleswitch::IsColorLight.

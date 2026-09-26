@@ -394,3 +394,7 @@ func arcPoints(x, y, w, h, angle1, angle2 int) (startX, startY, endX, endY int32
 
 	return
 }
+
+func (d *WindowsDisplay) GetImageRGBA(platform.DrawableID, int, int, int, int) []byte {
+	return nil
+}

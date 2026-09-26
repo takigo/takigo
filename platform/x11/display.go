@@ -224,6 +224,11 @@ func (s *X11Display) PutImageRGBA(drawable platform.DrawableID, gc platform.GCID
 		rgbaData, stride, imgW, imgH, srcX, srcY, dstX, dstY, w, h, bgPixel)
 }
 
+func (s *X11Display) GetImageRGBA(drawable platform.DrawableID, x, y, w, h int) []byte {
+	visual := s.dpy.DefaultVisual(s.dpy.DefaultScreen())
+	return s.dpy.GetImageRGBA(xlib.Drawable(drawable), visual, x, y, w, h)
+}
+
 func (s *X11Display) SetDashes(gc platform.GCID, dashOffset int, dashList []byte) {
 	s.dpy.SetDashes(toXGC(gc), dashOffset, dashList)
 }

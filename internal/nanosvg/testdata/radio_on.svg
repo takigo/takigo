@@ -1,0 +1,11 @@
+<svg id='radiobutton' width='16' height='16' version='1.1' xmlns='http://www.w3.org/2000/svg'>
+ <defs>
+  <linearGradient id='gradient' x1='5' y1='5' x2='11' y2='11' gradientUnits='userSpaceOnUse'>
+   <stop stop-color='#828282' offset='0'/>
+   <stop stop-color='#ffffff' offset='1' stop-opacity='0'/>
+  </linearGradient>
+ </defs>
+ <circle cx='8' cy='8' r='8' fill='url(#gradient)'/>
+ <circle cx='8' cy='8' r='7' fill='#ffffff'/>
+ <circle cx='8' cy='8' r='4' fill='#000000'/>
+</svg>

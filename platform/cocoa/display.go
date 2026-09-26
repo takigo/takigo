@@ -204,6 +204,9 @@ func (d *CocoaDisplay) PutImageRGBA(drawable platform.DrawableID, gc platform.GC
 	clib.PutImageRGBA(toDrawable(drawable), toGC(gc), depth,
 		rgbaData, stride, imgW, imgH, srcX, srcY, dstX, dstY, w, h, bgPixel)
 }
+func (d *CocoaDisplay) GetImageRGBA(platform.DrawableID, int, int, int, int) []byte {
+	return nil
+}
 func (d *CocoaDisplay) SetDashes(gc platform.GCID, dashOffset int, dashList []byte) {
 	clib.SetDashes(toGC(gc), dashOffset, dashList)
 }

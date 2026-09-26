@@ -1,158 +1,87 @@
 package draw
 
 import (
-	"image"
-	"math"
+	"strings"
 
 	"github.com/msorc/takigo/platform"
 )
 
-type ttkIndicatorKey struct {
-	radio              bool
-	state              IndicatorState
-	size               int
-	bg, fg, borderColr uint64
-}
+// SVG data of ttkElements.c (checkbutton_spec, radiobutton_spec, sliderData).
+const (
+	ttkCheckOffData = `<svg width='16' height='16' version='1.1' xmlns='http://www.w3.org/2000/svg'>
+ <rect x='.5' y='.5' width='15' height='15' rx='3.5' fill='#ffffff' stroke='#888888'/>
+</svg>`
+	ttkCheckOnData = `<svg width='16' height='16' version='1.1' xmlns='http://www.w3.org/2000/svg'>
+ <rect x='0' y='0' width='16' height='16' fill='#4a6984' rx='4'/>
+ <path d='m4.5 8 3 3 4-6' fill='none' stroke='#ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='2'/>
+</svg>`
+	ttkCheckTriData = `<svg width='16' height='16' version='1.1' xmlns='http://www.w3.org/2000/svg'>
+ <rect x='0' y='0' width='16' height='16' fill='#4a6984' rx='4'/>
+ <path d='m4 8h8' fill='none' stroke='#ffffff' stroke-width='2'/>
+</svg>`
+	ttkRadioOffData = `<svg width='16' height='16' version='1.1' xmlns='http://www.w3.org/2000/svg'>
+ <circle cx='8' cy='8' r='7.5' fill='#ffffff' stroke='#888888'/>
+</svg>`
+	ttkRadioOnData = `<svg width='16' height='16' version='1.1' xmlns='http://www.w3.org/2000/svg'>
+ <circle cx='8' cy='8' r='8' fill='#4a6984'/>
+ <circle cx='8' cy='8' r='3' fill='#ffffff'/>
+</svg>`
+	ttkRadioTriData = `<svg width='16' height='16' version='1.1' xmlns='http://www.w3.org/2000/svg'>
+ <circle cx='8' cy='8' r='8' fill='#4a6984'/>
+ <path d='m4 8h8' fill='none' stroke='#ffffff' stroke-width='2'/>
+</svg>`
+	ttkSliderData = `<svg width='16' height='16' version='1.1' xmlns='http://www.w3.org/2000/svg'>
+ <circle cx='8' cy='8' r='7.5' fill='#ffffff' stroke='#c3c3c3'/>
+ <circle cx='8' cy='8' r='4' fill='#4a6984'/>
+</svg>`
+)
 
-var ttkIndicatorCache = map[ttkIndicatorKey]*image.RGBA{}
+// replaceFirst substitutes the first occurrence of each old string, as the
+// strstr/memcpy colour patching in ttkElements.c does.
+func replaceFirst(s string, pairs ...string) string {
+	for i := 0; i+1 < len(pairs); i += 2 {
+		s = strings.Replace(s, pairs[i], pairs[i+1], 1)
+	}
+	return s
+}
 
 // DrawTtkIndicator ports IndicatorElementDraw (tk/generic/ttk/ttkElements.c),
 // the default theme's check/radio indicator: the checkbtn*/radiobtn* SVGs
 // rendered at size x size pixels (16 * ::tk::scalingPct / 100) with bg as
 // -indicatorbackground, fg as -indicatorforeground and borderColor as
-// -bordercolor, drawn with its top-left corner at (x, y).
+// -bordercolor, drawn with its top-left corner at (x, y) over bgPixel.
 func DrawTtkIndicator(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID,
 	depth, x, y, size int, radio bool, state IndicatorState, bg, fg, borderColor, bgPixel uint64) {
-	k := ttkIndicatorKey{radio, state, size, bg, fg, borderColor}
-	indicatorMu.Lock()
-	img, ok := ttkIndicatorCache[k]
-	if !ok {
-		img = rasterizeTtkIndicator(k)
-		ttkIndicatorCache[k] = img
-	}
-	indicatorMu.Unlock()
-	d.PutImageRGBA(drawable, gc, depth, img.Pix, img.Stride, size, size,
-		0, 0, x, y, size, size, bgPixel)
-}
-
-func rasterizeTtkIndicator(k ttkIndicatorKey) *image.RGBA {
-	solid := func(p uint64, inside func(x, y float64) bool) shape {
-		c := pixelColor(p, 1)
-		return func(x, y float64) (rgba, bool) { return c, inside(x, y) }
-	}
-	circle := func(r float64) func(x, y float64) bool {
-		return func(x, y float64) bool { return (x-8)*(x-8)+(y-8)*(y-8) <= r*r }
-	}
-	// dash: path m4 8h8, stroke-width 2, butt caps.
-	dash := func(x, y float64) bool { return x >= 4 && x <= 12 && y >= 7 && y <= 9 }
-	var layers []shape
+	var data string
 	switch {
-	case !k.radio && k.state == IndicatorOff:
-		// rect .5,.5 15x15 rx 3.5, stroke 1: the stroke spans the rounded
-		// rects 0..16 (r 4) and 1..15 (r 3).
-		layers = append(layers,
-			solid(k.borderColr, roundRect(0, 0, 16, 16, 4)),
-			solid(k.bg, roundRect(1, 1, 15, 15, 3)))
-	case !k.radio:
-		layers = append(layers, solid(k.bg, roundRect(0, 0, 16, 16, 4)))
-		if k.state == IndicatorOn {
-			layers = append(layers, solid(k.fg, stroke([][2]float64{{4.5, 8}, {7.5, 11}, {11.5, 5}}, 1)))
-		} else {
-			layers = append(layers, solid(k.fg, dash))
-		}
-	case k.state == IndicatorOff:
-		layers = append(layers, solid(k.borderColr, circle(8)), solid(k.bg, circle(7)))
+	case !radio && state == IndicatorOff:
+		data = ttkCheckOffData
+	case !radio && state == IndicatorOn:
+		data = ttkCheckOnData
+	case !radio:
+		data = ttkCheckTriData
+	case state == IndicatorOff:
+		data = ttkRadioOffData
+	case state == IndicatorOn:
+		data = ttkRadioOnData
 	default:
-		layers = append(layers, solid(k.bg, circle(8)))
-		if k.state == IndicatorOn {
-			layers = append(layers, solid(k.fg, circle(3)))
-		} else {
-			layers = append(layers, solid(k.fg, dash))
-		}
+		data = ttkRadioTriData
 	}
-	return rasterizeLayers(layers, k.size, 16/float64(k.size))
-}
-
-// roundRect returns a test for the rounded rectangle x0..x1, y0..y1 with
-// corner radius r.
-func roundRect(x0, y0, x1, y1, r float64) func(x, y float64) bool {
-	return func(x, y float64) bool {
-		if x < x0 || x > x1 || y < y0 || y > y1 {
-			return false
-		}
-		cx := math.Max(x0+r, math.Min(x1-r, x))
-		cy := math.Max(y0+r, math.Min(y1-r, y))
-		return (x-cx)*(x-cx)+(y-cy)*(y-cy) <= r*r
+	if state == IndicatorOff {
+		data = replaceFirst(data, "ffffff", colorStr(bg), "888888", colorStr(borderColor))
+	} else {
+		data = replaceFirst(data, "4a6984", colorStr(bg), "ffffff", colorStr(fg))
 	}
+	putSVG(d, drawable, gc, depth, x, y, size, data, bgPixel, false)
 }
-
-// rasterizeLayers composites layers (in 16-unit SVG space, unit = scale
-// pixels^-1) into a size x size premultiplied image with 8x8 supersampling.
-func rasterizeLayers(layers []shape, size int, unit float64) *image.RGBA {
-	const ss = 8
-	img := image.NewRGBA(image.Rect(0, 0, size, size))
-	for py := range size {
-		for px := range size {
-			var acc rgba
-			for sy := range ss {
-				for sx := range ss {
-					x := (float64(px) + (float64(sx)+0.5)/ss) * unit
-					y := (float64(py) + (float64(sy)+0.5)/ss) * unit
-					var c rgba
-					for _, l := range layers {
-						if s, ok := l(x, y); ok {
-							c.r = s.r*s.a + c.r*(1-s.a)
-							c.g = s.g*s.a + c.g*(1-s.a)
-							c.b = s.b*s.a + c.b*(1-s.a)
-							c.a = s.a + c.a*(1-s.a)
-						}
-					}
-					acc.r += c.r
-					acc.g += c.g
-					acc.b += c.b
-					acc.a += c.a
-				}
-			}
-			n := float64(ss * ss)
-			i := img.PixOffset(px, py)
-			img.Pix[i+0] = uint8(math.Round(acc.r / n * 255))
-			img.Pix[i+1] = uint8(math.Round(acc.g / n * 255))
-			img.Pix[i+2] = uint8(math.Round(acc.b / n * 255))
-			img.Pix[i+3] = uint8(math.Round(acc.a / n * 255))
-		}
-	}
-	return img
-}
-
-type ttkSliderKey struct {
-	size                 int
-	inner, outer, border uint64
-}
-
-var ttkSliderCache = map[ttkSliderKey]*image.RGBA{}
 
 // DrawTtkSlider ports SliderElementDraw (ttkElements.c): the sliderData SVG
-// (a circle r 7.5 in -outercolor stroked with -bordercolor, and an r 4 dot
-// in -innercolor) at size x size pixels with its top-left corner at (x, y).
+// in -innercolor, -outercolor and -bordercolor at size x size pixels with its
+// top-left corner at (x, y), blended over the trough already drawn in the
+// off-screen drawable.
 func DrawTtkSlider(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID,
 	depth, x, y, size int, inner, outer, border, bgPixel uint64) {
-	k := ttkSliderKey{size, inner, outer, border}
-	indicatorMu.Lock()
-	img, ok := ttkSliderCache[k]
-	if !ok {
-		circle := func(r float64) func(x, y float64) bool {
-			return func(x, y float64) bool { return (x-8)*(x-8)+(y-8)*(y-8) <= r*r }
-		}
-		solid := func(p uint64, inside func(x, y float64) bool) shape {
-			c := pixelColor(p, 1)
-			return func(x, y float64) (rgba, bool) { return c, inside(x, y) }
-		}
-		img = rasterizeLayers([]shape{
-			solid(border, circle(8)), solid(outer, circle(7)), solid(inner, circle(4)),
-		}, size, 16/float64(size))
-		ttkSliderCache[k] = img
-	}
-	indicatorMu.Unlock()
-	d.PutImageRGBA(drawable, gc, depth, img.Pix, img.Stride, size, size,
-		0, 0, x, y, size, size, bgPixel)
+	data := replaceFirst(ttkSliderData, "4a6984", colorStr(inner),
+		"ffffff", colorStr(outer), "c3c3c3", colorStr(border))
+	putSVG(d, drawable, gc, depth, x, y, size, data, bgPixel, true)
 }
