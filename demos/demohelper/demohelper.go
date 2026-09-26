@@ -4,9 +4,6 @@ package demohelper
 import (
 	"embed"
 	"fmt"
-	goimage "image"
-	"image/draw"
-	"image/png"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -321,13 +318,11 @@ func loadIcon(name string) *tkimage.Photo {
 		panic(err)
 	}
 	defer f.Close()
-	src, err := png.Decode(f)
+	p, err := tkimage.NewPhotoFromReader("::img::"+name, f)
 	if err != nil {
 		panic(err)
 	}
-	rgba := goimage.NewRGBA(src.Bounds())
-	draw.Draw(rgba, rgba.Bounds(), src, src.Bounds().Min, draw.Src)
-	return tkimage.NewPhoto("::img::"+name, rgba)
+	return p
 }
 
 // codeWindow is the single reusable "See Code" toplevel (nil until first use).

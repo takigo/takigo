@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/msorc/takigo/internal/nanosvg"
 	"github.com/msorc/takigo/platform"
 )
 
@@ -22,6 +23,9 @@ import (
 type Photo struct {
 	name string
 	rgba *goimage.RGBA
+	// straight holds the decoded straight-alpha pixels (w*4 stride) while
+	// rgba is unmodified, so drawing can blend exactly like Tk's photos.
+	straight []byte
 
 	// Pixmap cache.
 	server      platform.DisplayServer
@@ -152,7 +156,13 @@ func NewPhotoFromReader(name string, r io.Reader) (*Photo, error) {
 		return nil, fmt.Errorf("image: decode: %w", err)
 	}
 	rgba := toRGBA(img)
-	return NewPhoto(name, rgba), nil
+	p := NewPhoto(name, rgba)
+	if _, pre := img.(*goimage.RGBA); !pre && img.Bounds().Min == (goimage.Point{}) {
+		n := goimage.NewNRGBA(img.Bounds())
+		draw.Draw(n, n.Rect, img, n.Rect.Min, draw.Src)
+		p.straight = n.Pix
+	}
+	return p, nil
 }
 
 // CopyOption configures a NewPhotoFromPhoto call.
@@ -246,6 +256,7 @@ func (p *Photo) Pixels() []byte {
 // the next Draw call.
 func (p *Photo) Invalidate() {
 	p.pixmapDirty = true
+	p.straight = nil
 }
 
 // Draw renders a region of the photo onto a drawable.
@@ -326,9 +337,14 @@ func (p *Photo) ensurePixmap(d platform.DisplayServer, drawable platform.Drawabl
 		return
 	}
 
-	// Render RGBA data into the pixmap.
+	// Render RGBA data into the pixmap; straight-alpha pixels are blended
+	// over bgPixel as BlendComplexAlpha (tkImgPhInstance.c) does.
+	data, stride := p.rgba.Pix, p.rgba.Stride
+	if p.straight != nil {
+		data, stride = nanosvg.BlendOver(p.straight, bgPixel), imgW*4
+	}
 	d.PutImageRGBA(platform.PixmapDrawable(pix), gc, depth,
-		p.rgba.Pix, p.rgba.Stride, imgW, imgH,
+		data, stride, imgW, imgH,
 		0, 0, 0, 0, imgW, imgH, bgPixel)
 
 	p.server = d
