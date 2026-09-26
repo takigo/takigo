@@ -25,6 +25,10 @@ func FillColor(name string) ItemOption {
 			it.fill = ref
 		case *ArcItem:
 			it.fill = ref
+		case *TextItem: // -fill is the text colour
+			it.color = ref
+		case *LineItem: // -fill is the line colour
+			it.color = ref
 		}
 		return nil
 	}

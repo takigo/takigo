@@ -104,14 +104,9 @@ func (a *ArcItem) Display(d platform.DisplayServer, drawable platform.DrawableID
 		return
 	}
 
-	// X11 angles are in 64ths of a degree.
-	angle1 := int(a.start * 64)
-	angle2 := int(a.extent * 64)
-
-	cx := float64(x1) + float64(w)/2
-	cy := float64(y1) + float64(h)/2
-	rx := float64(w) / 2
-	ry := float64(h) / 2
+	// DisplayArc: X11 angles in 64ths of a degree, rounded.
+	angle1 := int(a.start*64 + 0.5)
+	angle2 := int(a.extent*64 + 0.5)
 
 	switch a.style {
 	case ArcStylePieslice:
@@ -123,15 +118,7 @@ func (a *ArcItem) Display(d platform.DisplayServer, drawable platform.DrawableID
 			d.SetForeground(gc, a.outline.Pixel)
 			a.setLineAttrs(d, gc)
 			d.DrawArc(drawable, gc, x1, y1, uint(w), uint(h), angle1, angle2)
-			// Draw radii lines for pieslice.
-			startRad := a.start * math.Pi / 180
-			endRad := (a.start + a.extent) * math.Pi / 180
-			sx := int(cx + rx*math.Cos(startRad))
-			sy := int(cy - ry*math.Sin(startRad))
-			ex := int(cx + rx*math.Cos(endRad))
-			ey := int(cy - ry*math.Sin(endRad))
-			cxi := int(cx)
-			cyi := int(cy)
+			cxi, cyi, sx, sy, ex, ey := a.outlineEnds(originX, originY)
 			d.DrawLine(drawable, gc, cxi, cyi, sx, sy)
 			d.DrawLine(drawable, gc, cxi, cyi, ex, ey)
 			a.resetLineAttrs(d, gc)
@@ -146,13 +133,7 @@ func (a *ArcItem) Display(d platform.DisplayServer, drawable platform.DrawableID
 			d.SetForeground(gc, a.outline.Pixel)
 			a.setLineAttrs(d, gc)
 			d.DrawArc(drawable, gc, x1, y1, uint(w), uint(h), angle1, angle2)
-			// Draw chord line.
-			startRad := a.start * math.Pi / 180
-			endRad := (a.start + a.extent) * math.Pi / 180
-			sx := int(cx + rx*math.Cos(startRad))
-			sy := int(cy - ry*math.Sin(startRad))
-			ex := int(cx + rx*math.Cos(endRad))
-			ey := int(cy - ry*math.Sin(endRad))
+			_, _, sx, sy, ex, ey := a.outlineEnds(originX, originY)
 			d.DrawLine(drawable, gc, sx, sy, ex, ey)
 			a.resetLineAttrs(d, gc)
 		}
@@ -165,6 +146,23 @@ func (a *ArcItem) Display(d platform.DisplayServer, drawable platform.DrawableID
 			a.resetLineAttrs(d, gc)
 		}
 	}
+}
+
+// outlineEnds ports ComputeArcOutline's center1/center2 and DisplayArc's
+// vertex: computed in canvas coordinates from the bbox, then each rounded
+// with Tk_CanvasDrawableCoords.
+func (a *ArcItem) outlineEnds(originX, originY int) (cx, cy, sx, sy, ex, ey int) {
+	bx1, bx2 := min(a.coords[0], a.coords[2]), max(a.coords[0], a.coords[2])
+	by1, by2 := min(a.coords[1], a.coords[3]), max(a.coords[1], a.coords[3])
+	bw, bh := bx2-bx1, by2-by1
+	vx, vy := (bx1+bx2)/2, (by1+by2)/2
+	angle := -a.start * math.Pi / 180
+	sin1, cos1 := math.Sin(angle), math.Cos(angle)
+	angle -= a.extent * math.Pi / 180
+	sin2, cos2 := math.Sin(angle), math.Cos(angle)
+	return drawableCoord(vx, originX), drawableCoord(vy, originY),
+		drawableCoord(vx+cos1*bw/2, originX), drawableCoord(vy+sin1*bh/2, originY),
+		drawableCoord(vx+cos2*bw/2, originX), drawableCoord(vy+sin2*bh/2, originY)
 }
 
 func (a *ArcItem) setLineAttrs(d platform.DisplayServer, gc platform.GCID) {

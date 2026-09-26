@@ -14,6 +14,7 @@ import (
 	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
+	"math"
 	"os"
 )
 
@@ -76,7 +77,11 @@ func main() {
 	points := [][2]float64{{9, 42}, {15, 70.5}, {24.75, 73.5}, {24, 90}, {45.75, 135}, {56.25, 120}, {73.5, 167.25}}
 	for _, p := range points {
 		x := 75 + 2.25*p[0]
-		y := 187.5 - 3*p[1]/5
+		dy := 3 * p[1] / 5
+		if p[1] == math.Trunc(p[1]) {
+			dy = math.Trunc(dy) // Tcl: (3*42)/5 is integer division
+		}
+		y := 187.5 - dy
 		c.CreateOval(pt(x-4.5), pt(y-4.5), pt(x+4.5), pt(y+4.5),
 			canvas.OutlineWidth(screenunit.Px("0.75p")), canvas.OutlineColor("black"),
 			canvas.FillColor("SkyBlue2"), canvas.Tags("point"))
