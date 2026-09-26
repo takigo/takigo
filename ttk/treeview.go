@@ -64,6 +64,7 @@ type Treeview struct {
 	// Columns.
 	columns         []*TreeColumn
 	showTree        bool // show tree column (#0)
+	slack           int  // tree area width minus the columns (ttkTreeview.c)
 	showHeadings    bool // show heading row
 	treeColumnWidth int
 	treeHeadingText string
@@ -220,6 +221,8 @@ func NewTreeview(parent widget.Caregiver, name string, opts ...TreeviewOption) *
 	for _, opt := range opts {
 		opt(tv)
 	}
+	// RecomputeSlack at creation: the tree area is still empty.
+	tv.slack = -tv.totalWidth()
 
 	tv.requestSize()
 
@@ -524,7 +527,13 @@ func (tv *Treeview) ColumnConfigure(id string, opts ...ColumnOption) {
 	for _, opt := range opts {
 		opt(col)
 	}
-	tv.requestSize()
+	if tv.Win.Flags&window.FlagMapped != 0 {
+		// Mapped: keep the request, re-fit the columns (ttkTreeview.c).
+		tv.slack = tv.treeAreaWidth() - tv.totalWidth()
+		tv.resizeColumns(tv.totalWidth())
+	} else {
+		tv.requestSize()
+	}
 	tv.Display()
 }
 
@@ -763,6 +772,93 @@ func (tv *Treeview) walkChildren(parent *TreeItem, depth int) {
 			tv.walkChildren(child, depth+1)
 		}
 	}
+}
+
+// colRef is a display column for the slack logic: the tree column (#0) and
+// the data columns, all stretchable unless configured otherwise.
+type colRef struct {
+	width   *int
+	min     int
+	stretch bool
+}
+
+func (tv *Treeview) displayColumnRefs() []colRef {
+	var refs []colRef
+	if tv.showTree {
+		refs = append(refs, colRef{&tv.treeColumnWidth, 20, true})
+	}
+	for _, c := range tv.columns {
+		refs = append(refs, colRef{&c.Width, c.MinWidth, c.Stretch})
+	}
+	return refs
+}
+
+// headingFont is the Heading style's -font (TkHeadingFont in defaults.tcl).
+func (tv *Treeview) headingFont() font.Font {
+	if f, err := tv.App.FontRegistry().Get(font.TkHeadingFont); err == nil {
+		return f
+	}
+	return tv.Font
+}
+
+func (tv *Treeview) treeAreaWidth() int { return tv.Win.Width - 2*treeviewFieldBorder }
+
+// stretchCol ports Stretch: move a column edge by n down to its minimum.
+func stretchCol(c colRef, n int) int {
+	if nw := *c.width + n; nw < c.min {
+		n = c.min - *c.width
+		*c.width = c.min
+	} else {
+		*c.width = nw
+	}
+	return n
+}
+
+// resizeColumns ports ResizeColumns (ttkTreeview.c): take up the width
+// change in the slack first, spread what is left evenly over stretchable
+// columns (remainder round-robin), then shove the leftovers left.
+func (tv *Treeview) resizeColumns(newWidth int) {
+	cols := tv.displayColumnRefs()
+	delta := newWidth - (tv.totalWidth() + tv.slack)
+	// PickupSlack.
+	extra := 0
+	if ns := tv.slack + delta; (ns < 0 && tv.slack >= 0) || (ns > 0 && tv.slack <= 0) {
+		tv.slack, extra = 0, ns
+	} else {
+		tv.slack = ns
+	}
+	// DistributeWidth.
+	m := 0
+	for _, c := range cols {
+		if c.stretch {
+			m++
+		}
+	}
+	if m > 0 {
+		w := tv.totalWidth()
+		d, r := extra/m, extra%m
+		if r < 0 {
+			r += m
+			d--
+		}
+		for _, c := range cols {
+			if c.stretch {
+				w++
+				add := d
+				if w%m < r {
+					add++
+				}
+				extra -= stretchCol(c, add)
+			}
+		}
+	}
+	// ShoveLeft from the last column, then DepositSlack.
+	for i := len(cols) - 1; extra != 0 && i >= 0; i-- {
+		if cols[i].stretch {
+			extra -= stretchCol(cols[i], extra)
+		}
+	}
+	tv.slack += extra
 }
 
 func (tv *Treeview) totalWidth() int {

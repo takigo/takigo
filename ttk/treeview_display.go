@@ -27,6 +27,8 @@ func (tv *Treeview) Display() {
 	if width <= 0 || height <= 0 {
 		return
 	}
+	// TreeviewDoLayout: fit the columns to the tree area.
+	tv.resizeColumns(width)
 
 	// Allocate or resize pixmap.
 	if tv.pixmap == 0 || tv.pixmapW != width || tv.pixmapH != height {
@@ -62,7 +64,7 @@ func (tv *Treeview) Display() {
 		d.FillRectangle(pixDrawable, gc, 0, itemAreaY, uint(width), uint(itemAreaH))
 	}
 
-	df, isDF := tv.Font.(platform.DrawableFont)
+	_, isDF := tv.Font.(platform.DrawableFont)
 	if !isDF {
 		d.CopyArea(pixDrawable, win.Drawable(), gc, 0, 0, uint(width), uint(height), fb, fb)
 		d.Flush()
@@ -84,8 +86,8 @@ func (tv *Treeview) Display() {
 			draw.Fill3DRectangle(d, pixDrawable, gc, border,
 				colX, 0, tv.treeColumnWidth, tv.headingHeight, 1, option.ReliefRaised)
 			if tv.treeHeadingText != "" {
-				tv.drawAlignedText(df, pixDrawable, colX+4, 0, tv.treeColumnWidth-8,
-					tv.headingHeight, tv.treeHeadingText, option.AnchorW, fg, fgR, fgG, fgB, m)
+				tv.drawAlignedText(tv.headingFont(), pixDrawable, colX+1, 0, tv.treeColumnWidth-2,
+					tv.headingHeight, tv.treeHeadingText, option.AnchorCenter, fg, fgR, fgG, fgB)
 			}
 			colX += tv.treeColumnWidth
 		}
@@ -94,15 +96,16 @@ func (tv *Treeview) Display() {
 			draw.Fill3DRectangle(d, pixDrawable, gc, border,
 				colX, 0, col.Width, tv.headingHeight, 1, option.ReliefRaised)
 			if col.HeadingText != "" {
-				textW := col.Width - 8
-				textX := colX + 4
+				// Treeheading.border is 1px and the Heading style has no padding.
+				textW := col.Width - 2
+				textX := colX + 1
 				// Reserve space for sort indicator.
 				if tv.sortInd != nil && tv.sortInd.columnID == col.ID {
 					textW -= 12
 				}
 				if textW > 0 {
-					tv.drawAlignedText(df, pixDrawable, textX, 0, textW,
-						tv.headingHeight, col.HeadingText, col.HeadingAnchor, fg, fgR, fgG, fgB, m)
+					tv.drawAlignedText(tv.headingFont(), pixDrawable, textX, 0, textW,
+						tv.headingHeight, col.HeadingText, col.HeadingAnchor, fg, fgR, fgG, fgB)
 				}
 			}
 			// Sort indicator.
@@ -181,7 +184,7 @@ func (tv *Treeview) Display() {
 			if item.Text != "" {
 				textY := rowY + (tv.rowHeight-m.Linespace())/2 + m.Ascent
 				maxW := tv.treeColumnWidth - (textStartX - colX) - 4
-				tv.drawClippedText(df, pixDrawable, textStartX, textY, maxW,
+				tv.drawClippedText(tv.Font, pixDrawable, textStartX, textY, maxW,
 					item.Text, textPixel, textR, textG, textB)
 			}
 
@@ -195,8 +198,8 @@ func (tv *Treeview) Display() {
 				val = item.Values[ci]
 			}
 			if val != "" {
-				tv.drawAlignedText(df, pixDrawable, colX+4, rowY, col.Width-8,
-					tv.rowHeight, val, col.Anchor, textPixel, textR, textG, textB, m)
+				tv.drawAlignedText(tv.Font, pixDrawable, colX+4, rowY, col.Width-8,
+					tv.rowHeight, val, col.Anchor, textPixel, textR, textG, textB)
 			}
 			colX += col.Width
 		}
@@ -238,11 +241,12 @@ func (tv *Treeview) Display() {
 	d.Flush()
 }
 
-func (tv *Treeview) drawAlignedText(df platform.DrawableFont, drawable platform.DrawableID,
+func (tv *Treeview) drawAlignedText(f font.Font, drawable platform.DrawableID,
 	x, y, maxW, h int, text string, anchor option.Anchor,
-	pixel uint64, r, g, b uint16, m font.Metrics) {
+	pixel uint64, r, g, b uint16) {
 
-	textW := tv.Font.MeasureString(text)
+	m := f.Metrics()
+	textW := f.MeasureString(text)
 	textY := y + (h-m.Linespace())/2 + m.Ascent
 
 	textX := x
@@ -253,29 +257,30 @@ func (tv *Treeview) drawAlignedText(df platform.DrawableFont, drawable platform.
 		textX = x + maxW - textW
 	}
 
-	tv.drawClippedText(df, drawable, textX, textY, maxW, text, pixel, r, g, b)
+	tv.drawClippedText(f, drawable, textX, textY, maxW, text, pixel, r, g, b)
 }
 
-func (tv *Treeview) drawClippedText(df platform.DrawableFont, drawable platform.DrawableID,
+func (tv *Treeview) drawClippedText(f font.Font, drawable platform.DrawableID,
 	x, y, maxW int, text string, pixel uint64, r, g, b uint16) {
 
-	if maxW <= 0 {
+	df, ok := f.(platform.DrawableFont)
+	if maxW <= 0 || !ok {
 		return
 	}
-	textW := tv.Font.MeasureString(text)
+	textW := f.MeasureString(text)
 	if textW <= maxW {
 		df.DrawString(drawable, x, y, text, pixel, r, g, b)
 		return
 	}
 	// Truncate with ellipsis.
 	ellipsis := "..."
-	ellW := tv.Font.MeasureString(ellipsis)
+	ellW := f.MeasureString(ellipsis)
 	avail := maxW - ellW
 	if avail <= 0 {
 		return
 	}
 	for i := len(text); i > 0; i-- {
-		if tv.Font.MeasureString(text[:i]) <= avail {
+		if f.MeasureString(text[:i]) <= avail {
 			df.DrawString(drawable, x, y, text[:i]+ellipsis, pixel, r, g, b)
 			return
 		}

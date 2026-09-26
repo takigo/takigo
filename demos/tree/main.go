@@ -4,99 +4,24 @@ package main
 
 import (
 	"fmt"
-	goimage "image"
-	"image/color"
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
+	"unicode"
 
 	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/grid"
 	"github.com/msorc/takigo/geometry/pack"
-	tkimage "github.com/msorc/takigo/image"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/ttk"
 	_ "github.com/msorc/takigo/ttk/clamtheme"
 	_ "github.com/msorc/takigo/ttk/defaulttheme"
-	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/frame"
 )
 
-// makeFolderIcon creates a 16x16 yellow folder icon.
-func makeFolderIcon() *tkimage.Photo {
-	img := goimage.NewRGBA(goimage.Rect(0, 0, 16, 16))
-	tab := color.RGBA{R: 0xd4, G: 0xaa, B: 0x00, A: 0xff}     // folder tab
-	body := color.RGBA{R: 0xff, G: 0xcc, B: 0x00, A: 0xff}    // folder body
-	outline := color.RGBA{R: 0x99, G: 0x77, B: 0x00, A: 0xff} // border
-	// Tab: top-left 7 wide, 3 tall (rows 2-4, cols 1-7)
-	for x := 1; x <= 7; x++ {
-		for y := 2; y <= 4; y++ {
-			img.SetRGBA(x, y, tab)
-		}
-	}
-	// Body: rows 4-13, cols 1-14
-	for x := 1; x <= 14; x++ {
-		for y := 4; y <= 13; y++ {
-			img.SetRGBA(x, y, body)
-		}
-	}
-	// Outline
-	for x := 1; x <= 14; x++ {
-		img.SetRGBA(x, 4, outline)
-		img.SetRGBA(x, 13, outline)
-	}
-	for y := 4; y <= 13; y++ {
-		img.SetRGBA(1, y, outline)
-		img.SetRGBA(14, y, outline)
-	}
-	for x := 1; x <= 7; x++ {
-		img.SetRGBA(x, 2, outline)
-	}
-	img.SetRGBA(7, 3, outline)
-	img.SetRGBA(8, 3, outline)
-	return tkimage.NewPhoto("folder-icon", img)
-}
 
-// makeFileIcon creates a 16x16 white file icon with a folded corner.
-func makeFileIcon() *tkimage.Photo {
-	img := goimage.NewRGBA(goimage.Rect(0, 0, 16, 16))
-	paper := color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff}
-	fold := color.RGBA{R: 0xcc, G: 0xcc, B: 0xcc, A: 0xff}
-	outline := color.RGBA{R: 0x88, G: 0x88, B: 0x88, A: 0xff}
-	// Body: rows 1-14, cols 2-12 (with folded corner at top-right)
-	for x := 2; x <= 12; x++ {
-		for y := 1; y <= 14; y++ {
-			if x >= 9 && y <= 4 && (x-9)+(4-y) < 4 {
-				continue // cut out corner
-			}
-			img.SetRGBA(x, y, paper)
-		}
-	}
-	// Fold triangle
-	for d := 0; d < 4; d++ {
-		img.SetRGBA(9+d, 1+d, fold)
-		img.SetRGBA(9+d, 4, fold)
-		img.SetRGBA(12, 1+d, fold)
-	}
-	// Outline
-	for y := 1; y <= 14; y++ {
-		img.SetRGBA(2, y, outline)
-	}
-	for x := 2; x <= 12; x++ {
-		img.SetRGBA(x, 14, outline)
-	}
-	for y := 4; y <= 14; y++ {
-		img.SetRGBA(12, y, outline)
-	}
-	for x := 2; x <= 8; x++ {
-		img.SetRGBA(x, 1, outline)
-	}
-	for d := 0; d <= 3; d++ {
-		img.SetRGBA(9+d, d+1, outline)
-	}
-	return tkimage.NewPhoto("file-icon", img)
-}
 
 func main() {
 	app, err := takigo.NewApp(takigo.Title("Directory Browser"),
@@ -125,7 +50,7 @@ func main() {
 
 
 	// Dummy frame for grid layout of treeview + scrollbars.
-	tvFrame := frame.New(f, "dummy")
+	tvFrame := ttk.NewFrame(f, "dummy")
 	pack.Pack(tvFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true))
 
@@ -138,81 +63,52 @@ func main() {
 	tv.HeadingConfigure("#0", ttk.HeadText("Directory Structure"))
 	tv.HeadingConfigure("size", ttk.HeadText("File Size"))
 
-	// Create simple folder and file icons.
-	folderIcon := makeFolderIcon()
-	fileIcon := makeFileIcon()
-	app.ImageRegistry().Register(folderIcon)
-	app.ImageRegistry().Register(fileIcon)
-
-	// Populate a directory's children into the treeview.
-	populateDir := func(parentID, dirPath string) {
-		entries, err := os.ReadDir(dirPath)
+	// populateTree: the node's directory contents, sorted like lsort
+	// -dictionary; directories get a "dummy" child so they can be opened.
+	populateTree := func(node, path string) {
+		entries, err := os.ReadDir(path)
 		if err != nil {
 			return
 		}
-
-		// Sort: directories first, then files, both alphabetical.
-		sort.Slice(entries, func(i, j int) bool {
-			di, dj := entries[i].IsDir(), entries[j].IsDir()
-			if di != dj {
-				return di
+		var names []string
+		for _, e := range entries {
+			if !strings.HasPrefix(e.Name(), ".") { // glob * skips dotfiles
+				names = append(names, e.Name())
 			}
-			return entries[i].Name() < entries[j].Name()
-		})
-
-		for _, entry := range entries {
-			name := entry.Name()
-			// Skip hidden files.
-			if len(name) > 0 && name[0] == '.' {
+		}
+		sort.Slice(names, func(i, j int) bool { return dictLess(names[i], names[j]) })
+		for _, name := range names {
+			f := filepath.Join(path, name)
+			st, err := os.Lstat(f)
+			if err != nil {
 				continue
 			}
-			fullPath := filepath.Join(dirPath, name)
-			sizeStr := ""
-
-			var icon widget.WidgetImage
-			if entry.IsDir() {
-				icon = folderIcon
-			} else {
-				icon = fileIcon
-				if info, err := entry.Info(); err == nil {
-					sizeStr = formatSize(info.Size())
-				}
-			}
-
-			displayName := name
-			if entry.IsDir() {
-				displayName = name + "/"
-			}
-
-			childID := tv.Insert(parentID, -1,
-				ttk.ItemText(displayName),
-				ttk.ItemValues(sizeStr),
-				ttk.ItemID(fullPath),
-				ttk.ItemImage(icon),
-			)
-
-			// If directory, add a dummy child so the expand indicator shows.
-			if entry.IsDir() {
-				tv.Insert(childID, -1, ttk.ItemText(""), ttk.ItemID(fullPath+"/__dummy__"))
+			id := tv.Insert(node, -1, ttk.ItemText(name), ttk.ItemID(f),
+				ttk.ItemImage(demohelper.FileIcon(f, 16)))
+			switch {
+			case st.IsDir():
+				tv.Insert(id, 0, ttk.ItemText("dummy"), ttk.ItemID(f+"/\x00dummy"))
+				tv.SetItemText(id, name+"/")
+			case st.Mode().IsRegular():
+				tv.SetItemValues(id, formatSize(st.Size()))
 			}
 		}
 	}
 
-	// On open: replace dummy child with real directory contents.
 	tv.OnOpen = func(id string) {
-		children := tv.Children(id)
-		// Check if it's a dummy placeholder.
-		if len(children) == 1 {
-			child := tv.Item(children[0])
-			if child != nil && child.Text == "" {
+		if children := tv.Children(id); len(children) == 1 {
+			if child := tv.Item(children[0]); child != nil && child.Text == "dummy" {
 				tv.Delete(children[0])
-				populateDir(id, id)
+				populateTree(id, id)
 			}
 		}
 	}
 
-	// Start with root directory (matches Tcl's [file volumes] on Unix).
-	populateDir("", "/")
+	// populateRoots: one closed node per [file volumes] entry. Tcl 9 also
+	// lists its //zipfs:/ volume, which has no counterpart here.
+	root := tv.Insert("", -1, ttk.ItemText("/"), ttk.ItemID("/"),
+		ttk.ItemImage(demohelper.FileIcon("/", 16)))
+	populateTree(root, "/")
 
 	// Vertical scrollbar.
 	yscroll := ttk.NewScrollbar(tvFrame, "vsb",
@@ -271,4 +167,42 @@ func formatSize(bytes int64) string {
 		return fmt.Sprintf("%.1f MB", float64(bytes)/(1024*1024))
 	}
 	return fmt.Sprintf("%.1f GB", float64(bytes)/(1024*1024*1024))
+}
+
+// dictLess orders like Tcl's lsort -dictionary: case-insensitive, with
+// embedded numbers compared numerically, case breaking ties.
+func dictLess(a, b string) bool {
+	ra, rb := []rune(a), []rune(b)
+	i, j := 0, 0
+	for i < len(ra) && j < len(rb) {
+		ca, cb := ra[i], rb[j]
+		if unicode.IsDigit(ca) && unicode.IsDigit(cb) {
+			si, sj := i, j
+			for i < len(ra) && unicode.IsDigit(ra[i]) {
+				i++
+			}
+			for j < len(rb) && unicode.IsDigit(rb[j]) {
+				j++
+			}
+			na := strings.TrimLeft(string(ra[si:i]), "0")
+			nb := strings.TrimLeft(string(rb[sj:j]), "0")
+			if len(na) != len(nb) {
+				return len(na) < len(nb)
+			}
+			if na != nb {
+				return na < nb
+			}
+			continue
+		}
+		la, lb := unicode.ToLower(ca), unicode.ToLower(cb)
+		if la != lb {
+			return la < lb
+		}
+		i++
+		j++
+	}
+	if len(ra)-i != len(rb)-j {
+		return len(ra)-i < len(rb)-j
+	}
+	return a < b
 }

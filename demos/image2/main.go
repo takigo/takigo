@@ -4,6 +4,7 @@ package main
 
 import (
 	"fmt"
+	goimage "image"
 	_ "image/jpeg" // register JPEG decoder
 	"os"
 	"path/filepath"
@@ -117,7 +118,7 @@ func main() {
 	pack.Pack(dirEntry, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth),
 		pack.PadX("2m"), pack.PadY("2m"), pack.Expand(true))
 	pack.Pack(selectDirBtn, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillY),
-		pack.PadX(0), pack.PadY("2m"))
+		pack.PadXPair(0, "2m"), pack.PadY("2m"))
 
 	// --- "File:" labelframe ---
 	fileLF := labelframe.New(mid, "f", labelframe.Text("File:"),
@@ -163,20 +164,21 @@ func main() {
 		return true
 	})
 
-	// Pre-load initial file list from images directory.
-	loadDir()
+	// The list starts with these names; the directory is only read on
+	// Return or "Select Dir.".
+	for _, name := range []string{"earth.gif", "earthris.gif", "teapot.ppm", "Tcl.svg"} {
+		lb.Insert(lb.ItemCount(), name)
+	}
 
 	// --- "Image:" labelframe ---
 	imageLF := labelframe.New(mid, "image", labelframe.Text("Image:"))
+	// "image create photo image2a": an empty photo until a file is loaded.
 	imgLabel := label.New(imageLF, "image",
-		label.Text("(select an image)"),
-		label.Relief(option.ReliefGroove),
-	)
+		label.ImageOpt(tkimage.NewPhoto("image2a", goimage.NewRGBA(goimage.Rect(0, 0, 0, 0)))))
 	pack.Pack(imgLabel, pack.PadX("2m"), pack.PadY("2m"))
 
 	// Double-click on listbox loads the image.
 	var currentPhotoName string
-	var currentIconName string
 	eng.Bind(lb.Window().PathName, "<Double-Button-1>", func(_ *bind.EventData) bool {
 		app.DoWhenIdle(func() {
 			sel := lb.Selection()
@@ -195,9 +197,6 @@ func main() {
 			if currentPhotoName != "" {
 				app.ImageRegistry().Unregister(currentPhotoName)
 			}
-			if currentIconName != "" {
-				app.ImageRegistry().Unregister(currentIconName)
-			}
 
 			photoName := fmt.Sprintf("img2a_%s", filename)
 			newPhoto, err := tkimage.NewPhotoFromFile(photoName, path)
@@ -213,23 +212,9 @@ func main() {
 			imgLabel.Text = ""
 			imgLabel.SetImage(newPhoto)
 
-			// Create a 48px thumbnail for the icon label (approximates
-			// Tcl's "tk fileicon $filename 48").
-			const iconSize = 48
-			w, h := newPhoto.Width(), newPhoto.Height()
-			if w > 0 && h > 0 {
-				scale := float64(iconSize) / float64(max(w, h))
-				if scale > 1 {
-					scale = 1 // don't upscale small images
-				}
-				iconName := fmt.Sprintf("img2a_icon_%s", filename)
-				thumb := tkimage.NewPhotoFromPhoto(newPhoto, iconName, tkimage.Zoom(scale))
-				app.ImageRegistry().Register(thumb)
-				currentIconName = thumb.Name()
-
-				iconLabel.Compound = widget.CompoundTop
-				iconLabel.SetImage(thumb)
-			}
+			// "tk fileicon $filename 48".
+			iconLabel.Compound = widget.CompoundTop
+			iconLabel.SetImage(demohelper.FileIcon(path, 48))
 		})
 		return true
 	})

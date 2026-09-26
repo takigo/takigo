@@ -12,6 +12,7 @@ import (
 	"reflect"
 	"runtime"
 	"slices"
+	"strings"
 
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/geometry"
@@ -440,4 +441,54 @@ func showVars[T comparable](app widget.AppContext, vars *DemoVars[T]) {
 		asAny[name] = v
 	}
 	showVarsAny(app, asAny)
+}
+
+var fileIcons = map[string]*tkimage.Photo{}
+
+// FileIcon ports [tk fileicon path size] on X11 (library/fileicon.tcl), for
+// size 16 or 48: the icon is chosen by directory, executable bit and
+// extension, from Tk's own SVGs rasterized by scripts/export_fileicons.tcl.
+func FileIcon(path string, size int) *tkimage.Photo {
+	name := "text"
+	if st, err := os.Stat(path); err == nil && st.IsDir() {
+		name = "folder"
+	} else if err == nil && st.Mode()&0o111 != 0 {
+		name = "executable"
+	} else {
+		switch strings.ToLower(filepath.Ext(path)) {
+		case ".svg":
+			name = "drawing"
+		case ".bmp", ".gif", ".ico", ".icns", ".jpg", ".jpeg", ".png", ".tif", ".tiff", ".webp", ".pdf":
+			name = "image"
+		case ".aac", ".aiff", ".mid", ".midi", ".mp3", ".wav", ".oga", ".opus", ".weba":
+			name = "audio"
+		case ".ics":
+			name = "calendar"
+		case ".abw", ".odt", ".doc", ".docx", ".rtf":
+			name = "word"
+		case ".odp", ".ppt", ".pptx":
+			name = "presentation"
+		case ".csv", ".ods", ".xls", ".xlsx":
+			name = "spreadsheet"
+		case ".arc", ".bz", ".bz2", ".jar", ".mpkg", ".rar", ".tar", ".zip", ".tz", ".tgz", ".7z":
+			name = "archive"
+		case ".css", ".js", ".html", ".htm", ".epub", ".json", ".swf", ".xhtml", ".xml":
+			name = "html"
+		case ".csh", ".php", ".sh", ".py", ".pl", ".tcl", ".rb":
+			name = "script"
+		case ".bin", ".db", ".so", ".dll", ".dylib":
+			name = "binary"
+		case ".eot", ".otf", ".ttf", ".woff", ".woff2":
+			name = "font"
+		case ".eml", ".msg", ".mbox", ".pst", ".oft":
+			name = "mail"
+		}
+	}
+	name = fmt.Sprintf("fileicon-%s-%d", name, size)
+	if p, ok := fileIcons[name]; ok {
+		return p
+	}
+	p := loadIcon(name)
+	fileIcons[name] = p
+	return p
 }
