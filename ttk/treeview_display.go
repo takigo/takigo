@@ -5,6 +5,7 @@ import (
 	"github.com/msorc/takigo/font"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
+	"github.com/msorc/takigo/screenunit"
 )
 
 // Display renders the treeview to its window via double-buffered pixmap.
@@ -159,25 +160,38 @@ func (tv *Treeview) Display() {
 
 		colX := 0
 
-		// Tree column.
+		// Tree column: the Item layout (ttkTreeview.c) in a parcel indented
+		// by depth*indent: Treeitem.indicator (-indicatorsize 9p, odd, plus
+		// -indicatormargins {1.5p 1.5p 3p 1.5p}) packed left even for leaves,
+		// then Treeitem.image packed left (anchor w), then Treeitem.text.
 		if tv.showTree {
-			indentX := depth * tv.indent
-			indicatorX := colX + indentX + 2
-			textStartX := colX + indentX + tv.indent + 2
-
-			// Draw expand/collapse indicator if item has children.
-			if len(item.Children) > 0 {
-				tv.drawIndicator(d, pixDrawable, gc, indicatorX, rowY, item.Open, textPixel)
+			rowBg := fieldBg
+			if isSelected {
+				rowBg = selBg
+			} else if tv.Stripe && idx%2 == 1 {
+				rowBg = stripeBg
 			}
+			parcelX := colX + depth*tv.indent
+			indSize := screenunit.Px("9p")
+			if indSize%2 == 0 {
+				indSize--
+			}
+			ml, mt, mr, mb := screenunit.Px("1.5p"), screenunit.Px("1.5p"), screenunit.Px("3p"), screenunit.Px("1.5p")
+			if len(item.Children) > 0 {
+				// Unfilled node: its requested size, centred in the row.
+				boxY := rowY + (tv.rowHeight-(indSize+mt+mb))/2
+				tv.drawIndicator(d, pixDrawable, gc, Box{parcelX + ml, boxY + mt,
+					indSize, indSize}, item.Open, textPixel)
+			}
+			textStartX := parcelX + indSize + ml + mr
 
-			// Draw item icon image (if any).
 			if item.Image != nil {
 				imgW := item.Image.Width()
 				imgH := item.Image.Height()
 				imgY := rowY + (tv.rowHeight-imgH)/2
 				item.Image.Draw(d, pixDrawable, gc, tv.Win.Depth,
-					0, 0, imgW, imgH, textStartX, imgY, tv.Win.BackgroundPixel)
-				textStartX += imgW + 3
+					0, 0, imgW, imgH, textStartX, imgY, rowBg)
+				textStartX += imgW
 			}
 
 			// Draw item text.
@@ -236,7 +250,8 @@ func (tv *Treeview) Display() {
 
 	// Copy inside the field border, then draw the border around it.
 	d.CopyArea(pixDrawable, win.Drawable(), gc, 0, 0, uint(width), uint(height), fb, fb)
-	border := draw.NewBorderFromPixel(bg)
+	// Treeview.field: FieldElement's border is -fieldbackground's 3D border.
+	border := draw.NewBorderFromPixel(fieldBg)
 	draw.Draw3DRectangle(d, win.Drawable(), gc, border, 0, 0, win.Width, win.Height, fb, option.ReliefSunken)
 	d.Flush()
 }
@@ -287,32 +302,46 @@ func (tv *Treeview) drawClippedText(f font.Font, drawable platform.DrawableID,
 	}
 }
 
+// drawIndicator ports TreeitemIndicatorDraw: an arrow outline sized by
+// TtkArrowSize, centred in the (margin-padded) box b, drawn by TtkDrawArrow.
 func (tv *Treeview) drawIndicator(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID,
-	x, y int, open bool, pixel uint64) {
-
-	// Draw a small triangle: right-pointing (closed) or down-pointing (open).
-	cx := x + 4
-	cy := y + tv.rowHeight/2
-
-	d.SetForeground(gc, pixel)
-
+	b Box, open bool, pixel uint64) {
+	var cx, cy int
 	if open {
-		// Down-pointing triangle.
-		points := []draw.Point{
-			{X: cx - 4, Y: cy - 2},
-			{X: cx + 4, Y: cy - 2},
-			{X: cx, Y: cy + 3},
+		h := b.Width / 2
+		cx, cy = 2*h+1, h+1
+		if (b.Height-cy)%2 == 1 {
+			cy++
 		}
-		draw.FillPolygon(d, drawable, gc, points)
 	} else {
-		// Right-pointing triangle.
-		points := []draw.Point{
-			{X: cx - 2, Y: cy - 4},
-			{X: cx + 3, Y: cy},
-			{X: cx - 2, Y: cy + 4},
+		h := b.Height / 2
+		cx, cy = h+1, 2*h+1
+		if (b.Width-cx)%2 == 1 {
+			cx++
 		}
-		draw.FillPolygon(d, drawable, gc, points)
 	}
+	b = StickBox(b, cx, cy, 0)
+	var pts [4]draw.Point
+	if open { // ArrowPoints, ARROW_DOWN
+		h := (b.Width - 1) / 2
+		x, y := b.X+h, b.Y+b.Height-1
+		if b.Height <= h {
+			h = b.Height - 1
+		}
+		pts = [4]draw.Point{{X: x, Y: y}, {X: x - h, Y: y - h}, {X: x + h, Y: y - h}, {X: x, Y: y}}
+	} else { // ARROW_RIGHT
+		h := (b.Height - 1) / 2
+		x, y := b.X+b.Width-1, b.Y+h
+		if b.Width <= h {
+			h = b.Width - 1
+		}
+		pts = [4]draw.Point{{X: x, Y: y}, {X: x - h, Y: y - h}, {X: x - h, Y: y + h}, {X: x, Y: y}}
+	}
+	d.SetForeground(gc, pixel)
+	for i := 0; i < 3; i++ {
+		d.DrawLine(drawable, gc, pts[i].X, pts[i].Y, pts[i+1].X, pts[i+1].Y)
+	}
+	d.DrawLine(drawable, gc, pts[2].X, pts[2].Y, pts[2].X, pts[2].Y)
 }
 
 func (tv *Treeview) drawSortIndicator(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID,
