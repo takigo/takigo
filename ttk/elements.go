@@ -370,9 +370,9 @@ func drawText(_ platform.DisplayServer, drawable platform.DrawableID, f font.Fon
 	m := f.Metrics()
 	baseline := y + m.Ascent
 	// Extract RGB from pixel.
-	r := uint16((fgPixel>>16)&0xFF) << 8
-	g := uint16((fgPixel>>8)&0xFF) << 8
-	b := uint16((fgPixel)&0xFF) << 8
+	r := uint16((fgPixel>>16)&0xFF) * 257
+	g := uint16((fgPixel>>8)&0xFF) * 257
+	b := uint16((fgPixel)&0xFF) * 257
 	df.DrawString(drawable, x, baseline, text, fgPixel, r, g, b)
 }
 

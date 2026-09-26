@@ -558,24 +558,24 @@ func (lb *Listbox) Display() {
 	}
 	d.FillRectangle(w.Drawable(), gc, 0, 0, uint(w.Width), uint(w.Height))
 
-	// Border.
-	if lb.Border != nil && lb.BorderWidth > 0 {
-		hl := lb.HighlightWidth
-		draw.Draw3DRectangle(d, w.Drawable(), gc, lb.Border,
-			hl, hl, w.Width-2*hl, w.Height-2*hl, lb.BorderWidth, lb.Relief)
-	}
-	// The highlight ring sits outside the border (focus colour or
-	// -highlightbackground).
-	lb.DrawHighlightBorder(lb.HasFocus, 0)
+	// DisplayListbox draws the border and highlight ring last, over any
+	// text that runs past the viewable area.
+	defer func() {
+		if lb.Border != nil && lb.BorderWidth > 0 {
+			hl := lb.HighlightWidth
+			draw.Draw3DRectangle(d, w.Drawable(), gc, lb.Border,
+				hl, hl, w.Width-2*hl, w.Height-2*hl, lb.BorderWidth, lb.Relief)
+		}
+		lb.DrawHighlightBorder(lb.HasFocus, 0)
+		d.Flush()
+	}()
 
 	if lb.Font == nil || lb.lineHeight <= 0 {
-		d.Flush()
 		return
 	}
 
 	df, isDF := lb.Font.(platform.DrawableFont)
 	if !isDF {
-		d.Flush()
 		return
 	}
 
@@ -640,8 +640,6 @@ func (lb *Listbox) Display() {
 			d.DrawLine(w.Drawable(), gc, textX, lineY, textX+textW, lineY)
 		}
 	}
-
-	d.Flush()
 }
 
 // Configure applies options.

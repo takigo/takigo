@@ -102,7 +102,7 @@ func main() {
 	}
 
 	// Invert first item to highlight it (matches Tcl's itemconfigure 0 -bg fg -fg bg).
-	lb.ItemConfigure(0, "#d9d9d9", "#000000")
+	lb.ItemConfigure(0, "#ffffff", "#000000") // -fg black, -bg white (DEF_LISTBOX_BG_COLOR)
 
 	pack.Pack(lbScroll, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
 	pack.Pack(lb, pack.FillOpt(pack.FillBoth), pack.Expand(true))

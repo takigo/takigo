@@ -392,8 +392,8 @@ func darkenFieldColor(pixel uint64, amount uint64) uint64 {
 }
 
 func colorToRGB16(pixel uint64) (uint16, uint16, uint16) {
-	r := uint16((pixel>>16)&0xFF) << 8
-	g := uint16((pixel>>8)&0xFF) << 8
-	b := uint16((pixel)&0xFF) << 8
+	r := uint16((pixel>>16)&0xFF) * 257
+	g := uint16((pixel>>8)&0xFF) * 257
+	b := uint16((pixel)&0xFF) * 257
 	return r, g, b
 }

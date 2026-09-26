@@ -141,13 +141,15 @@ func parseHex(hex string) (r, g, b uint16, err error) {
 		rv, _ := strconv.ParseUint(string(hex[0])+string(hex[0]), 16, 16)
 		gv, _ := strconv.ParseUint(string(hex[1])+string(hex[1]), 16, 16)
 		bv, _ := strconv.ParseUint(string(hex[2])+string(hex[2]), 16, 16)
-		return uint16(rv << 8), uint16(gv << 8), uint16(bv << 8), nil
+		// TkParseColor replicates digits: #RGB is #RRRRGGGGBBBB.
+		return uint16(rv * 257), uint16(gv * 257), uint16(bv * 257), nil
 
 	case 6: // #RRGGBB
 		rv, _ := strconv.ParseUint(hex[0:2], 16, 16)
 		gv, _ := strconv.ParseUint(hex[2:4], 16, 16)
 		bv, _ := strconv.ParseUint(hex[4:6], 16, 16)
-		return uint16(rv << 8), uint16(gv << 8), uint16(bv << 8), nil
+		// TkParseColor: #RRGGBB is #RRRRGGGGBBBB.
+		return uint16(rv * 257), uint16(gv * 257), uint16(bv * 257), nil
 
 	case 12: // #RRRRGGGGBBBB
 		rv, _ := strconv.ParseUint(hex[0:4], 16, 16)

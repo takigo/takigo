@@ -330,9 +330,9 @@ func (nb *Notebook) Display() {
 			textY := tabY + (tabH-m.Linespace())/2 + m.Ascent
 
 			if df, ok := nb.Font.(platform.DrawableFont); ok {
-				r := uint16((fgPixel>>16)&0xFF) << 8
-				g := uint16((fgPixel>>8)&0xFF) << 8
-				b := uint16((fgPixel)&0xFF) << 8
+				r := uint16((fgPixel>>16)&0xFF) * 257
+				g := uint16((fgPixel>>8)&0xFF) * 257
+				b := uint16((fgPixel)&0xFF) * 257
 				df.DrawString(pixDrawable, textX, textY, tab.Text, fgPixel, r, g, b)
 			}
 

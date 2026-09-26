@@ -312,9 +312,9 @@ func (c *Checkbutton) Display() {
 			m := c.Font.Metrics()
 			textX := labelX
 			textY := labelY + m.Ascent
-			r := uint16((fgColor>>16)&0xFF) << 8
-			g := uint16((fgColor>>8)&0xFF) << 8
-			b := uint16((fgColor)&0xFF) << 8
+			r := uint16((fgColor>>16)&0xFF) * 257
+			g := uint16((fgColor>>8)&0xFF) * 257
+			b := uint16((fgColor)&0xFF) * 257
 			df.DrawString(win.Drawable(), textX, textY, c.Text, fgColor, r, g, b)
 		}
 	}

@@ -294,9 +294,9 @@ func (c *Combobox) Display() {
 				}
 				seg := string(c.edit.Text[start:end])
 				segX := textX + c.Font.MeasureString(string(c.edit.Text[:start]))
-				r := uint16((clr>>16)&0xFF) << 8
-				g := uint16((clr>>8)&0xFF) << 8
-				b := uint16((clr)&0xFF) << 8
+				r := uint16((clr>>16)&0xFF) * 257
+				g := uint16((clr>>8)&0xFF) * 257
+				b := uint16((clr)&0xFF) * 257
 				df.DrawString(pixDrawable, segX, textY, seg, clr, r, g, b)
 			}
 			if hasSel && len(c.edit.Text) > 0 {
@@ -321,9 +321,9 @@ func (c *Combobox) Display() {
 		if df, ok := c.Font.(platform.DrawableFont); ok {
 			ph := LookupColor(st, "-placeholderforeground", c.State, 0xb3b3b3)
 			m := c.Font.Metrics()
-			r := uint16((ph>>16)&0xFF) << 8
-			g := uint16((ph>>8)&0xFF) << 8
-			b := uint16(ph&0xFF) << 8
+			r := uint16((ph>>16)&0xFF) * 257
+			g := uint16((ph>>8)&0xFF) * 257
+			b := uint16(ph&0xFF) * 257
 			df.DrawString(pixDrawable, textX, (height-m.Linespace())/2+m.Ascent, c.Placeholder, ph, r, g, b)
 		}
 	}
@@ -546,9 +546,9 @@ func (c *Combobox) displayDropdown() {
 			}
 
 			if df, ok := c.Font.(platform.DrawableFont); ok {
-				r := uint16((fg>>16)&0xFF) << 8
-				g := uint16((fg>>8)&0xFF) << 8
-				b := uint16((fg)&0xFF) << 8
+				r := uint16((fg>>16)&0xFF) * 257
+				g := uint16((fg>>8)&0xFF) * 257
+				b := uint16((fg)&0xFF) * 257
 				df.DrawString(dw.Drawable(), 4, textY, val, fg, r, g, b)
 			}
 		}

@@ -7,7 +7,8 @@ type NamedColor struct {
 
 // rgb8 creates a NamedColor from 8-bit RGB values.
 func rgb8(r, g, b uint8) NamedColor {
-	return NamedColor{uint16(r) << 8, uint16(g) << 8, uint16(b) << 8}
+	// X colour databases scale 8-bit values by 257 (0xff -> 0xffff).
+	return NamedColor{uint16(r) * 257, uint16(g) * 257, uint16(b) * 257}
 }
 
 // NamedColors maps lower-cased color names to RGB. Generated from Tk 9.1's

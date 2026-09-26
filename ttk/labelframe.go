@@ -139,9 +139,9 @@ func (lf *Labelframe) Display() {
 		d.FillRectangle(pix, gc, lx, 0, uint(lw), uint(lh))
 		fg := LookupColor(lf.labelStyle(), "-foreground", lf.State, 0x000000)
 		if df, ok := lf.Font.(platform.DrawableFont); ok {
-			r := uint16((fg>>16)&0xFF) << 8
-			g := uint16((fg>>8)&0xFF) << 8
-			b := uint16(fg&0xFF) << 8
+			r := uint16((fg>>16)&0xFF) * 257
+			g := uint16((fg>>8)&0xFF) * 257
+			b := uint16(fg&0xFF) * 257
 			df.DrawString(pix, lx, lf.Font.Metrics().Ascent, lf.Text, fg, r, g, b)
 		}
 	}

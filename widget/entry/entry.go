@@ -646,7 +646,6 @@ func (e *Entry) Display() {
 	}
 	d.FillRectangle(w.Drawable(), gc, 0, 0, uint(w.Width), uint(w.Height))
 
-
 	dt := e.displayText()
 	xftFont, isXft := e.Font.(platform.DrawableFont)
 

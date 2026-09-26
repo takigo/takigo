@@ -7,8 +7,8 @@ func TestParseHexRGB(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if r != 0xff00 || g != 0 || b != 0 {
-		t.Errorf("#f00 = (%d,%d,%d), want (0xff00,0,0)", r, g, b)
+	if r != 0xffff || g != 0 || b != 0 {
+		t.Errorf("#f00 = (%d,%d,%d), want (0xffff,0,0)", r, g, b)
 	}
 }
 
@@ -17,8 +17,8 @@ func TestParseHexRRGGBB(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if r != 0xff00 || g != 0x8800 || b != 0 {
-		t.Errorf("#ff8800 = (%04x,%04x,%04x), want (ff00,8800,0000)", r, g, b)
+	if r != 0xffff || g != 0x8888 || b != 0 {
+		t.Errorf("#ff8800 = (%04x,%04x,%04x), want (ffff,8888,0000)", r, g, b)
 	}
 }
 
@@ -39,9 +39,9 @@ func TestParseNamedColor(t *testing.T) {
 		wantG uint16
 		wantB uint16
 	}{
-		{"red", 0xff00, 0, 0},
-		{"blue", 0, 0, 0xff00},
-		{"DarkGreen", 0, 0x6400, 0},
+		{"red", 0xffff, 0, 0},
+		{"blue", 0, 0, 0xffff},
+		{"DarkGreen", 0, 0x6464, 0},
 	}
 	for _, tt := range tests {
 		r, g, b, err := Parse(tt.name)
@@ -89,8 +89,8 @@ func TestParseHexWhite(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if r != 0xff00 || g != 0xff00 || b != 0xff00 {
-		t.Errorf("#fff = (%04x,%04x,%04x), want (ff00,ff00,ff00)", r, g, b)
+	if r != 0xffff || g != 0xffff || b != 0xffff {
+		t.Errorf("#fff = (%04x,%04x,%04x), want (ffff,ffff,ffff)", r, g, b)
 	}
 }
 

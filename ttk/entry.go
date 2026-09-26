@@ -518,9 +518,9 @@ func (e *Entry) Display() {
 					if segX >= width {
 						return
 					}
-					r := uint16((clr>>16)&0xFF) << 8
-					g := uint16((clr>>8)&0xFF) << 8
-					b := uint16((clr)&0xFF) << 8
+					r := uint16((clr>>16)&0xFF) * 257
+					g := uint16((clr>>8)&0xFF) * 257
+					b := uint16((clr)&0xFF) * 257
 					df.DrawString(pixDrawable, segX, textY, seg, clr, r, g, b)
 				}
 				if hasSel && !showPlaceholder && len(display) > 0 {
