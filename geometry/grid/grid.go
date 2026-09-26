@@ -35,13 +35,23 @@ type gridConfig struct {
 	rowSpan    int
 	columnSpan int
 	sticky     int
-	padX       int // total horizontal padding (left + right)
-	padY       int // total vertical padding (top + bottom)
-	padLeft    int // left portion of padX
-	padTop     int // top portion of padY
-	iPadX      int // total internal horizontal padding (2× user value)
-	iPadY      int // total internal vertical padding (2× user value)
+	padX       int            // total horizontal padding (left + right)
+	padY       int            // total vertical padding (top + bottom)
+	padLeft    int            // left portion of padX
+	padTop     int            // top portion of padY
+	iPadX      int            // total internal horizontal padding (2× user value)
+	iPadY      int            // total internal vertical padding (2× user value)
+	in         *window.Window // -in: a container other than the parent
 }
+
+// In is grid's -in: manage the content inside container, which must be the
+// content's parent or a descendant of it (Tk_MaintainGeometry keeps it there).
+func In(container window.Windower) GridOption {
+	return func(c *gridConfig) { c.in = container.Window() }
+}
+
+// containerOf records each content window's container (Tk's containerPtr).
+var containerOf = map[*window.Window]*window.Window{}
 
 // Row sets the row.
 func Row(r int) GridOption { return func(c *gridConfig) { c.row = r } }
@@ -295,6 +305,9 @@ func Grid(children geometry.Elementer, opts ...GridOption) {
 			break
 		}
 	}
+	if cfg.in != nil {
+		parent = cfg.in
+	}
 	if parent == nil {
 		return
 	}
@@ -336,6 +349,13 @@ func Grid(children geometry.Elementer, opts ...GridOption) {
 		ecfg.row = row
 		ecfg.column = col
 
+		if old := containerOf[w]; old != nil && old != parent {
+			if og, ok := gridders[old]; ok {
+				og.remove(w)
+				og.arrange()
+			}
+		}
+		containerOf[w] = parent
 		geometry.ManageGeometry(w, mgr)
 
 		// Update or add entry.
@@ -388,14 +408,24 @@ func Grid(children geometry.Elementer, opts ...GridOption) {
 // Forget removes a child from grid management.
 func Forget(child window.Windower) {
 	w := child.Window()
-	parent := w.Parent
+	parent := containerOf[w]
+	if parent == nil {
+		parent = w.Parent
+	}
 	if parent == nil {
 		return
 	}
+	delete(containerOf, w)
+	w.GeomManager = nil
+	// grid forget unmaps the content and re-grids the rest.
+	if w.IsMapped() && w.PlatformID != platform.WindowID(0) {
+		w.Display.Server.UnmapWindow(w.PlatformID)
+		window.MarkUnmapped(w)
+	}
 	if g, ok := gridders[parent]; ok {
 		g.remove(w)
+		g.arrange()
 	}
-	w.GeomManager = nil
 }
 
 // RowConfigure sets configuration for a row.
@@ -998,8 +1028,11 @@ func (g *gridder) arrange() {
 		// Apply sticky.
 		x, y, w, h := applySticky(cfg.sticky, cavX, cavY, cavW, cavH, childW, childH)
 
-		child.X = x
-		child.Y = y
+		// Content gridded -in another container is offset by its position.
+		dx, dy := window.ContentOffset(container, child)
+		moved := child.X != x+dx || child.Y != y+dy
+		child.X = x + dx
+		child.Y = y + dy
 		child.Width = w - bw2
 		child.Height = h - bw2
 		if child.Width < 1 {
@@ -1014,10 +1047,13 @@ func (g *gridder) arrange() {
 				child.X, child.Y, uint(child.Width), uint(child.Height))
 			// Tk maps content only once its container is mapped; the
 			// container's MarkMapped re-arranges and maps it then.
-			if child.Flags&window.FlagMapped == 0 && container.IsMapped() {
+			if child.Flags&window.FlagMapped == 0 && window.ContainerViewable(container, child) {
 				container.Display.Server.MapWindow(child.PlatformID)
 				window.MarkMapped(child)
 			}
+		}
+		if moved {
+			window.NotifyMoved(child)
 		}
 	}
 }
@@ -1088,11 +1124,47 @@ func ArrangeAll() {
 	}
 }
 
-// ArrangeContainer triggers layout for a specific container.
 // Arrange (and so map) the content once its container is mapped, as the
-// managers' structure procs do on MapNotify.
-func init() { window.AddMappedHook(ArrangeContainer) }
+// managers' structure procs do on MapNotify; keep -in content with its
+// container when it moves or is unmapped (Tk_MaintainGeometry).
+func init() {
+	window.AddMappedHook(ArrangeContainer)
+	window.AddMovedHook(func(w *window.Window) {
+		if g, ok := gridders[w]; ok && g.hasForeign() {
+			g.arrange()
+		}
+	})
+	window.AddUnmappedHook(func(w *window.Window) {
+		if g, ok := gridders[w]; ok {
+			g.unmapForeign()
+		}
+	})
+}
 
+// hasForeign reports whether some content is gridded -in this container
+// without being its child.
+func (g *gridder) hasForeign() bool {
+	for _, e := range g.entries {
+		if e.window.Parent != g.container {
+			return true
+		}
+	}
+	return false
+}
+
+// unmapForeign unmaps -in content whose container was unmapped; X does this
+// for real children.
+func (g *gridder) unmapForeign() {
+	for _, e := range g.entries {
+		w := e.window
+		if w.Parent != g.container && w.IsMapped() && w.PlatformID != platform.WindowID(0) {
+			w.Display.Server.UnmapWindow(w.PlatformID)
+			window.MarkUnmapped(w)
+		}
+	}
+}
+
+// ArrangeContainer triggers layout for a specific container.
 func ArrangeContainer(container *window.Window) {
 	if g, ok := gridders[container]; ok {
 		g.arrange()

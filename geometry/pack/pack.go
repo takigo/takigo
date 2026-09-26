@@ -43,6 +43,7 @@ type packConfig struct {
 	padLeft, padTop int
 	iPadX           int
 	iPadY           int
+	in              *window.Window // -in: a container other than the parent
 }
 
 // Side sets the packing side.
@@ -140,6 +141,15 @@ func (m *packManager) LostContentProc(content *window.Window) {
 // widgets. All widgets receive the same options, matching Tk's
 // "pack configure .w1 .w2 .w3 -side left" behavior.
 // See tk/generic/tkPack.c ConfigureContent.
+// In is pack's -in: manage the content inside container, which must be the
+// content's parent or a descendant of it (Tk_MaintainGeometry keeps it there).
+func In(container window.Windower) PackOption {
+	return func(c *packConfig) { c.in = container.Window() }
+}
+
+// containerOf records each content window's container (Tk's containerPtr).
+var containerOf = map[*window.Window]*window.Window{}
+
 func Pack(children geometry.Elementer, opts ...PackOption) {
 	cfg := packConfig{
 		side:   Top,
@@ -155,9 +165,19 @@ func Pack(children geometry.Elementer, opts ...PackOption) {
 	for _, elem := range elements {
 		w := elem.Window()
 		parent := w.Parent
+		if cfg.in != nil {
+			parent = cfg.in
+		}
 		if parent == nil {
 			continue
 		}
+		if old := containerOf[w]; old != nil && old != parent {
+			if op, ok := packers[old]; ok {
+				op.remove(w)
+				op.arrange()
+			}
+		}
+		containerOf[w] = parent
 
 		geometry.ManageGeometry(w, mgr)
 
@@ -194,14 +214,24 @@ func Pack(children geometry.Elementer, opts ...PackOption) {
 // Forget removes a child from pack management.
 func Forget(child window.Windower) {
 	w := child.Window()
-	parent := w.Parent
+	parent := containerOf[w]
+	if parent == nil {
+		parent = w.Parent
+	}
 	if parent == nil {
 		return
 	}
+	delete(containerOf, w)
+	w.GeomManager = nil
+	// pack forget unmaps the content and re-packs the rest.
+	if w.IsMapped() && w.PlatformID != platform.WindowID(0) {
+		w.Display.Server.UnmapWindow(w.PlatformID)
+		window.MarkUnmapped(w)
+	}
 	if p, ok := packers[parent]; ok {
 		p.remove(w)
+		p.arrange()
 	}
-	w.GeomManager = nil
 }
 
 // remove removes a child from the packer's entry list.
@@ -349,14 +379,17 @@ func (p *packer) arrange() {
 		if childW-bw2 <= 0 || childH-bw2 <= 0 {
 			if child.Flags&window.FlagMapped != 0 && child.PlatformID != platform.WindowID(0) {
 				container.Display.Server.UnmapWindow(child.PlatformID)
-				child.Flags &^= window.FlagMapped
+				window.MarkUnmapped(child)
 			}
 			continue
 		}
 
-		// Move and resize the child window.
-		child.X = childX
-		child.Y = childY
+		// Move and resize the child window; content packed -in another
+		// container is offset by that container's position.
+		dx, dy := window.ContentOffset(container, child)
+		moved := child.X != childX+dx || child.Y != childY+dy
+		child.X = childX + dx
+		child.Y = childY + dy
 		child.Width = childW - bw2
 		child.Height = childH - bw2
 
@@ -365,10 +398,13 @@ func (p *packer) arrange() {
 				child.X, child.Y, uint(child.Width), uint(child.Height))
 			// Tk maps content only once its container is mapped; the
 			// container's MarkMapped re-arranges and maps it then.
-			if child.Flags&window.FlagMapped == 0 && container.IsMapped() {
+			if child.Flags&window.FlagMapped == 0 && window.ContainerViewable(container, child) {
 				container.Display.Server.MapWindow(child.PlatformID)
 				window.MarkMapped(child)
 			}
+		}
+		if moved {
+			window.NotifyMoved(child)
 		}
 	}
 }
@@ -498,11 +534,47 @@ func ArrangeAll() {
 	}
 }
 
-// ArrangeContainer triggers layout for a specific container.
 // Arrange (and so map) the content once its container is mapped, as the
-// managers' structure procs do on MapNotify.
-func init() { window.AddMappedHook(ArrangeContainer) }
+// managers' structure procs do on MapNotify; keep -in content with its
+// container when it moves or is unmapped (Tk_MaintainGeometry).
+func init() {
+	window.AddMappedHook(ArrangeContainer)
+	window.AddMovedHook(func(w *window.Window) {
+		if p, ok := packers[w]; ok && p.hasForeign() {
+			p.arrange()
+		}
+	})
+	window.AddUnmappedHook(func(w *window.Window) {
+		if p, ok := packers[w]; ok {
+			p.unmapForeign()
+		}
+	})
+}
 
+// hasForeign reports whether some content is packed -in this container
+// without being its child.
+func (p *packer) hasForeign() bool {
+	for _, e := range p.entries {
+		if e.window.Parent != p.container {
+			return true
+		}
+	}
+	return false
+}
+
+// unmapForeign unmaps -in content whose container was unmapped; X does this
+// for real children.
+func (p *packer) unmapForeign() {
+	for _, e := range p.entries {
+		w := e.window
+		if w.Parent != p.container && w.IsMapped() && w.PlatformID != platform.WindowID(0) {
+			w.Display.Server.UnmapWindow(w.PlatformID)
+			window.MarkUnmapped(w)
+		}
+	}
+}
+
+// ArrangeContainer triggers layout for a specific container.
 func ArrangeContainer(container *window.Window) {
 	if p, ok := packers[container]; ok {
 		p.arrange()

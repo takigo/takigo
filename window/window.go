@@ -160,6 +160,59 @@ func MarkMapped(w *Window) {
 	}
 }
 
+var unmappedHooks, movedHooks []func(*Window)
+
+// AddUnmappedHook registers fn to run whenever MarkUnmapped unmaps a window.
+func AddUnmappedHook(fn func(*Window)) { unmappedHooks = append(unmappedHooks, fn) }
+
+// AddMovedHook registers fn to run whenever NotifyMoved reports a move.
+func AddMovedHook(fn func(*Window)) { movedHooks = append(movedHooks, fn) }
+
+// MarkUnmapped records that w has been unmapped (after UnmapWindow) and lets
+// geometry managers unmap content they keep inside w from elsewhere
+// (Tk_MaintainGeometry's UnmapNotify handling).
+func MarkUnmapped(w *Window) {
+	if w.Flags&FlagMapped == 0 {
+		return
+	}
+	w.Flags &^= FlagMapped
+	for _, fn := range unmappedHooks {
+		fn(w)
+	}
+}
+
+// NotifyMoved tells geometry managers that w changed position, so content
+// they maintain inside it from elsewhere follows (Tk_MaintainGeometry's
+// ConfigureNotify handling).
+func NotifyMoved(w *Window) {
+	for _, fn := range movedHooks {
+		fn(w)
+	}
+}
+
+// ContentOffset returns the position of container relative to content's
+// parent, for content managed -in a container that is not its parent (the
+// container must be the parent or one of its descendants).
+func ContentOffset(container, content *Window) (dx, dy int) {
+	for w := container; w != nil && w != content.Parent; w = w.Parent {
+		dx += w.X
+		dy += w.Y
+	}
+	return dx, dy
+}
+
+// ContainerViewable reports whether content in container may be mapped:
+// the container and every window between it and content's parent must be
+// mapped, as MaintainContentProc requires.
+func ContainerViewable(container, content *Window) bool {
+	for w := container; w != nil && w != content.Parent; w = w.Parent {
+		if w.Flags&FlagMapped == 0 {
+			return false
+		}
+	}
+	return container.Flags&FlagMapped != 0
+}
+
 // IsViewable reports whether w and every ancestor up to its toplevel are
 // mapped. Geometry managers map content before its toplevel is shown, so
 // this stands in for Tk_IsMapped where Tk defers work until mapping.

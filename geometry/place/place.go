@@ -24,7 +24,17 @@ type placeConfig struct {
 	relWidth  float64 // relative width (NaN = not set)
 	relHeight float64 // relative height (NaN = not set)
 	anchor    option.Anchor
+	in        *window.Window // -in: a container other than the parent
 }
+
+// In is place's -in: place the content relative to container, which must be
+// the content's parent or a descendant of it.
+func In(container window.Windower) PlaceOption {
+	return func(c *placeConfig) { c.in = container.Window() }
+}
+
+// containerOf records each content window's container.
+var containerOf = map[*window.Window]*window.Window{}
 
 // X sets the absolute x position.
 func X(v int) PlaceOption { return func(c *placeConfig) { c.x = v } }
@@ -113,6 +123,15 @@ func Place(child window.Windower, opts ...PlaceOption) {
 	for _, opt := range opts {
 		opt(&cfg)
 	}
+	if cfg.in != nil {
+		parent = cfg.in
+	}
+	if old := containerOf[w]; old != nil && old != parent {
+		if op, ok := placers[old]; ok {
+			op.remove(w)
+		}
+	}
+	containerOf[w] = parent
 
 	w.GeomManager = mgr
 
@@ -138,14 +157,23 @@ func Place(child window.Windower, opts ...PlaceOption) {
 // Forget removes a child from place management.
 func Forget(child window.Windower) {
 	w := child.Window()
-	parent := w.Parent
+	parent := containerOf[w]
+	if parent == nil {
+		parent = w.Parent
+	}
 	if parent == nil {
 		return
 	}
+	delete(containerOf, w)
 	if p, ok := placers[parent]; ok {
 		p.remove(w)
 	}
 	w.GeomManager = nil
+	// place forget unmaps the content.
+	if w.IsMapped() && w.PlatformID != platform.WindowID(0) {
+		w.Display.Server.UnmapWindow(w.PlatformID)
+		window.MarkUnmapped(w)
+	}
 }
 
 func (p *placer) remove(child *window.Window) {
@@ -250,8 +278,11 @@ func (p *placer) arrange() {
 			childH = 1
 		}
 
-		child.X = x
-		child.Y = y
+		// Content placed -in another container is offset by its position.
+		dx, dy := window.ContentOffset(container, child)
+		moved := child.X != x+dx || child.Y != y+dy
+		child.X = x + dx
+		child.Y = y + dy
 		child.Width = childW - bw2
 		child.Height = childH - bw2
 		if child.Width < 1 {
@@ -266,10 +297,13 @@ func (p *placer) arrange() {
 				child.X, child.Y, uint(child.Width), uint(child.Height))
 			// Tk maps content only once its container is mapped; the
 			// container's MarkMapped re-arranges and maps it then.
-			if child.Flags&window.FlagMapped == 0 && container.IsMapped() {
+			if child.Flags&window.FlagMapped == 0 && window.ContainerViewable(container, child) {
 				container.Display.Server.MapWindow(child.PlatformID)
 				window.MarkMapped(child)
 			}
+		}
+		if moved {
+			window.NotifyMoved(child)
 		}
 	}
 }
@@ -281,11 +315,41 @@ func ArrangeAll() {
 	}
 }
 
-// ArrangeContainer triggers layout for a specific container.
 // Arrange (and so map) the content once its container is mapped, as the
-// managers' structure procs do on MapNotify.
-func init() { window.AddMappedHook(ArrangeContainer) }
+// managers' structure procs do on MapNotify; keep -in content with its
+// container when it moves or is unmapped (Tk_MaintainGeometry).
+func init() {
+	window.AddMappedHook(ArrangeContainer)
+	window.AddMovedHook(func(w *window.Window) {
+		if p, ok := placers[w]; ok && p.hasForeign() {
+			p.arrange()
+		}
+	})
+	window.AddUnmappedHook(func(w *window.Window) {
+		p, ok := placers[w]
+		if !ok {
+			return
+		}
+		for _, e := range p.entries {
+			c := e.window
+			if c.Parent != w && c.IsMapped() && c.PlatformID != platform.WindowID(0) {
+				c.Display.Server.UnmapWindow(c.PlatformID)
+				window.MarkUnmapped(c)
+			}
+		}
+	})
+}
 
+func (p *placer) hasForeign() bool {
+	for _, e := range p.entries {
+		if e.window.Parent != p.container {
+			return true
+		}
+	}
+	return false
+}
+
+// ArrangeContainer triggers layout for a specific container.
 func ArrangeContainer(container *window.Window) {
 	if p, ok := placers[container]; ok {
 		p.arrange()
