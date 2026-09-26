@@ -270,7 +270,7 @@ func (nb *Notebook) Display() {
 	border := draw.NewBorderFromPixel(bg)
 
 	// Draw tabs.
-	tabX := 2
+	tabX := 0 // default theme: no -tabmargins, no -expand (ttkNotebook.c)
 	for i, tab := range nb.tabs {
 		tw := nb.tabWidths[i]
 		th := nb.tabHeight
@@ -284,12 +284,7 @@ func (nb *Notebook) Display() {
 		}
 		_ = isHover
 
-		tabY := 0
-		tabH := th
-		if !isSelected {
-			tabY = 2 // non-selected tabs are shorter
-			tabH -= 2
-		}
+		tabY, tabH := 0, th
 
 		// TabElementDraw (ttkElements.c), tabs on the north side: a polygon
 		// with cut corners, a selected tab reaching 1px over the client
@@ -327,7 +322,9 @@ func (nb *Notebook) Display() {
 			textW := nb.Font.MeasureString(tab.Text)
 			textX := tabX + (tw-textW)/2
 			m := nb.Font.Metrics()
-			textY := tabY + (tabH-m.Linespace())/2 + m.Ascent
+			// Notebook.label is packed top inside the tab's border, padding
+			// and focus, at the same place whether or not the tab is selected.
+			textY := tab.Padding.Top + m.Ascent
 
 			if df, ok := nb.Font.(platform.DrawableFont); ok {
 				r := uint16((fgPixel>>16)&0xFF) * 257
@@ -341,9 +338,9 @@ func (nb *Notebook) Display() {
 			if tab.Underline >= 0 && tab.Underline < len(runes) {
 				underX := textX + nb.Font.MeasureString(string(runes[:tab.Underline]))
 				underW := nb.Font.MeasureString(string(runes[tab.Underline : tab.Underline+1]))
-				underY := textY + 1
+				pos, h := font.Underline(nb.Font) // Tk_UnderlineTextLayout
 				d.SetForeground(gc, fgPixel)
-				d.DrawLine(pixDrawable, gc, underX, underY, underX+underW-1, underY)
+				d.FillRectangle(pixDrawable, gc, underX, textY+pos, uint(underW), uint(h))
 			}
 		}
 
@@ -399,7 +396,7 @@ func (nb *Notebook) hitTestTab(x, y int) int {
 	if y >= nb.tabHeight {
 		return -1
 	}
-	tabX := 2
+	tabX := 0
 	for i := range nb.tabs {
 		tw := nb.tabWidths[i]
 		if x >= tabX && x < tabX+tw {

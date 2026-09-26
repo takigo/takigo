@@ -56,7 +56,7 @@ toolbar	toolbar	0	0	385x427	385x427	exact
 tree	tree	0.14	1	404x414	404x414	close	Tcl lists its //zipfs:/ volume, which has no Go counterpart
 ttkbut	ttkbut	0	0	383x422	383x422	exact	
 ttkmenu	ttkmenu	0	0	435x327	435x327	exact	
-ttknote	ttknote	1.07	5	394x273	394x273	close	
+ttknote	ttknote	0.00	5	394x273	394x273	close	
 ttkpane	ttkpane	0	0	369x595	369x595	exact	
 ttkprogress	ttkprogress	0	0	376x244	376x244	exact	
 ttkscale	ttkscale	0	0	363x186	363x186	exact	
