@@ -589,12 +589,15 @@ func (t *TextWidget) renderToPixmap() {
 		return
 	}
 
-	m := t.Font.Metrics()
 	dlines := t.computeVisibleLines()
 
+	// DisplayDLine draws each line into a window-wide pixmap whose top is
+	// the line's top, so stipples start their pattern there.
+	defer d.SetTSOrigin(gc, 0, 0)
 	for _, dl := range dlines {
 		baseY := t.insetY + dl.y + dl.ascent
 		segments := t.segmentsForRange(dl.logicalLine, dl.startChar, dl.endChar)
+		d.SetTSOrigin(gc, 0, t.insetY+dl.y-dl.spacingAbove)
 
 		// Compute total segment width for justification.
 		totalW := 0
@@ -657,18 +660,23 @@ func (t *TextWidget) renderToPixmap() {
 					seg.fg.Pixel, seg.fg.Red, seg.fg.Green, seg.fg.Blue)
 			}
 
-			// Draw underline.
-			if seg.underline && seg.fg != nil {
-				underY := segBaseY + 2
+			// Tk_UnderlineChars for -underline, and for -overstrike raised by
+			// descent + 3/10 of the ascent (CharDisplayProc).
+			if (seg.underline || seg.overstrike) && seg.fg != nil {
+				sf := seg.font
+				if sf == nil {
+					sf = t.Font
+				}
+				pos, h := font.Underline(sf)
+				sm := sf.Metrics()
 				d.SetForeground(gc, seg.fg.Pixel)
-				d.DrawLine(pxDrawable, gc, segX, underY, segX+seg.width, underY)
-			}
-
-			// Draw overstrike (strikethrough).
-			if seg.overstrike && seg.fg != nil {
-				strikeY := segBaseY - m.Ascent/2
-				d.SetForeground(gc, seg.fg.Pixel)
-				d.DrawLine(pxDrawable, gc, segX, strikeY, segX+seg.width, strikeY)
+				if seg.underline {
+					d.FillRectangle(pxDrawable, gc, segX, segBaseY+pos, uint(seg.width), uint(h))
+				}
+				if seg.overstrike {
+					y := segBaseY - sm.Descent - sm.Ascent*3/10
+					d.FillRectangle(pxDrawable, gc, segX, y+pos, uint(seg.width), uint(h))
+				}
 			}
 
 			// Draw 3D relief border around the segment.
@@ -796,10 +804,14 @@ func (t *TextWidget) drawCursor(d platform.DisplayServer, gc platform.GCID, draw
 			}
 		}
 
-		d.SetForeground(gc, t.insertColor.Pixel)
-		d.FillRectangle(drawable, gc,
-			cursorX-t.insertWidth/2, t.insetY+dl.y,
-			uint(t.insertWidth), uint(dl.height))
+		// DisplayDLine renders into a line pixmap spanning only the text
+		// area (inset + padx), which clips the cursor at its edges.
+		x0 := max(cursorX-t.insertWidth/2, t.insetX)
+		x1 := min(cursorX-t.insertWidth/2+t.insertWidth, t.Win.Width-t.insetX)
+		if x1 > x0 {
+			d.SetForeground(gc, t.insertColor.Pixel)
+			d.FillRectangle(drawable, gc, x0, t.insetY+dl.y, uint(x1-x0), uint(dl.height))
+		}
 		return
 	}
 }

@@ -1,7 +1,7 @@
 # Demo parity baseline -- written by: bash scripts/demo_batch.sh --retake --update-baseline (or demo_gate.sh --accept)
 # Headless Xvfb 96dpi, pinned DejaVu fonts, frozen timers. pixel_pct = odiff % (lower is better);
 # tree_diffs = cmd/demodiff structural differences; exact = both 0.
-# summary: exact 49 / close 13 / failed 0
+# summary: exact 51 / close 11 / failed 0
 # demo	tcl	pixel_pct	tree_diffs	go_size	tcl_size	status	note
 anilabel	anilabel	0	0	386x296	386x296	exact	
 aniwave	aniwave	0.07	1	371x353	371x353	close	
@@ -49,8 +49,8 @@ sayings	sayings	0	0	386x333	386x333	exact
 search	search	0	0	661x534	661x534	exact	
 spin	spin	0	0	478x292	478x292	exact	
 states	states	0	0	388x420	388x420	exact	
-style	style	0.14	1	721x656	721x656	close	
-text	text	0.00	1	661x558	661x558	close	
+style	style	0	0	721x656	721x656	exact	
+text	text	0	0	661x558	661x558	exact	
 textpeer	textpeer	0	0	765x394	765x394	exact	
 toolbar	toolbar	0	0	385x427	385x427	exact	
 tree	tree	0.14	1	404x414	404x414	close	Tcl lists its //zipfs:/ volume, which has no Go counterpart
