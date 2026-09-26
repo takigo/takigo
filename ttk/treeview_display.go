@@ -13,7 +13,7 @@ func (tv *Treeview) Display() {
 		return
 	}
 	win := tv.Win
-	if win.PlatformID == 0 {
+	if win.PlatformID == 0 || !win.IsViewable() {
 		return
 	}
 

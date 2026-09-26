@@ -111,10 +111,10 @@ func bindTreeview(tv *Treeview, app widget.AppContext) {
 	// Configure (resize).
 	app.Dispatcher().Bind(win.PlatformID, event.StructureNotifyMask, func(ev *event.Event) {
 		if ev.Type == event.ConfigureType {
-			win.Width = ev.ConfigWidth
-			win.Height = ev.ConfigHeight
-			tv.notifyYScrollbar()
-			tv.Display()
+			// The geometry manager already set Width/Height; a queued
+			// ConfigureNotify may carry a stale size. Like Tk, redisplay
+			// (and so ResizeColumns) at idle, once the layout has settled.
+			tv.scheduleRedisplay()
 		}
 	})
 

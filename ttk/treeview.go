@@ -527,7 +527,7 @@ func (tv *Treeview) ColumnConfigure(id string, opts ...ColumnOption) {
 	for _, opt := range opts {
 		opt(col)
 	}
-	if tv.Win.Flags&window.FlagMapped != 0 {
+	if tv.Win.IsViewable() {
 		// Mapped: keep the request, re-fit the columns (ttkTreeview.c).
 		tv.slack = tv.treeAreaWidth() - tv.totalWidth()
 		tv.resizeColumns(tv.totalWidth())

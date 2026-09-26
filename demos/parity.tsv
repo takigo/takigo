@@ -33,7 +33,7 @@ items	items	3.15	3	588x564	588x564	close
 knightstour	knightstour	0.09	2	381x332	381x332	close	random knight start square differs between Go and Tcl (Tcl seeded with srand(1))
 label	label	0	0	382x340	382x340	exact	
 labelframe	labelframe	0.10	1	371x229	371x229	close	
-mclist	mclist	1.26	3	404x414	404x414	close	
+mclist	mclist	0.00	3	404x414	404x414	close	
 menu	menu	0	0	386x273	386x273	exact	
 menubu	menubu	0	0	413x480	413x480	exact	
 msgbox	msgbox	0	8	394x303	394x303	close	
@@ -56,8 +56,8 @@ toolbar	toolbar	0	0	385x427	385x427	exact
 tree	tree	0.25	3	404x414	404x414	close	
 ttkbut	ttkbut	0	6	383x422	383x422	close	
 ttkmenu	ttkmenu	0	0	435x327	435x327	exact	
-ttknote	ttknote	1.08	6	394x273	394x273	close	
-ttkpane	ttkpane	0.82	12	369x595	369x595	close	clock pane shows wall-clock time: small nondeterministic diff
+ttknote	ttknote	1.07	5	394x273	394x273	close	
+ttkpane	ttkpane	0.96	12	369x595	369x595	close	clock pane shows wall-clock time: small nondeterministic diff
 ttkprogress	ttkprogress	0.00	2	376x244	376x244	close	
 ttkscale	ttkscale	0	0	363x186	363x186	exact	
 ttkspin	ttkspin	0	0	477x287	477x287	exact	

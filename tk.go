@@ -105,6 +105,18 @@ func NewApp(opts ...AppOption) (*App, error) {
 		selMgr:     selMgr,
 	}
 
+	// Tk never reads a child window's size back from X: the geometry
+	// managers own it. A queued ConfigureNotify can describe a size that has
+	// since been replaced, so report the current one to every handler.
+	loop.SetEventFilter(func(ev *event.Event) {
+		if ev.Type != event.ConfigureType {
+			return
+		}
+		if w := d.LookupWindow(ev.Window); w != nil && !w.IsTopLevel() {
+			ev.ConfigWidth, ev.ConfigHeight = w.Width, w.Height
+		}
+	})
+
 	// Handle selection events (clipboard serve + async paste response).
 	loop.SetRawEventHandler(func(raw *platform.RawEvent) {
 		switch raw.EventType {

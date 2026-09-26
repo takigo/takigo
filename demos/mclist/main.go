@@ -96,16 +96,17 @@ func main() {
 	rowFont, _ := app.FontRegistry().Get(font.TkDefaultFont)
 	morePx := 16 + 4*screenunit.ScalingPct()/100
 	colWidth := map[string]int{}
-	for col, name := range map[string]string{"country": "Country", "capital": "Capital", "currency": "Currency"} {
-		colWidth[col] = headFont.MeasureString(name) + morePx
+	cols := []string{"country", "capital", "currency"}
+	for i, name := range []string{"Country", "Capital", "Currency"} {
+		colWidth[cols[i]] = headFont.MeasureString(name) + morePx
 	}
 	for _, c := range countries {
 		for col, v := range map[string]string{"country": c.Country, "capital": c.Capital, "currency": c.Currency} {
 			colWidth[col] = max(colWidth[col], rowFont.MeasureString(v+"  "))
 		}
 	}
-	for col, w := range colWidth {
-		tv.ColumnConfigure(col, ttk.ColWidth(w))
+	for _, col := range cols {
+		tv.ColumnConfigure(col, ttk.ColWidth(colWidth[col]))
 	}
 
 	// Wire Grid checkbox command now that tv exists.

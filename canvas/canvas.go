@@ -153,11 +153,9 @@ func New(parent widget.Caregiver, name string, opts ...CanvasOption) *Canvas {
 	// Store display function reference for idle callback.
 	c.displayFunc = c.Display
 
-	// Set window size from requested dimensions.
-	d := app.Server()
-	d.ResizeWindow(w.PlatformID, uint(w.ReqWidth), uint(w.ReqHeight))
-	w.Width = w.ReqWidth
-	w.Height = w.ReqHeight
+	// Like Tk_CreateWindow, the canvas is 1x1 until a geometry manager
+	// sizes it; -scrollregion confinement before then depends on that.
+	w.Width, w.Height = 1, 1
 
 	// Set window background pixel for child window creation.
 	if c.Base.Background != nil {
@@ -352,10 +350,12 @@ func (c *Canvas) Configure(opts ...CanvasOption) {
 		c.yOrigin += inset - c.inset
 		c.inset = inset
 	}
+	// Tk relays out at idle, so CanvasSetOrigin still sees the old window
+	// size; our geometry managers resize synchronously, so confine first.
+	c.setOrigin(c.xOrigin, c.yOrigin)
 	if rw, rh := c.reqW+2*c.inset, c.reqH+2*c.inset; rw != c.Win.ReqWidth || rh != c.Win.ReqHeight {
 		geometry.GeometryRequest(c.Win, rw, rh)
 	}
-	c.setOrigin(c.xOrigin, c.yOrigin)
 	c.scheduleRedraw()
 }
 

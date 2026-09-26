@@ -49,6 +49,9 @@ type Loop struct {
 	// rawHandler is called for every raw event before type conversion.
 	// Used to handle event types (e.g. selection) not routed through Dispatcher.
 	rawHandler func(*platform.RawEvent)
+
+	// filter is called for every converted event before dispatch.
+	filter func(*Event)
 }
 
 // NewLoop creates a new event loop for the given display server.
@@ -232,9 +235,18 @@ func (l *Loop) handleRaw(raw *platform.RawEvent) {
 				l.server.UnsetICFocus()
 			}
 		}
+		if l.filter != nil {
+			l.filter(&ev)
+		}
 		l.dispatcher.Dispatch(&ev)
 	}
 	l.server.Flush()
+}
+
+// SetEventFilter installs a function that may rewrite each converted event
+// before it is dispatched. Same threading rules as SetRawEventHandler.
+func (l *Loop) SetEventFilter(f func(*Event)) {
+	l.filter = f
 }
 
 // SetRawEventHandler installs a handler called for every raw event before

@@ -38,8 +38,8 @@ type WmInfo interface {
 }
 
 // Window represents a single window in the takigo hierarchy.
-	// Ports TkWindow from tk/generic/tkInt.h.
-	type Window struct {
+// Ports TkWindow from tk/generic/tkInt.h.
+type Window struct {
 	// Platform identity.
 	PlatformID platform.WindowID // platform window handle (0 = not yet created)
 	Display    *Display
@@ -138,6 +138,21 @@ func Toplevel(w *Window) *Window {
 // IsMapped returns true if the window is mapped.
 func (w *Window) IsMapped() bool {
 	return w.Flags&FlagMapped != 0
+}
+
+// IsViewable reports whether w and every ancestor up to its toplevel are
+// mapped. Geometry managers map content before its toplevel is shown, so
+// this stands in for Tk_IsMapped where Tk defers work until mapping.
+func (w *Window) IsViewable() bool {
+	for ; w != nil; w = w.Parent {
+		if w.Flags&FlagMapped == 0 {
+			return false
+		}
+		if w.Flags&FlagTopLevel != 0 {
+			return true
+		}
+	}
+	return false
 }
 
 // SetCursor sets the cursor for this window to the given font cursor shape.
