@@ -578,15 +578,19 @@ func (e *Entry) VisibleRange() (float64, float64) {
 
 	first := float64(e.LeftIndex) / float64(n)
 
-	// Approximate chars visible.
-	availWidth := e.Win.Width - 2*e.inset
+	// EntryVisibleRange: the character under the last pixel inside the
+	// border (Tk_PointToChar), counting a partly visible one.
 	dt := e.displayText()
-	charsVisible := entryutil.RuneIndexAtPixel(e.Font, dt[e.LeftIndex:], availWidth)
-	last := float64(e.LeftIndex+charsVisible) / float64(n)
-	if last > 1 {
-		last = 1
+	x := e.Win.Width - e.inset - e.layoutX - 1
+	chars := 0
+	for chars < len(dt) && entryutil.MeasureRunes(e.Font, dt[:chars+1]) <= x {
+		chars++
 	}
-	return first, last
+	if chars < n {
+		chars++
+	}
+	visible := max(chars-e.LeftIndex, 1)
+	return first, float64(e.LeftIndex+visible) / float64(n)
 }
 
 // tryEdit checks whether a proposed edit is valid.
@@ -642,15 +646,6 @@ func (e *Entry) Display() {
 	}
 	d.FillRectangle(w.Drawable(), gc, 0, 0, uint(w.Width), uint(w.Height))
 
-	// Border.
-	if e.Border != nil && e.BorderWidth > 0 {
-		hl := e.HighlightWidth
-		draw.Draw3DRectangle(d, w.Drawable(), gc, e.Border,
-			hl, hl, w.Width-2*hl, w.Height-2*hl, e.BorderWidth, e.Relief)
-	}
-	// The highlight ring sits outside the border (focus colour or
-	// -highlightbackground).
-	e.DrawHighlightBorder(e.HasFocus, 0)
 
 	dt := e.displayText()
 	xftFont, isXft := e.Font.(platform.DrawableFont)
@@ -727,6 +722,17 @@ func (e *Entry) Display() {
 				uint(e.InsertWidth), uint(m.Linespace()))
 		}
 	}
+
+	// DisplayEntry draws the border and focus highlight last, so they cover
+	// text that runs past the viewable part of the window.
+	if e.Border != nil && e.BorderWidth > 0 {
+		hl := e.HighlightWidth
+		draw.Draw3DRectangle(d, w.Drawable(), gc, e.Border,
+			hl, hl, w.Width-2*hl, w.Height-2*hl, e.BorderWidth, e.Relief)
+	}
+	// The highlight ring sits outside the border (focus colour or
+	// -highlightbackground).
+	e.DrawHighlightBorder(e.HasFocus, 0)
 
 	d.Flush()
 }

@@ -81,9 +81,10 @@ func NewBorderFromPixel(pixel uint64) *Border {
 	r8 := uint8((pixel >> 16) & 0xFF)
 	g8 := uint8((pixel >> 8) & 0xFF)
 	b8 := uint8(pixel & 0xFF)
-	r := uint16(r8) << 8
-	g := uint16(g8) << 8
-	b := uint16(b8) << 8
+	// X widens 8-bit channels as v*257 (0xff -> 0xffff).
+	r := uint16(r8) * 257
+	g := uint16(g8) * 257
+	b := uint16(b8) * 257
 	return NewBorder(r, g, b)
 }
 
@@ -225,15 +226,16 @@ func lightColor(r, g, b uint16) (uint16, uint16, uint16) {
 
 	// If very bright (green > 95%), darken by 10%.
 	if g > max*95/100 {
-		return uint16(float64(r) * 0.90),
-			uint16(float64(g) * 0.90),
-			uint16(float64(b) * 0.90)
+		return uint16(90 * uint32(r) / 100),
+			uint16(90 * uint32(g) / 100),
+			uint16(90 * uint32(b) / 100)
 	}
 
 	// Normal: max of (boost 40%, halfway to white).
-	lr := maxU16(uint16(min64(float64(r)*1.4, max)), uint16((max+uint32(r))/2))
-	lg := maxU16(uint16(min64(float64(g)*1.4, max)), uint16((max+uint32(g))/2))
-	lb := maxU16(uint16(min64(float64(b)*1.4, max)), uint16((max+uint32(b))/2))
+	boost := func(v uint16) uint16 { return uint16(min(14*uint32(v)/10, max)) }
+	lr := maxU16(boost(r), uint16((max+uint32(r))/2))
+	lg := maxU16(boost(g), uint16((max+uint32(g))/2))
+	lb := maxU16(boost(b), uint16((max+uint32(b))/2))
 	return lr, lg, lb
 }
 
@@ -255,9 +257,9 @@ func darkColor(r, g, b uint16) (uint16, uint16, uint16) {
 	}
 
 	// Normal: reduce by 40%.
-	return uint16(float64(r) * 0.60),
-		uint16(float64(g) * 0.60),
-		uint16(float64(b) * 0.60)
+	return uint16(60 * uint32(r) / 100),
+		uint16(60 * uint32(g) / 100),
+		uint16(60 * uint32(b) / 100)
 }
 
 func toPixel(r, g, b uint16) uint64 {

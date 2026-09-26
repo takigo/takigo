@@ -1,7 +1,7 @@
 # Demo parity baseline -- written by: bash scripts/demo_batch.sh --retake --update-baseline (or demo_gate.sh --accept)
 # Headless Xvfb 96dpi, pinned DejaVu fonts, frozen timers. pixel_pct = odiff % (lower is better);
 # tree_diffs = cmd/demodiff structural differences; exact = both 0.
-# summary: exact 43 / close 19 / failed 0
+# summary: exact 45 / close 17 / failed 0
 # demo	tcl	pixel_pct	tree_diffs	go_size	tcl_size	status	note
 anilabel	anilabel	0	0	386x296	386x296	exact	
 aniwave	aniwave	0.07	1	371x353	371x353	close	
@@ -17,8 +17,8 @@ cscroll	cscroll	0	0	403x421	403x421	exact
 ctext	ctext	0.09	1	502x602	502x602	close	
 dialog1	dialog1	0	0	438x307	438x307	exact	
 dialog2	dialog2	0	0	441x288	441x288	exact	
-entry1	entry1	0.00	1	477x275	477x275	close	
-entry2	entry2	0.02	2	475x353	475x353	close	
+entry1	entry1	0	0	477x275	477x275	exact	
+entry2	entry2	0	0	475x353	475x353	exact	
 entry3	entry3	0	0	477x353	477x353	exact	
 filebox	filebox	0	0	469x189	469x189	exact	
 floor	floor	0.00	0	927x572	927x572	close	
