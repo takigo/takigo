@@ -54,7 +54,7 @@ func main() {
 	)
 	grid.Grid(lfValue, grid.Row(0), grid.Column(0), grid.PadX("2m"), grid.PadY("2m"))
 
-	valueVar := widget.NewVariable("") // lfdummy starts unset in the Tcl demo
+	valueVar := widget.NewUnsetVariable[string]() // lfdummy starts unset
 	for _, v := range []string{"1", "2", "3", "4"} {
 		rb := radiobutton.New(lfValue, "b"+v,
 			radiobutton.Text("This is value "+v),

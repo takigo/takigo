@@ -191,8 +191,9 @@ func NewEntry(parent widget.Caregiver, name string, opts ...EntryOption) *Entry 
 		if avgW < 1 {
 			avgW = 8
 		}
-		win.ReqWidth = e.WidthChars*avgW + 2*e.insetX + 4
-		win.ReqHeight = m.Linespace() + 2*e.insetY + 4
+		// The field border (inset) plus TEntry's -padding 1 on each side.
+		win.ReqWidth = e.WidthChars*avgW + 2*e.insetX + 2
+		win.ReqHeight = m.Linespace() + 2*e.insetY + 2
 	}
 
 	for _, opt := range opts {
@@ -447,26 +448,14 @@ func (e *Entry) Display() {
 	}
 	pixDrawable := platform.PixmapDrawable(e.pixmap)
 
-	bg := LookupColor(e.Context.Style, "-background", e.State, 0xd9d9d9)
 	fg := LookupColor(e.Context.Style, "-foreground", e.State, 0x000000)
-	fieldBg := LookupColor(e.Context.Style, "-fieldbackground", e.State, 0xffffff)
 	selBg := LookupColor(e.Context.Style, "-selectbackground", e.State, 0x4a6984)
 	selFg := LookupColor(e.Context.Style, "-selectforeground", e.State, 0xffffff)
 	insertColor := LookupColor(e.Context.Style, "-insertcolor", e.State, 0x000000)
 	insertWidth := LookupInt(e.Context.Style, "-insertwidth", e.State, 1)
 
-	// Field background.
-	d.SetForeground(gc, fieldBg)
-	d.FillRectangle(pixDrawable, gc, 0, 0, uint(width), uint(height))
-
-	// Border.
-	border := draw.NewBorderFromPixel(bg)
-	d.SetForeground(gc, border.LightPixel)
-	d.DrawLine(pixDrawable, gc, 0, height-1, width-1, height-1)
-	d.DrawLine(pixDrawable, gc, width-1, 0, width-1, height-1)
-	d.SetForeground(gc, uint64(0x9e9a91))
-	d.DrawLine(pixDrawable, gc, 0, 0, width-1, 0)
-	d.DrawLine(pixDrawable, gc, 0, 0, 0, height-1)
+	// Entry.field fills the widget (EntryLayout); draw it as the element does.
+	(&FieldElement{ctx: e.Context}).Draw(d, pixDrawable, gc, Box{0, 0, width, height}, e.State)
 
 	// Determine display text (mask if -show set).
 	display := []rune(e.edit.Text)

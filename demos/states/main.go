@@ -51,7 +51,7 @@ func main() {
 	var lb *listbox.Listbox
 
 	// "multi" is the tristatevalue: shown when selected items have mixed justifications.
-	justVar := widget.NewVariable("left")
+	justVar := widget.NewUnsetVariable[string]()
 
 	justFrame := labelframe.New(f, "justif", labelframe.Text("Justification"))
 	for _, c := range []string{"Left", "Center", "Right"} {

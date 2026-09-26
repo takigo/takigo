@@ -6,12 +6,25 @@ package widget
 // T must be comparable for change detection.
 type Variable[T comparable] struct {
 	value     T
+	unset     bool
 	listeners []func(old, new T)
 }
 
 // NewVariable creates a Variable with the given initial value.
 func NewVariable[T comparable](initial T) *Variable[T] {
 	return &Variable[T]{value: initial}
+}
+
+// NewUnsetVariable creates a Variable that, like a Tcl variable that does not
+// exist yet, holds no value until the first Set. Widgets linked to it treat
+// that as Tk does (e.g. a radiobutton creates it as "").
+func NewUnsetVariable[T comparable]() *Variable[T] {
+	return &Variable[T]{unset: true}
+}
+
+// IsSet reports whether the variable has been given a value.
+func (v *Variable[T]) IsSet() bool {
+	return !v.unset
 }
 
 // Get returns the current value.
@@ -21,9 +34,10 @@ func (v *Variable[T]) Get() T {
 
 // Set updates the value and notifies listeners if changed.
 func (v *Variable[T]) Set(val T) {
-	if val == v.value {
+	if val == v.value && !v.unset {
 		return
 	}
+	v.unset = false
 	old := v.value
 	v.value = val
 	for _, fn := range v.listeners {

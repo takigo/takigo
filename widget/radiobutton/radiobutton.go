@@ -31,6 +31,7 @@ type Radiobutton struct {
 
 	// Indicator.
 	IndicatorOn   bool
+	untraced      bool            // created its variable; see Var
 	TristateValue string          // Tk -tristatevalue (default ""): variable==TristateValue shows the tri-state look
 	SelectColor   *color.ColorRef // indicator fill when selected
 
@@ -79,7 +80,14 @@ func Var(v *widget.Variable[string]) RadiobuttonOption {
 			r.unsub()
 		}
 		r.Variable = v
+		// ConfigureButton creates a missing variable as "" before tracing
+		// it, so this button is not tri-stated until the variable changes.
+		r.untraced = !v.IsSet()
+		if r.untraced {
+			v.Set("")
+		}
 		r.unsub = v.OnChange(func(_, _ string) {
+			r.untraced = false
 			r.Display()
 		})
 	}
@@ -326,7 +334,7 @@ func (r *Radiobutton) Display() {
 
 	selected := r.Selected()
 	// Tk: the -value match wins, then -tristatevalue (default "").
-	tristate := !selected && r.Variable.Get() == r.TristateValue
+	tristate := !selected && !r.untraced && r.Variable.Get() == r.TristateValue
 
 	// Choose colors based on state.
 	bgPixel := uint64(0)

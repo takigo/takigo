@@ -11,12 +11,12 @@ import (
 	"github.com/msorc/takigo/dialog"
 	"github.com/msorc/takigo/geometry/grid"
 	"github.com/msorc/takigo/geometry/pack"
+	"github.com/msorc/takigo/geometry/place"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/ttk"
 	_ "github.com/msorc/takigo/ttk/clamtheme"
 	_ "github.com/msorc/takigo/ttk/defaulttheme"
 	"github.com/msorc/takigo/widget"
-	"github.com/msorc/takigo/widget/entry"
 	"github.com/msorc/takigo/widget/frame"
 )
 
@@ -32,6 +32,10 @@ func main() {
 
 	f := frame.New(app, "f")
 	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
+
+	// ttk::frame $w._bg: a themed background under everything else.
+	bg := ttk.NewFrame(f, "_bg")
+	place.Place(bg, place.X(0), place.Y(0), place.RelWidth(1), place.RelHeight(1))
 
 	msg := ttk.NewLabel(f, "msg",
 		ttk.LabelWrapLength("4i"),
@@ -71,8 +75,8 @@ func main() {
 		l := ttk.NewLabel(form, fmt.Sprintf("lab_%s", op),
 			ttk.LabelText(r.label),
 		)
-		e := entry.New(form, fmt.Sprintf("ent_%s", op),
-			entry.Width(20),
+		e := ttk.NewEntry(form, fmt.Sprintf("ent_%s", op),
+			ttk.EntryWidth(20),
 		)
 		b := ttk.NewButton(form, fmt.Sprintf("but_%s", op),
 			ttk.ButtonText("Browse ..."),
@@ -94,9 +98,9 @@ func main() {
 				)
 			}
 			if ok {
-				ent.SetText(path)
-				ent.XView(len([]rune(path)))
-				ent.Display()
+				_ = ent.Delete("0", "end")
+				_ = ent.Insert("0", path)
+				_ = ent.ICursor("end")
 			}
 		}
 

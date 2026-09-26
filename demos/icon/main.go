@@ -91,7 +91,7 @@ func main() {
 	pack.Pack(geometry.Group{left, b1, b2}, pack.SideOpt(pack.Left), pack.Expand(true), pack.PadX("5m"))
 
 	// radiobutton $w.frame.left.b3 -bitmap letters -variable letters -value full
-	lettersVar := widget.NewVariable("letters")
+	lettersVar := widget.NewUnsetVariable[string]()
 	b3 := radiobutton.New(left, "b3",
 		radiobutton.ImageOpt(lettersImg),
 		radiobutton.Var(lettersVar),
