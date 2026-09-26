@@ -494,36 +494,35 @@ func (t *TextWidget) YView(line int) {
 	t.Display()
 }
 
-// YViewMoveTo scrolls to a fraction of the total content height.
+// YViewMoveTo scrolls to a fraction of the total pixel height (yview
+// moveto), topping the display line that holds that pixel; the Go text has
+// no partial-line topPixelOffset.
 func (t *TextWidget) YViewMoveTo(fraction float64) {
-	totalDL := t.totalDisplayLines()
-	if totalDL <= 0 {
+	var heights [][]int
+	total := 0
+	for l := 1; l <= t.doc.LineCount(); l++ {
+		hs := t.displayLinePixels(l)
+		heights = append(heights, hs)
+		for _, h := range hs {
+			total += h
+		}
+	}
+	if total <= 0 {
 		return
 	}
-	targetDL := int(fraction*float64(totalDL) + 0.5)
-	if targetDL < 0 {
-		targetDL = 0
-	}
-
-	// Walk through lines to find the logical line and display-line offset.
-	availWidth := t.Win.Width - 2*t.insetX
-	dlCount := 0
-	for l := 1; l <= t.doc.LineCount(); l++ {
-		p := t.resolveLineProps(l)
-		dls := t.wrapLine(l, availWidth, p.lm1, p.lm2, p.rm)
-		if dlCount+len(dls) > targetDL {
-			t.topLine = l
-			t.topCharOffset = targetDL - dlCount
-			t.clampScrollPosition()
-			t.notifyYScrollbar()
-			t.Display()
-			return
+	target := max(0, int(fraction*float64(total)+0.5))
+	t.topLine, t.topCharOffset = t.doc.LineCount(), 0
+	y := 0
+walk:
+	for l, hs := range heights {
+		for i, h := range hs {
+			if y+h > target {
+				t.topLine, t.topCharOffset = l+1, i
+				break walk
+			}
+			y += h
 		}
-		dlCount += len(dls)
 	}
-	// Past end.
-	t.topLine = t.doc.LineCount()
-	t.topCharOffset = 0
 	t.clampScrollPosition()
 	t.notifyYScrollbar()
 	t.Display()
@@ -919,32 +918,41 @@ func (t *TextWidget) scrollByDisplayLines(n int) {
 	}
 }
 
-// notifyYScrollbar calls the Y scroll callback.
+// notifyYScrollbar ports GetYView (tkTextDisp.c): the fractions are pixel
+// counts, the pixels above the top display line and those shown up to the
+// bottom of the text area, over the pixel height of the whole text.
 func (t *TextWidget) notifyYScrollbar() {
 	if t.YScrollCmd == nil {
 		return
 	}
-	totalDL := t.totalDisplayLines()
-	if totalDL <= 0 {
-		t.YScrollCmd(0, 1)
-		return
-	}
-
-	topDL := t.computeDisplayLinesBefore(t.topLine, t.topCharOffset)
-	visLines := (t.Win.Height - 2*t.insetY) / t.lineHeight()
-	if visLines < 1 {
-		visLines = 1
-	}
-
-	first := float64(topDL) / float64(totalDL)
-	last := float64(topDL+visLines) / float64(totalDL)
-	if first < 0 {
-		first = 0
-	}
-	if last > 1 {
-		last = 1
-	}
+	first, last := t.yviewFractions()
 	t.YScrollCmd(first, last)
+}
+
+func (t *TextWidget) yviewFractions() (float64, float64) {
+	total, above := 0, 0
+	for l := 1; l <= t.doc.LineCount(); l++ {
+		for i, h := range t.displayLinePixels(l) {
+			if l < t.topLine || (l == t.topLine && i < t.topCharOffset) {
+				above += h
+			}
+			total += h
+		}
+	}
+	if total == 0 {
+		return 0, 1
+	}
+	count := above
+	maxY := t.Win.Height - 2*t.insetY
+	for _, dl := range t.computeVisibleLines() {
+		count += dl.spacingAbove + dl.height + dl.spacingBelow
+		if extra := dl.y + dl.height + dl.spacingBelow - maxY; extra > 0 {
+			count -= extra
+			break
+		}
+	}
+	count = min(count, total)
+	return float64(above) / float64(total), float64(count) / float64(total)
 }
 
 // notifyXScrollbar calls the X scroll callback.

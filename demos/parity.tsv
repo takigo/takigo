@@ -49,7 +49,7 @@ sayings	sayings	0.00	1	386x333	386x333	close
 search	search	0	0	661x534	661x534	exact	
 spin	spin	0	0	478x292	478x292	exact	
 states	states	0	0	388x420	388x420	exact	
-style	style	0.17	2	721x656	721x656	close	
+style	style	0.14	1	721x656	721x656	close	
 text	text	0.00	1	661x558	661x558	close	
 textpeer	textpeer	0	0	765x394	765x394	exact	
 toolbar	toolbar	0	0	385x427	385x427	exact	
@@ -61,7 +61,7 @@ ttkpane	ttkpane	0	0	369x595	369x595	exact
 ttkprogress	ttkprogress	0	0	376x244	376x244	exact	
 ttkscale	ttkscale	0	0	363x186	363x186	exact	
 ttkspin	ttkspin	0	0	477x287	477x287	exact	
-twind	twind	0.20	1	583x645	583x645	close	
+twind	twind	0.19	1	583x645	583x645	close	
 unicodeout	unicodeout	0	0	386x367	386x367	exact	
 vscale	vscale	0	0	370x405	370x405	exact	
 windowicons	windowicons	0	0	222x202	222x202	exact	was mis-mapped to icon.tcl before; now compared with windowicons.tcl

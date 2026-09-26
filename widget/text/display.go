@@ -334,7 +334,10 @@ func (t *TextWidget) setMetrics(lineIdx int, dls []displayLine) []displayLine {
 		a, d := t.lineMetrics(lineIdx, dls[i].startChar, dls[i].endChar, i == len(dls)-1)
 		minH := 0
 		for _, ei := range t.embeddedImages {
-			if ei.index.Line == lineIdx && in(i, ei.index.Char) {
+			// Images take no placeholder, so one at the end of the line
+			// belongs to its last display line.
+			atEnd := i == len(dls)-1 && ei.index.Char >= dls[i].endChar
+			if ei.index.Line == lineIdx && (in(i, ei.index.Char) || atEnd) {
 				minH = max(minH, ei.img.Height())
 			}
 		}
@@ -917,6 +920,26 @@ func (t *TextWidget) computeDisplayLinesBefore(lineIdx, dlOffset int) int {
 	}
 	count += dlOffset
 	return count
+}
+
+// displayLinePixels returns the heights of lineIdx's display lines including
+// their -spacing1/2/3, as computeVisibleLines stacks them.
+func (t *TextWidget) displayLinePixels(lineIdx int) []int {
+	availWidth := t.Win.Width - 2*t.insetX
+	props := t.resolveLineProps(lineIdx)
+	dls := t.setMetrics(lineIdx, t.wrapLine(lineIdx, availWidth, props.lm1, props.lm2, props.rm))
+	hs := make([]int, len(dls))
+	for i, dl := range dls {
+		h := dl.height + props.sp2
+		if i == 0 {
+			h += props.sp1 - props.sp2
+		}
+		if i == len(dls)-1 {
+			h += props.sp3
+		}
+		hs[i] = h
+	}
+	return hs
 }
 
 // totalDisplayLines returns the total number of display lines in the document.

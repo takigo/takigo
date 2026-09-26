@@ -413,7 +413,6 @@ func main() {
 
 	// Default button.
 	defaultBtnLine := tw.EndIndex()
-	tw.Insert("end", "\n")
 	defaultBtn := button.New(tw, "default",
 		button.Text("Default"),
 		button.Command(func() {
@@ -427,7 +426,6 @@ func main() {
 	var toggleLong bool
 	var toggleBtn *button.Button
 	toggleBtnLine := tw.EndIndex()
-	tw.Insert("end", "\n")
 	toggleBtn = button.New(tw, "toggle",
 		button.Text("Short"),
 		button.Command(func() {
@@ -453,8 +451,7 @@ func main() {
 		name := fmt.Sprintf("color%d", i+1)
 		colorName := c
 		btnLine := tw.EndIndex()
-		tw.Insert("end", "\n")
-		clrBtn := button.New(tw, name,
+			clrBtn := button.New(tw, name,
 			button.Text(colorName),
 			button.Command(func() {
 				text.Background(colorName)(tw)
