@@ -254,7 +254,7 @@ func New(parent widget.Caregiver, name string, opts ...LabelOption) *Label {
 
 	l := &Label{
 		Anchor:    option.AnchorCenter,
-		Justify:   option.JustifyLeft,
+		Justify:   option.JustifyCenter, // DEF_BUTTON_JUSTIFY
 		Underline: -1,
 	}
 	widget.InitBase(&l.Base, w, app)

@@ -89,15 +89,15 @@ func TestLabelDefaults(t *testing.T) {
 			PadY:        1,
 		},
 		Anchor:    option.AnchorCenter,
-		Justify:   option.JustifyLeft,
+		Justify:   option.JustifyCenter,
 		Underline: -1,
 	}
 
 	if l.Anchor != option.AnchorCenter {
 		t.Errorf("default Anchor = %v, want AnchorCenter", l.Anchor)
 	}
-	if l.Justify != option.JustifyLeft {
-		t.Errorf("default Justify = %v, want JustifyLeft", l.Justify)
+	if l.Justify != option.JustifyCenter {
+		t.Errorf("default Justify = %v, want JustifyCenter", l.Justify)
 	}
 	if l.Underline != -1 {
 		t.Errorf("default Underline = %d, want -1", l.Underline)

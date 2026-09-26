@@ -3,8 +3,16 @@
 package main
 
 import (
+	"encoding/base64"
 	"fmt"
+	tkimage "github.com/msorc/takigo/image"
+	"github.com/msorc/takigo/screenunit"
+	goimage "image"
+	"image/draw"
+	"image/gif"
+	"math"
 	"os"
+	"strings"
 
 	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/canvas"
@@ -46,18 +54,29 @@ func main() {
 	pack.Pack(c, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true))
 
-	c.CreateRectangle(20, 20, 220, 80, canvas.FillColor("blue"), canvas.OutlineColor("black"))
-	c.CreateOval(20, 100, 220, 160, canvas.FillColor("green"), canvas.OutlineColor("black"))
-	c.CreateText(20, 180, canvas.AnchorOpt(option.AnchorNW),
-		canvas.TextColor("black"),
+	pt := screenunit.Float
+	c.CreateRectangle(pt("15p"), pt("15p"), pt("165p"), pt("60p"),
+		canvas.FillColor("blue"), canvas.OutlineColor("black"))
+	c.CreateOval(pt("15p"), pt("75p"), pt("165p"), pt("120p"), canvas.FillColor("green"))
+	logo, err := gif.Decode(base64.NewDecoder(base64.StdEncoding, strings.NewReader(logoData)))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "print: %v\n", err)
+		os.Exit(1)
+	}
+	// logo2 is logo zoomed by the integer scalingPct/100.
+	zoom := max(1, screenunit.ScalingPct()/100)
+	logo2 := tkimage.NewPhotoFromPhoto(tkimage.NewPhoto("logo", toRGBA(logo)), "logo2", tkimage.Zoom(float64(zoom)))
+	imgID := c.CreateImage(pt("90p"), pt("135p"), canvas.ImageOpt(logo2), canvas.AnchorOpt(option.AnchorN))
+	_, _, _, y2 := c.BBox(fmt.Sprint(imgID))
+	y2 += int(math.Round(15 * screenunit.DPI() / 72)) // "15 pt to pixels" via [tk scaling]
+	c.CreateText(pt("15p"), float64(y2), canvas.AnchorOpt(option.AnchorNW),
+		canvas.FontOpt("Helvetica 12"), canvas.TextColor("black"),
 		canvas.TextOpt("A short demo of simple canvas elements."))
 
-	// Text widget with Tcl/Tk description.
 	tw := text.New(m, "t", text.WrapModeOpt(text.WrapWord))
 	pack.Pack(tw, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true))
-
-	tw.Insert("end", "Tcl, or Tool Command Language, is an open-source multi-purpose C library which includes a powerful dynamic scripting language. Together they provide ideal cross-platform development environment for any programming project. It has served for decades as an essential system component in organizations ranging from NASA to Cisco Systems, is a must-know language in the fields of EDA, and powers companies such as FlightAware and F5 Networks.\n\nTcl is fit for both the smallest and largest programming tasks, obviating the need to decide whether it is overkill for a given job or whether a system written in Tcl will scale up as needed. Wherever a shell script might be used Tcl is a better choice, and entire web ecosystems and mission-critical control and testing systems have also been written in Tcl. Tcl excels in all these roles due to the minimal syntax of the language, the unique programming paradigm exposed at the script level, and the careful engineering that has gone into the design of the Tcl internals.")
+	tw.Insert("end", "\nTcl, or Tool Command Language, is an open-source multi-purpose C library which includes a powerful dynamic scripting language. Together they provide ideal cross-platform development environment for any programming project. It has served for decades as an essential system component in organizations ranging from NASA to Cisco Systems, is a must-know language in the fields of EDA, and powers companies such as FlightAware and F5 Networks.\n\nTcl is fit for both the smallest and largest programming tasks, obviating the need to decide whether it is overkill for a given job or whether a system written in Tcl will scale up as needed. Wherever a shell script might be used Tcl is a better choice, and entire web ecosystems and mission-critical control and testing systems have also been written in Tcl. Tcl excels in all these roles due to the minimal syntax of the language, the unique programming paradigm exposed at the script level, and the careful engineering that has gone into the design of the Tcl internals.\n")
 
 	btns := demohelper.AddSeeDismiss(f)
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
@@ -108,3 +127,12 @@ func main() {
 
 	app.Run()
 }
+
+func toRGBA(img goimage.Image) *goimage.RGBA {
+	b := img.Bounds()
+	out := goimage.NewRGBA(goimage.Rect(0, 0, b.Dx(), b.Dy()))
+	draw.Draw(out, out.Bounds(), img, b.Min, draw.Src)
+	return out
+}
+
+const logoData = "R0lGODlhMABLAPUAAP//////zP//mf//AP/MzP/Mmf/MAP+Zmf+ZZv+ZAMz//8zM/8zMzMyZzMyZmcyZZsyZAMxmZsxmM8xmAMwzM8wzAJnMzJmZzJmZmZlmmZlmZplmM5kzZpkzM5kzAGaZzGZmzGZmmWYzZmYzMzNmzDNmmTMzmTMzZgAzmQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACH+BSAtZGwtACH5BAEKAAIALAAAAAAwAEsAAAb+QIFwSCwahY9HRMI8Op/JJVNSqVqv2OvjyRU8slbIJGwYg60S5ZR6jRi/4ITBOhkYIOd8dltEnAdmFQMJeoVXCEd/VnKGjRVOZ3NVgHlsjpBxVRCEYBIEAAARl4lgZmVgEQAKFx8Mo0ZnpqgAFyi2JqKGmGebWRIAILbCIo27cYFWASTCtievRXqSVwQfzLYeeYESxlnSVRIW1igjWHJmjBXbpKXeFQTizlh1eJNVHbYf0LGc39XW2PIoVZE0whasWPSqFBBHrkKEA3QG0DFTEMXBUsjCWesg4oMFAGwgtKsiwqA+jGiCiRPGAM6pLCVLGKHQ6EGJlc0IuDxzAgX+CCOW9DjAaUsEyAoT+GHpeSRoHgxEUWgAUEUpFhMWgTbKEPUBAU15TBZxekYD0RMEqCDLIpYIWTAcmGEd9rWQBxQyjeQqdK/ZTWEO3mK5l+9No75SrcHhm9WwnlzNoA5zdM+JHz0HCPQdUauZowoFnSw+c2CBvw6dUXT4LMKE6EIHUqMexgCiIREknOwl7Q+FhNQoLuzOc6Kw3kIIVOLqjYKBYCwinmgo9CBEswfMAziK7mRDoQhcUZxwoBKFibq3n3jXI0GyCPLC0DrS8GR1oaEoRBRYVhT99/qG4DcCA/yNU4Ajbjhhnx4P2DJggR3YZog6RyyYxwM9PSgMBaP+sQdgIRL0JAKBwnTooRMAFWLdiPyJ8JwvTnyQoh5midCASh149ZkTIFAmHnzOZOBfIU6U4Mhd4zF34DNEoDAhARGY50BvJkioyxFOGkKAShGkFsJwejiR5Xf8aZAaBp89coQJjuDXAQOApekEm45ANaAtIbyYxREf0OlICCK841uaahZBQjyfjXCACYjuaASjhFagRKSFNtloHg+hYWIxRohnBQWCSSAhBVZ+hkgRnlbxwJIVgIqGlaU6wkeTxHxjm6gVLImrFbHWVEQ1taZjWxJX7KqqnqgUEUxDwtqajrOaRkqhEDcxWwECbEjxTYe9gojqOJQ6JO231ob72bSqAjh4RgfsjiDCCfDCK8K8I9TL7r33nvGtCO7CO1dUAONk3LcBFxzwwEMwZ/DC4iAsRIE+CWNCbzeV8FfEtoDwVwnlacxMkcKQYIE/F5TQ2QcedUZCagyc3NsFGrXVZMipWVBCzKv4Q0JvCviDsjAwf4ylxBeX0KcwGs81ccgqGS3MBxc3RjDDVAvdBRcfeFy1MFd3bcQHJEQdlddkP5E1Cf9yXfbaV2d9RBAAOw=="
