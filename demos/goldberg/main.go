@@ -456,7 +456,7 @@ func (g *goldberg) draw1() {
 
 	x1, y1, x2, y2 := g.box(812, 122, 9)
 	g.c.CreateOval(x1, y1, x2, y2,
-		canvas.Tags("I1"), canvas.FillColor(color2))
+		canvas.Tags("I1"), canvas.FillColor(color2), canvas.OutlineNone())
 	g.c.BindItem("I1", event.ButtonPressMask, func(ev *event.Event) {
 		g.start()
 	})
@@ -644,7 +644,7 @@ func (g *goldberg) draw6() {
 
 	// Rotor fill
 	x1, y1, x2, y2 := g.box(346, 339, 28)
-	g.c.CreateOval(x1, y1, x2, y2, canvas.FillColor(color))
+	g.c.CreateOval(x1, y1, x2, y2, canvas.FillColor(color), canvas.OutlineNone())
 	g.c.CreateArc(x1, y1, x2, y2,
 		canvas.OutlineColor(fg), canvas.OutlineWidth(2),
 		canvas.ArcStyleOpt(canvas.ArcStyleArc), canvas.StartAngle(80), canvas.Extent(205))
@@ -823,7 +823,7 @@ func (g *goldberg) draw10() {
 	x1, y1, x2, y2 := g.box(209, 204, 31)
 	g.c.CreateArc(x1, y1, x2, y2,
 		canvas.FillColor(color), canvas.ArcStyleOpt(canvas.ArcStylePieslice),
-		canvas.StartAngle(120), canvas.Extent(120), canvas.Tags("I10"))
+		canvas.StartAngle(120), canvas.Extent(120), canvas.Tags("I10"), canvas.OutlineNone())
 	g.c.CreateArc(x1, y1, x2, y2,
 		canvas.OutlineColor(fg), canvas.OutlineWidth(3),
 		canvas.ArcStyleOpt(canvas.ArcStyleArc), canvas.StartAngle(120), canvas.Extent(120), canvas.Tags("I10"))
@@ -832,7 +832,7 @@ func (g *goldberg) draw10() {
 	x1, y1, x2, y2 = g.box(249, 204, 31)
 	g.c.CreateArc(x1, y1, x2, y2,
 		canvas.FillColor(bg), canvas.OutlineWidth(3),
-		canvas.ArcStyleOpt(canvas.ArcStylePieslice), canvas.StartAngle(120), canvas.Extent(120), canvas.Tags("I10"))
+		canvas.ArcStyleOpt(canvas.ArcStylePieslice), canvas.StartAngle(120), canvas.Extent(120), canvas.Tags("I10"), canvas.OutlineNone())
 	g.c.CreateArc(x1, y1, x2, y2,
 		canvas.OutlineColor(fg), canvas.OutlineWidth(3),
 		canvas.ArcStyleOpt(canvas.ArcStyleArc), canvas.StartAngle(120), canvas.Extent(120), canvas.Tags("I10"))
@@ -890,12 +890,12 @@ func (g *goldberg) draw11() {
 
 	// Color the down tube
 	g.c.CreateRectangle(23, 264, 55, 591,
-		canvas.FillColor(color))
+		canvas.FillColor(color), canvas.OutlineNone())
 
 	// Color the outer loop
 	x1, y1, x2, y2 := g.box(71, 460, 48)
 	g.c.CreateOval(x1, y1, x2, y2,
-		canvas.FillColor(color))
+		canvas.FillColor(color), canvas.OutlineNone())
 
 	// Top right side
 	g.c.CreateLine([]float64{55, 264, 55, 458},
@@ -932,7 +932,7 @@ func (g *goldberg) draw11() {
 	// The ball
 	x1, y1, x2, y2 = g.box(75, 235, 9)
 	g.c.CreateOval(x1, y1, x2, y2,
-		canvas.FillColor(color2), canvas.OutlineWidth(3), canvas.Tags("I11"))
+		canvas.FillColor(color2), canvas.OutlineWidth(3), canvas.Tags("I11"), canvas.OutlineNone())
 }
 
 // draw12 draws the hand.
@@ -1052,7 +1052,7 @@ func (g *goldberg) draw17() {
 	g.c.CreateArc(x0, y0, x1, y1, canvas.OutlineColor(fg), canvas.OutlineWidth(3),
 		canvas.ArcStyleOpt(canvas.ArcStyleArc), canvas.StartAngle(150), canvas.Extent(240), canvas.Tags("I17_"))
 	g.c.CreateArc(x0, y0, x1, y1, canvas.FillColor(color), canvas.OutlineWidth(1),
-		canvas.ArcStyleOpt(canvas.ArcStyleChord), canvas.StartAngle(150), canvas.Extent(240), canvas.Tags("I17_"))
+		canvas.ArcStyleOpt(canvas.ArcStyleChord), canvas.StartAngle(150), canvas.Extent(240), canvas.Tags("I17_"), canvas.OutlineNone())
 	// Ears
 	g.c.CreateLine([]float64{674, 529, 670, 513, 662, 521, 658, 521, 650, 513, 647, 529}, canvas.OutlineColor(fg), canvas.OutlineWidth(3), canvas.Tags("I17_"))
 	g.c.CreatePolygon([]float64{674, 529, 670, 513, 662, 521, 658, 521, 650, 513, 647, 529}, canvas.FillColor(color), canvas.OutlineNone(), canvas.Tags("I17_", "I17_c"))
@@ -1074,7 +1074,7 @@ func (g *goldberg) draw17() {
 func (g *goldberg) draw18() {
 	fg := colors["fg"]
 	g.c.CreateLine([]float64{721, 506, 627, 506}, canvas.OutlineWidth(4), canvas.OutlineColor(fg), canvas.Tags("I18"))
-	g.c.CreateOval(607, 500, 628, 513, canvas.FillColor(colors["18"]), canvas.Tags("I18a"))
+	g.c.CreateOval(607, 500, 628, 513, canvas.FillColor(colors["18"]), canvas.Tags("I18a"), canvas.OutlineNone())
 	g.c.CreateLine([]float64{526, 513, 606, 507, 494, 502}, canvas.OutlineColor(fg), canvas.OutlineWidth(4), canvas.Tags("I18b"))
 	g.c.CreateLine([]float64{485, 490, 510, 540, 510, 575, 510, 540, 535, 491}, canvas.OutlineColor(fg), canvas.OutlineWidth(6))
 }
@@ -1085,38 +1085,38 @@ func (g *goldberg) draw19() {
 	fg := colors["fg"]
 	xx := [][2]float64{{249, 181}, {155, 118}, {86, 55}, {22, 0}}
 	for _, pair := range xx {
-		g.c.CreateRectangle(pair[0], 453, pair[1], 467, canvas.FillColor(color), canvas.Tags("I19"))
+		g.c.CreateRectangle(pair[0], 453, pair[1], 467, canvas.FillColor(color), canvas.Tags("I19"), canvas.OutlineNone())
 		g.c.CreateLine([]float64{pair[0], 453, pair[1], 453}, canvas.OutlineColor(fg), canvas.OutlineWidth(1))
 		g.c.CreateLine([]float64{pair[0], 467, pair[1], 467}, canvas.OutlineColor(fg), canvas.OutlineWidth(1))
 	}
 	g.c.Raise("I11i")
 	// Bulge
 	x0, y0, x1, y1 := g.box(168, 460, 16)
-	g.c.CreateOval(x0, y0, x1, y1, canvas.FillColor(color))
+	g.c.CreateOval(x0, y0, x1, y1, canvas.FillColor(color), canvas.OutlineNone())
 	g.c.CreateArc(x0, y0, x1, y1, canvas.OutlineColor(fg), canvas.OutlineWidth(1), canvas.ArcStyleOpt(canvas.ArcStyleArc), canvas.StartAngle(21), canvas.Extent(136))
 	g.c.CreateArc(x0, y0, x1, y1, canvas.OutlineColor(fg), canvas.OutlineWidth(1), canvas.ArcStyleOpt(canvas.ArcStyleArc), canvas.StartAngle(-21), canvas.Extent(-130))
 	// First joint
 	g.c.CreateRectangle(249, 447, 255, 473, canvas.FillColor(color), canvas.OutlineColor(fg), canvas.OutlineWidth(1))
 	// Bend up
 	x0, y0, x1, y1 = g.box(257, 433, 34)
-	g.c.CreateArc(x0, y0, x1, y1, canvas.FillColor(color), canvas.OutlineWidth(1), canvas.ArcStyleOpt(canvas.ArcStylePieslice), canvas.StartAngle(0), canvas.Extent(-91))
+	g.c.CreateArc(x0, y0, x1, y1, canvas.FillColor(color), canvas.OutlineWidth(1), canvas.ArcStyleOpt(canvas.ArcStylePieslice), canvas.StartAngle(0), canvas.Extent(-91), canvas.OutlineNone())
 	g.c.CreateArc(x0, y0, x1, y1, canvas.OutlineColor(fg), canvas.OutlineWidth(1), canvas.ArcStyleOpt(canvas.ArcStyleArc), canvas.StartAngle(0), canvas.Extent(-90))
 	x0, y0, x1, y1 = g.box(257, 433, 20)
-	g.c.CreateArc(x0, y0, x1, y1, canvas.FillColor(colors["bg"]), canvas.OutlineWidth(1), canvas.ArcStyleOpt(canvas.ArcStylePieslice), canvas.StartAngle(0), canvas.Extent(-92))
+	g.c.CreateArc(x0, y0, x1, y1, canvas.FillColor(colors["bg"]), canvas.OutlineWidth(1), canvas.ArcStyleOpt(canvas.ArcStylePieslice), canvas.StartAngle(0), canvas.Extent(-92), canvas.OutlineNone())
 	g.c.CreateArc(x0, y0, x1, y1, canvas.OutlineColor(fg), canvas.OutlineWidth(1), canvas.ArcStyleOpt(canvas.ArcStyleArc), canvas.StartAngle(0), canvas.Extent(-90))
 	// Bend left
 	x0, y0, x1, y1 = g.box(257, 421, 34)
-	g.c.CreateArc(x0, y0, x1, y1, canvas.FillColor(color), canvas.OutlineWidth(1), canvas.ArcStyleOpt(canvas.ArcStylePieslice), canvas.StartAngle(1), canvas.Extent(91))
+	g.c.CreateArc(x0, y0, x1, y1, canvas.FillColor(color), canvas.OutlineWidth(1), canvas.ArcStyleOpt(canvas.ArcStylePieslice), canvas.StartAngle(1), canvas.Extent(91), canvas.OutlineNone())
 	g.c.CreateArc(x0, y0, x1, y1, canvas.OutlineColor(fg), canvas.OutlineWidth(1), canvas.ArcStyleOpt(canvas.ArcStyleArc), canvas.StartAngle(0), canvas.Extent(90))
 	x0, y0, x1, y1 = g.box(257, 421, 20)
-	g.c.CreateArc(x0, y0, x1, y1, canvas.FillColor(colors["bg"]), canvas.OutlineWidth(1), canvas.ArcStyleOpt(canvas.ArcStylePieslice), canvas.StartAngle(0), canvas.Extent(90))
+	g.c.CreateArc(x0, y0, x1, y1, canvas.FillColor(colors["bg"]), canvas.OutlineWidth(1), canvas.ArcStyleOpt(canvas.ArcStylePieslice), canvas.StartAngle(0), canvas.Extent(90), canvas.OutlineNone())
 	g.c.CreateArc(x0, y0, x1, y1, canvas.OutlineColor(fg), canvas.OutlineWidth(1), canvas.ArcStyleOpt(canvas.ArcStyleArc), canvas.StartAngle(0), canvas.Extent(90))
 	// Bend down
 	x0, y0, x1, y1 = g.box(243, 421, 34)
-	g.c.CreateArc(x0, y0, x1, y1, canvas.FillColor(color), canvas.OutlineWidth(1), canvas.ArcStyleOpt(canvas.ArcStylePieslice), canvas.StartAngle(90), canvas.Extent(90))
+	g.c.CreateArc(x0, y0, x1, y1, canvas.FillColor(color), canvas.OutlineWidth(1), canvas.ArcStyleOpt(canvas.ArcStylePieslice), canvas.StartAngle(90), canvas.Extent(90), canvas.OutlineNone())
 	g.c.CreateArc(x0, y0, x1, y1, canvas.OutlineColor(fg), canvas.OutlineWidth(1), canvas.ArcStyleOpt(canvas.ArcStyleArc), canvas.StartAngle(90), canvas.Extent(90))
 	x0, y0, x1, y1 = g.box(243, 421, 20)
-	g.c.CreateArc(x0, y0, x1, y1, canvas.FillColor(colors["bg"]), canvas.OutlineWidth(1), canvas.ArcStyleOpt(canvas.ArcStylePieslice), canvas.StartAngle(90), canvas.Extent(90))
+	g.c.CreateArc(x0, y0, x1, y1, canvas.FillColor(colors["bg"]), canvas.OutlineWidth(1), canvas.ArcStyleOpt(canvas.ArcStylePieslice), canvas.StartAngle(90), canvas.Extent(90), canvas.OutlineNone())
 	g.c.CreateArc(x0, y0, x1, y1, canvas.OutlineColor(fg), canvas.OutlineWidth(1), canvas.ArcStyleOpt(canvas.ArcStyleArc), canvas.StartAngle(90), canvas.Extent(90))
 	// Joints
 	g.c.CreateRectangle(270, 427, 296, 433, canvas.FillColor(color), canvas.OutlineColor(fg), canvas.OutlineWidth(1))
@@ -1126,7 +1126,7 @@ func (g *goldberg) draw19() {
 	g.c.CreateRectangle(203, 420, 229, 426, canvas.FillColor(color), canvas.OutlineColor(fg), canvas.OutlineWidth(1))
 	// Handle
 	x0, y0, x1, y1 = g.box(168, 460, 6)
-	g.c.CreateOval(x0, y0, x1, y1, canvas.FillColor(fg), canvas.Tags("I19a"))
+	g.c.CreateOval(x0, y0, x1, y1, canvas.FillColor(fg), canvas.Tags("I19a"), canvas.OutlineNone())
 	g.c.CreateLine([]float64{168, 460, 168, 512}, canvas.OutlineColor(fg), canvas.OutlineWidth(5), canvas.Tags("I19b"))
 }
 
@@ -1140,7 +1140,7 @@ func (g *goldberg) draw21() {
 	g.c.CreatePolygon(xy, canvas.FillColor(color), canvas.OutlineNone(), canvas.Tags("I21", "I21f"))
 	g.c.CreateLine([]float64{245, 490, 237, 535}, canvas.OutlineColor(fg), canvas.OutlineWidth(2), canvas.Tags("I21"))
 	g.c.CreateLine([]float64{189, 535, 181, 490}, canvas.OutlineColor(fg), canvas.OutlineWidth(2), canvas.Tags("I21"))
-	g.c.CreateOval(182, 486, 244, 498, canvas.FillColor(color), canvas.Tags("I21", "I21f"))
+	g.c.CreateOval(182, 486, 244, 498, canvas.FillColor(color), canvas.Tags("I21", "I21f"), canvas.OutlineNone())
 	g.c.CreateOval(182, 486, 244, 498, canvas.FillNone(), canvas.OutlineColor(fg), canvas.OutlineWidth(2), canvas.Tags("I21", "I21t"))
 	g.c.CreateOval(189, 532, 237, 540, canvas.FillColor(color), canvas.OutlineColor(fg), canvas.OutlineWidth(2), canvas.Tags("I21", "I21b"))
 }
@@ -1152,7 +1152,7 @@ func (g *goldberg) draw23() {
 	g.c.CreateOval(187, 592, 241, 623, canvas.FillColor(colors["23a"]), canvas.OutlineNone(), canvas.Tags("I23b"))
 	g.c.CreateArc(187, 592, 241, 623, canvas.OutlineColor(fg), canvas.OutlineWidth(3), canvas.Tags("I23b"),
 		canvas.ArcStyleOpt(canvas.ArcStyleArc), canvas.StartAngle(12), canvas.Extent(336))
-	g.c.CreatePolygon([]float64{239, 604, 258, 589, 258, 625, 239, 610}, canvas.FillColor(colors["23a"]), canvas.Tags("I23b"))
+	g.c.CreatePolygon([]float64{239, 604, 258, 589, 258, 625, 239, 610}, canvas.FillColor(colors["23a"]), canvas.Tags("I23b"), canvas.OutlineNone())
 	g.c.CreateLine([]float64{239, 604, 258, 589, 258, 625, 239, 610}, canvas.OutlineColor(fg), canvas.OutlineWidth(3), canvas.Tags("I23b"))
 	g.c.CreateOval(285, 611, 250, 603, canvas.FillColor(colors["23b"]), canvas.OutlineColor(fg), canvas.OutlineWidth(3), canvas.Tags("I23d"))
 	g.c.CreatePolygon([]float64{249, 596, 249, 618, 264, 607, 249, 596}, canvas.FillColor(colors["23c"]), canvas.OutlineColor(fg), canvas.OutlineWidth(3), canvas.Tags("I23d"))
@@ -1449,7 +1449,7 @@ func (g *goldberg) move6() int {
 		g.c.Move("I6_", -7, 0)
 		if step == 1 {
 			xy := g.scl([]float64{348, 226, 365, 240})
-			g.c.CreateRectangle(xy[0], xy[1], xy[2], xy[3], canvas.FillColor(colors["6"]))
+			g.c.CreateRectangle(xy[0], xy[1], xy[2], xy[3], canvas.FillColor(colors["6"]), canvas.OutlineNone())
 		}
 		return 1
 	}

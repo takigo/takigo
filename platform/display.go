@@ -115,6 +115,9 @@ type GCManager interface {
 	// SetFillStyle sets the fill style of a GC (FillSolid, FillStippled, etc.).
 	SetFillStyle(gc GCID, fillStyle int)
 
+	// SetArcMode sets how FillArc closes arcs (ArcChord or ArcPieSlice).
+	SetArcMode(gc GCID, mode int)
+
 	// SetStipple sets the stipple pixmap (depth-1 bitmap) for a GC.
 	SetStipple(gc GCID, stipple PixmapID)
 

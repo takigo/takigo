@@ -94,6 +94,8 @@ func (d *WindowsDisplay) SetLineAttributes(gc platform.GCID, lineWidth uint, lin
 	d.gcMu.Unlock()
 }
 
+func (d *WindowsDisplay) SetArcMode(platform.GCID, int) {}
+
 func (d *WindowsDisplay) SetFillStyle(gc platform.GCID, fillStyle int) {
 	d.gcMu.Lock()
 	if g, ok := d.gcs[gc]; ok {

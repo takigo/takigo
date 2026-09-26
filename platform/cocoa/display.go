@@ -227,6 +227,8 @@ func (d *CocoaDisplay) SetBackground(gc platform.GCID, pixel uint64) {
 func (d *CocoaDisplay) SetLineAttributes(gc platform.GCID, lineWidth uint, lineStyle, capStyle, joinStyle int) {
 	clib.SetLineAttributes(toGC(gc), lineWidth, lineStyle, capStyle, joinStyle)
 }
+func (d *CocoaDisplay) SetArcMode(platform.GCID, int) {}
+
 func (d *CocoaDisplay) SetFillStyle(gc platform.GCID, fillStyle int) {
 	clib.SetFillStyle(toGC(gc), fillStyle)
 }

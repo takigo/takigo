@@ -126,8 +126,11 @@ func (a *ArcItem) Display(d platform.DisplayServer, drawable platform.DrawableID
 
 	case ArcStyleChord:
 		if a.fill != nil {
+			// ConfigureArc gives the fill GC arc_mode ArcChord for chords.
 			d.SetForeground(gc, a.fill.Pixel)
+			d.SetArcMode(gc, platform.ArcChord)
 			d.FillArc(drawable, gc, x1, y1, uint(w), uint(h), angle1, angle2)
+			d.SetArcMode(gc, platform.ArcPieSlice)
 		}
 		if a.outline != nil && a.outlineWidth > 0 {
 			d.SetForeground(gc, a.outline.Pixel)

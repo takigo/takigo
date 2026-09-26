@@ -61,6 +61,11 @@ func (d *Display) SetFillStyle(gc GC, fillStyle int) {
 	C.XSetFillStyle(d.ptr, C.GC(gc), C.int(fillStyle))
 }
 
+// SetArcMode sets the arc mode of a GC (ArcChord or ArcPieSlice).
+func (d *Display) SetArcMode(gc GC, mode int) {
+	C.XSetArcMode(d.ptr, C.GC(gc), C.int(mode))
+}
+
 // SetStipple sets the stipple pixmap (depth-1 bitmap) for a GC.
 func (d *Display) SetStipple(gc GC, stipple Pixmap) {
 	C.XSetStipple(d.ptr, C.GC(gc), C.Pixmap(stipple))

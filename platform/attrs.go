@@ -120,6 +120,12 @@ const (
 	FillOpaqueStippled = 3
 )
 
+// Arc mode constants (XSetArcMode): how FillArc closes an arc.
+const (
+	ArcChord    = 0
+	ArcPieSlice = 1
+)
+
 // Polygon shape constants.
 const (
 	PolygonComplex   = 0

@@ -255,6 +255,10 @@ func (s *X11Display) SetBackground(gc platform.GCID, pixel uint64) {
 func (s *X11Display) SetLineAttributes(gc platform.GCID, lineWidth uint, lineStyle, capStyle, joinStyle int) {
 	s.dpy.SetLineAttributes(toXGC(gc), lineWidth, lineStyle, capStyle, joinStyle)
 }
+func (s *X11Display) SetArcMode(gc platform.GCID, mode int) {
+	s.dpy.SetArcMode(toXGC(gc), mode)
+}
+
 func (s *X11Display) SetFillStyle(gc platform.GCID, fillStyle int) {
 	s.dpy.SetFillStyle(toXGC(gc), fillStyle)
 }
