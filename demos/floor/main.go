@@ -52,7 +52,11 @@ func poly(c *canvas.Canvas, coords []float64, fill, outline string, tags ...stri
 	} else {
 		opts = append(opts, canvas.FillColor(fill))
 	}
-	opts = append(opts, canvas.OutlineColor(outline))
+	if outline == "" {
+		opts = append(opts, canvas.OutlineNone())
+	} else {
+		opts = append(opts, canvas.OutlineColor(outline))
+	}
 	return c.CreatePolygon(coords, opts...)
 }
 

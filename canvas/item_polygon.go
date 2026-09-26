@@ -25,8 +25,9 @@ func newPolygonItem(coords []float64, c *Canvas) *PolygonItem {
 		outlineWidth: 1,
 		splineSteps:  12,
 	}
-	// Default: filled black, no outline.
-	item.fill = &color.ColorRef{Pixel: 0x000000}
+	// Tk 9 defaults (tkCanvPoly.c): no -fill, -outline DEF_CANVITEM_OUTLINE
+	// (black on unix).
+	item.outline = &color.ColorRef{Pixel: 0x000000}
 	item.ItemBase.canvas = c
 	item.updateBBox()
 	return item
@@ -123,7 +124,8 @@ func (p *PolygonItem) Display(d platform.DisplayServer, drawable platform.Drawab
 			lineStyle = platform.LineOnOffDash
 			d.SetDashes(gc, 0, p.dash)
 		}
-		d.SetLineAttributes(gc, uint(p.outlineWidth), lineStyle, platform.CapButt, platform.JoinRound)
+		// ConfigurePolygon's outline GC: CapRound and -joinstyle (round).
+		d.SetLineAttributes(gc, uint(p.outlineWidth), lineStyle, platform.CapRound, platform.JoinRound)
 		// Close the polygon by appending the first point.
 		closed := make([]platform.Point, len(points)+1)
 		copy(closed, points)

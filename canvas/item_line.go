@@ -168,20 +168,23 @@ func (l *LineItem) Display(d platform.DisplayServer, drawable platform.DrawableI
 	d.SetLineAttributes(gc, 1, platform.LineSolid, platform.CapButt, platform.JoinMiter)
 }
 
-// arrowBackup returns the distance to shorten the line at an arrowhead
-// endpoint. It interpolates between arrowShapeA and arrowShapeB so the
-// thick line edge meets the arrow polygon edge exactly (matching Tk's
-// ConfigureArrows computation).
+// arrowBackup ports ConfigureArrows' backup: how far the line end moves
+// back so the shaft meets the arrowhead polygon.
 func (l *LineItem) arrowBackup() float64 {
-	shapeC := l.arrowShapeC + float64(l.width)/2
-	if shapeC < 0.001 {
-		return l.arrowShapeA
-	}
-	fracHeight := (float64(l.width) / 2) / shapeC
-	return fracHeight*l.arrowShapeB + (1-fracHeight)*l.arrowShapeA
+	shapeA, shapeB, shapeC, width := l.arrowShapes()
+	frac := (width / 2) / shapeC
+	return frac*shapeB + shapeA*(1-frac)/2
 }
 
-// drawArrow draws an arrowhead at one end of the line.
+// arrowShapes returns ConfigureArrows' shapeA/B/C (with its 0.001 fudge,
+// shapeC including half the line width) and the width.
+func (l *LineItem) arrowShapes() (a, b, c, width float64) {
+	width = float64(l.width)
+	return l.arrowShapeA + 0.001, l.arrowShapeB + 0.001, l.arrowShapeC + width/2 + 0.001, width
+}
+
+// drawArrow ports ConfigureArrows' arrowhead polygon (tip, wing, shaft
+// joins, wing, tip), each point rounded like TkFillPolygon does.
 func (l *LineItem) drawArrow(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID,
 	originX, originY int, first bool) {
 
@@ -189,48 +192,39 @@ func (l *LineItem) drawArrow(d platform.DisplayServer, drawable platform.Drawabl
 	if n < 4 {
 		return
 	}
-
-	var tipX, tipY, baseX, baseY float64
+	var tipX, tipY, prevX, prevY float64
 	if first {
 		tipX, tipY = l.coords[0], l.coords[1]
-		baseX, baseY = l.coords[2], l.coords[3]
+		prevX, prevY = l.coords[2], l.coords[3]
 	} else {
 		tipX, tipY = l.coords[n-2], l.coords[n-1]
-		baseX, baseY = l.coords[n-4], l.coords[n-3]
+		prevX, prevY = l.coords[n-4], l.coords[n-3]
 	}
-
-	dx := tipX - baseX
-	dy := tipY - baseY
-	length := math.Sqrt(dx*dx + dy*dy)
-	if length < 0.001 {
-		return
+	dx, dy := tipX-prevX, tipY-prevY
+	var sinT, cosT float64
+	if length := math.Hypot(dx, dy); length != 0 {
+		sinT, cosT = dy/length, dx/length
 	}
-
-	// Unit vector along the line toward the tip.
-	ux := dx / length
-	uy := dy / length
-	// Perpendicular.
-	px := -uy
-	py := ux
-
-	b := l.arrowShapeB                      // wing distance (further from tip)
-	c := l.arrowShapeC + float64(l.width)/2 // halfwidth + half line width (matches Tk)
-	backup := l.arrowBackup()               // shaft-edge junction distance
-	hw := float64(l.width) / 2              // half line width
-
-	// Tk-style 6-point arrowhead: tip → left_wing → left_shaft_edge →
-	// right_shaft_edge → right_wing → tip. The shaft edge points at
-	// the backup distance ensure seamless connection with the thick line.
-	arrowPoints := []platform.Point{
-		drawablePoint(tipX, tipY, originX, originY),
-		drawablePoint(tipX-ux*b+px*c, tipY-uy*b+py*c, originX, originY),
-		drawablePoint(tipX-ux*backup+px*hw, tipY-uy*backup+py*hw, originX, originY),
-		drawablePoint(tipX-ux*backup-px*hw, tipY-uy*backup-py*hw, originX, originY),
-		drawablePoint(tipX-ux*b-px*c, tipY-uy*b-py*c, originX, originY),
-		drawablePoint(tipX, tipY, originX, originY),
+	shapeA, shapeB, shapeC, width := l.arrowShapes()
+	frac := (width / 2) / shapeC
+	vertX, vertY := tipX-shapeA*cosT, tipY-shapeA*sinT
+	var p [12]float64
+	p[0], p[1], p[10], p[11] = tipX, tipY, tipX, tipY
+	temp := shapeC * sinT
+	p[2] = tipX - shapeB*cosT + temp
+	p[8] = p[2] - 2*temp
+	temp = shapeC * cosT
+	p[3] = tipY - shapeB*sinT - temp
+	p[9] = p[3] + 2*temp
+	p[4] = p[2]*frac + vertX*(1-frac)
+	p[5] = p[3]*frac + vertY*(1-frac)
+	p[6] = p[8]*frac + vertX*(1-frac)
+	p[7] = p[9]*frac + vertY*(1-frac)
+	pts := make([]platform.Point, 6)
+	for k := range pts {
+		pts[k] = drawablePoint(p[2*k], p[2*k+1], originX, originY)
 	}
-
-	d.FillPolygon(drawable, gc, arrowPoints, platform.PolygonNonconvex, platform.CoordModeOrigin)
+	d.FillPolygon(drawable, gc, pts, platform.PolygonNonconvex, platform.CoordModeOrigin)
 }
 
 func (l *LineItem) PointDistance(x, y float64) float64 {

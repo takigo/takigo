@@ -1,11 +1,11 @@
 # Demo parity baseline -- written by: bash scripts/demo_batch.sh --retake --update-baseline (or demo_gate.sh --accept)
 # Headless Xvfb 96dpi, pinned DejaVu fonts, frozen timers. pixel_pct = odiff % (lower is better);
 # tree_diffs = cmd/demodiff structural differences; exact = both 0.
-# summary: exact 51 / close 11 / failed 0
+# summary: exact 55 / close 7 / failed 0
 # demo	tcl	pixel_pct	tree_diffs	go_size	tcl_size	status	note
 anilabel	anilabel	0	0	386x296	386x296	exact	
-aniwave	aniwave	0.07	1	371x353	371x353	close	
-arrow	arrow	0.01	1	506x504	506x504	close	
+aniwave	aniwave	0	0	371x353	371x353	exact	
+arrow	arrow	0	0	506x504	506x504	exact	
 bind	bind	0	0	501x456	501x456	exact	
 bitmap	bitmap	0	0	470x206	470x206	exact	
 button	button	0	0	388x254	388x254	exact	
@@ -24,13 +24,13 @@ filebox	filebox	0	0	469x189	469x189	exact
 floor	floor	0.00	0	927x572	927x572	close	
 fontchoose	fontchoose	0	0	343x180	343x180	exact	
 form	form	0	0	390x232	390x232	exact	
-goldberg	goldberg	1.45	25	677x542	677x542	close	
+goldberg	goldberg	1.40	25	677x542	677x542	close	
 hscale	hscale	0	0	361x230	361x230	exact	
 icon	icon	0	0	481x272	481x272	exact	
 image1	image1	0	0	335x492	335x492	exact	
 image2	image2	0.11	1	380x449	380x449	close	
 items	items	0.00	1	588x564	588x564	close	
-knightstour	knightstour	0.08	1	381x332	381x332	close	random knight start square differs between Go and Tcl (Tcl seeded with srand(1))
+knightstour	knightstour	0	0	381x332	381x332	exact	
 label	label	0	0	382x340	382x340	exact	
 labelframe	labelframe	0	0	371x229	371x229	exact	
 mclist	mclist	0	0	404x414	404x414	exact	
@@ -39,7 +39,7 @@ menubu	menubu	0	0	413x480	413x480	exact
 msgbox	msgbox	0	0	394x303	394x303	exact	
 paned1	paned1	0	0	388x175	388x175	exact	
 paned2	paned2	0	0	388x481	388x481	exact	
-pendulum	pendulum	0.30	2	665x428	665x428	close	
+pendulum	pendulum	0	0	665x428	665x428	exact	
 plot	plot	0	0	452x399	452x399	exact	
 print	print	0	0	1026x559	1026x559	exact	
 puzzle	puzzle	0	0	376x327	376x327	exact	

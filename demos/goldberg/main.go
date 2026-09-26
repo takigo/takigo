@@ -449,10 +449,10 @@ func (g *goldberg) draw1() {
 	color2 := colors["1b"]
 
 	g.c.CreatePolygon([]float64{844, 133, 800, 133, 800, 346, 820, 346, 820, 168, 844, 168, 844, 133},
-		canvas.OutlineWidth(3), canvas.FillColor(color))
+		canvas.OutlineWidth(3), canvas.FillColor(color), canvas.OutlineNone())
 
 	g.c.CreatePolygon([]float64{771, 133, 685, 133, 685, 168, 751, 168, 751, 346, 771, 346, 771, 133},
-		canvas.OutlineWidth(3), canvas.FillColor(color))
+		canvas.OutlineWidth(3), canvas.FillColor(color), canvas.OutlineNone())
 
 	x1, y1, x2, y2 := g.box(812, 122, 9)
 	g.c.CreateOval(x1, y1, x2, y2,
@@ -609,7 +609,7 @@ func (g *goldberg) draw5() {
 
 	// Eye
 	g.c.CreatePolygon([]float64{540, 444, 541, 445, 541, 447, 540, 448, 538, 447, 538, 445},
-		canvas.Tags("I5", "I5_2"), canvas.FillColor(bg), canvas.Smooth(true))
+		canvas.Tags("I5", "I5_2"), canvas.FillColor(bg), canvas.OutlineNone(), canvas.Smooth(true))
 
 	// Front leg
 	g.c.CreateLine([]float64{538, 454, 535, 461},
@@ -659,20 +659,20 @@ func (g *goldberg) draw6() {
 
 	// Top drop to rotor
 	xy := []float64{352, 312, 352, 254, 368, 254, 368, 322}
-	g.c.CreatePolygon(xy, canvas.FillColor(color))
+	g.c.CreatePolygon(xy, canvas.FillColor(color), canvas.OutlineNone())
 	g.c.CreateLine(xy, canvas.OutlineColor(fg), canvas.OutlineWidth(2))
 
 	// Poke bottom hole
 	g.c.CreateRectangle(353, 240, 367, 300,
-		canvas.FillColor(color))
+		canvas.FillColor(color), canvas.OutlineNone())
 
 	// Poke another hole
 	g.c.CreateRectangle(341, 190, 375, 210,
-		canvas.FillColor(color))
+		canvas.FillColor(color), canvas.OutlineNone())
 
 	// Bottom chute
 	xy = []float64{368, 356, 368, 403, 389, 403, 389, 464, 320, 464, 320, 403, 352, 403, 352, 366}
-	g.c.CreatePolygon(xy, canvas.FillColor(color), canvas.OutlineWidth(2))
+	g.c.CreatePolygon(xy, canvas.FillColor(color), canvas.OutlineNone(), canvas.OutlineWidth(2))
 	g.c.CreateLine(xy, canvas.OutlineColor(fg), canvas.OutlineWidth(2))
 
 	// On/off rotor
@@ -1055,7 +1055,7 @@ func (g *goldberg) draw17() {
 		canvas.ArcStyleOpt(canvas.ArcStyleChord), canvas.StartAngle(150), canvas.Extent(240), canvas.Tags("I17_"))
 	// Ears
 	g.c.CreateLine([]float64{674, 529, 670, 513, 662, 521, 658, 521, 650, 513, 647, 529}, canvas.OutlineColor(fg), canvas.OutlineWidth(3), canvas.Tags("I17_"))
-	g.c.CreatePolygon([]float64{674, 529, 670, 513, 662, 521, 658, 521, 650, 513, 647, 529}, canvas.FillColor(color), canvas.Tags("I17_", "I17_c"))
+	g.c.CreatePolygon([]float64{674, 529, 670, 513, 662, 521, 658, 521, 650, 513, 647, 529}, canvas.FillColor(color), canvas.OutlineNone(), canvas.Tags("I17_", "I17_c"))
 	// Whiskers left
 	g.c.CreateLine([]float64{652, 542, 628, 539}, canvas.OutlineColor(fg), canvas.OutlineWidth(3), canvas.Tags("I17_"))
 	g.c.CreateLine([]float64{652, 543, 632, 545}, canvas.OutlineColor(fg), canvas.OutlineWidth(3), canvas.Tags("I17_"))
@@ -1137,7 +1137,7 @@ func (g *goldberg) draw21() {
 	g.c.CreateLine([]float64{217, 451, 244, 490}, canvas.OutlineColor(fg), canvas.OutlineWidth(2), canvas.Tags("I21_a"))
 	g.c.CreateLine([]float64{201, 467, 182, 490}, canvas.OutlineColor(fg), canvas.OutlineWidth(2), canvas.Tags("I21_a"))
 	xy := []float64{245, 490, 237, 535, 189, 535, 181, 490}
-	g.c.CreatePolygon(xy, canvas.FillColor(color), canvas.Tags("I21", "I21f"))
+	g.c.CreatePolygon(xy, canvas.FillColor(color), canvas.OutlineNone(), canvas.Tags("I21", "I21f"))
 	g.c.CreateLine([]float64{245, 490, 237, 535}, canvas.OutlineColor(fg), canvas.OutlineWidth(2), canvas.Tags("I21"))
 	g.c.CreateLine([]float64{189, 535, 181, 490}, canvas.OutlineColor(fg), canvas.OutlineWidth(2), canvas.Tags("I21"))
 	g.c.CreateOval(182, 486, 244, 498, canvas.FillColor(color), canvas.Tags("I21", "I21f"))
@@ -1149,7 +1149,7 @@ func (g *goldberg) draw21() {
 func (g *goldberg) draw23() {
 	fg := colors["fg"]
 	g.c.CreateRectangle(185, 623, 253, 650, canvas.FillColor("black"), canvas.OutlineColor(fg), canvas.OutlineWidth(2), canvas.Tags("I23a"))
-	g.c.CreateOval(187, 592, 241, 623, canvas.FillColor(colors["23a"]), canvas.Tags("I23b"))
+	g.c.CreateOval(187, 592, 241, 623, canvas.FillColor(colors["23a"]), canvas.OutlineNone(), canvas.Tags("I23b"))
 	g.c.CreateArc(187, 592, 241, 623, canvas.OutlineColor(fg), canvas.OutlineWidth(3), canvas.Tags("I23b"),
 		canvas.ArcStyleOpt(canvas.ArcStyleArc), canvas.StartAngle(12), canvas.Extent(336))
 	g.c.CreatePolygon([]float64{239, 604, 258, 589, 258, 625, 239, 610}, canvas.FillColor(colors["23a"]), canvas.Tags("I23b"))
@@ -1802,7 +1802,7 @@ func (g *goldberg) move21() int {
 	xx2 := x2b + (tX2-x2b)*f
 	g.c.ItemConfigure("I21b", canvas.FillColor(colors["20"]))
 	g.c.Delete("I21w")
-	g.c.CreatePolygon([]float64{x2b, y2b, x1b, y1b, xx1, yy1, xx2, yy1}, canvas.Tags("I21", "I21w"), canvas.FillColor(colors["20"]))
+	g.c.CreatePolygon([]float64{x2b, y2b, x1b, y1b, xx1, yy1, xx2, yy1}, canvas.Tags("I21", "I21w"), canvas.OutlineNone(), canvas.FillColor(colors["20"]))
 	g.c.Lower("I21w")
 	g.c.Raise("I21b")
 	g.c.Lower("I21f")

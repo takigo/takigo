@@ -137,7 +137,6 @@ func main() {
 		c.SetItemCoords("plate", []float64{0, pt("18p"), w, pt("18p")})
 		xHome = float64(c.Win.Width / 2)
 		c.SetItemCoords("pivot", []float64{xHome - rPivot, pt("15p"), xHome + rPivot, pt("21p")})
-		showPendulum(false, 0, 0)
 	}
 	k.Win.ConfigureCallback = func() {
 		w, h := float64(k.Win.Width), float64(k.Win.Height)
