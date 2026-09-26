@@ -133,10 +133,10 @@ func main() {
 
 	// pack $w.note.editor.s -side right -fill y -padx {0 1.5p} -pady 1.5p
 	pack.Pack(yscroll, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY),
-		pack.PadY("1.5p"))
+		pack.PadXPair(0, "1.5p"), pack.PadY("1.5p"))
 	// pack $w.note.editor.t -fill both -expand 1 -pady 1.5p -padx {1.5p 0}
 	pack.Pack(tw, pack.FillOpt(pack.FillBoth), pack.Expand(true),
-		pack.PadY("1.5p"))
+		pack.PadY("1.5p"), pack.PadXPair("1.5p", 0))
 
 	// $w.note add $w.note.editor -text "Text Editor" -underline 0
 	nb.Add(page3.Window(), "Text Editor")

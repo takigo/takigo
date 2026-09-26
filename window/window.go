@@ -140,6 +140,26 @@ func (w *Window) IsMapped() bool {
 	return w.Flags&FlagMapped != 0
 }
 
+// mappedHooks run when a window becomes mapped; geometry managers use them
+// to arrange (and so map) the window's content, as Tk's managers do on
+// MapNotify of a container.
+var mappedHooks []func(*Window)
+
+// AddMappedHook registers fn to run whenever MarkMapped maps a window.
+func AddMappedHook(fn func(*Window)) { mappedHooks = append(mappedHooks, fn) }
+
+// MarkMapped records that w has been mapped (after MapWindow) and, if it was
+// not mapped before, lets the geometry managers map its content.
+func MarkMapped(w *Window) {
+	if w.Flags&FlagMapped != 0 {
+		return
+	}
+	w.Flags |= FlagMapped
+	for _, fn := range mappedHooks {
+		fn(w)
+	}
+}
+
 // IsViewable reports whether w and every ancestor up to its toplevel are
 // mapped. Geometry managers map content before its toplevel is shown, so
 // this stands in for Tk_IsMapped where Tk defers work until mapping.

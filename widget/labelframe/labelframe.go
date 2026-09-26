@@ -428,7 +428,7 @@ func (lf *Labelframe) placeLabelWidget(x, y, width, height int) {
 	d.RaiseWindow(lw.PlatformID)
 	if lw.Flags&window.FlagMapped == 0 {
 		d.MapWindow(lw.PlatformID)
-		lw.Flags |= window.FlagMapped
+		window.MarkMapped(lw)
 	}
 }
 

@@ -767,7 +767,7 @@ func (t *TextWidget) positionEmbeddedWindows(dlines []displayLine) {
 			d.MoveResizeWindow(ew.win.PlatformID, wx, wy, uint(ww), uint(wh))
 			d.MapWindow(ew.win.PlatformID)
 			ew.win.X, ew.win.Y, ew.win.Width, ew.win.Height = wx, wy, ww, wh
-			ew.win.Flags |= window.FlagMapped
+			window.MarkMapped(ew.win)
 			visible = true
 			break
 		}

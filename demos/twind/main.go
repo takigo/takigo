@@ -69,6 +69,7 @@ func makePeer(app *takigo.App, doc *text.Document) {
 	}
 	pack.Pack(ps, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
 	pack.Pack(pf, pack.Expand(true), pack.FillOpt(pack.FillBoth))
+	w.Show()
 }
 
 func findImage(name string) string {

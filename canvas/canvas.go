@@ -295,7 +295,7 @@ func (c *Canvas) positionWindowItems() {
 			wi.win.X, wi.win.Y, wi.win.Width, wi.win.Height = screenX, screenY, w, h
 			d.MoveResizeWindow(wi.win.PlatformID, screenX, screenY, uint(w), uint(h))
 			d.MapWindow(wi.win.PlatformID)
-			wi.win.Flags |= window.FlagMapped
+			window.MarkMapped(wi.win)
 		} else {
 			d.UnmapWindow(wi.win.PlatformID)
 			wi.win.Flags &^= window.FlagMapped

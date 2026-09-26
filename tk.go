@@ -247,7 +247,7 @@ func (a *App) Run() {
 // It blocks until Quit is called.
 func (a *App) MainLoop() {
 	a.display.Server.MapWindow(a.root.PlatformID)
-	a.root.Flags |= window.FlagMapped
+	window.MarkMapped(a.root)
 	a.display.Server.Flush()
 	if path := os.Getenv("TAKIGO_DUMP_TREE"); path != "" {
 		a.startTreeDump(path)

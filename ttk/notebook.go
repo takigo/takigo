@@ -129,7 +129,7 @@ func (nb *Notebook) Select(index int) {
 		if i == index {
 			nb.layoutPane(tab)
 			tab.Window.Display.Server.MapWindow(tab.Window.PlatformID)
-			tab.Window.Flags |= window.FlagMapped
+			window.MarkMapped(tab.Window)
 		} else {
 			tab.Window.Display.Server.UnmapWindow(tab.Window.PlatformID)
 			tab.Window.Flags &^= window.FlagMapped

@@ -119,7 +119,7 @@ func (mb *Menubar) layout() {
 	w.X, w.Y, w.Width, w.Height = 0, 0, max(1, top.Width), h
 	d.MoveResizeWindow(w.PlatformID, 0, 0, uint(w.Width), uint(h))
 	d.MapWindow(w.PlatformID)
-	w.Flags |= window.FlagMapped
+	window.MarkMapped(w)
 	if top.InternalBorderTop != h {
 		top.InternalBorderTop = h
 		for _, c := range top.Children {

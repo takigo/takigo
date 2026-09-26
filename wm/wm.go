@@ -358,6 +358,7 @@ func (info *WmInfo) Deiconify() {
 		InitialState: platform.NormalState,
 	})
 	w.Display.Server.MapWindow(w.PlatformID)
+	window.MarkMapped(w)
 }
 
 // Withdraw hides the window completely (not in taskbar).

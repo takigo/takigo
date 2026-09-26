@@ -355,7 +355,7 @@ func (pw *PanedWindow) arrangePanes() {
 		p.win.Width = paneW
 		p.win.Height = paneH
 		d.MapWindow(p.win.PlatformID)
-		p.win.Flags |= window.FlagMapped
+		window.MarkMapped(p.win)
 
 		pos += p.disp + pw.SashWidth
 	}

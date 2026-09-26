@@ -264,9 +264,11 @@ func (p *placer) arrange() {
 		if child.PlatformID != platform.WindowID(0) {
 			container.Display.Server.MoveResizeWindow(child.PlatformID,
 				child.X, child.Y, uint(child.Width), uint(child.Height))
-			if child.Flags&window.FlagMapped == 0 {
+			// Tk maps content only once its container is mapped; the
+			// container's MarkMapped re-arranges and maps it then.
+			if child.Flags&window.FlagMapped == 0 && container.IsMapped() {
 				container.Display.Server.MapWindow(child.PlatformID)
-				child.Flags |= window.FlagMapped
+				window.MarkMapped(child)
 			}
 		}
 	}
@@ -280,6 +282,10 @@ func ArrangeAll() {
 }
 
 // ArrangeContainer triggers layout for a specific container.
+// Arrange (and so map) the content once its container is mapped, as the
+// managers' structure procs do on MapNotify.
+func init() { window.AddMappedHook(ArrangeContainer) }
+
 func ArrangeContainer(container *window.Window) {
 	if p, ok := placers[container]; ok {
 		p.arrange()

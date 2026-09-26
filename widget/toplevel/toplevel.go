@@ -217,7 +217,7 @@ func (t *Toplevel) Configure(opts ...option.Option) {
 func (t *Toplevel) Show() {
 	if t.Win.PlatformID != platform.WindowID(0) {
 		t.Win.Display.Server.MapRaised(t.Win.PlatformID)
-		t.Win.Flags |= window.FlagMapped
+		window.MarkMapped(t.Win)
 	}
 }
 
