@@ -105,7 +105,7 @@ func main() {
 	grid.ColumnConfigure(gf, 0, grid.Weight(1), grid.MinSize(0))
 
 	// Helper: convert centimeters to canvas pixel coordinate.
-	pxPerCm := float64(screenunit.Px("1c"))
+	pxPerCm := screenunit.Float("1c")
 	p := func(cm float64) float64 { return cm * pxPerCm }
 
 	// Helper: convert a size string (e.g. "2m", "3p") to int pixels.
