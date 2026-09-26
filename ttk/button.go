@@ -13,12 +13,13 @@ import (
 // Button is a themed button widget.
 type Button struct {
 	TtkWidget
-	Text     string
-	Command  func()
-	Anchor   int // reserved
-	Font     font.Font
-	Img      widget.WidgetImage
-	Compound widget.Compound
+	Text      string
+	Command   func()
+	Anchor    int // reserved
+	Font      font.Font
+	Img       widget.WidgetImage
+	Compound  widget.Compound
+	Underline int
 }
 
 // GetText implements TextProvider.
@@ -68,6 +69,14 @@ func ButtonFont(name string) ButtonOption {
 	}
 }
 
+// ButtonUnderline sets -underline: the index of the character to underline.
+func ButtonUnderline(i int) ButtonOption {
+	return func(b *Button) { b.Underline = i }
+}
+
+// GetUnderline implements the label element's optional underline provider.
+func (b *Button) GetUnderline() int { return b.Underline }
+
 // ButtonWidth sets -width: in average characters, a negative value being
 // a minimum (as in the style's -width -9).
 func ButtonWidth(n int) ButtonOption {
@@ -86,7 +95,7 @@ func NewButton(parent widget.Caregiver, name string, opts ...ButtonOption) *Butt
 	win := window.NewChildWindow(parent.Window(), name, 0, 0, 1, 1)
 	window.MakeWindowExist(win)
 
-	b := &Button{}
+	b := &Button{Underline: -1}
 	b.Font, _ = app.FontRegistry().Get(font.TkDefaultFont)
 
 	// Buttons are focusable via Tab traversal.

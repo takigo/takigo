@@ -64,6 +64,7 @@ func main() {
 	// ttk::button ... "Neat!"
 	neatBtn := ttk.NewButton(page1, "b",
 		ttk.ButtonText("Neat!"),
+		ttk.ButtonUnderline(0),
 		ttk.ButtonCommand(func() {
 			neatLabel.Text = "Yeah, I know..."
 			neatLabel.Display()

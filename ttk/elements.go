@@ -309,6 +309,39 @@ func (e *LabelElement) Draw(d platform.DisplayServer, drawable platform.Drawable
 			0, 0, imgW, imgH, ix, iy, bg)
 	} else if hasText {
 		drawTextLines(d, drawable, f, lines, justify, cx, cy, tw, fg)
+		if up, ok := e.provider.(interface{ GetUnderline() int }); ok {
+			underlineChar(d, drawable, gc, f, lines, justify, cx, cy, tw, up.GetUnderline(), fg)
+		}
+	}
+}
+
+// underlineChar ports Tk_UnderlineTextLayout: underline character index u
+// (counted across the laid-out lines) with the font's underline metrics.
+func underlineChar(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID,
+	f font.Font, lines []string, justify option.Justify, x, y, tw, u int, fgPixel uint64) {
+	if u < 0 {
+		return
+	}
+	ls := f.Metrics().Linespace()
+	for i, line := range lines {
+		runes := []rune(line)
+		if u >= len(runes) {
+			u -= len(runes)
+			continue
+		}
+		lx := x
+		switch justify {
+		case option.JustifyCenter:
+			lx = x + (tw-f.MeasureString(line))/2
+		case option.JustifyRight:
+			lx = x + tw - f.MeasureString(line)
+		}
+		pos, h := font.Underline(f)
+		ux := lx + f.MeasureString(string(runes[:u]))
+		d.SetForeground(gc, fgPixel)
+		d.FillRectangle(drawable, gc, ux, y+i*ls+f.Metrics().Ascent+pos,
+			uint(f.MeasureString(string(runes[u]))), uint(h))
+		return
 	}
 }
 
