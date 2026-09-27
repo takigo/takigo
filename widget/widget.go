@@ -84,6 +84,9 @@ type Base struct {
 	// State.
 	NeedRedraw bool
 	Destroyed  bool
+
+	displayProc   func()
+	redrawPending bool
 }
 
 // BindEngine is the interface for the binding engine, defined here to
@@ -215,6 +218,47 @@ func (b *Base) DrawHighlightBorder(focused bool, padding int) {
 	// Right
 	d.FillRectangle(drawable, gc, ww-hlw-padding, padding+hlw,
 		uint(hlw), uint(wh-2*hlw-2*padding))
+}
+
+// SetDisplayProc registers the function that draws the widget; it runs
+// from EventuallyRedraw with the window's Drawable redirected to a pixmap.
+func (b *Base) SetDisplayProc(fn func()) {
+	b.displayProc = fn
+}
+
+// EventuallyRedraw schedules one redraw at idle time however many times it
+// is called before then, as Tk widgets do with Tcl_DoWhenIdle and a
+// REDRAW_PENDING flag.
+func (b *Base) EventuallyRedraw() {
+	if b.redrawPending || b.Destroyed || b.displayProc == nil {
+		return
+	}
+	b.redrawPending = true
+	b.App.DoWhenIdle(b.redraw)
+}
+
+// redraw double-buffers the display procedure like Tk's display procs,
+// which draw into a Tk_GetPixmap and copy it to the window in one request.
+func (b *Base) redraw() {
+	b.redrawPending = false
+	w := b.Win
+	if b.Destroyed || w.PlatformID == 0 || w.Width <= 0 || w.Height <= 0 {
+		return
+	}
+	d := w.Display.Server
+	pm := d.CreatePixmap(w.Drawable(), uint(w.Width), uint(w.Height), uint(w.Depth))
+	if pm == 0 {
+		b.displayProc()
+		return
+	}
+	pix := platform.PixmapDrawable(pm)
+	w.SetDrawTarget(pix)
+	b.displayProc()
+	w.SetDrawTarget(0)
+	if !b.Destroyed {
+		d.CopyArea(pix, w.Drawable(), w.GC, 0, 0, uint(w.Width), uint(w.Height), 0, 0)
+	}
+	d.FreePixmap(pm)
 }
 
 // InitBase initializes common widget fields with defaults.

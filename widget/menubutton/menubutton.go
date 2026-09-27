@@ -141,6 +141,7 @@ func New(parent widget.Caregiver, name string, opts ...MenubuttonOption) *Menubu
 		Underline: -1,
 	}
 	widget.InitBase(&mb.Base, w, app)
+	mb.SetDisplayProc(mb.display)
 	w.Class = "Menubutton"
 	// tkUnixDefault.h DEF_MENUBUTTON_*.
 	mb.BorderWidth = 1
@@ -230,8 +231,13 @@ func (mb *Menubutton) PostMenu() {
 	mb.Menu.PostFromButton(x, y)
 }
 
-// Display draws the menubutton.
+// Display schedules a redraw at idle time; see widget.Base.EventuallyRedraw.
 func (mb *Menubutton) Display() {
+	mb.EventuallyRedraw()
+}
+
+// display draws the menubutton.
+func (mb *Menubutton) display() {
 	if mb.Destroyed {
 		return
 	}

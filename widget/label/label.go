@@ -258,6 +258,7 @@ func New(parent widget.Caregiver, name string, opts ...LabelOption) *Label {
 		Underline: -1,
 	}
 	widget.InitBase(&l.Base, w, app)
+	l.SetDisplayProc(l.display)
 	w.OnDestroy(l.Destroy)
 	w.Class = "Label"
 
@@ -379,8 +380,13 @@ func (l *Label) computeGeometry() {
 	w.ReqHeight = height + 2*inset
 }
 
-// Display draws the label.
+// Display schedules a redraw at idle time; see widget.Base.EventuallyRedraw.
 func (l *Label) Display() {
+	l.EventuallyRedraw()
+}
+
+// display draws the label.
+func (l *Label) display() {
 	if l.Destroyed {
 		return
 	}

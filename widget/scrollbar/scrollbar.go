@@ -107,6 +107,7 @@ func New(parent widget.Caregiver, name string, opts ...ScrollbarOption) *Scrollb
 	w := window.NewChildWindow(parent.Window(), name, 0, 0, 1, 1)
 	window.MakeWindowExist(w)
 	widget.InitBase(&s.Base, w, app)
+	s.SetDisplayProc(s.display)
 	w.Class = "Scrollbar"
 
 	s.BorderWidth = 1
@@ -182,10 +183,15 @@ func (s *Scrollbar) computeGeometry() {
 	s.thumbEnd = last + s.troughStart
 }
 
-// Display ports TkpDisplayScrollbar: highlight ring, outer border, trough,
+// Display schedules a redraw at idle time; see widget.Base.EventuallyRedraw.
+func (s *Scrollbar) Display() {
+	s.EventuallyRedraw()
+}
+
+// display ports TkpDisplayScrollbar: highlight ring, outer border, trough,
 // 3D triangle arrows and the slider, the active element drawn with the
 // active background.
-func (s *Scrollbar) Display() {
+func (s *Scrollbar) display() {
 	if s.Destroyed {
 		return
 	}

@@ -159,6 +159,7 @@ func New(parent widget.Caregiver, name string, opts ...ToplevelOption) *Toplevel
 
 	t := &Toplevel{}
 	widget.InitBase(&t.Base, w, app)
+	t.SetDisplayProc(t.display)
 	w.Class = "Toplevel"
 
 	// Initialize WM state.
@@ -193,8 +194,13 @@ func New(parent widget.Caregiver, name string, opts ...ToplevelOption) *Toplevel
 	return t
 }
 
-// Display draws the toplevel background.
+// Display schedules a redraw at idle time; see widget.Base.EventuallyRedraw.
 func (t *Toplevel) Display() {
+	t.EventuallyRedraw()
+}
+
+// display draws the toplevel background.
+func (t *Toplevel) display() {
 	if t.Destroyed {
 		return
 	}
