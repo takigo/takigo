@@ -27,6 +27,10 @@ func newFakeServer() *fakeServer {
 func (f *fakeServer) HasIM() bool                         { return false }
 func (f *fakeServer) FilterEvent(*platform.RawEvent) bool { return false }
 func (f *fakeServer) Flush()                              {}
+func (f *fakeServer) WakeEventReader() bool {
+	f.events <- mapEvent(-1)
+	return true
+}
 
 func (f *fakeServer) NextEvent() *platform.RawEvent {
 	n := f.inflight.Add(1)
@@ -199,4 +203,30 @@ func TestLoopRunNestedContext(t *testing.T) {
 	if after > before {
 		t.Errorf("goroutines grew from %d to %d across nested loops", before, after)
 	}
+}
+
+func TestLoopStopWaitsForReader(t *testing.T) {
+	srv := newFakeServer()
+	l := NewLoop(srv, nil, NewDispatcher())
+	stopped := false
+	l.DoWhenIdle(func() {
+		l.Stop(5 * time.Second)
+		select {
+		case <-l.readerDone:
+			stopped = true
+		default:
+		}
+	})
+	runLoop(t, l)()
+	if !stopped {
+		t.Fatal("Stop returned while the reader goroutine was still running")
+	}
+	if n := srv.inflight.Load(); n != 0 {
+		t.Errorf("%d NextEvent calls still in flight after Stop", n)
+	}
+}
+
+func TestLoopStopBeforeRun(t *testing.T) {
+	l := NewLoop(newFakeServer(), nil, NewDispatcher())
+	l.Stop(time.Second) // no reader to wait for; must not block
 }

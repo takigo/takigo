@@ -144,6 +144,11 @@ type EventSource interface {
 
 	// FilterEvent returns true if the event was consumed by input method.
 	FilterEvent(ev *RawEvent) bool
+
+	// WakeEventReader makes a NextEvent call blocked in another goroutine
+	// return soon, so the reader can stop before the display is closed.
+	// It returns false if the backend cannot do that.
+	WakeEventReader() bool
 }
 
 // GrabManager manages pointer and keyboard grabs.

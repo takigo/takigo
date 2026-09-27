@@ -40,6 +40,7 @@ type Loop struct {
 	// order the platform delivered them in.
 	eventCh    chan *platform.RawEvent
 	readerOnce sync.Once
+	readerDone chan struct{} // closed when readEvents returns
 
 	done     chan struct{}
 	quitOnce sync.Once
@@ -71,6 +72,7 @@ func NewLoop(server platform.DisplayServer, parser platform.EventParser, dispatc
 		hasIM:      server.HasIM(),
 		dispatcher: dispatcher,
 		eventCh:    make(chan *platform.RawEvent, 64),
+		readerDone: make(chan struct{}),
 		done:       make(chan struct{}),
 		wake:       make(chan struct{}, 1),
 	}
@@ -202,6 +204,22 @@ func (l *Loop) Quit() {
 	l.quitOnce.Do(func() { close(l.done) })
 }
 
+// Stop quits the loop and waits up to timeout for the reader goroutine to
+// return, so the display can be closed without a read still in flight on
+// it. Call it from the loop goroutine or after Run has returned.
+func (l *Loop) Stop(timeout time.Duration) {
+	l.Quit()
+	started := true
+	l.readerOnce.Do(func() { started = false })
+	if !started || !l.server.WakeEventReader() {
+		return
+	}
+	select {
+	case <-l.readerDone:
+	case <-time.After(timeout):
+	}
+}
+
 // DoWhenIdle schedules fn to run once the loop has no events to process.
 // It never blocks and is safe from any goroutine, including handlers on
 // the loop goroutine. Each call runs fn once; callers that want
@@ -301,8 +319,14 @@ func (l *Loop) processIdleQueue() {
 // readEvents runs in its own goroutine for the lifetime of the loop,
 // blocking on NextEvent and posting raw events to eventCh.
 func (l *Loop) readEvents() {
+	defer close(l.readerDone)
 	for {
 		raw := l.server.NextEvent()
+		select {
+		case <-l.done:
+			return
+		default:
+		}
 		select {
 		case l.eventCh <- raw:
 		case <-l.done:

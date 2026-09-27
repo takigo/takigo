@@ -298,6 +298,9 @@ func (a *App) Quit() {
 
 // Destroy cleans up all resources. Call after MainLoop returns.
 func (a *App) Destroy() {
+	// The reader goroutine may be blocked reading this display; closing it
+	// underneath the read is a use-after-free in Xlib.
+	a.loop.Stop(time.Second)
 	if a.imageReg != nil {
 		a.imageReg.DestroyAll()
 	}

@@ -22,6 +22,9 @@ var xpointPool = sync.Pool{
 type X11Display struct {
 	dpy   *xlib.Display
 	atoms *platform.Atoms
+
+	wakeMu  sync.Mutex
+	wakeWin platform.WindowID // hidden window that WakeEventReader sends to
 }
 
 // NewDisplayServer opens an X11 display connection and returns a composed
@@ -290,6 +293,22 @@ func (s *X11Display) NextEvent() *platform.RawEvent {
 		EventType:   raw.Type(),
 		EventWindow: platform.WindowID(raw.Window()),
 	}
+}
+
+// WakeEventReader sends this connection a ClientMessage through a hidden
+// InputOnly window (XSendEvent with no event mask delivers to the window's
+// creator), which returns a blocked XNextEvent.
+func (s *X11Display) WakeEventReader() bool {
+	s.wakeMu.Lock()
+	if s.wakeWin == 0 {
+		s.wakeWin = s.CreateWindow(s.DefaultRootWindow(), -1, -1, 1, 1, 0,
+			0, platform.InputOnly, 0, &platform.WindowAttrs{})
+	}
+	w := s.wakeWin
+	s.wakeMu.Unlock()
+	s.SendClientMessage(w, w, s.InternAtom("_TAKIGO_WAKE", false), 0, 0, 0, 0, 0)
+	s.Flush()
+	return true
 }
 
 func (s *X11Display) FilterEvent(ev *platform.RawEvent) bool {

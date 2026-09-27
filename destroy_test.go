@@ -2,6 +2,9 @@ package takigo_test
 
 import (
 	"testing"
+	"time"
+
+	takigo "github.com/msorc/takigo"
 
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/geometry"
@@ -43,5 +46,19 @@ func TestDestroyingParentCleansUpChildWidget(t *testing.T) {
 	disp.Dispatch(&event.Event{Type: event.ExposeType, Window: id})
 	if exposed {
 		t.Error("handler of a destroyed window still bound")
+	}
+}
+
+// Destroy used to close the display while the event reader goroutine was
+// still blocked reading it, which crashed Xlib on the next App.
+func TestRunDestroyRepeatedly(t *testing.T) {
+	testutil.RequireDisplay(t)
+	for range 5 {
+		app, err := takigo.NewApp(takigo.Size(50, 50))
+		if err != nil {
+			t.Fatal(err)
+		}
+		app.After(20*time.Millisecond, app.Quit)
+		app.Run()
 	}
 }

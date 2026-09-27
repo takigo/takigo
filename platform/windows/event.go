@@ -175,6 +175,13 @@ func (d *WindowsDisplay) NextEvent() *platform.RawEvent {
 	return <-d.eventCh
 }
 
+// WakeEventReader posts an event of no type, which the loop ignores, to
+// return a blocked NextEvent.
+func (d *WindowsDisplay) WakeEventReader() bool {
+	d.postEvent(&platform.RawEvent{Data: &WinRawEvent{}})
+	return true
+}
+
 func (d *WindowsDisplay) FilterEvent(ev *platform.RawEvent) bool {
 	return false // No IM filtering on Windows currently.
 }
