@@ -3,23 +3,33 @@ package image
 import (
 	"bytes"
 	"fmt"
+	goimage "image"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/msorc/takigo/internal/nanosvg"
 )
 
-// NewPhotoFromSVGFile loads an SVG file by rasterizing it with an external
-// converter (rsvg-convert or ImageMagick). The result is decoded as PNG and
-// returned as a Photo.
-//
-// This requires at least one of the following commands on PATH:
-//   - rsvg-convert (librsvg)
-//   - magick       (ImageMagick 7)
-//   - convert      (ImageMagick 6)
-//
-// Returns an error if no converter is available or the file cannot be parsed.
+// NewPhotoFromSVGFile loads an SVG file as a Photo. Like Tk 9's svg
+// photo format it rasterizes with nanosvg (internal/nanosvg) at scale 1.
+// Documents nanosvg cannot size (no width/height) fall back to an external
+// converter on PATH: rsvg-convert, magick or convert.
 func NewPhotoFromSVGFile(name, path string) (*Photo, error) {
+	src, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("image: open svg %s: %w", path, err)
+	}
+	if svg, err := nanosvg.Parse(string(src)); err == nil {
+		if w, h := nanosvg.Size(svg, 1); w > 0 && h > 0 {
+			px := nanosvg.Rasterize(svg, 1, w, h)
+			p := NewPhoto(name, toRGBA(&goimage.NRGBA{Pix: px, Stride: w * 4, Rect: goimage.Rect(0, 0, w, h)}))
+			p.straight = px
+			return p, nil
+		}
+	}
+
 	data, err := rasterizeSVG(path)
 	if err != nil {
 		return nil, err
@@ -37,6 +47,11 @@ func rasterizeSVG(path string) ([]byte, error) {
 	if _, err := os.Stat(path); err != nil {
 		return nil, fmt.Errorf("image: open svg %s: %w", path, err)
 	}
+	// An absolute path cannot be mistaken for a converter option.
+	path, err := filepath.Abs(path)
+	if err != nil {
+		return nil, fmt.Errorf("image: open svg: %w", err)
+	}
 
 	if bin, ok := findOnPath("rsvg-convert"); ok {
 		// rsvg-convert -f png -o <tmp> <path>; honour the SVG's intrinsic size
@@ -46,8 +61,8 @@ func rasterizeSVG(path string) ([]byte, error) {
 			return nil, fmt.Errorf("image: create temp for svg: %w", err)
 		}
 		tmpPath := tmp.Name()
-		tmp.Close()
-		defer os.Remove(tmpPath)
+		_ = tmp.Close()
+		defer func() { _ = os.Remove(tmpPath) }()
 
 		cmd := exec.Command(bin, "-f", "png", "-o", tmpPath, path)
 		var stderr bytes.Buffer

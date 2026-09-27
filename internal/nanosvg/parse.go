@@ -90,11 +90,13 @@ type attrs struct {
 	evenOdd                 bool
 	stopColor               uint32
 	stopOpacity, stopOffset float32
+	xform                   [6]float32 // user space → document, as nsvg's attr.xform
 }
 
 func defaultAttrs() attrs {
 	return attrs{fill: "#000000", stroke: "none", fillOpacity: 1, strokeOp: 1, opacity: 1,
-		strokeWidth: 1, lineJoin: joinMiter, lineCap: capButt, miterLimit: 4, stopOpacity: 1}
+		strokeWidth: 1, lineJoin: joinMiter, lineCap: capButt, miterLimit: 4, stopOpacity: 1,
+		xform: identity}
 }
 
 func atof(s string) float32 {
@@ -188,6 +190,7 @@ type parser struct {
 	pending   []*pendingShape
 	pts       []float32
 	paths     []*path
+	xform     [6]float32 // transform of the element whose path is being built
 }
 
 type pendingShape struct {
@@ -262,9 +265,25 @@ func Parse(src string) (*Image, error) {
 					curGrad.stops[idx] = st
 				}
 			default:
+				// Presentation attributes first, then style declarations,
+				// which take precedence (nsvg__parseAttribs).
 				for _, at := range t.Attr {
-					a.set(at.Name.Local, at.Value)
+					switch at.Name.Local {
+					case "style":
+					case "transform":
+						a.xform = xformMultiply(a.xform, parseTransform(at.Value))
+					default:
+						a.set(at.Name.Local, at.Value)
+					}
 				}
+				if v, ok := get("style"); ok {
+					for decl := range strings.SplitSeq(v, ";") {
+						if name, value, ok := strings.Cut(decl, ":"); ok {
+							a.set(strings.TrimSpace(name), strings.TrimSpace(value))
+						}
+					}
+				}
+				p.xform = a.xform
 				switch t.Name.Local {
 				case "path":
 					d, _ := get("d")
@@ -337,7 +356,15 @@ func (p *parser) addPath(closed bool) {
 	if (len(p.pts)/2)%3 != 1 {
 		return
 	}
-	p.paths = append(p.paths, &path{pts: append([]float32(nil), p.pts...), closed: closed})
+	pts := append([]float32(nil), p.pts...)
+	if p.xform != identity {
+		t := p.xform
+		for i := 0; i < len(pts); i += 2 {
+			x, y := pts[i], pts[i+1]
+			pts[i], pts[i+1] = x*t[0]+y*t[2]+t[4], x*t[1]+y*t[3]+t[5]
+		}
+	}
+	p.paths = append(p.paths, &path{pts: pts, closed: closed})
 }
 
 func (p *parser) addShape(a attrs) {
@@ -345,7 +372,7 @@ func (p *parser) addShape(a attrs) {
 		return
 	}
 	s := &shape{
-		opacity: a.opacity, strokeWidth: a.strokeWidth,
+		opacity: a.opacity, strokeWidth: a.strokeWidth * averageScale(a.xform),
 		strokeLineJoin: a.lineJoin, strokeLineCap: a.lineCap, miterLimit: a.miterLimit,
 		evenOdd: a.evenOdd, paths: p.paths,
 	}
@@ -631,4 +658,80 @@ func (p *parser) parsePath(d string, a attrs) {
 		p.addPath(closed)
 	}
 	p.addShape(a)
+}
+
+// identity is the identity affine transform [a b c d e f], mapping
+// (x, y) to (a*x + c*y + e, b*x + d*y + f) as nanosvg's xform arrays do.
+var identity = [6]float32{1, 0, 0, 1, 0, 0}
+
+// xformMultiply returns the transform applying t first, then parent.
+func xformMultiply(parent, t [6]float32) [6]float32 {
+	return [6]float32{
+		t[0]*parent[0] + t[1]*parent[2],
+		t[0]*parent[1] + t[1]*parent[3],
+		t[2]*parent[0] + t[3]*parent[2],
+		t[2]*parent[1] + t[3]*parent[3],
+		t[4]*parent[0] + t[5]*parent[2] + parent[4],
+		t[4]*parent[1] + t[5]*parent[3] + parent[5],
+	}
+}
+
+// averageScale ports nsvg__getAverageScale, used to scale stroke widths.
+func averageScale(t [6]float32) float32 {
+	sx := math.Hypot(float64(t[0]), float64(t[2]))
+	sy := math.Hypot(float64(t[1]), float64(t[3]))
+	return float32((sx + sy) * 0.5)
+}
+
+// parseTransform parses an SVG transform list (matrix, translate, scale,
+// rotate, skewX, skewY) as nsvg__parseTransform does; unknown functions
+// are ignored.
+func parseTransform(s string) [6]float32 {
+	xf := identity
+	for {
+		open := strings.IndexByte(s, '(')
+		end := strings.IndexByte(s, ')')
+		if open < 0 || end < open {
+			return xf
+		}
+		name := strings.TrimLeft(s[:open], " \t\n\r,")
+		var args []float32
+		for f := range strings.FieldsFuncSeq(s[open+1:end], func(r rune) bool {
+			return r == ',' || r == ' ' || r == '\t' || r == '\n' || r == '\r'
+		}) {
+			args = append(args, atof(f))
+		}
+		arg := func(i int, def float32) float32 {
+			if i < len(args) {
+				return args[i]
+			}
+			return def
+		}
+		t := identity
+		switch name {
+		case "matrix":
+			if len(args) == 6 {
+				copy(t[:], args)
+			}
+		case "translate":
+			t[4], t[5] = arg(0, 0), arg(1, 0)
+		case "scale":
+			t[0] = arg(0, 1)
+			t[3] = arg(1, t[0])
+		case "rotate":
+			a := float64(arg(0, 0)) * math.Pi / 180
+			sin, cos := float32(math.Sin(a)), float32(math.Cos(a))
+			cx, cy := arg(1, 0), arg(2, 0)
+			t = [6]float32{cos, sin, -sin, cos, 0, 0}
+			if cx != 0 || cy != 0 {
+				t = xformMultiply([6]float32{1, 0, 0, 1, cx, cy}, xformMultiply(t, [6]float32{1, 0, 0, 1, -cx, -cy}))
+			}
+		case "skewX":
+			t[2] = float32(math.Tan(float64(arg(0, 0)) * math.Pi / 180))
+		case "skewY":
+			t[1] = float32(math.Tan(float64(arg(0, 0)) * math.Pi / 180))
+		}
+		xf = xformMultiply(xf, t)
+		s = s[end+1:]
+	}
 }
