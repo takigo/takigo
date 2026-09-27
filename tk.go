@@ -85,6 +85,7 @@ func NewApp(opts ...AppOption) (*App, error) {
 
 	dispatcher := event.NewDispatcher()
 	loop := event.NewLoop(server, parser, dispatcher)
+	d.DoWhenIdle = loop.DoWhenIdle
 
 	colors := color.NewCache(d.Screen)
 	fontReg := font.NewRegistry(fontOpener)
@@ -258,6 +259,9 @@ func (a *App) Run() {
 // MainLoop maps the root window and runs the event loop.
 // It blocks until Quit is called.
 func (a *App) MainLoop() {
+	// Lay out before mapping, as Tk maps "." at idle time after geometry
+	// propagation, so the window appears at its final size.
+	a.loop.UpdateIdleTasks()
 	a.display.Server.MapWindow(a.root.PlatformID)
 	window.MarkMapped(a.root)
 	a.display.Server.Flush()
@@ -407,6 +411,13 @@ func (a *App) UnregisterCloseHandler(w platform.WindowID) {
 	if info := win.WmData; info != nil {
 		info.OffDeleteWindow()
 	}
+}
+
+// UpdateIdleTasks runs pending idle work (layout, redraws) now, like Tk's
+// "update idletasks". Call it from the event loop goroutine, or before
+// Run, e.g. to read a widget's size right after packing it.
+func (a *App) UpdateIdleTasks() {
+	a.loop.UpdateIdleTasks()
 }
 
 // DoWhenIdle schedules a function to run during the next idle phase.

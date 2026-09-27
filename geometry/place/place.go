@@ -73,6 +73,7 @@ type placeEntry struct {
 // placer manages place state for a container.
 type placer struct {
 	container *window.Window
+	pending   bool // an arrange is scheduled for idle time
 	entries   []*placeEntry
 }
 
@@ -88,7 +89,7 @@ func (m *placeManager) Name() string { return "place" }
 
 func (m *placeManager) RequestProc(content *window.Window) {
 	if p, ok := placers[containerFor(content)]; ok {
-		p.arrange()
+		p.scheduleArrange()
 	}
 }
 
@@ -99,7 +100,7 @@ func (m *placeManager) LostContentProc(content *window.Window) {
 	delete(containerOf, content)
 	if p, ok := placers[container]; ok {
 		p.remove(content)
-		p.arrange()
+		p.scheduleArrange()
 	}
 }
 
@@ -174,13 +175,13 @@ func Place(child window.Windower, opts ...PlaceOption) {
 	for _, e := range p.entries {
 		if e.window == w {
 			e.config = cfg
-			p.arrange()
+			p.scheduleArrange()
 			return
 		}
 	}
 
 	p.entries = append(p.entries, &placeEntry{window: w, config: cfg})
-	p.arrange()
+	p.scheduleArrange()
 }
 
 // Forget removes a child from place management.
@@ -340,7 +341,7 @@ func (p *placer) arrange() {
 // ArrangeAll triggers layout for all place-managed containers.
 func ArrangeAll() {
 	for _, p := range placers {
-		p.arrange()
+		p.scheduleArrange()
 	}
 }
 
@@ -351,7 +352,7 @@ func init() {
 	window.AddMappedHook(ArrangeContainer)
 	window.AddMovedHook(func(w *window.Window) {
 		if p, ok := placers[w]; ok && p.hasForeign() {
-			p.arrange()
+			p.scheduleArrange()
 		}
 	})
 	window.AddUnmappedHook(func(w *window.Window) {
@@ -383,4 +384,9 @@ func ArrangeContainer(container *window.Window) {
 	if p, ok := placers[container]; ok {
 		p.arrange()
 	}
+}
+
+// scheduleArrange re-arranges the container at idle time.
+func (p *placer) scheduleArrange() {
+	geometry.WhenIdle(p.container, &p.pending, p.arrange)
 }
