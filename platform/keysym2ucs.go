@@ -22,6 +22,20 @@ func KeySymToRune(ks KeySym) rune {
 	return 0
 }
 
+// RuneToKeySym returns the keysym for a printable character: Latin-1
+// characters are their own keysym and anything else uses the Unicode
+// keysym range (0x01000000 + code point), as XKB and Tk do. It returns 0
+// for control characters and invalid runes.
+func RuneToKeySym(r rune) KeySym {
+	switch {
+	case r >= 0x20 && r <= 0x7e, r >= 0xa0 && r <= 0xff:
+		return KeySym(r)
+	case r > 0xff && r <= 0x10ffff && (r < 0xd800 || r > 0xdfff):
+		return KeySym(0x01000000 | r)
+	}
+	return 0
+}
+
 // keysymToUCS maps legacy X11 keysyms to Unicode code points.
 // Sourced from the standard keysym2ucs table used by xterm, mesa, etc.
 var keysymToUCS = map[KeySym]rune{

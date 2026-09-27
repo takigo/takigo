@@ -17,7 +17,7 @@ func BenchmarkDispatcher_Dispatch(b *testing.B) {
 	}
 
 	ev := &Event{
-		Type:  ConfigureType,
+		Type:   ConfigureType,
 		Window: w,
 	}
 

@@ -1,6 +1,7 @@
 package window
 
 import (
+	"log"
 	"os"
 
 	"github.com/msorc/takigo/platform"
@@ -129,7 +130,11 @@ func DestroyWindow(w *Window) {
 }
 
 func destroyWindowDepth(w *Window, depth int) {
-	if w == nil || depth > 1000 {
+	if w == nil || w.Flags&FlagAlreadyDead != 0 {
+		return
+	}
+	if depth > 1000 {
+		log.Printf("window: destroy of %s exceeds depth 1000; subtree leaked", w.PathName)
 		return
 	}
 	w.Flags |= FlagAlreadyDead
@@ -141,13 +146,36 @@ func destroyWindowDepth(w *Window, depth int) {
 		destroyWindowDepth(child, depth+1)
 	}
 
+	// As in Tk_DestroyWindow, <Destroy> handlers see the window after its
+	// children are gone, then the widget frees its own resources.
+	d := w.Display
+	if d != nil {
+		for _, fn := range d.destroyHooks {
+			fn(w)
+		}
+	}
+	hooks := w.destroyHooks
+	w.destroyHooks = nil
+	for i := len(hooks) - 1; i >= 0; i-- {
+		hooks[i]()
+	}
+	if w.GeomManager != nil {
+		w.GeomManager.LostContentProc(w)
+		w.GeomManager = nil
+	}
+	w.ConfigureCallback = nil
+	w.configureHooks = nil
+	w.BackgroundHook = nil
+
 	// Remove from parent.
 	if w.Parent != nil {
 		w.Parent.RemoveChild(w)
 	}
 
 	// Destroy platform resources.
-	d := w.Display
+	if d == nil || d.Server == nil {
+		return
+	}
 	if !platform.IsZeroGC(w.GC) {
 		d.Server.FreeGC(w.GC)
 		w.GC = platform.ZeroGC()

@@ -69,9 +69,8 @@ type WindowsDisplay struct {
 	// Input focus tracking.
 	focusWindow platform.WindowID
 
-	// Pending character from WM_CHAR, merged into next key event.
-	pendingChar rune
-	hasChar     bool
+	// First half of a standalone WM_CHAR surrogate pair.
+	highSurrogate uint16
 
 	// Cursor cache.
 	cursorMu    sync.Mutex
@@ -110,7 +109,7 @@ func NewDisplayServer(displayName string) (platform.DisplayServer, font.FontOpen
 
 	hInstance := w32.GetModuleHandle(nil)
 	if hInstance == 0 {
-		return nil, fmt.Errorf("GetModuleHandle failed")
+		return nil, nil, fmt.Errorf("GetModuleHandle failed")
 	}
 
 	d := &WindowsDisplay{
@@ -158,7 +157,7 @@ func NewDisplayServer(displayName string) (platform.DisplayServer, font.FontOpen
 	}
 	atom := w32.RegisterClassEx(&wc)
 	if atom == 0 {
-		return nil, fmt.Errorf("RegisterClassEx failed")
+		return nil, nil, fmt.Errorf("RegisterClassEx failed")
 	}
 
 	// Query screen metrics.
@@ -178,7 +177,7 @@ func NewDisplayServer(displayName string) (platform.DisplayServer, font.FontOpen
 		0, 0, 1, 1,
 		0, 0, hInstance, nil)
 	if rootHWND == 0 {
-		return nil, fmt.Errorf("CreateWindowEx for root failed")
+		return nil, nil, fmt.Errorf("CreateWindowEx for root failed")
 	}
 	d.rootHWND = rootHWND
 	d.windowData[rootHWND] = &windowInfo{

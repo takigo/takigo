@@ -85,6 +85,7 @@ func NewProgressbar(parent widget.Caregiver, name string, opts ...ProgressbarOpt
 	}
 
 	InitTtkWidget(&p.TtkWidget, win, app, styleName)
+	win.OnDestroy(p.Destroy)
 	p.DisplayFunc = p.Display
 
 	// -length along the bar; across it the pbar -thickness inside the

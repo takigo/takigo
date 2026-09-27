@@ -636,3 +636,22 @@ func TestX11DisplayFontOpener(t *testing.T) {
 		t.Error("Font.MeasureString should return > 0 for non-empty string")
 	}
 }
+
+// TestX11ProtocolErrorIsNotFatal checks that an X protocol error is
+// reported instead of reaching Xlib's default handler, which exits.
+func TestX11ProtocolErrorIsNotFatal(t *testing.T) {
+	requireDisplay(t)
+
+	ds, _, err := NewDisplayServer("")
+	if err != nil {
+		t.Fatalf("NewDisplayServer failed: %v", err)
+	}
+	defer ds.Close()
+
+	ds.DestroyWindow(platform.WindowID(0x7fffffe))
+	ds.Sync(false)
+
+	if ds.DefaultRootWindow() == 0 {
+		t.Error("display unusable after protocol error")
+	}
+}

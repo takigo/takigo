@@ -36,8 +36,12 @@ golangci-lint run ./...   # config in .golangci.yml (v2 format)
 ```
 
 There is **no `Makefile` and no `go.sum`** — dependencies are stdlib only.
-`go vet` produces one pre-existing false-positive on
-`platform/x11/convert.go:15` (unsafe.Pointer in cgo shim); ignore it.
+`go vet ./...` and `gofmt -l` are clean and gated by
+`.github/workflows/ci.yml`, which also vets the Windows backend
+(`CGO_ENABLED=0 GOOS=windows go vet ./...`, pure Go, runs on Linux) and
+builds on macOS. Linux builds need `libx11-dev libxft-dev
+libfontconfig1-dev`; display tests run under `xvfb-run` with `-p 1`
+(parallel test binaries sharing one Xvfb intermittently fail to connect).
 `.golangci.yml` enables a broad linter set plus `gofmt`/`goimports` with
 `local-prefixes: github.com/msorc/takigo`; it is not a CI gate, so existing
 code is not lint-clean — don't mass-fix unrelated warnings.
@@ -225,7 +229,8 @@ parent's manager's `RequestProc` re-runs the layout.
   `wm/wm_test.go`, `bind/{table,pattern}_test.go`).
 - Fuzz targets: `bind/pattern_fuzz_test.go`, `geometry/grid/grid_fuzz_test.go`.
   Benchmarks: `event/dispatch_bench_test.go` (dispatcher hot path).
-- No CI and no race-detector gate today.
+- CI (`.github/workflows/ci.yml`) runs vet, gofmt and `go test -race`
+  on Linux under Xvfb, vets Windows and builds/tests macOS.
 
 ---
 

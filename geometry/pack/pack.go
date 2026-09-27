@@ -3,6 +3,8 @@
 package pack
 
 import (
+	"slices"
+
 	"github.com/msorc/takigo/geometry"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
@@ -117,22 +119,49 @@ type packManager struct{}
 func (m *packManager) Name() string { return "pack" }
 
 func (m *packManager) RequestProc(content *window.Window) {
-	parent := content.Parent
-	if parent == nil {
-		return
-	}
-	if p, ok := packers[parent]; ok {
+	if p, ok := packers[containerFor(content)]; ok {
 		p.arrange()
 	}
 }
 
+// LostContentProc drops content from its container, e.g. when content is
+// destroyed or taken over by another geometry manager.
 func (m *packManager) LostContentProc(content *window.Window) {
-	parent := content.Parent
-	if parent == nil {
+	container := containerFor(content)
+	delete(containerOf, content)
+	if p, ok := packers[container]; ok {
+		p.remove(content)
+		p.arrange()
+	}
+}
+
+// containerFor returns the window content is managed in: its -in
+// container if one was given, else its parent.
+func containerFor(content *window.Window) *window.Window {
+	if c := containerOf[content]; c != nil {
+		return c
+	}
+	return content.Parent
+}
+
+// forgetContainer drops a destroyed container's state; content managed
+// in it from outside its subtree (via -in) becomes unmanaged, as in
+// Tk's DestroyNotify handling in the geometry managers.
+func forgetContainer(container *window.Window) {
+	p, ok := packers[container]
+	if !ok {
 		return
 	}
-	if p, ok := packers[parent]; ok {
-		p.remove(content)
+	delete(packers, container)
+	for _, e := range p.entries {
+		if w := e.window; containerOf[w] == container {
+			delete(containerOf, w)
+			w.GeomManager = nil
+			if w.IsMapped() && !w.IsDestroyed() && w.PlatformID != 0 {
+				w.Display.Server.UnmapWindow(w.PlatformID)
+				window.MarkUnmapped(w)
+			}
+		}
 	}
 }
 
@@ -162,6 +191,9 @@ func Pack(children geometry.Elementer, opts ...PackOption) {
 
 	elements := children.GeometryElements()
 
+	// Arrange each affected container once, after all elements are added,
+	// rather than once per element.
+	var touched []*packer
 	for _, elem := range elements {
 		w := elem.Window()
 		parent := w.Parent
@@ -185,13 +217,14 @@ func Pack(children geometry.Elementer, opts ...PackOption) {
 		if !ok {
 			p = &packer{container: parent}
 			packers[parent] = p
+			parent.OnDestroy(func() { forgetContainer(parent) })
 			// Register configure callback so container re-layouts
 			// when resized by external forces (e.g. PanedWindow).
-			parent.ConfigureCallback = func() {
+			parent.OnConfigure(func() {
 				if pp, ok2 := packers[parent]; ok2 {
 					pp.arrange()
 				}
-			}
+			})
 		}
 
 		// Update or add entry.
@@ -206,7 +239,11 @@ func Pack(children geometry.Elementer, opts ...PackOption) {
 		if !found {
 			p.entries = append(p.entries, &packEntry{window: w, config: cfg})
 		}
-
+		if !slices.Contains(touched, p) {
+			touched = append(touched, p)
+		}
+	}
+	for _, p := range touched {
 		p.arrange()
 	}
 }
@@ -250,7 +287,9 @@ func (p *packer) remove(child *window.Window) {
 // arrange performs the two-pass layout algorithm.
 func (p *packer) arrange() {
 	container := p.container
-	if container.PlatformID == platform.WindowID(0) {
+	// As in tkPack.c ArrangePacking, a container left without content
+	// keeps its size, so another geometry manager can take it over.
+	if container.PlatformID == platform.WindowID(0) || container.IsDestroyed() || len(p.entries) == 0 {
 		return
 	}
 

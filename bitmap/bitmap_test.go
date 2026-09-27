@@ -64,10 +64,10 @@ static unsigned char test_bits[] = {
 
 func TestParseXBMInvalid(t *testing.T) {
 	tests := []struct {
-		name string
-		src  string
-		wantW int
-		wantH int
+		name     string
+		src      string
+		wantW    int
+		wantH    int
 		wantBits int
 	}{
 		{"empty", "", 0, 0, 0},

@@ -9,10 +9,11 @@ import (
 	"github.com/msorc/takigo/platform"
 )
 
-// toXGC converts a platform.GCID to xlib.GC.
-// xlib.GC is a C pointer type, so we must go through unsafe.Pointer.
+// toXGC converts a platform.GCID to xlib.GC. GCIDs hold C pointers,
+// which the Go GC does not track, so reinterpreting the bits is safe
+// (and, unlike a uintptr-to-unsafe.Pointer conversion, vet-clean).
 func toXGC(gc platform.GCID) xlib.GC {
-	return xlib.GC(unsafe.Pointer(gc))
+	return *(*xlib.GC)(unsafe.Pointer(&gc))
 }
 
 // fromXGC converts an xlib.GC to platform.GCID.

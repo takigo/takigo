@@ -28,7 +28,6 @@ func main() {
 		os.Exit(1)
 	}
 
-
 	// pack [addSeeDismiss $w.seeDismiss $w] -side bottom -fill x
 	btns := demohelper.AddSeeDismiss(app)
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))

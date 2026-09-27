@@ -158,9 +158,7 @@ func NewApp(opts ...AppOption) (*App, error) {
 		if ev.Type == event.ConfigureType {
 			root.Width = ev.ConfigWidth
 			root.Height = ev.ConfigHeight
-			if root.ConfigureCallback != nil {
-				root.ConfigureCallback()
-			}
+			root.NotifyConfigure()
 		}
 	})
 
@@ -173,6 +171,19 @@ func NewApp(opts ...AppOption) (*App, error) {
 	focusMgr := focus.NewManager(dispatcher, server, d)
 	focusMgr.BindTraversal(root)
 	app.focusMgr = focusMgr
+
+	// Tk_DestroyWindow delivers <Destroy> and then forgets the window:
+	// its event handlers, bind tags and focus state go with it, so their
+	// closures do not leak and a reused window ID starts clean.
+	d.OnWindowDestroy(func(w *window.Window) {
+		if w.PlatformID == 0 {
+			return
+		}
+		dispatcher.Dispatch(&event.Event{Type: event.DestroyType, Window: w.PlatformID})
+		dispatcher.Unbind(w.PlatformID)
+		bindEng.UnregisterWindow(w)
+		focusMgr.HandleDestroyWindow(w)
+	})
 
 	// Route real X FocusIn events on toplevels to the focus manager.
 	// This marks the toplevel as viewable (WM has confirmed it), which
@@ -370,29 +381,29 @@ func (a *App) RunNestedLoopContext(ctx context.Context, done <-chan struct{}) {
 }
 
 // RegisterCloseHandler registers a WM_DELETE_WINDOW handler for a toplevel window.
-	// It routes through the window's WmInfo if available.
-	func (a *App) RegisterCloseHandler(w platform.WindowID, fn func()) {
-		win := a.display.LookupWindow(w)
-		if win == nil {
-			return
-		}
-		if info := win.WmData; info != nil {
-			info.OnDeleteWindow(fn)
-		}
+// It routes through the window's WmInfo if available.
+func (a *App) RegisterCloseHandler(w platform.WindowID, fn func()) {
+	win := a.display.LookupWindow(w)
+	if win == nil {
+		return
 	}
+	if info := win.WmData; info != nil {
+		info.OnDeleteWindow(fn)
+	}
+}
 
 // UnregisterCloseHandler restores the default WM_DELETE_WINDOW
-	// behavior — destroying the window — for the given toplevel.
-	// Equivalent to Tk's behavior when no user handler is installed.
-	func (a *App) UnregisterCloseHandler(w platform.WindowID) {
-		win := a.display.LookupWindow(w)
-		if win == nil {
-			return
-		}
-		if info := win.WmData; info != nil {
-			info.OffDeleteWindow()
-		}
+// behavior — destroying the window — for the given toplevel.
+// Equivalent to Tk's behavior when no user handler is installed.
+func (a *App) UnregisterCloseHandler(w platform.WindowID) {
+	win := a.display.LookupWindow(w)
+	if win == nil {
+		return
 	}
+	if info := win.WmData; info != nil {
+		info.OffDeleteWindow()
+	}
+}
 
 // DoWhenIdle schedules a function to run during the next idle phase.
 func (a *App) DoWhenIdle(fn func()) {

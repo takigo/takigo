@@ -28,8 +28,10 @@ type Engine struct {
 	// Per-window tag info.
 	tags map[platform.WindowID]*tagInfo
 
-	// Virtual event definitions: name → physical sequences.
+	// Virtual event definitions: name → physical sequences, plus the
+	// names in definition order so matching is deterministic.
 	virtualEvents map[string][]Sequence
+	virtualOrder  []string
 
 	// Double-click state tracking.
 	lastClickTime platform.Timestamp
@@ -85,7 +87,7 @@ func (e *Engine) dispatch(ev *event.Event) {
 		// Also check virtual events: if the physical event matches a virtual
 		// definition, try to dispatch bindings tagged with that virtual name.
 		if bestBinding == nil {
-			bestBinding, bestScore = e.matchVirtual(ev, clickMods, bindings)
+			bestBinding = e.matchVirtual(ev, clickMods, bindings)
 		}
 
 		if bestBinding != nil {
@@ -97,34 +99,32 @@ func (e *Engine) dispatch(ev *event.Event) {
 	}
 }
 
-// matchVirtual checks if any virtual event definition matches the physical event,
-// and if so, returns the best matching binding for it.
-func (e *Engine) matchVirtual(ev *event.Event, clickMods Modifier, bindings []binding) (*binding, int) {
+// matchVirtual returns the binding for a virtual event whose physical
+// definition matches ev. When several do, the most specific physical
+// pattern wins and ties go to the earliest-defined virtual event, so the
+// choice does not depend on map iteration order.
+func (e *Engine) matchVirtual(ev *event.Event, clickMods Modifier, bindings []binding) *binding {
 	var best *binding
 	bestScore := -1
-
-	for vname, seqs := range e.virtualEvents {
-		for _, vs := range seqs {
-			if len(vs.Patterns) != 1 {
-				continue
+	for _, vname := range e.virtualOrder {
+		score := -1
+		for _, vs := range e.virtualEvents[vname] {
+			if len(vs.Patterns) == 1 && vs.Patterns[0].matches(ev, clickMods) {
+				score = max(score, vs.Patterns[0].specificity())
 			}
-			if vs.Patterns[0].matches(ev, clickMods) {
-				// Physical event matches this virtual event's pattern.
-				// Look for a binding with this virtual name.
-				for i := range bindings {
-					b := &bindings[i]
-					if len(b.seq.Patterns) == 1 && b.seq.Patterns[0].Virtual == vname {
-						score := 10 // virtual events have fixed priority
-						if score > bestScore {
-							bestScore = score
-							best = b
-						}
-					}
-				}
+		}
+		if score <= bestScore {
+			continue
+		}
+		for i := range bindings {
+			b := &bindings[i]
+			if len(b.seq.Patterns) == 1 && b.seq.Patterns[0].Virtual == vname {
+				best, bestScore = b, score
+				break
 			}
 		}
 	}
-	return best, bestScore
+	return best
 }
 
 // updateClickState tracks button press timing for double/triple click.

@@ -234,7 +234,7 @@ func flattenTree(w *window.Window) []*window.Window {
 func (m *Manager) HandleDestroyWindow(w *window.Window) {
 	if m.focusWin == w {
 		tl := findToplevel(w)
-		if tl != nil && tl != w {
+		if tl != nil && tl != w && !tl.IsDestroyed() {
 			m.SetFocus(tl)
 		} else {
 			m.focusWin = nil

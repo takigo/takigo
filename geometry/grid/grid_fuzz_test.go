@@ -42,9 +42,9 @@ func FuzzResolveConstraints(f *testing.F) {
 	// Create a minimal gridder with some entries
 	g := newGridder(&window.Window{})
 	g.container = &window.Window{
-		InternalBorderLeft:  0,
-		InternalBorderRight: 0,
-		InternalBorderTop:   0,
+		InternalBorderLeft:   0,
+		InternalBorderRight:  0,
+		InternalBorderTop:    0,
 		InternalBorderBottom: 0,
 	}
 	g.anchor = option.AnchorNW
@@ -64,8 +64,8 @@ func FuzzResolveConstraints(f *testing.F) {
 		}
 
 		w := &window.Window{
-			ReqWidth:  reqW,
-			ReqHeight: reqH,
+			ReqWidth:    reqW,
+			ReqHeight:   reqH,
 			BorderWidth: 0,
 		}
 		g.entries = append(g.entries, &gridEntry{

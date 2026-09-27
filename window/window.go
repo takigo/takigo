@@ -87,8 +87,13 @@ type Window struct {
 	Menubar *Window
 
 	// ConfigureCallback is called when the window is resized.
-	// Set by geometry managers (e.g. pack) to re-layout children.
+	//
+	// Deprecated: it holds a single callback that any other user
+	// overwrites; use OnConfigure.
 	ConfigureCallback func()
+
+	// configureHooks run on resize, after ConfigureCallback; see OnConfigure.
+	configureHooks []func()
 
 	// WmData stores per-toplevel WM state for toplevel windows.
 	// Uses WmInfo interface to avoid circular imports between window and wm packages.
@@ -98,6 +103,39 @@ type Window struct {
 	// BackgroundHook is called when a recursive background change is applied.
 	// Widgets register this to update their own Background field and pixel.
 	BackgroundHook func(colorName string)
+
+	// destroyHooks run when the window is destroyed; see OnDestroy.
+	destroyHooks []func()
+}
+
+// OnDestroy registers fn to run when w is destroyed, whether directly or
+// because an ancestor was. Hooks run last-registered first, like defer,
+// so a widget's own cleanup runs before that of the base it embeds.
+func (w *Window) OnDestroy(fn func()) {
+	w.destroyHooks = append(w.destroyHooks, fn)
+}
+
+// OnConfigure registers fn to run whenever w is resized (NotifyConfigure).
+// Geometry managers use it to re-arrange content; any number of hooks
+// can coexist.
+func (w *Window) OnConfigure(fn func()) {
+	w.configureHooks = append(w.configureHooks, fn)
+}
+
+// NotifyConfigure runs w's resize callbacks. Call it after changing
+// w.Width or w.Height.
+func (w *Window) NotifyConfigure() {
+	if w.ConfigureCallback != nil {
+		w.ConfigureCallback()
+	}
+	for _, fn := range w.configureHooks {
+		fn()
+	}
+}
+
+// IsDestroyed reports whether w has been (or is being) destroyed.
+func (w *Window) IsDestroyed() bool {
+	return w.Flags&FlagAlreadyDead != 0
 }
 
 // ApplyBackgroundRecursive propagates a background color change through the
