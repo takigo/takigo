@@ -129,6 +129,7 @@ func New(parent widget.Caregiver, name string, opts ...CanvasOption) *Canvas {
 		closeEnough:  1.0,
 	}
 	widget.InitBase(&c.Base, w, app)
+	w.OnDestroy(c.Destroy)
 	w.Class = "Canvas"
 
 	// Canvas defaults (tkUnixDefault.h: -width 10c -height 7c,
@@ -338,6 +339,7 @@ func (c *Canvas) Destroy() {
 		d.FreePixmap(c.pixmap)
 		c.pixmap = 0
 	}
+	window.DestroyWindow(c.Win)
 }
 
 // Configure sets canvas options.

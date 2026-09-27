@@ -184,9 +184,7 @@ func New(parent widget.Caregiver, name string, opts ...LabelframeOption) *Labelf
 			w.Width = ev.ConfigWidth
 			w.Height = ev.ConfigHeight
 			lf.Display()
-			if w.ConfigureCallback != nil {
-				w.ConfigureCallback()
-			}
+			w.NotifyConfigure()
 		}
 	})
 
@@ -457,9 +455,7 @@ func (lf *Labelframe) SetLabelWidget(w widget.Widget) {
 	lf.updateInternalBorder()
 	lf.Display()
 	// Notify geometry manager that internal borders changed.
-	if lf.Win.ConfigureCallback != nil {
-		lf.Win.ConfigureCallback()
-	}
+	lf.Win.NotifyConfigure()
 }
 
 // Destroy cleans up the labelframe.

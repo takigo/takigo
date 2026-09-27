@@ -182,6 +182,7 @@ func NewEntry(parent widget.Caregiver, name string, opts ...EntryOption) *Entry 
 	}
 
 	InitTtkWidget(&e.TtkWidget, win, app, "TEntry")
+	win.OnDestroy(e.Destroy)
 	e.DisplayFunc = e.Display
 
 	// Default size based on font metrics.

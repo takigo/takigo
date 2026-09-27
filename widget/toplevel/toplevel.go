@@ -185,9 +185,7 @@ func New(parent widget.Caregiver, name string, opts ...ToplevelOption) *Toplevel
 			w.Width = ev.ConfigWidth
 			w.Height = ev.ConfigHeight
 			t.Display()
-			if w.ConfigureCallback != nil {
-				w.ConfigureCallback()
-			}
+			w.NotifyConfigure()
 		}
 	})
 

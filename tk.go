@@ -158,9 +158,7 @@ func NewApp(opts ...AppOption) (*App, error) {
 		if ev.Type == event.ConfigureType {
 			root.Width = ev.ConfigWidth
 			root.Height = ev.ConfigHeight
-			if root.ConfigureCallback != nil {
-				root.ConfigureCallback()
-			}
+			root.NotifyConfigure()
 		}
 	})
 
@@ -173,6 +171,19 @@ func NewApp(opts ...AppOption) (*App, error) {
 	focusMgr := focus.NewManager(dispatcher, server, d)
 	focusMgr.BindTraversal(root)
 	app.focusMgr = focusMgr
+
+	// Tk_DestroyWindow delivers <Destroy> and then forgets the window:
+	// its event handlers, bind tags and focus state go with it, so their
+	// closures do not leak and a reused window ID starts clean.
+	d.OnWindowDestroy(func(w *window.Window) {
+		if w.PlatformID == 0 {
+			return
+		}
+		dispatcher.Dispatch(&event.Event{Type: event.DestroyType, Window: w.PlatformID})
+		dispatcher.Unbind(w.PlatformID)
+		bindEng.UnregisterWindow(w)
+		focusMgr.HandleDestroyWindow(w)
+	})
 
 	// Route real X FocusIn events on toplevels to the focus manager.
 	// This marks the toplevel as viewable (WM has confirmed it), which

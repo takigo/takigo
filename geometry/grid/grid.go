@@ -180,11 +180,12 @@ func gridderFor(container *window.Window) *gridder {
 	}
 	g := newGridder(container)
 	gridders[container] = g
-	container.ConfigureCallback = func() {
+	container.OnDestroy(func() { forgetContainer(container) })
+	container.OnConfigure(func() {
 		if gg, ok := gridders[container]; ok {
 			gg.arrange()
 		}
-	}
+	})
 	return g
 }
 
@@ -199,22 +200,49 @@ type gridManager struct{}
 func (m *gridManager) Name() string { return "grid" }
 
 func (m *gridManager) RequestProc(content *window.Window) {
-	parent := content.Parent
-	if parent == nil {
-		return
-	}
-	if g, ok := gridders[parent]; ok {
-		g.arrange()
+	if p, ok := gridders[containerFor(content)]; ok {
+		p.arrange()
 	}
 }
 
+// LostContentProc drops content from its container, e.g. when content is
+// destroyed or taken over by another geometry manager.
 func (m *gridManager) LostContentProc(content *window.Window) {
-	parent := content.Parent
-	if parent == nil {
+	container := containerFor(content)
+	delete(containerOf, content)
+	if p, ok := gridders[container]; ok {
+		p.remove(content)
+		p.arrange()
+	}
+}
+
+// containerFor returns the window content is managed in: its -in
+// container if one was given, else its parent.
+func containerFor(content *window.Window) *window.Window {
+	if c := containerOf[content]; c != nil {
+		return c
+	}
+	return content.Parent
+}
+
+// forgetContainer drops a destroyed container's state; content managed
+// in it from outside its subtree (via -in) becomes unmanaged, as in
+// Tk's DestroyNotify handling in the geometry managers.
+func forgetContainer(container *window.Window) {
+	p, ok := gridders[container]
+	if !ok {
 		return
 	}
-	if g, ok := gridders[parent]; ok {
-		g.remove(content)
+	delete(gridders, container)
+	for _, e := range p.entries {
+		if w := e.window; containerOf[w] == container {
+			delete(containerOf, w)
+			w.GeomManager = nil
+			if w.IsMapped() && !w.IsDestroyed() && w.PlatformID != 0 {
+				w.Display.Server.UnmapWindow(w.PlatformID)
+				window.MarkUnmapped(w)
+			}
+		}
 	}
 }
 
@@ -956,7 +984,7 @@ func adjustOffsets(size int, offsets []int, conf map[int]*SlotConfig) int {
 // arrange performs the grid layout.
 func (g *gridder) arrange() {
 	container := g.container
-	if container.PlatformID == platform.WindowID(0) || len(g.entries) == 0 {
+	if container.PlatformID == platform.WindowID(0) || container.IsDestroyed() || len(g.entries) == 0 {
 		return
 	}
 

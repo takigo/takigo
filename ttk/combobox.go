@@ -106,6 +106,7 @@ func NewCombobox(parent widget.Caregiver, name string, opts ...ComboboxOption) *
 	}
 
 	InitTtkWidget(&c.TtkWidget, win, app, "TCombobox")
+	win.OnDestroy(c.Destroy)
 	c.DisplayFunc = c.Display
 
 	for _, opt := range opts {

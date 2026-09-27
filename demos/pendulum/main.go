@@ -132,20 +132,20 @@ func main() {
 	}
 
 	// <Configure> bindings: both canvases lay themselves out from their size.
-	c.Win.ConfigureCallback = func() {
+	c.Win.OnConfigure(func() {
 		w := float64(c.Win.Width)
 		c.SetItemCoords("plate", []float64{0, pt("18p"), w, pt("18p")})
 		xHome = float64(c.Win.Width / 2)
 		c.SetItemCoords("pivot", []float64{xHome - rPivot, pt("15p"), xHome + rPivot, pt("21p")})
-	}
-	k.Win.ConfigureCallback = func() {
+	})
+	k.Win.OnConfigure(func() {
 		w, h := float64(k.Win.Width), float64(k.Win.Height)
 		psh, psw = float64(k.Win.Height/2), float64(k.Win.Width/2)
 		k.SetItemCoords("x_axis", []float64{pt("1.5p"), psh, w - math.Round(1.5*tkScl), psh})
 		k.SetItemCoords("y_axis", []float64{psw, h - math.Round(1.5*tkScl), psw, pt("1.5p")})
 		k.SetItemCoords("label_dtheta", []float64{psw - math.Round(3*tkScl), pt("4.5p")})
 		k.SetItemCoords("label_theta", []float64{w - math.Round(4.5*tkScl), psh + math.Round(3*tkScl)})
-	}
+	})
 
 	// recomputeAngle: the Tcl demo's two-stage estimate of one time step.
 	recomputeAngle := func() {
