@@ -105,6 +105,7 @@ const (
 type PropertyEvent struct {
 	EventWindow WindowID
 	Atom        AtomID
+	Deleted     bool // the property was deleted (X PropertyDelete)
 }
 
 // SelectionRequestParsed holds parsed selection request event data.

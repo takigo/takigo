@@ -131,6 +131,9 @@ func NewApp(opts ...AppOption) (*App, error) {
 		case platform.SelectionNotifyEvent:
 			ntf := parser.ParseSelectionNotifyEvent(raw)
 			selMgr.HandleSelectionNotify(ntf.Requestor, ntf.Property)
+		case platform.PropertyNotifyEvent:
+			prop := parser.ParsePropertyEvent(raw)
+			selMgr.HandlePropertyNotify(prop.EventWindow, prop.Atom, prop.Deleted)
 		}
 	})
 

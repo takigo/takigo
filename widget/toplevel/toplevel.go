@@ -138,6 +138,7 @@ func New(parent widget.Caregiver, name string, opts ...ToplevelOption) *Toplevel
 				platform.LeaveWindowMask |
 				platform.ExposureMask |
 				platform.StructureNotifyMask |
+				platform.PropertyChangeMask |
 				platform.FocusChangeMask),
 	}
 

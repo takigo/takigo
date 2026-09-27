@@ -39,6 +39,7 @@ func CreateMainWindow(d *Display, x, y, width, height int) *Window {
 				platform.LeaveWindowMask |
 				platform.ExposureMask |
 				platform.StructureNotifyMask |
+				platform.PropertyChangeMask |
 				platform.FocusChangeMask),
 	}
 
@@ -100,6 +101,7 @@ func MakeWindowExist(w *Window) {
 				platform.LeaveWindowMask |
 				platform.ExposureMask |
 				platform.StructureNotifyMask |
+				platform.PropertyChangeMask |
 				platform.FocusChangeMask),
 	}
 

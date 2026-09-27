@@ -103,6 +103,7 @@ static Time   xevent_selnot_time(XEvent *ev)     { return ev->xselection.time; }
 // Property event accessors.
 static Window xevent_property_window(XEvent *ev) { return ev->xproperty.window; }
 static Atom xevent_property_atom(XEvent *ev) { return ev->xproperty.atom; }
+static int xevent_property_deleted(XEvent *ev) { return ev->xproperty.state == PropertyDelete; }
 
 // Any event window accessor.
 static Window xevent_any_window(XEvent *ev) { return ev->xany.window; }
@@ -445,6 +446,7 @@ func (e *RawEvent) ParseFocusEvent() FocusEvent {
 type PropertyEventData struct {
 	EventWindow Window
 	Atom        Atom
+	Deleted     bool // PropertyDelete rather than PropertyNewValue
 }
 
 // ParsePropertyEvent extracts PropertyNotify event data.
@@ -452,6 +454,7 @@ func (e *RawEvent) ParsePropertyEvent() PropertyEventData {
 	return PropertyEventData{
 		EventWindow: Window(C.xevent_property_window(&e.ev)),
 		Atom:        Atom(C.xevent_property_atom(&e.ev)),
+		Deleted:     C.xevent_property_deleted(&e.ev) != 0,
 	}
 }
 

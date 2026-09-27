@@ -154,6 +154,7 @@ func (p *X11EventParser) ParsePropertyEvent(ev *platform.RawEvent) platform.Prop
 	return platform.PropertyEvent{
 		EventWindow: platform.WindowID(prop.EventWindow),
 		Atom:        platform.AtomID(prop.Atom),
+		Deleted:     prop.Deleted,
 	}
 }
 
