@@ -3,6 +3,8 @@
 package pack
 
 import (
+	"slices"
+
 	"github.com/msorc/takigo/geometry"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
@@ -189,6 +191,9 @@ func Pack(children geometry.Elementer, opts ...PackOption) {
 
 	elements := children.GeometryElements()
 
+	// Arrange each affected container once, after all elements are added,
+	// rather than once per element.
+	var touched []*packer
 	for _, elem := range elements {
 		w := elem.Window()
 		parent := w.Parent
@@ -234,7 +239,11 @@ func Pack(children geometry.Elementer, opts ...PackOption) {
 		if !found {
 			p.entries = append(p.entries, &packEntry{window: w, config: cfg})
 		}
-
+		if !slices.Contains(touched, p) {
+			touched = append(touched, p)
+		}
+	}
+	for _, p := range touched {
 		p.arrange()
 	}
 }
