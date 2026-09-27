@@ -62,8 +62,7 @@ func NewPhoto(name string, rgba *goimage.RGBA) *Photo {
 //   - .png, .gif, .jpg/.jpeg  via Go stdlib registered decoders
 //   - .xbm                    via NewPhotoFromXBMFile (black fg, transparent bg)
 //   - .ppm, .pgm, .pbm        via NewPhotoFromPPMFile (Netpbm P1..P6)
-//   - .svg                    via NewPhotoFromSVGFile (requires rsvg-convert
-//     or ImageMagick on PATH)
+//   - .svg                    via NewPhotoFromSVGFile (nanosvg)
 func NewPhotoFromFile(name, path string) (*Photo, error) {
 	switch strings.ToLower(filepath.Ext(path)) {
 	case ".xbm":
