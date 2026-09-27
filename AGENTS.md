@@ -267,7 +267,10 @@ skill and script pipeline for comparing and fixing them.
   `claude` from inside a Claude Code session.
 - **Wish binary used for Tcl side:** `./tk/unix/wish` (built from the
   vendored Tk 9.1; `make -C tk/unix`). System `wish` is 8.6 and incompatible.
-  Configure Tk with `--disable-bidi`: `demos/parity.tsv` was recorded
+  `demos/parity.tsv` was recorded against Tk 9.1b1 `tcltk/tk@22f94052cdf0` and
+  Tcl `tcltk/tcl@bb4e6e8795cb` (check out those commits to reproduce it; other
+  Tk revisions drift, e.g. `mclist`/`tree`/`ttkbut` changed between
+  snapshots). Configure Tk with `--disable-bidi`: the baseline is recorded
   without the bidi/HarfBuzz text layout (on by default since 9.1), which
   wraps some labels differently (e.g. `button` gives 17.8% instead of 0).
   From scratch: clone `tcltk/tcl` and `tcltk/tk` into `tcl/` and `tk/`,
