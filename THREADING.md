@@ -44,9 +44,9 @@ These types use internal synchronization (`sync.Mutex`/`sync.RWMutex` or channel
 
 | Type | Package | Safe Methods | Notes |
 |------|---------|--------------|-------|
-| `*event.Dispatcher` | `event` | `Bind`, `BindGlobal`, `Unbind`, `UnbindID` | Uses `sync.RWMutex`. `Dispatch()` is loop-only. |
+| `*event.Dispatcher` | `event` | `Bind`, `BindGlobal`, `Unbind`, `UnbindID` | Copy-on-write handler lists under a `sync.RWMutex`; a handler unbound during a dispatch is not called. `Dispatch()` is loop-only. |
 | `*event.Loop` | `event` | `DoWhenIdle`, `After`, `RunOnMain`, `Quit`, `SetRawEventHandler` (before `Run`) | Append to mutex-guarded queues; never block. `Quit` is idempotent. `Run()`/`RunNested()` are loop-only. |
-| `*takigo.App` | `takigo` | `DoWhenIdle`, `After`, `RunOnMain`, `Quit`, `Dispatcher()`, `ColorCache()`, `FontRegistry()`, `ImageRegistry()`, `Server()`, `BindEngine()`, `Clipboard()`, `FocusManager()`, `WmInfo()`, `RegisterCloseHandler`, `UnregisterCloseHandler` | Delegates to `Loop` or returns synchronized registries. `RunNestedLoop` is loop-only. |
+| `*takigo.App` | `takigo` | `DoWhenIdle`, `After`, `RunOnMain`, `Quit`, `Dispatcher()`, `ColorCache()`, `FontRegistry()`, `ImageRegistry()`, `Server()`, `BindEngine()`, `Clipboard()`, `FocusManager()`, `WmInfo()` | Delegates to `Loop` or returns the (shared) singletons; what you may call on those depends on their own row. `RunNestedLoop`, `RegisterCloseHandler` and `UnregisterCloseHandler` are loop-only. |
 | `*color.Cache` | `color` | `Get`, `GetByValue` | Uses `sync.RWMutex`. |
 | `*font.Registry` | `font` | `Define`, `Get`, `GetAttrs`, `Derive`, `Close` | Uses `sync.Mutex`. |
 | `*image.Registry` | `image` | `Register`, `Get`, `Unregister`, `DestroyAll` | Uses `sync.RWMutex`. |
@@ -119,8 +119,8 @@ app.RunOnMain(func() {
 
 | Category | Types | Access Pattern |
 |----------|-------|----------------|
-| **Goroutine-safe (sync)** | `Dispatcher`, `Loop` (channel methods), `App` (channel methods), `color.Cache`, `font.Registry`, `image.Registry`, `selection.Manager` | Any goroutine |
-| **Loop-only (no sync)** | `Window`, `Display`, `Base`/widgets, `Border`, geometry managers, `WmInfo`, `focus.Manager`, `selection.Manager`, `bind.Engine` | Event loop goroutine only |
+| **Goroutine-safe (sync)** | `Dispatcher` (bind/unbind), `Loop` (posting methods), `App` (posting methods), `color.Cache`, `font.Registry`, `image.Registry` | Any goroutine |
+| **Loop-only** | `Window`, `Display`, `Base`/widgets, `Border`, geometry managers, `WmInfo`, `focus.Manager`, `selection.Manager` (its mutex guards only its own maps; it calls the display server and callbacks), `bind.Engine` | Event loop goroutine only |
 | **Platform-dependent** | `DisplayServer` | X11: any; Cocoa/Win32: main thread only (enforced by loop) |
 
 ---
