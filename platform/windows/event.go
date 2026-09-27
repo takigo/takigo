@@ -534,146 +534,89 @@ func (d *WindowsDisplay) mouseModifierState(wParam w32.WPARAM) uint {
 	return state
 }
 
+// vkToXK maps Windows virtual-key codes to X11-style keysyms.
+// Ported from tk/win/tkWinKey.c's keymap table; comments preserve
+// the original VK_* and XK_* names for traceability.
+var vkToXK = map[uint]uint64{
+	w32.VK_CANCEL:    0xff69, // XK_Cancel
+	w32.VK_BACK:      0xff08, // XK_BackSpace
+	w32.VK_TAB:       0xff09, // XK_Tab
+	w32.VK_CLEAR:     0xff0b, // XK_Clear
+	w32.VK_RETURN:    0xff0d, // XK_Return
+	w32.VK_SHIFT:     0xffe1, // XK_Shift_L
+	w32.VK_CONTROL:   0xffe3, // XK_Control_L
+	w32.VK_MENU:      0xffe9, // XK_Alt_L
+	w32.VK_PAUSE:     0xff13, // XK_Pause
+	w32.VK_CAPITAL:   0xffe5, // XK_Caps_Lock
+	w32.VK_ESCAPE:    0xff1b, // XK_Escape
+	w32.VK_SPACE:     0x0020, // XK_space
+	w32.VK_PRIOR:     0xff55, // XK_Prior (Page Up)
+	w32.VK_NEXT:      0xff56, // XK_Next (Page Down)
+	w32.VK_END:       0xff57, // XK_End
+	w32.VK_HOME:      0xff50, // XK_Home
+	w32.VK_LEFT:      0xff51, // XK_Left
+	w32.VK_UP:        0xff52, // XK_Up
+	w32.VK_RIGHT:     0xff53, // XK_Right
+	w32.VK_DOWN:      0xff54, // XK_Down
+	w32.VK_SELECT:    0xff60, // XK_Select
+	w32.VK_PRINT:     0xff61, // XK_Print
+	w32.VK_EXECUTE:   0xff62, // XK_Execute
+	w32.VK_INSERT:    0xff63, // XK_Insert
+	w32.VK_DELETE:    0xffff, // XK_Delete
+	w32.VK_HELP:      0xff6a, // XK_Help
+	w32.VK_LWIN:      0xffeb, // XK_Super_L
+	w32.VK_RWIN:      0xffec, // XK_Super_R
+	w32.VK_APPS:      0xff67, // XK_Menu
+	w32.VK_NUMLOCK:   0xff7f, // XK_Num_Lock
+	w32.VK_SCROLL:    0xff14, // XK_Scroll_Lock
+	w32.VK_MULTIPLY:  0xffaa, // XK_KP_Multiply
+	w32.VK_ADD:       0xffab, // XK_KP_Add
+	w32.VK_SEPARATOR: 0xffac, // XK_KP_Separator
+	w32.VK_SUBTRACT:  0xffad, // XK_KP_Subtract
+	w32.VK_DECIMAL:   0xffae, // XK_KP_Decimal
+	w32.VK_DIVIDE:    0xffaf, // XK_KP_Divide
+	w32.VK_F1:        0xffbe, // XK_F1
+	w32.VK_F2:        0xffbf, // XK_F2
+	w32.VK_F3:        0xffc0, // XK_F3
+	w32.VK_F4:        0xffc1, // XK_F4
+	w32.VK_F5:        0xffc2, // XK_F5
+	w32.VK_F6:        0xffc3, // XK_F6
+	w32.VK_F7:        0xffc4, // XK_F7
+	w32.VK_F8:        0xffc5, // XK_F8
+	w32.VK_F9:        0xffc6, // XK_F9
+	w32.VK_F10:       0xffc7, // XK_F10
+	w32.VK_F11:       0xffc8, // XK_F11
+	w32.VK_F12:       0xffc9, // XK_F12
+	w32.VK_F13:       0xffca, // XK_F13
+	w32.VK_F14:       0xffcb, // XK_F14
+	w32.VK_F15:       0xffcc, // XK_F15
+	w32.VK_F16:       0xffcd, // XK_F16
+	w32.VK_F17:       0xffce, // XK_F17
+	w32.VK_F18:       0xffcf, // XK_F18
+	w32.VK_F19:       0xffd0, // XK_F19
+	w32.VK_F20:       0xffd1, // XK_F20
+	w32.VK_F21:       0xffd2, // XK_F21
+	w32.VK_F22:       0xffd3, // XK_F22
+	w32.VK_F23:       0xffd4, // XK_F23
+	w32.VK_F24:       0xffd5, // XK_F24
+}
+
 // vkToKeySym translates a Windows virtual key code to an X11-style keysym.
 // This is ported from tk/win/tkWinKey.c's keymap table.
 func vkToKeySym(vk uint) uint64 {
-	switch vk {
-	case w32.VK_CANCEL:
-		return 0xff69 // XK_Cancel
-	case w32.VK_BACK:
-		return 0xff08 // XK_BackSpace
-	case w32.VK_TAB:
-		return 0xff09 // XK_Tab
-	case w32.VK_CLEAR:
-		return 0xff0b // XK_Clear
-	case w32.VK_RETURN:
-		return 0xff0d // XK_Return
-	case w32.VK_SHIFT:
-		return 0xffe1 // XK_Shift_L
-	case w32.VK_CONTROL:
-		return 0xffe3 // XK_Control_L
-	case w32.VK_MENU:
-		return 0xffe9 // XK_Alt_L
-	case w32.VK_PAUSE:
-		return 0xff13 // XK_Pause
-	case w32.VK_CAPITAL:
-		return 0xffe5 // XK_Caps_Lock
-	case w32.VK_ESCAPE:
-		return 0xff1b // XK_Escape
-	case w32.VK_SPACE:
-		return 0x0020 // XK_space
-	case w32.VK_PRIOR:
-		return 0xff55 // XK_Prior (Page Up)
-	case w32.VK_NEXT:
-		return 0xff56 // XK_Next (Page Down)
-	case w32.VK_END:
-		return 0xff57 // XK_End
-	case w32.VK_HOME:
-		return 0xff50 // XK_Home
-	case w32.VK_LEFT:
-		return 0xff51 // XK_Left
-	case w32.VK_UP:
-		return 0xff52 // XK_Up
-	case w32.VK_RIGHT:
-		return 0xff53 // XK_Right
-	case w32.VK_DOWN:
-		return 0xff54 // XK_Down
-	case w32.VK_SELECT:
-		return 0xff60 // XK_Select
-	case w32.VK_PRINT:
-		return 0xff61 // XK_Print
-	case w32.VK_EXECUTE:
-		return 0xff62 // XK_Execute
-	case w32.VK_INSERT:
-		return 0xff63 // XK_Insert
-	case w32.VK_DELETE:
-		return 0xffff // XK_Delete
-	case w32.VK_HELP:
-		return 0xff6a // XK_Help
-	case w32.VK_LWIN:
-		return 0xffeb // XK_Super_L
-	case w32.VK_RWIN:
-		return 0xffec // XK_Super_R
-	case w32.VK_APPS:
-		return 0xff67 // XK_Menu
-	case w32.VK_F1:
-		return 0xffbe // XK_F1
-	case w32.VK_F2:
-		return 0xffbf
-	case w32.VK_F3:
-		return 0xffc0
-	case w32.VK_F4:
-		return 0xffc1
-	case w32.VK_F5:
-		return 0xffc2
-	case w32.VK_F6:
-		return 0xffc3
-	case w32.VK_F7:
-		return 0xffc4
-	case w32.VK_F8:
-		return 0xffc5
-	case w32.VK_F9:
-		return 0xffc6
-	case w32.VK_F10:
-		return 0xffc7
-	case w32.VK_F11:
-		return 0xffc8
-	case w32.VK_F12:
-		return 0xffc9
-	case w32.VK_F13:
-		return 0xffca
-	case w32.VK_F14:
-		return 0xffcb
-	case w32.VK_F15:
-		return 0xffcc
-	case w32.VK_F16:
-		return 0xffcd
-	case w32.VK_F17:
-		return 0xffce
-	case w32.VK_F18:
-		return 0xffcf
-	case w32.VK_F19:
-		return 0xffd0
-	case w32.VK_F20:
-		return 0xffd1
-	case w32.VK_F21:
-		return 0xffd2
-	case w32.VK_F22:
-		return 0xffd3
-	case w32.VK_F23:
-		return 0xffd4
-	case w32.VK_F24:
-		return 0xffd5
-	case w32.VK_NUMLOCK:
-		return 0xff7f // XK_Num_Lock
-	case w32.VK_SCROLL:
-		return 0xff14 // XK_Scroll_Lock
-	default:
-		// For 0-9, A-Z: the VK code equals the ASCII code.
-		if vk >= 0x30 && vk <= 0x39 {
-			return uint64(vk) // '0'-'9'
-		}
-		if vk >= 0x41 && vk <= 0x5A {
-			return uint64(vk + 0x20) // lowercase 'a'-'z'
-		}
-		// Numpad keys.
-		if vk >= w32.VK_NUMPAD0 && vk <= w32.VK_NUMPAD9 {
-			return uint64(0xffb0 + (vk - w32.VK_NUMPAD0)) // XK_KP_0 .. XK_KP_9
-		}
-		switch vk {
-		case w32.VK_MULTIPLY:
-			return 0xffaa // XK_KP_Multiply
-		case w32.VK_ADD:
-			return 0xffab // XK_KP_Add
-		case w32.VK_SEPARATOR:
-			return 0xffac // XK_KP_Separator
-		case w32.VK_SUBTRACT:
-			return 0xffad // XK_KP_Subtract
-		case w32.VK_DECIMAL:
-			return 0xffae // XK_KP_Decimal
-		case w32.VK_DIVIDE:
-			return 0xffaf // XK_KP_Divide
-		}
-		return 0 // NoSymbol
+	if sym, ok := vkToXK[vk]; ok {
+		return sym
 	}
+	// For 0-9, A-Z: the VK code equals the ASCII code.
+	if vk >= 0x30 && vk <= 0x39 {
+		return uint64(vk) // '0'-'9'
+	}
+	if vk >= 0x41 && vk <= 0x5A {
+		return uint64(vk + 0x20) // lowercase 'a'-'z'
+	}
+	// Numpad keys.
+	if vk >= w32.VK_NUMPAD0 && vk <= w32.VK_NUMPAD9 {
+		return uint64(0xffb0 + (vk - w32.VK_NUMPAD0)) // XK_KP_0 .. XK_KP_9
+	}
+	return 0 // NoSymbol
 }
