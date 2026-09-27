@@ -231,6 +231,7 @@ func New(parent widget.Caregiver, name string, opts ...RadiobuttonOption) *Radio
 		IndicatorOn: true,
 	}
 	widget.InitBase(&r.Base, w, app)
+	r.SetDisplayProc(r.display)
 	w.OnDestroy(r.Destroy)
 	w.Class = "Radiobutton"
 
@@ -320,8 +321,13 @@ func (r *Radiobutton) Selected() bool {
 	return r.Variable.Get() == r.Value
 }
 
-// Display draws the radiobutton.
+// Display schedules a redraw at idle time; see widget.Base.EventuallyRedraw.
 func (r *Radiobutton) Display() {
+	r.EventuallyRedraw()
+}
+
+// display draws the radiobutton.
+func (r *Radiobutton) display() {
 	if r.Destroyed {
 		return
 	}

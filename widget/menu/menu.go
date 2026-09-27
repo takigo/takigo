@@ -167,6 +167,7 @@ func New(parent widget.Caregiver, name string, opts ...MenuOption) *Menu {
 		app:         app,
 	}
 	widget.InitBase(&m.Base, w, app)
+	m.SetDisplayProc(m.display)
 	w.OnDestroy(m.Destroy)
 	w.Class = "Menu"
 	m.BorderWidth = 1
@@ -643,8 +644,13 @@ func (m *Menu) entryY(i int) int {
 	return y
 }
 
-// Display draws the menu.
+// Display schedules a redraw at idle time; see widget.Base.EventuallyRedraw.
 func (m *Menu) Display() {
+	m.EventuallyRedraw()
+}
+
+// display draws the menu.
+func (m *Menu) display() {
 	if m.Destroyed || !m.posted {
 		return
 	}

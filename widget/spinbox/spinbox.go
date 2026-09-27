@@ -168,6 +168,7 @@ func New(parent widget.Caregiver, name string, opts ...SpinboxOption) *Spinbox {
 		buttonWidth: 16,
 	}
 	widget.InitBase(&s.Base, w, app)
+	s.SetDisplayProc(s.display)
 	w.Class = "Spinbox"
 
 	s.BorderWidth = 1 // DEF_ENTRY_BORDER_WIDTH
@@ -531,8 +532,13 @@ func (s *Spinbox) hitButton(x, y int) string {
 	return ""
 }
 
-// Display draws the spinbox.
+// Display schedules a redraw at idle time; see widget.Base.EventuallyRedraw.
 func (s *Spinbox) Display() {
+	s.EventuallyRedraw()
+}
+
+// display draws the spinbox.
+func (s *Spinbox) display() {
 	if s.Destroyed {
 		return
 	}

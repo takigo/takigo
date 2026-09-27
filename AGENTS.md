@@ -192,6 +192,13 @@ parent's manager's `RequestProc` re-runs the layout.
   because the mask may catch multiple event types. Mark the parent window
   focusable with `w.Flags |= window.FlagFocusable` in the constructor.
 
+- **Redraws.** Classic widgets draw in a private `display()` registered
+  with `Base.SetDisplayProc`; the exported `Display()` only calls
+  `Base.EventuallyRedraw`, which coalesces requests into one idle-time
+  redraw into a pixmap (Tk's `REDRAW_PENDING` + `Tk_GetPixmap`). Draw
+  through `w.Drawable()`, never `platform.WindowDrawable(w.PlatformID)`,
+  so the redirection applies.
+
 - **Document the source port.** Top-of-file comment should reference the
   Tk source(s) it ports, e.g.:
   ```go

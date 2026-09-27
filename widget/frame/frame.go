@@ -88,6 +88,7 @@ func New(parent widget.Caregiver, name string, opts ...FrameOption) *Frame {
 
 	f := &Frame{}
 	widget.InitBase(&f.Base, w, app)
+	f.SetDisplayProc(f.display)
 	w.Class = "Frame"
 
 	// Frame-specific defaults. Like a Tk frame without -width/-height, it
@@ -128,8 +129,13 @@ func New(parent widget.Caregiver, name string, opts ...FrameOption) *Frame {
 	return f
 }
 
-// Display draws the frame.
+// Display schedules a redraw at idle time; see widget.Base.EventuallyRedraw.
 func (f *Frame) Display() {
+	f.EventuallyRedraw()
+}
+
+// display draws the frame.
+func (f *Frame) display() {
 	if f.Destroyed {
 		return
 	}

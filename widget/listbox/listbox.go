@@ -160,6 +160,7 @@ func New(parent widget.Caregiver, name string, opts ...ListboxOption) *Listbox {
 		PrefHeight:  10,
 	}
 	widget.InitBase(&lb.Base, w, app)
+	lb.SetDisplayProc(lb.display)
 	w.Class = "Listbox"
 
 	lb.BorderWidth = widget.DefBorderWidth
@@ -539,8 +540,13 @@ func (lb *Listbox) notifyXScrollbar() {
 	}
 }
 
-// Display draws the listbox.
+// Display schedules a redraw at idle time; see widget.Base.EventuallyRedraw.
 func (lb *Listbox) Display() {
+	lb.EventuallyRedraw()
+}
+
+// display draws the listbox.
+func (lb *Listbox) display() {
 	if lb.Destroyed {
 		return
 	}

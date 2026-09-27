@@ -230,6 +230,7 @@ func New(parent widget.Caregiver, name string, opts ...ButtonOption) *Button {
 		OffRelief:  option.ReliefFlat,
 	}
 	widget.InitBase(&b.Base, w, app)
+	b.SetDisplayProc(b.display)
 	w.Class = "Button"
 
 	// Button-specific defaults (Tk: padx=3m, pady=1m, borderwidth=1, highlightthickness=1).
@@ -348,8 +349,13 @@ func (b *Button) computeGeometry() {
 	w.ReqHeight = height + 2*inset
 }
 
-// Display draws the button.
+// Display schedules a redraw at idle time; see widget.Base.EventuallyRedraw.
 func (b *Button) Display() {
+	b.EventuallyRedraw()
+}
+
+// display draws the button.
+func (b *Button) display() {
 	if b.Destroyed {
 		return
 	}
