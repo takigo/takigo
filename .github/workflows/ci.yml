@@ -26,8 +26,10 @@ jobs:
       - name: Vet
         run: go vet ./...
       - name: Test
-        # -p 1: parallel test binaries sharing one Xvfb intermittently fail to connect.
-        run: xvfb-run -a go test -p 1 -race -short ./...
+        # -noreset: Xvfb otherwise resets when its last client disconnects and
+        # refuses connections meanwhile, failing tests that open a new App
+        # right after destroying one.
+        run: xvfb-run -a -s "-screen 0 1280x1024x24 -noreset" go test -race -short ./...
 
   windows-vet:
     # The Windows backend is pure Go (syscall), so it can be checked from Linux.

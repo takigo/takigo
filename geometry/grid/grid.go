@@ -72,7 +72,7 @@ func Sticky(s int) GridOption { return func(c *gridConfig) { c.sticky = s } }
 // Accepts int (pixels), float64 (rounded pixels), or string with unit suffix ("3p", "2m", "1c", "0.5i").
 func PadX(p any) GridOption {
 	return func(c *gridConfig) {
-		v := screenunit.Px(p)
+		v := screenunit.PxOr(p, c.padLeft)
 		c.padX = v * 2
 		c.padLeft = v
 	}
@@ -82,7 +82,7 @@ func PadX(p any) GridOption {
 // Accepts int (pixels), float64 (rounded pixels), or string with unit suffix ("3p", "2m", "1c", "0.5i").
 func PadY(p any) GridOption {
 	return func(c *gridConfig) {
-		v := screenunit.Px(p)
+		v := screenunit.PxOr(p, c.padTop)
 		c.padY = v * 2
 		c.padTop = v
 	}
@@ -91,8 +91,8 @@ func PadY(p any) GridOption {
 // PadXPair sets asymmetric exterior horizontal padding.
 func PadXPair(left, right any) GridOption {
 	return func(c *gridConfig) {
-		l := screenunit.Px(left)
-		r := screenunit.Px(right)
+		l := screenunit.PxOr(left, c.padLeft)
+		r := screenunit.PxOr(right, c.padX-c.padLeft)
 		c.padLeft = l
 		c.padX = l + r
 	}
@@ -101,8 +101,8 @@ func PadXPair(left, right any) GridOption {
 // PadYPair sets asymmetric exterior vertical padding.
 func PadYPair(top, bottom any) GridOption {
 	return func(c *gridConfig) {
-		t := screenunit.Px(top)
-		b := screenunit.Px(bottom)
+		t := screenunit.PxOr(top, c.padTop)
+		b := screenunit.PxOr(bottom, c.padY-c.padTop)
 		c.padTop = t
 		c.padY = t + b
 	}
@@ -111,13 +111,13 @@ func PadYPair(top, bottom any) GridOption {
 // IPadX sets the interior horizontal padding.
 // Accepts int (pixels), float64 (rounded pixels), or string with unit suffix ("3p", "2m", "1c", "0.5i").
 func IPadX(p any) GridOption {
-	return func(c *gridConfig) { c.iPadX = screenunit.Px(p) * 2 }
+	return func(c *gridConfig) { c.iPadX = screenunit.PxOr(p, c.iPadX) * 2 }
 }
 
 // IPadY sets the interior vertical padding.
 // Accepts int (pixels), float64 (rounded pixels), or string with unit suffix ("3p", "2m", "1c", "0.5i").
 func IPadY(p any) GridOption {
-	return func(c *gridConfig) { c.iPadY = screenunit.Px(p) * 2 }
+	return func(c *gridConfig) { c.iPadY = screenunit.PxOr(p, c.iPadY) * 2 }
 }
 
 // SlotConfig holds configuration for a row or column.
@@ -140,7 +140,7 @@ func MinSize(n int) SlotOption { return func(c *SlotConfig) { c.MinSize = n } }
 func Weight(n int) SlotOption { return func(c *SlotConfig) { c.Weight = n } }
 
 // Pad sets the padding for a row or column.
-func Pad(n int) SlotOption { return func(c *SlotConfig) { c.Pad = screenunit.Px(n) } }
+func Pad(n int) SlotOption { return func(c *SlotConfig) { c.Pad = screenunit.PxOr(n, c.Pad) } }
 
 // Uniform sets the uniform group name.
 func Uniform(name string) SlotOption { return func(c *SlotConfig) { c.Uniform = name } }

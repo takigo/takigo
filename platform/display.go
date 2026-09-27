@@ -144,6 +144,11 @@ type EventSource interface {
 
 	// FilterEvent returns true if the event was consumed by input method.
 	FilterEvent(ev *RawEvent) bool
+
+	// WakeEventReader makes a NextEvent call blocked in another goroutine
+	// return soon, so the reader can stop before the display is closed.
+	// It returns false if the backend cannot do that.
+	WakeEventReader() bool
 }
 
 // GrabManager manages pointer and keyboard grabs.
@@ -377,7 +382,7 @@ func NewDisplayServer(
 	prop PropertyManager,
 	im InputMethodManager,
 ) DisplayServer {
-	return &displayServer{
+	ds := &displayServer{
 		DisplayCore:        core,
 		WindowManager:      wm,
 		Drawer:             drawer,
@@ -390,4 +395,20 @@ func NewDisplayServer(
 		PropertyManager:    prop,
 		InputMethodManager: im,
 	}
+	// Keep the backend's optional PumpEvents (event.EventPumper) visible
+	// through the wrapper; the event loop finds it by type assertion.
+	if p, ok := core.(interface{ PumpEvents() bool }); ok {
+		return &pumpingDisplayServer{displayServer: ds, pump: p.PumpEvents}
+	}
+	return ds
 }
+
+// pumpingDisplayServer is a displayServer whose backend must be pumped
+// from the main thread (Cocoa, Win32).
+type pumpingDisplayServer struct {
+	*displayServer
+	pump func() bool
+}
+
+// PumpEvents forwards to the backend's PumpEvents.
+func (s *pumpingDisplayServer) PumpEvents() bool { return s.pump() }
