@@ -33,6 +33,10 @@ type Engine struct {
 	virtualEvents map[string][]Sequence
 	virtualOrder  []string
 
+	// prom holds multi-event bindings whose leading patterns have matched
+	// and that wait for their next pattern (tkBind.c's promotion lists).
+	prom []promEntry
+
 	// Double-click state tracking.
 	lastClickTime platform.Timestamp
 	lastClickWin  platform.WindowID
@@ -57,30 +61,43 @@ func (e *Engine) dispatch(ev *event.Event) {
 	// Compute double/triple click modifiers for button press events.
 	clickMods := e.updateClickState(ev)
 
+	completed := e.advancePromoted(ev, clickMods)
+
 	// Walk the tag chain and dispatch.
 	for _, tag := range info.tags {
 		bindings := e.table.Lookup(tag)
-		if len(bindings) == 0 {
-			continue
-		}
 
-		// Find best matching binding (most specific pattern wins).
+		// Find best matching binding (most specific pattern wins); a
+		// completed multi-event sequence competes on the sum of its
+		// patterns' specificity, so the longer match wins (IsBetterMatch).
 		var bestBinding *binding
 		bestScore := -1
-
 		for i := range bindings {
 			b := &bindings[i]
-			if len(b.seq.Patterns) != 1 {
-				continue // only single-pattern sequences for now
+			n := len(b.seq.Patterns)
+			if n == 0 {
+				continue
 			}
 			pat := &b.seq.Patterns[0]
-
-			if pat.matches(ev, clickMods) {
-				score := pat.specificity()
-				if score > bestScore {
-					bestScore = score
-					bestBinding = b
-				}
+			if !pat.matches(ev, clickMods) {
+				continue
+			}
+			if n > 1 {
+				e.promote(tag, b.seq, 1, ev.Window)
+				continue
+			}
+			if score := pat.specificity(); score > bestScore {
+				bestScore = score
+				bestBinding = b
+			}
+		}
+		for _, c := range completed {
+			if c.tag != tag {
+				continue
+			}
+			if b := findBinding(bindings, c.key); b != nil && c.score > bestScore {
+				bestScore = c.score
+				bestBinding = b
 			}
 		}
 
@@ -97,6 +114,111 @@ func (e *Engine) dispatch(ev *event.Event) {
 			}
 		}
 	}
+}
+
+// promEntry is a multi-event binding of tag waiting, on window, for its
+// pattern number next.
+type promEntry struct {
+	tag    string
+	key    string // Sequence.String(), to find the binding again
+	seq    Sequence
+	next   int
+	window platform.WindowID
+}
+
+// completedSeq is a multi-event binding whose last pattern just matched.
+type completedSeq struct {
+	tag   string
+	key   string
+	score int
+}
+
+// promote records that seq (bound to tag) matched up to pattern next-1 on
+// window, unless it is already waiting there.
+func (e *Engine) promote(tag string, seq Sequence, next int, window platform.WindowID) {
+	key := seq.String()
+	for _, p := range e.prom {
+		if p.tag == tag && p.key == key && p.next == next && p.window == window {
+			return
+		}
+	}
+	e.prom = append(e.prom, promEntry{tag: tag, key: key, seq: seq, next: next, window: window})
+}
+
+// advancePromoted matches ev against every waiting sequence, as
+// Tk_BindEvent does with its promotion lists: a matching entry completes
+// or moves to its next pattern; a non-matching one stays unless the event
+// rules it out.
+func (e *Engine) advancePromoted(ev *event.Event, clickMods Modifier) []completedSeq {
+	if len(e.prom) == 0 {
+		return nil
+	}
+	var completed []completedSeq
+	kept := e.prom[:0:0]
+	for _, p := range e.prom {
+		if p.window != ev.Window {
+			continue
+		}
+		pat := &p.seq.Patterns[p.next]
+		if pat.matches(ev, clickMods) {
+			if p.next == len(p.seq.Patterns)-1 {
+				completed = append(completed, completedSeq{tag: p.tag, key: p.key, score: p.seq.specificity()})
+			} else {
+				p.next++
+				kept = append(kept, p)
+			}
+			continue
+		}
+		if !promotionSurvives(pat, ev) {
+			continue
+		}
+		kept = append(kept, p)
+	}
+	e.prom = kept
+	return completed
+}
+
+// promotionSurvives reports whether a sequence waiting for pat outlives
+// ev, which did not match it. Following Tk_BindEvent's expiry rules, it is
+// dropped by an event of pat's type with a different detail (another key
+// or button) and by a switch between key and button events; modifier key
+// presses and releases, and other event types, pass through.
+func promotionSurvives(pat *Pattern, ev *event.Event) bool {
+	isKey := ev.Type == event.KeyPressType || ev.Type == event.KeyReleaseType
+	isButton := ev.Type == event.ButtonPressType || ev.Type == event.ButtonReleaseType
+	if isKey && isModifierKeySym(ev.KeySym) {
+		return true
+	}
+	if ev.Type == event.KeyReleaseType && pat.EventType != event.KeyReleaseType {
+		return true
+	}
+	if pat.EventType == ev.Type {
+		if pat.KeySym != 0 && isKey && ev.KeySym != pat.KeySym {
+			return false
+		}
+		if pat.Button != 0 && isButton && ev.Button != pat.Button {
+			return false
+		}
+	}
+	patKey := pat.EventType == event.KeyPressType || pat.EventType == event.KeyReleaseType
+	patButton := pat.EventType == event.ButtonPressType || pat.EventType == event.ButtonReleaseType
+	return !(patKey && isButton) && !(patButton && isKey)
+}
+
+// isModifierKeySym reports whether ks is a modifier key (Shift, Control,
+// Caps/Shift Lock, Meta, Alt, Super, Hyper, AltGr/Mode_switch).
+func isModifierKeySym(ks platform.KeySym) bool {
+	return (ks >= 0xffe1 && ks <= 0xffee) || ks == 0xff7e || ks == 0xfe03
+}
+
+// findBinding returns the binding in bindings whose sequence prints as key.
+func findBinding(bindings []binding, key string) *binding {
+	for i := range bindings {
+		if bindings[i].seq.String() == key {
+			return &bindings[i]
+		}
+	}
+	return nil
 }
 
 // matchVirtual returns the binding for a virtual event whose physical

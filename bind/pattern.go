@@ -368,6 +368,16 @@ func (p *Pattern) matches(ev *event.Event, clickMods Modifier) bool {
 	return true
 }
 
+// specificity of a sequence is the sum over its patterns, so a completed
+// multi-event sequence outranks its single-event suffix.
+func (s Sequence) specificity() int {
+	n := 0
+	for i := range s.Patterns {
+		n += s.Patterns[i].specificity()
+	}
+	return n
+}
+
 // specificity returns a score for pattern specificity (higher = more specific).
 // More specific patterns take priority when multiple match.
 func (p *Pattern) specificity() int {
