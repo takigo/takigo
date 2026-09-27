@@ -74,6 +74,7 @@ func NewScale(parent widget.Caregiver, name string, opts ...ScaleOption) *Scale 
 		style = "Vertical.TScale"
 	}
 	InitTtkWidget(&s.TtkWidget, win, app, style)
+	win.OnDestroy(s.Destroy)
 	win.Class = "TScale"
 	if s.Variable != nil {
 		s.Value = s.Variable.Get()

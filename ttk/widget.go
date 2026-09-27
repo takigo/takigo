@@ -46,6 +46,7 @@ type TtkWidget struct {
 
 // InitTtkWidget sets up a TTK widget: resolves style, creates layout, binds events.
 func InitTtkWidget(w *TtkWidget, win *window.Window, app widget.AppContext, styleName string) {
+	win.OnDestroy(w.Destroy)
 	w.Win = win
 	w.App = app
 	w.StyleName = styleName
@@ -237,9 +238,7 @@ func bindTtkCommon(w *TtkWidget, app widget.AppContext) {
 			win.Width = ev.ConfigWidth
 			win.Height = ev.ConfigHeight
 			w.redisplay()
-			if win.ConfigureCallback != nil {
-				win.ConfigureCallback()
-			}
+			win.NotifyConfigure()
 		}
 	})
 

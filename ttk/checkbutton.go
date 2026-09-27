@@ -96,6 +96,7 @@ func NewCheckbutton(parent widget.Caregiver, name string, opts ...CheckbuttonOpt
 	c.Font, _ = app.FontRegistry().Get(font.TkDefaultFont)
 
 	InitTtkWidget(&c.TtkWidget, win, app, "TCheckbutton")
+	win.OnDestroy(c.Destroy)
 	c.DisplayFunc = c.Display
 
 	for _, opt := range opts {

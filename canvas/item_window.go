@@ -126,7 +126,7 @@ func (wi *WindowItem) Translate(dx, dy float64) {
 }
 
 func (wi *WindowItem) Delete(d platform.DisplayServer) {
-	if wi.win != nil {
+	if wi.win != nil && wi.win.PlatformID != 0 {
 		d.UnmapWindow(wi.win.PlatformID)
 	}
 }

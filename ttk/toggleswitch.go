@@ -56,6 +56,7 @@ func NewToggleswitch(parent widget.Caregiver, name string, opts ...ToggleswitchO
 	ts.Font, _ = app.FontRegistry().Get(font.TkDefaultFont)
 
 	InitTtkWidget(&ts.TtkWidget, win, app, "TCheckbutton")
+	win.OnDestroy(ts.Destroy)
 	ts.DisplayFunc = ts.Display
 
 	for _, opt := range opts {
