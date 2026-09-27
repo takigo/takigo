@@ -259,6 +259,12 @@ func (d *CocoaDisplay) NextEvent() *platform.RawEvent {
 		EventWindow: platform.WindowID(uintptr(raw.Window())),
 	}
 }
+
+// WakeEventReader reports false: CocoaNextEvent waits on the C event
+// queue, which nothing but the Cocoa pump posts to; closing the display
+// does not free it, so a reader left blocked there is harmless.
+func (d *CocoaDisplay) WakeEventReader() bool { return false }
+
 func (d *CocoaDisplay) FilterEvent(ev *platform.RawEvent) bool {
 	return false
 }
@@ -376,8 +382,9 @@ func (d *CocoaDisplay) SetIconName(w platform.WindowID, name string) {
 
 // PumpEvents processes all pending NSEvents on the main thread.
 // This is called by the event loop on each tick to drive the Cocoa event system.
-func (d *CocoaDisplay) PumpEvents() {
+func (d *CocoaDisplay) PumpEvents() bool {
 	clib.PumpEvents()
+	return false
 }
 
 // --- InputMethodManager ---

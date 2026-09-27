@@ -249,3 +249,32 @@ func TestRuneToKeySym(t *testing.T) {
 		}
 	}
 }
+
+type pumpingCore struct {
+	DisplayCore
+	pumped int
+}
+
+func (c *pumpingCore) PumpEvents() bool { c.pumped++; return c.pumped > 1 }
+
+// The event loop finds a backend's PumpEvents by type assertion on the
+// composed server, so the wrapper must expose it.
+func TestNewDisplayServerExposesPumpEvents(t *testing.T) {
+	core := &pumpingCore{}
+	ds := NewDisplayServer(core, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+	p, ok := ds.(interface{ PumpEvents() bool })
+	if !ok {
+		t.Fatal("composed DisplayServer hides the backend's PumpEvents")
+	}
+	if p.PumpEvents() || !p.PumpEvents() {
+		t.Error("PumpEvents' quit result was not forwarded")
+	}
+	if core.pumped != 2 {
+		t.Errorf("PumpEvents reached the backend %d times, want 2", core.pumped)
+	}
+
+	var plain struct{ DisplayCore }
+	if _, ok := NewDisplayServer(plain, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil).(interface{ PumpEvents() bool }); ok {
+		t.Error("PumpEvents exposed for a backend without one")
+	}
+}

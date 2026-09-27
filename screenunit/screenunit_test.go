@@ -162,3 +162,23 @@ func TestSetScreenDPIIgnoresInvalid(t *testing.T) {
 		t.Error("SetScreenDPI should ignore zero widthMM")
 	}
 }
+
+func TestPxOrKeepsPreviousOnBadInput(t *testing.T) {
+	tests := []struct {
+		v    any
+		prev int
+		want int
+	}{
+		{7, 3, 7},
+		{"12", 3, 12},
+		{"3x", 5, 5},
+		{"", 5, 5},
+		{int32(4), 9, 9},
+		{uint(4), 9, 9},
+	}
+	for _, tt := range tests {
+		if got := PxOr(tt.v, tt.prev); got != tt.want {
+			t.Errorf("PxOr(%#v, %d) = %d, want %d", tt.v, tt.prev, got, tt.want)
+		}
+	}
+}

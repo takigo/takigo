@@ -20,10 +20,14 @@ type Frame struct {
 type FrameOption func(*Frame)
 
 // FrameWidth sets -width (a Tk distance).
-func FrameWidth(v any) FrameOption { return func(f *Frame) { f.width = screenunit.Px(v) } }
+func FrameWidth(v any) FrameOption {
+	return func(f *Frame) { f.width = screenunit.PxOr(v, f.width) }
+}
 
 // FrameHeight sets -height (a Tk distance).
-func FrameHeight(v any) FrameOption { return func(f *Frame) { f.height = screenunit.Px(v) } }
+func FrameHeight(v any) FrameOption {
+	return func(f *Frame) { f.height = screenunit.PxOr(v, f.height) }
+}
 
 // FramePadding sets the internal padding.
 func FramePadding(p Padding) FrameOption {
@@ -36,7 +40,7 @@ func FramePadding(p Padding) FrameOption {
 // FrameBorderWidth sets the border width (a Tk distance).
 func FrameBorderWidth(w any) FrameOption {
 	return func(f *Frame) {
-		f.borderWidth = screenunit.Px(w)
+		f.borderWidth = screenunit.PxOr(w, f.borderWidth)
 		f.SetWidgetOption("-borderwidth", f.borderWidth)
 	}
 }

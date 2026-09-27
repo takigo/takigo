@@ -47,7 +47,9 @@ func ScaleTo(v float64) ScaleOption { return func(s *Scale) { s.To = v } }
 func ScaleValue(v float64) ScaleOption { return func(s *Scale) { s.Value = v } }
 
 // ScaleLength sets -length (a Tk distance).
-func ScaleLength(v any) ScaleOption { return func(s *Scale) { s.Length = screenunit.Px(v) } }
+func ScaleLength(v any) ScaleOption {
+	return func(s *Scale) { s.Length = screenunit.PxOr(v, s.Length) }
+}
 
 // ScaleCommand sets -command; it receives the new value.
 func ScaleCommand(fn func(float64)) ScaleOption { return func(s *Scale) { s.Command = fn } }

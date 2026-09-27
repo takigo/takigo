@@ -27,6 +27,10 @@ func newFakeServer() *fakeServer {
 func (f *fakeServer) HasIM() bool                         { return false }
 func (f *fakeServer) FilterEvent(*platform.RawEvent) bool { return false }
 func (f *fakeServer) Flush()                              {}
+func (f *fakeServer) WakeEventReader() bool {
+	f.events <- mapEvent(-1)
+	return true
+}
 
 func (f *fakeServer) NextEvent() *platform.RawEvent {
 	n := f.inflight.Add(1)
@@ -198,5 +202,52 @@ func TestLoopRunNestedContext(t *testing.T) {
 	runLoop(t, l)()
 	if after > before {
 		t.Errorf("goroutines grew from %d to %d across nested loops", before, after)
+	}
+}
+
+func TestLoopStopWaitsForReader(t *testing.T) {
+	srv := newFakeServer()
+	l := NewLoop(srv, nil, NewDispatcher())
+	stopped := false
+	l.DoWhenIdle(func() {
+		l.Stop(5 * time.Second)
+		select {
+		case <-l.readerDone:
+			stopped = true
+		default:
+		}
+	})
+	runLoop(t, l)()
+	if !stopped {
+		t.Fatal("Stop returned while the reader goroutine was still running")
+	}
+	if n := srv.inflight.Load(); n != 0 {
+		t.Errorf("%d NextEvent calls still in flight after Stop", n)
+	}
+}
+
+func TestLoopStopBeforeRun(t *testing.T) {
+	l := NewLoop(newFakeServer(), nil, NewDispatcher())
+	l.Stop(time.Second) // no reader to wait for; must not block
+}
+
+// pumpingServer asks the loop to quit from PumpEvents, as a Win32
+// backend does on WM_QUIT.
+type pumpingServer struct {
+	*fakeServer
+	pumps int
+}
+
+func (s *pumpingServer) PumpEvents() bool {
+	s.pumps++
+	return s.pumps == 3
+}
+
+func TestLoopQuitsWhenPumpRequestsIt(t *testing.T) {
+	srv := &pumpingServer{fakeServer: newFakeServer()}
+	l := NewLoop(srv, nil, NewDispatcher())
+	runLoop(t, l)()
+	if srv.pumps != 3 {
+		t.Errorf("pumped %d times, want the loop to quit on the 3rd", srv.pumps)
 	}
 }

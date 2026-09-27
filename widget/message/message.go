@@ -109,17 +109,17 @@ func Aspect(a int) MessageOption {
 // Accepts int (pixels), float64, or string with unit suffix.
 // Set to 0 (default) to use aspect-ratio-based auto-width.
 func WidthOpt(w any) MessageOption {
-	return func(m *Message) { m.Width = screenunit.Px(w) }
+	return func(m *Message) { m.Width = screenunit.PxOr(w, m.Width) }
 }
 
 // PadX sets horizontal padding.
 func PadX(p any) MessageOption {
-	return func(m *Message) { m.PadX = screenunit.Px(p) }
+	return func(m *Message) { m.PadX = screenunit.PxOr(p, m.PadX) }
 }
 
 // PadY sets vertical padding.
 func PadY(p any) MessageOption {
-	return func(m *Message) { m.PadY = screenunit.Px(p) }
+	return func(m *Message) { m.PadY = screenunit.PxOr(p, m.PadY) }
 }
 
 // HighlightWidth sets the focus highlight border width.

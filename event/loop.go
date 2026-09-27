@@ -15,8 +15,10 @@ import (
 type EventPumper interface {
 	// PumpEvents processes pending platform events. Called from the main
 	// goroutine on each iteration of the event loop. Implementations should
-	// process all available events and return quickly.
-	PumpEvents()
+	// process all available events and return quickly. It returns true
+	// when the platform asked the application to quit (Win32 WM_QUIT);
+	// the loop then quits.
+	PumpEvents() (quit bool)
 }
 
 // Loop is the main event loop, integrating platform events with idle callbacks,
@@ -40,6 +42,7 @@ type Loop struct {
 	// order the platform delivered them in.
 	eventCh    chan *platform.RawEvent
 	readerOnce sync.Once
+	readerDone chan struct{} // closed when readEvents returns
 
 	done     chan struct{}
 	quitOnce sync.Once
@@ -71,6 +74,7 @@ func NewLoop(server platform.DisplayServer, parser platform.EventParser, dispatc
 		hasIM:      server.HasIM(),
 		dispatcher: dispatcher,
 		eventCh:    make(chan *platform.RawEvent, 64),
+		readerDone: make(chan struct{}),
 		done:       make(chan struct{}),
 		wake:       make(chan struct{}, 1),
 	}
@@ -130,7 +134,10 @@ func (l *Loop) run(extraDone, ctxDone <-chan struct{}) {
 			l.runMainQueue()
 
 		case <-pumpTick:
-			l.pumper.PumpEvents()
+			if l.pumper.PumpEvents() {
+				l.Quit()
+				return
+			}
 			for drained := false; !drained; {
 				select {
 				case raw := <-l.eventCh:
@@ -200,6 +207,22 @@ func (l *Loop) SetRawEventHandler(h func(*platform.RawEvent)) {
 // Safe to call more than once and from any goroutine.
 func (l *Loop) Quit() {
 	l.quitOnce.Do(func() { close(l.done) })
+}
+
+// Stop quits the loop and waits up to timeout for the reader goroutine to
+// return, so the display can be closed without a read still in flight on
+// it. Call it from the loop goroutine or after Run has returned.
+func (l *Loop) Stop(timeout time.Duration) {
+	l.Quit()
+	started := true
+	l.readerOnce.Do(func() { started = false })
+	if !started || !l.server.WakeEventReader() {
+		return
+	}
+	select {
+	case <-l.readerDone:
+	case <-time.After(timeout):
+	}
 }
 
 // DoWhenIdle schedules fn to run once the loop has no events to process.
@@ -301,8 +324,14 @@ func (l *Loop) processIdleQueue() {
 // readEvents runs in its own goroutine for the lifetime of the loop,
 // blocking on NextEvent and posting raw events to eventCh.
 func (l *Loop) readEvents() {
+	defer close(l.readerDone)
 	for {
 		raw := l.server.NextEvent()
+		select {
+		case <-l.done:
+			return
+		default:
+		}
 		select {
 		case l.eventCh <- raw:
 		case <-l.done:

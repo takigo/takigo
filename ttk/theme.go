@@ -57,7 +57,7 @@ func LookupInt(s *Style, name string, state State, fallback int) int {
 	case int:
 		return n
 	case string:
-		return screenunit.Px(n)
+		return screenunit.PxOr(n, fallback)
 	}
 	return fallback
 }

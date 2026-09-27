@@ -242,15 +242,17 @@ func (d *WindowsDisplay) ResourceManagerString() string           { return "" }
 func (d *WindowsDisplay) Atoms() *platform.Atoms                  { return d.atoms }
 
 // PumpEvents implements event.EventPumper for main-thread message pumping.
-func (d *WindowsDisplay) PumpEvents() {
+// It reports WM_QUIT (PostQuitMessage) so the event loop quits.
+func (d *WindowsDisplay) PumpEvents() bool {
 	var msg w32.MSG
 	for w32.PeekMessage(&msg, 0, 0, 0, w32.PM_REMOVE) {
 		if msg.Message == w32.WM_QUIT {
-			return
+			return true
 		}
 		w32.TranslateMessage(&msg)
 		w32.DispatchMessage(&msg)
 	}
+	return false
 }
 
 // internAtom returns the atom ID for the given name, creating one if needed.

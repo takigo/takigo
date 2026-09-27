@@ -47,16 +47,16 @@ func (p Padding) Add(other Padding) Padding {
 // Each argument accepts int (pixels), float64, or string with unit suffix ("3p", "2m", "1c", "0.5i").
 func PaddingFromAny(left, top, right, bottom any) Padding {
 	return Padding{
-		Left:   screenunit.Px(left),
-		Top:    screenunit.Px(top),
-		Right:  screenunit.Px(right),
-		Bottom: screenunit.Px(bottom),
+		Left:   screenunit.PxOr(left, 0),
+		Top:    screenunit.PxOr(top, 0),
+		Right:  screenunit.PxOr(right, 0),
+		Bottom: screenunit.PxOr(bottom, 0),
 	}
 }
 
 // UniformPaddingFromAny creates a uniform Padding by converting v via screenunit.Px().
 func UniformPaddingFromAny(v any) Padding {
-	n := screenunit.Px(v)
+	n := screenunit.PxOr(v, 0)
 	return Padding{n, n, n, n}
 }
 
@@ -65,7 +65,7 @@ func UniformPaddingFromAny(v any) Padding {
 // right/bottom values default to left/top.
 func ParsePadding(spec string) Padding {
 	f := strings.Fields(spec)
-	px := func(i int) int { return screenunit.Px(f[i]) }
+	px := func(i int) int { return screenunit.PxOr(f[i], 0) }
 	switch len(f) {
 	case 0:
 		return Padding{}
