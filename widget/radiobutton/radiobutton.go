@@ -152,7 +152,7 @@ func IndicatorOnOpt(on bool) RadiobuttonOption {
 // PadX sets horizontal padding.
 // Accepts int (pixels), float64 (rounded pixels), or string with unit suffix ("3p", "2m", "1c", "0.5i").
 func PadX(p any) RadiobuttonOption {
-	return func(r *Radiobutton) { r.PadX = screenunit.Px(p) }
+	return func(r *Radiobutton) { r.PadX = screenunit.PxOr(p, r.PadX) }
 }
 
 // ImageOpt sets the image displayed by the radiobutton (replaces text).
@@ -163,7 +163,7 @@ func ImageOpt(img widget.WidgetImage) RadiobuttonOption {
 // PadY sets vertical padding.
 // Accepts int (pixels), float64 (rounded pixels), or string with unit suffix ("3p", "2m", "1c", "0.5i").
 func PadY(p any) RadiobuttonOption {
-	return func(r *Radiobutton) { r.PadY = screenunit.Px(p) }
+	return func(r *Radiobutton) { r.PadY = screenunit.PxOr(p, r.PadY) }
 }
 
 // Width sets the requested width in characters of the default font.

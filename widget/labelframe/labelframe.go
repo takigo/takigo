@@ -98,13 +98,13 @@ func LabelWidgetOpt(w widget.Widget) LabelframeOption {
 // PadX sets internal horizontal padding.
 // Accepts int (pixels), float64 (rounded pixels), or string with unit suffix ("1.5p", "2m", etc.).
 func PadX(p any) LabelframeOption {
-	return func(lf *Labelframe) { lf.PadX = screenunit.Px(p) }
+	return func(lf *Labelframe) { lf.PadX = screenunit.PxOr(p, lf.PadX) }
 }
 
 // PadY sets internal vertical padding.
 // Accepts int (pixels), float64 (rounded pixels), or string with unit suffix ("1.5p", "2m", etc.).
 func PadY(p any) LabelframeOption {
-	return func(lf *Labelframe) { lf.PadY = screenunit.Px(p) }
+	return func(lf *Labelframe) { lf.PadY = screenunit.PxOr(p, lf.PadY) }
 }
 
 // --- Ttk-compatible aliases (prefix with Labelframe) for consistent naming ---

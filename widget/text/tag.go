@@ -131,7 +131,7 @@ func TagOffset(pixels int) TagOption {
 // TagOffsetStr sets TagOffset from a Tk-style distance string (e.g. "4p").
 func TagOffsetStr(dist string) TagOption {
 	return func(cache *color.Cache, reg *font.Registry, tag *Tag) {
-		tag.Offset = screenunit.Px(dist)
+		tag.Offset = screenunit.PxOr(dist, tag.Offset)
 		tag.OffsetSet = true
 	}
 }
@@ -146,7 +146,7 @@ func TagLMargin1(pixels int) TagOption {
 // TagLMargin1Str sets TagLMargin1 from a Tk-style distance string.
 func TagLMargin1Str(dist string) TagOption {
 	return func(cache *color.Cache, reg *font.Registry, tag *Tag) {
-		tag.LMargin1 = screenunit.Px(dist)
+		tag.LMargin1 = screenunit.PxOr(dist, tag.LMargin1)
 	}
 }
 
@@ -160,7 +160,7 @@ func TagLMargin2(pixels int) TagOption {
 // TagLMargin2Str sets TagLMargin2 from a Tk-style distance string.
 func TagLMargin2Str(dist string) TagOption {
 	return func(cache *color.Cache, reg *font.Registry, tag *Tag) {
-		tag.LMargin2 = screenunit.Px(dist)
+		tag.LMargin2 = screenunit.PxOr(dist, tag.LMargin2)
 	}
 }
 
@@ -174,7 +174,7 @@ func TagRMargin(pixels int) TagOption {
 // TagRMarginStr sets TagRMargin from a Tk-style distance string.
 func TagRMarginStr(dist string) TagOption {
 	return func(cache *color.Cache, reg *font.Registry, tag *Tag) {
-		tag.RMargin = screenunit.Px(dist)
+		tag.RMargin = screenunit.PxOr(dist, tag.RMargin)
 	}
 }
 
@@ -188,7 +188,7 @@ func TagSpacing1(pixels int) TagOption {
 // TagSpacing1Str sets TagSpacing1 from a Tk-style distance string.
 func TagSpacing1Str(dist string) TagOption {
 	return func(cache *color.Cache, reg *font.Registry, tag *Tag) {
-		tag.Spacing1 = screenunit.Px(dist)
+		tag.Spacing1 = screenunit.PxOr(dist, tag.Spacing1)
 	}
 }
 
@@ -202,7 +202,7 @@ func TagSpacing2(pixels int) TagOption {
 // TagSpacing2Str sets TagSpacing2 from a Tk-style distance string.
 func TagSpacing2Str(dist string) TagOption {
 	return func(cache *color.Cache, reg *font.Registry, tag *Tag) {
-		tag.Spacing2 = screenunit.Px(dist)
+		tag.Spacing2 = screenunit.PxOr(dist, tag.Spacing2)
 	}
 }
 
@@ -216,7 +216,7 @@ func TagSpacing3(pixels int) TagOption {
 // TagSpacing3Str sets TagSpacing3 from a Tk-style distance string.
 func TagSpacing3Str(s string) TagOption {
 	return func(cache *color.Cache, reg *font.Registry, tag *Tag) {
-		tag.Spacing3 = screenunit.Px(s)
+		tag.Spacing3 = screenunit.PxOr(s, tag.Spacing3)
 	}
 }
 

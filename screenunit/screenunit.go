@@ -12,6 +12,7 @@ package screenunit
 
 import (
 	"fmt"
+	"log"
 	"math"
 	"strconv"
 	"strings"
@@ -81,6 +82,17 @@ func Px(v any) int {
 	px, err := TryPx(v)
 	if err != nil {
 		panic(err)
+	}
+	return px
+}
+
+// PxOr converts v like Px, but on invalid input logs a warning and returns
+// prev, so an option setter keeps its previous value instead of panicking.
+func PxOr(v any, prev int) int {
+	px, err := TryPx(v)
+	if err != nil {
+		log.Printf("%v; keeping %d", err, prev)
+		return prev
 	}
 	return px
 }

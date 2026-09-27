@@ -136,7 +136,7 @@ func Default(state DefaultState) ButtonOption {
 
 // HighlightThickness sets -highlightthickness (width of the focus ring).
 func HighlightThickness(w any) ButtonOption {
-	return func(b *Button) { b.HighlightWidth = screenunit.Px(w) }
+	return func(b *Button) { b.HighlightWidth = screenunit.PxOr(w, b.HighlightWidth) }
 }
 
 // ReliefOpt sets the border relief.
@@ -152,13 +152,13 @@ func Anchor(a option.Anchor) ButtonOption {
 // PadX sets horizontal padding.
 // Accepts int (pixels), float64 (rounded pixels), or string with unit suffix ("3p", "2m", "1c", "0.5i").
 func PadX(p any) ButtonOption {
-	return func(b *Button) { b.PadX = screenunit.Px(p) }
+	return func(b *Button) { b.PadX = screenunit.PxOr(p, b.PadX) }
 }
 
 // PadY sets vertical padding.
 // Accepts int (pixels), float64 (rounded pixels), or string with unit suffix ("3p", "2m", "1c", "0.5i").
 func PadY(p any) ButtonOption {
-	return func(b *Button) { b.PadY = screenunit.Px(p) }
+	return func(b *Button) { b.PadY = screenunit.PxOr(p, b.PadY) }
 }
 
 // Width sets the requested button width in characters (like Tk's -width option).
