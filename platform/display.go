@@ -382,7 +382,7 @@ func NewDisplayServer(
 	prop PropertyManager,
 	im InputMethodManager,
 ) DisplayServer {
-	return &displayServer{
+	ds := &displayServer{
 		DisplayCore:        core,
 		WindowManager:      wm,
 		Drawer:             drawer,
@@ -395,4 +395,20 @@ func NewDisplayServer(
 		PropertyManager:    prop,
 		InputMethodManager: im,
 	}
+	// Keep the backend's optional PumpEvents (event.EventPumper) visible
+	// through the wrapper; the event loop finds it by type assertion.
+	if p, ok := core.(interface{ PumpEvents() }); ok {
+		return &pumpingDisplayServer{displayServer: ds, pump: p.PumpEvents}
+	}
+	return ds
 }
+
+// pumpingDisplayServer is a displayServer whose backend must be pumped
+// from the main thread (Cocoa, Win32).
+type pumpingDisplayServer struct {
+	*displayServer
+	pump func()
+}
+
+// PumpEvents forwards to the backend's PumpEvents.
+func (s *pumpingDisplayServer) PumpEvents() { s.pump() }
