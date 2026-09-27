@@ -196,10 +196,13 @@ find_windows_exact() {
 odiff_score() {
     local base="$1" cmp="$2" diff_out="${3:-}"
     local out rc
+    [[ -n "$diff_out" ]] && rm -f "$diff_out"
     out=$(odiff "$base" "$cmp" ${diff_out:+"$diff_out"} --parsable-stdout --aa 2>/dev/null)
     rc=$?
     case "$rc" in
-        0)  echo "0"; return 0 ;;
+        0)  # odiff >= 4 writes no diff image for identical inputs.
+            [[ -n "$diff_out" && ! -f "$diff_out" ]] && cp "$base" "$diff_out"
+            echo "0"; return 0 ;;
         22) echo "${out##*;}"; return 0 ;;
         21) echo "layout-diff" >&2; return 1 ;;
         *)  echo "odiff failed (exit $rc)" >&2; return 1 ;;
@@ -312,9 +315,9 @@ update_baseline() {
         END {
             for (d in old) if (!(d in new)) rows[d] = old[d]
             for (d in new) rows[d] = new[d] OFS note[d]
-            n = asorti(rows, keys)
-            for (i = 1; i <= n; i++) print rows[keys[i]]
-        }' "$scores" "$( [[ -f "$baseline" ]] && echo "$baseline" || echo /dev/null )" > "$tmp_base.rows"
+            for (d in rows) print rows[d]
+        }' "$scores" "$( [[ -f "$baseline" ]] && echo "$baseline" || echo /dev/null )" \
+        | LC_ALL=C sort -t$'\t' -k1,1 > "$tmp_base.rows"
     summary=$(awk -F'\t' '{c[$7]++} END {printf "exact %d / close %d / failed %d", c["exact"], c["close"], c["failed"]}' "$tmp_base.rows")
     {
         echo "# Demo parity baseline -- written by: bash scripts/demo_batch.sh --retake --update-baseline (or demo_gate.sh --accept)"

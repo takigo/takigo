@@ -28,6 +28,11 @@ type Display struct {
 	WMDeleteWindow platform.AtomID
 	WMProtocols    platform.AtomID
 
+	// DoWhenIdle, when set, schedules fn to run once the event loop is
+	// idle. Geometry managers use it to coalesce re-layouts as Tk does
+	// with Tcl_DoWhenIdle; with no loop (unit tests) they lay out at once.
+	DoWhenIdle func(fn func())
+
 	// destroyHooks run for every window destroyed on this display, before
 	// the window's own hooks; see OnWindowDestroy.
 	destroyHooks []func(*Window)

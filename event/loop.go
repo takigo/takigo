@@ -287,6 +287,22 @@ func (l *Loop) RunNestedContext(ctx context.Context, done <-chan struct{}) {
 	l.run(done, ctx.Done())
 }
 
+// UpdateIdleTasks runs idle callbacks until none are pending, like Tcl's
+// "update idletasks", so pending layout and redraws happen now. Idle
+// callbacks that keep rescheduling themselves are cut off after 100
+// rounds. Loop goroutine only (or before Run).
+func (l *Loop) UpdateIdleTasks() {
+	for range 100 {
+		l.mu.Lock()
+		n := len(l.idlePending)
+		l.mu.Unlock()
+		if n == 0 && len(l.idleQueue) == 0 {
+			return
+		}
+		l.processIdleQueue()
+	}
+}
+
 // runMainQueue runs the callbacks posted with RunOnMain or After.
 func (l *Loop) runMainQueue() {
 	l.mu.Lock()
