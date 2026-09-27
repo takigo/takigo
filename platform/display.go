@@ -397,7 +397,7 @@ func NewDisplayServer(
 	}
 	// Keep the backend's optional PumpEvents (event.EventPumper) visible
 	// through the wrapper; the event loop finds it by type assertion.
-	if p, ok := core.(interface{ PumpEvents() }); ok {
+	if p, ok := core.(interface{ PumpEvents() bool }); ok {
 		return &pumpingDisplayServer{displayServer: ds, pump: p.PumpEvents}
 	}
 	return ds
@@ -407,8 +407,8 @@ func NewDisplayServer(
 // from the main thread (Cocoa, Win32).
 type pumpingDisplayServer struct {
 	*displayServer
-	pump func()
+	pump func() bool
 }
 
 // PumpEvents forwards to the backend's PumpEvents.
-func (s *pumpingDisplayServer) PumpEvents() { s.pump() }
+func (s *pumpingDisplayServer) PumpEvents() bool { return s.pump() }

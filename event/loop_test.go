@@ -230,3 +230,24 @@ func TestLoopStopBeforeRun(t *testing.T) {
 	l := NewLoop(newFakeServer(), nil, NewDispatcher())
 	l.Stop(time.Second) // no reader to wait for; must not block
 }
+
+// pumpingServer asks the loop to quit from PumpEvents, as a Win32
+// backend does on WM_QUIT.
+type pumpingServer struct {
+	*fakeServer
+	pumps int
+}
+
+func (s *pumpingServer) PumpEvents() bool {
+	s.pumps++
+	return s.pumps == 3
+}
+
+func TestLoopQuitsWhenPumpRequestsIt(t *testing.T) {
+	srv := &pumpingServer{fakeServer: newFakeServer()}
+	l := NewLoop(srv, nil, NewDispatcher())
+	runLoop(t, l)()
+	if srv.pumps != 3 {
+		t.Errorf("pumped %d times, want the loop to quit on the 3rd", srv.pumps)
+	}
+}

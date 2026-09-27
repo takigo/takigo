@@ -15,8 +15,10 @@ import (
 type EventPumper interface {
 	// PumpEvents processes pending platform events. Called from the main
 	// goroutine on each iteration of the event loop. Implementations should
-	// process all available events and return quickly.
-	PumpEvents()
+	// process all available events and return quickly. It returns true
+	// when the platform asked the application to quit (Win32 WM_QUIT);
+	// the loop then quits.
+	PumpEvents() (quit bool)
 }
 
 // Loop is the main event loop, integrating platform events with idle callbacks,
@@ -132,7 +134,10 @@ func (l *Loop) run(extraDone, ctxDone <-chan struct{}) {
 			l.runMainQueue()
 
 		case <-pumpTick:
-			l.pumper.PumpEvents()
+			if l.pumper.PumpEvents() {
+				l.Quit()
+				return
+			}
 			for drained := false; !drained; {
 				select {
 				case raw := <-l.eventCh:
