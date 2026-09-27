@@ -27,6 +27,18 @@ type Display struct {
 	// WM atoms.
 	WMDeleteWindow platform.AtomID
 	WMProtocols    platform.AtomID
+
+	// destroyHooks run for every window destroyed on this display, before
+	// the window's own hooks; see OnWindowDestroy.
+	destroyHooks []func(*Window)
+}
+
+// OnWindowDestroy registers fn to run for every window destroyed on this
+// display, after its descendants are gone and while it is still
+// registered, so fn can deliver <Destroy> and drop per-window state
+// (event handlers, bind tags, focus) as Tk_DestroyWindow does.
+func (d *Display) OnWindowDestroy(fn func(*Window)) {
+	d.destroyHooks = append(d.destroyHooks, fn)
 }
 
 // NewDisplay opens a display and initializes the Display struct.

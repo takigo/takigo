@@ -237,6 +237,10 @@ func InitBase(b *Base, win *window.Window, app AppContext) {
 	reg := app.FontRegistry()
 	b.Font, _ = reg.Get(font.TkDefaultFont)
 
+	// A widget destroyed along with an ancestor is marked destroyed too;
+	// widgets with more to free register their Destroy after this.
+	win.OnDestroy(func() { b.Destroyed = true })
+
 	// Register background hook so ApplyBackgroundRecursive can update this widget.
 	win.BackgroundHook = func(colorName string) {
 		if c, err := app.ColorCache().Get(colorName); err == nil {

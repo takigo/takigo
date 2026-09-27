@@ -21,7 +21,7 @@ func (s *stubFont) Attrs() font.Attributes {
 }
 func (s *stubFont) Metrics() font.Metrics    { return font.Metrics{} }
 func (s *stubFont) MeasureString(string) int { return 0 }
-func (s *stubFont) Close()                    {}
+func (s *stubFont) Close()                   {}
 
 func TestPsY(t *testing.T) {
 	ps := NewPSContext()
@@ -236,10 +236,10 @@ func TestPrologEmbed(t *testing.T) {
 
 func TestPsEscape(t *testing.T) {
 	cases := map[string]string{
-		"hello":      "(hello)",
-		"a(b)c":      "(a\\(b\\)c)",
+		"hello":       "(hello)",
+		"a(b)c":       "(a\\(b\\)c)",
 		"back\\slash": "(back\\\\slash)",
-		"new\nline":  "(new\\nline)",
+		"new\nline":   "(new\\nline)",
 	}
 	for in, want := range cases {
 		got := "(" + psEscape(in) + ")"

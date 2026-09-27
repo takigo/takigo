@@ -452,7 +452,7 @@ func main() {
 		name := fmt.Sprintf("color%d", i+1)
 		colorName := c
 		btnLine := tw.EndIndex()
-			clrBtn := button.New(tw, name,
+		clrBtn := button.New(tw, name,
 			button.Text(colorName),
 			button.Command(func() {
 				text.Background(colorName)(tw)

@@ -30,11 +30,11 @@ type ValidateMode int
 
 const (
 	ValidateNone     ValidateMode = iota
-	ValidateKey                 // on each edit
-	ValidateFocus               // on FocusOut
-	ValidateFocusIn             // on FocusIn
-	ValidateFocusOut            // on FocusOut (synonym of focus)
-	ValidateAll                 // on each edit + FocusIn/Out
+	ValidateKey                   // on each edit
+	ValidateFocus                 // on FocusOut
+	ValidateFocusIn               // on FocusIn
+	ValidateFocusOut              // on FocusOut (synonym of focus)
+	ValidateAll                   // on each edit + FocusIn/Out
 )
 
 // Entry is a themed single-line text-entry widget.
@@ -42,8 +42,8 @@ const (
 type Entry struct {
 	TtkWidget
 
-	edit   entrytext.Helper
-	Font   font.Font
+	edit entrytext.Helper
+	Font font.Font
 
 	// Behaviour.
 	Placeholder string
@@ -182,6 +182,7 @@ func NewEntry(parent widget.Caregiver, name string, opts ...EntryOption) *Entry 
 	}
 
 	InitTtkWidget(&e.TtkWidget, win, app, "TEntry")
+	win.OnDestroy(e.Destroy)
 	e.DisplayFunc = e.Display
 
 	// Default size based on font metrics.

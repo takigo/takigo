@@ -1,6 +1,8 @@
 package bind
 
 import (
+	"slices"
+
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/window"
@@ -96,14 +98,23 @@ func (e *Engine) AddVirtualEvent(virtual string, patterns ...string) error {
 		if err != nil {
 			return err
 		}
-		e.virtualEvents[virtual] = append(e.virtualEvents[virtual], seq)
+		e.addVirtual(virtual, seq)
 	}
 	return nil
+}
+
+// addVirtual appends seq to the definition of virtual.
+func (e *Engine) addVirtual(virtual string, seq Sequence) {
+	if _, ok := e.virtualEvents[virtual]; !ok {
+		e.virtualOrder = append(e.virtualOrder, virtual)
+	}
+	e.virtualEvents[virtual] = append(e.virtualEvents[virtual], seq)
 }
 
 // RemoveVirtualEvent removes a virtual event definition.
 func (e *Engine) RemoveVirtualEvent(virtual string) {
 	delete(e.virtualEvents, virtual)
+	e.virtualOrder = slices.DeleteFunc(e.virtualOrder, func(n string) bool { return n == virtual })
 }
 
 // GenerateEvent dispatches a virtual event to a window as if it had occurred.

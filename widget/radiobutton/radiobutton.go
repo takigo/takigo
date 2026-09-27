@@ -231,6 +231,7 @@ func New(parent widget.Caregiver, name string, opts ...RadiobuttonOption) *Radio
 		IndicatorOn: true,
 	}
 	widget.InitBase(&r.Base, w, app)
+	w.OnDestroy(r.Destroy)
 	w.Class = "Radiobutton"
 
 	// Radiobutton-specific defaults.

@@ -3,15 +3,43 @@
 package xlib
 
 /*
+#include <stdio.h>
 #include <stdlib.h>
 #include <X11/Xlib.h>
+
+// takigo_x_error reports an X protocol error and carries on. Xlib's default
+// handler exits the process; Tk's ErrorProc (tkError.c) ignores errors on
+// windows it is destroying, which takigo cannot yet tell apart.
+static int takigo_x_error(Display *dpy, XErrorEvent *ev)
+{
+	char text[128];
+	XGetErrorText(dpy, ev->error_code, text, sizeof text);
+	fprintf(stderr, "takigo: X error: %s (request %d.%d, resource 0x%lx)\n",
+		text, ev->request_code, ev->minor_code, ev->resourceid);
+	return 0;
+}
+
+static void takigo_init_xlib(void)
+{
+	XInitThreads();
+	XSetErrorHandler(takigo_x_error);
+}
 */
 import "C"
-import "unsafe"
+import (
+	"sync"
+	"unsafe"
+)
+
+// initOnce runs XInitThreads before the first Xlib call: the event loop
+// reads events on its own goroutine while the loop goroutine draws, and
+// libX11 older than 1.8 is not thread-safe unless XInitThreads is called.
+var initOnce sync.Once
 
 // OpenDisplay opens a connection to the X server.
 // If name is empty, it uses the DISPLAY environment variable.
 func OpenDisplay(name string) (*Display, error) {
+	initOnce.Do(func() { C.takigo_init_xlib() })
 	var cname *C.char
 	if name != "" {
 		cname = C.CString(name)

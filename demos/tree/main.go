@@ -21,8 +21,6 @@ import (
 	"github.com/msorc/takigo/widget/frame"
 )
 
-
-
 func main() {
 	app, err := takigo.NewApp(takigo.Title("Directory Browser"),
 		takigo.Geometry("+300+300"),
@@ -47,7 +45,6 @@ func main() {
 
 	btns := demohelper.AddSeeDismiss(f)
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
-
 
 	// Dummy frame for grid layout of treeview + scrollbars.
 	tvFrame := ttk.NewFrame(f, "dummy")

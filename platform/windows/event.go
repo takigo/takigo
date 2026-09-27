@@ -4,6 +4,8 @@ package windows
 
 import (
 	"time"
+	"unicode/utf16"
+	"unicode/utf8"
 
 	w32 "github.com/msorc/takigo/internal/win32"
 	"github.com/msorc/takigo/platform"
@@ -262,10 +264,20 @@ func (d *WindowsDisplay) wndProc(hwnd w32.HWND, msg uint32, wParam w32.WPARAM, l
 			State:   state,
 			Time:    now,
 		}
-		// Check if we have a pending char from WM_CHAR.
-		if d.hasChar {
-			raw.Str = string(d.pendingChar)
-			d.hasChar = false
+		// TranslateMessage queues this key's WM_CHAR behind the WM_KEYDOWN;
+		// take it now, as tkWinX.c GetTranslatedKey does, so one KeyPress
+		// carries both the keysym and the text.
+		// WM_SYSCHAR stays queued: DefWindowProc needs it for Alt+Space.
+		if msg == w32.WM_KEYDOWN {
+			if str := d.takeTranslatedChars(); str != "" {
+				raw.Str = str
+				if keysym < 0x100 {
+					r, _ := utf8.DecodeRuneInString(str)
+					if ks := platform.RuneToKeySym(r); ks != 0 {
+						raw.KeySym = uint64(ks)
+					}
+				}
+			}
 		}
 		d.postEvent(&platform.RawEvent{
 			Data:        raw,
@@ -299,20 +311,25 @@ func (d *WindowsDisplay) wndProc(hwnd w32.HWND, msg uint32, wParam w32.WPARAM, l
 		return 0
 
 	case w32.WM_CHAR:
-		// Store the character for the next WM_KEYDOWN.
-		ch := rune(wParam)
-		d.pendingChar = ch
-		d.hasChar = true
-		// Also post a key press for the character if no pending KEYDOWN consumed it.
-		// This handles standalone WM_CHAR from IME.
-		keysym := uint64(ch)
-		if ch < 128 {
-			keysym = uint64(ch) // ASCII maps directly to keysym
+		// A WM_CHAR not claimed by its WM_KEYDOWN (IME commits, pasted
+		// input): deliver it as a KeyPress, joining UTF-16 surrogate pairs.
+		unit := uint16(wParam)
+		if utf16.IsSurrogate(rune(unit)) && unit < 0xdc00 {
+			d.highSurrogate = unit
+			return 0
+		}
+		r := rune(unit)
+		if d.highSurrogate != 0 {
+			r = utf16.DecodeRune(rune(d.highSurrogate), r)
+			d.highSurrogate = 0
+		}
+		if r == utf8.RuneError {
+			return 0
 		}
 		raw := &WinRawEvent{
 			Window: wid,
-			KeySym: keysym,
-			Str:    string(ch),
+			KeySym: uint64(platform.RuneToKeySym(r)),
+			Str:    string(r),
 			State:  d.getModifierState(),
 			Time:   now,
 		}
@@ -619,4 +636,20 @@ func vkToKeySym(vk uint) uint64 {
 		return uint64(0xffb0 + (vk - w32.VK_NUMPAD0)) // XK_KP_0 .. XK_KP_9
 	}
 	return 0 // NoSymbol
+}
+
+// takeTranslatedChars removes the WM_CHAR messages queued directly
+// behind the current WM_KEYDOWN and returns their text, joining
+// surrogate pairs.
+func (d *WindowsDisplay) takeTranslatedChars() string {
+	var units []uint16
+	var msg w32.MSG
+	for w32.PeekMessage(&msg, 0, 0, 0, w32.PM_NOREMOVE) {
+		if msg.Message != w32.WM_CHAR {
+			break
+		}
+		w32.PeekMessage(&msg, 0, msg.Message, msg.Message, w32.PM_REMOVE)
+		units = append(units, uint16(msg.WParam))
+	}
+	return string(utf16.Decode(units))
 }

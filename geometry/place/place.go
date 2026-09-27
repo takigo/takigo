@@ -6,6 +6,7 @@ package place
 import (
 	"math"
 
+	"github.com/msorc/takigo/geometry"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/window"
@@ -86,22 +87,49 @@ type placeManager struct{}
 func (m *placeManager) Name() string { return "place" }
 
 func (m *placeManager) RequestProc(content *window.Window) {
-	parent := content.Parent
-	if parent == nil {
-		return
-	}
-	if p, ok := placers[parent]; ok {
+	if p, ok := placers[containerFor(content)]; ok {
 		p.arrange()
 	}
 }
 
+// LostContentProc drops content from its container, e.g. when content is
+// destroyed or taken over by another geometry manager.
 func (m *placeManager) LostContentProc(content *window.Window) {
-	parent := content.Parent
-	if parent == nil {
+	container := containerFor(content)
+	delete(containerOf, content)
+	if p, ok := placers[container]; ok {
+		p.remove(content)
+		p.arrange()
+	}
+}
+
+// containerFor returns the window content is managed in: its -in
+// container if one was given, else its parent.
+func containerFor(content *window.Window) *window.Window {
+	if c := containerOf[content]; c != nil {
+		return c
+	}
+	return content.Parent
+}
+
+// forgetContainer drops a destroyed container's state; content managed
+// in it from outside its subtree (via -in) becomes unmanaged, as in
+// Tk's DestroyNotify handling in the geometry managers.
+func forgetContainer(container *window.Window) {
+	p, ok := placers[container]
+	if !ok {
 		return
 	}
-	if p, ok := placers[parent]; ok {
-		p.remove(content)
+	delete(placers, container)
+	for _, e := range p.entries {
+		if w := e.window; containerOf[w] == container {
+			delete(containerOf, w)
+			w.GeomManager = nil
+			if w.IsMapped() && !w.IsDestroyed() && w.PlatformID != 0 {
+				w.Display.Server.UnmapWindow(w.PlatformID)
+				window.MarkUnmapped(w)
+			}
+		}
 	}
 }
 
@@ -133,12 +161,13 @@ func Place(child window.Windower, opts ...PlaceOption) {
 	}
 	containerOf[w] = parent
 
-	w.GeomManager = mgr
+	geometry.ManageGeometry(w, mgr)
 
 	p, ok := placers[parent]
 	if !ok {
 		p = &placer{container: parent}
 		placers[parent] = p
+		parent.OnDestroy(func() { forgetContainer(parent) })
 	}
 
 	// Update or add entry.
@@ -191,7 +220,7 @@ func (p *placer) remove(child *window.Window) {
 // arrange positions all placed children.
 func (p *placer) arrange() {
 	container := p.container
-	if container.PlatformID == platform.WindowID(0) {
+	if container.PlatformID == platform.WindowID(0) || container.IsDestroyed() {
 		return
 	}
 

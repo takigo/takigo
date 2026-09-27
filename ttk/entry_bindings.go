@@ -28,9 +28,7 @@ func bindEntry(e *Entry, app widget.AppContext) {
 			win.Width = ev.ConfigWidth
 			win.Height = ev.ConfigHeight
 			e.Display()
-			if win.ConfigureCallback != nil {
-				win.ConfigureCallback()
-			}
+			win.NotifyConfigure()
 		}
 	})
 

@@ -258,6 +258,7 @@ func New(parent widget.Caregiver, name string, opts ...LabelOption) *Label {
 		Underline: -1,
 	}
 	widget.InitBase(&l.Base, w, app)
+	w.OnDestroy(l.Destroy)
 	w.Class = "Label"
 
 	// Label-specific defaults from tkUnixDefault.h.

@@ -17,9 +17,11 @@ import (
 	"github.com/msorc/takigo/platform"
 )
 
-// Photo is an image backed by Go RGBA pixel data. It caches a Pixmap
-// for efficient repeated drawing, re-creating it when the background color
-// changes or the pixel data is invalidated.
+// Photo is an image backed by Go RGBA pixel data. It caches rendered
+// Pixmaps for repeated drawing: one for an opaque image, or one per
+// background colour (up to maxPhotoPixmaps) for an image with
+// transparency, so a photo shown on several backgrounds (e.g. a button's
+// normal and active colours) is not re-uploaded on every redraw.
 type Photo struct {
 	name string
 	rgba *goimage.RGBA
@@ -27,13 +29,22 @@ type Photo struct {
 	// rgba is unmodified, so drawing can blend exactly like Tk's photos.
 	straight []byte
 
-	// Pixmap cache.
+	// Pixmap cache, most recently used last.
 	server      platform.DisplayServer
-	pixmap      platform.PixmapID
+	pixmaps     []photoPixmap
 	pixmapW     int
 	pixmapH     int
-	pixmapBg    uint64 // bgPixel used when rendering the cached pixmap
 	pixmapDirty bool
+	opaque      bool // no transparent pixels: the background is irrelevant
+}
+
+// maxPhotoPixmaps bounds the per-background pixmaps kept for one photo.
+const maxPhotoPixmaps = 4
+
+// photoPixmap is a Photo rendered over one background pixel.
+type photoPixmap struct {
+	id platform.PixmapID
+	bg uint64
 }
 
 // NewPhoto creates a photo image from existing RGBA data.
@@ -51,8 +62,7 @@ func NewPhoto(name string, rgba *goimage.RGBA) *Photo {
 //   - .png, .gif, .jpg/.jpeg  via Go stdlib registered decoders
 //   - .xbm                    via NewPhotoFromXBMFile (black fg, transparent bg)
 //   - .ppm, .pgm, .pbm        via NewPhotoFromPPMFile (Netpbm P1..P6)
-//   - .svg                    via NewPhotoFromSVGFile (requires rsvg-convert
-//     or ImageMagick on PATH)
+//   - .svg                    via NewPhotoFromSVGFile (nanosvg)
 func NewPhotoFromFile(name, path string) (*Photo, error) {
 	switch strings.ToLower(filepath.Ext(path)) {
 	case ".xbm":
@@ -292,12 +302,8 @@ func (p *Photo) Draw(d platform.DisplayServer, drawable platform.DrawableID, gc 
 		return
 	}
 
-	// Ensure cached pixmap is up to date.
-	p.ensurePixmap(d, drawable, gc, depth, bgPixel)
-
-	if p.pixmap != platform.PixmapID(0) {
-		// Copy from cached pixmap.
-		d.CopyArea(platform.PixmapDrawable(p.pixmap), drawable, gc,
+	if pix := p.ensurePixmap(d, drawable, gc, depth, bgPixel); pix != platform.PixmapID(0) {
+		d.CopyArea(platform.PixmapDrawable(pix), drawable, gc,
 			imgX, imgY, uint(w), uint(h), dstX, dstY)
 	} else {
 		// Fallback: direct PutImage (no caching).
@@ -307,34 +313,36 @@ func (p *Photo) Draw(d platform.DisplayServer, drawable platform.DrawableID, gc 
 	}
 }
 
-// ensurePixmap creates or re-creates the cached pixmap if needed.
+// ensurePixmap returns a pixmap holding the image rendered over bgPixel,
+// creating it if needed. It returns 0 if no pixmap could be created.
 func (p *Photo) ensurePixmap(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID,
-	depth int, bgPixel uint64) {
-
+	depth int, bgPixel uint64) platform.PixmapID {
 	imgW := p.Width()
 	imgH := p.Height()
 
-	needRecreate := p.pixmapDirty ||
-		p.pixmap == platform.PixmapID(0) ||
-		p.server != d ||
-		p.pixmapW != imgW ||
-		p.pixmapH != imgH ||
-		p.pixmapBg != bgPixel
-
-	if !needRecreate {
-		return
+	if p.pixmapDirty || p.server != d || p.pixmapW != imgW || p.pixmapH != imgH {
+		p.freePixmaps()
+		p.server, p.pixmapW, p.pixmapH = d, imgW, imgH
+		p.opaque = p.straight == nil && isOpaque(p.rgba)
+		p.pixmapDirty = false
+	}
+	key := bgPixel
+	if p.opaque {
+		key = 0
+	}
+	for i, c := range p.pixmaps {
+		if c.bg == key {
+			if last := len(p.pixmaps) - 1; i != last {
+				copy(p.pixmaps[i:], p.pixmaps[i+1:])
+				p.pixmaps[last] = c
+			}
+			return c.id
+		}
 	}
 
-	// Free old pixmap.
-	if p.pixmap != platform.PixmapID(0) && p.server != nil {
-		p.server.FreePixmap(p.pixmap)
-		p.pixmap = platform.PixmapID(0)
-	}
-
-	// Create new pixmap.
 	pix := d.CreatePixmap(drawable, uint(imgW), uint(imgH), uint(depth))
 	if pix == platform.PixmapID(0) {
-		return
+		return 0
 	}
 
 	// Render RGBA data into the pixmap; straight-alpha pixels are blended
@@ -347,20 +355,41 @@ func (p *Photo) ensurePixmap(d platform.DisplayServer, drawable platform.Drawabl
 		data, stride, imgW, imgH,
 		0, 0, 0, 0, imgW, imgH, bgPixel)
 
-	p.server = d
-	p.pixmap = pix
-	p.pixmapW = imgW
-	p.pixmapH = imgH
-	p.pixmapBg = bgPixel
-	p.pixmapDirty = false
+	if len(p.pixmaps) == maxPhotoPixmaps {
+		d.FreePixmap(p.pixmaps[0].id)
+		p.pixmaps = p.pixmaps[1:]
+	}
+	p.pixmaps = append(p.pixmaps, photoPixmap{id: pix, bg: key})
+	return pix
+}
+
+// freePixmaps releases every cached pixmap.
+func (p *Photo) freePixmaps() {
+	for _, c := range p.pixmaps {
+		if p.server != nil {
+			p.server.FreePixmap(c.id)
+		}
+	}
+	p.pixmaps = nil
+}
+
+// isOpaque reports whether every pixel of img has full alpha.
+func isOpaque(img *goimage.RGBA) bool {
+	b := img.Bounds()
+	for y := b.Min.Y; y < b.Max.Y; y++ {
+		row := img.Pix[img.PixOffset(b.Min.X, y):img.PixOffset(b.Max.X, y)]
+		for i := 3; i < len(row); i += 4 {
+			if row[i] != 0xff {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 // Destroy releases the cached pixmap.
 func (p *Photo) Destroy() {
-	if p.pixmap != platform.PixmapID(0) && p.server != nil {
-		p.server.FreePixmap(p.pixmap)
-		p.pixmap = platform.PixmapID(0)
-	}
+	p.freePixmaps()
 }
 
 // toRGBA converts any image.Image to *image.RGBA.

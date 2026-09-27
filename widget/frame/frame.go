@@ -121,9 +121,7 @@ func New(parent widget.Caregiver, name string, opts ...FrameOption) *Frame {
 			// Re-run place geometry manager if any children use place.
 			place.ArrangeContainer(w)
 			f.Display()
-			if w.ConfigureCallback != nil {
-				w.ConfigureCallback()
-			}
+			w.NotifyConfigure()
 		}
 	})
 

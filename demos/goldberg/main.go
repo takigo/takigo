@@ -1975,7 +1975,7 @@ func main() {
 	)
 	g.c = c
 	pack.Pack(c, pack.In(screen), pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
-	c.Win.ConfigureCallback = func() { c.YViewMoveTo(0.06) }
+	c.Win.OnConfigure(func() { c.YViewMoveTo(0.06) })
 
 	// DoCtrlFrame: the widgets are children of the toplevel gridded -in ctrl.
 	pause := widget.NewVariable(false)

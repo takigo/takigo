@@ -44,10 +44,10 @@ func TestAtoms(t *testing.T) {
 
 func TestWindowAttrs(t *testing.T) {
 	attrs := &WindowAttrs{
-		BackgroundPixel: 0xFFFFFF,
-		BorderPixel:     0x000000,
-		BitGravity:      0,
-		EventMask:       0xFFFFFFFF,
+		BackgroundPixel:  0xFFFFFF,
+		BorderPixel:      0x000000,
+		BitGravity:       0,
+		EventMask:        0xFFFFFFFF,
 		OverrideRedirect: true,
 	}
 
@@ -230,5 +230,22 @@ func TestNewDisplayServer(t *testing.T) {
 	ds := NewDisplayServer(core, wm, drawer, gc, pixmap, eventSrc, grab, sel, cursor, prop, im)
 	if ds == nil {
 		t.Error("NewDisplayServer should return non-nil DisplayServer")
+	}
+}
+func TestRuneToKeySym(t *testing.T) {
+	tests := []struct {
+		r    rune
+		want KeySym
+	}{
+		{'a', 0x61}, {'A', 0x41}, {'é', 0xe9}, {'€', 0x010020ac},
+		{'😀', 0x0101f600}, {'\x01', 0}, {0x7f, 0}, {0xd83d, 0},
+	}
+	for _, tt := range tests {
+		if got := RuneToKeySym(tt.r); got != tt.want {
+			t.Errorf("RuneToKeySym(%U) = %#x, want %#x", tt.r, got, tt.want)
+		}
+		if tt.want != 0 && KeySymToRune(tt.want) != tt.r {
+			t.Errorf("KeySymToRune(%#x) does not round-trip to %U", tt.want, tt.r)
+		}
 	}
 }

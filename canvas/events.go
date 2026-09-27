@@ -37,9 +37,7 @@ func bindCanvas(c *Canvas) {
 			c.scheduleRedraw()
 			c.notifyScrollbars()
 			place.ArrangeContainer(w)
-			if w.ConfigureCallback != nil {
-				w.ConfigureCallback()
-			}
+			w.NotifyConfigure()
 		} else if ev.Type == event.DestroyType {
 			c.Destroy()
 		}
