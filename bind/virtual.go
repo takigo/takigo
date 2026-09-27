@@ -1,5 +1,10 @@
 package bind
 
+import (
+	"maps"
+	"slices"
+)
+
 // defaultVirtualEvents defines the standard virtual event mappings.
 // Each virtual event name maps to one or more physical event patterns.
 var defaultVirtualEvents = map[string][]string{
@@ -13,13 +18,13 @@ var defaultVirtualEvents = map[string][]string{
 
 // installDefaultVirtualEvents registers the default virtual events on an engine.
 func installDefaultVirtualEvents(e *Engine) {
-	for name, patterns := range defaultVirtualEvents {
-		for _, pat := range patterns {
+	for _, name := range slices.Sorted(maps.Keys(defaultVirtualEvents)) {
+		for _, pat := range defaultVirtualEvents[name] {
 			seq, err := Parse(pat)
 			if err != nil {
 				continue
 			}
-			e.virtualEvents[name] = append(e.virtualEvents[name], seq)
+			e.addVirtual(name, seq)
 		}
 	}
 }
