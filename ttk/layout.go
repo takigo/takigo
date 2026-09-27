@@ -84,11 +84,11 @@ func (l *Layout) Size(state State) (int, int) {
 	if l.Root == nil {
 		return 0, 0
 	}
-	return nodeSize(l.Root, state)
+	return nodeSize(l.Root, state, 0)
 }
 
-func nodeSize(n *LayoutNode, state State) (int, int) {
-	if n == nil {
+func nodeSize(n *LayoutNode, state State, depth int) (int, int) {
+	if n == nil || depth > 1000 {
 		return 0, 0
 	}
 
@@ -98,7 +98,7 @@ func nodeSize(n *LayoutNode, state State) (int, int) {
 	_ = eh
 
 	// Children size (packed sequentially).
-	cw, ch := childrenSize(n.Children, state)
+	cw, ch := childrenSize(n.Children, state, depth+1)
 
 	// Content size = max of element content and children.
 	w := max(ew, cw) + epad.Width()
@@ -106,7 +106,7 @@ func nodeSize(n *LayoutNode, state State) (int, int) {
 
 	// Accumulate siblings (Ttk_NodeListSize).
 	if n.Next != nil {
-		nw, nh := nodeSize(n.Next, state)
+		nw, nh := nodeSize(n.Next, state, depth)
 		switch {
 		case n.Flags&packSet == 0:
 			w, h = max(w, nw), max(h, nh)
@@ -122,11 +122,11 @@ func nodeSize(n *LayoutNode, state State) (int, int) {
 	return w, h
 }
 
-func childrenSize(n *LayoutNode, state State) (int, int) {
-	if n == nil {
+func childrenSize(n *LayoutNode, state State, depth int) (int, int) {
+	if n == nil || depth > 1000 {
 		return 0, 0
 	}
-	w, h := nodeSize(n, state)
+	w, h := nodeSize(n, state, depth)
 	return w, h
 }
 
@@ -135,15 +135,15 @@ func (l *Layout) Place(state State, bounds Box) {
 	if l.Root == nil {
 		return
 	}
-	placeNodes(l.Root, state, bounds)
+	placeNodes(l.Root, state, bounds, 0)
 }
 
-func placeNodes(n *LayoutNode, state State, cavity Box) {
+func placeNodes(n *LayoutNode, state State, cavity Box, depth int) {
 	for cur := n; cur != nil; cur = cur.Next {
 		ew, eh, epad := cur.Element.Size(state)
 
 		// Children size for this node.
-		cw, ch := childrenSize(cur.Children, state)
+		cw, ch := childrenSize(cur.Children, state, depth+1)
 		nodeW := max(ew, cw) + epad.Width()
 		nodeH := max(eh, ch) + epad.Height()
 
@@ -185,7 +185,7 @@ func placeNodes(n *LayoutNode, state State, cavity Box) {
 		// Place children inside the element's inner area.
 		if cur.Children != nil {
 			inner := PadBox(cur.Parcel, epad)
-			placeNodes(cur.Children, state, inner)
+			placeNodes(cur.Children, state, inner, depth+1)
 		}
 	}
 }
