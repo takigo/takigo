@@ -154,6 +154,7 @@ type gridEntry struct {
 // gridder manages grid state for a container.
 type gridder struct {
 	container *window.Window
+	pending   bool // an arrange is scheduled for idle time
 	entries   []*gridEntry
 	rowConf   map[int]*SlotConfig
 	colConf   map[int]*SlotConfig
@@ -183,7 +184,7 @@ func gridderFor(container *window.Window) *gridder {
 	container.OnDestroy(func() { forgetContainer(container) })
 	container.OnConfigure(func() {
 		if gg, ok := gridders[container]; ok {
-			gg.arrange()
+			gg.scheduleArrange()
 		}
 	})
 	return g
@@ -201,7 +202,7 @@ func (m *gridManager) Name() string { return "grid" }
 
 func (m *gridManager) RequestProc(content *window.Window) {
 	if p, ok := gridders[containerFor(content)]; ok {
-		p.arrange()
+		p.scheduleArrange()
 	}
 }
 
@@ -212,7 +213,7 @@ func (m *gridManager) LostContentProc(content *window.Window) {
 	delete(containerOf, content)
 	if p, ok := gridders[container]; ok {
 		p.remove(content)
-		p.arrange()
+		p.scheduleArrange()
 	}
 }
 
@@ -380,7 +381,7 @@ func Grid(children geometry.Elementer, opts ...GridOption) {
 		if old := containerOf[w]; old != nil && old != parent {
 			if og, ok := gridders[old]; ok {
 				og.remove(w)
-				og.arrange()
+				og.scheduleArrange()
 			}
 		}
 		containerOf[w] = parent
@@ -430,7 +431,7 @@ func Grid(children geometry.Elementer, opts ...GridOption) {
 		col++
 	}
 
-	g.arrange()
+	g.scheduleArrange()
 }
 
 // Forget removes a child from grid management.
@@ -452,7 +453,7 @@ func Forget(child window.Windower) {
 	}
 	if g, ok := gridders[parent]; ok {
 		g.remove(w)
-		g.arrange()
+		g.scheduleArrange()
 	}
 }
 
@@ -465,7 +466,7 @@ func RowConfigure(container window.Windower, row int, opts ...SlotOption) {
 	}
 	g := gridderFor(w)
 	g.rowConf[row] = &conf
-	g.arrange()
+	g.scheduleArrange()
 }
 
 // ColumnConfigure sets configuration for a column.
@@ -477,7 +478,7 @@ func ColumnConfigure(container window.Windower, col int, opts ...SlotOption) {
 	}
 	g := gridderFor(w)
 	g.colConf[col] = &conf
-	g.arrange()
+	g.scheduleArrange()
 }
 
 // SetAnchor sets the anchor for a grid container. The anchor controls where
@@ -486,7 +487,7 @@ func SetAnchor(container window.Windower, anchor option.Anchor) {
 	w := container.Window()
 	g := gridderFor(w)
 	g.anchor = anchor
-	g.arrange()
+	g.scheduleArrange()
 }
 
 // GetAnchor returns the anchor for a grid container.
@@ -504,7 +505,7 @@ func SetPropagate(container window.Windower, propagate bool) {
 	w := container.Window()
 	g := gridderFor(w)
 	g.propagate = propagate
-	g.arrange()
+	g.scheduleArrange()
 }
 
 // GetPropagate returns whether the grid propagates geometry requests.
@@ -1178,7 +1179,7 @@ func computeAnchor(anchor option.Anchor, container *window.Window, usedW, usedH 
 // ArrangeAll triggers layout for all grid-managed containers.
 func ArrangeAll() {
 	for _, g := range gridders {
-		g.arrange()
+		g.scheduleArrange()
 	}
 }
 
@@ -1189,7 +1190,7 @@ func init() {
 	window.AddMappedHook(ArrangeContainer)
 	window.AddMovedHook(func(w *window.Window) {
 		if g, ok := gridders[w]; ok && g.hasForeign() {
-			g.arrange()
+			g.scheduleArrange()
 		}
 	})
 	window.AddUnmappedHook(func(w *window.Window) {
@@ -1227,4 +1228,9 @@ func ArrangeContainer(container *window.Window) {
 	if g, ok := gridders[container]; ok {
 		g.arrange()
 	}
+}
+
+// scheduleArrange re-arranges the container at idle time.
+func (g *gridder) scheduleArrange() {
+	geometry.WhenIdle(g.container, &g.pending, g.arrange)
 }

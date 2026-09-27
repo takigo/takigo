@@ -21,6 +21,7 @@ func NewPanedwindow(parent widget.Caregiver, name string, opts ...PanedwindowOpt
 	pw := panedwindow.New(parent, name, opts...)
 	pw.Win.Class = "TPanedwindow"
 	pw.FlatSash = true
+	pw.Weighted = true
 	pw.BorderWidth = 0 // ttk::panedwindow has no border
 	pw.SashWidth = screenunit.Px("3.75p")
 	pw.GripSize = screenunit.Px("15p")
