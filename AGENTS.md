@@ -267,8 +267,17 @@ skill and script pipeline for comparing and fixing them.
   `claude` from inside a Claude Code session.
 - **Wish binary used for Tcl side:** `./tk/unix/wish` (built from the
   vendored Tk 9.1; `make -C tk/unix`). System `wish` is 8.6 and incompatible.
-- **Required tools on PATH:** `xdotool`, ImageMagick (`import`, `magick`,
-  `montage`), `odiff`, `xrdb`, `go`, `bash`; plus `xvfb-run` for headless
+  Configure Tk with `--disable-bidi`: `demos/parity.tsv` was recorded
+  without the bidi/HarfBuzz text layout (on by default since 9.1), which
+  wraps some labels differently (e.g. `button` gives 17.8% instead of 0).
+  From scratch: clone `tcltk/tcl` and `tcltk/tk` into `tcl/` and `tk/`,
+  `./configure --disable-shared` in `tcl/unix`, then
+  `./configure --with-tcl=$PWD/../../tcl/unix --disable-shared --disable-bidi`
+  and `make` in `tk/unix`.
+- **Required tools on PATH:** `xdotool`, ImageMagick 7 (`import`, `magick`,
+  `montage`; with ImageMagick 6 a `magick` wrapper that runs `identify`
+  for `magick identify` and `convert` otherwise works), `odiff`
+  (`npm i -g odiff-bin`), `xrdb`, `go`, `bash`; plus `xvfb-run` for headless
   runs. `wmctrl` and ImageMagick `compare` are no longer used. The skill
   verifies these and stops if any are missing.
 - **Diff score:** odiff diff % in `[0, 100]` (anti-aliasing ignored) from
