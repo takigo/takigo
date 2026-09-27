@@ -25,11 +25,23 @@ type pwGeomMgr struct {
 func (m *pwGeomMgr) Name() string { return "panedwindow" }
 
 func (m *pwGeomMgr) RequestProc(content *window.Window) {
-	if m.pw.Weighted {
-		m.pw.ttkSchedule(true, false)
+	pw := m.pw
+	if pw.Weighted {
+		pw.ttkSchedule(true, false)
 		return
 	}
-	m.pw.propagateReqSize()
+	// PanedWindowReqProc: an unmapped panedwindow adopts the request as
+	// the pane size; once mapped, requests only re-arrange.
+	if pw.Win.IsMapped() {
+		pw.scheduleArrange()
+		return
+	}
+	for i := range pw.panes {
+		if p := &pw.panes[i]; p.win == content && !p.userSet {
+			p.size = pw.reqSize(content)
+		}
+	}
+	pw.propagateReqSize()
 }
 
 func (m *pwGeomMgr) LostContentProc(content *window.Window) {}
@@ -234,7 +246,7 @@ func (pw *PanedWindow) Add(child *window.Window, minSize int) {
 	pw.panes = append(pw.panes, pane{
 		win:     child,
 		minSize: minSize,
-		size:    0,
+		size:    pw.reqSize(child),
 	})
 	pw.contentChanged()
 }
@@ -278,6 +290,14 @@ func (pw *PanedWindow) Panes() []*window.Window {
 		result[i] = p.win
 	}
 	return result
+}
+
+// reqSize is w's requested size along the panedwindow's orientation.
+func (pw *PanedWindow) reqSize(w *window.Window) int {
+	if pw.Orient == Horizontal {
+		return w.ReqWidth
+	}
+	return w.ReqHeight
 }
 
 // contentChanged recomputes the requested size and re-arranges after panes
@@ -362,9 +382,9 @@ func (pw *PanedWindow) arrangePanes() {
 	mapped := pw.Win.IsMapped()
 	for i := range pw.panes {
 		p := &pw.panes[i]
-		// PanedWindowReqProc only tracks requests until the widget is
-		// mapped; ttk's PaneRequest until the pane itself is placed.
-		track := !mapped || p.size == 0
+		// Classic sizes come from Add and PanedWindowReqProc (RequestProc);
+		// ttk's PaneRequest tracks requests until the pane is placed.
+		track := p.size == 0
 		if pw.Weighted {
 			track = !p.win.IsMapped()
 		}
