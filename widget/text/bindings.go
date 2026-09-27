@@ -8,314 +8,336 @@ import (
 	"github.com/msorc/takigo/widget"
 )
 
+// bindText registers all event handlers for the text widget.
 func bindText(t *TextWidget, app widget.AppContext) {
 	w := t.Win
 
 	// Expose.
-	app.Dispatcher().Bind(w.PlatformID, event.ExposureMask, func(ev *event.Event) {
-		if ev.ExposeCount > 0 {
-			return
-		}
-		t.Display()
-	})
+	app.Dispatcher().Bind(w.PlatformID, event.ExposureMask, t.handleExpose)
 
 	// Configure (resize).
-	app.Dispatcher().Bind(w.PlatformID, event.StructureNotifyMask, func(ev *event.Event) {
-		if ev.Type == event.ConfigureType {
-			w.Width = ev.ConfigWidth
-			w.Height = ev.ConfigHeight
-			t.inset = t.BorderWidth + t.HighlightWidth
-			t.notifyYScrollbar()
-			t.Display()
-		}
-	})
+	app.Dispatcher().Bind(w.PlatformID, event.StructureNotifyMask, t.handleConfigure)
 
 	// Focus.
-	app.Dispatcher().Bind(w.PlatformID, event.FocusChangeMask, func(ev *event.Event) {
-		if ev.Type == event.FocusInType {
-			t.hasFocus = true
-			t.cursorOn = true
-			t.Display()
-		} else if ev.Type == event.FocusOutType {
-			t.hasFocus = false
-			t.Display()
-		}
-	})
+	app.Dispatcher().Bind(w.PlatformID, event.FocusChangeMask, t.handleFocus)
 
 	// Mouse: click to position cursor.
-	app.Dispatcher().Bind(w.PlatformID, event.ButtonPressMask, func(ev *event.Event) {
-		switch ev.Button {
-		case 1:
-			app.Server().SetInputFocus(w.PlatformID, platform.RevertToParent, platform.CurrentTime)
-			idx := t.indexFromPixel(ev.X, ev.Y)
-			// Fire tag Button-1 bindings before modifying selection.
-			if len(t.tagBindings) > 0 {
-				for tag := range t.tagsAtIndex(idx) {
-					t.fireTagHandlers(tag, "<Button-1>")
-				}
-			}
-			t.clearSelection()
-			t.doc.MarkSet("insert", idx)
-			t.selAnchor = idx
-			t.Display()
-		case 4: // mouse wheel up
-			t.scrollByDisplayLines(-3)
-			t.clampScrollPosition()
-			t.notifyYScrollbar()
-			t.Display()
-		case 5: // mouse wheel down
-			t.scrollByDisplayLines(3)
-			t.clampScrollPosition()
-			t.notifyYScrollbar()
-			t.Display()
-		}
-	})
+	app.Dispatcher().Bind(w.PlatformID, event.ButtonPressMask, t.handleButtonPress)
 
 	// Mouse: drag to select.
-	app.Dispatcher().Bind(w.PlatformID, event.MotionMask, func(ev *event.Event) {
-		if len(t.tagBindings) > 0 {
-			idx := t.indexFromPixel(ev.X, ev.Y)
-			t.updateTagHover(t.tagsAtIndex(idx))
-		}
-		if ev.State&platform.Button1Mask != 0 {
-			idx := t.indexFromPixel(ev.X, ev.Y)
-			t.updateSelection(idx)
-			t.doc.MarkSet("insert", idx)
-			t.Display()
-		}
-	})
+	app.Dispatcher().Bind(w.PlatformID, event.MotionMask, t.handleMotion)
 
 	// Leave: clear tag hover state.
-	app.Dispatcher().Bind(w.PlatformID, event.LeaveMask, func(ev *event.Event) {
-		if len(t.tagBindings) > 0 {
-			t.updateTagHover(make(map[string]bool))
-		}
-	})
+	app.Dispatcher().Bind(w.PlatformID, event.LeaveMask, t.handleLeave)
 
 	// Keyboard.
-	app.Dispatcher().Bind(w.PlatformID, event.KeyPressMask, func(ev *event.Event) {
-		shift := ev.State&platform.ShiftMask != 0
-		ctrl := ev.State&(platform.ControlMask|platform.Mod2Mask) != 0 // Ctrl or Cmd (macOS)
+	app.Dispatcher().Bind(w.PlatformID, event.KeyPressMask, t.handleKeyPress)
+}
 
-		switch ev.KeySym {
-		case platform.XK_Left:
-			if ctrl {
-				newPos := WordStart(t.doc.Marks["insert"].Pos, t.doc)
-				moveCursor(t, newPos, shift)
-			} else {
-				pos := t.doc.Marks["insert"].Pos
-				moveCursor(t, Backward(pos, 1, t.doc), shift)
+// handleExpose handles Exposure events.
+func (t *TextWidget) handleExpose(ev *event.Event) {
+	if ev.ExposeCount > 0 {
+		return
+	}
+	t.Display()
+}
+
+// handleConfigure handles ConfigureNotify (resize) events.
+func (t *TextWidget) handleConfigure(ev *event.Event) {
+	if ev.Type == event.ConfigureType {
+		t.Win.Width = ev.ConfigWidth
+		t.Win.Height = ev.ConfigHeight
+		t.inset = t.BorderWidth + t.HighlightWidth
+		t.notifyYScrollbar()
+		t.Display()
+	}
+}
+
+// handleFocus handles FocusIn/FocusOut events.
+func (t *TextWidget) handleFocus(ev *event.Event) {
+	if ev.Type == event.FocusInType {
+		t.hasFocus = true
+		t.cursorOn = true
+		t.Display()
+	} else if ev.Type == event.FocusOutType {
+		t.hasFocus = false
+		t.Display()
+	}
+}
+
+// handleButtonPress handles mouse button press events.
+func (t *TextWidget) handleButtonPress(ev *event.Event) {
+	switch ev.Button {
+	case 1:
+		t.App.Server().SetInputFocus(t.Win.PlatformID, platform.RevertToParent, platform.CurrentTime)
+		idx := t.indexFromPixel(ev.X, ev.Y)
+		// Fire tag Button-1 bindings before modifying selection.
+		if len(t.tagBindings) > 0 {
+			for tag := range t.tagsAtIndex(idx) {
+				t.fireTagHandlers(tag, "<Button-1>")
 			}
+		}
+		t.clearSelection()
+		t.doc.MarkSet("insert", idx)
+		t.selAnchor = idx
+		t.Display()
+	case 4: // mouse wheel up
+		t.scrollByDisplayLines(-3)
+		t.clampScrollPosition()
+		t.notifyYScrollbar()
+		t.Display()
+	case 5: // mouse wheel down
+		t.scrollByDisplayLines(3)
+		t.clampScrollPosition()
+		t.notifyYScrollbar()
+		t.Display()
+	}
+}
 
-		case platform.XK_Right:
-			if ctrl {
-				newPos := WordEnd(t.doc.Marks["insert"].Pos, t.doc)
-				moveCursor(t, newPos, shift)
-			} else {
-				pos := t.doc.Marks["insert"].Pos
-				moveCursor(t, Forward(pos, 1, t.doc), shift)
-			}
+// handleMotion handles mouse motion events (drag to select, tag hover).
+func (t *TextWidget) handleMotion(ev *event.Event) {
+	if len(t.tagBindings) > 0 {
+		idx := t.indexFromPixel(ev.X, ev.Y)
+		t.updateTagHover(t.tagsAtIndex(idx))
+	}
+	if ev.State&platform.Button1Mask != 0 {
+		idx := t.indexFromPixel(ev.X, ev.Y)
+		t.updateSelection(idx)
+		t.doc.MarkSet("insert", idx)
+		t.Display()
+	}
+}
 
-		case platform.XK_Up:
+// handleLeave handles Leave events (clear tag hover).
+func (t *TextWidget) handleLeave(ev *event.Event) {
+	if len(t.tagBindings) > 0 {
+		t.updateTagHover(make(map[string]bool))
+	}
+}
+
+// handleKeyPress handles keyboard events.
+func (t *TextWidget) handleKeyPress(ev *event.Event) {
+	shift := ev.State&platform.ShiftMask != 0
+	ctrl := ev.State&(platform.ControlMask|platform.Mod2Mask) != 0 // Ctrl or Cmd (macOS)
+
+	switch ev.KeySym {
+	case platform.XK_Left:
+		if ctrl {
+			newPos := WordStart(t.doc.Marks["insert"].Pos, t.doc)
+			moveCursor(t, newPos, shift)
+		} else {
 			pos := t.doc.Marks["insert"].Pos
-			moveCursor(t, UpLine(pos, t.doc), shift)
+			moveCursor(t, Backward(pos, 1, t.doc), shift)
+		}
 
-		case platform.XK_Down:
+	case platform.XK_Right:
+		if ctrl {
+			newPos := WordEnd(t.doc.Marks["insert"].Pos, t.doc)
+			moveCursor(t, newPos, shift)
+		} else {
 			pos := t.doc.Marks["insert"].Pos
-			moveCursor(t, DownLine(pos, t.doc), shift)
+			moveCursor(t, Forward(pos, 1, t.doc), shift)
+		}
 
-		case platform.XK_Home:
-			if ctrl {
-				moveCursor(t, Index{1, 0}, shift)
-			} else {
-				pos := t.doc.Marks["insert"].Pos
-				moveCursor(t, LineStart(pos.Line), shift)
-			}
+	case platform.XK_Up:
+		pos := t.doc.Marks["insert"].Pos
+		moveCursor(t, UpLine(pos, t.doc), shift)
 
-		case platform.XK_End:
-			if ctrl {
-				moveCursor(t, t.doc.EndIndex(), shift)
-			} else {
-				pos := t.doc.Marks["insert"].Pos
-				moveCursor(t, LineEnd(pos.Line, t.doc), shift)
-			}
+	case platform.XK_Down:
+		pos := t.doc.Marks["insert"].Pos
+		moveCursor(t, DownLine(pos, t.doc), shift)
 
-		case platform.XK_Prior: // PageUp
-			visLines := (t.Win.Height - 2*t.insetY) / t.lineHeight()
-			if visLines < 1 {
-				visLines = 1
-			}
+	case platform.XK_Home:
+		if ctrl {
+			moveCursor(t, Index{1, 0}, shift)
+		} else {
 			pos := t.doc.Marks["insert"].Pos
-			for i := 0; i < visLines; i++ {
-				pos = UpLine(pos, t.doc)
-			}
-			moveCursor(t, pos, shift)
-			t.scrollByDisplayLines(-visLines)
-			t.clampScrollPosition()
-			t.notifyYScrollbar()
+			moveCursor(t, LineStart(pos.Line), shift)
+		}
 
-		case platform.XK_Next: // PageDown
-			visLines := (t.Win.Height - 2*t.insetY) / t.lineHeight()
-			if visLines < 1 {
-				visLines = 1
-			}
+	case platform.XK_End:
+		if ctrl {
+			moveCursor(t, t.doc.EndIndex(), shift)
+		} else {
 			pos := t.doc.Marks["insert"].Pos
-			for i := 0; i < visLines; i++ {
-				pos = DownLine(pos, t.doc)
-			}
-			moveCursor(t, pos, shift)
-			t.scrollByDisplayLines(visLines)
-			t.clampScrollPosition()
-			t.notifyYScrollbar()
+			moveCursor(t, LineEnd(pos.Line, t.doc), shift)
+		}
 
-		case platform.XK_Return:
-			if t.readOnly {
-				return
-			}
-			t.undoStack.Separator()
-			t.deleteSelection()
-			insertAt := t.doc.Marks["insert"].Pos
-			endIdx := t.doc.Insert(insertAt, "\n")
-			if t.undoEnabled {
-				t.undoStack.RecordInsert(insertAt, endIdx, "\n")
-			}
-			t.doc.MarkSet("insert", endIdx)
+	case platform.XK_Prior: // PageUp
+		visLines := (t.Win.Height - 2*t.insetY) / t.lineHeight()
+		if visLines < 1 {
+			visLines = 1
+		}
+		pos := t.doc.Marks["insert"].Pos
+		for i := 0; i < visLines; i++ {
+			pos = UpLine(pos, t.doc)
+		}
+		moveCursor(t, pos, shift)
+		t.scrollByDisplayLines(-visLines)
+		t.clampScrollPosition()
+		t.notifyYScrollbar()
+
+	case platform.XK_Next: // PageDown
+		visLines := (t.Win.Height - 2*t.insetY) / t.lineHeight()
+		if visLines < 1 {
+			visLines = 1
+		}
+		pos := t.doc.Marks["insert"].Pos
+		for i := 0; i < visLines; i++ {
+			pos = DownLine(pos, t.doc)
+		}
+		moveCursor(t, pos, shift)
+		t.scrollByDisplayLines(visLines)
+		t.clampScrollPosition()
+		t.notifyYScrollbar()
+
+	case platform.XK_Return:
+		if t.readOnly {
+			return
+		}
+		t.undoStack.Separator()
+		t.deleteSelection()
+		insertAt := t.doc.Marks["insert"].Pos
+		endIdx := t.doc.Insert(insertAt, "\n")
+		if t.undoEnabled {
+			t.undoStack.RecordInsert(insertAt, endIdx, "\n")
+		}
+		t.doc.MarkSet("insert", endIdx)
+		t.seeInsert()
+		t.notifyYScrollbar()
+		t.Display()
+
+	case platform.XK_BackSpace:
+		if t.readOnly {
+			return
+		}
+		if t.deleteSelection() {
 			t.seeInsert()
 			t.notifyYScrollbar()
 			t.Display()
-
-		case platform.XK_BackSpace:
-			if t.readOnly {
-				return
-			}
-			if t.deleteSelection() {
+		} else {
+			pos := t.doc.Marks["insert"].Pos
+			if pos.Line > 1 || pos.Char > 0 {
+				prevPos := Backward(pos, 1, t.doc)
+				text := t.doc.Get(prevPos, pos)
+				t.doc.Delete(prevPos, pos)
+				if t.undoEnabled {
+					t.undoStack.RecordDelete(prevPos, pos, text)
+				}
+				t.doc.MarkSet("insert", prevPos)
 				t.seeInsert()
 				t.notifyYScrollbar()
 				t.Display()
-			} else {
-				pos := t.doc.Marks["insert"].Pos
-				if pos.Line > 1 || pos.Char > 0 {
-					prevPos := Backward(pos, 1, t.doc)
-					text := t.doc.Get(prevPos, pos)
-					t.doc.Delete(prevPos, pos)
-					if t.undoEnabled {
-						t.undoStack.RecordDelete(prevPos, pos, text)
-					}
-					t.doc.MarkSet("insert", prevPos)
-					t.seeInsert()
-					t.notifyYScrollbar()
-					t.Display()
-				}
 			}
+		}
 
-		case platform.XK_Insert:
-			// Ctrl+Insert: copy; Shift+Insert: paste.
-			if ctrl {
-				if sel := t.GetSelection(); sel != "" {
-					t.App.Clipboard().Set(t.Win.PlatformID, sel, platform.Timestamp(ev.Time))
-				}
-			} else if shift {
-				if t.readOnly {
+	case platform.XK_Insert:
+		// Ctrl+Insert: copy; Shift+Insert: paste.
+		if ctrl {
+			if sel := t.GetSelection(); sel != "" {
+				t.App.Clipboard().Set(t.Win.PlatformID, sel, platform.Timestamp(ev.Time))
+			}
+		} else if shift {
+			if t.readOnly {
+				return
+			}
+			t.App.Clipboard().Get(t.Win.PlatformID, platform.Timestamp(ev.Time), func(text string) {
+				if text == "" {
 					return
 				}
-				t.App.Clipboard().Get(t.Win.PlatformID, platform.Timestamp(ev.Time), func(text string) {
-					if text == "" {
-						return
-					}
-					t.undoStack.Separator()
-					t.deleteSelection()
-					insertAt := t.doc.Marks["insert"].Pos
-					endIdx := t.doc.Insert(insertAt, text)
-					if t.undoEnabled {
-						t.undoStack.RecordInsert(insertAt, endIdx, text)
-					}
-					t.doc.MarkSet("insert", endIdx)
-					t.seeInsert()
-					t.notifyYScrollbar()
-					t.Display()
-				})
-			}
-
-		case platform.XK_Delete:
-			// Shift+Delete: cut selection.
-			if shift && !t.readOnly {
-				if sel := t.GetSelection(); sel != "" {
-					t.App.Clipboard().Set(t.Win.PlatformID, sel, platform.Timestamp(ev.Time))
-					t.deleteSelection()
-					t.seeInsert()
-					t.notifyYScrollbar()
-					t.Display()
-				}
-				return
-			}
-			if t.readOnly {
-				return
-			}
-			if t.deleteSelection() {
-				t.seeInsert()
-				t.notifyYScrollbar()
-				t.Display()
-			} else {
-				pos := t.doc.Marks["insert"].Pos
-				endPos := t.doc.EndIndex()
-				if Compare(pos, endPos) < 0 {
-					nextPos := Forward(pos, 1, t.doc)
-					text := t.doc.Get(pos, nextPos)
-					t.doc.Delete(pos, nextPos)
-					if t.undoEnabled {
-						t.undoStack.RecordDelete(pos, nextPos, text)
-					}
-					t.seeInsert()
-					t.notifyYScrollbar()
-					t.Display()
-				}
-			}
-
-		case platform.XK_Tab:
-			if t.readOnly {
-				return
-			}
-			t.deleteSelection()
-			insertAt := t.doc.Marks["insert"].Pos
-			spaces := tabWidth - (insertAt.Char % tabWidth)
-			tabStr := strings.Repeat(" ", spaces)
-			endIdx := t.doc.Insert(insertAt, tabStr)
-			if t.undoEnabled {
-				t.undoStack.RecordInsert(insertAt, endIdx, tabStr)
-			}
-			t.doc.MarkSet("insert", endIdx)
-			t.seeInsert()
-			t.Display()
-
-		default:
-			if ctrl {
-				handleCtrlKey(t, ev)
-				return
-			}
-			if t.readOnly {
-				return
-			}
-			// Insert printable characters.
-			insertStr := ev.Str
-			if insertStr == "" {
-				if r := platform.KeySymToRune(ev.KeySym); r > 0 {
-					insertStr = string(r)
-				}
-			}
-			if insertStr != "" && len(insertStr) > 0 && insertStr[0] >= 32 {
+				t.undoStack.Separator()
 				t.deleteSelection()
 				insertAt := t.doc.Marks["insert"].Pos
-				endIdx := t.doc.Insert(insertAt, insertStr)
+				endIdx := t.doc.Insert(insertAt, text)
 				if t.undoEnabled {
-					t.undoStack.RecordInsert(insertAt, endIdx, insertStr)
+					t.undoStack.RecordInsert(insertAt, endIdx, text)
 				}
 				t.doc.MarkSet("insert", endIdx)
 				t.seeInsert()
 				t.notifyYScrollbar()
 				t.Display()
+			})
+		}
+
+	case platform.XK_Delete:
+		// Shift+Delete: cut selection.
+		if shift && !t.readOnly {
+			if sel := t.GetSelection(); sel != "" {
+				t.App.Clipboard().Set(t.Win.PlatformID, sel, platform.Timestamp(ev.Time))
+				t.deleteSelection()
+				t.seeInsert()
+				t.notifyYScrollbar()
+				t.Display()
+			}
+			return
+		}
+		if t.readOnly {
+			return
+		}
+		if t.deleteSelection() {
+			t.seeInsert()
+			t.notifyYScrollbar()
+			t.Display()
+		} else {
+			pos := t.doc.Marks["insert"].Pos
+			endPos := t.doc.EndIndex()
+			if Compare(pos, endPos) < 0 {
+				nextPos := Forward(pos, 1, t.doc)
+				text := t.doc.Get(pos, nextPos)
+				t.doc.Delete(pos, nextPos)
+				if t.undoEnabled {
+					t.undoStack.RecordDelete(pos, nextPos, text)
+				}
+				t.seeInsert()
+				t.notifyYScrollbar()
+				t.Display()
 			}
 		}
-	})
+
+	case platform.XK_Tab:
+		if t.readOnly {
+			return
+		}
+		t.deleteSelection()
+		insertAt := t.doc.Marks["insert"].Pos
+		spaces := tabWidth - (insertAt.Char % tabWidth)
+		tabStr := strings.Repeat(" ", spaces)
+		endIdx := t.doc.Insert(insertAt, tabStr)
+		if t.undoEnabled {
+			t.undoStack.RecordInsert(insertAt, endIdx, tabStr)
+		}
+		t.doc.MarkSet("insert", endIdx)
+		t.seeInsert()
+		t.Display()
+
+	default:
+		if ctrl {
+			handleCtrlKey(t, ev)
+			return
+		}
+		if t.readOnly {
+			return
+		}
+		// Insert printable characters.
+		insertStr := ev.Str
+		if insertStr == "" {
+			if r := platform.KeySymToRune(ev.KeySym); r > 0 {
+				insertStr = string(r)
+			}
+		}
+		if insertStr != "" && len(insertStr) > 0 && insertStr[0] >= 32 {
+			t.deleteSelection()
+			insertAt := t.doc.Marks["insert"].Pos
+			endIdx := t.doc.Insert(insertAt, insertStr)
+			if t.undoEnabled {
+				t.undoStack.RecordInsert(insertAt, endIdx, insertStr)
+			}
+			t.doc.MarkSet("insert", endIdx)
+			t.seeInsert()
+			t.notifyYScrollbar()
+			t.Display()
+		}
+	}
 }
 
 // moveCursor moves the insert cursor, optionally extending selection.

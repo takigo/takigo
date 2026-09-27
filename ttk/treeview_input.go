@@ -97,178 +97,206 @@ func (tv *Treeview) hitTest(x, y int) hitResult {
 
 // --- Event Bindings ---
 
+// bindTreeview registers all event handlers for the treeview widget.
 func bindTreeview(tv *Treeview, app widget.AppContext) {
 	win := tv.Win
 
 	// Expose.
-	app.Dispatcher().Bind(win.PlatformID, event.ExposureMask, func(ev *event.Event) {
-		if ev.ExposeCount > 0 {
-			return
-		}
-		tv.Display()
-	})
+	app.Dispatcher().Bind(win.PlatformID, event.ExposureMask, tv.handleExpose)
 
 	// Configure (resize).
-	app.Dispatcher().Bind(win.PlatformID, event.StructureNotifyMask, func(ev *event.Event) {
-		if ev.Type == event.ConfigureType {
-			// The geometry manager already set Width/Height; a queued
-			// ConfigureNotify may carry a stale size. Like Tk, redisplay
-			// (and so ResizeColumns) at idle, once the layout has settled.
-			tv.scheduleRedisplay()
-		}
-	})
+	app.Dispatcher().Bind(win.PlatformID, event.StructureNotifyMask, tv.handleConfigure)
 
 	// Focus.
-	app.Dispatcher().Bind(win.PlatformID, event.FocusChangeMask, func(ev *event.Event) {
-		if ev.Type == event.FocusInType {
-			tv.hasFocus = true
-			tv.Display()
-		} else if ev.Type == event.FocusOutType {
-			tv.hasFocus = false
-			tv.Display()
-		}
-	})
+	app.Dispatcher().Bind(win.PlatformID, event.FocusChangeMask, tv.handleFocus)
 
 	// Button press.
-	app.Dispatcher().Bind(win.PlatformID, event.ButtonPressMask, func(ev *event.Event) {
-		// Take focus.
-		app.Server().SetInputFocus(win.PlatformID, platform.RevertToParent, platform.CurrentTime)
-
-		if ev.Button == 1 {
-			hit := tv.hitTest(ev.X-treeviewFieldBorder, ev.Y-treeviewFieldBorder)
-			switch hit.region {
-			case hitSeparator:
-				// Start column resize.
-				tv.resizeCol = hit.colIdx
-				tv.resizeDragX = ev.X
-			case hitHeading:
-				// Heading click.
-				if hit.colIdx >= 0 && hit.colIdx < len(tv.columns) {
-					col := tv.columns[hit.colIdx]
-					if col.HeadingCommand != nil {
-						col.HeadingCommand()
-					}
-				}
-			case hitIndicator:
-				// Toggle open/close.
-				if item := tv.items[hit.itemID]; item != nil {
-					tv.SetItemOpen(hit.itemID, !item.Open)
-				}
-			case hitTree, hitCell:
-				// Select item; detect double-click to toggle open.
-				if hit.itemID != "" {
-					isDouble := hit.itemID == tv.lastClickItem &&
-						ev.Time-tv.lastClickTime < 500
-					tv.lastClickTime = ev.Time
-					tv.lastClickItem = hit.itemID
-					tv.handleSelect(hit.itemID, hit.dispIdx, ev.State)
-					tv.focus = hit.itemID
-					tv.Display()
-					if isDouble {
-						if item := tv.items[hit.itemID]; item != nil && len(item.Children) > 0 {
-							tv.SetItemOpen(hit.itemID, !item.Open)
-						}
-						if tv.OnDoubleClick != nil {
-							tv.OnDoubleClick(hit.itemID)
-						}
-					}
-				}
-			}
-		} else if ev.Button == 4 {
-			tv.YView(tv.topIndex - 3)
-		} else if ev.Button == 5 {
-			tv.YView(tv.topIndex + 3)
-		}
-	})
+	app.Dispatcher().Bind(win.PlatformID, event.ButtonPressMask, tv.handleButtonPress)
 
 	// Motion (column resize drag).
-	app.Dispatcher().Bind(win.PlatformID, event.MotionMask, func(ev *event.Event) {
-		if tv.resizeCol < 0 {
-			return
-		}
-		delta := ev.X - tv.resizeDragX
-		if tv.resizeCol == -1 {
-			// Tree column resize.
-			newW := tv.treeColumnWidth + delta
-			if newW < 20 {
-				newW = 20
-			}
-			tv.treeColumnWidth = newW
-		} else if tv.resizeCol < len(tv.columns) {
-			col := tv.columns[tv.resizeCol]
-			newW := col.Width + delta
-			if newW < col.MinWidth {
-				newW = col.MinWidth
-			}
-			col.Width = newW
-		}
-		tv.resizeDragX = ev.X
-		tv.Display()
-	})
+	app.Dispatcher().Bind(win.PlatformID, event.MotionMask, tv.handleMotion)
 
 	// Button release.
-	app.Dispatcher().Bind(win.PlatformID, event.ButtonReleaseMask, func(ev *event.Event) {
-		if ev.Button == 1 {
-			tv.resizeCol = -1
-		}
-	})
+	app.Dispatcher().Bind(win.PlatformID, event.ButtonReleaseMask, tv.handleButtonRelease)
 
 	// Keyboard.
-	app.Dispatcher().Bind(win.PlatformID, event.KeyPressMask, func(ev *event.Event) {
-		ks := ev.KeySym
-		switch {
-		case ks == platform.XK_Up:
-			tv.moveFocus(-1)
-		case ks == platform.XK_Down:
-			tv.moveFocus(1)
-		case ks == platform.XK_Left:
-			// Collapse current or move to parent.
-			if item := tv.items[tv.focus]; item != nil {
-				if item.Open && len(item.Children) > 0 {
-					tv.SetItemOpen(tv.focus, false)
-				} else if item.Parent != nil && item.Parent.ID != "" {
-					tv.focus = item.Parent.ID
-					tv.SelectionSet(tv.focus)
-					tv.See(tv.focus)
+	app.Dispatcher().Bind(win.PlatformID, event.KeyPressMask, tv.handleKeyPress)
+
+	// Enter/Leave for hover state.
+	app.Dispatcher().Bind(win.PlatformID, event.EnterMask, tv.handleEnter)
+	app.Dispatcher().Bind(win.PlatformID, event.LeaveMask, tv.handleLeave)
+}
+
+// handleExpose handles Exposure events.
+func (tv *Treeview) handleExpose(ev *event.Event) {
+	if ev.ExposeCount > 0 {
+		return
+	}
+	tv.Display()
+}
+
+// handleConfigure handles ConfigureNotify (resize) events.
+func (tv *Treeview) handleConfigure(ev *event.Event) {
+	if ev.Type == event.ConfigureType {
+		// The geometry manager already set Width/Height; a queued
+		// ConfigureNotify may carry a stale size. Like Tk, redisplay
+		// (and so ResizeColumns) at idle, once the layout has settled.
+		tv.scheduleRedisplay()
+	}
+}
+
+// handleFocus handles FocusIn/FocusOut events.
+func (tv *Treeview) handleFocus(ev *event.Event) {
+	if ev.Type == event.FocusInType {
+		tv.hasFocus = true
+		tv.Display()
+	} else if ev.Type == event.FocusOutType {
+		tv.hasFocus = false
+		tv.Display()
+	}
+}
+
+// handleEnter handles Enter events (hover state).
+func (tv *Treeview) handleEnter(ev *event.Event) {
+	tv.ChangeState(StateHover|StateActive, 0)
+}
+
+// handleLeave handles Leave events (hover state).
+func (tv *Treeview) handleLeave(ev *event.Event) {
+	tv.ChangeState(0, StateHover|StateActive|StatePressed)
+}
+
+// handleButtonPress handles mouse button press events.
+func (tv *Treeview) handleButtonPress(ev *event.Event) {
+	// Take focus.
+	tv.App.Server().SetInputFocus(tv.Win.PlatformID, platform.RevertToParent, platform.CurrentTime)
+
+	if ev.Button == 1 {
+		hit := tv.hitTest(ev.X-treeviewFieldBorder, ev.Y-treeviewFieldBorder)
+		switch hit.region {
+		case hitSeparator:
+			// Start column resize.
+			tv.resizeCol = hit.colIdx
+			tv.resizeDragX = ev.X
+		case hitHeading:
+			// Heading click.
+			if hit.colIdx >= 0 && hit.colIdx < len(tv.columns) {
+				col := tv.columns[hit.colIdx]
+				if col.HeadingCommand != nil {
+					col.HeadingCommand()
 				}
 			}
-		case ks == platform.XK_Right:
-			// Expand current or move to first child.
-			if item := tv.items[tv.focus]; item != nil {
-				if !item.Open && len(item.Children) > 0 {
-					tv.SetItemOpen(tv.focus, true)
-				} else if len(item.Children) > 0 {
-					tv.focus = item.Children[0].ID
-					tv.SelectionSet(tv.focus)
-					tv.See(tv.focus)
+		case hitIndicator:
+			// Toggle open/close.
+			if item := tv.items[hit.itemID]; item != nil {
+				tv.SetItemOpen(hit.itemID, !item.Open)
+			}
+		case hitTree, hitCell:
+			// Select item; detect double-click to toggle open.
+			if hit.itemID != "" {
+				isDouble := hit.itemID == tv.lastClickItem &&
+					ev.Time-tv.lastClickTime < 500
+				tv.lastClickTime = ev.Time
+				tv.lastClickItem = hit.itemID
+				tv.handleSelect(hit.itemID, hit.dispIdx, ev.State)
+				tv.focus = hit.itemID
+				tv.Display()
+				if isDouble {
+					if item := tv.items[hit.itemID]; item != nil && len(item.Children) > 0 {
+						tv.SetItemOpen(hit.itemID, !item.Open)
+					}
+					if tv.OnDoubleClick != nil {
+						tv.OnDoubleClick(hit.itemID)
+					}
 				}
 			}
-		case ks == platform.XK_Return || ks == platform.XK_space:
-			if item := tv.items[tv.focus]; item != nil && len(item.Children) > 0 {
-				tv.SetItemOpen(tv.focus, !item.Open)
-			}
-		case ks == platform.XK_Home:
-			if len(tv.displayList) > 0 {
-				tv.focus = tv.displayList[0].item.ID
-				tv.SelectionSet(tv.focus)
-				tv.See(tv.focus)
-			}
-		case ks == platform.XK_End:
-			if len(tv.displayList) > 0 {
-				tv.focus = tv.displayList[len(tv.displayList)-1].item.ID
+		}
+	} else if ev.Button == 4 {
+		tv.YView(tv.topIndex - 3)
+	} else if ev.Button == 5 {
+		tv.YView(tv.topIndex + 3)
+	}
+}
+
+// handleMotion handles mouse motion events (column resize drag).
+func (tv *Treeview) handleMotion(ev *event.Event) {
+	if tv.resizeCol < 0 {
+		return
+	}
+	delta := ev.X - tv.resizeDragX
+	if tv.resizeCol == -1 {
+		// Tree column resize.
+		newW := tv.treeColumnWidth + delta
+		if newW < 20 {
+			newW = 20
+		}
+		tv.treeColumnWidth = newW
+	} else if tv.resizeCol < len(tv.columns) {
+		col := tv.columns[tv.resizeCol]
+		newW := col.Width + delta
+		if newW < col.MinWidth {
+			newW = col.MinWidth
+		}
+		col.Width = newW
+	}
+	tv.resizeDragX = ev.X
+	tv.Display()
+}
+
+// handleButtonRelease handles mouse button release events.
+func (tv *Treeview) handleButtonRelease(ev *event.Event) {
+	if ev.Button == 1 {
+		tv.resizeCol = -1
+	}
+}
+
+// handleKeyPress handles keyboard events.
+func (tv *Treeview) handleKeyPress(ev *event.Event) {
+	ks := ev.KeySym
+	switch {
+	case ks == platform.XK_Up:
+		tv.moveFocus(-1)
+	case ks == platform.XK_Down:
+		tv.moveFocus(1)
+	case ks == platform.XK_Left:
+		// Collapse current or move to parent.
+		if item := tv.items[tv.focus]; item != nil {
+			if item.Open && len(item.Children) > 0 {
+				tv.SetItemOpen(tv.focus, false)
+			} else if item.Parent != nil && item.Parent.ID != "" {
+				tv.focus = item.Parent.ID
 				tv.SelectionSet(tv.focus)
 				tv.See(tv.focus)
 			}
 		}
-	})
-
-	// Enter/Leave for hover state.
-	app.Dispatcher().Bind(win.PlatformID, event.EnterMask, func(ev *event.Event) {
-		tv.ChangeState(StateHover|StateActive, 0)
-	})
-	app.Dispatcher().Bind(win.PlatformID, event.LeaveMask, func(ev *event.Event) {
-		tv.ChangeState(0, StateHover|StateActive|StatePressed)
-	})
+	case ks == platform.XK_Right:
+		// Expand current or move to first child.
+		if item := tv.items[tv.focus]; item != nil {
+			if !item.Open && len(item.Children) > 0 {
+				tv.SetItemOpen(tv.focus, true)
+			} else if len(item.Children) > 0 {
+				tv.focus = item.Children[0].ID
+				tv.SelectionSet(tv.focus)
+				tv.See(tv.focus)
+			}
+		}
+	case ks == platform.XK_Return || ks == platform.XK_space:
+		if item := tv.items[tv.focus]; item != nil && len(item.Children) > 0 {
+			tv.SetItemOpen(tv.focus, !item.Open)
+		}
+	case ks == platform.XK_Home:
+		if len(tv.displayList) > 0 {
+			tv.focus = tv.displayList[0].item.ID
+			tv.SelectionSet(tv.focus)
+			tv.See(tv.focus)
+		}
+	case ks == platform.XK_End:
+		if len(tv.displayList) > 0 {
+			tv.focus = tv.displayList[len(tv.displayList)-1].item.ID
+			tv.SelectionSet(tv.focus)
+			tv.See(tv.focus)
+		}
+	}
 }
 
 func (tv *Treeview) handleSelect(id string, dispIdx int, state uint) {
