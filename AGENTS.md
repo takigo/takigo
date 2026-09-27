@@ -40,8 +40,11 @@ There is **no `Makefile` and no `go.sum`** — dependencies are stdlib only.
 `.github/workflows/ci.yml`, which also vets the Windows backend
 (`CGO_ENABLED=0 GOOS=windows go vet ./...`, pure Go, runs on Linux) and
 builds on macOS. Linux builds need `libx11-dev libxft-dev
-libfontconfig1-dev`; display tests run under `xvfb-run` with `-p 1`
-(parallel test binaries sharing one Xvfb intermittently fail to connect).
+libfontconfig1-dev`; run display tests under
+`xvfb-run -a -s "-screen 0 1280x1024x24 -noreset"` — without `-noreset`
+Xvfb resets when its last client disconnects and refuses connections
+meanwhile, so tests that open an App right after destroying one fail
+with "cannot open display".
 `.golangci.yml` enables a broad linter set plus `gofmt`/`goimports` with
 `local-prefixes: github.com/msorc/takigo`; it is not a CI gate, so existing
 code is not lint-clean — don't mass-fix unrelated warnings.
