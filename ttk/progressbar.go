@@ -32,7 +32,7 @@ type Progressbar struct {
 	Length  int // requested length in pixels
 
 	animating bool
-	stopChan  chan struct{}
+	animGen   int // bumped by Start and Stop; stale tick chains see a mismatch
 }
 
 // ProgressbarOption configures a Progressbar.
@@ -211,16 +211,12 @@ func (p *Progressbar) Start(interval time.Duration) {
 		return
 	}
 	p.animating = true
-	p.stopChan = make(chan struct{})
+	p.animGen++
+	gen := p.animGen
 
 	var tick func()
 	tick = func() {
-		select {
-		case <-p.stopChan:
-			return
-		default:
-		}
-		if !p.animating || p.Destroyed {
+		if gen != p.animGen || p.Destroyed {
 			return
 		}
 		p.App.After(interval, tick)
@@ -235,7 +231,7 @@ func (p *Progressbar) Stop() {
 		return
 	}
 	p.animating = false
-	close(p.stopChan)
+	p.animGen++
 }
 
 // Destroy frees resources.
