@@ -214,18 +214,19 @@ type mockFont struct {
 	metrics font.Metrics
 }
 
-func (m *mockFont) Attrs() font.Attributes                { return font.Attributes{} }
-func (m *mockFont) Metrics() font.Metrics                   { return m.metrics }
-func (m *mockFont) MeasureString(s string) int         { return len(s) * m.metrics.MaxWidth }
-func (m *mockFont) Close()                             {}
+func (m *mockFont) Attrs() font.Attributes     { return font.Attributes{} }
+func (m *mockFont) Metrics() font.Metrics      { return m.metrics }
+func (m *mockFont) MeasureString(s string) int { return len(s) * m.metrics.MaxWidth }
+func (m *mockFont) Close()                     {}
 
 type mockImage struct {
 	w, h int
 }
 
-func (m *mockImage) Width() int                            { return m.w }
-func (m *mockImage) Height() int                           { return m.h }
+func (m *mockImage) Width() int  { return m.w }
+func (m *mockImage) Height() int { return m.h }
 func (m *mockImage) Draw(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID,
 	depth int,
 	imgX, imgY, w, h, dstX, dstY int,
-	bgPixel uint64) {}
+	bgPixel uint64) {
+}

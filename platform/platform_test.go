@@ -44,10 +44,10 @@ func TestAtoms(t *testing.T) {
 
 func TestWindowAttrs(t *testing.T) {
 	attrs := &WindowAttrs{
-		BackgroundPixel: 0xFFFFFF,
-		BorderPixel:     0x000000,
-		BitGravity:      0,
-		EventMask:       0xFFFFFFFF,
+		BackgroundPixel:  0xFFFFFF,
+		BorderPixel:      0x000000,
+		BitGravity:       0,
+		EventMask:        0xFFFFFFFF,
 		OverrideRedirect: true,
 	}
 

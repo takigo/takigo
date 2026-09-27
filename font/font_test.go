@@ -7,9 +7,9 @@ import (
 
 func TestParseDescriptorXLFD(t *testing.T) {
 	tests := []struct {
-		input    string
-		want     Attributes
-		wantErr  bool
+		input   string
+		want    Attributes
+		wantErr bool
 	}{
 		{
 			input: "-*-helvetica-bold-r-normal--*-120-*-*-*-*-*-*",
@@ -30,7 +30,7 @@ func TestParseDescriptorXLFD(t *testing.T) {
 			want:  Attributes{Family: "invalid", Size: 12},
 		},
 		{
-			// 3 dashes < 13, falls to simple format  
+			// 3 dashes < 13, falls to simple format
 			input: "-*-incomplete",
 			want:  Attributes{Family: "-*-incomplete", Size: 12},
 		},
@@ -116,8 +116,8 @@ func TestParseDescriptorOptionValue(t *testing.T) {
 
 func TestParseDescriptorSimple(t *testing.T) {
 	tests := []struct {
-		input  string
-		want   Attributes
+		input string
+		want  Attributes
 	}{
 		{"Helvetica 12", Attributes{Family: "Helvetica", Size: 12}},
 		{"Times 14 bold", Attributes{Family: "Times", Size: 14, Weight: WeightBold}},

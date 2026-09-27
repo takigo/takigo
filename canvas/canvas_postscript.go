@@ -16,7 +16,7 @@ import (
 //   - Otherwise: returns the full PostScript string.
 func (c *Canvas) Postscript(opts ...PostscriptOption) (string, error) {
 	cfg := psConfig{
-		Prolog:   true,
+		Prolog:    true,
 		ColorMode: "color",
 	}
 	for _, o := range opts {

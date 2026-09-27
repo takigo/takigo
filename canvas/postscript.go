@@ -20,16 +20,16 @@ type PSContext struct {
 	itemStart int // offset of the current item's first byte in buf
 
 	// Page geometry (PostScript points; 72 pt/in).
-	PageX, PageY      float64
-	PageWidth         float64
-	PageHeight        float64
-	Scale             float64
-	Anchor            option.Anchor
-	Rotate            bool
-	Prolog            bool
+	PageX, PageY float64
+	PageWidth    float64
+	PageHeight   float64
+	Scale        float64
+	Anchor       option.Anchor
+	Rotate       bool
+	Prolog       bool
 
 	// Source rectangle in canvas pixel coordinates.
-	X, Y, X2, Y2 int
+	X, Y, X2, Y2  int
 	Width, Height int
 
 	// ColorLevel: 0=monochrome, 1=grayscale, 2=color (set from -colormode).
@@ -299,7 +299,7 @@ func (ps *PSContext) Outline(width int, dash []int, offset int, c *color.ColorRe
 	ps.Color(c)
 
 	if len(stipple) > 0 {
-		ps.Stipple(stipple, /*w*/ 0, /*h*/ 0)
+		ps.Stipple(stipple /*w*/, 0 /*h*/, 0)
 		// Stroked-from-clipped path: replace currentpath with the clip and
 		// emit nothing further; the calling item already drew the fill.
 		ps.write("StrokeClip\n")

@@ -636,6 +636,7 @@ func TestX11DisplayFontOpener(t *testing.T) {
 		t.Error("Font.MeasureString should return > 0 for non-empty string")
 	}
 }
+
 // TestX11ProtocolErrorIsNotFatal checks that an X protocol error is
 // reported instead of reaching Xlib's default handler, which exits.
 func TestX11ProtocolErrorIsNotFatal(t *testing.T) {
