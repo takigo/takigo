@@ -4,6 +4,7 @@ package selection
 
 import (
 	"sync"
+	"time"
 
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/platform"
@@ -18,13 +19,27 @@ type Manager struct {
 	data map[platform.AtomID]string // selection atom → content
 	// Owner window for each selection.
 	owners map[platform.AtomID]platform.WindowID
-	// pendingGet stores callbacks waiting for async SelectionNotify responses.
-	pendingGet map[platform.WindowID]func(string)
+	// pendingGet holds, per requestor, the clipboard request awaiting its
+	// SelectionNotify; at most one is outstanding, as in Tk.
+	pendingGet map[platform.WindowID]*pendingRequest
+	nextGen    uint64
+	after      func(time.Duration, func())
 
 	// Atoms.
 	clipboard platform.AtomID
 	utf8str   platform.AtomID
 	targets   platform.AtomID
+}
+
+// requestTimeout is how long a clipboard owner may stay silent before the
+// request fails, like the 5 idle seconds of tkUnixSelect.c SelTimeoutProc.
+const requestTimeout = 5 * time.Second
+
+// pendingRequest is an outstanding clipboard request and everyone waiting
+// for its answer.
+type pendingRequest struct {
+	gen       uint64
+	callbacks []func(string)
 }
 
 // NewManager creates a new selection manager.
@@ -34,7 +49,7 @@ func NewManager(server platform.DisplayServer, dispatcher *event.Dispatcher) *Ma
 		dispatcher: dispatcher,
 		data:       make(map[platform.AtomID]string),
 		owners:     make(map[platform.AtomID]platform.WindowID),
-		pendingGet: make(map[platform.WindowID]func(string)),
+		pendingGet: make(map[platform.WindowID]*pendingRequest),
 		clipboard:  server.InternAtom("CLIPBOARD", false),
 		utf8str:    server.InternAtom("UTF8_STRING", false),
 		targets:    server.InternAtom("TARGETS", false),
@@ -139,21 +154,58 @@ func (m *Manager) ClipboardAtom() platform.AtomID {
 	return m.clipboard
 }
 
+// SetTimer installs the scheduler used to time out clipboard requests
+// (the event loop's After). Without one, requests wait indefinitely.
+func (m *Manager) SetTimer(after func(time.Duration, func())) {
+	m.mu.Lock()
+	m.after = after
+	m.mu.Unlock()
+}
+
 // RequestWithCallback retrieves CLIPBOARD content. If we own it locally the
 // callback is invoked synchronously. Otherwise an async XConvertSelection
 // request is sent; the caller must handle SelectionNotify and call
-// HandleSelectionNotify to deliver the result.
-func (m *Manager) RequestWithCallback(requestor platform.WindowID, time platform.Timestamp, callback func(string)) {
+// HandleSelectionNotify to deliver the result. A request made while
+// another from the same window is outstanding shares its answer. If the
+// owner does not answer within requestTimeout, callbacks receive "".
+func (m *Manager) RequestWithCallback(requestor platform.WindowID, ts platform.Timestamp, callback func(string)) {
 	m.mu.Lock()
-	content, ok := m.data[m.clipboard]
-	if ok {
+	if content, ok := m.data[m.clipboard]; ok {
 		m.mu.Unlock()
 		callback(content)
 		return
 	}
-	m.pendingGet[requestor] = callback
+	if p := m.pendingGet[requestor]; p != nil {
+		p.callbacks = append(p.callbacks, callback)
+		m.mu.Unlock()
+		return
+	}
+	m.nextGen++
+	gen := m.nextGen
+	m.pendingGet[requestor] = &pendingRequest{gen: gen, callbacks: []func(string){callback}}
+	after := m.after
 	m.mu.Unlock()
-	m.Request(m.clipboard, requestor, time)
+
+	m.Request(m.clipboard, requestor, ts)
+	if after != nil {
+		after(requestTimeout, func() { m.expire(requestor, gen) })
+	}
+}
+
+// expire fails request gen of requestor if it is still unanswered; a
+// reply arriving afterwards finds nothing pending and is ignored.
+func (m *Manager) expire(requestor platform.WindowID, gen uint64) {
+	m.mu.Lock()
+	p := m.pendingGet[requestor]
+	if p == nil || p.gen != gen {
+		m.mu.Unlock()
+		return
+	}
+	delete(m.pendingGet, requestor)
+	m.mu.Unlock()
+	for _, cb := range p.callbacks {
+		cb("")
+	}
 }
 
 // HandleSelectionNotify is called when a SelectionNotify event arrives for a
@@ -161,17 +213,19 @@ func (m *Manager) RequestWithCallback(requestor platform.WindowID, time platform
 // fires the pending callback, and returns true if a callback was pending.
 func (m *Manager) HandleSelectionNotify(requestor platform.WindowID, property platform.AtomID) bool {
 	m.mu.Lock()
-	cb := m.pendingGet[requestor]
+	p := m.pendingGet[requestor]
 	delete(m.pendingGet, requestor)
 	m.mu.Unlock()
-	if cb == nil {
+	if p == nil {
 		return false
 	}
 	var text string
 	if property != 0 {
 		text = m.ReadProperty(requestor, property)
 	}
-	cb(text)
+	for _, cb := range p.callbacks {
+		cb(text)
+	}
 	return true
 }
 

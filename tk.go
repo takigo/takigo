@@ -92,6 +92,7 @@ func NewApp(opts ...AppOption) (*App, error) {
 	bindEng := bind.NewEngine(d)
 
 	selMgr := selection.NewManager(server, dispatcher)
+	selMgr.SetTimer(loop.After)
 
 	app := &App{
 		display:    d,

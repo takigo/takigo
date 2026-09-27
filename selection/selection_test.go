@@ -3,6 +3,7 @@ package selection
 import (
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/msorc/takigo/platform"
 )
@@ -97,27 +98,73 @@ func TestRequestWithCallbackLogic(t *testing.T) {
 	if received != "local content" {
 		t.Errorf("received = %q, want \"local content\"", received)
 	}
+}
 
-	// Case 2: Not owned locally -> async (stored in pendingGet)
-	m2 := &Manager{
+// convertServer records ConvertSelection calls and serves one property.
+type convertServer struct {
+	platform.DisplayServer
+	converts int
+	content  string
+}
+
+func (s *convertServer) InternAtom(string, bool) platform.AtomID { return 9 }
+func (s *convertServer) ConvertSelection(_, _, _ platform.AtomID, _ platform.WindowID, _ platform.Timestamp) {
+	s.converts++
+}
+func (s *convertServer) GetWindowProperty(platform.WindowID, platform.AtomID, int64, int64, bool) ([]byte, platform.AtomID, int) {
+	return []byte(s.content), 0, 8
+}
+
+func newRemoteManager(srv *convertServer) (*Manager, *[]func()) {
+	var timers []func()
+	m := &Manager{
+		server:     srv,
 		data:       map[platform.AtomID]string{},
 		clipboard:  platform.AtomID(1),
-		pendingGet: make(map[platform.WindowID]func(string)),
-		mu:         sync.Mutex{},
+		pendingGet: map[platform.WindowID]*pendingRequest{},
+	}
+	m.SetTimer(func(_ time.Duration, fn func()) { timers = append(timers, fn) })
+	return m, &timers
+}
+
+func TestRequestWithCallbackSharesOutstandingRequest(t *testing.T) {
+	srv := &convertServer{content: "pasted"}
+	m, _ := newRemoteManager(srv)
+	var got []string
+	m.RequestWithCallback(100, 0, func(s string) { got = append(got, "a:"+s) })
+	m.RequestWithCallback(100, 0, func(s string) { got = append(got, "b:"+s) })
+	if srv.converts != 1 {
+		t.Errorf("%d ConvertSelection requests, want 1 shared", srv.converts)
+	}
+	if !m.HandleSelectionNotify(100, 9) {
+		t.Fatal("reply found no pending request")
+	}
+	if len(got) != 2 || got[0] != "a:pasted" || got[1] != "b:pasted" {
+		t.Errorf("callbacks got %q, want both to receive the reply", got)
+	}
+}
+
+func TestRequestWithCallbackTimesOut(t *testing.T) {
+	srv := &convertServer{content: "late"}
+	m, timers := newRemoteManager(srv)
+	var got []string
+	m.RequestWithCallback(100, 0, func(s string) { got = append(got, s) })
+	if len(*timers) != 1 {
+		t.Fatalf("%d timeouts scheduled, want 1", len(*timers))
+	}
+	(*timers)[0]()
+	if len(got) != 1 || got[0] != "" {
+		t.Fatalf("after timeout callbacks got %q, want one empty result", got)
+	}
+	if m.HandleSelectionNotify(100, 9) {
+		t.Error("late reply matched an expired request")
 	}
 
-	m2.mu.Lock()
-	_, ok = m2.data[m2.clipboard]
-	if !ok {
-		m2.pendingGet[platform.WindowID(100)] = callback
-	}
-	m2.mu.Unlock()
-
-	if len(m2.pendingGet) != 1 {
-		t.Errorf("pendingGet length = %d, want 1", len(m2.pendingGet))
-	}
-	if m2.pendingGet[platform.WindowID(100)] == nil {
-		t.Error("pendingGet should store callback")
+	// A new request is not cancelled by the old request's timer.
+	m.RequestWithCallback(100, 0, func(s string) { got = append(got, s) })
+	(*timers)[0]()
+	if !m.HandleSelectionNotify(100, 9) || got[len(got)-1] != "late" {
+		t.Errorf("new request lost to a stale timeout: got %q", got)
 	}
 }
 
