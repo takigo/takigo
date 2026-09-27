@@ -60,12 +60,12 @@ type CanvasOption func(*Canvas)
 
 // Width sets -width (a Tk distance: pixels or "10c", "3i", ...).
 func Width(w any) CanvasOption {
-	return func(c *Canvas) { c.reqW = screenunit.Px(w) }
+	return func(c *Canvas) { c.reqW = screenunit.PxOr(w, c.reqW) }
 }
 
 // Height sets -height (a Tk distance).
 func Height(h any) CanvasOption {
-	return func(c *Canvas) { c.reqH = screenunit.Px(h) }
+	return func(c *Canvas) { c.reqH = screenunit.PxOr(h, c.reqH) }
 }
 
 func Background(name string) CanvasOption {

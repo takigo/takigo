@@ -180,8 +180,10 @@ parent's manager's `RequestProc` re-runs the layout.
   `ttk.ButtonStyleOpt`).
 
 - **Distances.** Tk accepts `"3p"`, `"2m"`, `"1c"`, `"0.5i"`, or a bare
-  number. Use `screenunit.Px(value)` (accepts `int`, `float64`, `string`)
-  in every PadX/PadY/IpadX/IpadY option setter. `screenunit.SetScreenDPI`
+  number. In option setters use `screenunit.PxOr(value, field)` (accepts
+  `int`, `float64`, `string`): on a bad distance it logs and keeps the
+  previous value. `screenunit.Px` panics and is for constant literals such
+  as `Px("3p")`. `screenunit.SetScreenDPI`
   is called once in `NewApp` from X11 screen metrics + `Xft.dpi`.
 
 - **Event handling.** In a widget's `bindings.go` write `bindXxx(w, app)`

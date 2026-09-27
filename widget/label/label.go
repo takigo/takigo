@@ -134,13 +134,13 @@ func JustifyOpt(j option.Justify) LabelOption {
 // PadX sets horizontal padding.
 // Accepts int (pixels), float64 (rounded pixels), or string with unit suffix ("3p", "2m", "1c", "0.5i").
 func PadX(p any) LabelOption {
-	return func(l *Label) { l.PadX = screenunit.Px(p) }
+	return func(l *Label) { l.PadX = screenunit.PxOr(p, l.PadX) }
 }
 
 // PadY sets vertical padding.
 // Accepts int (pixels), float64 (rounded pixels), or string with unit suffix ("3p", "2m", "1c", "0.5i").
 func PadY(p any) LabelOption {
-	return func(l *Label) { l.PadY = screenunit.Px(p) }
+	return func(l *Label) { l.PadY = screenunit.PxOr(p, l.PadY) }
 }
 
 // ImageOpt sets the image to display.
@@ -188,7 +188,7 @@ func Height(h int) LabelOption {
 // Accepts int (pixels), float64 (rounded pixels), or string with unit suffix ("4i", "3p", etc.).
 // Set to 0 (default) to disable wrapping.
 func WrapLength(w any) LabelOption {
-	return func(l *Label) { l.WrapLen = screenunit.Px(w) }
+	return func(l *Label) { l.WrapLen = screenunit.PxOr(w, l.WrapLen) }
 }
 
 // --- Ttk-compatible aliases (prefix with Label) for consistent naming ---

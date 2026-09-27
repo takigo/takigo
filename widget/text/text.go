@@ -644,7 +644,7 @@ func (t *TextWidget) WindowCreatePad(indexStr string, w *window.Window, padX, pa
 		m.Gravity = GravityLeft
 	}
 	t.embeddedWindows = append(t.embeddedWindows, embeddedWin{markName: markName, win: w,
-		padX: screenunit.Px(padX), padY: screenunit.Px(padY)})
+		padX: screenunit.PxOr(padX, 0), padY: screenunit.PxOr(padY, 0)})
 }
 
 // ImageCreate embeds an image at the given text index, treating it as an inline element.
