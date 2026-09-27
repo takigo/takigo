@@ -315,9 +315,9 @@ update_baseline() {
         END {
             for (d in old) if (!(d in new)) rows[d] = old[d]
             for (d in new) rows[d] = new[d] OFS note[d]
-            n = asorti(rows, keys)
-            for (i = 1; i <= n; i++) print rows[keys[i]]
-        }' "$scores" "$( [[ -f "$baseline" ]] && echo "$baseline" || echo /dev/null )" > "$tmp_base.rows"
+            for (d in rows) print rows[d]
+        }' "$scores" "$( [[ -f "$baseline" ]] && echo "$baseline" || echo /dev/null )" \
+        | LC_ALL=C sort -t$'\t' -k1,1 > "$tmp_base.rows"
     summary=$(awk -F'\t' '{c[$7]++} END {printf "exact %d / close %d / failed %d", c["exact"], c["close"], c["failed"]}' "$tmp_base.rows")
     {
         echo "# Demo parity baseline -- written by: bash scripts/demo_batch.sh --retake --update-baseline (or demo_gate.sh --accept)"
