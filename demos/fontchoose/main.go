@@ -114,6 +114,7 @@ func main() {
 	grid.Grid(btns, grid.Sticky(grid.EW))
 	grid.ColumnConfigure(f, 0, grid.Weight(1))
 	grid.RowConfigure(f, 0, grid.Weight(1))
+	app.UpdateIdleTasks()
 	grid.SetPropagate(cf, false)
 
 	_ = yscroll

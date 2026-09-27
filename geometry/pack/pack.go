@@ -107,6 +107,7 @@ type packEntry struct {
 // packer manages the pack state for a container window.
 type packer struct {
 	container *window.Window
+	pending   bool // an arrange is scheduled for idle time
 	entries   []*packEntry
 }
 
@@ -122,7 +123,7 @@ func (m *packManager) Name() string { return "pack" }
 
 func (m *packManager) RequestProc(content *window.Window) {
 	if p, ok := packers[containerFor(content)]; ok {
-		p.arrange()
+		p.scheduleArrange()
 	}
 }
 
@@ -133,7 +134,7 @@ func (m *packManager) LostContentProc(content *window.Window) {
 	delete(containerOf, content)
 	if p, ok := packers[container]; ok {
 		p.remove(content)
-		p.arrange()
+		p.scheduleArrange()
 	}
 }
 
@@ -208,7 +209,7 @@ func Pack(children geometry.Elementer, opts ...PackOption) {
 		if old := containerOf[w]; old != nil && old != parent {
 			if op, ok := packers[old]; ok {
 				op.remove(w)
-				op.arrange()
+				op.scheduleArrange()
 			}
 		}
 		containerOf[w] = parent
@@ -224,7 +225,7 @@ func Pack(children geometry.Elementer, opts ...PackOption) {
 			// when resized by external forces (e.g. PanedWindow).
 			parent.OnConfigure(func() {
 				if pp, ok2 := packers[parent]; ok2 {
-					pp.arrange()
+					pp.scheduleArrange()
 				}
 			})
 		}
@@ -246,7 +247,7 @@ func Pack(children geometry.Elementer, opts ...PackOption) {
 		}
 	}
 	for _, p := range touched {
-		p.arrange()
+		p.scheduleArrange()
 	}
 }
 
@@ -269,7 +270,7 @@ func Forget(child window.Windower) {
 	}
 	if p, ok := packers[parent]; ok {
 		p.remove(w)
-		p.arrange()
+		p.scheduleArrange()
 	}
 }
 
@@ -571,7 +572,7 @@ func anchorPosition(a option.Anchor, frameX, frameY, frameW, frameH, childW, chi
 // Call this after window resize events.
 func ArrangeAll() {
 	for _, p := range packers {
-		p.arrange()
+		p.scheduleArrange()
 	}
 }
 
@@ -582,7 +583,7 @@ func init() {
 	window.AddMappedHook(ArrangeContainer)
 	window.AddMovedHook(func(w *window.Window) {
 		if p, ok := packers[w]; ok && p.hasForeign() {
-			p.arrange()
+			p.scheduleArrange()
 		}
 	})
 	window.AddUnmappedHook(func(w *window.Window) {
@@ -620,4 +621,9 @@ func ArrangeContainer(container *window.Window) {
 	if p, ok := packers[container]; ok {
 		p.arrange()
 	}
+}
+
+// scheduleArrange re-arranges the container at idle time.
+func (p *packer) scheduleArrange() {
+	geometry.WhenIdle(p.container, &p.pending, p.arrange)
 }
