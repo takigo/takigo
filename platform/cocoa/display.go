@@ -259,6 +259,12 @@ func (d *CocoaDisplay) NextEvent() *platform.RawEvent {
 		EventWindow: platform.WindowID(uintptr(raw.Window())),
 	}
 }
+
+// WakeEventReader reports false: CocoaNextEvent waits on the C event
+// queue, which nothing but the Cocoa pump posts to; closing the display
+// does not free it, so a reader left blocked there is harmless.
+func (d *CocoaDisplay) WakeEventReader() bool { return false }
+
 func (d *CocoaDisplay) FilterEvent(ev *platform.RawEvent) bool {
 	return false
 }
