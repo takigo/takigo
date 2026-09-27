@@ -196,10 +196,13 @@ find_windows_exact() {
 odiff_score() {
     local base="$1" cmp="$2" diff_out="${3:-}"
     local out rc
+    [[ -n "$diff_out" ]] && rm -f "$diff_out"
     out=$(odiff "$base" "$cmp" ${diff_out:+"$diff_out"} --parsable-stdout --aa 2>/dev/null)
     rc=$?
     case "$rc" in
-        0)  echo "0"; return 0 ;;
+        0)  # odiff >= 4 writes no diff image for identical inputs.
+            [[ -n "$diff_out" && ! -f "$diff_out" ]] && cp "$base" "$diff_out"
+            echo "0"; return 0 ;;
         22) echo "${out##*;}"; return 0 ;;
         21) echo "layout-diff" >&2; return 1 ;;
         *)  echo "odiff failed (exit $rc)" >&2; return 1 ;;
