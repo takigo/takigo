@@ -105,6 +105,13 @@ type Window struct {
 // descendant) that has registered one, then triggers an expose event so the
 // widget redraws with the new color.
 func ApplyBackgroundRecursive(w *Window, colorName string) {
+	applyBackgroundRecursiveDepth(w, colorName, 0)
+}
+
+func applyBackgroundRecursiveDepth(w *Window, colorName string, depth int) {
+	if w == nil || depth > 1000 {
+		return
+	}
 	if w.BackgroundHook != nil {
 		w.BackgroundHook(colorName)
 	}
@@ -114,7 +121,7 @@ func ApplyBackgroundRecursive(w *Window, colorName string) {
 		w.Display.Server.ClearArea(w.PlatformID, 0, 0, uint(w.Width), uint(w.Height), true)
 	}
 	for _, child := range w.Children {
-		ApplyBackgroundRecursive(child, colorName)
+		applyBackgroundRecursiveDepth(child, colorName, depth+1)
 	}
 }
 

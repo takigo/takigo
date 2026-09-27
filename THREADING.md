@@ -67,7 +67,6 @@ These types **must only be accessed from the event loop goroutine**. They have n
 | Geometry managers (`*pack.Packer`, `*grid.Gridder`, `*placer.Placer`) | `geometry/pack`, `geometry/grid`, `geometry/place` | Package-global `packers` map, per-container layout state. |
 | `*wm.WmInfo` | `wm` | Per-toplevel WM state (title, geometry, protocols, handlers). |
 | `*focus.Manager` | `focus` | Focus traversal ring, focused window tracking. |
-| `*selection.Manager` | `selection` | Clipboard/selection ownership, pending requests. |
 | `*bind.Engine` | `bind` | Binding tables, tag chains, class bindings. |
 | `*event.Loop` (internal fields) | `event` | `rawHandler`, `idleQueue`, `dispatcher`, `pumper` — only `Run()` goroutine touches these. |
 
@@ -120,7 +119,7 @@ app.RunOnMain(func() {
 
 | Category | Types | Access Pattern |
 |----------|-------|----------------|
-| **Goroutine-safe (sync)** | `Dispatcher`, `Loop` (channel methods), `App` (channel methods), `color.Cache`, `font.Registry`, `image.Registry` | Any goroutine |
+| **Goroutine-safe (sync)** | `Dispatcher`, `Loop` (channel methods), `App` (channel methods), `color.Cache`, `font.Registry`, `image.Registry`, `selection.Manager` | Any goroutine |
 | **Loop-only (no sync)** | `Window`, `Display`, `Base`/widgets, `Border`, geometry managers, `WmInfo`, `focus.Manager`, `selection.Manager`, `bind.Engine` | Event loop goroutine only |
 | **Platform-dependent** | `DisplayServer` | X11: any; Cocoa/Win32: main thread only (enforced by loop) |
 

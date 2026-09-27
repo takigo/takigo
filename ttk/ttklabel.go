@@ -182,7 +182,11 @@ func newLayoutWithLabel(tmpl *LayoutTemplate, theme *Theme, ctx *DrawContext, st
 }
 
 func instantiateNodeWithLabel(tmpl *LayoutTemplate, theme *Theme, ctx *DrawContext, labelFactory ElementFactory) *LayoutNode {
-	if tmpl == nil {
+	return instantiateNodeWithLabelDepth(tmpl, theme, ctx, labelFactory, 0)
+}
+
+func instantiateNodeWithLabelDepth(tmpl *LayoutTemplate, theme *Theme, ctx *DrawContext, labelFactory ElementFactory, depth int) *LayoutNode {
+	if tmpl == nil || depth > 1000 {
 		return nil
 	}
 	var elem Element
@@ -197,7 +201,7 @@ func instantiateNodeWithLabel(tmpl *LayoutTemplate, theme *Theme, ctx *DrawConte
 		Flags:   tmpl.Flags,
 		Element: elem,
 	}
-	node.Children = instantiateNodeWithLabel(tmpl.Children, theme, ctx, labelFactory)
-	node.Next = instantiateNodeWithLabel(tmpl.Next, theme, ctx, labelFactory)
+	node.Children = instantiateNodeWithLabelDepth(tmpl.Children, theme, ctx, labelFactory, depth+1)
+	node.Next = instantiateNodeWithLabelDepth(tmpl.Next, theme, ctx, labelFactory, depth)
 	return node
 }

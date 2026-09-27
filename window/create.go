@@ -125,13 +125,20 @@ func MakeWindowExist(w *Window) {
 
 // DestroyWindow recursively destroys a window and its children.
 func DestroyWindow(w *Window) {
+	destroyWindowDepth(w, 0)
+}
+
+func destroyWindowDepth(w *Window, depth int) {
+	if w == nil || depth > 1000 {
+		return
+	}
 	w.Flags |= FlagAlreadyDead
 
 	// Destroy children first (copy slice since it mutates).
 	children := make([]*Window, len(w.Children))
 	copy(children, w.Children)
 	for _, child := range children {
-		DestroyWindow(child)
+		destroyWindowDepth(child, depth+1)
 	}
 
 	// Remove from parent.

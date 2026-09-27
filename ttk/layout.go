@@ -65,7 +65,11 @@ func NewLayout(tmpl *LayoutTemplate, theme *Theme, ctx *DrawContext, style *Styl
 }
 
 func instantiateNode(tmpl *LayoutTemplate, theme *Theme, ctx *DrawContext) *LayoutNode {
-	if tmpl == nil {
+	return instantiateNodeDepth(tmpl, theme, ctx, 0)
+}
+
+func instantiateNodeDepth(tmpl *LayoutTemplate, theme *Theme, ctx *DrawContext, depth int) *LayoutNode {
+	if tmpl == nil || depth > 1000 {
 		return nil
 	}
 	factory := theme.GetElement(tmpl.ElementName)
@@ -74,8 +78,8 @@ func instantiateNode(tmpl *LayoutTemplate, theme *Theme, ctx *DrawContext) *Layo
 		Flags:   tmpl.Flags,
 		Element: factory(ctx),
 	}
-	node.Children = instantiateNode(tmpl.Children, theme, ctx)
-	node.Next = instantiateNode(tmpl.Next, theme, ctx)
+	node.Children = instantiateNodeDepth(tmpl.Children, theme, ctx, depth+1)
+	node.Next = instantiateNodeDepth(tmpl.Next, theme, ctx, depth)
 	return node
 }
 
@@ -208,13 +212,20 @@ type DrawArgs struct {
 }
 
 func drawNodes(n *LayoutNode, state State, d DrawArgs, borderPass bool) {
+	drawNodesDepth(n, state, d, borderPass, 0)
+}
+
+func drawNodesDepth(n *LayoutNode, state State, d DrawArgs, borderPass bool, depth int) {
+	if n == nil || depth > 1000 {
+		return
+	}
 	for cur := n; cur != nil; cur = cur.Next {
 		isBorder := cur.Flags&Border != 0
 		if isBorder == borderPass {
 			cur.Element.Draw(d.Display, d.Drawable, d.GC, cur.Parcel, state)
 		}
 		if cur.Children != nil {
-			drawNodes(cur.Children, state, d, borderPass)
+			drawNodesDepth(cur.Children, state, d, borderPass, depth+1)
 		}
 	}
 }
@@ -230,12 +241,19 @@ func (l *Layout) ClientRegion(name string, state State) Box {
 }
 
 func findNode(n *LayoutNode, name string) *LayoutNode {
+	return findNodeDepth(n, name, 0)
+}
+
+func findNodeDepth(n *LayoutNode, name string, depth int) *LayoutNode {
+	if n == nil || depth > 1000 {
+		return nil
+	}
 	for cur := n; cur != nil; cur = cur.Next {
 		if cur.Name == name {
 			return cur
 		}
 		if cur.Children != nil {
-			if found := findNode(cur.Children, name); found != nil {
+			if found := findNodeDepth(cur.Children, name, depth+1); found != nil {
 				return found
 			}
 		}
