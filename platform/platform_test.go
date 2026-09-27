@@ -232,3 +232,20 @@ func TestNewDisplayServer(t *testing.T) {
 		t.Error("NewDisplayServer should return non-nil DisplayServer")
 	}
 }
+func TestRuneToKeySym(t *testing.T) {
+	tests := []struct {
+		r    rune
+		want KeySym
+	}{
+		{'a', 0x61}, {'A', 0x41}, {'é', 0xe9}, {'€', 0x010020ac},
+		{'😀', 0x0101f600}, {'\x01', 0}, {0x7f, 0}, {0xd83d, 0},
+	}
+	for _, tt := range tests {
+		if got := RuneToKeySym(tt.r); got != tt.want {
+			t.Errorf("RuneToKeySym(%U) = %#x, want %#x", tt.r, got, tt.want)
+		}
+		if tt.want != 0 && KeySymToRune(tt.want) != tt.r {
+			t.Errorf("KeySymToRune(%#x) does not round-trip to %U", tt.want, tt.r)
+		}
+	}
+}

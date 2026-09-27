@@ -69,9 +69,8 @@ type WindowsDisplay struct {
 	// Input focus tracking.
 	focusWindow platform.WindowID
 
-	// Pending character from WM_CHAR, merged into next key event.
-	pendingChar rune
-	hasChar     bool
+	// First half of a standalone WM_CHAR surrogate pair.
+	highSurrogate uint16
 
 	// Cursor cache.
 	cursorMu    sync.Mutex
