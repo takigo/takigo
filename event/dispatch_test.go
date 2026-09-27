@@ -1,6 +1,8 @@
 package event
 
 import (
+	"fmt"
+	"sync"
 	"testing"
 
 	"github.com/msorc/takigo/platform"
@@ -160,4 +162,66 @@ func TestDispatcherUnbindID(t *testing.T) {
 	if d.UnbindID(idB) {
 		t.Error("UnbindID on already-removed B should return false")
 	}
+}
+
+func TestDispatcherRebindDuringDispatch(t *testing.T) {
+	d := NewDispatcher()
+	var calls []string
+	var laterID BindingID
+	d.Bind(1, ExposureMask, func(*Event) {
+		calls = append(calls, "first")
+		// Unbind a handler that has not run yet, then bind a handler on
+		// another window; the freed registration used to be recycled,
+		// making this dispatch call window 2's handler.
+		d.UnbindID(laterID)
+		d.Bind(2, ExposureMask, func(*Event) { calls = append(calls, "window2") })
+	})
+	laterID = d.Bind(1, ExposureMask, func(*Event) { calls = append(calls, "later") })
+
+	d.Dispatch(&Event{Type: ExposeType, Window: 1})
+	if len(calls) != 1 || calls[0] != "first" {
+		t.Fatalf("calls = %v, want [first]", calls)
+	}
+}
+
+func TestDispatcherUnbindIDKeepsOrder(t *testing.T) {
+	d := NewDispatcher()
+	var got []int
+	ids := make([]BindingID, 5)
+	for i := range ids {
+		ids[i] = d.Bind(1, ExposureMask, func(*Event) { got = append(got, i) })
+	}
+	d.UnbindID(ids[1])
+	d.Dispatch(&Event{Type: ExposeType, Window: 1})
+	want := []int{0, 2, 3, 4}
+	if fmt.Sprint(got) != fmt.Sprint(want) {
+		t.Fatalf("order = %v, want %v", got, want)
+	}
+}
+
+func TestDispatcherConcurrentBind(t *testing.T) {
+	d := NewDispatcher()
+	d.Bind(1, ExposureMask, func(*Event) {})
+	stop := make(chan struct{})
+	var wg sync.WaitGroup
+	for range 4 {
+		wg.Go(func() {
+			for {
+				select {
+				case <-stop:
+					return
+				default:
+				}
+				id := d.Bind(1, ExposureMask, func(*Event) {})
+				gid := d.BindGlobal(ExposureMask, func(*Event) {})
+				d.UnbindID(id)
+				d.UnbindID(gid)
+			}
+		})
+	}
+	for range 10000 {
+		d.Dispatch(&Event{Type: ExposeType, Window: 1})
+	}
+	close(stop)
+	wg.Wait()
 }
