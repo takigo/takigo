@@ -382,8 +382,9 @@ func (d *CocoaDisplay) SetIconName(w platform.WindowID, name string) {
 
 // PumpEvents processes all pending NSEvents on the main thread.
 // This is called by the event loop on each tick to drive the Cocoa event system.
-func (d *CocoaDisplay) PumpEvents() {
+func (d *CocoaDisplay) PumpEvents() bool {
 	clib.PumpEvents()
+	return false
 }
 
 // --- InputMethodManager ---
