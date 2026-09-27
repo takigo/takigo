@@ -540,6 +540,34 @@ func resolveConstraints(entries []*gridEntry, conf map[int]*SlotConfig, gridCoun
 	layout := make([]layoutSlot, gridCount+1)
 
 	// Step 1: Copy slot constraints into layout.
+	step1CopyConstraints(layout, conf, gridCount)
+
+	// Step 2: Process entries, bin spanning widgets.
+	step2ProcessEntries(layout, entries, gridCount, isColumn)
+
+	// Step 2b: Uniform groups with weight normalization.
+	step2bUniformGroups(layout, gridCount)
+
+	// Step 3: Compute minimum offsets left→right.
+	requiredSize := step3ComputeMinOffsets(layout, gridCount)
+
+	// Step 4: Compute maximum offsets right→left.
+	step4ComputeMaxOffsets(layout, gridCount, requiredSize)
+
+	// Step 5: Multi-pass weighted distribution within unconstrained spans.
+	step5DistributeSpace(layout, gridCount)
+
+	// Step 6: Extract cumulative offsets.
+	offsets := make([]int, gridCount)
+	for i := range gridCount {
+		offsets[i] = layout[i+1].minOffset
+	}
+
+	return requiredSize, offsets
+}
+
+// step1CopyConstraints initializes layout slots from SlotConfig.
+func step1CopyConstraints(layout []layoutSlot, conf map[int]*SlotConfig, gridCount int) {
 	for i := range gridCount {
 		li := i + 1
 		if c, ok := conf[i]; ok {
@@ -549,8 +577,10 @@ func resolveConstraints(entries []*gridEntry, conf map[int]*SlotConfig, gridCoun
 			layout[li].uniform = c.Uniform
 		}
 	}
+}
 
-	// Step 2: Process span=1 entries directly, bin span>1 entries by right edge.
+// step2ProcessEntries processes span=1 entries directly and bins span>1 entries by right edge.
+func step2ProcessEntries(layout []layoutSlot, entries []*gridEntry, gridCount int, isColumn bool) {
 	for _, e := range entries {
 		child := e.window
 		cfg := &e.config
@@ -582,8 +612,10 @@ func resolveConstraints(entries []*gridEntry, conf map[int]*SlotConfig, gridCoun
 			}
 		}
 	}
+}
 
-	// Step 2b: Uniform groups with weight normalization.
+// step2bUniformGroups normalizes uniform groups with weight normalization.
+func step2bUniformGroups(layout []layoutSlot, gridCount int) {
 	type uniformGroup struct {
 		name    string
 		minSize int
@@ -629,8 +661,10 @@ func resolveConstraints(entries []*gridEntry, conf map[int]*SlotConfig, gridCoun
 			layout[li].minSize = ug.minSize * weight
 		}
 	}
+}
 
-	// Step 3: Compute minimum offsets left→right.
+// step3ComputeMinOffsets computes minimum offsets left→right. Returns requiredSize.
+func step3ComputeMinOffsets(layout []layoutSlot, gridCount int) int {
 	offset := 0
 	for i := range gridCount {
 		li := i + 1
@@ -644,14 +678,16 @@ func resolveConstraints(entries []*gridEntry, conf map[int]*SlotConfig, gridCoun
 		}
 		offset = layout[li].minOffset
 	}
+	return offset
+}
 
-	requiredSize := offset
-
-	// Step 4: Compute maximum offsets right→left.
+// step4ComputeMaxOffsets computes maximum offsets right→left.
+func step4ComputeMaxOffsets(layout []layoutSlot, gridCount int, requiredSize int) {
 	for i := 1; i <= gridCount; i++ {
-		layout[i].maxOffset = offset
+		layout[i].maxOffset = requiredSize
 	}
 
+	offset := requiredSize
 	for i := gridCount - 1; i > 0; {
 		li := i + 1
 		for _, be := range layout[li].bins {
@@ -670,8 +706,10 @@ func resolveConstraints(entries []*gridEntry, conf map[int]*SlotConfig, gridCoun
 			layout[li].maxOffset = offset
 		}
 	}
+}
 
-	// Step 5: Multi-pass weighted distribution within unconstrained spans.
+// step5DistributeSpace performs multi-pass weighted distribution within unconstrained spans.
+func step5DistributeSpace(layout []layoutSlot, gridCount int) {
 	for start := 0; start < gridCount; {
 		startLi := start + 1
 		if layout[startLi].minOffset == layout[startLi].maxOffset {
@@ -781,14 +819,6 @@ func resolveConstraints(entries []*gridEntry, conf map[int]*SlotConfig, gridCoun
 
 		start = end + 1
 	}
-
-	// Step 6: Extract cumulative offsets.
-	offsets := make([]int, gridCount)
-	for i := range gridCount {
-		offsets[i] = layout[i+1].minOffset
-	}
-
-	return requiredSize, offsets
 }
 
 // adjustOffsets adjusts cumulative slot offsets to fit the available space.
