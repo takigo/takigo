@@ -42,7 +42,6 @@ func main() {
 	btns := demohelper.AddSeeDismiss(f)
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
-
 	padX := screenunit.Px("7.5p")
 	padY := screenunit.Px("3p")
 

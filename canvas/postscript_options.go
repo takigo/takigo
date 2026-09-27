@@ -14,22 +14,22 @@ import (
 type PostscriptOption func(*psConfig)
 
 type psConfig struct {
-	File     string            // -file <path>
-	Channel  io.Writer         // -channel equivalent (Go idiom: pass an io.Writer)
-	ColorMap map[string]string // -colormap (color name → PS string)
-	FontMap  map[string][2]string
+	File      string            // -file <path>
+	Channel   io.Writer         // -channel equivalent (Go idiom: pass an io.Writer)
+	ColorMap  map[string]string // -colormap (color name → PS string)
+	FontMap   map[string][2]string
 	ColorMode string // "monochrome" | "gray" | "color"
-	X, Y     int
-	Width    int
-	Height   int
-	PageX    float64
-	PageY    float64
-	PageW    float64
-	PageH    float64
-	Anchor   option.Anchor
-	Rotate   bool
-	Prolog   bool
-	Title    string
+	X, Y      int
+	Width     int
+	Height    int
+	PageX     float64
+	PageY     float64
+	PageW     float64
+	PageH     float64
+	Anchor    option.Anchor
+	Rotate    bool
+	Prolog    bool
+	Title     string
 }
 
 // PSFile sets the output path (Tk: -file). When set, the PostScript is

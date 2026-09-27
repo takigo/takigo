@@ -113,6 +113,5 @@ func main() {
 	}
 	move() // aniwave.tcl starts with one step, then reschedules
 
-
 	app.Run()
 }
