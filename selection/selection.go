@@ -3,8 +3,11 @@
 package selection
 
 import (
+	"encoding/binary"
+	"strconv"
 	"sync"
 	"time"
+	"unicode/utf8"
 
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/platform"
@@ -25,10 +28,42 @@ type Manager struct {
 	nextGen    uint64
 	after      func(time.Duration, func())
 
+	// INCR transfers (ICCCM 2.7.2): outgoing ones we serve as owner, keyed
+	// by requestor window and property; incoming ones by our requestor.
+	outgoing map[incrKey]*outgoingIncr
+	incoming map[platform.WindowID]*incomingIncr
+
 	// Atoms.
 	clipboard platform.AtomID
 	utf8str   platform.AtomID
 	targets   platform.AtomID
+	incr      platform.AtomID
+}
+
+// selBytesAtOnce is Tk's TK_SEL_BYTES_AT_ONCE: longer selections are sent
+// with INCR, in chunks of this size.
+const selBytesAtOnce = 4000
+
+type incrKey struct {
+	window   platform.WindowID
+	property platform.AtomID
+}
+
+// outgoingIncr is a selection we send in chunks; each chunk is written
+// when the requestor deletes the previous one.
+type outgoingIncr struct {
+	typ  platform.AtomID
+	data []byte
+	sent bool // the terminating zero-length chunk has been written
+}
+
+// incomingIncr is a selection we receive in chunks.
+type incomingIncr struct {
+	property  platform.AtomID
+	typ       platform.AtomID
+	buf       []byte
+	callbacks []func(string)
+	gen       uint64
 }
 
 // requestTimeout is how long a clipboard owner may stay silent before the
@@ -53,15 +88,10 @@ func NewManager(server platform.DisplayServer, dispatcher *event.Dispatcher) *Ma
 		clipboard:  server.InternAtom("CLIPBOARD", false),
 		utf8str:    server.InternAtom("UTF8_STRING", false),
 		targets:    server.InternAtom("TARGETS", false),
+		incr:       server.InternAtom("INCR", false),
+		outgoing:   make(map[incrKey]*outgoingIncr),
+		incoming:   make(map[platform.WindowID]*incomingIncr),
 	}
-
-	// Listen for selection-related events globally.
-	dispatcher.BindGlobal(event.AllEventsMask, func(ev *event.Event) {
-		switch ev.Type {
-		case event.PropertyType:
-			// Used for incremental transfers — not implemented yet.
-		}
-	})
 
 	return m
 }
@@ -118,7 +148,15 @@ func (m *Manager) HandleSelectionRequest(requestor platform.WindowID, selection,
 			m.targets,
 		})
 	} else if target == m.utf8str || target == m.server.Atoms().String {
-		m.server.ChangePropertyString(requestor, property, target, content)
+		data := []byte(content)
+		if target == m.server.Atoms().String {
+			data = toLatin1(content)
+		}
+		if len(data) > selBytesAtOnce {
+			m.startIncr(requestor, property, target, data)
+		} else {
+			m.server.ChangeProperty(requestor, property, target, 8, platform.PropModeReplace, data, len(data))
+		}
 	} else {
 		// Unsupported target — refuse.
 		m.server.SendSelectionNotify(requestor, selection, target, 0, time)
@@ -143,10 +181,160 @@ func (m *Manager) Request(selection platform.AtomID, requestor platform.WindowID
 	m.server.ConvertSelection(selection, m.utf8str, property, requestor, time)
 }
 
+// maxPropWords bounds a single property read, in 32-bit units (4 MiB).
+const maxPropWords = 1024 * 1024
+
 // ReadProperty reads the result of a selection request from a window property.
 func (m *Manager) ReadProperty(w platform.WindowID, property platform.AtomID) string {
-	data, _, _ := m.server.GetWindowProperty(w, property, 0, 1024*1024, true)
+	data, typ, _ := m.server.GetWindowProperty(w, property, 0, maxPropWords, true)
+	return m.decode(data, typ)
+}
+
+// decode converts selection bytes of type typ to a Go string: STRING is
+// ISO 8859-1 (ICCCM), anything else is taken as UTF-8.
+func (m *Manager) decode(data []byte, typ platform.AtomID) string {
+	if typ == m.server.Atoms().String {
+		return fromLatin1(data)
+	}
 	return string(data)
+}
+
+// startIncr begins an INCR transfer of data to requestor: the property
+// gets type INCR and the total size, and each chunk follows once the
+// requestor deletes the previous one (tkUnixSelect.c ConvertSelection).
+func (m *Manager) startIncr(requestor platform.WindowID, property, typ platform.AtomID, data []byte) {
+	m.mu.Lock()
+	m.outgoing[incrKey{requestor, property}] = &outgoingIncr{typ: typ, data: data}
+	m.mu.Unlock()
+	m.server.SelectInput(requestor, platform.PropertyChangeMask)
+	// Format-32 property data is an array of C longs in Xlib.
+	size := make([]byte, strconv.IntSize/8)
+	if len(size) == 8 {
+		binary.NativeEndian.PutUint64(size, uint64(len(data)))
+	} else {
+		binary.NativeEndian.PutUint32(size, uint32(len(data)))
+	}
+	m.server.ChangeProperty(requestor, property, m.incr, 32, platform.PropModeReplace, size, 1)
+}
+
+// startIncoming waits for the chunks of an INCR transfer to requestor.
+func (m *Manager) startIncoming(requestor platform.WindowID, property platform.AtomID, p *pendingRequest) {
+	m.mu.Lock()
+	m.nextGen++
+	in := &incomingIncr{property: property, callbacks: p.callbacks, gen: m.nextGen}
+	m.incoming[requestor] = in
+	m.mu.Unlock()
+	m.armIncomingTimeout(requestor, in.gen)
+}
+
+// armIncomingTimeout fails an INCR transfer that stalls for requestTimeout;
+// each chunk re-arms it, as Tk resets retrPtr->idleTime.
+func (m *Manager) armIncomingTimeout(requestor platform.WindowID, gen uint64) {
+	m.mu.Lock()
+	after := m.after
+	m.mu.Unlock()
+	if after == nil {
+		return
+	}
+	after(requestTimeout, func() {
+		m.mu.Lock()
+		in := m.incoming[requestor]
+		if in == nil || in.gen != gen {
+			m.mu.Unlock()
+			return
+		}
+		delete(m.incoming, requestor)
+		m.mu.Unlock()
+		for _, cb := range in.callbacks {
+			cb("")
+		}
+	})
+}
+
+// HandlePropertyNotify drives INCR transfers: as owner, a requestor deleting
+// our property asks for the next chunk; as requestor, a new value on our
+// property is the next chunk, and an empty one ends the transfer. It
+// returns true if the event belonged to a transfer.
+func (m *Manager) HandlePropertyNotify(w platform.WindowID, property platform.AtomID, deleted bool) bool {
+	if deleted {
+		return m.sendNextChunk(w, property)
+	}
+	m.mu.Lock()
+	in := m.incoming[w]
+	if in == nil || in.property != property {
+		m.mu.Unlock()
+		return false
+	}
+	m.mu.Unlock()
+
+	data, typ, _ := m.server.GetWindowProperty(w, property, 0, maxPropWords, true)
+	if typ == 0 {
+		return true
+	}
+	m.mu.Lock()
+	if len(data) > 0 {
+		in.buf = append(in.buf, data...)
+		in.typ = typ
+		m.nextGen++
+		in.gen = m.nextGen
+		gen := in.gen
+		m.mu.Unlock()
+		m.armIncomingTimeout(w, gen)
+		return true
+	}
+	delete(m.incoming, w)
+	m.mu.Unlock()
+	text := m.decode(in.buf, in.typ)
+	for _, cb := range in.callbacks {
+		cb(text)
+	}
+	return true
+}
+
+// sendNextChunk writes the next chunk of an outgoing INCR transfer, or
+// the terminating empty chunk, after the requestor deleted the property.
+func (m *Manager) sendNextChunk(requestor platform.WindowID, property platform.AtomID) bool {
+	key := incrKey{requestor, property}
+	m.mu.Lock()
+	out := m.outgoing[key]
+	if out == nil {
+		m.mu.Unlock()
+		return false
+	}
+	if out.sent {
+		delete(m.outgoing, key)
+		m.mu.Unlock()
+		m.server.SelectInput(requestor, 0)
+		return true
+	}
+	chunk := out.data[:min(selBytesAtOnce, len(out.data))]
+	out.data = out.data[len(chunk):]
+	out.sent = len(chunk) == 0
+	m.mu.Unlock()
+	m.server.ChangeProperty(requestor, property, out.typ, 8, platform.PropModeReplace, chunk, len(chunk))
+	return true
+}
+
+// toLatin1 encodes s as ISO 8859-1 for the STRING target; characters
+// outside Latin-1 become '?'.
+func toLatin1(s string) []byte {
+	b := make([]byte, 0, len(s))
+	for _, r := range s {
+		if r > 0xff {
+			r = '?'
+		}
+		b = append(b, byte(r))
+	}
+	return b
+}
+
+// fromLatin1 decodes ISO 8859-1 bytes.
+func fromLatin1(b []byte) string {
+	buf := make([]byte, 0, len(b))
+	for _, c := range b {
+		buf = utf8.AppendRune(buf, rune(c))
+	}
+	return string(buf)
 }
 
 // ClipboardAtom returns the CLIPBOARD atom.
@@ -221,7 +409,14 @@ func (m *Manager) HandleSelectionNotify(requestor platform.WindowID, property pl
 	}
 	var text string
 	if property != 0 {
-		text = m.ReadProperty(requestor, property)
+		data, typ, _ := m.server.GetWindowProperty(requestor, property, 0, maxPropWords, true)
+		if typ != 0 && typ == m.incr {
+			// The owner sends the text in chunks; reading (and so deleting)
+			// the INCR property asked for the first one.
+			m.startIncoming(requestor, property, p)
+			return true
+		}
+		text = m.decode(data, typ)
 	}
 	for _, cb := range p.callbacks {
 		cb(text)

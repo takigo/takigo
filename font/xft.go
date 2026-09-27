@@ -144,6 +144,13 @@ type XftFont struct {
 	fontByRune map[rune]*C.XftFont
 	// Set of opened fallback fonts (for cleanup in Close).
 	fallbackFonts map[*C.XftFont]bool
+
+	// Glyph advance cache for MeasureString: asciiAdvance[r] is the width
+	// of ASCII rune r plus one (0 = not measured yet); advance holds the
+	// rest. Xft sums advances without kerning, so a string's width is the
+	// sum of its runes' widths.
+	asciiAdvance [128]int32
+	advance      map[rune]int
 }
 
 // OpenXft opens a font via Xft/fontconfig.
@@ -247,6 +254,39 @@ func (f *XftFont) Metrics() Metrics {
 
 // MeasureString returns the pixel width of a string, using font fallback.
 func (f *XftFont) MeasureString(s string) int {
+	if !utf8.ValidString(s) {
+		return f.measureUncached(s)
+	}
+	total := 0
+	for _, r := range s {
+		total += f.runeAdvance(r)
+	}
+	return total
+}
+
+// runeAdvance returns the advance width of r in the font that draws it.
+func (f *XftFont) runeAdvance(r rune) int {
+	if r < 128 {
+		if w := f.asciiAdvance[r]; w != 0 {
+			return int(w) - 1
+		}
+		w := f.measureUncached(string(r))
+		f.asciiAdvance[r] = int32(w) + 1
+		return w
+	}
+	if w, ok := f.advance[r]; ok {
+		return w
+	}
+	if f.advance == nil {
+		f.advance = make(map[rune]int)
+	}
+	w := f.measureUncached(string(r))
+	f.advance[r] = w
+	return w
+}
+
+// measureUncached measures s with XftTextExtentsUtf8, run by run.
+func (f *XftFont) measureUncached(s string) int {
 	if len(s) == 0 {
 		return 0
 	}

@@ -108,6 +108,7 @@ type convertServer struct {
 }
 
 func (s *convertServer) InternAtom(string, bool) platform.AtomID { return 9 }
+func (s *convertServer) Atoms() *platform.Atoms                  { return &platform.Atoms{String: 31} }
 func (s *convertServer) ConvertSelection(_, _, _ platform.AtomID, _ platform.WindowID, _ platform.Timestamp) {
 	s.converts++
 }
@@ -212,5 +213,14 @@ func TestHandleSelectionClear(t *testing.T) {
 	}
 	if m.owners[platform.AtomID(2)] != platform.WindowID(200) {
 		t.Error("owners[2] should remain")
+	}
+}
+
+func TestLatin1RoundTrip(t *testing.T) {
+	if got := string(toLatin1("naïve € ok")); got != "na\xefve ? ok" {
+		t.Errorf("toLatin1 = %q", got)
+	}
+	if got := fromLatin1([]byte("caf\xe9")); got != "café" {
+		t.Errorf("fromLatin1 = %q", got)
 	}
 }
