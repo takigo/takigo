@@ -12,7 +12,24 @@ var (
 
 	procSetProcessDpiAwareness = shcore.NewProc("SetProcessDpiAwareness")
 	procGetDpiForMonitor       = shcore.NewProc("GetDpiForMonitor")
+
+	procSetProcessDpiAwarenessContext = user32.NewProc("SetProcessDpiAwarenessContext")
 )
+
+// DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 is ((DPI_AWARENESS_CONTEXT)-4).
+const DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 = ^uintptr(3)
+
+// SetProcessDpiAwarenessContext sets the process DPI awareness context
+// (Windows 10 1703 and later); it returns an error where it is missing.
+func SetProcessDpiAwarenessContext(ctx uintptr) error {
+	if err := procSetProcessDpiAwarenessContext.Find(); err != nil {
+		return err
+	}
+	if r, _, err := procSetProcessDpiAwarenessContext.Call(ctx); r == 0 {
+		return err
+	}
+	return nil
+}
 
 // DPI awareness levels.
 const (
@@ -31,6 +48,9 @@ const (
 // SetProcessDpiAwareness sets the DPI awareness for the process.
 // Returns an error HRESULT on failure.
 func SetProcessDpiAwareness(awareness int32) error {
+	if err := procSetProcessDpiAwareness.Find(); err != nil {
+		return err
+	}
 	r, _, _ := procSetProcessDpiAwareness.Call(uintptr(awareness))
 	if r != 0 {
 		return syscall.Errno(r)
