@@ -69,6 +69,17 @@ func (d *WindowsDisplay) SendSelectionNotify(requestor platform.WindowID,
 	// No-op on Windows; clipboard is handled synchronously.
 }
 
+// SetClipboardText writes text to the Windows clipboard.
+func (d *WindowsDisplay) SetClipboardText(text string) bool {
+	d.writeClipboard(text)
+	return true
+}
+
+// ClipboardText reads CF_UNICODETEXT from the Windows clipboard.
+func (d *WindowsDisplay) ClipboardText() (string, bool) {
+	return d.readClipboard(), true
+}
+
 // writeClipboard writes text to the Windows clipboard.
 func (d *WindowsDisplay) writeClipboard(text string) {
 	if !w32.OpenClipboard(d.rootHWND) {

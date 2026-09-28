@@ -40,7 +40,8 @@ There is **no `Makefile` and no `go.sum`** — dependencies are stdlib only.
 `.github/workflows/ci.yml`, which also vets the Windows backend
 (`CGO_ENABLED=0 GOOS=windows go vet ./...`, pure Go, runs on Linux) and
 builds on macOS. Linux builds need `libx11-dev libxft-dev
-libfontconfig1-dev`; run display tests under
+libfontconfig1-dev`, except that widgets, ttk and the pure-logic packages
+also build and test with `CGO_ENABLED=0` (the `no-cgo` CI job); run display tests under
 `xvfb-run -a -s "-screen 0 1280x1024x24 -noreset"` — without `-noreset`
 Xvfb resets when its last client disconnects and refuses connections
 meanwhile, so tests that open an App right after destroying one fail
@@ -85,7 +86,9 @@ bind/                                              — Tk binding system (tag ch
 canvas/                                            — canvas widget (item_<shape>.go per shape)
 dialog/                                            — file/color/message/font/dir chooser dialogs
 draw/                                              — high-level drawing primitives (3D borders etc.)
-font/  color/  image/  bitmap/                     — resource subsystems
+font/  color/  image/  bitmap/                     — resource subsystems; font/ itself is pure Go,
+                                                    the backends are font/xft (X11), font/gdi
+                                                    (Windows), font/coretext + platform/cocoa (macOS)
 wm/  focus/  grab/  selection/                     — window manager + input subsystems
 config/  cursor/  busy/  systray/  screenunit/  option/  gc/
                                                     — supporting subsystems
@@ -225,7 +228,7 @@ parent's manager's `RequestProc` re-runs the layout.
 
 - Build tags use `//go:build <goos>` (Go 1.17+ style) at the very top of
   the file, before the `package` line. See `tk_x11.go`, `tk_darwin.go`,
-  `tk_windows.go`, `font/{xft,coretext,gdi,named_*}.go`, `systray/systray.go`.
+  `tk_windows.go`, `font/named_*.go`, `font/{xft,gdi,coretext}/`, `systray/systray.go`.
 - The cgo bridges live under `internal/<platform>/`. Keep cgo surface
   minimal; the bulk of each backend is pure Go in `platform/<platform>/`.
 - When adding a platform capability, add the method to the matching

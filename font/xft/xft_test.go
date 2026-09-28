@@ -1,8 +1,9 @@
 //go:build linux || freebsd || openbsd || netbsd
 
-package font
+package xft
 
 import (
+	"github.com/msorc/takigo/font"
 	"os"
 	"strings"
 	"testing"
@@ -22,7 +23,7 @@ func openTestXft(t testing.TB) *XftFont {
 	t.Cleanup(dpy.Close)
 	s := dpy.DefaultScreen()
 	f, err := OpenXft(dpy, s, dpy.DefaultVisual(s), dpy.DefaultColormap(s),
-		Attributes{Family: "DejaVu Sans", Size: 10})
+		font.Attributes{Family: "DejaVu Sans", Size: 10})
 	if err != nil {
 		t.Fatal(err)
 	}

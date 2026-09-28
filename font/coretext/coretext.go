@@ -1,6 +1,8 @@
 //go:build darwin
 
-package font
+// Package coretext lists Core Text font families for the macOS backend
+// (tk/macosx/tkMacOSXFont.c); the font type itself lives in platform/cocoa.
+package coretext
 
 /*
 #cgo LDFLAGS: -framework CoreText -framework CoreFoundation

@@ -49,10 +49,15 @@ static NSMutableDictionary<NSString *, NSNumber *> *atomByName = nil;
 static NSMutableDictionary<NSNumber *, NSString *> *atomByID = nil;
 
 // Event queue: ring buffer of CocoaRawEvents posted from Cocoa callbacks.
-#define EVENT_QUEUE_SIZE 1024
-static CocoaRawEvent eventQueue[EVENT_QUEUE_SIZE];
-static volatile int eventQueueHead = 0;
-static volatile int eventQueueTail = 0;
+// It grows instead of dropping events when full: the callbacks run on the
+// main thread, which is also the event loop's, so they cannot wait for the
+// reader, and a dropped ButtonRelease or KeyRelease would leave a grab or
+// key stuck (platform.EventQueue does the same for the Win32 backend).
+#define EVENT_QUEUE_INITIAL 1024
+static CocoaRawEvent *eventQueue = NULL;
+static int eventQueueCap = 0;
+static int eventQueueHead = 0;
+static int eventQueueCount = 0;
 static pthread_mutex_t eventQueueMutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t eventQueueCond = PTHREAD_COND_INITIALIZER;
 
@@ -67,12 +72,29 @@ static inline void runOnMain(void (^block)(void)) {
     }
 }
 
+// growEventQueue doubles the ring, moving the queued events to its start.
+// Called with eventQueueMutex held; returns 0 if memory ran out.
+static int growEventQueue(void) {
+    int newCap = eventQueueCap ? eventQueueCap * 2 : EVENT_QUEUE_INITIAL;
+    CocoaRawEvent *q = malloc(sizeof(CocoaRawEvent) * (size_t)newCap);
+    if (!q) return 0;
+    for (int i = 0; i < eventQueueCount; i++) {
+        q[i] = eventQueue[(eventQueueHead + i) % eventQueueCap];
+    }
+    free(eventQueue);
+    eventQueue = q;
+    eventQueueCap = newCap;
+    eventQueueHead = 0;
+    return 1;
+}
+
 static void postEvent(CocoaRawEvent *ev) {
     pthread_mutex_lock(&eventQueueMutex);
-    int next = (eventQueueTail + 1) % EVENT_QUEUE_SIZE;
-    if (next != eventQueueHead) {
-        eventQueue[eventQueueTail] = *ev;
-        eventQueueTail = next;
+    if (eventQueueCount < eventQueueCap || growEventQueue()) {
+        eventQueue[(eventQueueHead + eventQueueCount) % eventQueueCap] = *ev;
+        eventQueueCount++;
+    } else {
+        NSLog(@"takigo: out of memory queueing an event; dropped");
     }
     pthread_cond_signal(&eventQueueCond);
     pthread_mutex_unlock(&eventQueueMutex);
@@ -220,7 +242,13 @@ static void applyGC(CGContextRef ctx, CocoaGCState *gc) {
 // TKContentView — NSView subclass for Tk content rendering
 // ============================================================================
 
-@implementation TKContentView
+@implementation TKContentView {
+    // The key event interpretKeyEvents: is handling, and the text the input
+    // method is composing (marked text); see keyDown:. Not ARC: _markedText
+    // is retained.
+    NSEvent *_keyEvent;
+    NSString *_markedText;
+}
 
 - (instancetype)initWithFrame:(NSRect)frame windowID:(CocoaWindowID)wid {
     self = [super initWithFrame:frame];
@@ -253,6 +281,7 @@ static void applyGC(CGContextRef ctx, CocoaGCState *gc) {
         free(_backingData);
         _backingData = NULL;
     }
+    [_markedText release];
     [super dealloc];
 }
 
@@ -444,6 +473,11 @@ static void applyGC(CGContextRef ctx, CocoaGCState *gc) {
     NSString *plain = [event charactersIgnoringModifiers];
     if (plain && [plain length] > 0) {
         ev.keysym = [plain characterAtIndex:0];
+        // Beyond Latin-1, X11 keysyms are 0x01000000 + the code point;
+        // 0xF700-0xF8FF are Cocoa function keys, mapped below.
+        if (ev.keysym > 0xFF && (ev.keysym < 0xF700 || ev.keysym > 0xF8FF)) {
+            ev.keysym |= 0x01000000;
+        }
     }
 
     // Use characters (with modifiers applied) for the text string,
@@ -477,10 +511,56 @@ static void applyGC(CGContextRef ctx, CocoaGCState *gc) {
     postEvent(&ev);
 }
 
+// postText posts text committed by the input method (a composed dead key,
+// an IME conversion, an Option character) as one KeyPress per character
+// with its Unicode keysym, as tkMacOSXKeyEvent.c turns insertText: into
+// KeyPress events. Option is dropped from the state: it composed the
+// character rather than modifying it.
+- (void)postText:(NSString *)text from:(NSEvent *)src {
+    NSUInteger len = [text length];
+    for (NSUInteger i = 0; i < len; ) {
+        unichar c = [text characterAtIndex:i];
+        uint32_t cp = c;
+        NSUInteger n = 1;
+        if (CFStringIsSurrogateHighCharacter(c) && i + 1 < len) {
+            cp = CFStringGetLongCharacterForSurrogatePair(c, [text characterAtIndex:i + 1]);
+            n = 2;
+        }
+        CocoaRawEvent ev = {0};
+        ev.type = COCOA_EVENT_KEY_PRESS;
+        ev.window = _windowID;
+        if (src) {
+            ev.state = [self modifierFlags:src] & ~(1u << 3);
+            ev.keycode = [src keyCode];
+            ev.time = (uint64_t)([src timestamp] * 1000);
+        }
+        ev.keysym = cp < 0x100 ? cp : (0x01000000 | cp);
+        NSString *one = [text substringWithRange:NSMakeRange(i, n)];
+        const char *utf8 = [one UTF8String];
+        if (utf8) {
+            strncpy(ev.str, utf8, sizeof(ev.str) - 1);
+        }
+        postEvent(&ev);
+        i += n;
+    }
+}
+
 - (void)keyDown:(NSEvent *)event {
-    [self postKeyEvent:event type:COCOA_EVENT_KEY_PRESS];
-    // Also feed to input method for composition support
+    // Command shortcuts and function keys (arrows etc., characters in
+    // 0xF700-0xF8FF) bypass the input method unless it is composing.
+    NSString *plain = [event charactersIgnoringModifiers];
+    unichar c = [plain length] ? [plain characterAtIndex:0] : 0;
+    if (!_markedText && (([event modifierFlags] & NSEventModifierFlagCommand) ||
+                         (c >= 0xF700 && c <= 0xF8FF))) {
+        [self postKeyEvent:event type:COCOA_EVENT_KEY_PRESS];
+        return;
+    }
+    // Everything else goes through the input method, which answers with
+    // insertText: (text), doCommandBySelector: (Return, Backspace, Tab,
+    // Escape, Control-letters) or setMarkedText: (still composing).
+    _keyEvent = event;
     [self interpretKeyEvents:@[event]];
+    _keyEvent = nil;
 }
 
 - (void)keyUp:(NSEvent *)event {
@@ -501,19 +581,43 @@ static void applyGC(CGContextRef ctx, CocoaGCState *gc) {
 // ---- NSTextInputClient protocol (required for IME support) ----
 
 - (void)insertText:(id)string replacementRange:(NSRange)replacementRange {
-    // Already handled via keyDown → postKeyEvent
+    NSString *text = [string isKindOfClass:[NSAttributedString class]] ? [string string] : string;
+    BOOL composed = _markedText != nil;
+    [self unmarkText];
+    NSEvent *src = _keyEvent;
+    _keyEvent = nil;
+    // A plain keystroke that produced its own character keeps the key's
+    // original event (keysym, keycode, modifiers); composed text does not.
+    if (src && !composed && !([src modifierFlags] & NSEventModifierFlagOption) &&
+        [text isEqualToString:[src characters]]) {
+        [self postKeyEvent:src type:COCOA_EVENT_KEY_PRESS];
+        return;
+    }
+    [self postText:text from:src];
 }
 
 - (void)doCommandBySelector:(SEL)selector {
-    // Ignore — we handle key events directly
+    // Keys that edit rather than insert text reach the widget's bindings
+    // as the original key event.
+    if (_keyEvent) {
+        [self postKeyEvent:_keyEvent type:COCOA_EVENT_KEY_PRESS];
+        _keyEvent = nil;
+    }
 }
 
 - (void)setMarkedText:(id)string selectedRange:(NSRange)selectedRange
      replacementRange:(NSRange)replacementRange {
-    // TODO: IME composition display
+    // The composition is not drawn inline (Tk shows it underlined at the
+    // insertion cursor); it is committed through insertText:.
+    NSString *text = [string isKindOfClass:[NSAttributedString class]] ? [string string] : string;
+    [_markedText release];
+    _markedText = [text length] ? [text copy] : nil;
+    _keyEvent = nil;
 }
 
 - (void)unmarkText {
+    [_markedText release];
+    _markedText = nil;
 }
 
 - (NSRange)selectedRange {
@@ -521,11 +625,11 @@ static void applyGC(CGContextRef ctx, CocoaGCState *gc) {
 }
 
 - (NSRange)markedRange {
-    return NSMakeRange(NSNotFound, 0);
+    return _markedText ? NSMakeRange(0, [_markedText length]) : NSMakeRange(NSNotFound, 0);
 }
 
 - (BOOL)hasMarkedText {
-    return NO;
+    return _markedText != nil;
 }
 
 - (NSAttributedString *)attributedSubstringForProposedRange:(NSRange)range
@@ -538,7 +642,10 @@ static void applyGC(CGContextRef ctx, CocoaGCState *gc) {
 }
 
 - (NSRect)firstRectForCharacterRange:(NSRange)range actualRange:(NSRangePointer)actualRange {
-    return NSZeroRect;
+    // Place the candidate window at the view's lower-left corner; the
+    // insertion cursor's position is not known here.
+    NSRect r = [self convertRect:NSMakeRect(0, 0, 1, 1) toView:nil];
+    return [[self window] convertRectToScreen:r];
 }
 
 - (NSUInteger)characterIndexForPoint:(NSPoint)point {
@@ -1762,7 +1869,7 @@ void CocoaPumpEvents(void) {
 
 int CocoaNextEvent(CocoaRawEvent *ev) {
     pthread_mutex_lock(&eventQueueMutex);
-    while (eventQueueHead == eventQueueTail) {
+    while (eventQueueCount == 0) {
         // Wait with a timeout so we can check periodically.
         // On macOS, events come from the Cocoa event pump on the main thread.
         struct timespec ts;
@@ -1774,21 +1881,22 @@ int CocoaNextEvent(CocoaRawEvent *ev) {
         }
         pthread_cond_timedwait(&eventQueueCond, &eventQueueMutex, &ts);
     }
-    if (eventQueueHead == eventQueueTail) {
+    if (eventQueueCount == 0) {
         // Spurious wakeup or timeout — no event available
         pthread_mutex_unlock(&eventQueueMutex);
         memset(ev, 0, sizeof(*ev));
         return 0;
     }
     *ev = eventQueue[eventQueueHead];
-    eventQueueHead = (eventQueueHead + 1) % EVENT_QUEUE_SIZE;
+    eventQueueHead = (eventQueueHead + 1) % eventQueueCap;
+    eventQueueCount--;
     pthread_mutex_unlock(&eventQueueMutex);
     return 1;
 }
 
 int CocoaPending(void) {
     pthread_mutex_lock(&eventQueueMutex);
-    int count = (eventQueueTail - eventQueueHead + EVENT_QUEUE_SIZE) % EVENT_QUEUE_SIZE;
+    int count = eventQueueCount;
     pthread_mutex_unlock(&eventQueueMutex);
     return count;
 }

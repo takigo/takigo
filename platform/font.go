@@ -1,7 +1,7 @@
 package platform
 
 // DrawableFont extends the font.Font interface with platform-specific
-// string drawing. This eliminates type assertions to *font.XftFont
+// string drawing. This eliminates type assertions to *xft.XftFont
 // found across 20+ widget files.
 type DrawableFont interface {
 	// DrawString draws a string on a drawable at the given baseline position.
