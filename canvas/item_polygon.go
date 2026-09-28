@@ -146,7 +146,7 @@ func (p *PolygonItem) PointDistance(x, y float64) float64 {
 	// Otherwise return distance to nearest edge.
 	minDist := math.MaxFloat64
 	n := len(p.coords) / 2
-	for i := 0; i < n; i++ {
+	for i := range n {
 		j := (i + 1) % n
 		d := segmentPointDistance(x, y,
 			p.coords[i*2], p.coords[i*2+1],
@@ -223,7 +223,7 @@ func pointInPolygon(px, py float64, coords []float64) bool {
 	n := len(coords) / 2
 	inside := false
 	j := n - 1
-	for i := 0; i < n; i++ {
+	for i := range n {
 		xi, yi := coords[i*2], coords[i*2+1]
 		xj, yj := coords[j*2], coords[j*2+1]
 		if ((yi > py) != (yj > py)) &&

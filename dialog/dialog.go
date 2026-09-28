@@ -103,20 +103,11 @@ func (d *Dialog) Run() DialogResult {
 	// reflect the minimum space needed.
 	contentReq := d.Content.Window().ReqWidth
 	btnReq := d.BtnFrame.Window().ReqWidth
-	reqW := contentReq
-	if btnReq > reqW {
-		reqW = btnReq
-	}
+	reqW := max(contentReq, btnReq)
 	reqH := d.Content.Window().ReqHeight + d.BtnFrame.Window().ReqHeight + 10 // 10 for padY
 
-	width := d.minWidth
-	if reqW+20 > width { // 20 for some horizontal margin
-		width = reqW + 20
-	}
-	height := d.minHeight
-	if reqH+20 > height { // 20 for some vertical margin
-		height = reqH + 20
-	}
+	width := max(d.minWidth, reqW+20)   // 20 for some horizontal margin
+	height := max(d.minHeight, reqH+20) // 20 for some vertical margin
 
 	// Apply the computed size.
 	tw.Width = width

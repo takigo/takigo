@@ -129,10 +129,7 @@ func (d *WindowsDisplay) readClipboard() string {
 
 	// Read UTF-16 string. Limit to a reasonable max length.
 	size := w32.GlobalSize(w32.HGLOBAL(hData))
-	nchars := int(size / 2)
-	if nchars > 1<<20 {
-		nchars = 1 << 20
-	}
+	nchars := min(int(size/2), 1<<20)
 	data := unsafe.Slice((*uint16)(ptrToUnsafe(ptr)), nchars)
 	return utf16ToString(data)
 }

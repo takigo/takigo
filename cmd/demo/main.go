@@ -34,8 +34,8 @@ func generateTestImage() *goimage.RGBA {
 		{R: 50, G: 180, B: 80, A: 255},  // bottom-left: green
 		{R: 220, G: 180, B: 50, A: 255}, // bottom-right: yellow
 	}
-	for y := 0; y < 64; y++ {
-		for x := 0; x < 64; x++ {
+	for y := range 64 {
+		for x := range 64 {
 			qi := 0
 			if x >= 32 {
 				qi++

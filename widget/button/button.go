@@ -297,7 +297,7 @@ func (b *Button) computeGeometry() {
 	b.textWidth, b.textHeight = 0, 0
 	if b.Font != nil {
 		// Tk_ComputeTextLayout lays out "" as one empty line.
-		for _, line := range strings.Split(b.Text, "\n") {
+		for line := range strings.SplitSeq(b.Text, "\n") {
 			b.textWidth = max(b.textWidth, b.Font.MeasureString(line))
 			b.textHeight += b.Font.Metrics().Linespace()
 		}

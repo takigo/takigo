@@ -40,7 +40,7 @@ func Get(name string, fg, bg gocolor.RGBA) *tkimage.Photo {
 }
 
 func parseXBM(src string) (w, h int, bits []byte) {
-	for _, line := range strings.Split(src, "\n") {
+	for line := range strings.SplitSeq(src, "\n") {
 		line = strings.TrimSpace(line)
 		if !strings.HasPrefix(line, "#define") {
 			continue
@@ -60,12 +60,11 @@ func parseXBM(src string) (w, h int, bits []byte) {
 		}
 	}
 
-	start := strings.Index(src, "{")
-	end := strings.LastIndex(src, "}")
-	if start < 0 || end < 0 || end <= start {
+	_, rest, ok := strings.Cut(src, "{")
+	body, _, found := strings.CutLast(rest, "}")
+	if !ok || !found {
 		return 0, 0, nil
 	}
-	body := src[start+1 : end]
 	for _, tok := range strings.FieldsFunc(body, func(r rune) bool {
 		return r == ',' || r == ' ' || r == '\t' || r == '\n' || r == '\r'
 	}) {

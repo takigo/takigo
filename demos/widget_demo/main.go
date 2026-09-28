@@ -556,7 +556,7 @@ func addFormattedText(t *text.TextWidget, content string) {
 		}
 	}
 
-	for _, line := range strings.Split(content, "\n") {
+	for line := range strings.SplitSeq(content, "\n") {
 		line = strings.TrimSpace(line)
 		if line == "" {
 			continue

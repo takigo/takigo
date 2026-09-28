@@ -1,6 +1,7 @@
 package canvas
 
 import (
+	"slices"
 	"strconv"
 )
 
@@ -59,8 +60,7 @@ func itemBase(item Item) *ItemBase {
 // findClosest returns the topmost item within halo distance of (x, y).
 // Items are searched from top (last) to bottom (first) in display order.
 func (c *Canvas) findClosest(x, y float64, halo float64) *itemEntry {
-	for i := len(c.items) - 1; i >= 0; i-- {
-		entry := c.items[i]
+	for _, entry := range slices.Backward(c.items) {
 		if base := itemBase(entry.item); base != nil && base.State() == ItemStateHidden {
 			continue
 		}

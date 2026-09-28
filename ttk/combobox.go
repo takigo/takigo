@@ -364,10 +364,7 @@ func (c *Combobox) openDropdown() {
 	} else {
 		lineH = 20
 	}
-	dropH := lineH * len(c.Values)
-	if dropH > 200 {
-		dropH = 200
-	}
+	dropH := min(lineH*len(c.Values), 200)
 	dropW := win.Width
 
 	// Create override-redirect popup window.

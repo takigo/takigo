@@ -5,6 +5,7 @@ package wm
 
 import (
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -436,14 +437,7 @@ func (info *WmInfo) updateProtocols() {
 
 	// Add registered protocols.
 	for atom := range info.Protocols {
-		found := false
-		for _, a := range atoms {
-			if a == atom {
-				found = true
-				break
-			}
-		}
-		if !found {
+		if !slices.Contains(atoms, atom) {
 			atoms = append(atoms, atom)
 		}
 	}

@@ -246,7 +246,7 @@ func psOval(r *RectOvalItem, ps *PSContext) error {
 	ry := float64(r.Y2-r.Y1) / 2.0
 	const segs = 60
 	pts := make([]float64, 0, segs*2)
-	for i := 0; i < segs; i++ {
+	for i := range segs {
 		theta := 2 * math.Pi * float64(i) / float64(segs)
 		pts = append(pts, cx+rx*math.Cos(theta), cy+ry*math.Sin(theta))
 	}

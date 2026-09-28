@@ -3,6 +3,7 @@ package window
 import (
 	"log"
 	"os"
+	"slices"
 
 	"github.com/msorc/takigo/platform"
 )
@@ -158,8 +159,8 @@ func destroyWindowDepth(w *Window, depth int) {
 	}
 	hooks := w.destroyHooks
 	w.destroyHooks = nil
-	for i := len(hooks) - 1; i >= 0; i-- {
-		hooks[i]()
+	for _, hook := range slices.Backward(hooks) {
+		hook()
 	}
 	if w.GeomManager != nil {
 		w.GeomManager.LostContentProc(w)

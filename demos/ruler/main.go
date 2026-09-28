@@ -74,7 +74,7 @@ func main() {
 		c.CreateLine(pts, canvas.OutlineColor("black"), canvas.OutlineWidth(1))
 	}
 	line(cm(1), cm(.5), cm(1), cm(1), cm(13), cm(1), cm(13), cm(.5))
-	for i := 0; i < 12; i++ {
+	for i := range 12 {
 		x := float64(i + 1)
 		line(cm(x), cm(1), cm(x), cm(.6))
 		line(cm(x+.25), cm(1), cm(x+.25), cm(.8))

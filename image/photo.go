@@ -95,7 +95,7 @@ func NewPhotoFromXBMFile(name, path string, fg, bg color.RGBA) (*Photo, error) {
 // NewPhotoFromXBM parses XBM source text and creates a Photo.
 func NewPhotoFromXBM(name, src string, fg, bg color.RGBA) (*Photo, error) {
 	var w, h int
-	for _, line := range strings.Split(src, "\n") {
+	for line := range strings.SplitSeq(src, "\n") {
 		line = strings.TrimSpace(line)
 		if !strings.HasPrefix(line, "#define") {
 			continue
@@ -118,12 +118,11 @@ func NewPhotoFromXBM(name, src string, fg, bg color.RGBA) (*Photo, error) {
 		return nil, fmt.Errorf("image: xbm: missing width or height")
 	}
 
-	start := strings.Index(src, "{")
-	end := strings.LastIndex(src, "}")
-	if start < 0 || end < 0 || end <= start {
+	_, rest, ok := strings.Cut(src, "{")
+	body, _, found := strings.CutLast(rest, "}")
+	if !ok || !found {
 		return nil, fmt.Errorf("image: xbm: could not find data array")
 	}
-	body := src[start+1 : end]
 
 	var bits []byte
 	for _, tok := range strings.FieldsFunc(body, func(r rune) bool {

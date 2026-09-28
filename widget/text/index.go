@@ -111,10 +111,7 @@ func Backward(idx Index, count int, doc *Document) Index {
 func WordStart(idx Index, doc *Document) Index {
 	idx = Clamp(idx, doc)
 	line := doc.Lines[idx.Line-1].Text
-	pos := idx.Char
-	if pos > len(line) {
-		pos = len(line)
-	}
+	pos := min(idx.Char, len(line))
 	// Skip back past non-word chars.
 	for pos > 0 && !isWordRune(line[pos-1]) {
 		pos--

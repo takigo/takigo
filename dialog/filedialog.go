@@ -149,9 +149,9 @@ func showFileDialog(parent widget.Caregiver, cfg fileConfig) (string, bool) {
 			return
 		}
 		item := items[sel[0]]
-		if strings.HasSuffix(item, "/") {
+		if before, ok := strings.CutSuffix(item, "/"); ok {
 			// Directory — navigate.
-			dirName := strings.TrimSuffix(item, "/")
+			dirName := before
 			if dirName == ".." {
 				currentDir = filepath.Dir(currentDir)
 			} else {
@@ -178,8 +178,8 @@ func showFileDialog(parent widget.Caregiver, cfg fileConfig) (string, bool) {
 			return
 		}
 		item := items[sel[0]]
-		if strings.HasSuffix(item, "/") {
-			dirName := strings.TrimSuffix(item, "/")
+		if before, ok := strings.CutSuffix(item, "/"); ok {
+			dirName := before
 			if dirName == ".." {
 				currentDir = filepath.Dir(currentDir)
 			} else {

@@ -114,7 +114,7 @@ func (d *WindowsDisplay) ChangePropertyAtoms(w platform.WindowID, prop platform.
 	data := make([]byte, len(atoms)*8)
 	for i, a := range atoms {
 		v := uint64(a)
-		for j := 0; j < 8; j++ {
+		for j := range 8 {
 			data[i*8+j] = byte(v >> (j * 8))
 		}
 	}

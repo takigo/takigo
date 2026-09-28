@@ -127,9 +127,9 @@ func main() {
 	// Track old fill for enter/leave highlighting.
 	var oldFill string
 
-	for i := 0; i < 20; i++ {
+	for i := range 20 {
 		xc := -10 + 3*i
-		for j := 0; j < 10; j++ {
+		for j := range 10 {
 			yc := -10 + 3*j
 			label := fmt.Sprintf("%d,%d", i, j)
 

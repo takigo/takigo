@@ -288,15 +288,11 @@ func (e *LabelElement) Draw(d platform.DisplayServer, drawable platform.Drawable
 	anchor := option.AnchorW
 	justify := option.JustifyLeft
 	if e.ctx.Style != nil {
-		if v, ok := e.ctx.Style.Lookup("-anchor", state); ok {
-			if a, ok := v.(option.Anchor); ok {
-				anchor = a
-			}
+		if a, ok := e.ctx.Style.LookupAs[option.Anchor]("-anchor", state); ok {
+			anchor = a
 		}
-		if v, ok := e.ctx.Style.Lookup("-justify", state); ok {
-			if j, ok := v.(option.Justify); ok {
-				justify = j
-			}
+		if j, ok := e.ctx.Style.LookupAs[option.Justify]("-justify", state); ok {
+			justify = j
 		}
 	}
 

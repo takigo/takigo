@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"slices"
 	"time"
 
 	"github.com/msorc/takigo"
@@ -128,7 +129,7 @@ func main() {
 
 	sq := 0
 	for row := 7; row >= 0; row-- {
-		for col := 0; col < 8; col++ {
+		for col := range 8 {
 			fill, dfill := "bisque", "bisque3"
 			if (col&1)^(row&1) != 0 {
 				fill, dfill = "tan3", "tan4"
@@ -183,12 +184,7 @@ func main() {
 	})
 
 	visitedHas := func(s int) bool {
-		for _, v := range visited {
-			if v == s {
-				return true
-			}
-		}
-		return false
+		return slices.Contains(visited, s)
 	}
 	checkSquare := func(s int) int {
 		n := 0

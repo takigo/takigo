@@ -190,17 +190,8 @@ func (c *Checkbutton) Display() {
 	hasClamStyle := false
 	var upperBorderColor, lowerBorderColor uint64
 	if c.Context != nil && c.Context.Style != nil {
-		if v, ok := c.Context.Style.Lookup("-upperbordercolor", c.State); ok {
-			if uc, ok2 := v.(uint64); ok2 {
-				upperBorderColor = uc
-				hasClamStyle = true
-			}
-		}
-		if v, ok := c.Context.Style.Lookup("-lowerbordercolor", c.State); ok {
-			if lc, ok2 := v.(uint64); ok2 {
-				lowerBorderColor = lc
-			}
-		}
+		upperBorderColor, hasClamStyle = c.Context.Style.LookupAs[uint64]("-upperbordercolor", c.State)
+		lowerBorderColor, _ = c.Context.Style.LookupAs[uint64]("-lowerbordercolor", c.State)
 	}
 
 	// Indicator (checkbox square).
@@ -231,11 +222,8 @@ func (c *Checkbutton) Display() {
 	hasClassicStyle := false
 	classicRelief := option.ReliefFlat
 	if c.Context != nil && c.Context.Style != nil {
-		if v, ok := c.Context.Style.Lookup("-indicatorrelief", c.State); ok {
-			if r, ok2 := v.(option.Relief); ok2 {
-				classicRelief = r
-				hasClassicStyle = true
-			}
+		if r, ok := c.Context.Style.LookupAs[option.Relief]("-indicatorrelief", c.State); ok {
+			classicRelief, hasClassicStyle = r, true
 		}
 	}
 
