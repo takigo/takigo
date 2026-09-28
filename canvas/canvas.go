@@ -33,6 +33,13 @@ type Canvas struct {
 	pixmap           platform.PixmapID
 	pixmapW, pixmapH int
 
+	// damage is the area to repaint at the next idle redraw, in canvas
+	// coordinates (Tk's redrawX1..redrawY2); damageAll repaints the whole
+	// window, border included.
+	damage    [4]int
+	hasDamage bool
+	damageAll bool
+
 	// Item pick / events.
 	currentItem  *itemEntry
 	itemBindings map[string][]itemHandler
@@ -169,8 +176,9 @@ func New(parent widget.Caregiver, name string, opts ...CanvasOption) *Canvas {
 	return c
 }
 
-// Display draws the canvas and all its items.
+// Display draws the canvas and all its items now.
 func (c *Canvas) Display() {
+	c.damageAll, c.hasDamage = false, false
 	if c.Destroyed {
 		return
 	}
@@ -178,15 +186,67 @@ func (c *Canvas) Display() {
 	if w.PlatformID == 0 || !w.IsMapped() {
 		return
 	}
-
-	d := w.Display.Server
-
-	// Compute visible canvas rectangle.
 	winW := w.Width - 2*c.inset
 	winH := w.Height - 2*c.inset
 	if winW <= 0 || winH <= 0 {
 		return
 	}
+	c.paint(c.xOrigin, c.yOrigin, c.xOrigin+winW, c.yOrigin+winH)
+
+	d := w.Display.Server
+	gc := w.GC
+	// Draw 3D border if configured.
+	if c.Border != nil && c.BorderWidth > 0 && c.Relief != option.ReliefFlat {
+		hl := c.HighlightWidth
+		draw.Draw3DRectangle(d, w.Drawable(), gc, c.Border,
+			hl, hl, w.Width-2*hl, w.Height-2*hl, c.BorderWidth, c.Relief)
+	}
+	// The highlight ring sits outside the border (focus colour or
+	// -highlightbackground).
+	c.DrawHighlightBorder(false, 0)
+
+	d.Flush()
+	c.NeedRedraw = false
+}
+
+// redrawDamage repaints what was damaged since the last redraw; it ports
+// DisplayCanvas, which redraws only redrawX1..redrawY2 unless the whole
+// window (REDRAW_BORDERS) was invalidated.
+func (c *Canvas) redrawDamage() {
+	c.redrawPending = false
+	if c.damageAll {
+		c.Display()
+		return
+	}
+	if !c.hasDamage || c.Destroyed {
+		return
+	}
+	c.hasDamage = false
+	w := c.Win
+	if w.PlatformID == 0 || !w.IsMapped() {
+		return
+	}
+	x1 := max(c.damage[0], c.xOrigin)
+	y1 := max(c.damage[1], c.yOrigin)
+	x2 := min(c.damage[2], c.xOrigin+w.Width-2*c.inset)
+	y2 := min(c.damage[3], c.yOrigin+w.Height-2*c.inset)
+	if x1 >= x2 || y1 >= y2 {
+		return
+	}
+	c.paint(x1, y1, x2, y2)
+	w.Display.Server.Flush()
+}
+
+// paint repaints the visible canvas area x1,y1 .. x2,y2 (canvas
+// coordinates): it clears that part of the off-screen pixmap, draws the
+// items whose boxes overlap it, and copies it to the window. Items are drawn
+// with the same pixmap origin and clip whatever the area, so a partial
+// repaint produces the same pixels as a full one.
+func (c *Canvas) paint(x1, y1, x2, y2 int) {
+	w := c.Win
+	d := w.Display.Server
+	winW := w.Width - 2*c.inset
+	winH := w.Height - 2*c.inset
 
 	// Overdraw padding (30px like Tk).
 	const overdraw = 30
@@ -209,17 +269,17 @@ func (c *Canvas) Display() {
 	pxDrawable := platform.PixmapDrawable(c.pixmap)
 	gc := w.GC
 
-	// Clear pixmap to background color.
+	// The origin in canvas coordinates that maps to the pixmap origin.
+	pixOriginX := c.xOrigin - overdraw
+	pixOriginY := c.yOrigin - overdraw
+
+	// Clear the repainted area to the background color.
 	bgPixel := uint64(0xFFFFFF)
 	if c.Base.Background != nil {
 		bgPixel = c.Base.Background.Pixel
 	}
 	d.SetForeground(gc, bgPixel)
-	d.FillRectangle(pxDrawable, gc, 0, 0, uint(pixW), uint(pixH))
-
-	// The origin in canvas coordinates that maps to the pixmap origin.
-	pixOriginX := c.xOrigin - overdraw
-	pixOriginY := c.yOrigin - overdraw
+	d.FillRectangle(pxDrawable, gc, x1-pixOriginX, y1-pixOriginY, uint(x2-x1), uint(y2-y1))
 
 	// Clip rectangle in canvas coordinates.
 	clipX := pixOriginX
@@ -234,36 +294,23 @@ func (c *Canvas) Display() {
 			continue
 		}
 
-		// Cull by bounding box.
+		// Cull by bounding box against the repainted area.
 		ix1, iy1, ix2, iy2 := item.BBox()
-		if ix2 < clipX || ix1 > clipX+clipW || iy2 < clipY || iy1 > clipY+clipH {
+		if ix2 < x1 || ix1 > x2 || iy2 < y1 || iy1 > y2 {
 			continue
 		}
 
 		item.Display(d, pxDrawable, gc, clipX, clipY, clipW, clipH, pixOriginX, pixOriginY)
 	}
 
-	// Copy pixmap to window (accounting for overdraw offset and inset).
+	// Copy the repainted area to the window (accounting for overdraw
+	// offset and inset).
 	d.CopyArea(pxDrawable, w.Drawable(), gc,
-		overdraw, overdraw, uint(winW), uint(winH),
-		c.inset, c.inset)
+		x1-pixOriginX, y1-pixOriginY, uint(x2-x1), uint(y2-y1),
+		x1-c.xOrigin+c.inset, y1-c.yOrigin+c.inset)
 
 	// Position embedded window items.
 	c.positionWindowItems()
-
-	// Draw 3D border if configured.
-	if c.Border != nil && c.BorderWidth > 0 && c.Relief != option.ReliefFlat {
-		hl := c.HighlightWidth
-		draw.Draw3DRectangle(d, w.Drawable(), gc, c.Border,
-			hl, hl, w.Width-2*hl, w.Height-2*hl, c.BorderWidth, c.Relief)
-	}
-	// The highlight ring sits outside the border (focus colour or
-	// -highlightbackground).
-	c.DrawHighlightBorder(false, 0)
-
-	d.Flush()
-	c.redrawPending = false
-	c.NeedRedraw = false
 }
 
 // positionWindowItems maps and positions all embedded WindowItems relative to
@@ -304,15 +351,53 @@ func (c *Canvas) positionWindowItems() {
 	}
 }
 
-// scheduleRedraw schedules a redraw via the idle loop.
+// scheduleRedraw schedules a repaint of the whole window at idle time.
 func (c *Canvas) scheduleRedraw() {
+	c.damageAll = true
+	c.scheduleIdle()
+}
+
+// eventuallyRedraw ports Tk_CanvasEventuallyRedraw: it adds x1,y1 .. x2,y2
+// (canvas coordinates) to the area repainted at idle time.
+func (c *Canvas) eventuallyRedraw(x1, y1, x2, y2 int) {
+	if x1 >= x2 || y1 >= y2 {
+		return
+	}
+	if c.hasDamage {
+		x1 = min(x1, c.damage[0])
+		y1 = min(y1, c.damage[1])
+		x2 = max(x2, c.damage[2])
+		y2 = max(y2, c.damage[3])
+	}
+	c.damage = [4]int{x1, y1, x2, y2}
+	c.hasDamage = true
+	c.scheduleIdle()
+}
+
+// damageSlop widens an item's box for what it draws just outside it, such
+// as a text item's insertion cursor.
+const damageSlop = 2
+
+// redrawItems damages the current boxes of entries; callers that change an
+// item call it before and after the change so both areas are repainted.
+func (c *Canvas) redrawItems(entries ...*itemEntry) {
+	for _, e := range entries {
+		if e == nil {
+			continue
+		}
+		x1, y1, x2, y2 := e.item.BBox()
+		c.eventuallyRedraw(x1-damageSlop, y1-damageSlop, x2+damageSlop, y2+damageSlop)
+	}
+}
+
+func (c *Canvas) scheduleIdle() {
 	if c.redrawPending || c.Destroyed {
 		return
 	}
 	c.redrawPending = true
 	c.App.DoWhenIdle(func() {
 		if !c.Destroyed {
-			c.Display()
+			c.redrawDamage()
 		}
 	})
 }
@@ -379,7 +464,7 @@ func (c *Canvas) addItem(item Item) int64 {
 		c.tagIndexAdd(tag, id)
 	}
 
-	c.scheduleRedraw()
+	c.redrawItems(entry)
 	return id
 }
 
@@ -478,6 +563,7 @@ func (c *Canvas) Delete(tagOrID string) {
 		return
 	}
 
+	c.redrawItems(entries...)
 	d := c.Win.Display.Server
 	deleteSet := make(map[int64]bool, len(entries))
 	for _, e := range entries {
@@ -508,8 +594,6 @@ func (c *Canvas) Delete(tagOrID string) {
 	if c.currentItem != nil && deleteSet[c.currentItem.id] {
 		c.currentItem = nil
 	}
-
-	c.scheduleRedraw()
 }
 
 // CurrentItem returns the ID of the item under the mouse cursor, or -1 if none.
@@ -523,17 +607,19 @@ func (c *Canvas) CurrentItem() int64 {
 // Move translates all items matching tagOrID by (dx, dy).
 func (c *Canvas) Move(tagOrID string, dx, dy float64) {
 	for _, entry := range c.resolve(tagOrID) {
+		c.redrawItems(entry)
 		entry.item.Translate(dx, dy)
+		c.redrawItems(entry)
 	}
-	c.scheduleRedraw()
 }
 
 // Scale scales all items matching tagOrID about (ox, oy).
 func (c *Canvas) Scale(tagOrID string, ox, oy, sx, sy float64) {
 	for _, entry := range c.resolve(tagOrID) {
+		c.redrawItems(entry)
 		entry.item.Scale(ox, oy, sx, sy)
+		c.redrawItems(entry)
 	}
-	c.scheduleRedraw()
 }
 
 // Raise moves items matching tagOrID to the top of the display list.
@@ -560,7 +646,7 @@ func (c *Canvas) Raise(tagOrID string) {
 		}
 	}
 	copy(c.items[j:], moved)
-	c.scheduleRedraw()
+	c.redrawItems(entries...)
 }
 
 // Lower moves items matching tagOrID to the bottom of the display list.
@@ -590,7 +676,7 @@ func (c *Canvas) Lower(tagOrID string) {
 	for i, k := 0, len(kept)-1; k >= 0; i, k = i+1, k-1 {
 		c.items[i] = kept[k]
 	}
-	c.scheduleRedraw()
+	c.redrawItems(entries...)
 }
 
 // AddTag adds a tag to all items matching tagOrID.
@@ -614,11 +700,13 @@ func (c *Canvas) DeleteTag(tag, tagOrID string) {
 // ItemConfigure configures items matching tagOrID.
 func (c *Canvas) ItemConfigure(tagOrID string, opts ...ItemOption) error {
 	for _, entry := range c.resolve(tagOrID) {
-		if err := entry.item.Configure(opts); err != nil {
+		c.redrawItems(entry)
+		err := entry.item.Configure(opts)
+		c.redrawItems(entry)
+		if err != nil {
 			return err
 		}
 	}
-	c.scheduleRedraw()
 	return nil
 }
 
@@ -637,10 +725,9 @@ func (c *Canvas) SetItemCoords(tagOrID string, coords []float64) error {
 	if len(entries) == 0 {
 		return nil
 	}
+	c.redrawItems(entries[0])
 	err := entries[0].item.SetCoords(coords)
-	if err == nil {
-		c.scheduleRedraw()
-	}
+	c.redrawItems(entries[0])
 	return err
 }
 
@@ -762,11 +849,11 @@ func (c *Canvas) Focus(tagOrID string) {
 			if ti, ok := prev.item.(*TextItem); ok {
 				ti.hasFocus = false
 			}
+			c.redrawItems(prev)
 		}
 		c.focusItemID = 0
 	}
 	if tagOrID == "" {
-		c.scheduleRedraw()
 		return
 	}
 	entries := c.resolve(tagOrID)
@@ -774,13 +861,13 @@ func (c *Canvas) Focus(tagOrID string) {
 		if ti, ok := e.item.(*TextItem); ok {
 			ti.hasFocus = true
 			c.focusItemID = e.id
+			c.redrawItems(e)
 			// Make canvas window focusable and give it X11 focus.
 			c.Win.Flags |= window.FlagFocusable
 			c.App.Server().SetInputFocus(c.Win.PlatformID, platform.RevertToParent, platform.CurrentTime)
 			break
 		}
 	}
-	c.scheduleRedraw()
 }
 
 // ICursor sets the insertion cursor position in a text item.
@@ -799,11 +886,12 @@ func (c *Canvas) ICursor(tagOrID string, index string) {
 					}
 				}
 			}
+			c.redrawItems(e)
 			ti.SetCursorPos(pos)
+			c.redrawItems(e)
 			break
 		}
 	}
-	c.scheduleRedraw()
 }
 
 // Insert inserts text into a text item at the given index.
@@ -822,11 +910,12 @@ func (c *Canvas) Insert(tagOrID string, index string, text string) {
 					}
 				}
 			}
+			c.redrawItems(e)
 			ti.InsertText(pos, text)
+			c.redrawItems(e)
 			break
 		}
 	}
-	c.scheduleRedraw()
 }
 
 // Dchars deletes characters from a text item between first and last indices.
@@ -858,11 +947,12 @@ func (c *Canvas) Dchars(tagOrID string, first string, last string) {
 			}
 			f := parseIdx(first)
 			l := parseIdx(last)
+			c.redrawItems(e)
 			ti.DeleteChars(f, l)
+			c.redrawItems(e)
 			break
 		}
 	}
-	c.scheduleRedraw()
 }
 
 // CanvasX ports "$canvas canvasx x": the canvas coordinate of window x.

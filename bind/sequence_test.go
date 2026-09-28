@@ -64,7 +64,7 @@ func TestMultiEventSequence(t *testing.T) {
 			bind("<Key-a>", "a")
 			bind("<Key-x><Control-Key-c>", "ctrl-seq")
 			for _, ev := range tt.events {
-				e.dispatch(ev)
+				e.dispatch(ev, false)
 			}
 			if len(got) != len(tt.want) {
 				t.Fatalf("fired %q, want %q", got, tt.want)

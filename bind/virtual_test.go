@@ -28,7 +28,7 @@ func TestVirtualEventChoiceIsDeterministic(t *testing.T) {
 			}
 		}
 
-		e.dispatch(&event.Event{Type: event.KeyPressType, Window: 7, KeySym: 'a', State: platform.ControlMask})
+		e.dispatch(&event.Event{Type: event.KeyPressType, Window: 7, KeySym: 'a', State: platform.ControlMask}, false)
 		if got != "SelectAll" {
 			t.Fatalf("<Control-a> dispatched <<%s>>, want <<SelectAll>>", got)
 		}

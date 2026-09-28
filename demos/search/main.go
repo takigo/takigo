@@ -148,11 +148,11 @@ func main() {
 	eng.Bind(fileEntry.Window().PathName, "<Return>", func(ev *bind.EventData) bool {
 		textLoadFile(fileEntry.GetText())
 		app.FocusManager().SetFocus(searchEntry.Window())
-		return true
+		return false
 	})
 	eng.Bind(searchEntry.Window().PathName, "<Return>", func(ev *bind.EventData) bool {
 		textSearch(searchEntry.GetText())
-		return true
+		return false
 	})
 
 	// Pack file row.

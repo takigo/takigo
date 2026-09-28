@@ -93,6 +93,7 @@ func bindCanvas(c *Canvas) {
 		if !ok {
 			return
 		}
+		c.redrawItems(e)
 		switch ev.KeySym {
 		case platform.XK_BackSpace:
 			if ti.cursorPos > 0 {
@@ -130,7 +131,7 @@ func bindCanvas(c *Canvas) {
 				ti.InsertText(ti.cursorPos, string(rune(ev.KeySym)))
 			}
 		}
-		c.scheduleRedraw()
+		c.redrawItems(e)
 	})
 }
 
@@ -162,8 +163,11 @@ func (c *Canvas) setCurrentItem(entry *itemEntry, triggerEvent *event.Event) {
 		c.dispatchToItem(entry, &event.Event{Type: event.EnterType})
 	}
 	// -activefill and friends depend on which item is current.
-	if hasActive(old) || hasActive(entry) {
-		c.scheduleRedraw()
+	if hasActive(old) {
+		c.redrawItems(old)
+	}
+	if hasActive(entry) {
+		c.redrawItems(entry)
 	}
 }
 
