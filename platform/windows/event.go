@@ -172,7 +172,7 @@ func (p *EventParser) ParseSelectionNotifyEvent(ev *platform.RawEvent) platform.
 // --- EventSource implementation ---
 
 func (d *WindowsDisplay) NextEvent() *platform.RawEvent {
-	return <-d.eventCh
+	return d.events.Pop()
 }
 
 // WakeEventReader posts an event of no type, which the loop ignores, to

@@ -44,8 +44,8 @@ type WindowsDisplay struct {
 	nameToAtom map[string]platform.AtomID
 	atomToName map[platform.AtomID]string
 
-	// Event channel for delivering events to the event loop.
-	eventCh chan *platform.RawEvent
+	// events delivers events from the window procedure to the event loop.
+	events *platform.EventQueue
 
 	// Per-window data.
 	windowMu   sync.RWMutex
@@ -114,7 +114,7 @@ func NewDisplayServer(displayName string) (platform.DisplayServer, font.FontOpen
 
 	d := &WindowsDisplay{
 		hInstance:   hInstance,
-		eventCh:     make(chan *platform.RawEvent, 256),
+		events:      platform.NewEventQueue(),
 		windowData:  make(map[w32.HWND]*windowInfo),
 		nameToAtom:  make(map[string]platform.AtomID),
 		atomToName:  make(map[platform.AtomID]string),
@@ -237,7 +237,7 @@ func (d *WindowsDisplay) BlackPixel(screen int) uint64            { return 0x000
 func (d *WindowsDisplay) ConnectionNumber() int                   { return -1 }
 func (d *WindowsDisplay) Sync(discard bool)                       {} // noop on Windows
 func (d *WindowsDisplay) Flush()                                  {} // noop on Windows
-func (d *WindowsDisplay) Pending() int                            { return len(d.eventCh) }
+func (d *WindowsDisplay) Pending() int                            { return d.events.Len() }
 func (d *WindowsDisplay) ResourceManagerString() string           { return "" }
 func (d *WindowsDisplay) Atoms() *platform.Atoms                  { return d.atoms }
 
@@ -286,11 +286,7 @@ func (d *WindowsDisplay) getWindowInfo(hwnd w32.HWND) *windowInfo {
 	return d.windowData[hwnd]
 }
 
-// postEvent sends a raw event to the event channel.
+// postEvent queues a raw event for the event loop.
 func (d *WindowsDisplay) postEvent(ev *platform.RawEvent) {
-	select {
-	case d.eventCh <- ev:
-	default:
-		// Drop event if channel is full (should not happen normally).
-	}
+	d.events.Push(ev)
 }
