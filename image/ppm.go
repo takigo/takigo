@@ -108,11 +108,11 @@ func decodePBM(rgba *goimage.RGBA, br *bufio.Reader, binary bool) (*goimage.RGBA
 	if binary {
 		rowBytes := (w + 7) / 8
 		buf := make([]byte, rowBytes)
-		for y := 0; y < h; y++ {
+		for y := range h {
 			if _, err := io.ReadFull(br, buf); err != nil {
 				return nil, fmt.Errorf("pbm: read row %d: %w", y, err)
 			}
-			for x := 0; x < w; x++ {
+			for x := range w {
 				bit := (buf[x/8] >> uint(7-x%8)) & 1
 				setPx(x, y, bit == 1)
 			}
@@ -120,8 +120,8 @@ func decodePBM(rgba *goimage.RGBA, br *bufio.Reader, binary bool) (*goimage.RGBA
 		return rgba, nil
 	}
 
-	for y := 0; y < h; y++ {
-		for x := 0; x < w; x++ {
+	for y := range h {
+		for x := range w {
 			v, err := readPPMInt(br)
 			if err != nil {
 				return nil, fmt.Errorf("pbm: read pixel (%d,%d): %w", x, y, err)
@@ -147,7 +147,7 @@ func decodePGM(rgba *goimage.RGBA, br *bufio.Reader, binary bool, maxVal int) (*
 	}
 
 	data := make([]uint32, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		v, err := readPPMInt(br)
 		if err != nil {
 			return nil, fmt.Errorf("pgm: read pixel %d: %w", i, err)
@@ -206,7 +206,7 @@ func readGrayBinary(br *bufio.Reader, n, maxVal int) ([]uint32, error) {
 		}
 		return out, nil
 	}
-	for i := 0; i < n; i++ {
+	for i := range n {
 		v, err := readUint16BE(br)
 		if err != nil {
 			return nil, fmt.Errorf("pgm: read sample %d: %w", i, err)
@@ -241,8 +241,8 @@ func readRGBBinary(br *bufio.Reader, n, maxVal int) ([]uint32, error) {
 func writeGray(rgba *goimage.RGBA, data []uint32, maxVal int) {
 	w := rgba.Rect.Dx()
 	h := rgba.Rect.Dy()
-	for y := 0; y < h; y++ {
-		for x := 0; x < w; x++ {
+	for y := range h {
+		for x := range w {
 			v := byte((uint64(data[y*w+x]) * 255) / uint64(maxVal))
 			rgba.SetRGBA(x, y, color.RGBA{v, v, v, 255})
 		}
@@ -253,9 +253,9 @@ func writeRGB(rgba *goimage.RGBA, data []uint32, maxVal int) {
 	w := rgba.Rect.Dx()
 	h := rgba.Rect.Dy()
 	mv := uint64(maxVal)
-	for y := 0; y < h; y++ {
+	for y := range h {
 		row := y * w
-		for x := 0; x < w; x++ {
+		for x := range w {
 			i := (row + x) * 3
 			r := byte((uint64(data[i]) * 255) / mv)
 			g := byte((uint64(data[i+1]) * 255) / mv)

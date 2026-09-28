@@ -463,10 +463,7 @@ func (s *Scale) display() {
 				return
 			}
 			width := s.Font.MeasureString(str)
-			x := s.valueToPixel(v) - width/2
-			if x < inset+spacing {
-				x = inset + spacing
-			}
+			x := max(s.valueToPixel(v)-width/2, inset+spacing)
 			if x+width >= w.Width-inset {
 				x = w.Width - inset - spacing - width
 			}
@@ -549,7 +546,7 @@ func (s *Scale) display() {
 			pixel = s.HighlightBackground.Pixel
 		}
 		d.SetForeground(gc, pixel)
-		for i := 0; i < hl; i++ {
+		for i := range hl {
 			d.DrawRectangle(pix, gc, i, i, uint(w.Width-1-2*i), uint(w.Height-1-2*i))
 		}
 	}

@@ -19,7 +19,7 @@ type XBMData struct {
 func ParseXBM(src string) (*XBMData, error) {
 	xbm := &XBMData{}
 
-	for _, line := range strings.Split(src, "\n") {
+	for line := range strings.SplitSeq(src, "\n") {
 		line = strings.TrimSpace(line)
 		if strings.HasPrefix(line, "#define") {
 			fields := strings.Fields(line)
@@ -44,12 +44,11 @@ func ParseXBM(src string) (*XBMData, error) {
 	}
 
 	// Extract hex bytes from the static array.
-	start := strings.Index(src, "{")
-	end := strings.LastIndex(src, "}")
-	if start < 0 || end < 0 || end <= start {
+	_, rest, ok := strings.Cut(src, "{")
+	body, _, found := strings.CutLast(rest, "}")
+	if !ok || !found {
 		return nil, fmt.Errorf("xbm: could not find data array")
 	}
-	body := src[start+1 : end]
 
 	xbm.Bits = nil
 	for _, tok := range strings.FieldsFunc(body, func(r rune) bool {

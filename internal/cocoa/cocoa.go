@@ -64,7 +64,7 @@ func (e *RawEvent) Time_() uint64       { return uint64(e.ev.time) }
 
 func (e *RawEvent) MessageData() [5]int64 {
 	var d [5]int64
-	for i := 0; i < 5; i++ {
+	for i := range d {
 		d[i] = int64(e.ev.messageData[i])
 	}
 	return d

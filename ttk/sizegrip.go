@@ -94,10 +94,7 @@ func (sg *Sizegrip) Display() {
 	d.FillRectangle(pixDrawable, gc, 0, 0, uint(width), uint(height))
 
 	// Draw grip lines using Tk's algorithm.
-	gripSize := height
-	if width < gripSize {
-		gripSize = width
-	}
+	gripSize := min(width, height)
 
 	gripCount := 3
 	gripThickness := gripSize * 3 / (gripCount * 5)
@@ -110,7 +107,7 @@ func (sg *Sizegrip) Display() {
 	x2 := x1
 	y2 := y1
 
-	for g := 0; g < gripCount; g++ {
+	for range gripCount {
 		x1 -= gripSpace
 		y2 -= gripSpace
 		for i := 1; i < gripThickness; i++ {

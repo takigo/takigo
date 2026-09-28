@@ -469,10 +469,7 @@ func (m *Menu) computeGeometry() {
 				}
 			}
 		}
-		m.menuWidth = maxWidth + 2*m.BorderWidth
-		if m.menuWidth < 60 {
-			m.menuWidth = 60
-		}
+		m.menuWidth = max(maxWidth+2*m.BorderWidth, 60)
 		w := m.Win
 		w.Width = m.menuWidth
 		w.Height = totalHeight
@@ -511,10 +508,7 @@ func (m *Menu) computeGeometry() {
 		x += maxW
 	}
 
-	totalWidth := x + m.BorderWidth
-	if totalWidth < 60 {
-		totalWidth = 60
-	}
+	totalWidth := max(x+m.BorderWidth, 60)
 	totalHeight := 2*m.BorderWidth + m.tearoffHeight + maxColHeight
 	m.menuWidth = totalWidth
 
@@ -634,7 +628,7 @@ func (m *Menu) entryAt(x, y int) int {
 // entryY returns the top y coordinate of entry i.
 func (m *Menu) entryY(i int) int {
 	y := m.BorderWidth + m.tearoffHeight
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if m.entries[j].Type == Separator {
 			y += m.sepHeight
 		} else {

@@ -57,7 +57,7 @@ static char **ct_list_families(int *outCount) {
 */
 import "C"
 import (
-	"sort"
+	"slices"
 	"unsafe"
 )
 
@@ -69,25 +69,18 @@ func ListFamilies() []string {
 	if families == nil || count == 0 {
 		return nil
 	}
+	ptrs := unsafe.Slice(families, count)
 	defer func() {
-		for i := C.int(0); i < count; i++ {
-			ptr := *(**C.char)(unsafe.Pointer(uintptr(unsafe.Pointer(families)) + uintptr(i)*unsafe.Sizeof(families)))
+		for _, ptr := range ptrs {
 			C.free(unsafe.Pointer(ptr))
 		}
 		C.free(unsafe.Pointer(families))
 	}()
 
-	seen := make(map[string]bool)
-	var result []string
-	for i := C.int(0); i < count; i++ {
-		ptr := *(**C.char)(unsafe.Pointer(uintptr(unsafe.Pointer(families)) + uintptr(i)*unsafe.Sizeof(families)))
-		name := C.GoString(ptr)
-		if !seen[name] {
-			seen[name] = true
-			result = append(result, name)
-		}
+	result := make([]string, 0, len(ptrs))
+	for _, ptr := range ptrs {
+		result = append(result, C.GoString(ptr))
 	}
-
-	sort.Strings(result)
-	return result
+	slices.Sort(result)
+	return slices.Compact(result)
 }

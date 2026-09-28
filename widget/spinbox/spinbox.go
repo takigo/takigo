@@ -439,10 +439,7 @@ func (s *Spinbox) computeGeometry() {
 	}
 	m := s.Font.Metrics()
 	s.inset = s.BorderWidth + s.HighlightWidth + 1
-	s.avgWidth = s.Font.MeasureString("0")
-	if s.avgWidth < 1 {
-		s.avgWidth = 1
-	}
+	s.avgWidth = max(s.Font.MeasureString("0"), 1)
 
 	// EntryWorldChanged: the button column is one "0" plus 2*(1+XPAD).
 	s.buttonWidth = max(11, s.avgWidth+4)
@@ -453,10 +450,7 @@ func (s *Spinbox) computeGeometry() {
 	s.layoutY = s.inset + m.Ascent
 
 	totalWidth := entryutil.MeasureRunes(s.Font, s.text)
-	availWidth := w.Width - 2*s.inset - s.buttonWidth
-	if availWidth < 1 {
-		availWidth = 1
-	}
+	availWidth := max(w.Width-2*s.inset-s.buttonWidth, 1)
 
 	if totalWidth <= availWidth {
 		s.LeftIndex = 0
@@ -484,10 +478,7 @@ func (s *Spinbox) seeInsert() {
 	} else {
 		cursorX := entryutil.MeasureRunes(s.Font, s.text[:s.InsertPos]) + s.layoutX
 		if cursorX >= s.Win.Width-s.inset-s.buttonWidth {
-			s.LeftIndex = s.InsertPos - availWidth/s.avgWidth
-			if s.LeftIndex < 0 {
-				s.LeftIndex = 0
-			}
+			s.LeftIndex = max(s.InsertPos-availWidth/s.avgWidth, 0)
 			s.computeGeometry()
 		}
 	}

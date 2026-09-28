@@ -201,7 +201,7 @@ func (r *rasterizer) roundCap(left, right, p *point, dx, dy, lineWidth float32, 
 	px, py := p.x, p.y
 	dlx, dly := dy, -dx
 	var lx, ly, rx, ry, prevx, prevy float32
-	for i := 0; i < ncap; i++ {
+	for i := range ncap {
 		a := float32(i) / float32(ncap-1) * pi32
 		ax, ay := cosf(a)*w, sinf(a)*w
 		x := px - dlx*ax - dx*ay
@@ -375,12 +375,12 @@ func (r *rasterizer) expandStroke(points []point, closed bool, lineJoin, lineCap
 
 func (r *rasterizer) prepareStroke(miterLimit float32, lineJoin int) {
 	n := len(r.points)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		p0, p1 := &r.points[(i+n-1)%n], &r.points[i]
 		p0.dx, p0.dy = p1.x-p0.x, p1.y-p0.y
 		p0.len = normalize(&p0.dx, &p0.dy)
 	}
-	for j := 0; j < n; j++ {
+	for j := range n {
 		p0, p1 := &r.points[(j+n-1)%n], &r.points[j]
 		dlx0, dly0 := p0.dy, -p0.dx
 		dlx1, dly1 := p1.dy, -p1.dx
@@ -530,7 +530,7 @@ func (r *rasterizer) scanlineSolid(dst []uint8, count int, cover []uint8, x, y i
 	}
 	switch cache.typ {
 	case paintColor:
-		for i := 0; i < count; i++ {
+		for i := range count {
 			blend(i, cache.colors[0])
 		}
 	case paintLinearGradient:
@@ -538,7 +538,7 @@ func (r *rasterizer) scanlineSolid(dst []uint8, count int, cover []uint8, x, y i
 		fx := (float32(x) - tx) / scale
 		fy := (float32(y) - ty) / scale
 		dx := 1 / scale
-		for i := 0; i < count; i++ {
+		for i := range count {
 			gy := fx*t[1] + fy*t[3] + t[5]
 			blend(i, cache.colors[int(clampf(gy*255, 0, 255))])
 			fx += dx
@@ -553,7 +553,7 @@ func (r *rasterizer) rasterizeSortedEdges(tx, ty, scale float32, cache *cachedPa
 	for y := 0; y < r.height; y++ {
 		clear(r.scanline)
 		xmin, xmax := r.width, 0
-		for s := 0; s < subsamples; s++ {
+		for s := range subsamples {
 			scany := float32(y*subsamples+s) + 0.5
 			step := &active
 			for *step != nil {
@@ -617,9 +617,9 @@ func (r *rasterizer) rasterizeSortedEdges(tx, ty, scale float32, cache *cachedPa
 }
 
 func unpremultiplyAlpha(img []uint8, w, h, stride int) {
-	for y := 0; y < h; y++ {
+	for y := range h {
 		row := img[y*stride:]
-		for x := 0; x < w; x++ {
+		for x := range w {
 			p := row[x*4:]
 			if a := int(p[3]); a != 0 {
 				p[0] = uint8(int(p[0]) * 255 / a)
@@ -681,7 +681,7 @@ func initPaint(cache *cachedPaint, p *paint, opacity float32) {
 			}
 			u := float32(0)
 			du := 1 / float32(count)
-			for j := 0; j < count; j++ {
+			for j := range count {
 				cache.colors[ia+j] = lerpRGBA(ca, cb, u)
 				u += du
 			}
@@ -745,8 +745,8 @@ func BlendOver(rgba []uint8, bg uint64) []uint8 {
 // tkImgPhInstance.c does when a photo is drawn over existing pixels.
 func Blend(dst []uint8, dstW, x, y int, src []uint8, srcW, srcH int) {
 	dstH := len(dst) / 4 / dstW
-	for sy := 0; sy < srcH; sy++ {
-		for sx := 0; sx < srcW; sx++ {
+	for sy := range srcH {
+		for sx := range srcW {
 			dx, dy := x+sx, y+sy
 			if dx < 0 || dy < 0 || dx >= dstW || dy >= dstH {
 				continue

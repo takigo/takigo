@@ -3,6 +3,8 @@
 package canvas
 
 import (
+	"slices"
+
 	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/platform"
 )
@@ -96,12 +98,7 @@ func (b *ItemBase) State() ItemState { return b.state }
 
 // HasTag returns true if the item has the given tag.
 func (b *ItemBase) HasTag(tag string) bool {
-	for _, t := range b.Tags {
-		if t == tag {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(b.Tags, tag)
 }
 
 // AddTag adds a tag if not already present.

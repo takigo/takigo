@@ -1,6 +1,7 @@
 package font
 
 import (
+	"maps"
 	"sync"
 )
 
@@ -47,9 +48,7 @@ func NewRegistry(opener FontOpener) *Registry {
 	}
 
 	// Register default named fonts.
-	for name, attrs := range namedFontDefs {
-		reg.named[name] = attrs
-	}
+	maps.Copy(reg.named, namedFontDefs)
 
 	return reg
 }

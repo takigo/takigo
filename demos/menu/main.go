@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 
 	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/demos/demohelper"
@@ -116,17 +117,18 @@ func main() {
 	checkMenu.AddSeparator()
 	checkMenu.AddCommand("Show current values", func() {
 		entries := checkMenu.Entries()
-		msg := "Check values:"
+		var msg strings.Builder
+		msg.WriteString("Check values:")
 		for _, e := range entries {
 			if e.Type == menu.Checkbutton {
 				val := "off"
 				if e.Checked {
 					val = "on"
 				}
-				msg += fmt.Sprintf("  %s=%s", e.Label, val)
+				fmt.Fprintf(&msg, "  %s=%s", e.Label, val)
 			}
 		}
-		setStatus(msg)
+		setStatus(msg.String())
 	})
 
 	cascadeMenu.AddCascadeUL("Check buttons", 0, checkMenu)
@@ -145,13 +147,14 @@ func main() {
 	radioMenu.AddSeparator()
 	radioMenu.AddCommand("Show current values", func() {
 		entries := radioMenu.Entries()
-		msg := "Radio values:"
+		var msg strings.Builder
+		msg.WriteString("Radio values:")
 		for _, e := range entries {
 			if e.Type == menu.Radiobutton && e.Checked {
-				msg += fmt.Sprintf("  selected=%s", e.Label)
+				fmt.Fprintf(&msg, "  selected=%s", e.Label)
 			}
 		}
-		setStatus(msg)
+		setStatus(msg.String())
 	})
 
 	cascadeMenu.AddCascadeUL("Radio buttons", 0, radioMenu)

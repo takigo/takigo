@@ -64,20 +64,11 @@ func (m *Menu) Detach() {
 			}
 		}
 	}
-	menuW := maxW + 2*m.BorderWidth
-	if menuW < 60 {
-		menuW = 60
-	}
+	menuW := max(maxW+2*m.BorderWidth, 60)
 
 	// Position near the menu's current on-screen location.
-	posX := m.Win.X
-	if posX < 0 {
-		posX = 0
-	}
-	posY := m.Win.Y
-	if posY < 0 {
-		posY = 0
-	}
+	posX := max(m.Win.X, 0)
+	posY := max(m.Win.Y, 0)
 
 	attrs := &platform.WindowAttrs{
 		BackgroundPixel: d.WhitePixel,

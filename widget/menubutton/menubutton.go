@@ -309,7 +309,7 @@ func (mb *Menubutton) display() {
 			pixel = mb.HighlightBackground.Pixel
 		}
 		d.SetForeground(gc, pixel)
-		for i := 0; i < hl; i++ {
+		for i := range hl {
 			d.DrawRectangle(w.Drawable(), gc, i, i, uint(w.Width-1-2*i), uint(w.Height-1-2*i))
 		}
 	}

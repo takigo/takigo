@@ -434,10 +434,7 @@ func (e *Entry) computeGeometry() {
 
 	m := e.Font.Metrics()
 	e.inset = e.BorderWidth + e.HighlightWidth + 1 // +1 for XPAD
-	e.avgWidth = e.Font.MeasureString("0")
-	if e.avgWidth < 1 {
-		e.avgWidth = 1
-	}
+	e.avgWidth = max(e.Font.MeasureString("0"), 1)
 
 	// Set requested size.
 	w := e.Win
@@ -449,10 +446,7 @@ func (e *Entry) computeGeometry() {
 
 	dt := e.displayText()
 	totalWidth := entryutil.MeasureRunes(e.Font, dt)
-	availWidth := w.Width - 2*e.inset
-	if availWidth < 1 {
-		availWidth = 1
-	}
+	availWidth := max(w.Width-2*e.inset, 1)
 
 	if totalWidth <= availWidth {
 		// Text fits — no scrolling needed.
@@ -490,10 +484,7 @@ func (e *Entry) seeInsert() {
 	} else {
 		cursorX := entryutil.MeasureRunes(e.Font, dt[:e.InsertPos]) + e.layoutX
 		if cursorX >= e.Win.Width-e.inset {
-			e.LeftIndex = e.InsertPos - availWidth/e.avgWidth
-			if e.LeftIndex < 0 {
-				e.LeftIndex = 0
-			}
+			e.LeftIndex = max(e.InsertPos-availWidth/e.avgWidth, 0)
 			e.computeGeometry()
 		}
 	}
@@ -540,10 +531,7 @@ func (e *Entry) XView(index int) {
 func (e *Entry) XViewScroll(count int, pages bool) {
 	if pages {
 		availWidth := e.Win.Width - 2*e.inset
-		charsPerPage := availWidth/e.avgWidth - 2
-		if charsPerPage < 1 {
-			charsPerPage = 1
-		}
+		charsPerPage := max(availWidth/e.avgWidth-2, 1)
 		count *= charsPerPage
 	}
 	e.XView(e.LeftIndex + count)

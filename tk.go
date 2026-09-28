@@ -490,7 +490,7 @@ func Size(width, height int) AppOption {
 // Returns (dpi, true) when a positive value is found, (0, false) otherwise.
 // The string is newline-separated "key:\tvalue" pairs.
 func parseXftDPI(resources string) (float64, bool) {
-	for _, line := range strings.Split(resources, "\n") {
+	for line := range strings.SplitSeq(resources, "\n") {
 		line = strings.TrimSpace(line)
 		idx := strings.Index(line, ":")
 		if idx < 0 {
