@@ -10,8 +10,16 @@ package xlib
 // takigo_x_error reports an X protocol error and carries on. Xlib's default
 // handler exits the process; Tk's ErrorProc (tkError.c) ignores errors on
 // windows it is destroying, which takigo cannot yet tell apart.
+static unsigned long takigo_x_errors;
+
+static unsigned long takigo_x_error_count(void)
+{
+	return __atomic_load_n(&takigo_x_errors, __ATOMIC_RELAXED);
+}
+
 static int takigo_x_error(Display *dpy, XErrorEvent *ev)
 {
+	__atomic_add_fetch(&takigo_x_errors, 1, __ATOMIC_RELAXED);
 	char text[128];
 	XGetErrorText(dpy, ev->error_code, text, sizeof text);
 	fprintf(stderr, "takigo: X error: %s (request %d.%d, resource 0x%lx)\n",
@@ -30,6 +38,12 @@ import (
 	"sync"
 	"unsafe"
 )
+
+// ErrorCount returns how many X protocol errors the process has reported,
+// so tests can assert that an operation caused none.
+func ErrorCount() uint64 {
+	return uint64(C.takigo_x_error_count())
+}
 
 // initOnce runs XInitThreads before the first Xlib call: the event loop
 // reads events on its own goroutine while the loop goroutine draws, and
