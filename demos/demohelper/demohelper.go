@@ -317,7 +317,7 @@ func loadIcon(name string) *tkimage.Photo {
 	if err != nil {
 		panic(err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	p, err := tkimage.NewPhotoFromReader("::img::"+name, f)
 	if err != nil {
 		panic(err)

@@ -65,10 +65,6 @@ type Entry struct {
 
 	// Scrollbar callback.
 	ScrollCmd func(first, last float64)
-
-	// Scan state (middle-button pan).
-	scanMarkX     int
-	scanMarkIndex int
 }
 
 // EntryOption configures an Entry.
@@ -308,8 +304,6 @@ func (e *Entry) InsertChars(index int, s string) {
 	}
 	if e.SelFirst >= index {
 		e.SelFirst += count
-	} else if e.SelFirst >= 0 && e.SelFirst < index {
-		// no change
 	}
 	if e.SelLast > index {
 		e.SelLast += count
@@ -502,16 +496,6 @@ func (e *Entry) seeInsert() {
 			e.computeGeometry()
 		}
 	}
-}
-
-// charAtPixel returns the rune index closest to pixel x.
-func (e *Entry) charAtPixel(x int) int {
-	if e.Font == nil {
-		return 0
-	}
-	dt := e.displayText()
-	xInLayout := x - e.layoutX
-	return entryutil.RuneIndexAtPixel(e.Font, dt, xInLayout)
 }
 
 // closestGap returns the rune index of the nearest inter-character gap.

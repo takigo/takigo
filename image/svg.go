@@ -64,7 +64,7 @@ func rasterizeSVG(path string) ([]byte, error) {
 		_ = tmp.Close()
 		defer func() { _ = os.Remove(tmpPath) }()
 
-		cmd := exec.Command(bin, "-f", "png", "-o", tmpPath, path)
+		cmd := exec.Command(bin, "-f", "png", "-o", tmpPath, path) //nolint:gosec // G204: bin is from LookPath, path is absolute
 		var stderr bytes.Buffer
 		cmd.Stderr = &stderr
 		if err := cmd.Run(); err != nil {
@@ -81,7 +81,7 @@ func rasterizeSVG(path string) ([]byte, error) {
 		if binPath, ok := findOnPath(bin); ok {
 			// <bin> <input.svg> png:-   writes PNG to stdout
 			args := []string{binPath, path, "png:-"}
-			cmd := exec.Command(args[0], args[1:]...)
+			cmd := exec.Command(args[0], args[1:]...) //nolint:gosec // G204: as above
 			var stderr bytes.Buffer
 			cmd.Stderr = &stderr
 			data, err := cmd.Output()

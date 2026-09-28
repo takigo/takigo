@@ -10,9 +10,6 @@ import (
 	"github.com/msorc/takigo/window"
 )
 
-// ttkRadioIndicatorSize matches Tcl's rendered radio indicator (16px SVG × ~1.5x system DPI scaling).
-const ttkRadioIndicatorSize = 24
-
 // Radiobutton is a TTK themed mutually-exclusive selection button.
 type Radiobutton struct {
 	TtkWidget
@@ -152,13 +149,9 @@ func (r *Radiobutton) Display() {
 	d.FillRectangle(win.Drawable(), gc, 0, 0, uint(width), uint(height))
 
 	// Determine indicator style from style options.
-	indSize := ttkRadioIndicatorSize
 	hasClamStyle := false
 	var upperBorderColor, lowerBorderColor uint64
 	if r.Context != nil && r.Context.Style != nil {
-		if sz := LookupInt(r.Context.Style, "-indicatorsize", r.State, 0); sz > 0 {
-			indSize = sz
-		}
 		if v, ok := r.Context.Style.Lookup("-upperbordercolor", r.State); ok {
 			if uc, ok2 := v.(uint64); ok2 {
 				upperBorderColor = uc
@@ -185,7 +178,7 @@ func (r *Radiobutton) Display() {
 	}
 	lay := newIndicatorLayout(layoutStyle, r.State)
 	indX, indY, labelX, labelY := lay.place(height, textH)
-	indSize = lay.size
+	indSize := lay.size
 
 	// Indicator fill and color.
 	indFill := uint64(0xffffff)

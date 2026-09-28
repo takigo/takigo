@@ -97,8 +97,7 @@ func showFileDialog(parent widget.Caregiver, cfg fileConfig) (string, bool) {
 	_ = fnLabel
 
 	// Populate file list.
-	var populateList func()
-	populateList = func() {
+	populateList := func() {
 		entries, err := os.ReadDir(currentDir)
 		if err != nil {
 			return

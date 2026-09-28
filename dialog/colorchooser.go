@@ -161,8 +161,9 @@ func ChooseColor(parent widget.Caregiver, opts ...ColorOption) (string, bool) {
 func parseHexColor(s string) (int, int, int) {
 	if len(s) == 7 && s[0] == '#' {
 		var r, g, b int
-		fmt.Sscanf(s[1:], "%02x%02x%02x", &r, &g, &b)
-		return r, g, b
+		if _, err := fmt.Sscanf(s[1:], "%02x%02x%02x", &r, &g, &b); err == nil {
+			return r, g, b
+		}
 	}
 	return 0, 0, 0
 }

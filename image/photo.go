@@ -77,7 +77,7 @@ func NewPhotoFromFile(name, path string) (*Photo, error) {
 	if err != nil {
 		return nil, fmt.Errorf("image: open %s: %w", path, err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	return NewPhotoFromReader(name, f)
 }
 
