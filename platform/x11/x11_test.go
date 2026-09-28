@@ -89,7 +89,7 @@ func TestX11DisplayCore(t *testing.T) {
 	// Test Atoms
 	atoms := core.Atoms()
 	if atoms == nil {
-		t.Error("Atoms should not be nil")
+		t.Fatal("Atoms should not be nil")
 	}
 	if atoms.WMName == 0 {
 		t.Error("Atoms.WMName should not be 0")
@@ -328,7 +328,7 @@ func TestX11DisplayEventSource(t *testing.T) {
 	if pending > 0 {
 		ev := eventSrc.NextEvent()
 		if ev == nil {
-			t.Error("NextEvent should return non-nil when events pending")
+			t.Fatal("NextEvent should return non-nil when events pending")
 		}
 		if ev.EventType == 0 {
 			t.Error("EventType should not be 0")

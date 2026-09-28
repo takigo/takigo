@@ -52,7 +52,9 @@ func Background(name string) ToplevelOption {
 // Geometry sets the geometry string (e.g. "400x300+100+100").
 func Geometry(geom string) ToplevelOption {
 	return func(t *Toplevel) {
-		t.WmInfo.SetGeometry(geom)
+		if err := t.WmInfo.SetGeometry(geom); err != nil {
+			log.Printf("toplevel: Geometry: %v", err)
+		}
 	}
 }
 

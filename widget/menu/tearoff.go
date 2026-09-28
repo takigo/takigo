@@ -276,13 +276,6 @@ func (tw *TearoffWindow) display() {
 		return
 	}
 
-	type fontMetricer interface {
-		Metrics() interface {
-			Linespace() int
-			Ascent() int
-		}
-	}
-
 	// Get metrics from the font interface.
 	type metricsGetter interface {
 		Metrics() fontMetrics

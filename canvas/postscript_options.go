@@ -90,9 +90,6 @@ func PSProlog(b bool) PostscriptOption { return func(c *psConfig) { c.Prolog = b
 // PSTitle sets the %%Title header field.
 func PSTitle(t string) PostscriptOption { return func(c *psConfig) { c.Title = t } }
 
-// noPrologFlag is set when -prolog is omitted (defaults to true).
-func (c *psConfig) prologSet() bool { return c.Prolog }
-
 // colorLevel converts the -colormode string to Tk's numeric level.
 func (c *psConfig) colorLevel() int {
 	switch c.ColorMode {

@@ -7,7 +7,7 @@ import "github.com/msorc/takigo/platform"
 // not consume it.
 const (
 	packSet    = 0x40
-	PackTop    = packSet | 0x0
+	PackTop    = packSet
 	PackBottom = packSet | 0x1
 	PackLeft   = packSet | 0x2
 	PackRight  = packSet | 0x3

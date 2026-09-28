@@ -196,7 +196,7 @@ func bindSizegrip(sg *Sizegrip, app widget.AppContext) {
 		}
 
 		if info := top.WmData; info != nil {
-			info.SetGeometry(formatGeom(newW, newH, top.X, top.Y))
+			_ = info.SetGeometry(formatGeom(newW, newH, top.X, top.Y))
 		}
 	})
 

@@ -1,6 +1,8 @@
 package canvas
 
 import (
+	"log"
+
 	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/font"
@@ -448,6 +450,21 @@ func (c *Canvas) Configure(opts ...CanvasOption) {
 
 // --- Item creation ---
 
+// createItem configures a new item and adds it. Like the option setters,
+// a bad option is logged and the options after it are not applied.
+func (c *Canvas) createItem(item Item, opts []ItemOption) int64 {
+	c.configureNew(item, opts)
+	return c.addItem(item)
+}
+
+func (c *Canvas) configureNew(item Item, opts []ItemOption) bool {
+	if err := item.Configure(opts); err != nil {
+		log.Printf("canvas: create %s: %v", item.Type(), err)
+		return false
+	}
+	return true
+}
+
 func (c *Canvas) addItem(item Item) int64 {
 	base := itemBase(item)
 	id := c.nextID
@@ -491,43 +508,37 @@ func (c *Canvas) tagIndexRemove(tag string, id int64) {
 // CreateRectangle creates a rectangle item.
 func (c *Canvas) CreateRectangle(x1, y1, x2, y2 float64, opts ...ItemOption) int64 {
 	item := newRectOvalItem("rectangle", x1, y1, x2, y2, c)
-	item.Configure(opts)
-	return c.addItem(item)
+	return c.createItem(item, opts)
 }
 
 // CreateOval creates an oval item.
 func (c *Canvas) CreateOval(x1, y1, x2, y2 float64, opts ...ItemOption) int64 {
 	item := newRectOvalItem("oval", x1, y1, x2, y2, c)
-	item.Configure(opts)
-	return c.addItem(item)
+	return c.createItem(item, opts)
 }
 
 // CreateLine creates a line item.
 func (c *Canvas) CreateLine(coords []float64, opts ...ItemOption) int64 {
 	item := newLineItem(coords, c)
-	item.Configure(opts)
-	return c.addItem(item)
+	return c.createItem(item, opts)
 }
 
 // CreatePolygon creates a polygon item.
 func (c *Canvas) CreatePolygon(coords []float64, opts ...ItemOption) int64 {
 	item := newPolygonItem(coords, c)
-	item.Configure(opts)
-	return c.addItem(item)
+	return c.createItem(item, opts)
 }
 
 // CreateArc creates an arc item.
 func (c *Canvas) CreateArc(x1, y1, x2, y2 float64, opts ...ItemOption) int64 {
 	item := newArcItem(x1, y1, x2, y2, c)
-	item.Configure(opts)
-	return c.addItem(item)
+	return c.createItem(item, opts)
 }
 
 // CreateText creates a text item.
 func (c *Canvas) CreateText(x, y float64, opts ...ItemOption) int64 {
 	item := newTextItem(x, y, c)
-	item.Configure(opts)
-	return c.addItem(item)
+	return c.createItem(item, opts)
 }
 
 // CreateImage creates an image item.
@@ -535,7 +546,7 @@ func (c *Canvas) CreateText(x, y float64, opts ...ItemOption) int64 {
 // The window must be a child of the canvas window (created with canvas as parent).
 func (c *Canvas) CreateWindow(x, y float64, w *window.Window, opts ...ItemOption) int64 {
 	item := newWindowItem(x, y, w, c)
-	if err := item.Configure(opts); err == nil {
+	if c.configureNew(item, opts) {
 		item.updateBBox()
 	}
 	return c.addItem(item)
@@ -544,14 +555,12 @@ func (c *Canvas) CreateWindow(x, y float64, w *window.Window, opts ...ItemOption
 // CreateBitmap creates a 1-bit XBM bitmap item at (x, y).
 func (c *Canvas) CreateBitmap(x, y float64, xbm *XBMData, opts ...ItemOption) int64 {
 	item := newBitmapItem(x, y, xbm, c)
-	item.Configure(opts)
-	return c.addItem(item)
+	return c.createItem(item, opts)
 }
 
 func (c *Canvas) CreateImage(x, y float64, opts ...ItemOption) int64 {
 	item := newImageItem(x, y, c)
-	item.Configure(opts)
-	return c.addItem(item)
+	return c.createItem(item, opts)
 }
 
 // --- Item manipulation ---

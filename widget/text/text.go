@@ -97,7 +97,6 @@ type TextWidget struct {
 	// Offscreen pixmap.
 	pixmap           platform.PixmapID
 	pixmapW, pixmapH int
-	displayValid     bool
 	redrawPending    bool
 
 	// Stipple pixmap cache: name → depth-1 Pixmap.
@@ -778,14 +777,6 @@ func (t *TextWidget) positionEmbeddedWindows(dlines []displayLine) {
 			ew.win.Flags &^= window.FlagMapped
 		}
 	}
-}
-
-// embeddedWindowAt returns the embedded window at the given document position, or nil.
-func (t *TextWidget) embeddedWindowAt(lineIdx, charIdx int) *window.Window {
-	if ew := t.embeddedWinAt(lineIdx, charIdx); ew != nil {
-		return ew.win
-	}
-	return nil
 }
 
 func (t *TextWidget) embeddedWinAt(lineIdx, charIdx int) *embeddedWin {

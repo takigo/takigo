@@ -105,15 +105,6 @@ func (ps *PSContext) Fonts() []string {
 // build their own PS directly.
 func (ps *PSContext) write(s string) { ps.buf.WriteString(s) }
 
-// psPrintf formats a PostScript fragment with %g-style numbers.
-func (ps *PSContext) psPrintf(format string, args ...float64) {
-	converted := make([]any, len(args))
-	for i, a := range args {
-		converted[i] = a
-	}
-	ps.buf.WriteString(fmt.Sprintf(format, converted...))
-}
-
 // writef appends a sprintf-style format string.
 func (ps *PSContext) writef(format string, args ...any) {
 	ps.buf.WriteString(fmt.Sprintf(format, args...))

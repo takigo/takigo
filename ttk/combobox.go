@@ -558,36 +558,6 @@ func (c *Combobox) displayDropdown() {
 	d.Flush()
 }
 
-// clearSelection is a thin wrapper kept for code that referenced it.
-// New code should call c.edit.ClearSelection() directly.
-func (c *Combobox) clearSelection() { c.edit.ClearSelection() }
-
-// deleteSelection is a thin wrapper kept for code that referenced it.
-// New code should call c.edit.DeleteSelection() directly.
-func (c *Combobox) deleteSelection() { c.edit.DeleteSelection() }
-
-// closestGap is a thin wrapper kept for code that referenced it.
-// New code should call c.edit.ClosestGap(x) directly.
-func (c *Combobox) closestGap(x int) int { return c.edit.ClosestGap(x) }
-
-// comboMoveCursor is a thin wrapper kept for code that referenced it.
-// New code should call c.edit.MoveCursor directly.
-func comboMoveCursor(c *Combobox, newPos int, shift bool) {
-	c.edit.MoveCursor(newPos, c.edit.SelAnchor, shift)
-}
-
-// comboWordStart / comboWordEnd / comboIsWordChar are thin wrappers kept
-// for any external callers. The shared implementation lives in entrytext.
-func comboWordStart(text []rune, pos int) int { return entrytext.WordStart(text, pos) }
-func comboWordEnd(text []rune, pos int) int   { return entrytext.WordEnd(text, pos) }
-func comboIsWordChar(r rune) bool             { return entrytext.IsWordChar(r) }
-
-// comboHandleCtrl is kept as a thin wrapper. New code should call
-// c.edit.HandleCtrlKey(ev) directly.
-func comboHandleCtrl(c *Combobox, _ widget.AppContext, ev *event.Event) {
-	c.edit.HandleCtrlKey(ev)
-}
-
 // updateCursor sets the cursor shape based on mouse x position and combobox state.
 func (c *Combobox) updateCursor(x int) {
 	arrowX := c.Win.Width - c.arrowWidth
