@@ -106,6 +106,10 @@ type Window struct {
 
 	// destroyHooks run when the window is destroyed; see OnDestroy.
 	destroyHooks []func()
+
+	// drawTarget, when set, is returned by Drawable in place of the
+	// window so a widget's display procedure renders off-screen.
+	drawTarget platform.DrawableID
 }
 
 // OnDestroy registers fn to run when w is destroyed, whether directly or
@@ -291,7 +295,16 @@ func (w *Window) ResetCursor() {
 	w.Display.Server.UndefineCursor(w.PlatformID)
 }
 
-// Drawable returns the window as a DrawableID for drawing operations.
+// Drawable returns the DrawableID drawing operations should target: the
+// window itself, or the pixmap set by SetDrawTarget.
 func (w *Window) Drawable() platform.DrawableID {
+	if w.drawTarget != 0 {
+		return w.drawTarget
+	}
 	return platform.WindowDrawable(w.PlatformID)
+}
+
+// SetDrawTarget redirects Drawable to d until it is called again with 0.
+func (w *Window) SetDrawTarget(d platform.DrawableID) {
+	w.drawTarget = d
 }

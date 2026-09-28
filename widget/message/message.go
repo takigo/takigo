@@ -182,6 +182,7 @@ func New(parent widget.Caregiver, name string, opts ...MessageOption) *Message {
 		Aspect:  150,
 	}
 	widget.InitBase(&m.Base, w, app)
+	m.SetDisplayProc(m.display)
 	w.Class = "Message"
 
 	// Message-specific defaults (from tkUnixDefault.h).
@@ -335,8 +336,13 @@ func (m *Message) computeGeometry() {
 	m.Win.ReqHeight = m.msgHeight + 2*m.PadY + 2*inset
 }
 
-// Display draws the message widget.
+// Display schedules a redraw at idle time; see widget.Base.EventuallyRedraw.
 func (m *Message) Display() {
+	m.EventuallyRedraw()
+}
+
+// display draws the message widget.
+func (m *Message) display() {
 	if m.Destroyed {
 		return
 	}

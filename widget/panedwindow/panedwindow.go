@@ -221,6 +221,7 @@ func New(parent widget.Caregiver, name string, opts ...PanedWindowOption) *Paned
 	}
 	pw.geomMgr = &pwGeomMgr{pw: pw}
 	widget.InitBase(&pw.Base, w, app)
+	pw.SetDisplayProc(pw.display)
 	w.Class = "Panedwindow"
 	pw.BorderWidth = widget.DefBorderWidth
 	pw.Relief = option.ReliefFlat
@@ -594,8 +595,13 @@ func (pw *PanedWindow) moveSash(sashIdx, newPaneSize int) {
 	pw.Display()
 }
 
-// Display draws the paned window (background and sashes).
+// Display schedules a redraw at idle time; see widget.Base.EventuallyRedraw.
 func (pw *PanedWindow) Display() {
+	pw.EventuallyRedraw()
+}
+
+// display draws the paned window (background and sashes).
+func (pw *PanedWindow) display() {
 	if pw.Destroyed {
 		return
 	}

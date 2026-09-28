@@ -140,6 +140,7 @@ func New(parent widget.Caregiver, name string, opts ...ScaleOption) *Scale {
 		Length:       100,
 	}
 	widget.InitBase(&s.Base, w, app)
+	s.SetDisplayProc(s.display)
 	w.Class = "Scale"
 	w.Flags |= window.FlagFocusable
 	s.BorderWidth = 1
@@ -400,8 +401,13 @@ func (s *Scale) ticks() []float64 {
 	return out
 }
 
-// Display ports TkpDisplayScale (tk/unix/tkUnixScale.c).
+// Display schedules a redraw at idle time; see widget.Base.EventuallyRedraw.
 func (s *Scale) Display() {
+	s.EventuallyRedraw()
+}
+
+// display ports TkpDisplayScale (tk/unix/tkUnixScale.c).
+func (s *Scale) display() {
 	if s.Destroyed {
 		return
 	}
@@ -411,9 +417,7 @@ func (s *Scale) Display() {
 	}
 	d := w.Display.Server
 	gc := w.GC
-	pm := d.CreatePixmap(w.Drawable(), uint(w.Width), uint(w.Height), uint(w.Depth))
-	defer d.FreePixmap(pm)
-	pix := platform.PixmapDrawable(pm)
+	pix := w.Drawable()
 
 	bg := uint64(0xd9d9d9)
 	if s.Background != nil {
@@ -549,7 +553,6 @@ func (s *Scale) Display() {
 			d.DrawRectangle(pix, gc, i, i, uint(w.Width-1-2*i), uint(w.Height-1-2*i))
 		}
 	}
-	d.CopyArea(pix, w.Drawable(), gc, 0, 0, uint(w.Width), uint(w.Height), 0, 0)
 	d.Flush()
 }
 
