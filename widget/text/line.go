@@ -2,6 +2,7 @@ package text
 
 import (
 	"slices"
+	"sort"
 	"strings"
 
 	"github.com/msorc/takigo/color"
@@ -17,10 +18,14 @@ type Line struct {
 // Multiple TextWidget instances may share one Document (peering); each
 // registers a change listener that is called after every insert or delete.
 type Document struct {
-	Lines     []*Line
-	Marks     map[string]*Mark
-	Tags      map[string]*Tag
-	TagRanges []TagRange
+	Lines []*Line
+	Marks map[string]*Mark
+	Tags  map[string]*Tag
+
+	// tagsByPriority orders Tags lowest priority first; a tag's priority is
+	// its creation order, as in Tk, with "sel" fixed at selPriority.
+	tagsByPriority []*Tag
+	nextPriority   int
 
 	// Listeners are called (in registration order) after every Insert or Delete.
 	Listeners []func()
@@ -42,8 +47,7 @@ func NewDocument() *Document {
 			"insert":  {Name: "insert", Pos: Index{1, 0}, Gravity: GravityRight},
 			"current": {Name: "current", Pos: Index{1, 0}, Gravity: GravityLeft},
 		},
-		Tags:      make(map[string]*Tag),
-		TagRanges: nil,
+		Tags: make(map[string]*Tag),
 	}
 	return doc
 }
@@ -103,7 +107,9 @@ func (d *Document) Insert(idx Index, text string) Index {
 	for _, m := range d.Marks {
 		d.adjustMarkInsert(m, idx, newlines, lastLineLen)
 	}
-	d.adjustTagRangesInsert(idx, newlines, lastLineLen)
+	for _, tg := range d.tagsByPriority {
+		tg.adjustInsert(idx, newlines, lastLineLen)
+	}
 
 	line := d.Lines[idx.Line-1]
 
@@ -144,7 +150,9 @@ func (d *Document) Delete(start, end Index) {
 	for _, m := range d.Marks {
 		d.adjustMarkDelete(m, start, end)
 	}
-	d.adjustTagRangesDelete(start, end)
+	for _, tg := range d.tagsByPriority {
+		tg.adjustDelete(start, end)
+	}
 
 	if start.Line == end.Line {
 		line := d.Lines[start.Line-1]
@@ -201,82 +209,97 @@ func (d *Document) MarkNames() []string {
 
 // --- Tag methods ---
 
+// tag returns the named tag, creating it with the next priority.
+func (d *Document) tag(name string) *Tag {
+	tg, ok := d.Tags[name]
+	if !ok {
+		tg = &Tag{Name: name, Priority: d.nextPriority}
+		d.Tags[name] = tg
+	}
+	if !tg.registered {
+		d.putTag(tg)
+	}
+	return tg
+}
+
+// putTag installs tg in the document at its Priority.
+func (d *Document) putTag(tg *Tag) {
+	if old, ok := d.Tags[tg.Name]; ok && old.registered {
+		old.registered = false
+		d.tagsByPriority = slices.DeleteFunc(d.tagsByPriority, func(t *Tag) bool { return t == old })
+	}
+	d.Tags[tg.Name] = tg
+	tg.registered = true
+	if tg.Priority >= d.nextPriority && tg.Priority < selPriority {
+		d.nextPriority = tg.Priority + 1
+	}
+	i := sort.Search(len(d.tagsByPriority), func(i int) bool {
+		return d.tagsByPriority[i].Priority > tg.Priority
+	})
+	d.tagsByPriority = slices.Insert(d.tagsByPriority, i, tg)
+}
+
 // TagAdd adds a tag to the given range.
 func (d *Document) TagAdd(tagName string, start, end Index) {
+	d.tagAdd(tagName, start, end, false)
+}
+
+func (d *Document) tagAdd(tagName string, start, end Index, toEnd bool) {
 	start = Clamp(start, d)
 	end = Clamp(end, d)
 	if Compare(start, end) >= 0 {
 		return
 	}
-	// Ensure the tag exists.
-	if _, ok := d.Tags[tagName]; !ok {
-		d.Tags[tagName] = &Tag{Name: tagName}
-	}
-	d.TagRanges = append(d.TagRanges, TagRange{TagName: tagName, Start: start, End: end})
+	d.tag(tagName).add(start, end, toEnd)
 }
 
-// TagRemove removes a tag from the given range. This removes any tag ranges
-// that overlap with [start, end).
+// TagRemove removes a tag from the given range, trimming or splitting the
+// ranges that overlap [start, end).
 func (d *Document) TagRemove(tagName string, start, end Index) {
-	start = Clamp(start, d)
-	end = Clamp(end, d)
-	n := 0
-	for _, tr := range d.TagRanges {
-		if tr.TagName == tagName && Compare(tr.Start, end) < 0 && Compare(tr.End, start) > 0 {
-			continue // remove this range
-		}
-		d.TagRanges[n] = tr
-		n++
+	tg, ok := d.Tags[tagName]
+	if !ok {
+		return
 	}
-	d.TagRanges = d.TagRanges[:n]
+	tg.remove(Clamp(start, d), Clamp(end, d))
 }
 
 // TagConfigure configures a tag's display attributes.
 func (d *Document) TagConfigure(tagName string, cache *color.Cache, reg *font.Registry, opts ...TagOption) {
-	tag, ok := d.Tags[tagName]
-	if !ok {
-		tag = &Tag{Name: tagName}
-		d.Tags[tagName] = tag
-	}
+	tag := d.tag(tagName)
 	for _, opt := range opts {
 		opt(cache, reg, tag)
 	}
 }
 
-// TagRangesFor returns all ranges for a given tag name.
+// TagRangesFor returns the ranges of a tag, sorted and disjoint. The
+// result must not be modified.
 func (d *Document) TagRangesFor(tagName string) []TagRange {
-	var result []TagRange
-	for _, tr := range d.TagRanges {
-		if tr.TagName == tagName {
-			result = append(result, tr)
-		}
+	if tg, ok := d.Tags[tagName]; ok {
+		return tg.ranges
 	}
-	return result
+	return nil
 }
 
 // TagsAt returns the tags active at a given index, sorted by priority (lowest first).
 func (d *Document) TagsAt(idx Index) []*Tag {
 	idx = Clamp(idx, d)
 	var result []*Tag
-	seen := make(map[string]bool)
-	for _, tr := range d.TagRanges {
-		if seen[tr.TagName] {
-			continue
-		}
-		if Compare(idx, tr.Start) >= 0 && Compare(idx, tr.End) < 0 {
-			if tag, ok := d.Tags[tr.TagName]; ok {
-				result = append(result, tag)
-				seen[tr.TagName] = true
-			}
-		}
-	}
-	// Sort by priority (stable, ascending).
-	for i := 1; i < len(result); i++ {
-		for j := i; j > 0 && result[j].Priority < result[j-1].Priority; j-- {
-			result[j], result[j-1] = result[j-1], result[j]
+	for _, tg := range d.tagsByPriority {
+		if tg.covers(idx) {
+			result = append(result, tg)
 		}
 	}
 	return result
+}
+
+// tagsOnLine calls fn for every tag range touching the line, lowest
+// priority tag first.
+func (d *Document) tagsOnLine(line int, fn func(*Tag, TagRange)) {
+	for _, tg := range d.tagsByPriority {
+		for _, tr := range tg.rangesOnLine(line) {
+			fn(tg, tr)
+		}
+	}
 }
 
 // --- Internal helpers ---
@@ -336,19 +359,6 @@ func (d *Document) adjustMarkDelete(m *Mark, start, end Index) {
 	}
 }
 
-// adjustTagRangesInsert adjusts all tag ranges after an insert.
-func (d *Document) adjustTagRangesInsert(idx Index, newlineCount, lastLineLen int) {
-	for i := range d.TagRanges {
-		tr := &d.TagRanges[i]
-		// Tag Start has right gravity: shifts when insert is at or after Start.
-		// Tag End has left gravity: shifts only when insert is strictly before End.
-		// This matches Tk's behavior where inserting at a tag's End does NOT
-		// expand the tag to cover the newly inserted text.
-		tr.Start = adjustIdxInsert(tr.Start, idx, newlineCount, lastLineLen, false)
-		tr.End = adjustIdxInsert(tr.End, idx, newlineCount, lastLineLen, !tr.ToEnd)
-	}
-}
-
 func adjustIdxInsert(pos, insertAt Index, newlines, lastLineLen int, leftGravity bool) Index {
 	cmp := Compare(pos, insertAt)
 	if leftGravity {
@@ -373,20 +383,6 @@ func adjustIdxInsert(pos, insertAt Index, newlines, lastLineLen int, leftGravity
 		pos.Line += newlines
 	}
 	return pos
-}
-
-// adjustTagRangesDelete adjusts all tag ranges after a delete.
-func (d *Document) adjustTagRangesDelete(start, end Index) {
-	n := 0
-	for _, tr := range d.TagRanges {
-		tr.Start = adjustIdxDelete(tr.Start, start, end)
-		tr.End = adjustIdxDelete(tr.End, start, end)
-		if Compare(tr.Start, tr.End) < 0 {
-			d.TagRanges[n] = tr
-			n++
-		}
-	}
-	d.TagRanges = d.TagRanges[:n]
 }
 
 func adjustIdxDelete(pos, start, end Index) Index {

@@ -26,7 +26,7 @@ func newBenchWidget(doc *Document, w, h int) *TextWidget {
 	}
 	t.Win = &window.Window{Width: w, Height: h}
 	t.Font = fixedFont{}
-	t.doc.Tags["sel"] = &Tag{Name: "sel", Priority: 1000}
+	t.doc.putTag(&Tag{Name: "sel", Priority: selPriority})
 	return t
 }
 

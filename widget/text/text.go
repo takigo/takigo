@@ -153,7 +153,7 @@ func New(parent widget.Caregiver, name string, opts ...TextOption) *TextWidget {
 	}
 
 	// Create the "sel" tag with highest priority.
-	selTag := &Tag{Name: "sel", Priority: 1000}
+	selTag := &Tag{Name: "sel", Priority: selPriority}
 	if t.selFg != nil {
 		if fgCol, err := app.ColorCache().Get("#ffffff"); err == nil {
 			selTag.Foreground = fgCol
@@ -164,7 +164,7 @@ func New(parent widget.Caregiver, name string, opts ...TextOption) *TextWidget {
 			selTag.Background = bgCol
 		}
 	}
-	t.doc.Tags["sel"] = selTag
+	t.doc.putTag(selTag)
 
 	t.undoStack = NewUndoStack(100)
 
