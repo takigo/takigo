@@ -104,6 +104,9 @@ func (m *Manager) Own(selection platform.AtomID, owner platform.WindowID, conten
 	m.mu.Unlock()
 
 	m.server.SetSelectionOwner(selection, owner, time)
+	if selection == m.clipboard {
+		m.server.SetClipboardText(content)
+	}
 }
 
 // OwnPrimary claims PRIMARY selection.
@@ -357,6 +360,12 @@ func (m *Manager) SetTimer(after func(time.Duration, func())) {
 // another from the same window is outstanding shares its answer. If the
 // owner does not answer within requestTimeout, callbacks receive "".
 func (m *Manager) RequestWithCallback(requestor platform.WindowID, ts platform.Timestamp, callback func(string)) {
+	// A native clipboard holds what was last copied by any application,
+	// including our own Own calls.
+	if text, ok := m.server.ClipboardText(); ok {
+		callback(text)
+		return
+	}
 	m.mu.Lock()
 	if content, ok := m.data[m.clipboard]; ok {
 		m.mu.Unlock()

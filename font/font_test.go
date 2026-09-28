@@ -257,6 +257,8 @@ func (m *mockOpener) OpenFont(attrs Attributes) (Font, error) {
 	return nil, &mockFontError{}
 }
 
+func (m *mockOpener) Families() []string { return nil }
+
 type mockFontError struct{}
 
 func (e *mockFontError) Error() string { return "mock font error" }

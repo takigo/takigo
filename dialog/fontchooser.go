@@ -36,7 +36,7 @@ func ChooseFont(parent widget.Caregiver, opts ...FontOption) (string, bool) {
 	d := New(parent, cfg.title, 450, 350)
 
 	// Get available font families.
-	families := font.ListFamilies()
+	families := parent.AppContext().FontRegistry().Families()
 	if len(families) == 0 {
 		families = []string{"sans-serif", "serif", "monospace"}
 	}

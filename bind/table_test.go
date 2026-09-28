@@ -249,3 +249,32 @@ func TestBuildTagChainToplevel(t *testing.T) {
 		t.Fatalf("expected 3 tags for toplevel, got %d: %v", len(tags), tags)
 	}
 }
+
+func TestLookupSnapshotSurvivesRebinding(t *testing.T) {
+	bt := NewBindingTable()
+	mk := func(p string) Sequence {
+		seq, err := Parse(p)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return seq
+	}
+	bt.Add("Button", mk("<Button-1>"), nil)
+	bt.Add("Button", mk("<Button-2>"), nil)
+	bt.Add("Button", mk("<Button-3>"), nil)
+	snap := bt.Lookup("Button")
+	want := []string{snap[0].seq.String(), snap[1].seq.String(), snap[2].seq.String()}
+
+	bt.Remove("Button", mk("<Button-1>"))
+	bt.Add("Button", mk("<Enter>"), nil)
+	bt.Remove("Button", mk("<Button-3>"))
+
+	for i, w := range want {
+		if got := snap[i].seq.String(); got != w {
+			t.Errorf("snapshot[%d] = %s after rebinding, want %s", i, got, w)
+		}
+	}
+	if got := len(bt.Lookup("Button")); got != 2 {
+		t.Errorf("table has %d bindings, want 2", got)
+	}
+}

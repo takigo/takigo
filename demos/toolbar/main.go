@@ -10,7 +10,6 @@ import (
 	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/cursor"
 	"github.com/msorc/takigo/demos/demohelper"
-	"github.com/msorc/takigo/font"
 	"github.com/msorc/takigo/geometry/grid"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/ttk"
@@ -113,7 +112,7 @@ func main() {
 	)
 
 	// Font family combobox.
-	families := font.ListFamilies()
+	families := app.FontRegistry().Families()
 	sort.Strings(families)
 	combo := ttk.NewCombobox(contents, "combo",
 		ttk.ComboboxValues(families),

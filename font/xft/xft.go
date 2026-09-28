@@ -1,6 +1,8 @@
 //go:build linux || freebsd || openbsd || netbsd
 
-package font
+// Package xft implements font.Font with Xft and fontconfig for the X11
+// backend, as tk/unix/tkUnixRFont.c does.
+package xft
 
 /*
 #cgo pkg-config: xft fontconfig
@@ -118,6 +120,7 @@ static FcResult fc_pattern_get_family(FcPattern *p, FcChar8 **family) {
 import "C"
 import (
 	"fmt"
+	"github.com/msorc/takigo/font"
 	"math"
 	"unicode/utf8"
 	"unsafe"
@@ -130,8 +133,8 @@ import (
 type XftFont struct {
 	display  *xlib.Display
 	font     *C.XftFont
-	attrs    Attributes
-	metrics  Metrics
+	attrs    font.Attributes
+	metrics  font.Metrics
 	screen   C.int
 	visual   *C.Visual
 	colormap C.Colormap
@@ -154,7 +157,9 @@ type XftFont struct {
 }
 
 // OpenXft opens a font via Xft/fontconfig.
-func OpenXft(display *xlib.Display, screen int, visual *xlib.Visual, colormap xlib.Colormap, attrs Attributes) (*XftFont, error) {
+func OpenXft(display *xlib.Display, screen int, visual *xlib.Visual, colormap xlib.Colormap, attrs font.Attributes) (*XftFont, error) {
+	xlib.XftMu.Lock()
+	defer xlib.XftMu.Unlock()
 	dpy := (*C.Display)(display.Ptr())
 	cscreen := C.int(screen)
 
@@ -178,15 +183,15 @@ func OpenXft(display *xlib.Display, screen int, visual *xlib.Visual, colormap xl
 	}
 
 	weight := C.int(C.FC_WEIGHT_MEDIUM)
-	if attrs.Weight == WeightBold {
+	if attrs.Weight == font.WeightBold {
 		weight = C.FC_WEIGHT_BOLD
 	}
 
 	slant := C.int(C.FC_SLANT_ROMAN)
 	switch attrs.Slant {
-	case SlantItalic:
+	case font.SlantItalic:
 		slant = C.FC_SLANT_ITALIC
-	case SlantOblique:
+	case font.SlantOblique:
 		slant = C.FC_SLANT_OBLIQUE
 	}
 
@@ -227,7 +232,7 @@ func OpenXft(display *xlib.Display, screen int, visual *xlib.Visual, colormap xl
 	}
 
 	// Extract metrics.
-	f.metrics = Metrics{
+	f.metrics = font.Metrics{
 		Ascent:   int(xftFont.ascent),
 		Descent:  int(xftFont.descent),
 		MaxWidth: int(xftFont.max_advance_width),
@@ -243,12 +248,12 @@ func OpenXft(display *xlib.Display, screen int, visual *xlib.Visual, colormap xl
 }
 
 // Attrs returns the font's attributes.
-func (f *XftFont) Attrs() Attributes {
+func (f *XftFont) Attrs() font.Attributes {
 	return f.attrs
 }
 
 // Metrics returns the font metrics.
-func (f *XftFont) Metrics() Metrics {
+func (f *XftFont) Metrics() font.Metrics {
 	return f.metrics
 }
 
@@ -290,6 +295,8 @@ func (f *XftFont) measureUncached(s string) int {
 	if len(s) == 0 {
 		return 0
 	}
+	xlib.XftMu.Lock()
+	defer xlib.XftMu.Unlock()
 	dpy := (*C.Display)(f.display.Ptr())
 	total := 0
 	for _, run := range f.runsFor(s) {
@@ -309,6 +316,7 @@ type fontRun struct {
 }
 
 // fontForRune returns the best XftFont for drawing rune r (with caching).
+// The caller holds xlib.XftMu.
 func (f *XftFont) fontForRune(r rune) *C.XftFont {
 	if f.fontByRune == nil {
 		f.fontByRune = make(map[rune]*C.XftFont)
@@ -382,11 +390,14 @@ func (f *XftFont) DrawStringAngle(drawable platform.DrawableID, x, y int, angleD
 		f.DrawString(drawable, x, y, s, pixel, r, g, b)
 		return
 	}
+	xlib.XftMu.Lock()
 	rotFont := f.getOrCreateRotated(angleDeg)
 	if rotFont == nil {
+		xlib.XftMu.Unlock()
 		f.DrawString(drawable, x, y, s, pixel, r, g, b)
 		return
 	}
+	defer xlib.XftMu.Unlock()
 	dpy := (*C.Display)(f.display.Ptr())
 	draw := C.XftDrawCreate(dpy, C.Drawable(xlib.Drawable(drawable)), f.visual, f.colormap)
 	if draw == nil {
@@ -400,7 +411,8 @@ func (f *XftFont) DrawStringAngle(drawable platform.DrawableID, x, y int, angleD
 		(*C.FcChar8)(unsafe.Pointer(cs)), C.int(len(s)))
 }
 
-// getOrCreateRotated returns (creating if needed) a rotated XFT font for the given angle.
+// getOrCreateRotated returns (creating if needed) a rotated XFT font for the
+// given angle. The caller holds xlib.XftMu.
 func (f *XftFont) getOrCreateRotated(angleDeg float64) *C.XftFont {
 	key := int64(angleDeg * 10)
 	if rf, ok := f.rotatedVariants[key]; ok {
@@ -423,6 +435,8 @@ func (f *XftFont) drawStringXlib(drawable xlib.Drawable, x, y int, s string, pix
 	if len(s) == 0 {
 		return
 	}
+	xlib.XftMu.Lock()
+	defer xlib.XftMu.Unlock()
 
 	dpy := (*C.Display)(f.display.Ptr())
 
@@ -451,6 +465,8 @@ func (f *XftFont) drawStringXlib(drawable xlib.Drawable, x, y int, s string, pix
 // ListFamilies returns a sorted list of available font family names
 // from fontconfig.
 func ListFamilies() []string {
+	xlib.XftMu.Lock()
+	defer xlib.XftMu.Unlock()
 	pattern := C.FcPatternCreate()
 	objectSet := C.FcObjectSetBuild_helper()
 	fontSet := C.FcFontList(nil, pattern, objectSet)
@@ -497,6 +513,8 @@ func sortStrings(s []string) {
 
 // Close releases font resources.
 func (f *XftFont) Close() {
+	xlib.XftMu.Lock()
+	defer xlib.XftMu.Unlock()
 	dpy := (*C.Display)(f.display.Ptr())
 	if f.font != nil {
 		C.XftFontClose(dpy, f.font)

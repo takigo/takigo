@@ -13,11 +13,13 @@
 //   - ChangeProperty, DeleteProperty, GetWindowProperty — window
 //     properties (other than WM_NAME) are not yet wired to NSWindow.
 //   - SendEvent, SendClientMessage — synthetic event dispatch is X11-only.
-//   - ConvertSelection, SendSelectionNotify — clipboard transfer is
-//     partial: SetSelectionOwner only records the owner in-process and
-//     does not advertise it via NSPasteboard.
-//   - InitIM, SetICFocus, UnsetICFocus — no Cocoa input method integration;
-//     HasIM returns false so the event loop skips IM routing.
+//   - ConvertSelection, SendSelectionNotify — PRIMARY and other X-style
+//     selections stay in-process; CLIPBOARD goes through NSPasteboard
+//     (SetClipboardText / ClipboardText).
+//   - InitIM, SetICFocus, UnsetICFocus — no-ops: the input method runs in
+//     the view's NSTextInputClient (internal/cocoa), which commits text as
+//     KeyPress events, so HasIM reports false and the loop does no IM
+//     routing. Marked (composing) text is not drawn inline.
 //   - CreatePixmap stipple parameters — CGPatternRef support missing
 //     (see TODO in this file).
 //
@@ -299,6 +301,17 @@ func (d *CocoaDisplay) SendSelectionNotify(requestor platform.WindowID, selectio
 	// Stub. See package doc ("Known gaps").
 }
 
+// SetClipboardText writes text to the general NSPasteboard.
+func (d *CocoaDisplay) SetClipboardText(text string) bool {
+	clib.SetClipboardText(text)
+	return true
+}
+
+// ClipboardText reads the string on the general NSPasteboard.
+func (d *CocoaDisplay) ClipboardText() (string, bool) {
+	return clib.GetClipboardText(), true
+}
+
 // --- CursorManager ---
 
 func (d *CocoaDisplay) CreateFontCursor(shape uint) platform.CursorID {
@@ -389,8 +402,9 @@ func (d *CocoaDisplay) PumpEvents() bool {
 
 // --- InputMethodManager ---
 
-// InitIM, HasIM, SetICFocus and UnsetICFocus are stubs. HasIM reports
-// false so the event loop skips IM routing. See package doc ("Known gaps").
+// InitIM, HasIM, SetICFocus and UnsetICFocus are no-ops: Cocoa's input
+// method is driven by the content view's NSTextInputClient. See package
+// doc ("Known gaps").
 func (d *CocoaDisplay) InitIM(root platform.WindowID)  {}
 func (d *CocoaDisplay) HasIM() bool                    { return false }
 func (d *CocoaDisplay) SetICFocus(w platform.WindowID) {}

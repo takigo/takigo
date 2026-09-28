@@ -1,8 +1,11 @@
 //go:build windows
 
-package font
+// Package gdi implements font.Font with GDI for the Windows backend, as
+// tk/win/tkWinFont.c does.
+package gdi
 
 import (
+	"github.com/msorc/takigo/font"
 	"sort"
 	"syscall"
 	"unsafe"
@@ -19,15 +22,15 @@ type DCResolver func(drawable platform.DrawableID) (w32.HDC, func())
 type GDIFont struct {
 	hfont     w32.HFONT
 	screenDC  w32.HDC
-	attrs     Attributes
-	metrics   Metrics
+	attrs     font.Attributes
+	metrics   font.Metrics
 	resolveDC DCResolver
 }
 
 // OpenGDI creates a GDI font from font attributes.
 // The resolver, if non-nil, is used by DrawString to obtain the correct HDC
 // for any DrawableID (window or pixmap).
-func OpenGDI(screenDC w32.HDC, attrs Attributes, resolver DCResolver) (*GDIFont, error) {
+func OpenGDI(screenDC w32.HDC, attrs font.Attributes, resolver DCResolver) (*GDIFont, error) {
 	var lf w32.LOGFONTW
 
 	// Convert size. Positive Size = points, negative = pixels.
@@ -51,12 +54,12 @@ func OpenGDI(screenDC w32.HDC, attrs Attributes, resolver DCResolver) (*GDIFont,
 
 	// Weight.
 	lf.LfWeight = w32.FW_NORMAL
-	if attrs.Weight == WeightBold {
+	if attrs.Weight == font.WeightBold {
 		lf.LfWeight = w32.FW_BOLD
 	}
 
 	// Slant.
-	if attrs.Slant == SlantItalic || attrs.Slant == SlantOblique {
+	if attrs.Slant == font.SlantItalic || attrs.Slant == font.SlantOblique {
 		lf.LfItalic = 1
 	}
 
@@ -111,7 +114,7 @@ func OpenGDI(screenDC w32.HDC, attrs Attributes, resolver DCResolver) (*GDIFont,
 	w32.SelectObject(memDC, oldFont)
 	w32.DeleteDC(memDC)
 
-	f.metrics = Metrics{
+	f.metrics = font.Metrics{
 		Ascent:   int(tm.TmAscent),
 		Descent:  int(tm.TmDescent),
 		MaxWidth: int(tm.TmMaxCharWidth),
@@ -124,8 +127,8 @@ func OpenGDI(screenDC w32.HDC, attrs Attributes, resolver DCResolver) (*GDIFont,
 	return f, nil
 }
 
-func (f *GDIFont) Attrs() Attributes { return f.attrs }
-func (f *GDIFont) Metrics() Metrics  { return f.metrics }
+func (f *GDIFont) Attrs() font.Attributes { return f.attrs }
+func (f *GDIFont) Metrics() font.Metrics  { return f.metrics }
 
 func (f *GDIFont) MeasureString(s string) int {
 	if s == "" {

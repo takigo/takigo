@@ -4,6 +4,7 @@ package x11
 
 import (
 	"github.com/msorc/takigo/font"
+	"github.com/msorc/takigo/font/xft"
 	"github.com/msorc/takigo/internal/xlib"
 )
 
@@ -27,7 +28,12 @@ func NewFontOpener(display *xlib.Display, screen int, visual *xlib.Visual, color
 
 // OpenFont opens a font via Xft/fontconfig.
 func (o *X11FontOpener) OpenFont(attrs font.Attributes) (font.Font, error) {
-	return font.OpenXft(o.display, o.screen, o.visual, o.colormap, attrs)
+	return xft.OpenXft(o.display, o.screen, o.visual, o.colormap, attrs)
+}
+
+// Families lists the fontconfig font families.
+func (o *X11FontOpener) Families() []string {
+	return xft.ListFamilies()
 }
 
 // Verify at compile time.
