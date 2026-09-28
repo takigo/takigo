@@ -20,13 +20,15 @@ func NewEngine(d *window.Display) *Engine {
 	return e
 }
 
-// Install hooks the binding engine into the event dispatcher as a global
-// handler. The engine fires AFTER per-window handlers registered via
-// Dispatcher.Bind(), so existing widget bindings are unaffected.
+// Install makes the engine the dispatcher's binding-tag chain. Every
+// window gets Tk's default bindtags (path, class, toplevel, "all") unless
+// RegisterWindow or SetBindTags gave it others. A widget's own input
+// handlers (Dispatcher.Bind) run at its class tag, so a binding on its path
+// runs first and can suppress them by returning true (break), as a Tcl
+// script does against library/*.tcl class bindings; see Dispatcher.SetChain.
 func (e *Engine) Install(dispatcher *event.Dispatcher) {
-	dispatcher.BindGlobal(event.AllEventsMask, func(ev *event.Event) {
-		e.dispatch(ev)
-	})
+	e.dispatcher = dispatcher
+	dispatcher.SetChain(e.dispatch)
 }
 
 // Bind adds a binding for a tag (widget path, class name, or "all").
@@ -71,7 +73,7 @@ func (e *Engine) UnregisterWindow(w *window.Window) {
 
 // BindTags returns the current tag chain for a window.
 func (e *Engine) BindTags(w *window.Window) []string {
-	info := e.tags[w.PlatformID]
+	info := e.tagInfoFor(w)
 	if info == nil {
 		return nil
 	}
@@ -80,9 +82,10 @@ func (e *Engine) BindTags(w *window.Window) []string {
 	return result
 }
 
-// SetBindTags replaces the tag chain for a window.
+// SetBindTags replaces the tag chain for a window, like "bindtags w tags".
+// Leaving out the window's class tag disables its class behaviour.
 func (e *Engine) SetBindTags(w *window.Window, tags []string) {
-	info := e.tags[w.PlatformID]
+	info := e.tagInfoFor(w)
 	if info == nil {
 		return
 	}
@@ -119,7 +122,7 @@ func (e *Engine) RemoveVirtualEvent(virtual string) {
 
 // GenerateEvent dispatches a virtual event to a window as if it had occurred.
 func (e *Engine) GenerateEvent(w *window.Window, virtual string) {
-	info := e.tags[w.PlatformID]
+	info := e.tagInfoFor(w)
 	if info == nil {
 		return
 	}

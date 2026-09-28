@@ -161,7 +161,7 @@ func main() {
 	// Bind Return on entry to load directory.
 	eng.Bind(dirEntry.Window().PathName, "<Return>", func(_ *bind.EventData) bool {
 		loadDir()
-		return true
+		return false
 	})
 
 	// The list starts with these names; the directory is only read on
@@ -216,7 +216,7 @@ func main() {
 			iconLabel.Compound = widget.CompoundTop
 			iconLabel.SetImage(demohelper.FileIcon(path, 48))
 		})
-		return true
+		return false
 	})
 
 	// Grid: dir spans 2 cols row 0; f and image on row 1 (matches Tcl's grid layout).

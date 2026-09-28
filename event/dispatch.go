@@ -37,6 +37,37 @@ type Dispatcher struct {
 	global   []*registration // handlers for all windows
 	byID     map[BindingID]*registration
 	nextID   BindingID
+	chain    ChainFunc
+}
+
+// ChainFunc runs the Tk binding-tag chain for ev (bind.Engine). With
+// runClass set it runs ev's window's own handlers, via DispatchWindow, at
+// the class tag's position, so bindings on the widget's path run first and
+// a break there, or bindtags without the class tag, suppresses them. It
+// reports whether ev's window has a tag chain.
+type ChainFunc func(ev *Event, runClass bool) bool
+
+// SetChain installs the binding-tag chain; call it before Run.
+//
+// A window's handlers for input events (keys, buttons, motion,
+// enter/leave) implement its class bindings, as library/*.tcl does in Tk,
+// and run inside the chain. Its handlers for other events are Tk's event
+// handlers (Tk_CreateEventHandler): they run before any binding.
+func (d *Dispatcher) SetChain(fn ChainFunc) {
+	d.mu.Lock()
+	d.chain = fn
+	d.mu.Unlock()
+}
+
+// isBindingEvent reports whether t is delivered to class behaviour through
+// the binding chain rather than to event handlers.
+func isBindingEvent(t Type) bool {
+	switch t {
+	case KeyPressType, KeyReleaseType, ButtonPressType, ButtonReleaseType,
+		MotionType, EnterType, LeaveType:
+		return true
+	}
+	return false
 }
 
 // NewDispatcher creates a new event dispatcher.
@@ -123,7 +154,7 @@ func removeCOW(regs []*registration, reg *registration) []*registration {
 }
 
 // Dispatch sends an event to all matching handlers: the window's own
-// handlers first, then global ones.
+// handlers and the binding chain (see SetChain), then global handlers.
 func (d *Dispatcher) Dispatch(ev *Event) {
 	mask := TypeToMask(ev.Type)
 	if mask == 0 {
@@ -133,14 +164,37 @@ func (d *Dispatcher) Dispatch(ev *Event) {
 	d.mu.RLock()
 	windowHandlers := d.handlers[ev.Window]
 	globalHandlers := d.global
+	chain := d.chain
 	d.mu.RUnlock()
 
-	for _, r := range windowHandlers {
+	switch {
+	case chain == nil:
+		run(windowHandlers, ev, mask)
+	case isBindingEvent(ev.Type):
+		if !chain(ev, true) {
+			run(windowHandlers, ev, mask)
+		}
+	default:
+		run(windowHandlers, ev, mask)
+		chain(ev, false)
+	}
+	for _, r := range globalHandlers {
 		if r.mask&mask != 0 && !r.dead.Load() {
 			r.handler(ev)
 		}
 	}
-	for _, r := range globalHandlers {
+}
+
+// DispatchWindow runs only the handlers bound to ev's window.
+func (d *Dispatcher) DispatchWindow(ev *Event) {
+	d.mu.RLock()
+	windowHandlers := d.handlers[ev.Window]
+	d.mu.RUnlock()
+	run(windowHandlers, ev, TypeToMask(ev.Type))
+}
+
+func run(regs []*registration, ev *Event, mask Mask) {
+	for _, r := range regs {
 		if r.mask&mask != 0 && !r.dead.Load() {
 			r.handler(ev)
 		}
