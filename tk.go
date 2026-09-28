@@ -93,7 +93,7 @@ func NewApp(opts ...AppOption) (*App, error) {
 	bindEng := bind.NewEngine(d)
 
 	selMgr := selection.NewManager(server, dispatcher)
-	selMgr.SetTimer(loop.After)
+	selMgr.SetTimer(func(d time.Duration, fn func()) { loop.After(d, fn) })
 
 	app := &App{
 		display:    d,
@@ -293,8 +293,13 @@ func (a *App) startTreeDump(path string) {
 	go func() {
 		t := time.NewTicker(250 * time.Millisecond)
 		defer t.Stop()
-		for range t.C {
-			a.loop.RunOnMain(dump)
+		for {
+			select {
+			case <-t.C:
+				a.loop.RunOnMain(dump)
+			case <-a.loop.Done():
+				return
+			}
 		}
 	}()
 }
@@ -428,9 +433,10 @@ func (a *App) DoWhenIdle(fn func()) {
 	a.loop.DoWhenIdle(fn)
 }
 
-// After schedules a function to run after the given duration on the main goroutine.
-func (a *App) After(d time.Duration, fn func()) {
-	a.loop.After(d, fn)
+// After schedules a function to run after the given duration on the main
+// goroutine. The returned function cancels it; see event.Loop.After.
+func (a *App) After(d time.Duration, fn func()) (cancel func() bool) {
+	return a.loop.After(d, fn)
 }
 
 // RunOnMain schedules a function to run on the main (event loop) goroutine.

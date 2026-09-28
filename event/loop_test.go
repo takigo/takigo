@@ -251,3 +251,40 @@ func TestLoopQuitsWhenPumpRequestsIt(t *testing.T) {
 		t.Errorf("pumped %d times, want the loop to quit on the 3rd", srv.pumps)
 	}
 }
+
+func TestLoopAfterCancel(t *testing.T) {
+	if freezeTimers {
+		t.Skip("TAKIGO_FREEZE_TIMERS drops positive-delay timers")
+	}
+	l := NewLoop(newFakeServer(), nil, NewDispatcher())
+	var ranLate, ranQueued, ranKept bool
+	var cancelKept func() bool
+	l.DoWhenIdle(func() {
+		cancelLate := l.After(time.Hour, func() { ranLate = true })
+		if !cancelLate() {
+			t.Error("cancel of a pending timer reported false")
+		}
+		if cancelLate() {
+			t.Error("second cancel reported true")
+		}
+		// The timer fires while the loop is busy here, so its callback is
+		// already queued when cancel runs; it must still not run.
+		cancelQueued := l.After(0, func() { ranQueued = true })
+		time.Sleep(20 * time.Millisecond)
+		if !cancelQueued() {
+			t.Error("cancel of a fired but not yet run timer reported false")
+		}
+		cancelKept = l.After(time.Millisecond, func() { ranKept = true })
+		l.After(50*time.Millisecond, l.Quit)
+	})
+	runLoop(t, l)()
+	if ranLate || ranQueued {
+		t.Errorf("cancelled callbacks ran: late=%v queued=%v", ranLate, ranQueued)
+	}
+	if !ranKept {
+		t.Fatal("uncancelled callback did not run")
+	}
+	if cancelKept() {
+		t.Error("cancel after the callback ran reported true")
+	}
+}
