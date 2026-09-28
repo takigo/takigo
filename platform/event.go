@@ -162,6 +162,11 @@ const (
 	ColormapNotifyEvent   = 32
 	ClientMessageEvent_   = 33
 	MappingNotifyEvent    = 34
+
+	// VirtualEvent is a named virtual event a backend generates, like
+	// Tk_SendVirtualEvent; RawEvent.Data holds its name (a string,
+	// without the << >>). It lies outside the X11 event range.
+	VirtualEvent = 0x100
 )
 
 // EventParser parses platform-specific raw events into typed events.

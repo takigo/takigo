@@ -28,6 +28,51 @@ func bindEntry(e *Entry, app widget.AppContext) {
 
 	// Keyboard.
 	app.Dispatcher().Bind(w.PlatformID, event.KeyPressMask, e.handleKeyPress)
+	app.Dispatcher().Bind(w.PlatformID, event.VirtualMask, e.handleVirtual)
+}
+
+// handleVirtual handles the input method's virtual events like the Entry
+// bindings in library/entry.tcl: the text being composed is inserted as
+// usual and shown selected, and deleted when the input method replaces it.
+func (e *Entry) handleVirtual(ev *event.Event) {
+	switch ev.Name {
+	case event.IMEStart:
+		e.imeMark = e.InsertPos
+		return
+	case event.IMEEnd:
+		e.SelectRange(e.imeMark, e.InsertPos)
+		e.SelAnchor = e.imeMark
+	case event.IMEClear:
+		first := min(e.imeMark, len(e.text))
+		if first < e.InsertPos {
+			if !e.tryEdit(string(e.text[:first]) + string(e.text[e.InsertPos:])) {
+				return
+			}
+			e.DeleteChars(first, e.InsertPos-first)
+		}
+	case event.AccentBackspace:
+		e.backspace()
+	default:
+		return
+	}
+	e.seeInsert()
+	e.Display()
+}
+
+// backspace ports tk::EntryBackspace: delete the selection, or the
+// character before the insertion cursor.
+func (e *Entry) backspace() {
+	if e.SelFirst >= 0 {
+		prospective := string(e.text[:e.SelFirst]) + string(e.text[e.SelLast:])
+		if e.tryEdit(prospective) {
+			e.DeleteSelection()
+		}
+	} else if e.InsertPos > 0 {
+		prospective := string(e.text[:e.InsertPos-1]) + string(e.text[e.InsertPos:])
+		if e.tryEdit(prospective) {
+			e.DeleteChars(e.InsertPos-1, 1)
+		}
+	}
 }
 
 // handleExpose handles Exposure events.
@@ -123,17 +168,7 @@ func (e *Entry) handleKeyPress(ev *event.Event) {
 		moveCursor(e, len(e.text), shift)
 
 	case platform.XK_BackSpace:
-		if e.SelFirst >= 0 {
-			prospective := string(e.text[:e.SelFirst]) + string(e.text[e.SelLast:])
-			if e.tryEdit(prospective) {
-				e.DeleteSelection()
-			}
-		} else if e.InsertPos > 0 {
-			prospective := string(e.text[:e.InsertPos-1]) + string(e.text[e.InsertPos:])
-			if e.tryEdit(prospective) {
-				e.DeleteChars(e.InsertPos-1, 1)
-			}
-		}
+		e.backspace()
 
 	case platform.XK_Insert:
 		// Ctrl+Insert: copy; Shift+Insert: paste.

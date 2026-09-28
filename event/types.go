@@ -22,6 +22,19 @@ const (
 	ConfigureType
 	ClientMessageType
 	PropertyType
+	VirtualType
+)
+
+// Virtual events a backend sends while an input method composes text, as
+// tkMacOSXKeyEvent.c does: the composition is inserted as ordinary key
+// presses between IMEStart and IMEEnd, and IMEClear deletes it again before
+// the next composition or the committed text. AccentBackspace erases the
+// character an accent menu replaces.
+const (
+	IMEStart        = "TkStartIMEMarkedText"
+	IMEEnd          = "TkEndIMEMarkedText"
+	IMEClear        = "TkClearIMEMarkedText"
+	AccentBackspace = "TkAccentBackspace"
 )
 
 // Mask is a bitmask for selecting event types.
@@ -40,6 +53,7 @@ const (
 	StructureNotifyMask
 	PropertyChangeMask
 	ClientMessageMask
+	VirtualMask
 
 	AllEventsMask Mask = (1 << iota) - 1
 )
@@ -71,6 +85,8 @@ func TypeToMask(t Type) Mask {
 		return PropertyChangeMask
 	case ClientMessageType:
 		return ClientMessageMask
+	case VirtualType:
+		return VirtualMask
 	default:
 		return 0
 	}

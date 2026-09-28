@@ -1,6 +1,7 @@
 package text
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/msorc/takigo/event"
@@ -32,7 +33,34 @@ func bindText(t *TextWidget, app widget.AppContext) {
 
 	// Keyboard.
 	app.Dispatcher().Bind(w.PlatformID, event.KeyPressMask, t.handleKeyPress)
+	app.Dispatcher().Bind(w.PlatformID, event.VirtualMask, t.handleVirtual)
 }
+
+// handleVirtual handles the input method's virtual events like the Text
+// bindings in library/text.tcl: the text being composed is inserted as
+// usual and underlined with the IMEmarkedtext tag, and deleted when the
+// input method replaces it.
+func (t *TextWidget) handleVirtual(ev *event.Event) {
+	if t.readOnly {
+		return
+	}
+	insert := t.doc.Marks["insert"].Pos
+	switch ev.Name {
+	case event.IMEStart:
+		t.imeMark = insert
+	case event.IMEEnd:
+		t.TagAdd("IMEmarkedtext", indexString(t.imeMark), "insert")
+		t.TagConfigure("IMEmarkedtext", TagUnderline(true))
+	case event.IMEClear:
+		t.Delete(indexString(t.imeMark), "insert")
+		t.seeInsert()
+	case event.AccentBackspace:
+		t.Delete(indexString(Backward(insert, 1, t.doc)), "insert")
+		t.seeInsert()
+	}
+}
+
+func indexString(i Index) string { return fmt.Sprintf("%d.%d", i.Line, i.Char) }
 
 // handleExpose handles Exposure events.
 func (t *TextWidget) handleExpose(ev *event.Event) {

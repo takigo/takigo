@@ -78,6 +78,7 @@ type TextWidget struct {
 
 	// Read-only mode: navigation/selection work, editing blocked.
 	readOnly bool
+	imeMark  Index // insert position when the input method began composing
 
 	// setGrid: if true, the toplevel window's resize increment is kept at the
 	// character cell size so the window resizes in whole-character steps.

@@ -77,6 +77,12 @@ func bindEntry(e *Entry, app widget.AppContext) {
 		}
 		e.notifyTextVar()
 	})
+	app.Dispatcher().Bind(win.PlatformID, event.VirtualMask, func(ev *event.Event) {
+		if e.StateMode != EntryDisabled {
+			e.edit.HandleVirtual(ev)
+			e.notifyTextVar()
+		}
+	})
 
 	// Focus events.
 	app.Dispatcher().Bind(win.PlatformID, event.FocusChangeMask, func(ev *event.Event) {

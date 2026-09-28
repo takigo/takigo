@@ -589,4 +589,9 @@ func bindSpinbox(s *Spinbox, app widget.AppContext) {
 			s.edit.HandleKey(ev)
 		}
 	})
+	app.Dispatcher().Bind(win.PlatformID, event.VirtualMask, func(ev *event.Event) {
+		if s.State&StateDisabled == 0 {
+			s.edit.HandleVirtual(ev)
+		}
+	})
 }

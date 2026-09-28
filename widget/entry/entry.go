@@ -30,6 +30,7 @@ type Entry struct {
 	SelFirst  int // -1 = no selection
 	SelLast   int // -1 = no selection
 	SelAnchor int // fixed end of selection
+	imeMark   int // insert position when the input method began composing
 
 	// Scroll state.
 	LeftIndex int // rune index of leftmost visible char
