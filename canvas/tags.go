@@ -56,11 +56,6 @@ func itemBase(item Item) *ItemBase {
 	return nil
 }
 
-// findByID returns the item entry with the given ID, or nil.
-func (c *Canvas) findByID(id int64) *itemEntry {
-	return c.idMap[id]
-}
-
 // findClosest returns the topmost item within halo distance of (x, y).
 // Items are searched from top (last) to bottom (first) in display order.
 func (c *Canvas) findClosest(x, y float64, halo float64) *itemEntry {

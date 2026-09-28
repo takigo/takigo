@@ -29,6 +29,7 @@ type Spinbox struct {
 	SelLast   int
 	SelAnchor int
 	LeftIndex int
+	imeMark   int // insert position when the input method began composing
 
 	// Range mode.
 	From      float64

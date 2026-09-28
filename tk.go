@@ -144,7 +144,9 @@ func NewApp(opts ...AppOption) (*App, error) {
 
 	// Apply geometry string if provided (overrides Size).
 	if cfg.geometry != "" {
-		app.wmInfo.SetGeometry(cfg.geometry)
+		if err := app.wmInfo.SetGeometry(cfg.geometry); err != nil {
+			log.Printf("takigo: Geometry: %v", err)
+		}
 	}
 
 	// Apply icon name if provided.

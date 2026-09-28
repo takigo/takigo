@@ -75,8 +75,7 @@ func ChooseDirectory(parent widget.Caregiver, opts ...DirOption) (string, bool) 
 		pack.Expand(true), pack.PadX(5))
 
 	// Populate directory list with subdirectories of currentDir.
-	var populateList func()
-	populateList = func() {
+	populateList := func() {
 		entries, err := os.ReadDir(currentDir)
 		if err != nil {
 			return

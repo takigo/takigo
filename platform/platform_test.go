@@ -188,11 +188,7 @@ func TestRawEvent(t *testing.T) {
 }
 
 func TestEventParser(t *testing.T) {
-	// EventParser is an interface, just verify it exists
-	var parser EventParser
-	if parser == nil {
-		// This is expected - just testing the type exists
-	}
+	var _ EventParser
 }
 
 func TestDisplayCoreInterface(t *testing.T) {

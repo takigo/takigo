@@ -21,8 +21,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	var d *dialog.TkDialog
-	d = dialog.BuildTkDialog(app, "This dialog box uses a global grab. If you are using an X11 window manager you will be prevented from interacting with anything on your display until you invoke one of the buttons below.  This is almost always a bad idea; don't use global grabs with X11 unless you're truly desperate.  On macOS systems you will not be able to interact with any window belonging to this process, but interaction with other macOS Applications will still be possible.",
+	d := dialog.BuildTkDialog(app, "This dialog box uses a global grab. If you are using an X11 window manager you will be prevented from interacting with anything on your display until you invoke one of the buttons below.  This is almost always a bad idea; don't use global grabs with X11 unless you're truly desperate.  On macOS systems you will not be able to interact with any window belonging to this process, but interaction with other macOS Applications will still be possible.",
 		"warning", 0, []string{"OK", "Cancel", "Show Code"},
 		func(i int) {
 			switch i {

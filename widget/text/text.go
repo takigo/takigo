@@ -78,6 +78,7 @@ type TextWidget struct {
 
 	// Read-only mode: navigation/selection work, editing blocked.
 	readOnly bool
+	imeMark  Index // insert position when the input method began composing
 
 	// setGrid: if true, the toplevel window's resize increment is kept at the
 	// character cell size so the window resizes in whole-character steps.
@@ -97,7 +98,6 @@ type TextWidget struct {
 	// Offscreen pixmap.
 	pixmap           platform.PixmapID
 	pixmapW, pixmapH int
-	displayValid     bool
 	redrawPending    bool
 
 	// Stipple pixmap cache: name → depth-1 Pixmap.
@@ -778,14 +778,6 @@ func (t *TextWidget) positionEmbeddedWindows(dlines []displayLine) {
 			ew.win.Flags &^= window.FlagMapped
 		}
 	}
-}
-
-// embeddedWindowAt returns the embedded window at the given document position, or nil.
-func (t *TextWidget) embeddedWindowAt(lineIdx, charIdx int) *window.Window {
-	if ew := t.embeddedWinAt(lineIdx, charIdx); ew != nil {
-		return ew.win
-	}
-	return nil
 }
 
 func (t *TextWidget) embeddedWinAt(lineIdx, charIdx int) *embeddedWin {

@@ -278,6 +278,9 @@ func (e *Engine) indexVirtuals() {
 // physical definition matches ev. It is computed once per event rather
 // than once per tag.
 func (e *Engine) virtualMatches(ev *event.Event, clickMods Modifier) []virtualMatch {
+	if ev.Type == event.VirtualType {
+		return []virtualMatch{{ev.Name, 0}}
+	}
 	var out []virtualMatch
 	for _, d := range e.virtualByType[ev.Type] {
 		if !d.pat.matches(ev, clickMods) {

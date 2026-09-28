@@ -582,7 +582,8 @@ func (e *Entry) maybeScrollIntoView(display []rune) {
 	if visible < 1 {
 		visible = 1
 	}
-	curIdx := e.edit.InsertPos
+	curIdx := min(e.edit.InsertPos, len(display))
+	e.leftIndex = min(e.leftIndex, len(display))
 	cursorX := e.Font.MeasureString(string(display[:curIdx]))
 	firstX := e.Font.MeasureString(string(display[:e.leftIndex]))
 	if cursorX-firstX < 0 {
@@ -590,7 +591,7 @@ func (e *Entry) maybeScrollIntoView(display []rune) {
 			e.leftIndex--
 		}
 	} else if cursorX-firstX > visible {
-		for e.leftIndex <= curIdx && e.Font.MeasureString(string(display[:e.leftIndex+1]))-firstX <= cursorX-visible {
+		for e.leftIndex < curIdx && e.Font.MeasureString(string(display[:e.leftIndex+1]))-firstX <= cursorX-visible {
 			e.leftIndex++
 		}
 	}

@@ -19,7 +19,7 @@ func NewPhotoFromPPMFile(name, path string) (*Photo, error) {
 	if err != nil {
 		return nil, fmt.Errorf("image: open ppm %s: %w", path, err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	return NewPhotoFromPPMReader(name, f)
 }
 
@@ -58,7 +58,7 @@ func decodePPM(r io.Reader) (*goimage.RGBA, error) {
 		return nil, fmt.Errorf("invalid dimensions %dx%d", w, h)
 	}
 
-	var maxVal int = 1
+	maxVal := 1
 	if format != 1 && format != 4 {
 		maxVal, err = readPPMInt(br)
 		if err != nil {

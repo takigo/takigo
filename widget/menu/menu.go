@@ -691,7 +691,7 @@ func (m *Menu) display() {
 			d.FillRectangle(w.Drawable(), gc, m.BorderWidth, yStart,
 				uint(w.Width-2*m.BorderWidth), uint(m.tearoffHeight))
 		}
-		var dashColor uint64 = d.BlackPixel(0)
+		dashColor := d.BlackPixel(0)
 		if m.Foreground != nil {
 			dashColor = m.Foreground.Pixel
 		}

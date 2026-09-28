@@ -64,8 +64,7 @@ func main() {
 	activeDragger := 0 // 0=none, 1=box1, 2=box2, 3=box3
 
 	// arrowSetup regenerates everything, as the Tcl proc does.
-	var redraw func()
-	redraw = func() {
+	redraw := func() {
 		c.Delete("all")
 
 		c.CreateLine([]float64{x1, y, x2, y},

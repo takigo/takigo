@@ -140,12 +140,6 @@ func (g *goldberg) scl(coords []float64) []float64 {
 	return out
 }
 
-// sclCoords scales a flat list treating every pair as x,y.
-// This is the same as scl for flat coordinate lists.
-func (g *goldberg) sclCoords(coords []float64) []float64 {
-	return g.scl(coords)
-}
-
 // sclPos scales a slice of pos values (x,y only, beta/flag preserved).
 func (g *goldberg) sclPos(positions []pos) []pos {
 	out := make([]pos, len(positions))
@@ -403,11 +397,6 @@ func (g *goldberg) getStep(who int) int {
 	}
 	g.step[who] = v + 1
 	return v + 1
-}
-
-// setStep forces the step counter for animation `who` to a specific value.
-func (g *goldberg) setStep(who, val int) {
-	g.step[who] = val
 }
 
 // resetStep clears all step counters and resets the global counter.
