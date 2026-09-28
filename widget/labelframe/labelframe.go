@@ -154,6 +154,7 @@ func New(parent widget.Caregiver, name string, opts ...LabelframeOption) *Labelf
 		LabelAnchor: option.AnchorNW,
 	}
 	widget.InitBase(&lf.Base, w, app)
+	lf.SetDisplayProc(lf.display)
 	w.Class = "Labelframe"
 
 	// Labelframe defaults.
@@ -316,8 +317,13 @@ func (lf *Labelframe) labelBox(lw, lh int) (x, y int) {
 	return x, y
 }
 
-// Display draws the labelframe.
+// Display schedules a redraw at idle time; see widget.Base.EventuallyRedraw.
 func (lf *Labelframe) Display() {
+	lf.EventuallyRedraw()
+}
+
+// display draws the labelframe.
+func (lf *Labelframe) display() {
 	if lf.Destroyed {
 		return
 	}

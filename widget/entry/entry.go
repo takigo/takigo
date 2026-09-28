@@ -220,6 +220,7 @@ func New(parent widget.Caregiver, name string, opts ...EntryOption) *Entry {
 		Justify:     option.JustifyLeft,
 	}
 	widget.InitBase(&e.Base, w, app)
+	e.SetDisplayProc(e.display)
 	w.Class = "Entry"
 
 	// Entry-specific defaults.
@@ -627,8 +628,13 @@ func (e *Entry) notifyScrollbar() {
 	}
 }
 
-// Display draws the entry widget.
+// Display schedules a redraw at idle time; see widget.Base.EventuallyRedraw.
 func (e *Entry) Display() {
+	e.EventuallyRedraw()
+}
+
+// display draws the entry widget.
+func (e *Entry) display() {
 	if e.Destroyed {
 		return
 	}

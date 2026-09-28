@@ -236,6 +236,7 @@ func New(parent widget.Caregiver, name string, opts ...CheckbuttonOption) *Check
 		OffValue:    "0",
 	}
 	widget.InitBase(&c.Base, w, app)
+	c.SetDisplayProc(c.display)
 	w.OnDestroy(c.Destroy)
 	w.Class = "Checkbutton"
 
@@ -343,8 +344,13 @@ func (c *Checkbutton) isTristate() bool {
 	return v != c.OnValue && v == c.TristateValue
 }
 
-// Display draws the checkbutton.
+// Display schedules a redraw at idle time; see widget.Base.EventuallyRedraw.
 func (c *Checkbutton) Display() {
+	c.EventuallyRedraw()
+}
+
+// display draws the checkbutton.
+func (c *Checkbutton) display() {
 	if c.Destroyed {
 		return
 	}

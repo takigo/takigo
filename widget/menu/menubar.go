@@ -42,6 +42,7 @@ func NewMenubar(top widget.Caregiver, name string) *Menubar {
 	window.MakeWindowExist(w)
 	mb := &Menubar{active: -1, activeBorderWidth: 1, top: top.Window()}
 	widget.InitBase(&mb.Base, w, app)
+	mb.SetDisplayProc(mb.display)
 	w.Class = "Menu"
 	mb.BorderWidth = 1 // DEF_MENU_BORDER_WIDTH
 	mb.Relief = option.ReliefRaised
@@ -141,16 +142,19 @@ func (mb *Menubar) hit(x, y int) int {
 	return -1
 }
 
-// Display ports DisplayMenu/TkpDrawMenuEntry for a menubar.
+// Display schedules a redraw at idle time; see widget.Base.EventuallyRedraw.
 func (mb *Menubar) Display() {
+	mb.EventuallyRedraw()
+}
+
+// display ports DisplayMenu/TkpDrawMenuEntry for a menubar.
+func (mb *Menubar) display() {
 	w := mb.Win
 	if mb.Destroyed || w.PlatformID == 0 || w.Width <= 0 || w.Height <= 0 {
 		return
 	}
 	d := w.Display.Server
-	pm := d.CreatePixmap(w.Drawable(), uint(w.Width), uint(w.Height), uint(w.Depth))
-	defer d.FreePixmap(pm)
-	pix := platform.PixmapDrawable(pm)
+	pix := w.Drawable()
 	gc := w.GC
 	bg := uint64(0xd9d9d9)
 	if mb.Background != nil {
@@ -193,7 +197,6 @@ func (mb *Menubar) Display() {
 	if mb.Relief != option.ReliefFlat && mb.Border != nil {
 		draw.Draw3DRectangle(d, pix, gc, mb.Border, 0, 0, w.Width, w.Height, mb.BorderWidth, mb.Relief)
 	}
-	d.CopyArea(pix, w.Drawable(), gc, 0, 0, uint(w.Width), uint(w.Height), 0, 0)
 	d.Flush()
 }
 
