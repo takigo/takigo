@@ -104,8 +104,13 @@ type windowInfo struct {
 // DisplayServer along with a FontOpener for the default screen.
 func NewDisplayServer(displayName string) (platform.DisplayServer, font.FontOpener, error) {
 
-	// Set DPI awareness (best effort).
-	_ = w32.SetProcessDpiAwareness(w32.PROCESS_PER_MONITOR_DPI_AWARE)
+	// Per-monitor V2, as tk/win/wish.exe.manifest.in declares: Windows then
+	// scales the title bar, menus and common dialogs for each monitor. Like
+	// Tk, takigo sizes its own contents from the system DPI and does not
+	// rescale on WM_DPICHANGED. Older systems get per-monitor V1.
+	if w32.SetProcessDpiAwarenessContext(w32.DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2) != nil {
+		_ = w32.SetProcessDpiAwareness(w32.PROCESS_PER_MONITOR_DPI_AWARE)
+	}
 
 	hInstance := w32.GetModuleHandle(nil)
 	if hInstance == 0 {

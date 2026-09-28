@@ -24,6 +24,19 @@ static XftColor make_xft_color(unsigned long pixel, unsigned short r, unsigned s
 	return c;
 }
 
+// no_unref_fonts makes XftFontClose destroy fonts at once instead of keeping
+// them in Xft's per-display cache of unreferenced fonts. Cached fonts are
+// otherwise destroyed by Xft's XCloseDisplay hook after libXrender has
+// already dropped the display, so freeing their glyph sets sends requests
+// with a stale RENDER opcode (garbage BadRequest/BadLength errors, and on a
+// later display at the same address, corrupted replies or a hang).
+static void no_unref_fonts(Display *dpy) {
+	FcPattern *p = FcPatternCreate();
+	if (!p) return;
+	FcPatternAddInteger(p, XFT_MAX_UNREF_FONTS, 0);
+	XftDefaultSet(dpy, p);
+}
+
 // open_xft_font_rotated creates a rotated variant of base_font.
 // sin_a and cos_a are sin/cos of the rotation angle (clockwise on screen,
 // matching Tk's canvas -angle convention).
@@ -516,6 +529,7 @@ func (f *XftFont) Close() {
 	xlib.XftMu.Lock()
 	defer xlib.XftMu.Unlock()
 	dpy := (*C.Display)(f.display.Ptr())
+	C.no_unref_fonts(dpy)
 	if f.font != nil {
 		C.XftFontClose(dpy, f.font)
 		f.font = nil
