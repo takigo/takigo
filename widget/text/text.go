@@ -66,7 +66,8 @@ type TextWidget struct {
 	insertColor *color.ColorRef
 
 	// Selection.
-	selAnchor Index // fixed end during selection drag
+	selAnchor   Index // fixed end during selection drag
+	lastDragIdx Index // index under the pointer at the last drag motion
 
 	// Scrollbar callbacks.
 	YScrollCmd func(first, last float64)
