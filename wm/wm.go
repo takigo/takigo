@@ -187,13 +187,15 @@ func (info *WmInfo) Geometry() string {
 	w := info.Win
 	xSign, ySign := "+", "+"
 	x, y := w.X, w.Y
+	// A negative position is the distance from the right/bottom screen
+	// edge, as wm geometry reports it (tkUnixWm.c ConfigureEvent).
 	if info.NegativeX {
 		xSign = "-"
-		x = -x
+		x = w.Display.Server.ScreenWidth(w.Display.Screen) - (w.X + w.Width)
 	}
 	if info.NegativeY {
 		ySign = "-"
-		y = -y
+		y = w.Display.Server.ScreenHeight(w.Display.Screen) - (w.Y + w.Height)
 	}
 	return fmt.Sprintf("%dx%d%s%d%s%d", w.Width, w.Height, xSign, x, ySign, y)
 }
