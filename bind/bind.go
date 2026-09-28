@@ -112,12 +112,14 @@ func (e *Engine) addVirtual(virtual string, seq Sequence) {
 		e.virtualOrder = append(e.virtualOrder, virtual)
 	}
 	e.virtualEvents[virtual] = append(e.virtualEvents[virtual], seq)
+	e.indexVirtuals()
 }
 
 // RemoveVirtualEvent removes a virtual event definition.
 func (e *Engine) RemoveVirtualEvent(virtual string) {
 	delete(e.virtualEvents, virtual)
 	e.virtualOrder = slices.DeleteFunc(e.virtualOrder, func(n string) bool { return n == virtual })
+	e.indexVirtuals()
 }
 
 // GenerateEvent dispatches a virtual event to a window as if it had occurred.

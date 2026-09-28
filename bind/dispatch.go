@@ -33,6 +33,9 @@ type Engine struct {
 	// names in definition order so matching is deterministic.
 	virtualEvents map[string][]Sequence
 	virtualOrder  []string
+	// virtualByType indexes the single-pattern virtual definitions by event
+	// type, in virtualOrder, so an event only tries the ones that can match.
+	virtualByType map[event.Type][]virtualDef
 
 	// prom holds multi-event bindings whose leading patterns have matched
 	// and that wait for their next pattern (tkBind.c's promotion lists).
@@ -76,6 +79,7 @@ func (e *Engine) dispatch(ev *event.Event, runClass bool) bool {
 	clickMods := e.updateClickState(ev)
 
 	completed := e.advancePromoted(ev, clickMods)
+	virtuals := e.virtualMatches(ev, clickMods)
 
 	// Walk the tag chain and dispatch. Like Tk_BindEvent, stop once a
 	// binding has destroyed the window.
@@ -125,8 +129,8 @@ func (e *Engine) dispatch(ev *event.Event, runClass bool) bool {
 
 		// Also check virtual events: if the physical event matches a virtual
 		// definition, try to dispatch bindings tagged with that virtual name.
-		if bestBinding == nil {
-			bestBinding = e.matchVirtual(ev, clickMods, bindings)
+		if bestBinding == nil && len(virtuals) > 0 {
+			bestBinding = matchVirtual(virtuals, bindings)
 		}
 
 		if bestBinding != nil {
@@ -244,27 +248,66 @@ func findBinding(bindings []binding, key string) *binding {
 	return nil
 }
 
-// matchVirtual returns the binding for a virtual event whose physical
-// definition matches ev. When several do, the most specific physical
-// pattern wins and ties go to the earliest-defined virtual event, so the
-// choice does not depend on map iteration order.
-func (e *Engine) matchVirtual(ev *event.Event, clickMods Modifier, bindings []binding) *binding {
-	var best *binding
-	bestScore := -1
-	for _, vname := range e.virtualOrder {
-		score := -1
-		for _, vs := range e.virtualEvents[vname] {
-			if len(vs.Patterns) == 1 && vs.Patterns[0].matches(ev, clickMods) {
-				score = max(score, vs.Patterns[0].specificity())
+// virtualDef is one physical pattern of a virtual event.
+type virtualDef struct {
+	name string
+	pat  Pattern
+}
+
+// virtualMatch is a virtual event whose definition matched an event, with
+// the specificity of its best-matching physical pattern.
+type virtualMatch struct {
+	name  string
+	score int
+}
+
+// indexVirtuals rebuilds virtualByType after the definitions change.
+func (e *Engine) indexVirtuals() {
+	e.virtualByType = make(map[event.Type][]virtualDef)
+	for _, name := range e.virtualOrder {
+		for _, seq := range e.virtualEvents[name] {
+			if len(seq.Patterns) == 1 {
+				p := seq.Patterns[0]
+				e.virtualByType[p.EventType] = append(e.virtualByType[p.EventType], virtualDef{name, p})
 			}
 		}
-		if score <= bestScore {
+	}
+}
+
+// virtualMatches returns, in definition order, the virtual events whose
+// physical definition matches ev. It is computed once per event rather
+// than once per tag.
+func (e *Engine) virtualMatches(ev *event.Event, clickMods Modifier) []virtualMatch {
+	var out []virtualMatch
+	for _, d := range e.virtualByType[ev.Type] {
+		if !d.pat.matches(ev, clickMods) {
+			continue
+		}
+		score := d.pat.specificity()
+		if n := len(out); n > 0 && out[n-1].name == d.name {
+			out[n-1].score = max(out[n-1].score, score)
+		} else {
+			out = append(out, virtualMatch{d.name, score})
+		}
+	}
+	return out
+}
+
+// matchVirtual returns the binding for a virtual event in virtuals. When
+// several have bindings, the most specific physical pattern wins and ties
+// go to the earliest-defined virtual event, so the choice does not depend
+// on map iteration order.
+func matchVirtual(virtuals []virtualMatch, bindings []binding) *binding {
+	var best *binding
+	bestScore := -1
+	for _, v := range virtuals {
+		if v.score <= bestScore {
 			continue
 		}
 		for i := range bindings {
 			b := &bindings[i]
-			if len(b.seq.Patterns) == 1 && b.seq.Patterns[0].Virtual == vname {
-				best, bestScore = b, score
+			if len(b.seq.Patterns) == 1 && b.seq.Patterns[0].Virtual == v.name {
+				best, bestScore = b, v.score
 				break
 			}
 		}
