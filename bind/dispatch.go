@@ -22,8 +22,9 @@ type tagInfo struct {
 // It provides Tk-style tag-based event binding with pattern matching,
 // virtual events, and double-click detection.
 type Engine struct {
-	table   *BindingTable
-	display *window.Display
+	table      *BindingTable
+	display    *window.Display
+	dispatcher *event.Dispatcher
 
 	// Per-window tag info.
 	tags map[platform.WindowID]*tagInfo
@@ -44,18 +45,31 @@ type Engine struct {
 	clickCount    int
 }
 
-// dispatch is the core event dispatch function called for every event.
-// It resolves the window, computes click modifiers, walks the tag chain,
-// matches patterns, and calls handlers.
-func (e *Engine) dispatch(ev *event.Event) {
-	w := e.display.LookupWindow(ev.Window)
-	if w == nil {
-		return
+// tagInfoFor returns w's tag chain, creating the default one (Tk's
+// bindtags: path, class, toplevel, "all") on first use, when the widget
+// constructor has set w.Class.
+func (e *Engine) tagInfoFor(w *window.Window) *tagInfo {
+	if w == nil || w.PlatformID == 0 {
+		return nil
 	}
-
-	info := e.tags[ev.Window]
+	info := e.tags[w.PlatformID]
 	if info == nil {
-		return
+		info = &tagInfo{win: w, className: w.Class, tags: buildTagChain(w, w.Class)}
+		e.tags[w.PlatformID] = info
+	}
+	return info
+}
+
+// dispatch is the binding-tag chain (event.ChainFunc) run for every event.
+// It resolves the window, computes click modifiers, walks the tag chain,
+// matches patterns, and calls handlers; with runClass it runs the window's
+// own handlers when it reaches the class tag. It reports false for windows
+// it does not know.
+func (e *Engine) dispatch(ev *event.Event, runClass bool) bool {
+	w := e.display.LookupWindow(ev.Window)
+	info := e.tagInfoFor(w)
+	if info == nil {
+		return false
 	}
 
 	// Compute double/triple click modifiers for button press events.
@@ -63,8 +77,16 @@ func (e *Engine) dispatch(ev *event.Event) {
 
 	completed := e.advancePromoted(ev, clickMods)
 
-	// Walk the tag chain and dispatch.
+	// Walk the tag chain and dispatch. Like Tk_BindEvent, stop once a
+	// binding has destroyed the window.
 	for _, tag := range info.tags {
+		if runClass && tag == info.className {
+			runClass = false
+			e.dispatcher.DispatchWindow(ev)
+			if w.IsDestroyed() {
+				return true
+			}
+		}
 		bindings := e.table.Lookup(tag)
 
 		// Find best matching binding (most specific pattern wins); a
@@ -109,11 +131,12 @@ func (e *Engine) dispatch(ev *event.Event) {
 
 		if bestBinding != nil {
 			ed := &EventData{RawEvent: ev}
-			if bestBinding.handler(ed) {
-				return // break chain
+			if bestBinding.handler(ed) || w.IsDestroyed() {
+				return true // break chain
 			}
 		}
 	}
+	return true
 }
 
 // promEntry is a multi-event binding of tag waiting, on window, for its
