@@ -384,3 +384,10 @@ func (tg *Tag) adjustDelete(start, end Index) {
 		}
 	}
 }
+
+// affectsLayout reports whether the tag changes line wrapping or heights.
+func (tg *Tag) affectsLayout() bool {
+	return tg.Font != nil || tg.OffsetSet || tg.JustifySet ||
+		tg.LMargin1 != 0 || tg.LMargin2 != 0 || tg.RMargin != 0 ||
+		tg.Spacing1 != 0 || tg.Spacing2 != 0 || tg.Spacing3 != 0
+}

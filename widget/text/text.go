@@ -104,6 +104,8 @@ type TextWidget struct {
 
 	// Stipple pixmap cache: name → depth-1 Pixmap.
 	stippleCache map[string]platform.PixmapID
+
+	layout layoutCache
 }
 
 // New creates a new TextWidget.
@@ -166,6 +168,8 @@ func New(parent widget.Caregiver, name string, opts ...TextOption) *TextWidget {
 		}
 	}
 	t.doc.putTag(selTag)
+	t.layout.init(t)
+	t.doc.Listeners = append(t.doc.Listeners, t.layout.apply)
 
 	t.undoStack = NewUndoStack(100)
 
@@ -235,6 +239,8 @@ func NewPeer(doc *Document, parent widget.Caregiver, name string, opts ...TextOp
 	}
 
 	t.undoStack = NewUndoStack(0)
+	t.layout.init(t)
+	doc.Listeners = append(doc.Listeners, t.layout.apply)
 
 	for _, opt := range opts {
 		opt(t)
@@ -254,7 +260,7 @@ func NewPeer(doc *Document, parent widget.Caregiver, name string, opts ...TextOp
 	bindText(t, app)
 
 	// Register as a document listener so edits from other peers trigger a redraw.
-	doc.Listeners = append(doc.Listeners, func() {
+	doc.Listeners = append(doc.Listeners, func(Change) {
 		t.notifyYScrollbar()
 		t.scheduleRedraw()
 	})
@@ -361,7 +367,7 @@ func (t *TextWidget) display() {
 
 // scheduleRedraw schedules a redraw via the idle loop.
 func (t *TextWidget) scheduleRedraw() {
-	if t.redrawPending || t.Destroyed {
+	if t.redrawPending || t.Destroyed || t.App == nil {
 		return
 	}
 	t.redrawPending = true
@@ -507,31 +513,12 @@ func (t *TextWidget) YView(line int) {
 // moveto), topping the display line that holds that pixel; the Go text has
 // no partial-line topPixelOffset.
 func (t *TextWidget) YViewMoveTo(fraction float64) {
-	var heights [][]int
-	total := 0
-	for l := 1; l <= t.doc.LineCount(); l++ {
-		hs := t.displayLinePixels(l)
-		heights = append(heights, hs)
-		for _, h := range hs {
-			total += h
-		}
-	}
+	total := t.layout.totalPixels()
 	if total <= 0 {
 		return
 	}
 	target := max(0, int(fraction*float64(total)+0.5))
-	t.topLine, t.topCharOffset = t.doc.LineCount(), 0
-	y := 0
-walk:
-	for l, hs := range heights {
-		for i, h := range hs {
-			if y+h > target {
-				t.topLine, t.topCharOffset = l+1, i
-				break walk
-			}
-			y += h
-		}
-	}
+	t.topLine, t.topCharOffset = t.layout.lineAtPixel(target)
 	t.clampScrollPosition()
 	t.notifyYScrollbar()
 	t.Display()
@@ -859,57 +846,19 @@ func (t *TextWidget) clampScrollPosition() {
 	maxTopDL := totalDL - visLines
 	topDL := t.computeDisplayLinesBefore(t.topLine, t.topCharOffset)
 	if topDL > maxTopDL {
-		// Walk through lines to find the logical line at maxTopDL.
-		availWidth := t.Win.Width - 2*t.insetX
-		dlCount := 0
-		for l := 1; l <= t.doc.LineCount(); l++ {
-			p := t.resolveLineProps(l)
-			dls := t.wrapLine(l, availWidth, p.lm1, p.lm2, p.rm)
-			if dlCount+len(dls) > maxTopDL {
-				t.topLine = l
-				t.topCharOffset = maxTopDL - dlCount
-				return
-			}
-			dlCount += len(dls)
-		}
-		t.topLine = t.doc.LineCount()
-		t.topCharOffset = 0
+		t.topLine, t.topCharOffset = t.layout.lineAtDisplayLine(maxTopDL)
 	}
 }
 
 // scrollByDisplayLines scrolls by n display lines (positive = down, negative = up).
 func (t *TextWidget) scrollByDisplayLines(n int) {
-	availWidth := t.Win.Width - 2*t.insetX
-
-	if n > 0 {
-		// Scroll down.
-		for range n {
-			p := t.resolveLineProps(t.topLine)
-			dls := t.wrapLine(t.topLine, availWidth, p.lm1, p.lm2, p.rm)
-			if t.topCharOffset+1 < len(dls) {
-				t.topCharOffset++
-			} else if t.topLine < t.doc.LineCount() {
-				t.topLine++
-				t.topCharOffset = 0
-			} else {
-				break
-			}
-		}
-	} else {
-		// Scroll up.
-		for i := 0; i < -n; i++ {
-			if t.topCharOffset > 0 {
-				t.topCharOffset--
-			} else if t.topLine > 1 {
-				t.topLine--
-				p := t.resolveLineProps(t.topLine)
-				dls := t.wrapLine(t.topLine, availWidth, p.lm1, p.lm2, p.rm)
-				t.topCharOffset = len(dls) - 1
-			} else {
-				break
-			}
-		}
+	total := t.totalDisplayLines()
+	if total == 0 {
+		return
 	}
+	cur := t.computeDisplayLinesBefore(t.topLine, t.topCharOffset)
+	target := min(max(cur+n, 0), total-1)
+	t.topLine, t.topCharOffset = t.layout.lineAtDisplayLine(target)
 }
 
 // notifyYScrollbar ports GetYView (tkTextDisp.c): the fractions are pixel
@@ -924,17 +873,14 @@ func (t *TextWidget) notifyYScrollbar() {
 }
 
 func (t *TextWidget) yviewFractions() (float64, float64) {
-	total, above := 0, 0
-	for l := 1; l <= t.doc.LineCount(); l++ {
-		for i, h := range t.displayLinePixels(l) {
-			if l < t.topLine || (l == t.topLine && i < t.topCharOffset) {
-				above += h
-			}
-			total += h
-		}
-	}
+	total := t.layout.totalPixels()
 	if total == 0 {
 		return 0, 1
+	}
+	above := t.layout.pixelsBefore(t.topLine)
+	hs := t.displayLinePixels(t.topLine)
+	for _, h := range hs[:min(t.topCharOffset, len(hs))] {
+		above += h
 	}
 	count := above
 	maxY := t.Win.Height - 2*t.insetY
@@ -976,16 +922,7 @@ func (t *TextWidget) estimateMaxLineWidth() int {
 	if t.Font == nil {
 		return 0
 	}
-	maxW := 0
-	for _, line := range t.doc.Lines {
-		if len(line.Text) > 0 {
-			w := t.Font.MeasureString(string(line.Text))
-			if w > maxW {
-				maxW = w
-			}
-		}
-	}
-	return maxW
+	return t.layout.maxWidth()
 }
 
 // Suppress unused import warnings.

@@ -27,6 +27,8 @@ func newBenchWidget(doc *Document, w, h int) *TextWidget {
 	t.Win = &window.Window{Width: w, Height: h}
 	t.Font = fixedFont{}
 	t.doc.putTag(&Tag{Name: "sel", Priority: selPriority})
+	t.layout.init(t)
+	t.doc.Listeners = append(t.doc.Listeners, t.layout.apply)
 	return t
 }
 

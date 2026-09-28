@@ -27,14 +27,19 @@ type Document struct {
 	tagsByPriority []*Tag
 	nextPriority   int
 
-	// Listeners are called (in registration order) after every Insert or Delete.
-	Listeners []func()
+	// layoutGen counts tag configuration changes; a widget's layout cache
+	// is keyed on it.
+	layoutGen int
+
+	// Listeners are called (in registration order) after every Insert,
+	// Delete or layout-affecting tag change.
+	Listeners []func(Change)
 }
 
 // notifyListeners calls all registered change listeners.
-func (d *Document) notifyListeners() {
+func (d *Document) notifyListeners(ch Change) {
 	for _, fn := range d.Listeners {
-		fn()
+		fn(ch)
 	}
 }
 
@@ -116,7 +121,7 @@ func (d *Document) Insert(idx Index, text string) Index {
 	if newlines == 0 {
 		line.Text = slices.Insert(line.Text, idx.Char, insertedLines[0]...)
 		result := Index{Line: idx.Line, Char: idx.Char + len(insertedLines[0])}
-		d.notifyListeners()
+		d.notifyListeners(Change{From: idx.Line, To: idx.Line})
 		return result
 	}
 
@@ -134,7 +139,7 @@ func (d *Document) Insert(idx Index, text string) Index {
 	d.Lines = slices.Insert(d.Lines, idx.Line, newLines...)
 
 	result := Index{Line: idx.Line + newlines, Char: endChar}
-	d.notifyListeners()
+	d.notifyListeners(Change{From: idx.Line, To: idx.Line, Delta: newlines})
 	return result
 }
 
@@ -157,7 +162,7 @@ func (d *Document) Delete(start, end Index) {
 	if start.Line == end.Line {
 		line := d.Lines[start.Line-1]
 		line.Text = slices.Delete(line.Text, start.Char, end.Char)
-		d.notifyListeners()
+		d.notifyListeners(Change{From: start.Line, To: start.Line})
 		return
 	}
 
@@ -166,7 +171,7 @@ func (d *Document) Delete(start, end Index) {
 	lastLine := d.Lines[end.Line-1]
 	firstLine.Text = append(firstLine.Text[:start.Char], lastLine.Text[end.Char:]...)
 	d.Lines = slices.Delete(d.Lines, start.Line, end.Line)
-	d.notifyListeners()
+	d.notifyListeners(Change{From: start.Line, To: start.Line, Delta: start.Line - end.Line})
 }
 
 // --- Mark methods ---
@@ -250,7 +255,11 @@ func (d *Document) tagAdd(tagName string, start, end Index, toEnd bool) {
 	if Compare(start, end) >= 0 {
 		return
 	}
-	d.tag(tagName).add(start, end, toEnd)
+	tg := d.tag(tagName)
+	tg.add(start, end, toEnd)
+	if tg.affectsLayout() {
+		d.notifyListeners(Change{From: start.Line, To: end.Line})
+	}
 }
 
 // TagRemove removes a tag from the given range, trimming or splitting the
@@ -260,7 +269,11 @@ func (d *Document) TagRemove(tagName string, start, end Index) {
 	if !ok {
 		return
 	}
-	tg.remove(Clamp(start, d), Clamp(end, d))
+	start, end = Clamp(start, d), Clamp(end, d)
+	tg.remove(start, end)
+	if tg.affectsLayout() {
+		d.notifyListeners(Change{From: start.Line, To: end.Line})
+	}
 }
 
 // TagConfigure configures a tag's display attributes.
@@ -269,6 +282,7 @@ func (d *Document) TagConfigure(tagName string, cache *color.Cache, reg *font.Re
 	for _, opt := range opts {
 		opt(cache, reg, tag)
 	}
+	d.layoutGen++
 }
 
 // TagRangesFor returns the ranges of a tag, sorted and disjoint. The
