@@ -49,10 +49,15 @@ static NSMutableDictionary<NSString *, NSNumber *> *atomByName = nil;
 static NSMutableDictionary<NSNumber *, NSString *> *atomByID = nil;
 
 // Event queue: ring buffer of CocoaRawEvents posted from Cocoa callbacks.
-#define EVENT_QUEUE_SIZE 1024
-static CocoaRawEvent eventQueue[EVENT_QUEUE_SIZE];
-static volatile int eventQueueHead = 0;
-static volatile int eventQueueTail = 0;
+// It grows instead of dropping events when full: the callbacks run on the
+// main thread, which is also the event loop's, so they cannot wait for the
+// reader, and a dropped ButtonRelease or KeyRelease would leave a grab or
+// key stuck (platform.EventQueue does the same for the Win32 backend).
+#define EVENT_QUEUE_INITIAL 1024
+static CocoaRawEvent *eventQueue = NULL;
+static int eventQueueCap = 0;
+static int eventQueueHead = 0;
+static int eventQueueCount = 0;
 static pthread_mutex_t eventQueueMutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t eventQueueCond = PTHREAD_COND_INITIALIZER;
 
@@ -67,12 +72,29 @@ static inline void runOnMain(void (^block)(void)) {
     }
 }
 
+// growEventQueue doubles the ring, moving the queued events to its start.
+// Called with eventQueueMutex held; returns 0 if memory ran out.
+static int growEventQueue(void) {
+    int newCap = eventQueueCap ? eventQueueCap * 2 : EVENT_QUEUE_INITIAL;
+    CocoaRawEvent *q = malloc(sizeof(CocoaRawEvent) * (size_t)newCap);
+    if (!q) return 0;
+    for (int i = 0; i < eventQueueCount; i++) {
+        q[i] = eventQueue[(eventQueueHead + i) % eventQueueCap];
+    }
+    free(eventQueue);
+    eventQueue = q;
+    eventQueueCap = newCap;
+    eventQueueHead = 0;
+    return 1;
+}
+
 static void postEvent(CocoaRawEvent *ev) {
     pthread_mutex_lock(&eventQueueMutex);
-    int next = (eventQueueTail + 1) % EVENT_QUEUE_SIZE;
-    if (next != eventQueueHead) {
-        eventQueue[eventQueueTail] = *ev;
-        eventQueueTail = next;
+    if (eventQueueCount < eventQueueCap || growEventQueue()) {
+        eventQueue[(eventQueueHead + eventQueueCount) % eventQueueCap] = *ev;
+        eventQueueCount++;
+    } else {
+        NSLog(@"takigo: out of memory queueing an event; dropped");
     }
     pthread_cond_signal(&eventQueueCond);
     pthread_mutex_unlock(&eventQueueMutex);
@@ -1762,7 +1784,7 @@ void CocoaPumpEvents(void) {
 
 int CocoaNextEvent(CocoaRawEvent *ev) {
     pthread_mutex_lock(&eventQueueMutex);
-    while (eventQueueHead == eventQueueTail) {
+    while (eventQueueCount == 0) {
         // Wait with a timeout so we can check periodically.
         // On macOS, events come from the Cocoa event pump on the main thread.
         struct timespec ts;
@@ -1774,21 +1796,22 @@ int CocoaNextEvent(CocoaRawEvent *ev) {
         }
         pthread_cond_timedwait(&eventQueueCond, &eventQueueMutex, &ts);
     }
-    if (eventQueueHead == eventQueueTail) {
+    if (eventQueueCount == 0) {
         // Spurious wakeup or timeout — no event available
         pthread_mutex_unlock(&eventQueueMutex);
         memset(ev, 0, sizeof(*ev));
         return 0;
     }
     *ev = eventQueue[eventQueueHead];
-    eventQueueHead = (eventQueueHead + 1) % EVENT_QUEUE_SIZE;
+    eventQueueHead = (eventQueueHead + 1) % eventQueueCap;
+    eventQueueCount--;
     pthread_mutex_unlock(&eventQueueMutex);
     return 1;
 }
 
 int CocoaPending(void) {
     pthread_mutex_lock(&eventQueueMutex);
-    int count = (eventQueueTail - eventQueueHead + EVENT_QUEUE_SIZE) % EVENT_QUEUE_SIZE;
+    int count = eventQueueCount;
     pthread_mutex_unlock(&eventQueueMutex);
     return count;
 }
