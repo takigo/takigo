@@ -176,7 +176,7 @@ func main() {
 			colorName := colors[sel[0]]
 			window.ApplyBackgroundRecursive(root, colorName)
 		}
-		return true
+		return false
 	})
 
 	app.Run()

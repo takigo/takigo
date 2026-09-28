@@ -191,6 +191,13 @@ parent's manager's `RequestProc` re-runs the layout.
   each event. Always check `ev.Type == event.XxxType` inside the handler
   because the mask may catch multiple event types. Mark the parent window
   focusable with `w.Flags |= window.FlagFocusable` in the constructor.
+  Set `w.Class` in the constructor: a widget's input handlers (keys,
+  buttons, motion, enter/leave) are its class bindings and run at its
+  class tag in the `bind.Engine` chain (path, class, toplevel, `all`), so
+  a binding on the widget's path runs first and returning `true` (break)
+  from it, or `SetBindTags` without the class, suppresses them. Handlers
+  for other events (Expose, Configure, Destroy, Focus…) run before any
+  binding, like Tk's C event handlers.
 
 - **Redraws.** Classic widgets draw in a private `display()` registered
   with `Base.SetDisplayProc`; the exported `Display()` only calls
