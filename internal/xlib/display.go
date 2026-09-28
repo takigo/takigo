@@ -36,6 +36,14 @@ import (
 // libX11 older than 1.8 is not thread-safe unless XInitThreads is called.
 var initOnce sync.Once
 
+// XftMu serializes libXft across the process. Xft keeps process-wide state
+// without locks (a per-display list that each lookup reorders, and a font
+// cache), so calls from two Apps' goroutines at once, even on different
+// displays, corrupt it and can leave a later call spinning forever. font/xft
+// holds it around every Xft call, and Display.Close around XCloseDisplay,
+// which runs Xft's close hook.
+var XftMu sync.Mutex
+
 // OpenDisplay opens a connection to the X server.
 // If name is empty, it uses the DISPLAY environment variable.
 func OpenDisplay(name string) (*Display, error) {
@@ -55,6 +63,10 @@ func OpenDisplay(name string) (*Display, error) {
 // Close closes the display connection, freeing XIM/XIC resources first.
 func (d *Display) Close() {
 	if d.ptr != nil {
+		// XCloseDisplay runs libXft's close hook, which edits Xft's
+		// process-wide display list.
+		XftMu.Lock()
+		defer XftMu.Unlock()
 		if d.xic != nil {
 			C.XDestroyIC(d.xic)
 			d.xic = nil
