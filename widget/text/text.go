@@ -99,6 +99,7 @@ type TextWidget struct {
 	pixmap           platform.PixmapID
 	pixmapW, pixmapH int
 	redrawPending    bool
+	yScrollPending   bool
 
 	// Stipple pixmap cache: name → depth-1 Pixmap.
 	stippleCache map[string]platform.PixmapID
@@ -296,8 +297,14 @@ func (t *TextWidget) applySetGrid(charW, lineH int) {
 	t.App.Server().SetWMNormalHints(top.PlatformID, hints)
 }
 
-// Display draws the text widget.
+// Display schedules a redraw; like Tk's REDRAW_PENDING, any number of
+// edits between two idle points paint once.
 func (t *TextWidget) Display() {
+	t.scheduleRedraw()
+}
+
+// display draws the text widget.
+func (t *TextWidget) display() {
 	if t.Destroyed {
 		return
 	}
@@ -328,16 +335,13 @@ func (t *TextWidget) Display() {
 		return
 	}
 
-	// Render content to pixmap.
-	t.renderToPixmap()
+	dlines := t.renderToPixmap()
 
 	// Copy pixmap to window.
 	d.CopyArea(platform.PixmapDrawable(t.pixmap), w.Drawable(), gc,
 		0, 0, uint(winW), uint(winH), 0, 0)
 
-	// Position any embedded windows.
 	if len(t.embeddedWindows) > 0 {
-		dlines := t.computeVisibleLines()
 		t.positionEmbeddedWindows(dlines)
 	}
 
@@ -352,7 +356,6 @@ func (t *TextWidget) Display() {
 	t.DrawHighlightBorder(t.hasFocus, 0)
 
 	d.Flush()
-	t.redrawPending = false
 }
 
 // scheduleRedraw schedules a redraw via the idle loop.
@@ -362,9 +365,15 @@ func (t *TextWidget) scheduleRedraw() {
 	}
 	t.redrawPending = true
 	t.App.DoWhenIdle(func() {
-		if !t.Destroyed {
-			t.Display()
+		t.redrawPending = false
+		if t.Destroyed {
+			return
 		}
+		if t.yScrollPending {
+			t.yScrollPending = false
+			t.YScrollCmd(t.yviewFractions())
+		}
+		t.display()
 	})
 }
 
@@ -909,8 +918,8 @@ func (t *TextWidget) notifyYScrollbar() {
 	if t.YScrollCmd == nil {
 		return
 	}
-	first, last := t.yviewFractions()
-	t.YScrollCmd(first, last)
+	t.yScrollPending = true
+	t.scheduleRedraw()
 }
 
 func (t *TextWidget) yviewFractions() (float64, float64) {

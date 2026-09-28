@@ -1,6 +1,7 @@
 package text
 
 import (
+	"slices"
 	"strings"
 
 	"github.com/msorc/takigo/color"
@@ -96,51 +97,37 @@ func (d *Document) Insert(idx Index, text string) Index {
 
 	runes := []rune(text)
 	insertedLines := splitRunes(runes)
+	newlines, lastLineLen := countNewlines(runes)
 
 	// Adjust marks before the structural change.
 	for _, m := range d.Marks {
-		d.adjustMarkInsert(m, idx, runes)
+		d.adjustMarkInsert(m, idx, newlines, lastLineLen)
 	}
-	d.adjustTagRangesInsert(idx, runes)
+	d.adjustTagRangesInsert(idx, newlines, lastLineLen)
 
 	line := d.Lines[idx.Line-1]
-	after := append([]rune(nil), line.Text[idx.Char:]...)
 
-	if len(insertedLines) == 1 {
-		// Insert within the same line.
-		newText := make([]rune, 0, idx.Char+len(insertedLines[0])+len(after))
-		newText = append(newText, line.Text[:idx.Char]...)
-		newText = append(newText, insertedLines[0]...)
-		newText = append(newText, after...)
-		line.Text = newText
+	if newlines == 0 {
+		line.Text = slices.Insert(line.Text, idx.Char, insertedLines[0]...)
 		result := Index{Line: idx.Line, Char: idx.Char + len(insertedLines[0])}
 		d.notifyListeners()
 		return result
 	}
 
-	// Multi-line insert.
-	// Modify the first line.
+	after := slices.Clone(line.Text[idx.Char:])
 	line.Text = append(line.Text[:idx.Char], insertedLines[0]...)
 
-	// Create new lines for middle + last.
-	newLines := make([]*Line, len(insertedLines)-1)
+	newLines := make([]*Line, newlines)
 	for i := 1; i < len(insertedLines); i++ {
 		newLines[i-1] = &Line{Text: insertedLines[i]}
 	}
-	// Append 'after' to the last new line.
 	lastNew := newLines[len(newLines)-1]
 	endChar := len(lastNew.Text)
 	lastNew.Text = append(lastNew.Text, after...)
 
-	// Splice new lines into the document.
-	insertPos := idx.Line // 0-based position in slice = idx.Line (after current line)
-	newAllLines := make([]*Line, 0, len(d.Lines)+len(newLines))
-	newAllLines = append(newAllLines, d.Lines[:insertPos]...)
-	newAllLines = append(newAllLines, newLines...)
-	newAllLines = append(newAllLines, d.Lines[insertPos:]...)
-	d.Lines = newAllLines
+	d.Lines = slices.Insert(d.Lines, idx.Line, newLines...)
 
-	result := Index{Line: idx.Line + len(newLines), Char: endChar}
+	result := Index{Line: idx.Line + newlines, Char: endChar}
 	d.notifyListeners()
 	return result
 }
@@ -160,23 +147,17 @@ func (d *Document) Delete(start, end Index) {
 	d.adjustTagRangesDelete(start, end)
 
 	if start.Line == end.Line {
-		// Single-line delete.
 		line := d.Lines[start.Line-1]
-		line.Text = append(line.Text[:start.Char], line.Text[end.Char:]...)
+		line.Text = slices.Delete(line.Text, start.Char, end.Char)
 		d.notifyListeners()
 		return
 	}
 
-	// Multi-line delete: merge first and last lines, remove middle.
+	// Multi-line delete: merge first and last lines, remove those between.
 	firstLine := d.Lines[start.Line-1]
 	lastLine := d.Lines[end.Line-1]
 	firstLine.Text = append(firstLine.Text[:start.Char], lastLine.Text[end.Char:]...)
-
-	// Remove lines from start.Line+1 through end.Line (inclusive, 0-based).
-	removeStart := start.Line // 0-based index of first line to remove
-	removeEnd := end.Line     // 0-based index past last line to remove
-	copy(d.Lines[removeStart:], d.Lines[removeEnd:])
-	d.Lines = d.Lines[:len(d.Lines)-(removeEnd-removeStart)]
+	d.Lines = slices.Delete(d.Lines, start.Line, end.Line)
 	d.notifyListeners()
 }
 
@@ -300,20 +281,22 @@ func (d *Document) TagsAt(idx Index) []*Tag {
 
 // --- Internal helpers ---
 
-// adjustMarkInsert adjusts a mark's position after an insert at idx.
-func (d *Document) adjustMarkInsert(m *Mark, idx Index, runes []rune) {
-	// Count newlines and chars after last newline.
-	newlineCount := 0
-	lastLineLen := 0
+// countNewlines returns the number of newlines in runes and the number of
+// runes after the last one.
+func countNewlines(runes []rune) (newlines, lastLineLen int) {
 	for _, r := range runes {
 		if r == '\n' {
-			newlineCount++
+			newlines++
 			lastLineLen = 0
 		} else {
 			lastLineLen++
 		}
 	}
+	return newlines, lastLineLen
+}
 
+// adjustMarkInsert adjusts a mark's position after an insert at idx.
+func (d *Document) adjustMarkInsert(m *Mark, idx Index, newlineCount, lastLineLen int) {
 	cmp := Compare(m.Pos, idx)
 	if cmp < 0 {
 		return // mark is before insert point
@@ -354,18 +337,7 @@ func (d *Document) adjustMarkDelete(m *Mark, start, end Index) {
 }
 
 // adjustTagRangesInsert adjusts all tag ranges after an insert.
-func (d *Document) adjustTagRangesInsert(idx Index, runes []rune) {
-	newlineCount := 0
-	lastLineLen := 0
-	for _, r := range runes {
-		if r == '\n' {
-			newlineCount++
-			lastLineLen = 0
-		} else {
-			lastLineLen++
-		}
-	}
-
+func (d *Document) adjustTagRangesInsert(idx Index, newlineCount, lastLineLen int) {
 	for i := range d.TagRanges {
 		tr := &d.TagRanges[i]
 		// Tag Start has right gravity: shifts when insert is at or after Start.
@@ -441,10 +413,10 @@ func splitRunes(runes []rune) [][]rune {
 	start := 0
 	for i, r := range runes {
 		if r == '\n' {
-			result = append(result, runes[start:i])
+			result = append(result, runes[start:i:i])
 			start = i + 1
 		}
 	}
-	result = append(result, runes[start:])
+	result = append(result, runes[start:len(runes):len(runes)])
 	return result
 }
