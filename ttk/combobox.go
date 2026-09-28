@@ -657,6 +657,11 @@ func bindCombobox(c *Combobox, app widget.AppContext) {
 			c.edit.HandleKey(ev)
 		}
 	})
+	app.Dispatcher().Bind(win.PlatformID, event.VirtualMask, func(ev *event.Event) {
+		if c.State&StateDisabled == 0 && c.CbState == ComboNormal {
+			c.edit.HandleVirtual(ev)
+		}
+	})
 
 	// Focus events.
 	app.Dispatcher().Bind(win.PlatformID, event.FocusChangeMask, func(ev *event.Event) {

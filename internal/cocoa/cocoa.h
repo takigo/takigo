@@ -157,6 +157,7 @@ void CocoaFreeString(char *s);
 #define COCOA_EVENT_CONFIGURE         22
 #define COCOA_EVENT_PROPERTY          28
 #define COCOA_EVENT_CLIENT_MESSAGE    33
+#define COCOA_EVENT_VIRTUAL           0x100 // str holds the name
 
 // CocoaRawEvent is the C-level event structure passed to Go.
 typedef struct {

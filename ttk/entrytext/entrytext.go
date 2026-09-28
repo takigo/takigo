@@ -41,6 +41,8 @@ type Helper struct {
 	// Validate, if non-nil, is called before applying edits. Return false to
 	// reject the edit.
 	Validate func(reason ValidateReason, newValue string) bool
+
+	imeMark int // insert position when the input method began composing
 }
 
 // ValidateReason mirrors tk/generic/tkEntry.c VREASON.
@@ -393,6 +395,25 @@ func (h *Helper) HandleEditKey(ev *event.Event) bool {
 		return true
 	}
 	return false
+}
+
+// HandleVirtual handles the input method's virtual events like the TEntry
+// bindings in library/ttk/entry.tcl: the text being composed is inserted as
+// usual and shown selected, and deleted when the input method replaces it.
+func (h *Helper) HandleVirtual(ev *event.Event) {
+	switch ev.Name {
+	case event.IMEStart:
+		h.imeMark = h.InsertPos
+	case event.IMEEnd:
+		if h.imeMark < h.InsertPos && h.InsertPos <= len(h.Text) {
+			h.SelFirst, h.SelLast, h.SelAnchor = h.imeMark, h.InsertPos, h.imeMark
+			h.redraw()
+		}
+	case event.IMEClear:
+		h.DeleteRange(min(h.imeMark, len(h.Text)), h.InsertPos)
+	case event.AccentBackspace:
+		h.HandleEditKey(&event.Event{KeySym: platform.XK_BackSpace})
+	}
 }
 
 // -------- internal --------

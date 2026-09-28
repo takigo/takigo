@@ -19,7 +19,9 @@
 //   - InitIM, SetICFocus, UnsetICFocus — no-ops: the input method runs in
 //     the view's NSTextInputClient (internal/cocoa), which commits text as
 //     KeyPress events, so HasIM reports false and the loop does no IM
-//     routing. Marked (composing) text is not drawn inline.
+//     routing. Marked (composing) text is shown inline through Tk's
+//     <<TkStartIMEMarkedText>> virtual events, but the candidate window
+//     opens at the view's corner, not at the insertion cursor.
 //   - CreatePixmap stipple parameters — CGPatternRef support missing
 //     (see TODO in this file).
 //
@@ -255,6 +257,13 @@ func (d *CocoaDisplay) CreateBitmapFromData(drawable platform.DrawableID, bits [
 
 func (d *CocoaDisplay) NextEvent() *platform.RawEvent {
 	raw := clib.NextEvent()
+	if raw.Type() == platform.VirtualEvent {
+		return &platform.RawEvent{
+			Data:        raw.Str(),
+			EventType:   platform.VirtualEvent,
+			EventWindow: platform.WindowID(uintptr(raw.Window())),
+		}
+	}
 	return &platform.RawEvent{
 		Data:        raw,
 		EventType:   raw.Type(),

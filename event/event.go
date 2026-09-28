@@ -39,6 +39,9 @@ type Event struct {
 	// Property events
 	Atom platform.AtomID
 
+	// Virtual events: the name, without the << >>.
+	Name string
+
 	// Timestamp (when available)
 	Time platform.Timestamp
 }
@@ -175,6 +178,10 @@ func FromRawEventIM(raw *platform.RawEvent, parser platform.EventParser, hasIM b
 		ev.Window = cm.EventWindow
 		ev.MessageType = cm.MessageType
 		ev.MessageData = cm.Data
+
+	case platform.VirtualEvent:
+		ev.Type = VirtualType
+		ev.Name, _ = raw.Data.(string)
 	}
 
 	return ev

@@ -31,6 +31,52 @@ func bindSpinbox(s *Spinbox, app widget.AppContext) {
 
 	// Keyboard.
 	app.Dispatcher().Bind(w.PlatformID, event.KeyPressMask, s.handleKeyPress)
+	app.Dispatcher().Bind(w.PlatformID, event.VirtualMask, s.handleVirtual)
+}
+
+// handleVirtual handles the input method's virtual events as the entry
+// does. library/spinbox.tcl has no such bindings, which leaves every
+// intermediate composition behind in a Tk spinbox.
+func (s *Spinbox) handleVirtual(ev *event.Event) {
+	switch ev.Name {
+	case event.IMEStart:
+		s.imeMark = s.InsertPos
+		return
+	case event.IMEEnd:
+		if s.imeMark < s.InsertPos && s.InsertPos <= len(s.text) {
+			s.SelFirst, s.SelLast, s.SelAnchor = s.imeMark, s.InsertPos, s.imeMark
+		}
+	case event.IMEClear:
+		first := min(s.imeMark, len(s.text))
+		if first < s.InsertPos {
+			if !s.tryEdit(string(s.text[:first]) + string(s.text[s.InsertPos:])) {
+				return
+			}
+			s.DeleteChars(first, s.InsertPos-first)
+		}
+	case event.AccentBackspace:
+		s.backspace()
+	default:
+		return
+	}
+	s.seeInsert()
+	s.Display()
+}
+
+// backspace deletes the selection, or the character before the insertion
+// cursor (tk::EntryBackspace).
+func (s *Spinbox) backspace() {
+	if s.SelFirst >= 0 {
+		prospective := string(s.text[:s.SelFirst]) + string(s.text[s.SelLast:])
+		if s.tryEdit(prospective) {
+			s.DeleteSelection()
+		}
+	} else if s.InsertPos > 0 {
+		prospective := string(s.text[:s.InsertPos-1]) + string(s.text[s.InsertPos:])
+		if s.tryEdit(prospective) {
+			s.DeleteChars(s.InsertPos-1, 1)
+		}
+	}
 }
 
 // handleExpose handles Exposure events.
@@ -152,17 +198,7 @@ func (s *Spinbox) handleKeyPress(ev *event.Event) {
 		moveCursor(s, len(s.text), shift)
 
 	case platform.XK_BackSpace:
-		if s.SelFirst >= 0 {
-			prospective := string(s.text[:s.SelFirst]) + string(s.text[s.SelLast:])
-			if s.tryEdit(prospective) {
-				s.DeleteSelection()
-			}
-		} else if s.InsertPos > 0 {
-			prospective := string(s.text[:s.InsertPos-1]) + string(s.text[s.InsertPos:])
-			if s.tryEdit(prospective) {
-				s.DeleteChars(s.InsertPos-1, 1)
-			}
-		}
+		s.backspace()
 	case platform.XK_Delete:
 		if s.SelFirst >= 0 {
 			prospective := string(s.text[:s.SelFirst]) + string(s.text[s.SelLast:])
