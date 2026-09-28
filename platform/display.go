@@ -181,6 +181,16 @@ type SelectionManager interface {
 
 	// SendSelectionNotify sends a selection notify event.
 	SendSelectionNotify(requestor WindowID, selection, target, property AtomID, time Timestamp)
+
+	// SetClipboardText publishes text on the platform's native clipboard
+	// (Win32 clipboard, NSPasteboard), as tkWinClipboard.c and
+	// tkMacOSXClipboard.c do, and reports whether there is one. X11 has
+	// none and serves CLIPBOARD as an ICCCM selection instead.
+	SetClipboardText(text string) bool
+
+	// ClipboardText reads the native clipboard; ok is false when the
+	// platform has none.
+	ClipboardText() (text string, ok bool)
 }
 
 // CursorManager manages cursors.

@@ -109,6 +109,7 @@ type convertServer struct {
 
 func (s *convertServer) InternAtom(string, bool) platform.AtomID { return 9 }
 func (s *convertServer) Atoms() *platform.Atoms                  { return &platform.Atoms{String: 31} }
+func (s *convertServer) ClipboardText() (string, bool)           { return "", false }
 func (s *convertServer) ConvertSelection(_, _, _ platform.AtomID, _ platform.WindowID, _ platform.Timestamp) {
 	s.converts++
 }
@@ -222,5 +223,38 @@ func TestLatin1RoundTrip(t *testing.T) {
 	}
 	if got := fromLatin1([]byte("caf\xe9")); got != "café" {
 		t.Errorf("fromLatin1 = %q", got)
+	}
+}
+
+// nativeServer has a native clipboard, as the Win32 and Cocoa backends do.
+type nativeServer struct {
+	platform.DisplayServer
+	board string
+}
+
+func (s *nativeServer) SetSelectionOwner(platform.AtomID, platform.WindowID, platform.Timestamp) {}
+func (s *nativeServer) SetClipboardText(text string) bool                                        { s.board = text; return true }
+func (s *nativeServer) ClipboardText() (string, bool)                                            { return s.board, true }
+
+func TestNativeClipboardRoundTrip(t *testing.T) {
+	srv := &nativeServer{}
+	m := &Manager{
+		server:     srv,
+		data:       map[platform.AtomID]string{},
+		owners:     map[platform.AtomID]platform.WindowID{},
+		clipboard:  platform.AtomID(1),
+		pendingGet: map[platform.WindowID]*pendingRequest{},
+	}
+	m.OwnClipboard(5, "copied here", 0)
+	if srv.board != "copied here" {
+		t.Fatalf("native clipboard = %q after OwnClipboard, want %q", srv.board, "copied here")
+	}
+
+	// Another application copies: pasting must return its text, not ours.
+	srv.board = "copied elsewhere"
+	var got string
+	m.RequestWithCallback(6, 0, func(s string) { got = s })
+	if got != "copied elsewhere" {
+		t.Errorf("paste = %q, want the native clipboard's %q", got, "copied elsewhere")
 	}
 }

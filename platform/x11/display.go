@@ -351,6 +351,13 @@ func (s *X11Display) SendSelectionNotify(requestor platform.WindowID, selection,
 	s.dpy.SendSelectionNotify(xlib.Window(requestor), xlib.Atom(selection), xlib.Atom(target), xlib.Atom(property), xlib.Time(time))
 }
 
+// SetClipboardText reports false: X11 has no native clipboard, CLIPBOARD
+// is an ICCCM selection served by the selection package.
+func (s *X11Display) SetClipboardText(string) bool { return false }
+
+// ClipboardText reports false; see SetClipboardText.
+func (s *X11Display) ClipboardText() (string, bool) { return "", false }
+
 // --- CursorManager ---
 
 func (s *X11Display) CreateFontCursor(shape uint) platform.CursorID {
