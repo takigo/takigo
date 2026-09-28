@@ -408,14 +408,7 @@ func (t *TextWidget) segmentsForRange(lineIdx, startChar, endChar int) []textSeg
 		start bool
 	}
 	var events []tagEvent
-	for _, tr := range t.doc.TagRanges {
-		tag, ok := t.doc.Tags[tr.TagName]
-		if !ok || tag == nil {
-			continue
-		}
-		if tr.Start.Line > lineIdx || tr.End.Line < lineIdx {
-			continue
-		}
+	t.doc.tagsOnLine(lineIdx, func(_ *Tag, tr TagRange) {
 		tStart := 0
 		if tr.Start.Line == lineIdx && tr.Start.Char > startChar {
 			tStart = tr.Start.Char - startChar
@@ -431,11 +424,11 @@ func (t *TextWidget) segmentsForRange(lineIdx, startChar, endChar int) []textSeg
 			tEnd = endChar - startChar
 		}
 		if tStart >= tEnd {
-			continue
+			return
 		}
 		events = append(events, tagEvent{pos: tStart, name: tr.TagName, start: true})
 		events = append(events, tagEvent{pos: tEnd, name: tr.TagName, start: false})
-	}
+	})
 
 	// Sort events by position.
 	for i := 1; i < len(events); i++ {
