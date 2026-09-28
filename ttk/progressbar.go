@@ -31,8 +31,8 @@ type Progressbar struct {
 	Orient  Orientation
 	Length  int // requested length in pixels
 
-	animating bool
-	animGen   int // bumped by Start and Stop; stale tick chains see a mismatch
+	animating  bool
+	cancelTick func() bool // cancels the pending tick, like progress.tcl's Timers
 }
 
 // ProgressbarOption configures a Progressbar.
@@ -211,15 +211,13 @@ func (p *Progressbar) Start(interval time.Duration) {
 		return
 	}
 	p.animating = true
-	p.animGen++
-	gen := p.animGen
 
 	var tick func()
 	tick = func() {
-		if gen != p.animGen || p.Destroyed {
+		if p.Destroyed {
 			return
 		}
-		p.App.After(interval, tick)
+		p.cancelTick = p.App.After(interval, tick)
 		p.Step(1)
 	}
 	tick()
@@ -231,7 +229,7 @@ func (p *Progressbar) Stop() {
 		return
 	}
 	p.animating = false
-	p.animGen++
+	p.cancelTick()
 }
 
 // Destroy frees resources.
