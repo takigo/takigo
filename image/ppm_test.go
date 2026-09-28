@@ -86,7 +86,7 @@ func TestPPMDecoderBinaryPBM(t *testing.T) {
 		t.Fatalf("dims: %dx%d", p.Width(), p.Height())
 	}
 	// 0xAA = 10101010 -> 1=black at columns 0,2,4,6
-	for x := 0; x < 8; x++ {
+	for x := range 8 {
 		got := p.RGBA().At(x, 0)
 		want := color.RGBA{255, 255, 255, 255}
 		if x%2 == 0 {

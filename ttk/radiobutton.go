@@ -152,17 +152,8 @@ func (r *Radiobutton) Display() {
 	hasClamStyle := false
 	var upperBorderColor, lowerBorderColor uint64
 	if r.Context != nil && r.Context.Style != nil {
-		if v, ok := r.Context.Style.Lookup("-upperbordercolor", r.State); ok {
-			if uc, ok2 := v.(uint64); ok2 {
-				upperBorderColor = uc
-				hasClamStyle = true
-			}
-		}
-		if v, ok := r.Context.Style.Lookup("-lowerbordercolor", r.State); ok {
-			if lc, ok2 := v.(uint64); ok2 {
-				lowerBorderColor = lc
-			}
-		}
+		upperBorderColor, hasClamStyle = r.Context.Style.LookupAs[uint64]("-upperbordercolor", r.State)
+		lowerBorderColor, _ = r.Context.Style.LookupAs[uint64]("-lowerbordercolor", r.State)
 	}
 
 	selected := r.Selected()
@@ -195,11 +186,8 @@ func (r *Radiobutton) Display() {
 	hasClassicStyle := false
 	classicRelief := option.ReliefFlat
 	if r.Context != nil && r.Context.Style != nil {
-		if v, ok := r.Context.Style.Lookup("-indicatorrelief", r.State); ok {
-			if rel, ok2 := v.(option.Relief); ok2 {
-				classicRelief = rel
-				hasClassicStyle = true
-			}
+		if rel, ok := r.Context.Style.LookupAs[option.Relief]("-indicatorrelief", r.State); ok {
+			classicRelief, hasClassicStyle = rel, true
 		}
 	}
 

@@ -2,6 +2,8 @@ package ttk
 
 import (
 	"testing"
+
+	"github.com/msorc/takigo/option"
 )
 
 func TestStyleLookupDefaults(t *testing.T) {
@@ -15,6 +17,29 @@ func TestStyleLookupDefaults(t *testing.T) {
 	}
 	if v.(uint64) != 0xd9d9d9 {
 		t.Errorf("got %v, want 0xd9d9d9", v)
+	}
+}
+
+func TestStyleLookupAs(t *testing.T) {
+	s := &Style{
+		Name:     "TCheckbutton",
+		Defaults: map[string]any{"-indicatorrelief": option.ReliefRaised, "-upperbordercolor": uint64(0xffffff)},
+	}
+	if r, ok := s.LookupAs[option.Relief]("-indicatorrelief", 0); !ok || r != option.ReliefRaised {
+		t.Errorf("relief: got %v, %v", r, ok)
+	}
+	if c, ok := s.LookupAs[uint64]("-upperbordercolor", 0); !ok || c != 0xffffff {
+		t.Errorf("color: got %#x, %v", c, ok)
+	}
+	if _, ok := s.LookupAs[option.Relief]("-upperbordercolor", 0); ok {
+		t.Error("wrong type reported found")
+	}
+	if _, ok := s.LookupAs[uint64]("-missing", 0); ok {
+		t.Error("missing option reported found")
+	}
+	var nilStyle *Style
+	if _, ok := nilStyle.LookupAs[uint64]("-upperbordercolor", 0); ok {
+		t.Error("nil style reported found")
 	}
 }
 

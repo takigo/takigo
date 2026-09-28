@@ -343,10 +343,10 @@ func (d *WindowsDisplay) PutImageRGBA(drawable platform.DrawableID, gc platform.
 
 	// Convert RGBA → BGRA (Windows DIB format).
 	dst := (*[1 << 30]byte)(bits)
-	for row := 0; row < h; row++ {
+	for row := range h {
 		srcRow := (srcY + row) * stride
 		dstRow := row * w * 4
-		for col := 0; col < w; col++ {
+		for col := range w {
 			si := srcRow + (srcX+col)*4
 			di := dstRow + col*4
 			if si+3 < len(rgbaData) {

@@ -172,7 +172,7 @@ func (t *TextItem) updateBBox() {
 	dys := [4]float64{float64(ay), float64(ay), float64(ay + textH), float64(ay + textH)}
 	minX, minY := math.MaxFloat64, math.MaxFloat64
 	maxX, maxY := -math.MaxFloat64, -math.MaxFloat64
-	for i := 0; i < 4; i++ {
+	for i := range 4 {
 		// Clockwise rotation by angle (Tk convention): rotX = dx*c + dy*s, rotY = dy*c - dx*s
 		rx := t.x + dxs[i]*cosA + dys[i]*sinA
 		ry := t.y + dys[i]*cosA - dxs[i]*sinA

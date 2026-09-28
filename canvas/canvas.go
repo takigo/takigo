@@ -646,7 +646,7 @@ func (c *Canvas) Raise(tagOrID string) {
 	n := len(c.items)
 	j := 0
 	moved := make([]*itemEntry, 0, len(entries))
-	for i := 0; i < n; i++ {
+	for i := range n {
 		if moveSet[c.items[i].id] {
 			moved = append(moved, c.items[i])
 		} else {

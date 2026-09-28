@@ -140,15 +140,13 @@ func addPixelDiffs(res *Result, gi, ti image.Image) {
 		k := [2]string{g.Path, t.Path}
 		if ids := idx[k]; len(ids) > 0 {
 			for _, i := range ids {
-				v := pct
-				res.Diffs[i].Pixels = &v
+				res.Diffs[i].Pixels = new(pct)
 			}
 			continue
 		}
 		if pct > 0 {
-			v := pct
 			res.Diffs = append(res.Diffs, Diff{Kind: KindRender, KindStr: KindRender.String(), Class: t.Class,
-				Go: g.Path, Tcl: t.Path, Detail: fmt.Sprintf("geometry matches, %dx%d", g.W, g.H), Pixels: &v})
+				Go: g.Path, Tcl: t.Path, Detail: fmt.Sprintf("geometry matches, %dx%d", g.W, g.H), Pixels: new(pct)})
 		}
 	}
 }
@@ -168,8 +166,8 @@ func cropDiff(gi, ti image.Image, gx, gy, tx, ty, w, h int) float64 {
 	const tol = 24 << 8
 	diff, total := 0, 0
 	gb, tb := gi.Bounds(), ti.Bounds()
-	for y := 0; y < h; y++ {
-		for x := 0; x < w; x++ {
+	for y := range h {
+		for x := range w {
 			gp := image.Pt(gb.Min.X+gx+x, gb.Min.Y+gy+y)
 			tp := image.Pt(tb.Min.X+tx+x, tb.Min.Y+ty+y)
 			if !gp.In(gb) || !tp.In(tb) {

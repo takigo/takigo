@@ -198,10 +198,7 @@ func gcBitBltROP(fn int) uint32 {
 // createPen creates a GDI pen from GC state.
 func (g *gcState) createPen() w32.HPEN {
 	color := pixelToCOLORREF(g.foreground)
-	width := int32(g.lineWidth)
-	if width < 1 {
-		width = 1
-	}
+	width := max(int32(g.lineWidth), 1)
 
 	style := int32(w32.PS_SOLID)
 	switch g.lineStyle {

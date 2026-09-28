@@ -173,8 +173,8 @@ func (a *attrs) set(name, value string) bool {
 		a.stopOpacity = clampf(atof(value), 0, 1)
 	case "offset":
 		v := strings.TrimSpace(value)
-		if strings.HasSuffix(v, "%") {
-			a.stopOffset = atof(strings.TrimSuffix(v, "%")) / 100
+		if before, ok := strings.CutSuffix(v, "%"); ok {
+			a.stopOffset = atof(before) / 100
 		} else {
 			a.stopOffset = atof(v)
 		}

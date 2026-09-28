@@ -48,7 +48,7 @@ func (e *highlightElement) Draw(d platform.DisplayServer, drawable platform.Draw
 		color = ttk.LookupColor(e.ctx.Style, "-background", state, frameColor)
 	}
 	d.SetForeground(gc, color)
-	for i := 0; i < ht; i++ {
+	for i := range ht {
 		d.DrawRectangle(drawable, gc, box.X+i, box.Y+i,
 			uint(box.Width-1-2*i), uint(box.Height-1-2*i))
 	}
@@ -174,7 +174,7 @@ func drawDiamond3D(d platform.DisplayServer, drawable platform.DrawableID, gc pl
 	}
 
 	left, bottom, right, top := pts[0], pts[1], pts[2], pts[3]
-	for i := 0; i < bw; i++ {
+	for i := range bw {
 		// Upper half: top→left and top→right (light for raised).
 		d.SetForeground(gc, lightPx)
 		d.DrawLine(drawable, gc, top.X, top.Y+i, left.X+i, left.Y)

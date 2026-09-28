@@ -132,13 +132,13 @@ func main() {
 
 		// Normal swatch: top/left border = top color, bottom/right = bottomBorder, interior = fill.
 		normRGBA := goimage.NewRGBA(goimage.Rect(0, 0, 16, 16))
-		for x := 0; x < 16; x++ {
+		for x := range 16 {
 			normRGBA.SetRGBA(x, 0, top)
 		}
 		for y := 1; y < 16; y++ {
 			normRGBA.SetRGBA(0, y, top)
 		}
-		for x := 0; x < 16; x++ {
+		for x := range 16 {
 			normRGBA.SetRGBA(x, 15, bot)
 		}
 		for y := 1; y < 15; y++ {
@@ -154,7 +154,7 @@ func main() {
 
 		// Selected swatch: 2px black border, interior = fill.
 		selRGBA := goimage.NewRGBA(goimage.Rect(0, 0, 16, 16))
-		for x := 0; x < 16; x++ {
+		for x := range 16 {
 			selRGBA.SetRGBA(x, 0, black)
 			selRGBA.SetRGBA(x, 1, black)
 			selRGBA.SetRGBA(x, 14, black)

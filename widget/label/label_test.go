@@ -12,9 +12,7 @@ import (
 
 func TestLabelOptions(t *testing.T) {
 	l := &Label{
-		Base: widget.Base{
-			Win: &window.Window{},
-		},
+		Win: &window.Window{},
 	}
 
 	// Test Text
@@ -82,15 +80,13 @@ func TestLabelOptions(t *testing.T) {
 
 func TestLabelDefaults(t *testing.T) {
 	l := &Label{
-		Base: widget.Base{
-			BorderWidth: 1,
-			Relief:      option.ReliefFlat,
-			PadX:        1,
-			PadY:        1,
-		},
-		Anchor:    option.AnchorCenter,
-		Justify:   option.JustifyCenter,
-		Underline: -1,
+		BorderWidth: 1,
+		Relief:      option.ReliefFlat,
+		PadX:        1,
+		PadY:        1,
+		Anchor:      option.AnchorCenter,
+		Justify:     option.JustifyCenter,
+		Underline:   -1,
 	}
 
 	if l.Anchor != option.AnchorCenter {
@@ -188,9 +184,7 @@ func TestLabelCompoundSize(t *testing.T) {
 func TestLabelDestroy(t *testing.T) {
 	// Destroy requires a real display connection
 	l := &Label{
-		Base: widget.Base{
-			Win: &window.Window{PlatformID: 1},
-		},
+		Win:   &window.Window{PlatformID: 1},
 		unsub: func() {},
 	}
 

@@ -165,12 +165,9 @@ func bindMenu(m *Menu, app widget.AppContext) {
 			}
 			r = unicode.ToLower(r)
 			// Search from entry after the active one, wrapping around.
-			start := m.activeIndex + 1
-			if start < 0 {
-				start = 0
-			}
+			start := max(m.activeIndex+1, 0)
 			n := len(m.entries)
-			for i := 0; i < n; i++ {
+			for i := range n {
 				idx := (start + i) % n
 				e := &m.entries[idx]
 				if e.Type == Separator || e.State == widget.StateDisabled {

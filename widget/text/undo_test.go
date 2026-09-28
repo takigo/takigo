@@ -135,7 +135,7 @@ func TestUndoMaxDepth(t *testing.T) {
 	u := NewUndoStack(3)
 
 	// Push 5 groups.
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		ch := string(rune('a' + i))
 		end := doc.Insert(doc.EndIndex(), ch)
 		u.RecordInsert(doc.EndIndex(), end, ch)

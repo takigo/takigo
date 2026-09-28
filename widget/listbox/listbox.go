@@ -271,10 +271,7 @@ func (lb *Listbox) Delete(first, last int) {
 		lb.activeIndex = len(lb.items) - 1
 	}
 	if lb.topIndex > 0 && lb.topIndex >= len(lb.items) {
-		lb.topIndex = len(lb.items) - 1
-		if lb.topIndex < 0 {
-			lb.topIndex = 0
-		}
+		lb.topIndex = max(len(lb.items)-1, 0)
 	}
 
 	lb.notifyYScrollbar()
@@ -374,10 +371,7 @@ func (lb *Listbox) YView(index int) {
 // YViewScroll scrolls by count units or pages.
 func (lb *Listbox) YViewScroll(count int, pages bool) {
 	if pages {
-		vis := lb.visibleLines()
-		if vis < 1 {
-			vis = 1
-		}
+		vis := max(lb.visibleLines(), 1)
 		count *= vis - 2
 		if count == 0 {
 			if count > 0 {
@@ -426,10 +420,7 @@ func (lb *Listbox) indexAtY(y int) int {
 	if lb.lineHeight <= 0 {
 		return lb.topIndex
 	}
-	line := (y - lb.inset) / lb.lineHeight
-	if line < 0 {
-		line = 0
-	}
+	line := max((y-lb.inset)/lb.lineHeight, 0)
 	idx := lb.topIndex + line
 	if idx >= len(lb.items) {
 		idx = len(lb.items) - 1
@@ -449,10 +440,7 @@ func (lb *Listbox) computeGeometry() {
 	lb.lineHeight = m.Linespace() + 1
 	lb.inset = lb.BorderWidth + lb.HighlightWidth
 
-	avgW := lb.Font.MeasureString("0")
-	if avgW < 1 {
-		avgW = 1
-	}
+	avgW := max(lb.Font.MeasureString("0"), 1)
 	w := lb.Win
 	w.ReqWidth = lb.PrefWidth*avgW + 2*lb.inset
 	w.ReqHeight = lb.PrefHeight*lb.lineHeight + 2*lb.inset
@@ -589,7 +577,7 @@ func (lb *Listbox) display() {
 	visLines := lb.visibleLines()
 	clipRight := w.Width - lb.inset
 
-	for i := 0; i < visLines; i++ {
+	for i := range visLines {
 		itemIdx := lb.topIndex + i
 		if itemIdx >= len(lb.items) {
 			break

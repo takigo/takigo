@@ -129,8 +129,8 @@ func TestCompareFonts(t *testing.T) {
 func TestCropDiff(t *testing.T) {
 	a := image.NewRGBA(image.Rect(0, 0, 10, 10))
 	b := image.NewRGBA(image.Rect(0, 0, 10, 10))
-	for y := 0; y < 10; y++ {
-		for x := 0; x < 10; x++ {
+	for y := range 10 {
+		for x := range 10 {
 			a.Set(x, y, color.White)
 			b.Set(x, y, color.White)
 		}

@@ -22,10 +22,7 @@ func TestHelperInsertAt(t *testing.T) {
 }
 
 func TestHelperInsertReplacesSelection(t *testing.T) {
-	h := entrytext.Helper{Text: []rune("hello"), InsertPos: 2}
-	h.SelAnchor = 2
-	h.SelFirst = 2
-	h.SelLast = 4
+	h := entrytext.Helper{Text: []rune("hello"), InsertPos: 2, SelAnchor: 2, SelFirst: 2, SelLast: 4}
 	if !h.InsertAt(2, []rune("Y")) {
 		t.Fatal("InsertAt returned false")
 	}
