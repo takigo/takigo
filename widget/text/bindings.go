@@ -108,6 +108,7 @@ func (t *TextWidget) handleButtonPress(ev *event.Event) {
 		t.clearSelection()
 		t.doc.MarkSet("insert", idx)
 		t.selAnchor = idx
+		t.lastDragIdx = idx
 		t.Display()
 	case 4: // mouse wheel up
 		t.scrollByDisplayLines(-3)
@@ -130,6 +131,10 @@ func (t *TextWidget) handleMotion(ev *event.Event) {
 	}
 	if ev.State&platform.Button1Mask != 0 {
 		idx := t.indexFromPixel(ev.X, ev.Y)
+		if idx == t.lastDragIdx {
+			return
+		}
+		t.lastDragIdx = idx
 		t.updateSelection(idx)
 		t.doc.MarkSet("insert", idx)
 		t.Display()

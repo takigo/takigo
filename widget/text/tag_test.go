@@ -353,3 +353,21 @@ func TestPutTagReplaces(t *testing.T) {
 		t.Fatalf("TagsAt = %v", tags)
 	}
 }
+
+func TestSetSelectionUnchangedIsNoop(t *testing.T) {
+	tw := newBenchWidget(docWithText("hello world"), 200, 100)
+	tw.setSelection(Index{1, 2}, Index{1, 6})
+	before := tw.doc.TagRangesFor("sel")
+	tw.setSelection(Index{1, 6}, Index{1, 2})
+	after := tw.doc.TagRangesFor("sel")
+	if len(after) != 1 || after[0].Start != (Index{1, 2}) || after[0].End != (Index{1, 6}) {
+		t.Fatalf("sel = %v", after)
+	}
+	if &before[0] != &after[0] {
+		t.Fatal("unchanged selection was rewritten")
+	}
+	tw.setSelection(Index{1, 2}, Index{1, 2})
+	if tw.HasSelection() {
+		t.Fatal("empty selection left sel ranges")
+	}
+}
