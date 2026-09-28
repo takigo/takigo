@@ -562,8 +562,9 @@ func (t *TextWidget) segmentsForRange(lineIdx, startChar, endChar int) []textSeg
 	return segments
 }
 
-// renderToPixmap draws the text widget content to the offscreen pixmap.
-func (t *TextWidget) renderToPixmap() {
+// renderToPixmap draws the text widget content to the offscreen pixmap and
+// returns the display lines it laid out.
+func (t *TextWidget) renderToPixmap() []displayLine {
 	w := t.Win
 	d := w.Display.Server
 	gc := w.GC
@@ -581,12 +582,12 @@ func (t *TextWidget) renderToPixmap() {
 	d.FillRectangle(pxDrawable, gc, 0, 0, uint(winW), uint(winH))
 
 	if t.Font == nil {
-		return
+		return nil
 	}
 
 	drawableFont, isDrawable := t.Font.(platform.DrawableFont)
 	if !isDrawable {
-		return
+		return nil
 	}
 
 	dlines := t.computeVisibleLines()
@@ -715,6 +716,7 @@ func (t *TextWidget) renderToPixmap() {
 			}
 		}
 	}
+	return dlines
 }
 
 // drawSelectionHighlight draws the selection highlight for a display line if applicable.

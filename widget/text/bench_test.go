@@ -69,6 +69,7 @@ func BenchmarkInsertCharTop(b *testing.B) {
 	b.ResetTimer()
 	for b.Loop() {
 		doc.Insert(Index{1, 0}, "x")
+		doc.Delete(Index{1, 0}, Index{1, 1})
 	}
 }
 
@@ -77,15 +78,17 @@ func BenchmarkInsertNewlineMiddle(b *testing.B) {
 	b.ResetTimer()
 	for b.Loop() {
 		doc.Insert(Index{5000, 0}, "\n")
+		doc.Delete(Index{5000, 0}, Index{5001, 0})
 	}
 }
 
 func BenchmarkDeleteChar(b *testing.B) {
 	doc := benchDoc(10000, 60)
-	doc.Insert(Index{1, 0}, strings.Repeat("x", 1<<20))
+	n := len(doc.Lines[0].Text)
 	b.ResetTimer()
 	for b.Loop() {
-		doc.Delete(Index{1, 0}, Index{1, 1})
+		doc.Delete(Index{1, n - 1}, Index{1, n})
+		doc.Insert(Index{1, n - 1}, "x")
 	}
 }
 
@@ -94,6 +97,7 @@ func BenchmarkInsertCharManyTags(b *testing.B) {
 	b.ResetTimer()
 	for b.Loop() {
 		doc.Insert(Index{500, 0}, "x")
+		doc.Delete(Index{500, 0}, Index{500, 1})
 	}
 }
 
