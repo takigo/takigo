@@ -20,10 +20,14 @@ const (
 // namedFontDefs maps named font names to their default attributes.
 // Defined in platform-specific files (named_darwin.go, named_unix.go, etc.).
 
-// FontOpener is the interface for platform-specific font creation.
-// The X11 backend implements this using OpenXft.
+// FontOpener is the interface for platform-specific font creation,
+// implemented by each backend (font/xft, font/gdi, platform/cocoa), so this
+// package needs no cgo or platform libraries.
 type FontOpener interface {
 	OpenFont(attrs Attributes) (Font, error)
+	// Families returns the sorted, unique font family names available
+	// ("font families").
+	Families() []string
 }
 
 // Registry manages named fonts and caches opened font handles.
@@ -132,4 +136,12 @@ func (r *Registry) Close() {
 		f.Close()
 	}
 	r.cache = make(map[string]Font)
+}
+
+// Families returns the font families available on the display.
+func (r *Registry) Families() []string {
+	if r.opener == nil {
+		return nil
+	}
+	return r.opener.Families()
 }

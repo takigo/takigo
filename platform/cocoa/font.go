@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/msorc/takigo/font"
+	"github.com/msorc/takigo/font/coretext"
 	clib "github.com/msorc/takigo/internal/cocoa"
 )
 
@@ -15,6 +16,11 @@ type FontOpener struct{}
 // OpenFont opens a font using Core Text via the cocoa C bindings.
 func (o *FontOpener) OpenFont(attrs font.Attributes) (font.Font, error) {
 	return openCoreTextFont(attrs)
+}
+
+// Families lists the Core Text font families.
+func (o *FontOpener) Families() []string {
+	return coretext.ListFamilies()
 }
 
 // Verify at compile time.

@@ -1,6 +1,8 @@
 //go:build linux || freebsd || openbsd || netbsd
 
-package font
+// Package xft implements font.Font with Xft and fontconfig for the X11
+// backend, as tk/unix/tkUnixRFont.c does.
+package xft
 
 /*
 #cgo pkg-config: xft fontconfig
@@ -118,6 +120,7 @@ static FcResult fc_pattern_get_family(FcPattern *p, FcChar8 **family) {
 import "C"
 import (
 	"fmt"
+	"github.com/msorc/takigo/font"
 	"math"
 	"unicode/utf8"
 	"unsafe"
@@ -130,8 +133,8 @@ import (
 type XftFont struct {
 	display  *xlib.Display
 	font     *C.XftFont
-	attrs    Attributes
-	metrics  Metrics
+	attrs    font.Attributes
+	metrics  font.Metrics
 	screen   C.int
 	visual   *C.Visual
 	colormap C.Colormap
@@ -154,7 +157,7 @@ type XftFont struct {
 }
 
 // OpenXft opens a font via Xft/fontconfig.
-func OpenXft(display *xlib.Display, screen int, visual *xlib.Visual, colormap xlib.Colormap, attrs Attributes) (*XftFont, error) {
+func OpenXft(display *xlib.Display, screen int, visual *xlib.Visual, colormap xlib.Colormap, attrs font.Attributes) (*XftFont, error) {
 	dpy := (*C.Display)(display.Ptr())
 	cscreen := C.int(screen)
 
@@ -178,15 +181,15 @@ func OpenXft(display *xlib.Display, screen int, visual *xlib.Visual, colormap xl
 	}
 
 	weight := C.int(C.FC_WEIGHT_MEDIUM)
-	if attrs.Weight == WeightBold {
+	if attrs.Weight == font.WeightBold {
 		weight = C.FC_WEIGHT_BOLD
 	}
 
 	slant := C.int(C.FC_SLANT_ROMAN)
 	switch attrs.Slant {
-	case SlantItalic:
+	case font.SlantItalic:
 		slant = C.FC_SLANT_ITALIC
-	case SlantOblique:
+	case font.SlantOblique:
 		slant = C.FC_SLANT_OBLIQUE
 	}
 
@@ -227,7 +230,7 @@ func OpenXft(display *xlib.Display, screen int, visual *xlib.Visual, colormap xl
 	}
 
 	// Extract metrics.
-	f.metrics = Metrics{
+	f.metrics = font.Metrics{
 		Ascent:   int(xftFont.ascent),
 		Descent:  int(xftFont.descent),
 		MaxWidth: int(xftFont.max_advance_width),
@@ -243,12 +246,12 @@ func OpenXft(display *xlib.Display, screen int, visual *xlib.Visual, colormap xl
 }
 
 // Attrs returns the font's attributes.
-func (f *XftFont) Attrs() Attributes {
+func (f *XftFont) Attrs() font.Attributes {
 	return f.attrs
 }
 
 // Metrics returns the font metrics.
-func (f *XftFont) Metrics() Metrics {
+func (f *XftFont) Metrics() font.Metrics {
 	return f.metrics
 }
 
