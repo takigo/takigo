@@ -12,9 +12,6 @@ import (
 	"github.com/msorc/takigo/window"
 )
 
-// ttkIndicatorSize matches Tcl's rendered indicator size (16px SVG × ~1.5x system DPI scaling).
-const ttkIndicatorSize = 24
-
 // Checkbutton is a TTK themed toggle button with a checkbox indicator.
 type Checkbutton struct {
 	TtkWidget
@@ -190,13 +187,9 @@ func (c *Checkbutton) Display() {
 	d.FillRectangle(win.Drawable(), gc, 0, 0, uint(width), uint(height))
 
 	// Determine indicator style from style options.
-	indSize := ttkIndicatorSize
 	hasClamStyle := false
 	var upperBorderColor, lowerBorderColor uint64
 	if c.Context != nil && c.Context.Style != nil {
-		if sz := LookupInt(c.Context.Style, "-indicatorsize", c.State, 0); sz > 0 {
-			indSize = sz
-		}
 		if v, ok := c.Context.Style.Lookup("-upperbordercolor", c.State); ok {
 			if uc, ok2 := v.(uint64); ok2 {
 				upperBorderColor = uc
@@ -221,7 +214,7 @@ func (c *Checkbutton) Display() {
 	}
 	lay := newIndicatorLayout(layoutStyle, c.State)
 	indX, indY, labelX, labelY := lay.place(height, textH)
-	indSize = lay.size
+	indSize := lay.size
 
 	// Indicator fill and color.
 	indFill := uint64(0xffffff)

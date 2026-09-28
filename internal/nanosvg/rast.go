@@ -40,7 +40,6 @@ type activeEdge struct {
 type rasterizer struct {
 	edges    []edge
 	points   []point
-	points2  []point
 	scanline []uint8
 	bitmap   []uint8
 	width    int

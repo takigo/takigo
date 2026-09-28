@@ -83,7 +83,6 @@ func main() {
 		{"l3", "This is a longer scrolling text in a widget that will not show the whole message at once. ", option.ReliefFlat, 150, 18},
 	}
 
-	var scrollLabels []*scrollLabel
 	for _, spec := range specs {
 		opts := []label.LabelOption{
 			label.Text(spec.text),
@@ -103,7 +102,6 @@ func main() {
 			runes:  []rune(spec.text),
 			offset: 0,
 		}
-		scrollLabels = append(scrollLabels, sl)
 
 		// Start animation for this label.
 		interval := time.Duration(spec.millis) * time.Millisecond

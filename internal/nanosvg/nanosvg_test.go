@@ -38,7 +38,9 @@ func TestRasterizeMatchesTk(t *testing.T) {
 			for x, cell := range strings.Fields(line) {
 				p := px[(y*w+x)*4:]
 				var r, g, b, a int
-				fmt.Sscanf(cell, "%d,%d,%d,%d", &r, &g, &b, &a)
+				if _, err := fmt.Sscanf(cell, "%d,%d,%d,%d", &r, &g, &b, &a); err != nil {
+					t.Fatalf("%s: bad expected pixel %q: %v", tc.svg, cell, err)
+				}
 				if a == 0 && p[3] == 0 {
 					continue // nsvg__unpremultiplyAlpha's defringe is not ported
 				}

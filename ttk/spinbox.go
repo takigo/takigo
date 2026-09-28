@@ -22,8 +22,7 @@ type Spinbox struct {
 	TtkWidget
 
 	// Text state.
-	edit      entrytext.Helper
-	leftIndex int
+	edit entrytext.Helper
 
 	// Range mode.
 	From      float64
@@ -283,10 +282,6 @@ func (s *Spinbox) tryValidate(_ entrytext.ValidateReason, prospective string) bo
 		return true
 	}
 	return s.ValidateCmd(prospective)
-}
-
-func (s *Spinbox) tryEdit(prospective string) bool {
-	return s.tryValidate(entrytext.ValidateKey, prospective)
 }
 
 // fieldPad ports FieldElementSize: -borderwidth widened to -focuswidth.
@@ -594,12 +589,9 @@ func bindSpinbox(s *Spinbox, app widget.AppContext) {
 			s.edit.HandleKey(ev)
 		}
 	})
+	app.Dispatcher().Bind(win.PlatformID, event.VirtualMask, func(ev *event.Event) {
+		if s.State&StateDisabled == 0 {
+			s.edit.HandleVirtual(ev)
+		}
+	})
 }
-
-func sbDeleteSelection(s *Spinbox) { s.edit.DeleteSelection() }
-func sbMoveCursor(s *Spinbox, newPos int, shift bool) {
-	s.edit.MoveCursor(newPos, s.edit.SelAnchor, shift)
-}
-func sbWordStart(text []rune, pos int) int { return entrytext.WordStart(text, pos) }
-func sbWordEnd(text []rune, pos int) int   { return entrytext.WordEnd(text, pos) }
-func sbIsWordChar(r rune) bool             { return entrytext.IsWordChar(r) }

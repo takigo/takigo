@@ -44,7 +44,6 @@ type Dialog struct {
 	result      DialogResult
 	done        chan struct{}
 	closeOnce   sync.Once
-	escBound    bool
 	returnBound bool
 }
 
@@ -68,7 +67,7 @@ func New(parent widget.Caregiver, title string, minWidth, minHeight int) *Dialog
 	)
 
 	// Set an initial geometry so pack has room to work.
-	d.Toplevel.WmInfo.SetGeometry(fmt.Sprintf("%dx%d", minWidth, minHeight))
+	_ = d.Toplevel.WmInfo.SetGeometry(fmt.Sprintf("%dx%d", minWidth, minHeight))
 
 	// Button frame at bottom — pack first so it claims space before content.
 	d.BtnFrame = newFrame(d.Toplevel, "buttons")

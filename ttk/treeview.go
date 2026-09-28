@@ -88,7 +88,6 @@ type Treeview struct {
 
 	// Scrolling.
 	topIndex   int
-	xOffset    int
 	YScrollCmd func(first, last float64)
 	XScrollCmd func(first, last float64)
 

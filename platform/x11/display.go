@@ -14,8 +14,21 @@ import (
 // Pool for XPoint slices to avoid allocations in DrawLines/FillPolygon.
 var xpointPool = sync.Pool{
 	New: func() any {
-		return make([]xlib.XPoint, 0, 32) // common case: small polygons/lines
+		p := make([]xlib.XPoint, 0, 32) // common case: small polygons/lines
+		return &p
 	},
+}
+
+// toXPoints converts points into a pooled slice; return it with
+// xpointPool.Put when done.
+func toXPoints(points []platform.Point) *[]xlib.XPoint {
+	p := xpointPool.Get().(*[]xlib.XPoint)
+	xp := (*p)[:0]
+	for _, pt := range points {
+		xp = append(xp, xlib.XPoint{X: pt.X, Y: pt.Y})
+	}
+	*p = xp
+	return p
 }
 
 // X11Display wraps the low-level X11 connection.
@@ -168,31 +181,14 @@ func (s *X11Display) DrawLine(drawable platform.DrawableID, gc platform.GCID, x1
 }
 
 func (s *X11Display) DrawLines(drawable platform.DrawableID, gc platform.GCID, points []platform.Point, mode int) {
-	xpoints := xpointPool.Get().([]xlib.XPoint)
-	// Ensure capacity
-	if cap(xpoints) < len(points) {
-		xpoints = make([]xlib.XPoint, len(points))
-	} else {
-		xpoints = xpoints[:len(points)]
-	}
-	for i, p := range points {
-		xpoints[i] = xlib.XPoint{X: p.X, Y: p.Y}
-	}
-	s.dpy.DrawLines(xlib.Drawable(drawable), toXGC(gc), xpoints, mode)
+	xpoints := toXPoints(points)
+	s.dpy.DrawLines(xlib.Drawable(drawable), toXGC(gc), *xpoints, mode)
 	xpointPool.Put(xpoints)
 }
 
 func (s *X11Display) FillPolygon(drawable platform.DrawableID, gc platform.GCID, points []platform.Point, shape, mode int) {
-	xpoints := xpointPool.Get().([]xlib.XPoint)
-	if cap(xpoints) < len(points) {
-		xpoints = make([]xlib.XPoint, len(points))
-	} else {
-		xpoints = xpoints[:len(points)]
-	}
-	for i, p := range points {
-		xpoints[i] = xlib.XPoint{X: p.X, Y: p.Y}
-	}
-	s.dpy.FillPolygon(xlib.Drawable(drawable), toXGC(gc), xpoints, shape, mode)
+	xpoints := toXPoints(points)
+	s.dpy.FillPolygon(xlib.Drawable(drawable), toXGC(gc), *xpoints, shape, mode)
 	xpointPool.Put(xpoints)
 }
 

@@ -578,7 +578,22 @@ static void applyGC(CGContextRef ctx, CocoaGCState *gc) {
     postEvent(&ev);
 }
 
+// postVirtual posts a virtual event, as Tk_SendVirtualEvent does.
+- (void)postVirtual:(const char *)name {
+    CocoaRawEvent ev = {0};
+    ev.type = COCOA_EVENT_VIRTUAL;
+    ev.window = _windowID;
+    strncpy(ev.str, name, sizeof(ev.str) - 1);
+    postEvent(&ev);
+}
+
 // ---- NSTextInputClient protocol (required for IME support) ----
+
+// As in tkMacOSXKeyEvent.c, the text being composed (marked text) is
+// inserted into the widget as ordinary key presses between
+// <<TkStartIMEMarkedText>> and <<TkEndIMEMarkedText>>, which the widget
+// shows selected or underlined; <<TkClearIMEMarkedText>> deletes it again
+// before the next composition or the committed text is inserted.
 
 - (void)insertText:(id)string replacementRange:(NSRange)replacementRange {
     NSString *text = [string isKindOfClass:[NSAttributedString class]] ? [string string] : string;
@@ -586,6 +601,12 @@ static void applyGC(CGContextRef ctx, CocoaGCState *gc) {
     [self unmarkText];
     NSEvent *src = _keyEvent;
     _keyEvent = nil;
+    // A location of 0 means an accent menu replaces the character just
+    // typed; erase it first.
+    if (replacementRange.location == 0) {
+        [self postVirtual:"TkAccentBackspace"];
+        composed = YES;
+    }
     // A plain keystroke that produced its own character keeps the key's
     // original event (keysym, keycode, modifiers); composed text does not.
     if (src && !composed && !([src modifierFlags] & NSEventModifierFlagOption) &&
@@ -607,17 +628,24 @@ static void applyGC(CGContextRef ctx, CocoaGCState *gc) {
 
 - (void)setMarkedText:(id)string selectedRange:(NSRange)selectedRange
      replacementRange:(NSRange)replacementRange {
-    // The composition is not drawn inline (Tk shows it underlined at the
-    // insertion cursor); it is committed through insertText:.
     NSString *text = [string isKindOfClass:[NSAttributedString class]] ? [string string] : string;
-    [_markedText release];
-    _markedText = [text length] ? [text copy] : nil;
+    [self unmarkText];
     _keyEvent = nil;
+    if (![text length]) {
+        return;
+    }
+    [self postVirtual:"TkStartIMEMarkedText"];
+    [self postText:text from:nil];
+    [self postVirtual:"TkEndIMEMarkedText"];
+    _markedText = [text copy];
 }
 
 - (void)unmarkText {
-    [_markedText release];
-    _markedText = nil;
+    if (_markedText) {
+        [_markedText release];
+        _markedText = nil;
+        [self postVirtual:"TkClearIMEMarkedText"];
+    }
 }
 
 - (NSRange)selectedRange {

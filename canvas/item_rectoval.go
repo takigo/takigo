@@ -16,8 +16,6 @@ type RectOvalItem struct {
 	outline      *color.ColorRef
 	outlineWidth int
 	dash         []byte
-	fillGC       platform.GCID
-	outlineGC    platform.GCID
 }
 
 func newRectOvalItem(typeName string, x1, y1, x2, y2 float64, c *Canvas) *RectOvalItem {
