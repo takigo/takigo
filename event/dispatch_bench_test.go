@@ -11,7 +11,7 @@ func BenchmarkDispatcher_Dispatch(b *testing.B) {
 	w := platform.WindowID(1)
 
 	// Register some handlers
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		d.Bind(w, Mask(i+1), func(ev *Event) {})
 		d.BindGlobal(Mask(i+1), func(ev *Event) {})
 	}
@@ -43,7 +43,7 @@ func BenchmarkDispatcher_UnbindID(b *testing.B) {
 
 	// Pre-register handlers
 	ids := make([]BindingID, 1000)
-	for i := 0; i < 1000; i++ {
+	for i := range 1000 {
 		ids[i] = d.Bind(w, Mask(i%10), func(ev *Event) {})
 	}
 

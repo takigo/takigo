@@ -35,13 +35,17 @@ func (s *Style) Lookup(optionName string, state State) (any, bool) {
 	return nil, false
 }
 
+// LookupAs is Lookup for a value of type T; it reports false when the
+// option is unset or holds a value of another type.
+func (s *Style) LookupAs[T any](optionName string, state State) (T, bool) {
+	v, _ := s.Lookup(optionName, state)
+	t, ok := v.(T)
+	return t, ok
+}
+
 // LookupColor returns a color pixel value from the style.
 func LookupColor(s *Style, name string, state State, fallback uint64) uint64 {
-	v, ok := s.Lookup(name, state)
-	if !ok {
-		return fallback
-	}
-	if pixel, ok := v.(uint64); ok {
+	if pixel, ok := s.LookupAs[uint64](name, state); ok {
 		return pixel
 	}
 	return fallback
@@ -64,11 +68,7 @@ func LookupInt(s *Style, name string, state State, fallback int) int {
 
 // LookupRelief returns a relief value from the style.
 func LookupRelief(s *Style, name string, state State, fallback option.Relief) option.Relief {
-	v, ok := s.Lookup(name, state)
-	if !ok {
-		return fallback
-	}
-	if r, ok := v.(option.Relief); ok {
+	if r, ok := s.LookupAs[option.Relief](name, state); ok {
 		return r
 	}
 	return fallback
@@ -147,8 +147,8 @@ func (t *Theme) GetStyle(name string) *Style {
 	} else {
 		// Tk's style inheritance (ttkTheme.c Ttk_GetStyle): "a.b.c"
 		// inherits from "b.c", the name minus its leading component.
-		if dot := strings.Index(name, "."); dot >= 0 {
-			s.Parent = t.GetStyle(name[dot+1:])
+		if _, after, ok := strings.Cut(name, "."); ok {
+			s.Parent = t.GetStyle(after)
 		} else {
 			s.Parent = t.GetStyle(".")
 		}

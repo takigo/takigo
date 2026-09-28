@@ -192,12 +192,9 @@ func (t *TextWidget) handleKeyPress(ev *event.Event) {
 		}
 
 	case platform.XK_Prior: // PageUp
-		visLines := (t.Win.Height - 2*t.insetY) / t.lineHeight()
-		if visLines < 1 {
-			visLines = 1
-		}
+		visLines := max((t.Win.Height-2*t.insetY)/t.lineHeight(), 1)
 		pos := t.doc.Marks["insert"].Pos
-		for i := 0; i < visLines; i++ {
+		for range visLines {
 			pos = UpLine(pos, t.doc)
 		}
 		moveCursor(t, pos, shift)
@@ -206,12 +203,9 @@ func (t *TextWidget) handleKeyPress(ev *event.Event) {
 		t.notifyYScrollbar()
 
 	case platform.XK_Next: // PageDown
-		visLines := (t.Win.Height - 2*t.insetY) / t.lineHeight()
-		if visLines < 1 {
-			visLines = 1
-		}
+		visLines := max((t.Win.Height-2*t.insetY)/t.lineHeight(), 1)
 		pos := t.doc.Marks["insert"].Pos
-		for i := 0; i < visLines; i++ {
+		for range visLines {
 			pos = DownLine(pos, t.doc)
 		}
 		moveCursor(t, pos, shift)

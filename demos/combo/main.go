@@ -5,6 +5,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"slices"
 
 	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/demos/demohelper"
@@ -91,10 +92,8 @@ func main() {
 			if cur == "" {
 				return
 			}
-			for _, v := range editCombo.Values {
-				if v == cur {
-					return
-				}
+			if slices.Contains(editCombo.Values, cur) {
+				return
 			}
 			editCombo.Values = append(editCombo.Values, cur)
 		}

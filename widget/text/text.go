@@ -266,10 +266,7 @@ func (t *TextWidget) computeGeometry() {
 		return
 	}
 	m := t.Font.Metrics()
-	avgWidth := t.Font.MeasureString("0")
-	if avgWidth < 1 {
-		avgWidth = 1
-	}
+	avgWidth := max(t.Font.MeasureString("0"), 1)
 	lineHeight := m.Linespace()
 
 	w := t.Win
@@ -533,10 +530,7 @@ walk:
 // YViewScroll scrolls by count units or pages.
 func (t *TextWidget) YViewScroll(count int, pages bool) {
 	if pages {
-		visLines := (t.Win.Height - 2*t.insetY) / t.lineHeight()
-		if visLines < 1 {
-			visLines = 1
-		}
+		visLines := max((t.Win.Height-2*t.insetY)/t.lineHeight(), 1)
 		count *= visLines
 	}
 
@@ -560,10 +554,7 @@ func (t *TextWidget) XView(offset int) {
 func (t *TextWidget) XViewMoveTo(fraction float64) {
 	// Approximate total width from longest visible line.
 	maxW := t.estimateMaxLineWidth()
-	t.xOffset = int(fraction * float64(maxW))
-	if t.xOffset < 0 {
-		t.xOffset = 0
-	}
+	t.xOffset = max(int(fraction*float64(maxW)), 0)
 	t.notifyXScrollbar()
 	t.Display()
 }
@@ -747,15 +738,9 @@ func (t *TextWidget) positionEmbeddedWindows(dlines []displayLine) {
 			justifyOffset := 0
 			switch dl.justify {
 			case option.JustifyCenter:
-				justifyOffset = (availW - totalW) / 2
-				if justifyOffset < 0 {
-					justifyOffset = 0
-				}
+				justifyOffset = max((availW-totalW)/2, 0)
 			case option.JustifyRight:
-				justifyOffset = availW - totalW
-				if justifyOffset < 0 {
-					justifyOffset = 0
-				}
+				justifyOffset = max(availW-totalW, 0)
 			}
 
 			wx := t.insetX + dl.leftMargin + justifyOffset - t.xOffset + xBefore + ew.padX
@@ -835,7 +820,7 @@ func (t *TextWidget) scrollDownToShow(idx Index) {
 	}
 
 	// Scroll down one display line at a time.
-	for i := 0; i < 1000; i++ { // safety limit
+	for range 1000 { // safety limit
 		dlines := t.computeVisibleLines()
 		if len(dlines) == 0 {
 			break
@@ -853,10 +838,7 @@ func (t *TextWidget) scrollDownToShow(idx Index) {
 // The last line of content should not scroll above the bottom of the viewport.
 func (t *TextWidget) clampScrollPosition() {
 	totalDL := t.totalDisplayLines()
-	visLines := (t.Win.Height - 2*t.insetY) / t.lineHeight()
-	if visLines < 1 {
-		visLines = 1
-	}
+	visLines := max((t.Win.Height-2*t.insetY)/t.lineHeight(), 1)
 	if totalDL <= visLines {
 		// All content fits — reset to top.
 		t.topLine = 1
@@ -891,7 +873,7 @@ func (t *TextWidget) scrollByDisplayLines(n int) {
 
 	if n > 0 {
 		// Scroll down.
-		for i := 0; i < n; i++ {
+		for range n {
 			p := t.resolveLineProps(t.topLine)
 			dls := t.wrapLine(t.topLine, availWidth, p.lm1, p.lm2, p.rm)
 			if t.topCharOffset+1 < len(dls) {

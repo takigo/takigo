@@ -226,17 +226,11 @@ func (tv *Treeview) handleMotion(ev *event.Event) {
 	delta := ev.X - tv.resizeDragX
 	if tv.resizeCol == -1 {
 		// Tree column resize.
-		newW := tv.treeColumnWidth + delta
-		if newW < 20 {
-			newW = 20
-		}
+		newW := max(tv.treeColumnWidth+delta, 20)
 		tv.treeColumnWidth = newW
 	} else if tv.resizeCol < len(tv.columns) {
 		col := tv.columns[tv.resizeCol]
-		newW := col.Width + delta
-		if newW < col.MinWidth {
-			newW = col.MinWidth
-		}
+		newW := max(col.Width+delta, col.MinWidth)
 		col.Width = newW
 	}
 	tv.resizeDragX = ev.X

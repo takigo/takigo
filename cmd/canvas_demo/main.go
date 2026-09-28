@@ -22,8 +22,8 @@ import (
 // generateTestImage creates a 48x48 RGBA image with a gradient.
 func generateTestImage() *goimage.RGBA {
 	img := goimage.NewRGBA(goimage.Rect(0, 0, 48, 48))
-	for y := 0; y < 48; y++ {
-		for x := 0; x < 48; x++ {
+	for y := range 48 {
+		for x := range 48 {
 			r := uint8(x * 255 / 48)
 			g := uint8(y * 255 / 48)
 			b := uint8(128)

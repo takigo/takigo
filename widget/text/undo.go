@@ -1,5 +1,7 @@
 package text
 
+import "slices"
+
 // ActionType is the type of undo action.
 type ActionType int
 
@@ -119,8 +121,7 @@ func (u *UndoStack) Undo(doc *Document) bool {
 
 	// Apply inverse actions in reverse order.
 	var redoGroup []UndoAction
-	for i := len(group) - 1; i >= 0; i-- {
-		action := group[i]
+	for _, action := range slices.Backward(group) {
 		switch action.Type {
 		case ActionInsert:
 			// Undo insert = delete
@@ -149,8 +150,7 @@ func (u *UndoStack) Redo(doc *Document) bool {
 
 	var undoGroup []UndoAction
 	// Redo group was stored in reverse order; apply in reverse to get original order.
-	for i := len(group) - 1; i >= 0; i-- {
-		action := group[i]
+	for _, action := range slices.Backward(group) {
 		switch action.Type {
 		case ActionInsert:
 			endIdx := doc.Insert(action.Start, action.Text)

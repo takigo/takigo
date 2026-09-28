@@ -324,7 +324,7 @@ func (g *goldberg) roundPoly(xy []float64, radii []float64, opts ...canvas.ItemO
 	ext[len(xy)] = xy[0]
 	ext[len(xy)+1] = xy[1]
 
-	for i := 0; i < n; i++ {
+	for i := range n {
 		r := radii[i]
 		x2 := ext[i*2+2]
 		y2 := ext[i*2+3]
@@ -688,10 +688,10 @@ func (g *goldberg) draw6() {
 	ballColors := []string{"red", "cyan", "orange", "green", "blue", "darkblue"}
 	// Repeat 3 times for 18 total (we use 17)
 	var allColors []string
-	for i := 0; i < 3; i++ {
+	for range 3 {
 		allColors = append(allColors, ballColors...)
 	}
-	for i := 0; i < 17; i++ {
+	for i := range 17 {
 		loc := fmt.Sprintf("%d", -1*i)
 		pos := xy6[loc]
 		bx1, by1, bx2, by2 := g.box(pos[0], pos[1], 5)
@@ -716,7 +716,7 @@ func (g *goldberg) draw6a(beta float64, scale bool) {
 		ox, oy = 346, 339
 	}
 
-	for i := 0; i < 4; i++ {
+	for i := range 4 {
 		b := beta + float64(i)*45
 		var x, y float64
 		if scale {

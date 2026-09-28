@@ -124,8 +124,8 @@ func setIconFromRGBA(win *window.Window, rgba *image.RGBA) {
 	data := make([]byte, (2+w*h)*4)
 	binary.LittleEndian.PutUint32(data[0:4], uint32(w))
 	binary.LittleEndian.PutUint32(data[4:8], uint32(h))
-	for y := 0; y < h; y++ {
-		for x := 0; x < w; x++ {
+	for y := range h {
+		for x := range w {
 			offset := (2 + y*w + x) * 4
 			r, g, b, a := rgba.At(x+rgba.Bounds().Min.X, y+rgba.Bounds().Min.Y).RGBA()
 			// Convert 16-bit -> 8-bit and pack as ARGB.
@@ -145,8 +145,8 @@ func setFallbackIcon(win *window.Window) {
 	data := make([]byte, (2+size*size)*4)
 	binary.LittleEndian.PutUint32(data[0:4], size)
 	binary.LittleEndian.PutUint32(data[4:8], size)
-	for y := 0; y < size; y++ {
-		for x := 0; x < size; x++ {
+	for y := range size {
+		for x := range size {
 			offset := (2 + y*size + x) * 4
 			a, r, g, b := uint8(0xFF), uint8(0x4a), uint8(0x69), uint8(0x84)
 			topBar := y >= 3 && y <= 4 && x >= 3 && x <= 12

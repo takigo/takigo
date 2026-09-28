@@ -34,10 +34,7 @@ func psFontName(f font.Font) (psName string, points int) {
 		psName = family + "-" + weightSuffix + slantSuffix
 	}
 
-	points = int(a.Size + 0.5)
-	if points < 1 {
-		points = 1
-	}
+	points = max(int(a.Size+0.5), 1)
 	return psName, points
 }
 

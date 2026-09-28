@@ -578,10 +578,7 @@ func (e *Entry) maybeScrollIntoView(display []rune) {
 		return
 	}
 	textX := e.edit.TextX
-	visible := e.Win.Width - textX - 2
-	if visible < 1 {
-		visible = 1
-	}
+	visible := max(e.Win.Width-textX-2, 1)
 	curIdx := min(e.edit.InsertPos, len(display))
 	e.leftIndex = min(e.leftIndex, len(display))
 	cursorX := e.Font.MeasureString(string(display[:curIdx]))

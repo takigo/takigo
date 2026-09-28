@@ -131,8 +131,8 @@ func baseClass(c string) string {
 }
 
 func lastName(path string) string {
-	if i := strings.LastIndexByte(path, '.'); i >= 0 {
-		return path[i+1:]
+	if _, name, ok := strings.CutLast(path, "."); ok {
+		return name
 	}
 	return path
 }

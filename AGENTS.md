@@ -5,7 +5,8 @@ the original Tcl/Tk codebase; the corresponding Tk sources live in the
 gitignored `tk/` and `tcl/` directories and are used as the reference.
 
 Module path: `github.com/msorc/takigo`
-Go version: `1.25.0` (toolchain `go1.26.6+` on this host)
+Go version: `1.27.0` (`go` directive; with an older local Go, `GOTOOLCHAIN=auto`
+fetches go1.27 from proxy.golang.org)
 
 ---
 
@@ -32,11 +33,12 @@ go test ./event/ -run '^$' -bench .
 
 # Static analysis.
 go vet ./...
+go fix ./...              # apply modernizers; CI runs `go fix -diff ./...`
 golangci-lint run ./...   # config in .golangci.yml (v2 format)
 ```
 
 There is **no `Makefile` and no `go.sum`** — dependencies are stdlib only.
-`go vet ./...` and `gofmt -l` are clean and gated by
+`go vet ./...`, `gofmt -l` and `go fix -diff ./...` are clean and gated by
 `.github/workflows/ci.yml`, which also vets the Windows backend
 (`CGO_ENABLED=0 GOOS=windows go vet ./...`, pure Go, runs on Linux) and
 builds on macOS. Linux builds need `libx11-dev libxft-dev
@@ -216,6 +218,16 @@ parent's manager's `RequestProc` re-runs the layout.
   // It ports the button-specific parts of tk/generic/tkButton.c and
   // library/button.tcl.
   ```
+
+- **Modern Go.** Code targets Go 1.27 and the `go fix` modernizers are a
+  CI gate (Linux and Windows; the cgo-only darwin files are not
+  type-checked there, so keep them modern by hand): `for i := range n`,
+  `min`/`max`, `slices`/`maps`, `strings.Cut`/`CutLast`/`SplitSeq`,
+  `errors.AsType`, `new(expr)` instead of `v := x; &v`, promoted fields
+  directly in composite literals. Generic methods (Go 1.27) are fine
+  where a method needs its own type parameter, e.g.
+  `style.LookupAs[option.Relief]("-indicatorrelief", state)`; the type
+  argument must be explicit when it only appears in the result.
 
 - **Comments are intentionally sparse.** Do not add narrative comments
   unless they explain a non-obvious Tk semantic or a porting decision.

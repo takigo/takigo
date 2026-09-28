@@ -23,7 +23,7 @@ func expandTabs(s string) string {
 	for _, r := range s {
 		if r == '\t' {
 			spaces := tabWidth - (col % tabWidth)
-			for i := 0; i < spaces; i++ {
+			for range spaces {
 				buf.WriteByte(' ')
 			}
 			col += spaces
@@ -608,15 +608,9 @@ func (t *TextWidget) renderToPixmap() {
 		justifyOffset := 0
 		switch dl.justify {
 		case option.JustifyCenter:
-			justifyOffset = (availW - totalW) / 2
-			if justifyOffset < 0 {
-				justifyOffset = 0
-			}
+			justifyOffset = max((availW-totalW)/2, 0)
 		case option.JustifyRight:
-			justifyOffset = availW - totalW
-			if justifyOffset < 0 {
-				justifyOffset = 0
-			}
+			justifyOffset = max(availW-totalW, 0)
 		}
 
 		xOffset := t.insetX + dl.leftMargin + justifyOffset - t.xOffset
@@ -784,15 +778,9 @@ func (t *TextWidget) drawCursor(d platform.DisplayServer, gc platform.GCID, draw
 			availW := t.Win.Width - 2*t.insetX - dl.leftMargin - dl.rightMargin
 			switch dl.justify {
 			case option.JustifyCenter:
-				justifyOffset = (availW - totalW) / 2
-				if justifyOffset < 0 {
-					justifyOffset = 0
-				}
+				justifyOffset = max((availW-totalW)/2, 0)
 			case option.JustifyRight:
-				justifyOffset = availW - totalW
-				if justifyOffset < 0 {
-					justifyOffset = 0
-				}
+				justifyOffset = max(availW-totalW, 0)
 			}
 		}
 
@@ -851,15 +839,9 @@ func (t *TextWidget) indexFromPixel(x, y int) Index {
 		availW := t.Win.Width - 2*t.insetX - dl.leftMargin - dl.rightMargin
 		switch dl.justify {
 		case option.JustifyCenter:
-			justifyOffset = (availW - totalW) / 2
-			if justifyOffset < 0 {
-				justifyOffset = 0
-			}
+			justifyOffset = max((availW-totalW)/2, 0)
 		case option.JustifyRight:
-			justifyOffset = availW - totalW
-			if justifyOffset < 0 {
-				justifyOffset = 0
-			}
+			justifyOffset = max(availW-totalW, 0)
 		}
 	}
 

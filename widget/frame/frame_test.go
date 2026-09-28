@@ -5,15 +5,12 @@ import (
 
 	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/option"
-	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/window"
 )
 
 func TestFrameOptions(t *testing.T) {
 	f := &Frame{
-		Base: widget.Base{
-			Win: &window.Window{},
-		},
+		Win: &window.Window{},
 	}
 
 	// Test BorderWidth
@@ -43,9 +40,7 @@ func TestFrameOptions(t *testing.T) {
 
 func TestFrameDefaults(t *testing.T) {
 	f := &Frame{
-		Base: widget.Base{
-			Win: &window.Window{},
-		},
+		Win: &window.Window{},
 	}
 	// These are set in New()
 	f.BorderWidth = 0
@@ -61,9 +56,7 @@ func TestFrameDefaults(t *testing.T) {
 
 func TestFrameSetInternalBorder(t *testing.T) {
 	f := &Frame{
-		Base: widget.Base{
-			Win: &window.Window{},
-		},
+		Win: &window.Window{},
 	}
 	f.SetInternalBorder(5, 10, 15, 20)
 
@@ -84,10 +77,8 @@ func TestFrameSetInternalBorder(t *testing.T) {
 
 func TestFrameConfigure(t *testing.T) {
 	f := &Frame{
-		Base: widget.Base{
-			Win: &window.Window{
-				BackgroundPixel: 0,
-			},
+		Win: &window.Window{
+			BackgroundPixel: 0,
 		},
 	}
 	f.BorderWidth = 2
@@ -111,9 +102,7 @@ func TestFrameDestroy(t *testing.T) {
 	// Destroy requires a real display connection, so we just verify
 	// the Destroyed flag logic without actually calling Destroy
 	f := &Frame{
-		Base: widget.Base{
-			Win: &window.Window{PlatformID: 1},
-		},
+		Win: &window.Window{PlatformID: 1},
 	}
 
 	if f.Destroyed {

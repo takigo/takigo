@@ -20,9 +20,9 @@ func TestValuesEquality(t *testing.T) {
 }
 
 func TestKeyEquality(t *testing.T) {
-	k1 := key{Values: Values{Foreground: 1, Background: 2, LineWidth: 3, Function: 4}, depth: 24}
-	k2 := key{Values: Values{Foreground: 1, Background: 2, LineWidth: 3, Function: 4}, depth: 24}
-	k3 := key{Values: Values{Foreground: 1, Background: 2, LineWidth: 3, Function: 4}, depth: 32}
+	k1 := key{Foreground: 1, Background: 2, LineWidth: 3, Function: 4, depth: 24}
+	k2 := key{Foreground: 1, Background: 2, LineWidth: 3, Function: 4, depth: 24}
+	k3 := key{Foreground: 1, Background: 2, LineWidth: 3, Function: 4, depth: 32}
 
 	if k1 != k2 {
 		t.Errorf("Equal keys should be equal")

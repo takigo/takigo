@@ -241,7 +241,7 @@ func updateValueLabel(valLabel *ttk.Label, text string) {
 // Variables are generic; we use reflection to call Get().
 func variableGet(v any) any {
 	rv := reflect.ValueOf(v)
-	if !rv.IsValid() || rv.Kind() != reflect.Ptr {
+	if !rv.IsValid() || rv.Kind() != reflect.Pointer {
 		return "<unknown>"
 	}
 	method := rv.MethodByName("Get")

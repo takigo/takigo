@@ -128,7 +128,7 @@ func (tv *Treeview) Display() {
 
 	// --- Draw items ---
 	visRows := tv.visibleRows()
-	for i := 0; i < visRows; i++ {
+	for i := range visRows {
 		idx := tv.topIndex + i
 		if idx >= len(tv.displayList) {
 			break
@@ -338,7 +338,7 @@ func (tv *Treeview) drawIndicator(d platform.DisplayServer, drawable platform.Dr
 		pts = [4]draw.Point{{X: x, Y: y}, {X: x - h, Y: y - h}, {X: x - h, Y: y + h}, {X: x, Y: y}}
 	}
 	d.SetForeground(gc, pixel)
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		d.DrawLine(drawable, gc, pts[i].X, pts[i].Y, pts[i+1].X, pts[i+1].Y)
 	}
 	d.DrawLine(drawable, gc, pts[2].X, pts[2].Y, pts[2].X, pts[2].Y)
