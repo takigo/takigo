@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/msorc/takigo/platform"
@@ -209,6 +210,11 @@ func (l *Loop) Quit() {
 	l.quitOnce.Do(func() { close(l.done) })
 }
 
+// Done returns a channel that is closed once Quit has been called.
+func (l *Loop) Done() <-chan struct{} {
+	return l.done
+}
+
 // Stop quits the loop and waits up to timeout for the reader goroutine to
 // return, so the display can be closed without a read still in flight on
 // it. Call it from the loop goroutine or after Run has returned.
@@ -241,12 +247,28 @@ func (l *Loop) DoWhenIdle(fn func()) {
 // after command.
 var freezeTimers = os.Getenv("TAKIGO_FREEZE_TIMERS") == "1"
 
-// After schedules fn to run on the loop goroutine after duration d.
-func (l *Loop) After(d time.Duration, fn func()) {
+// After schedules fn to run on the loop goroutine after duration d. It
+// returns a cancel function, Tcl's "after cancel": once cancel returns,
+// fn will not run, and cancel reports whether it stopped fn (false if fn
+// already ran or was cancelled before).
+func (l *Loop) After(d time.Duration, fn func()) (cancel func() bool) {
+	const pending, ran, cancelled = 0, 1, 2
+	var state atomic.Int32
+	stop := func() bool { return state.CompareAndSwap(pending, cancelled) }
 	if freezeTimers && d > 0 {
-		return
+		return stop
 	}
-	time.AfterFunc(d, func() { l.RunOnMain(fn) })
+	t := time.AfterFunc(d, func() {
+		l.RunOnMain(func() {
+			if state.CompareAndSwap(pending, ran) {
+				fn()
+			}
+		})
+	})
+	return func() bool {
+		t.Stop()
+		return stop()
+	}
 }
 
 // RunOnMain schedules fn to run on the event loop goroutine. It never

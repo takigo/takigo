@@ -128,8 +128,9 @@ type AppContext interface {
 	RegisterCloseHandler(w platform.WindowID, fn func())
 	// UnregisterCloseHandler removes a WM_DELETE_WINDOW handler.
 	UnregisterCloseHandler(w platform.WindowID)
-	// After schedules a function to run after a delay.
-	After(d time.Duration, fn func())
+	// After schedules a function to run after a delay and returns a
+	// function that cancels it (Tcl's "after cancel").
+	After(d time.Duration, fn func()) (cancel func() bool)
 	Quit()
 	// Clipboard returns the application clipboard manager.
 	Clipboard() ClipboardManager
