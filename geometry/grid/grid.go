@@ -530,9 +530,6 @@ func (g *gridder) remove(child *window.Window) {
 			break
 		}
 	}
-	if len(g.entries) == 0 {
-		delete(gridders, g.container)
-	}
 }
 
 func (g *gridder) nextRow() int {

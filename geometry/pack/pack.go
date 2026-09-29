@@ -117,6 +117,10 @@ var mgr = &packManager{}
 // packers tracks per-container state.
 var packers = map[*window.Window]*packer{}
 
+// hooked records the containers whose destroy and configure hooks are
+// registered.
+var hooked = map[*window.Window]bool{}
+
 type packManager struct{}
 
 func (m *packManager) Name() string { return "pack" }
@@ -220,9 +224,16 @@ func Pack(children geometry.Elementer, opts ...PackOption) {
 		if !ok {
 			p = &packer{container: parent}
 			packers[parent] = p
-			parent.OnDestroy(func() { forgetContainer(parent) })
-			// Register configure callback so container re-layouts
-			// when resized by external forces (e.g. PanedWindow).
+		}
+		if !hooked[parent] {
+			// The packer is dropped when its last content goes but the
+			// hooks stay with the window, so register them once.
+			hooked[parent] = true
+			parent.OnDestroy(func() {
+				forgetContainer(parent)
+				delete(hooked, parent)
+			})
+			// Re-layout when resized by external forces (e.g. PanedWindow).
 			parent.OnConfigure(func() {
 				if pp, ok2 := packers[parent]; ok2 {
 					pp.scheduleArrange()
