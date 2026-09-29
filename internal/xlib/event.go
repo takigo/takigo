@@ -156,8 +156,14 @@ static void set_ic_focus_window(XIC ic, Window w) {
     XSetICFocus(ic);
 }
 
-// XFilterEvent wrapper.
+// XFilterEvent wrapper. A MappingNotify is consumed here after refreshing
+// Xlib's keyboard/modifier map, as Tk_HandleEvent does, so key events
+// keep translating correctly after e.g. setxkbmap.
 static int filter_event(XEvent *ev) {
+    if (ev->type == MappingNotify) {
+        XRefreshKeyboardMapping(&ev->xmapping);
+        return 1;
+    }
     return XFilterEvent(ev, None);
 }
 */

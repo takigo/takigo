@@ -48,7 +48,7 @@ func (s *fakeServer) InternAtom(name string, _ bool) platform.AtomID {
 func (s *fakeServer) SendClientMessage(w, target platform.WindowID, _ platform.AtomID, _, _, _, _, _ int64) {
 	s.pings = append(s.pings, [2]platform.WindowID{w, target})
 }
-func (s *fakeServer) Flush() {}
+func (s *fakeServer) Flush()                                              {}
 func (s *fakeServer) SetWMHints(_ platform.WindowID, h *platform.WMHints) { s.hints = h }
 func (s *fakeServer) SetClassHint(_ platform.WindowID, name, class string) {
 	s.class = [2]string{name, class}
@@ -79,7 +79,6 @@ func (s *fakeServer) ScreenHeight(int) int                            { return s
 func newToplevel(t *testing.T) (*WmInfo, *fakeServer) {
 	t.Helper()
 	s := newFake()
-	t.Cleanup(func() { delete(atomCache, s) })
 	d := &window.Display{Server: s, Windows: map[platform.WindowID]*window.Window{}}
 	w := &window.Window{Display: d, PlatformID: 7, Name: "top", Width: 200, Height: 100}
 	return Init(w), s

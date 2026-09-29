@@ -74,24 +74,32 @@ func (c *Cache) Get(name string) (*Color, error) {
 		return nil, err
 	}
 
-	// Construct pixel value for TrueColor displays.
-	pixel := trueColorPixel(r, g, b)
-
-	col := &Color{
-		Pixel: pixel,
-		Red:   r,
-		Green: g,
-		Blue:  b,
-		Name:  name,
-	}
-
 	c.mu.Lock()
+	defer c.mu.Unlock()
+	// Names are case-insensitive and many name one value ("red",
+	// "Red", "#f00", a colour chooser's every #rrggbb), so they share one
+	// Color per value; the name index is only a shortcut and is reset
+	// when it grows large. Colors stay valid for their holders.
+	col := c.byValue[colorKey{r, g, b}]
+	if col == nil {
+		col = &Color{
+			Pixel: trueColorPixel(r, g, b),
+			Red:   r,
+			Green: g,
+			Blue:  b,
+			Name:  name,
+		}
+		c.byValue[colorKey{r, g, b}] = col
+	}
+	if len(c.byName) >= maxNamedColors {
+		clear(c.byName)
+	}
 	c.byName[name] = col
-	c.byValue[colorKey{r, g, b}] = col
-	c.mu.Unlock()
-
 	return col, nil
 }
+
+// maxNamedColors bounds the name index of a Cache.
+const maxNamedColors = 4096
 
 // GetByValue allocates or retrieves a cached color by RGB values (16-bit).
 func (c *Cache) GetByValue(r, g, b uint16) (*Color, error) {

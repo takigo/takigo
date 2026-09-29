@@ -346,12 +346,12 @@ func handleCtrlKey(e *Entry, ev *event.Event) {
 		}
 
 	case platform.XK_k: // Ctrl+K: kill to end of field
-		if e.InsertPos < len(e.text) {
+		if e.InsertPos < len(e.text) && e.tryEdit(string(e.text[:e.InsertPos])) {
 			e.DeleteChars(e.InsertPos, len(e.text)-e.InsertPos)
 		}
 
 	case platform.XK_d: // Ctrl+D: delete char forward
-		if e.InsertPos < len(e.text) {
+		if e.InsertPos < len(e.text) && e.tryEdit(string(e.text[:e.InsertPos])+string(e.text[e.InsertPos+1:])) {
 			e.DeleteChars(e.InsertPos, 1)
 		}
 	}

@@ -90,12 +90,12 @@ type wmAtoms struct {
 	WMTransientFor       platform.AtomID
 }
 
-var atomCache = map[platform.DisplayServer]*wmAtoms{}
-
-func getAtoms(d platform.DisplayServer) *wmAtoms {
-	if a, ok := atomCache[d]; ok {
+// getAtoms returns the WM atoms of disp, interning them on first use.
+func getAtoms(disp *window.Display) *wmAtoms {
+	if a, ok := disp.WMAtoms.(*wmAtoms); ok {
 		return a
 	}
+	d := disp.Server
 	a := &wmAtoms{
 		NetWMName:            d.InternAtom("_NET_WM_NAME", false),
 		NetWMIconName:        d.InternAtom("_NET_WM_ICON_NAME", false),
@@ -110,7 +110,7 @@ func getAtoms(d platform.DisplayServer) *wmAtoms {
 		WMProtocols:          d.InternAtom("WM_PROTOCOLS", false),
 		WMTransientFor:       d.InternAtom("WM_TRANSIENT_FOR", false),
 	}
-	atomCache[d] = a
+	disp.WMAtoms = a
 	return a
 }
 
@@ -118,7 +118,7 @@ func getAtoms(d platform.DisplayServer) *wmAtoms {
 // Call after the X window is created.
 func Init(w *window.Window) *WmInfo {
 	d := w.Display.Server
-	atoms := getAtoms(d)
+	atoms := getAtoms(w.Display)
 
 	info := &WmInfo{
 		Win:          w,
