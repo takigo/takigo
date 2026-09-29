@@ -40,12 +40,22 @@ func NewBindingTable() *BindingTable {
 	}
 }
 
-// Add registers a binding for a tag with the given pattern sequence and handler.
-// Multiple bindings per tag are supported; they are appended in order.
+// Add registers a binding for a tag with the given pattern sequence and
+// handler. Like Tk_CreateBinding, a binding for the same sequence on the
+// same tag is replaced; bindings for other sequences keep their order.
 func (bt *BindingTable) Add(tag string, seq Sequence, handler HandlerFunc) {
 	bt.mu.Lock()
 	defer bt.mu.Unlock()
-	bt.bindings[tag] = append(slices.Clip(bt.bindings[tag]), binding{seq: seq, handler: handler})
+	nb := binding{seq: seq, handler: handler}
+	list := bt.bindings[tag]
+	key := seq.String()
+	if i := slices.IndexFunc(list, func(b binding) bool { return b.seq.String() == key }); i >= 0 {
+		list = slices.Clone(list)
+		list[i] = nb
+		bt.bindings[tag] = list
+		return
+	}
+	bt.bindings[tag] = append(slices.Clip(list), nb)
 }
 
 // Remove removes all bindings for a tag that match the given sequence.

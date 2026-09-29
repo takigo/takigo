@@ -82,3 +82,14 @@ func TestXBMToRGBA(t *testing.T) {
 		t.Errorf("pixel (2,0) should be fg, got %v", rgba[8:12])
 	}
 }
+
+func TestParseXBMRejectsBadSize(t *testing.T) {
+	for _, src := range []string{
+		"#define t_width -8\n#define t_height 1\nstatic char t_bits[] = { 0x00 };",
+		"#define t_width 8\n#define t_height 1000000000\nstatic char t_bits[] = { 0x00 };",
+	} {
+		if _, err := ParseXBM(src); err == nil {
+			t.Errorf("ParseXBM accepted %q", src)
+		}
+	}
+}

@@ -744,6 +744,9 @@ func BlendOver(rgba []uint8, bg uint64) []uint8 {
 // RGBA image dst (dstW pixels wide) at (x, y), as BlendComplexAlpha in
 // tkImgPhInstance.c does when a photo is drawn over existing pixels.
 func Blend(dst []uint8, dstW, x, y int, src []uint8, srcW, srcH int) {
+	if dstW <= 0 || len(src) < srcW*srcH*4 {
+		return
+	}
 	dstH := len(dst) / 4 / dstW
 	for sy := range srcH {
 		for sx := range srcW {

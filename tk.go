@@ -316,13 +316,15 @@ func (a *App) Destroy() {
 	// The reader goroutine may be blocked reading this display; closing it
 	// underneath the read is a use-after-free in Xlib.
 	a.loop.Stop(time.Second)
+	// Destroy handlers may still draw or measure text, so the windows go
+	// before the images and fonts they use (as in Tk's DeleteWindowsExitProc).
+	window.DestroyWindow(a.root)
 	if a.imageReg != nil {
 		a.imageReg.DestroyAll()
 	}
 	if a.fontReg != nil {
 		a.fontReg.Close()
 	}
-	window.DestroyWindow(a.root)
 	a.display.Close()
 }
 

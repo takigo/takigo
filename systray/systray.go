@@ -63,10 +63,12 @@ func New(app widget.AppContext, winDisplay *window.Display, opts ...TrayOption) 
 		t.SetTooltip(t.tooltip)
 	}
 
-	// Send SYSTEM_TRAY_REQUEST_DOCK message to the tray manager.
+	// Send SYSTEM_TRAY_REQUEST_DOCK to the tray manager; the System Tray
+	// spec addresses the message (xclient.window) to the manager itself and
+	// passes the icon in data.l[2].
 	opcodeAtom := d.InternAtom("_NET_SYSTEM_TRAY_OPCODE", false)
 	d.SendClientMessage(
-		iconWin, manager, opcodeAtom,
+		manager, manager, opcodeAtom,
 		int64(platform.CurrentTime),
 		systemTrayRequestDock,
 		int64(iconWin),

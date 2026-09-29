@@ -223,9 +223,8 @@ func (s *Spinbox) GetText() string {
 // SetText sets the spinbox text.
 func (s *Spinbox) SetText(text string) {
 	s.text = []rune(text)
-	if s.InsertPos > len(s.text) {
-		s.InsertPos = len(s.text)
-	}
+	s.InsertPos = min(s.InsertPos, len(s.text))
+	s.LeftIndex = min(s.LeftIndex, len(s.text))
 	s.ClearSelection()
 	s.computeGeometry()
 	s.Display()
@@ -456,9 +455,7 @@ func (s *Spinbox) computeGeometry() {
 		s.LeftIndex = 0
 		s.layoutX = s.inset
 	} else {
-		if s.LeftIndex < 0 {
-			s.LeftIndex = 0
-		}
+		s.LeftIndex = max(0, min(s.LeftIndex, len(s.text)))
 		leftCharX := entryutil.MeasureRunes(s.Font, s.text[:s.LeftIndex])
 		s.layoutX = s.inset - leftCharX
 	}

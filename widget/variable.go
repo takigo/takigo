@@ -2,12 +2,14 @@
 // check/radio button groups. Single-threaded (event loop only).
 package widget
 
+import "slices"
+
 // Variable is a generic observable value. Listeners are notified on Set.
 // T must be comparable for change detection.
 type Variable[T comparable] struct {
 	value     T
 	unset     bool
-	listeners []func(old, new T)
+	listeners []*func(old, new T)
 }
 
 // NewVariable creates a Variable with the given initial value.
@@ -41,18 +43,20 @@ func (v *Variable[T]) Set(val T) {
 	old := v.value
 	v.value = val
 	for _, fn := range v.listeners {
-		fn(old, val)
+		(*fn)(old, val)
 	}
 }
 
 // OnChange registers a listener called when the value changes.
-// Returns an unsubscribe function.
+// Returns an unsubscribe function, which removes exactly this listener
+// whatever order listeners are removed in and is safe to call from a
+// listener or more than once.
 func (v *Variable[T]) OnChange(fn func(old, new T)) func() {
-	v.listeners = append(v.listeners, fn)
-	idx := len(v.listeners) - 1
+	p := &fn
+	v.listeners = append(slices.Clip(v.listeners), p)
 	return func() {
-		if idx < len(v.listeners) {
-			v.listeners = append(v.listeners[:idx], v.listeners[idx+1:]...)
+		if i := slices.Index(v.listeners, p); i >= 0 {
+			v.listeners = slices.Delete(slices.Clone(v.listeners), i, i+1)
 		}
 	}
 }

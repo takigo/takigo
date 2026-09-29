@@ -114,8 +114,20 @@ func (l *Loop) run(extraDone, ctxDone <-chan struct{}) {
 	}
 	eventsSinceTick := 0
 
+	// Like Tcl_DoOneEvent, idle callbacks run only once no event is
+	// waiting, so a burst of Motion or Configure events costs one redraw
+	// and one relayout rather than one per event. maxIdleDefer bounds how
+	// long a steady stream can hold them off.
+	const maxIdleDefer = 64
+	deferred := 0
+
 	for {
-		l.processIdleQueue()
+		if len(l.eventCh) == 0 || deferred >= maxIdleDefer {
+			l.processIdleQueue()
+			deferred = 0
+		} else {
+			deferred++
+		}
 
 		select {
 		case <-l.done:
