@@ -241,7 +241,9 @@ type PropertyManager interface {
 	// GetInputFocus returns the current input focus window.
 	GetInputFocus() (WindowID, int)
 
-	// ChangeProperty sets a window property.
+	// ChangeProperty sets a window property. Format-32 data is packed as
+	// 4 bytes per item in native byte order (never C longs); the same
+	// packing is returned by GetWindowProperty.
 	ChangeProperty(w WindowID, prop, propType AtomID, format int, mode int, data []byte, nelements int)
 
 	// ChangePropertyString sets a string property.
