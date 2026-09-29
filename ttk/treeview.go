@@ -650,14 +650,9 @@ func (tv *Treeview) YView(index int) {
 
 // YViewScroll scrolls by count units or pages.
 func (tv *Treeview) YViewScroll(count int, pages bool) {
+	// TtkScrollviewCommand: a page is the number of rows in view.
 	if pages {
-		vis := max(tv.visibleRows(), 1)
-		count *= vis - 2
-		if count == 0 {
-			if pages {
-				count = 1
-			}
-		}
+		count *= max(tv.visibleRows(), 1)
 	}
 	tv.YView(tv.topIndex + count)
 }

@@ -556,10 +556,7 @@ func (e *Entry) VisibleRange() (float64, float64) {
 	// border (Tk_PointToChar), counting a partly visible one.
 	dt := e.displayText()
 	x := e.Win.Width - e.inset - e.layoutX - 1
-	chars := 0
-	for chars < len(dt) && entryutil.MeasureRunes(e.Font, dt[:chars+1]) <= x {
-		chars++
-	}
+	chars := entryutil.RuneIndexAtPixel(e.Font, dt, x)
 	if chars < n {
 		chars++
 	}
