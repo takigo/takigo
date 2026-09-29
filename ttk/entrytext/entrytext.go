@@ -28,6 +28,8 @@ type Helper struct {
 
 	Font  font.Font
 	TextX int // x-coord (in window) where the text area starts (after padding)
+	// XOffset is the pixel width of the text scrolled off the left edge.
+	XOffset int
 
 	App widget.AppContext
 	Win *window.Window
@@ -72,16 +74,7 @@ func (h *Helper) DeleteSelection() bool {
 	if !h.HasSelection() {
 		return false
 	}
-	h.Text = append(h.Text[:h.SelFirst], h.Text[h.SelLast:]...)
-	if h.InsertPos > h.SelFirst {
-		if h.InsertPos > h.SelLast {
-			h.InsertPos -= h.SelLast - h.SelFirst
-		} else {
-			h.InsertPos = h.SelFirst
-		}
-	}
-	h.ClearSelection()
-	return true
+	return h.DeleteRange(h.SelFirst, h.SelLast)
 }
 
 // DeleteRange deletes [first, last) and shifts InsertPos if needed.
@@ -122,26 +115,21 @@ func (h *Helper) InsertAt(pos int, runes []rune) bool {
 	if !h.allowEdit() {
 		return false
 	}
+	pos = max(0, min(pos, len(h.Text)))
+	cut, end := pos, pos
 	if h.HasSelection() {
-		h.DeleteSelection()
-		pos = h.InsertPos
+		cut, end = h.SelFirst, h.SelLast
 	}
-	if pos < 0 {
-		pos = 0
-	}
-	if pos > len(h.Text) {
-		pos = len(h.Text)
-	}
-	probe := string(append(append(append([]rune{}, h.Text[:pos]...), runes...), h.Text[pos:]...))
-	if !h.runValidate(ValidateKey, probe) {
+	out := make([]rune, 0, len(h.Text)-(end-cut)+len(runes))
+	out = append(out, h.Text[:cut]...)
+	out = append(out, runes...)
+	out = append(out, h.Text[end:]...)
+	if !h.runValidate(ValidateKey, string(out)) {
 		return false
 	}
-	out := make([]rune, 0, len(h.Text)+len(runes))
-	out = append(out, h.Text[:pos]...)
-	out = append(out, runes...)
-	out = append(out, h.Text[pos:]...)
 	h.Text = out
-	h.InsertPos = pos + len(runes)
+	h.InsertPos = cut + len(runes)
+	h.ClearSelection()
 	h.redraw()
 	return true
 }
@@ -213,7 +201,7 @@ func (h *Helper) ClosestGap(x int) int {
 	if h.Font == nil || len(h.Text) == 0 {
 		return 0
 	}
-	xInText := x - h.TextX
+	xInText := x - h.TextX + h.XOffset
 	if xInText <= 0 {
 		return 0
 	}
@@ -312,12 +300,7 @@ func (h *Helper) HandleCtrlKey(ev *event.Event) bool {
 		return true
 	case platform.XK_k:
 		if h.InsertPos < len(h.Text) {
-			h.ClearSelection()
-			if !h.runValidate(ValidateKey, string(h.Text[:h.InsertPos])) {
-				return true
-			}
-			h.Text = h.Text[:h.InsertPos]
-			h.redraw()
+			h.DeleteRange(h.InsertPos, len(h.Text))
 		}
 		return true
 	case platform.XK_d:

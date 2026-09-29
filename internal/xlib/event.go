@@ -264,14 +264,21 @@ func (e *RawEvent) ParseKeyEvent() KeyEvent {
 
 // ParseKeyEventIM extracts key event data using Xutf8LookupString via XIM.
 // This correctly handles non-Latin scripts (Cyrillic, etc.) with Caps Lock.
+// Like TkpGetString it retries with a buffer of the reported size on
+// XBufferOverflow and only trusts the string when the status says one was
+// returned.
 func (d *Display) ParseKeyEventIM(e *RawEvent) KeyEvent {
-	var buf [64]C.char
+	buf := make([]C.char, 64)
 	var ks C.KeySym
 	var status C.int
-	n := C.utf8_lookup_string(d.xic, &e.ev, &buf[0], 64, &ks, &status)
+	n := C.utf8_lookup_string(d.xic, &e.ev, &buf[0], C.int(len(buf)), &ks, &status)
+	if status == C.XBufferOverflow && n > 0 {
+		buf = make([]C.char, n+1)
+		n = C.utf8_lookup_string(d.xic, &e.ev, &buf[0], C.int(len(buf)), &ks, &status)
+	}
 
 	str := ""
-	if n > 0 {
+	if (status == C.XLookupChars || status == C.XLookupBoth) && n > 0 && int(n) <= len(buf) {
 		str = C.GoStringN(&buf[0], n)
 	}
 

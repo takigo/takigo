@@ -1,6 +1,7 @@
 package event
 
 import (
+	"slices"
 	"sync"
 	"sync/atomic"
 
@@ -20,7 +21,7 @@ type registration struct {
 	id      BindingID
 	mask    Mask
 	handler Handler
-	window  platform.WindowID // 0 for global handlers
+	window  platform.WindowID // for a global handler, its owner (0 for none)
 	global  bool
 	dead    atomic.Bool // set by Unbind/UnbindID; Dispatch skips it
 }
@@ -35,6 +36,7 @@ type Dispatcher struct {
 	mu       sync.RWMutex
 	handlers map[platform.WindowID][]*registration
 	global   []*registration // handlers for all windows
+	owned    map[platform.WindowID][]*registration
 	byID     map[BindingID]*registration
 	nextID   BindingID
 	chain    ChainFunc
@@ -74,6 +76,7 @@ func isBindingEvent(t Type) bool {
 func NewDispatcher() *Dispatcher {
 	return &Dispatcher{
 		handlers: make(map[platform.WindowID][]*registration),
+		owned:    make(map[platform.WindowID][]*registration),
 		byID:     make(map[BindingID]*registration),
 	}
 }
@@ -102,6 +105,22 @@ func (d *Dispatcher) BindGlobal(mask Mask, h Handler) BindingID {
 	return reg.id
 }
 
+// BindGlobalFor is BindGlobal for a handler that belongs to window owner:
+// Unbind(owner), which runs when owner is destroyed, removes it too, so a
+// widget's global handler does not outlive the widget.
+func (d *Dispatcher) BindGlobalFor(owner platform.WindowID, mask Mask, h Handler) BindingID {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.nextID++
+	reg := &registration{id: d.nextID, mask: mask, handler: h, window: owner, global: true}
+	d.global = appendCOW(d.global, reg)
+	if owner != 0 {
+		d.owned[owner] = append(d.owned[owner], reg)
+	}
+	d.byID[reg.id] = reg
+	return reg.id
+}
+
 // Unbind removes all handlers for a specific window. Handlers removed
 // while an event is being dispatched are not called for it.
 func (d *Dispatcher) Unbind(w platform.WindowID) {
@@ -112,6 +131,12 @@ func (d *Dispatcher) Unbind(w platform.WindowID) {
 		delete(d.byID, r.id)
 	}
 	delete(d.handlers, w)
+	for _, r := range d.owned[w] {
+		r.dead.Store(true)
+		delete(d.byID, r.id)
+		d.global = removeCOW(d.global, r)
+	}
+	delete(d.owned, w)
 }
 
 // UnbindID removes a specific handler by its BindingID.
@@ -127,6 +152,11 @@ func (d *Dispatcher) UnbindID(id BindingID) bool {
 	reg.dead.Store(true)
 	if reg.global {
 		d.global = removeCOW(d.global, reg)
+		if regs := slices.DeleteFunc(d.owned[reg.window], func(r *registration) bool { return r == reg }); len(regs) > 0 {
+			d.owned[reg.window] = regs
+		} else {
+			delete(d.owned, reg.window)
+		}
 	} else if regs := removeCOW(d.handlers[reg.window], reg); len(regs) > 0 {
 		d.handlers[reg.window] = regs
 	} else {

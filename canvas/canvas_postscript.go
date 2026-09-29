@@ -100,14 +100,12 @@ func (c *Canvas) Postscript(opts ...PostscriptOption) (string, error) {
 		if bx1 >= ps.X2 || bx2 < ps.X || by1 >= ps.Y2 || by2 < ps.Y {
 			continue
 		}
-		before := len(ps.fonts) // not actually used here, just diagnostic
 		ps.ResetItemBuf()
 		if err := item.Postscript(ps); err != nil {
 			return "", err
 		}
 		body := ps.TakeItemBuf()
 		if body == "" {
-			_ = before
 			continue
 		}
 		// Wrap each item in gsave/grestore so its graphics state changes

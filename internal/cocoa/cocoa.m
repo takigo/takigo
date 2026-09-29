@@ -454,6 +454,7 @@ static void applyGC(CGContextRef ctx, CocoaGCState *gc) {
                owner:self
             userInfo:nil];
     [self addTrackingArea:ta];
+    [ta release];
 }
 
 // ---- Key events ----
@@ -963,6 +964,7 @@ CocoaWindowID CocoaCreateWindow(CocoaWindowID parent, int x, int y,
                 view.isTopLevel = NO;
                 view.isMapped = YES; // root is always "mapped"
                 windowRegistry[@(wid)] = view;
+                [view release]; // owned by windowRegistry
                 rootWindowID = wid;
                 result = wid;
                 return;
@@ -1007,8 +1009,9 @@ CocoaWindowID CocoaCreateWindow(CocoaWindowID parent, int x, int y,
                 TKWindowDelegate *delegate = [TKWindowDelegate new];
                 delegate.windowID = wid;
                 [window setDelegate:delegate];
-                // Keep delegate alive (retained by window)
+                // setDelegate: does not retain; the associated object owns it.
                 objc_setAssociatedObject(window, "delegate", delegate, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+                [delegate release];
 
                 view.isTopLevel = YES;
             } else {
@@ -1021,6 +1024,7 @@ CocoaWindowID CocoaCreateWindow(CocoaWindowID parent, int x, int y,
             }
 
             windowRegistry[@(wid)] = view;
+            [view release]; // owned by windowRegistry (and its superview/window)
             result = wid;
         }
     };
@@ -1948,11 +1952,11 @@ uint64_t CocoaInternAtom(const char *name, bool onlyIfExists) {
     }
 }
 
-const char *CocoaGetAtomName(uint64_t atom) {
+// CocoaGetAtomName returns a malloc'd copy; the caller frees it.
+char *CocoaGetAtomName(uint64_t atom) {
     @autoreleasepool {
         NSString *name = atomByID[@(atom)];
-        if (!name) return "";
-        return [name UTF8String]; // valid until pool is drained
+        return strdup(name ? [name UTF8String] : "");
     }
 }
 
@@ -2071,14 +2075,14 @@ int CocoaMeasureString(CocoaFontID fid, const char *s, int len) {
         CocoaFont *cf = lookupFont(fid);
         if (!cf || !cf->font) return 0;
 
-        NSString *str = [[NSString alloc] initWithBytes:s length:len encoding:NSUTF8StringEncoding];
+        NSString *str = [[[NSString alloc] initWithBytes:s length:len encoding:NSUTF8StringEncoding] autorelease];
         if (!str) return 0;
 
         NSDictionary *attrs = @{
             (id)kCTFontAttributeName: (id)cf->font
         };
-        NSAttributedString *attrStr = [[NSAttributedString alloc] initWithString:str
-                                                                      attributes:attrs];
+        NSAttributedString *attrStr = [[[NSAttributedString alloc] initWithString:str
+                                                                       attributes:attrs] autorelease];
         CTLineRef line = CTLineCreateWithAttributedString((CFAttributedStringRef)attrStr);
         if (!line) return 0;
 
@@ -2096,7 +2100,7 @@ void CocoaDrawString(CocoaDrawableID d, CocoaFontID fid,
         CocoaFont *cf = lookupFont(fid);
         if (!ctx || !cf || !cf->font) return;
 
-        NSString *str = [[NSString alloc] initWithBytes:s length:len encoding:NSUTF8StringEncoding];
+        NSString *str = [[[NSString alloc] initWithBytes:s length:len encoding:NSUTF8StringEncoding] autorelease];
         if (!str) return;
 
         CGFloat cr = r / 65535.0;
@@ -2108,8 +2112,8 @@ void CocoaDrawString(CocoaDrawableID d, CocoaFontID fid,
             (id)kCTFontAttributeName: (id)cf->font,
             (id)kCTForegroundColorAttributeName: (id)color
         };
-        NSAttributedString *attrStr = [[NSAttributedString alloc] initWithString:str
-                                                                      attributes:attrs];
+        NSAttributedString *attrStr = [[[NSAttributedString alloc] initWithString:str
+                                                                       attributes:attrs] autorelease];
         CTLineRef line = CTLineCreateWithAttributedString((CFAttributedStringRef)attrStr);
         CGColorRelease(color);
         if (!line) return;

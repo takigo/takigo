@@ -313,6 +313,24 @@ func GetCursorPos(point *POINT) bool {
 	return r != 0
 }
 
+// TME_LEAVE requests a WM_MOUSELEAVE when the cursor leaves the client area.
+const TME_LEAVE = 0x00000002
+
+// TRACKMOUSEEVENT is the argument of TrackMouseEvent.
+type TRACKMOUSEEVENT struct {
+	CbSize      uint32
+	DwFlags     uint32
+	HwndTrack   HWND
+	DwHoverTime uint32
+}
+
+// TrackMouseEvent arms WM_MOUSELEAVE (and hover) notifications for a window.
+func TrackMouseEvent(tme *TRACKMOUSEEVENT) bool {
+	tme.CbSize = uint32(unsafe.Sizeof(*tme))
+	r, _, _ := procTrackMouseEvent.Call(uintptr(unsafe.Pointer(tme)))
+	return r != 0
+}
+
 func FillRect(hdc HDC, rect *RECT, brush HBRUSH) int32 {
 	r, _, _ := procFillRect.Call(uintptr(hdc), uintptr(unsafe.Pointer(rect)), uintptr(brush))
 	return int32(r)

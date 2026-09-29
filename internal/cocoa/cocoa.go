@@ -287,7 +287,9 @@ func InternAtom(name string, onlyIfExists bool) Atom {
 }
 
 func GetAtomName(atom Atom) string {
-	return C.GoString(C.CocoaGetAtomName(C.uint64_t(atom)))
+	cname := C.CocoaGetAtomName(C.uint64_t(atom))
+	defer C.free(unsafe.Pointer(cname))
+	return C.GoString(cname)
 }
 
 // ---- Font ----

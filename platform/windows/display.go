@@ -69,6 +69,11 @@ type WindowsDisplay struct {
 	// Input focus tracking.
 	focusWindow platform.WindowID
 
+	// hoverHWND is the window the pointer is in; Windows has no
+	// WM_MOUSEENTER, so the first WM_MOUSEMOVE into another window posts
+	// EnterNotify and arms WM_MOUSELEAVE with TrackMouseEvent.
+	hoverHWND w32.HWND
+
 	// First half of a standalone WM_CHAR surrogate pair.
 	highSurrogate uint16
 

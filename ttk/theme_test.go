@@ -137,3 +137,45 @@ func TestLookupInt(t *testing.T) {
 		t.Errorf("missing should fallback: got %d, want 99", got)
 	}
 }
+
+func TestStyleLookupMapsBeforeDefaults(t *testing.T) {
+	th := NewTheme("maps-first", nil)
+	root := th.GetStyle(".")
+	root.Defaults["-foreground"] = uint64(0x000000)
+	root.Maps["-foreground"] = StateMap[any]{
+		{Spec: StateSpec{OnBits: StateDisabled}, Value: uint64(0xa3a3a3)},
+	}
+	th.GetStyle("TEntry").Defaults["-foreground"] = uint64(0x111111)
+	s := th.ResolveStyle("TEntry")
+
+	if got := LookupColor(s, "-foreground", StateDisabled, 0); got != 0xa3a3a3 {
+		t.Errorf("disabled -foreground = %#x, want root map 0xa3a3a3", got)
+	}
+	if got := LookupColor(s, "-foreground", 0, 0); got != 0x111111 {
+		t.Errorf("normal -foreground = %#x, want TEntry default 0x111111", got)
+	}
+}
+
+func TestResolveStyleUsesCurrentTheme(t *testing.T) {
+	parent := NewTheme("parent-theme", nil)
+	parent.GetStyle(".").Defaults["-background"] = uint64(0xd9d9d9)
+	pnb := parent.GetStyle("TNotebook")
+	pnb.Defaults["-padding"] = UniformPadding(2)
+	pnb.Maps["-background"] = StateMap[any]{
+		{Spec: StateSpec{OnBits: StateHover}, Value: uint64(0xececec)},
+	}
+
+	child := NewTheme("child-theme", parent)
+	child.GetStyle(".").Defaults["-background"] = uint64(0xdcdad5)
+
+	s := child.ResolveStyle("TNotebook")
+	if s == pnb {
+		t.Fatal("ResolveStyle returned the parent theme's style")
+	}
+	if got := LookupColor(s, "-background", StateHover, 0); got != 0xdcdad5 {
+		t.Errorf("-background = %#x, want child root 0xdcdad5", got)
+	}
+	if got := LookupPadding(s, "-padding", 0, Padding{}); got != UniformPadding(2) {
+		t.Errorf("-padding = %v, want parent-theme fallback 2", got)
+	}
+}

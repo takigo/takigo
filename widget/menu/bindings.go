@@ -106,7 +106,7 @@ func bindMenu(m *Menu, app widget.AppContext) {
 	// this gap.  We skip the very first ButtonPress (the click that opened the
 	// menu) via skipGlobalButtonPress, and ignore clicks on the menu itself or
 	// on an active cascade submenu.
-	app.Dispatcher().BindGlobal(event.ButtonPressMask, func(ev *event.Event) {
+	app.Dispatcher().BindGlobalFor(w.PlatformID, event.ButtonPressMask, func(ev *event.Event) {
 		if !m.posted {
 			return
 		}

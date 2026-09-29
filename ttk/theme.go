@@ -15,21 +15,32 @@ type Style struct {
 	Parent   *Style
 	Defaults map[string]any
 	Maps     map[string]StateMap[any]
+	// Fallback is the same-named style of the parent theme, consulted when
+	// the chain has no value. Tk keeps such values as element defaults; the
+	// port keeps them in the default theme's styles.
+	Fallback *Style
 }
 
-// Lookup returns the value for optionName at the given state.
-// It checks state maps first, then defaults, walking up the parent chain.
+// Lookup returns the value for optionName at the given state. Like
+// Ttk_QueryStyle it consults the state maps along the whole parent chain
+// (the first style that maps the option decides, as in Ttk_StyleMap), then
+// the defaults along the chain, then the Fallback style.
 // Stops after 20 levels to guard against accidental cycles.
 func (s *Style) Lookup(optionName string, state State) (any, bool) {
 	const maxDepth = 20
-	for cur, depth := s, 0; cur != nil && depth < maxDepth; cur, depth = cur.Parent, depth+1 {
-		if m, ok := cur.Maps[optionName]; ok {
-			if v, found := m.Lookup(state); found {
-				return v, true
+	for style, fallbacks := s, 0; style != nil && fallbacks < maxDepth; style, fallbacks = style.Fallback, fallbacks+1 {
+		for cur, depth := style, 0; cur != nil && depth < maxDepth; cur, depth = cur.Parent, depth+1 {
+			if m, ok := cur.Maps[optionName]; ok {
+				if v, found := m.Lookup(state); found {
+					return v, true
+				}
+				break
 			}
 		}
-		if v, ok := cur.Defaults[optionName]; ok {
-			return v, true
+		for cur, depth := style, 0; cur != nil && depth < maxDepth; cur, depth = cur.Parent, depth+1 {
+			if v, ok := cur.Defaults[optionName]; ok {
+				return v, true
+			}
 		}
 	}
 	return nil, false
@@ -157,16 +168,21 @@ func (t *Theme) GetStyle(name string) *Style {
 	return s
 }
 
-// ResolveStyle finds the best style for name by walking the theme chain.
-// If the current theme has the style, use it. Otherwise check parent themes.
-// If no theme has it, auto-create in the current theme.
+// ResolveStyle returns the style for name in this theme, as Ttk_GetStyle
+// does, so its parent chain ends at this theme's root and the theme's
+// colours win. When a parent theme configures the same style, that style
+// becomes its Fallback.
 func (t *Theme) ResolveStyle(name string) *Style {
-	for cur := t; cur != nil; cur = cur.Parent {
-		if s, ok := cur.Styles[name]; ok {
-			return s
+	s := t.GetStyle(name)
+	if name != "." && s.Fallback == nil {
+		for cur := t.Parent; cur != nil; cur = cur.Parent {
+			if _, ok := cur.Styles[name]; ok {
+				s.Fallback = cur.ResolveStyle(name)
+				break
+			}
 		}
 	}
-	return t.GetStyle(name)
+	return s
 }
 
 // RegisterLayout registers a layout template for a widget class.

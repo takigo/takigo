@@ -361,6 +361,16 @@ func (d *WindowsDisplay) wndProc(hwnd w32.HWND, msg uint32, wParam w32.WPARAM, l
 			State:  state,
 			Time:   now,
 		}
+		if d.hoverHWND != hwnd {
+			d.hoverHWND = hwnd
+			w32.TrackMouseEvent(&w32.TRACKMOUSEEVENT{DwFlags: w32.TME_LEAVE, HwndTrack: hwnd})
+			enter := *raw
+			d.postEvent(&platform.RawEvent{
+				Data:        &enter,
+				EventType:   platform.EnterNotifyEvent,
+				EventWindow: wid,
+			})
+		}
 		d.postEvent(&platform.RawEvent{
 			Data:        raw,
 			EventType:   platform.MotionNotifyEvent,
@@ -479,6 +489,9 @@ func (d *WindowsDisplay) wndProc(hwnd w32.HWND, msg uint32, wParam w32.WPARAM, l
 		return 1
 
 	case w32.WM_MOUSELEAVE:
+		if d.hoverHWND == hwnd {
+			d.hoverHWND = 0
+		}
 		raw := &WinRawEvent{Window: wid, Time: now}
 		d.postEvent(&platform.RawEvent{
 			Data:        raw,

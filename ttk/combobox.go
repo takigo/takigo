@@ -675,7 +675,7 @@ func bindCombobox(c *Combobox, app widget.AppContext) {
 
 	// Hide cursor when user clicks any other window (non-focusable widgets don't
 	// call SetInputFocus, so FocusOut never fires for those clicks).
-	app.Dispatcher().BindGlobal(event.ButtonPressMask, func(ev *event.Event) {
+	app.Dispatcher().BindGlobalFor(win.PlatformID, event.ButtonPressMask, func(ev *event.Event) {
 		if c.State&StateFocus == 0 || c.CbState != ComboNormal {
 			return
 		}

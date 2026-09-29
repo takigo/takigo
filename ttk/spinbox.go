@@ -121,7 +121,7 @@ func NewSpinbox(parent widget.Caregiver, name string, opts ...SpinboxOption) *Sp
 		Redraw: func() {
 			s.Display()
 		},
-		Editable: func() bool { return s.State&StateDisabled == 0 },
+		Editable: func() bool { return s.State&(StateDisabled|StateReadonly) == 0 },
 		Validate: s.tryValidate,
 	}
 
