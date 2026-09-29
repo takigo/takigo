@@ -348,7 +348,7 @@ func bindScale(s *Scale, app widget.AppContext) {
 		if ev.Type != event.ButtonPressType {
 			return
 		}
-		app.Server().SetInputFocus(win.PlatformID, platform.RevertToParent, platform.CurrentTime)
+		widget.Focus(app, win)
 		s.dragging = false
 		switch ev.Button {
 		case 1:

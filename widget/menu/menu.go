@@ -55,6 +55,11 @@ type colData struct {
 type Menu struct {
 	widget.Base
 
+	// widths caches text widths in widthFont (labels, accelerators and
+	// underline prefixes), measured once rather than on every redraw.
+	widths    map[string]int
+	widthFont font.Font
+
 	entries       []MenuEntry
 	activeIndex   int // -1 = none; -2 = tearoff region
 	postedCascade *Menu
@@ -74,12 +79,13 @@ type Menu struct {
 	// State.
 	posted                bool
 	grabbed               bool
-	motionSincePost       bool   // true once pointer moves after Post(); gates first ButtonRelease
-	suppressFocusOut      bool   // set briefly when we ourselves call SetInputFocus for a cascade
-	skipGlobalButtonPress bool   // skip the first BindGlobal ButtonPress (the click that opened us)
-	onUnpost              func() // run once when the menu is next unposted (menubar deactivation)
-	screenX               int    // absolute screen X set by Post()
-	screenY               int    // absolute screen Y set by Post()
+	motionSincePost       bool           // true once pointer moves after Post(); gates first ButtonRelease
+	suppressFocusOut      bool           // set briefly when we ourselves call SetInputFocus for a cascade
+	skipGlobalButtonPress bool           // skip the first BindGlobal ButtonPress (the click that opened us)
+	onUnpost              func()         // run once when the menu is next unposted (menubar deactivation)
+	prevFocus             *window.Window // focus to restore on unpost
+	screenX               int            // absolute screen X set by Post()
+	screenY               int            // absolute screen Y set by Post()
 
 	// TearOff enables a tearoff grip at the top of the menu.
 	TearOff bool
@@ -349,6 +355,25 @@ func (m *Menu) PostFromButton(x, y int) {
 	m.Post(x, y)
 }
 
+// textWidth returns the width of s in the menu's font, cached.
+func (m *Menu) textWidth(s string) int {
+	if m.Font == nil {
+		return 0
+	}
+	if m.widthFont != m.Font {
+		m.widths, m.widthFont = map[string]int{}, m.Font
+	}
+	w, ok := m.widths[s]
+	if !ok {
+		w = m.Font.MeasureString(s)
+		m.widths[s] = w
+	}
+	return w
+}
+
+// postedMenus maps posted menus' windows to them (loop-only).
+var postedMenus = map[*window.Window]*Menu{}
+
 // Post maps the menu at screen coordinates (x, y).
 func (m *Menu) Post(x, y int) {
 	m.computeGeometry()
@@ -370,11 +395,24 @@ func (m *Menu) Post(x, y int) {
 	// Grab pointer with owner_events=true so that events over our own client
 	// windows are still delivered normally (hover effects, cursor shapes).
 	// Only clicks outside all client windows are redirected to the grab window.
-	// Keyboard events reach the menu via SetInputFocus (no keyboard grab).
+	// Keyboard events reach the menu as the focus window (no keyboard
+	// grab); like tk::MenuUnpost, the old focus is restored on unpost. A
+	// menu posted while another menu has the focus inherits the focus
+	// that menu will restore.
 	// skipGlobalButtonPress may have been set by PostFromButton() to skip the
 	// ButtonPress event that caused this Post() call; leave it as-is here.
+	// Focus first: the FocusOut it sends can unpost another menu, which
+	// releases the pointer grab this menu then takes.
+	prev := widget.FocusWindow(m.App)
+	if pm := postedMenus[prev]; pm != nil {
+		prev = pm.prevFocus
+	}
+	if prev != w {
+		m.prevFocus = prev
+	}
+	postedMenus[w] = m
+	widget.Focus(m.App, w)
 	m.grab()
-	d.SetInputFocus(w.PlatformID, platform.RevertToParent, platform.CurrentTime)
 
 	m.Display()
 }
@@ -421,6 +459,9 @@ func (m *Menu) Unpost() {
 	m.posted = false
 	m.activeIndex = -1
 	m.skipGlobalButtonPress = false
+	delete(postedMenus, w)
+	prev := m.prevFocus
+	m.prevFocus = nil
 	// A cascade handed its parent's grab over when it was posted; give it
 	// back so the still-posted parent keeps tracking clicks elsewhere.
 	if p := m.parent; p != nil {
@@ -429,8 +470,12 @@ func (m *Menu) Unpost() {
 		}
 		if p.posted && !p.grabbed {
 			p.grab()
-			d.SetInputFocus(p.Win.PlatformID, platform.RevertToParent, platform.CurrentTime)
+			widget.Focus(m.App, p.Win)
 		}
+	}
+	// Give the focus back if this menu still has it.
+	if widget.FocusWindow(m.App) == w && prev != nil && !prev.IsDestroyed() {
+		widget.Focus(m.App, prev)
 	}
 	m.parent = nil
 	if fn := m.onUnpost; fn != nil {
@@ -574,14 +619,14 @@ func (m *Menu) entryContentWidth(e MenuEntry) int {
 	if e.Image != nil && e.Compound == widget.CompoundNone && e.Label == "" {
 		w = e.Image.Width()
 	} else {
-		w = m.Font.MeasureString(e.Label)
+		w = m.textWidth(e.Label)
 		if e.Image != nil {
 			w += e.Image.Width() + 4
 		}
 	}
 	w += 40
 	if e.AccelStr != "" {
-		w += m.Font.MeasureString(e.AccelStr) + 20
+		w += m.textWidth(e.AccelStr) + 20
 	}
 	return w
 }
@@ -820,8 +865,8 @@ func (m *Menu) displaySingleColumn(d platform.DisplayServer, gc platform.GCID, d
 				if e.Underline >= 0 && e.Underline < len(runes) {
 					prefix := string(runes[:e.Underline])
 					ch := string(runes[e.Underline])
-					ulX := textX + m.Font.MeasureString(prefix)
-					ulW := m.Font.MeasureString(ch)
+					ulX := textX + m.textWidth(prefix)
+					ulW := m.textWidth(ch)
 					ulY := textY + 2
 					d.SetForeground(gc, fgCol.Pixel)
 					d.DrawLine(w.Drawable(), gc, ulX, ulY, ulX+ulW, ulY)
@@ -829,7 +874,7 @@ func (m *Menu) displaySingleColumn(d platform.DisplayServer, gc platform.GCID, d
 			}
 
 			if e.AccelStr != "" {
-				accelW := m.Font.MeasureString(e.AccelStr)
+				accelW := m.textWidth(e.AccelStr)
 				accelX := w.Width - m.BorderWidth - accelW - 8
 				df.DrawString(w.Drawable(), accelX, textY, e.AccelStr,
 					fgCol.Pixel, fgCol.Red, fgCol.Green, fgCol.Blue)

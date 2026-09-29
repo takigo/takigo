@@ -114,7 +114,7 @@ func (e *Entry) handleFocus(ev *event.Event) {
 func (e *Entry) handleButtonPress(ev *event.Event) {
 	if ev.Button == 1 {
 		// Request X11 input focus so key events come to this window.
-		e.App.Server().SetInputFocus(e.Win.PlatformID, platform.RevertToParent, platform.CurrentTime)
+		widget.Focus(e.App, e.Win)
 		e.ClearSelection()
 		e.InsertPos = e.closestGap(ev.X)
 		e.SelAnchor = e.InsertPos

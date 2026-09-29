@@ -42,7 +42,7 @@ func bindListbox(lb *Listbox, app widget.AppContext) {
 	// Button press.
 	app.Dispatcher().Bind(w.PlatformID, event.ButtonPressMask, func(ev *event.Event) {
 		// Take focus.
-		app.Server().SetInputFocus(w.PlatformID, platform.RevertToParent, platform.CurrentTime)
+		widget.Focus(app, w)
 
 		if ev.Button == 1 {
 			idx := lb.indexAtY(ev.Y)

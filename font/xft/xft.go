@@ -13,14 +13,19 @@ package xft
 #include <stdlib.h>
 #include <string.h>
 
-// Helper to create an XftColor from pixel + RGB.
-static XftColor make_xft_color(unsigned long pixel, unsigned short r, unsigned short g, unsigned short b) {
+// alloc_xft_color makes the XftColor for r, g, b with XftColorAllocValue,
+// as LookUpColor in tkUnixRFont.c does: it derives the pixel for the
+// visual (allocating a cell on colormapped visuals), which Xft's core
+// rendering path needs.
+static XftColor alloc_xft_color(Display *dpy, Visual *visual, Colormap cmap,
+	unsigned short r, unsigned short g, unsigned short b) {
+	XRenderColor rc;
+	rc.red = r; rc.green = g; rc.blue = b; rc.alpha = 0xFFFF;
 	XftColor c;
-	c.pixel = pixel;
-	c.color.red = r;
-	c.color.green = g;
-	c.color.blue = b;
-	c.color.alpha = 0xFFFF;
+	if (!XftColorAllocValue(dpy, visual, cmap, &rc, &c)) {
+		c.pixel = 0;
+		c.color = rc;
+	}
 	return c;
 }
 
@@ -151,6 +156,9 @@ type XftFont struct {
 	screen   C.int
 	visual   *C.Visual
 	colormap C.Colormap
+
+	// colors caches XftColors by 16-bit RGB (see xftColor).
+	colors map[uint64]C.XftColor
 
 	// Cache of rotated font variants, keyed by angle×10 (integer tenths of degrees).
 	rotatedVariants map[int64]*C.XftFont
@@ -438,9 +446,24 @@ func (f *XftFont) DrawStringAngle(drawable platform.DrawableID, x, y int, angleD
 	}
 	cs := C.CString(s)
 	defer C.free(unsafe.Pointer(cs))
-	color := C.make_xft_color(C.ulong(pixel), C.ushort(r), C.ushort(g), C.ushort(b))
+	color := f.xftColor(dpy, r, g, b)
 	C.XftDrawStringUtf8(draw, &color, rotFont, C.int(x), C.int(y),
 		(*C.FcChar8)(unsafe.Pointer(cs)), C.int(len(s)))
+}
+
+// xftColor returns the XftColor for 16-bit r, g, b, allocated once per
+// font. The caller holds xlib.XftMu.
+func (f *XftFont) xftColor(dpy *C.Display, r, g, b uint16) C.XftColor {
+	key := uint64(r)<<32 | uint64(g)<<16 | uint64(b)
+	if c, ok := f.colors[key]; ok {
+		return c
+	}
+	c := C.alloc_xft_color(dpy, f.visual, f.colormap, C.ushort(r), C.ushort(g), C.ushort(b))
+	if f.colors == nil {
+		f.colors = map[uint64]C.XftColor{}
+	}
+	f.colors[key] = c
+	return c
 }
 
 // xftDraws keeps one XftDraw per display and retargets it with
@@ -540,7 +563,7 @@ func (f *XftFont) drawStringXlib(drawable xlib.Drawable, x, y int, s string, pix
 		return
 	}
 
-	color := C.make_xft_color(C.ulong(pixel), C.ushort(r), C.ushort(g), C.ushort(b))
+	color := f.xftColor(dpy, r, g, b)
 
 	for _, run := range f.runsFor(s) {
 		cs := C.CString(run.text)
@@ -617,6 +640,10 @@ func (f *XftFont) Close() {
 	}
 	f.fallbackFonts = nil
 	f.fallbackOrder = nil
+	for _, c := range f.colors {
+		C.XftColorFree(dpy, f.visual, f.colormap, &c)
+	}
+	f.colors = nil
 	f.fontByRune = nil
 	for _, rf := range f.rotatedVariants {
 		if rf != nil {

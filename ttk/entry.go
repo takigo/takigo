@@ -158,6 +158,7 @@ func NewEntry(parent widget.Caregiver, name string, opts ...EntryOption) *Entry 
 	app := parent.AppContext()
 	win := window.NewChildWindow(parent.Window(), name, 0, 0, 1, 1)
 	window.MakeWindowExist(win)
+	win.Flags |= window.FlagFocusable // ttk::takefocus accepts it
 
 	e := &Entry{
 		Justify:      option.JustifyLeft,

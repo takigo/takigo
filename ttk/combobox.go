@@ -84,6 +84,7 @@ func NewCombobox(parent widget.Caregiver, name string, opts ...ComboboxOption) *
 	app := parent.AppContext()
 	win := window.NewChildWindow(parent.Window(), name, 0, 0, 1, 1)
 	window.MakeWindowExist(win)
+	win.Flags |= window.FlagFocusable // ttk::takefocus accepts it
 
 	c := &Combobox{
 		arrowWidth: 20,
@@ -603,7 +604,7 @@ func bindCombobox(c *Combobox, app widget.AppContext) {
 				// Clicked entry area: take X11 focus, position cursor at click.
 				// SetInputFocus alone is not enough: if X11 focus never left (because
 				// the previous click was on a non-focusable widget), no FocusIn fires.
-				app.Server().SetInputFocus(win.PlatformID, platform.RevertToParent, platform.CurrentTime)
+				widget.Focus(app, win)
 				c.State |= StateFocus
 				c.edit.SelAnchor = c.edit.ClosestGap(ev.X)
 				c.edit.InsertPos = c.edit.SelAnchor
