@@ -240,7 +240,7 @@ func NewPeer(doc *Document, parent widget.Caregiver, name string, opts ...TextOp
 
 	t.undoStack = NewUndoStack(0)
 	t.layout.init(t)
-	doc.Listeners = append(doc.Listeners, t.layout.apply)
+	unsubLayout := doc.Subscribe(t.layout.apply)
 
 	for _, opt := range opts {
 		opt(t)
@@ -259,10 +259,15 @@ func NewPeer(doc *Document, parent widget.Caregiver, name string, opts ...TextOp
 	w.SetCursor(uint(cursor.XTerm))
 	bindText(t, app)
 
-	// Register as a document listener so edits from other peers trigger a redraw.
-	doc.Listeners = append(doc.Listeners, func(Change) {
+	// Register as a document listener so edits from other peers trigger a
+	// redraw; the peer stops listening when destroyed.
+	unsubRedraw := doc.Subscribe(func(Change) {
 		t.notifyYScrollbar()
 		t.scheduleRedraw()
+	})
+	w.OnDestroy(func() {
+		unsubLayout()
+		unsubRedraw()
 	})
 
 	return t
@@ -587,10 +592,17 @@ func (t *TextWidget) Destroy() {
 		return
 	}
 	t.Destroyed = true
+	d := t.Win.Display.Server
 	if t.pixmap != 0 {
-		t.Win.Display.Server.FreePixmap(t.pixmap)
+		d.FreePixmap(t.pixmap)
 		t.pixmap = 0
 	}
+	for _, pm := range t.stippleCache {
+		if pm != 0 {
+			d.FreePixmap(pm)
+		}
+	}
+	t.stippleCache = nil
 	window.DestroyWindow(t.Win)
 }
 

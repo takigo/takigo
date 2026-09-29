@@ -386,3 +386,25 @@ func TestWrapLineBreaksAtWords(t *testing.T) {
 		}
 	}
 }
+
+func TestSubscribeUnsubscribe(t *testing.T) {
+	doc := docWithText("abc")
+	calls := 0
+	unsub := doc.Subscribe(func(Change) { calls++ })
+	doc.Insert(Index{1, 0}, "x")
+	unsub()
+	unsub()
+	doc.Insert(Index{1, 0}, "y")
+	if calls != 1 {
+		t.Errorf("listener ran %d times, want 1 (before unsubscribing)", calls)
+	}
+}
+
+func TestSelLastIsEndOfLastRange(t *testing.T) {
+	doc := docWithText("abcdefghij")
+	doc.TagAdd("sel", Index{1, 1}, Index{1, 3})
+	doc.TagAdd("sel", Index{1, 6}, Index{1, 8})
+	if got, ok := ParseIndex(doc, "sel.last"); !ok || got != (Index{1, 8}) {
+		t.Errorf("sel.last = %v, %v; want 1.8", got, ok)
+	}
+}
