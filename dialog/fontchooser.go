@@ -6,6 +6,7 @@ import (
 	"github.com/msorc/takigo/font"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/widget"
+	"github.com/msorc/takigo/widget/checkbutton"
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
 	"github.com/msorc/takigo/widget/listbox"
@@ -95,17 +96,24 @@ func ChooseFont(parent widget.Caregiver, opts ...FontOption) (string, bool) {
 	)
 	pack.Pack(sizeList, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
-	// Style labels (toggle bold/italic by clicking).
+	// Style toggles, the checkbuttons of library/fontchooser.tcl.
 	styleFrame := newFrame(d.Content, "styleframe")
 	pack.Pack(styleFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(5))
 
-	boldLabel := label.New(styleFrame, "bold",
-		label.Text("Bold"), label.PadX(10))
-	pack.Pack(boldLabel, pack.SideOpt(pack.Left), pack.PadX(5))
-
-	italicLabel := label.New(styleFrame, "italic",
-		label.Text("Italic"), label.PadX(10))
-	pack.Pack(italicLabel, pack.SideOpt(pack.Left), pack.PadX(5))
+	boolVar := func(on bool) *widget.Variable[string] {
+		if on {
+			return widget.NewVariable("1")
+		}
+		return widget.NewVariable("0")
+	}
+	boldVar, italicVar := boolVar(selectedBold), boolVar(selectedItalic)
+	var updatePreview func()
+	boldCheck := checkbutton.New(styleFrame, "bold", checkbutton.Text("Bold"),
+		checkbutton.Var(boldVar), checkbutton.Command(func() { updatePreview() }))
+	pack.Pack(boldCheck, pack.SideOpt(pack.Left), pack.PadX(5))
+	italicCheck := checkbutton.New(styleFrame, "italic", checkbutton.Text("Italic"),
+		checkbutton.Var(italicVar), checkbutton.Command(func() { updatePreview() }))
+	pack.Pack(italicCheck, pack.SideOpt(pack.Left), pack.PadX(5))
 
 	// Preview label.
 	previewFrame := newFrame(d.Content, "previewframe",
@@ -137,12 +145,28 @@ func ChooseFont(parent widget.Caregiver, opts ...FontOption) (string, bool) {
 		}
 	}
 
-	// Suppress unused variable warnings.
-	_ = familyLabel
-	_ = sizeLabel
-	_ = boldLabel
-	_ = italicLabel
-	_ = previewLabel
+	// descriptor builds the font from the current selections.
+	descriptor := func() string {
+		if sel := familyList.Selection(); len(sel) > 0 && sel[0] < len(families) {
+			selectedFamily = families[sel[0]]
+		}
+		if sel := sizeList.Selection(); len(sel) > 0 && sel[0] < len(sizes) {
+			selectedSize = sizes[sel[0]]
+		}
+		desc := "{" + selectedFamily + "} " + selectedSize
+		if boldVar.Get() == "1" {
+			desc += " bold"
+		}
+		if italicVar.Get() == "1" {
+			desc += " italic"
+		}
+		return desc
+	}
+	// The sample shows the chosen font, as the chooser's preview does.
+	updatePreview = func() { previewLabel.Apply(label.FontOpt(descriptor())) }
+	familyList.SelectCmd = updatePreview
+	sizeList.SelectCmd = updatePreview
+	updatePreview()
 
 	// Buttons.
 	addButtons(d, []dialogButton{
@@ -152,24 +176,7 @@ func ChooseFont(parent widget.Caregiver, opts ...FontOption) (string, bool) {
 
 	result := d.Run()
 	if result == ResultOK {
-		// Build font descriptor from selections.
-		famSel := familyList.Selection()
-		if len(famSel) > 0 && famSel[0] < len(families) {
-			selectedFamily = families[famSel[0]]
-		}
-		sizeSel := sizeList.Selection()
-		if len(sizeSel) > 0 && sizeSel[0] < len(sizes) {
-			selectedSize = sizes[sizeSel[0]]
-		}
-
-		desc := selectedFamily + " " + selectedSize
-		if selectedBold {
-			desc += " bold"
-		}
-		if selectedItalic {
-			desc += " italic"
-		}
-		return desc, true
+		return descriptor(), true
 	}
 	return "", false
 }
