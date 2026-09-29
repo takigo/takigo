@@ -101,34 +101,20 @@ func NewButton(parent widget.Caregiver, name string, opts ...ButtonOption) *Butt
 	// Buttons are focusable via Tab traversal.
 	win.Flags |= window.FlagFocusable
 
-	InitTtkWidget(&b.TtkWidget, win, app, "TButton")
-
-	// Bind label element to this widget.
-	if b.Theme != nil {
-		labelFactory := NewLabelElementFactory(b)
-		b.LabelFactory = labelFactory
-		tmpl := b.Theme.GetLayout("TButton")
-		if tmpl != nil {
-			ctx := &DrawContext{
-				Display: b.Context.Display,
-				Depth:   b.Context.Depth,
-				Style:   b.Context.Style,
-			}
-			b.Layout = newLayoutWithLabel(tmpl, b.Theme, ctx, b.Context.Style, labelFactory)
-			b.Context = ctx
-		}
-	}
+	initTtkBase(&b.TtkWidget, win, app, "TButton")
 
 	for _, opt := range opts {
 		opt(b)
 	}
 
-	// If style was overridden, rebuild layout with the new style.
-	if b.StyleName != "TButton" && b.Theme != nil {
-		style := b.Theme.ResolveStyle(b.StyleName)
-		b.setStyle(style)
-		style = b.Context.Style
+	// Build the layout once, for the final style, with the label element
+	// bound to this widget.
+	if b.Theme != nil {
+		if b.StyleName != "TButton" {
+			b.setStyle(b.Theme.ResolveStyle(b.StyleName))
+		}
 		labelFactory := NewLabelElementFactory(b)
+		b.LabelFactory = labelFactory
 		tmpl := b.Theme.GetLayout(b.StyleName)
 		if tmpl == nil {
 			tmpl = b.Theme.GetLayout("TButton")
@@ -137,9 +123,9 @@ func NewButton(parent widget.Caregiver, name string, opts ...ButtonOption) *Butt
 			ctx := &DrawContext{
 				Display: b.Context.Display,
 				Depth:   b.Context.Depth,
-				Style:   style,
+				Style:   b.Context.Style,
 			}
-			b.Layout = newLayoutWithLabel(tmpl, b.Theme, ctx, style, labelFactory)
+			b.Layout = newLayoutWithLabel(tmpl, b.Theme, ctx, ctx.Style, labelFactory)
 			b.Context = ctx
 		}
 	}
