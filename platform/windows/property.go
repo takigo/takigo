@@ -3,6 +3,7 @@
 package windows
 
 import (
+	"encoding/binary"
 	"sync"
 
 	w32 "github.com/msorc/takigo/internal/win32"
@@ -111,12 +112,9 @@ func (d *WindowsDisplay) ChangePropertyString(w platform.WindowID, property, typ
 
 func (d *WindowsDisplay) ChangePropertyAtoms(w platform.WindowID, prop platform.AtomID, atoms []platform.AtomID) {
 	// Store atom list as raw bytes.
-	data := make([]byte, len(atoms)*8)
+	data := make([]byte, len(atoms)*4)
 	for i, a := range atoms {
-		v := uint64(a)
-		for j := range 8 {
-			data[i*8+j] = byte(v >> (j * 8))
-		}
+		binary.NativeEndian.PutUint32(data[i*4:], uint32(a))
 	}
 	d.ChangeProperty(w, prop, d.atoms.Atom, 32, platform.PropModeReplace, data, len(atoms))
 }

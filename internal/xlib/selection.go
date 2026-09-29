@@ -9,7 +9,10 @@ package xlib
 #include <string.h>
 */
 import "C"
-import "unsafe"
+import (
+	"encoding/binary"
+	"unsafe"
+)
 
 // Predefined atoms for selections.
 const (
@@ -54,17 +57,26 @@ func (d *Display) GetWindowProperty(w Window, property Atom, offset, length int6
 	}
 	defer C.XFree(unsafe.Pointer(data))
 
-	size := int(nItems)
+	n := int(nItems)
+	var result []byte
 	switch int(actualFormat) {
-	case 16:
-		size *= 2
 	case 32:
-		size *= 4
-	}
-
-	result := make([]byte, size)
-	if size > 0 {
-		C.memcpy(unsafe.Pointer(&result[0]), unsafe.Pointer(data), C.size_t(size))
+		// Xlib stores format-32 items as C longs; return them packed
+		// as 4 bytes per item in native byte order.
+		longs := unsafe.Slice((*C.ulong)(unsafe.Pointer(data)), n)
+		result = make([]byte, n*4)
+		for i, v := range longs {
+			binary.NativeEndian.PutUint32(result[i*4:], uint32(v))
+		}
+	default:
+		size := n
+		if actualFormat == 16 {
+			size *= 2
+		}
+		result = make([]byte, size)
+		if size > 0 {
+			C.memcpy(unsafe.Pointer(&result[0]), unsafe.Pointer(data), C.size_t(size))
+		}
 	}
 	return result, Atom(actualType), int(actualFormat)
 }
