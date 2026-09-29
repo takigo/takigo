@@ -113,7 +113,7 @@ func (s *Spinbox) handleFocus(ev *event.Event) {
 func (s *Spinbox) handleButtonPress(ev *event.Event) {
 	if ev.Button == 1 {
 		app := s.App
-		app.Server().SetInputFocus(s.Win.PlatformID, platform.RevertToParent, platform.CurrentTime)
+		widget.Focus(app, s.Win)
 
 		btn := s.hitButton(ev.X, ev.Y)
 		if btn == "up" {

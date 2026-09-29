@@ -22,7 +22,7 @@ func bindEntry(e *Entry, app widget.AppContext) {
 		if ev.Button == 1 {
 			// Force focus so FocusIn fires even when the previous focus was
 			// on a non-focusable widget.
-			app.Server().SetInputFocus(win.PlatformID, platform.RevertToParent, platform.CurrentTime)
+			widget.Focus(app, win)
 			e.ChangeState(StateFocus, 0)
 
 			pos := e.edit.ClosestGap(ev.X)

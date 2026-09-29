@@ -423,6 +423,7 @@ type CrossingEvent struct {
 	X, Y        int
 	State       uint
 	Time        Time
+	Detail      int
 }
 
 // ParseCrossingEvent extracts crossing event data.
@@ -434,6 +435,7 @@ func (e *RawEvent) ParseCrossingEvent() CrossingEvent {
 		Y:           int(in.y),
 		State:       uint(in.state),
 		Time:        Time(in.time),
+		Detail:      int(in.detail),
 	}
 }
 

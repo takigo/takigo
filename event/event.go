@@ -34,7 +34,11 @@ type Event struct {
 
 	// Focus events
 	FocusMode   int // platform.FocusModeNormal etc.
-	FocusDetail int // platform.FocusDetailInferior etc.
+	FocusDetail int // platform.FocusDetailInferior etc.; the crossing detail for Enter/Leave
+	// Handled is set by a class handler that consumes the event, like a
+	// Tk binding script ending in break (Text's <Tab>), so the global
+	// handlers after it (focus traversal) leave it alone.
+	Handled bool
 
 	// Property events
 	Atom platform.AtomID
@@ -121,6 +125,7 @@ func FromRawEventIM(raw *platform.RawEvent, parser platform.EventParser, hasIM b
 		ev.Y = c.Y
 		ev.State = c.State
 		ev.Time = c.Time
+		ev.FocusDetail = c.Detail
 
 	case platform.FocusInEvent:
 		f := parser.ParseFocusEvent(raw)

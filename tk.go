@@ -127,14 +127,19 @@ func NewApp(opts ...AppOption) (*App, error) {
 				w.WmData.ConfigureNotify(ev.ConfigWidth, ev.ConfigHeight)
 			}
 		case event.FocusInType, event.FocusOutType:
-			// focus.Manager dispatches FocusOut/FocusIn itself when it
-			// moves the focus; the real pair X then reports is dropped so
-			// widgets see each change once (-validate focus ran twice).
-			if app.focusMgr != nil && app.focusMgr.SwallowEcho(ev) {
+			// Tk's focus model: the manager turns toplevel focus changes
+			// into FocusIn/FocusOut on its focus windows and drops the
+			// rest (TkFocusFilterEvent).
+			if app.focusMgr != nil && !app.focusMgr.FilterEvent(ev) {
 				ev.Type = 0
 			}
 		case event.KeyPressType, event.KeyReleaseType, event.ButtonPressType, event.ButtonReleaseType,
 			event.MotionType, event.EnterType, event.LeaveType:
+			// Keys go to the focus window (TkFocusKeyEvent), and leaving
+			// a toplevel can end an implicit focus.
+			if app.focusMgr != nil && (ev.Type == event.KeyPressType || ev.Type == event.KeyReleaseType || ev.Type == event.LeaveType) {
+				app.focusMgr.FilterEvent(ev)
+			}
 			// A local grab (tkGrab.c's TkPointerEvent) discards input
 			// for this application's windows outside the grab tree.
 			if app.grabMgr.Current() == nil {
@@ -217,22 +222,6 @@ func NewApp(opts ...AppOption) (*App, error) {
 		dispatcher.Unbind(w.PlatformID)
 		bindEng.UnregisterWindow(w)
 		focusMgr.HandleDestroyWindow(w)
-	})
-
-	// Route real X FocusIn events on toplevels to the focus manager.
-	// This marks the toplevel as viewable (WM has confirmed it), which
-	// allows SetInputFocus to be called safely on child widgets.
-	// Only process FocusIn (not FocusOut) to avoid interfering with
-	// synthetic FocusOut events dispatched internally by SetFocus.
-	dispatcher.BindGlobal(event.FocusChangeMask, func(ev *event.Event) {
-		if ev.Type != event.FocusInType {
-			return
-		}
-		w := d.LookupWindow(ev.Window)
-		if w == nil || !w.IsTopLevel() {
-			return
-		}
-		focusMgr.HandleFocusIn(w)
 	})
 
 	// Route WM protocol messages (WM_DELETE_WINDOW, _NET_WM_PING, etc.)

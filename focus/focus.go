@@ -33,11 +33,21 @@ type Manager struct {
 	// Callback invoked when focus changes (for widgets to redraw).
 	OnFocusChange func(lost, gained *window.Window)
 
-	// xFocus is the window SetFocus last gave the X input focus to.
-	// echoOut and echoIn are the real FocusOut/FocusIn X will report for
-	// that move; SwallowEcho drops them, since SetFocus already delivered
-	// the change (Tk generates its own focus events and ignores X's).
-	xFocus, echoOut, echoIn platform.WindowID
+	// As in Tk (tkFocus.c) the X input focus stays on toplevels: xFocus
+	// is the toplevel SetFocus last gave it to. Keys reaching a toplevel
+	// or its children are redirected to focusWin (FilterEvent).
+	xFocus platform.WindowID
+
+	// appLost is set once the application's last focused toplevel lost the
+	// X focus to another client; SetFocus then only records the widget,
+	// which gets the focus back when a toplevel is focused again (focus
+	// without -force).
+	appLost bool
+
+	// implicit is set while the application has the focus only because
+	// the X focus is PointerRoot and the pointer is over one of its
+	// toplevels (no window manager); it ends when the pointer leaves.
+	implicit bool
 }
 
 // NewManager creates a new focus manager.
@@ -60,106 +70,148 @@ func (m *Manager) FocusWindow() *window.Window {
 	return m.focusWin
 }
 
-// SetFocus moves focus to the given window.
+// SetFocus moves focus to the given window (Tk's focus command). The
+// window becomes its toplevel's focus; if the application has the focus
+// it gets FocusIn (and the old focus FocusOut) at once and the X focus
+// moves to its toplevel, otherwise it gets the focus when the toplevel is
+// next focused.
 func (m *Manager) SetFocus(w *window.Window) {
 	if w == nil || w.PlatformID == platform.WindowID(0) {
 		return
 	}
-
-	old := m.focusWin
-	if old == w {
-		return
-	}
-
-	// Update per-toplevel tracking.
 	tl := findToplevel(w)
 	if tl != nil {
 		m.toplevelFocus[tl] = w
 	}
+	if m.appLost {
+		return
+	}
+	m.moveTo(w)
+	m.claimX(tl)
+}
 
+// moveTo makes w the focus window, dispatching FocusOut to the old one and
+// FocusIn to w (GenerateFocusEvents).
+func (m *Manager) moveTo(w *window.Window) {
+	old := m.focusWin
+	if old == w {
+		return
+	}
 	m.focusWin = w
-
-	// Notify widgets of focus change.
 	if m.OnFocusChange != nil {
 		m.OnFocusChange(old, w)
 	}
-
-	// Generate FocusOut/FocusIn events.
-	if old != nil {
-		m.dispatcher.Dispatch(&event.Event{
-			Type:   event.FocusOutType,
-			Window: old.PlatformID,
-		})
+	if old != nil && old.PlatformID != 0 {
+		m.dispatcher.Dispatch(&event.Event{Type: event.FocusOutType, Window: old.PlatformID})
 	}
-	m.dispatcher.Dispatch(&event.Event{
-		Type:   event.FocusInType,
-		Window: w.PlatformID,
-	})
-
-	// Tell X to direct keyboard input to this widget's window.
-	// Only safe after a real X FocusIn has confirmed the toplevel is viewable;
-	// calling SetInputFocus before the WM maps the window causes BadMatch.
-	if tl != nil && m.toplevelReady[tl] && w.PlatformID != platform.WindowID(0) {
-		m.echoOut, m.echoIn = 0, w.PlatformID
-		if old != nil && old.PlatformID == m.xFocus {
-			m.echoOut = old.PlatformID
-		}
-		m.xFocus = w.PlatformID
-		m.display.SetInputFocus(w.PlatformID, platform.RevertToParent, platform.CurrentTime)
+	if w != nil {
+		m.dispatcher.Dispatch(&event.Event{Type: event.FocusInType, Window: w.PlatformID})
 	}
 }
 
-// SwallowEcho reports whether ev is the real X FocusOut or FocusIn that
-// merely echoes a focus move SetFocus already dispatched; each expected
-// event is swallowed once, and other focus events pass.
-func (m *Manager) SwallowEcho(ev *event.Event) bool {
-	if ev.FocusMode != platform.FocusModeNormal {
+// claimX gives the X focus to toplevel tl, once X has shown it viewable
+// (a FocusIn), unless the focus is implicit (focus follows the pointer).
+func (m *Manager) claimX(tl *window.Window) {
+	if tl == nil || tl.PlatformID == 0 || !m.toplevelReady[tl] || m.implicit || m.xFocus == tl.PlatformID {
+		return
+	}
+	m.xFocus = tl.PlatformID
+	m.display.SetInputFocus(tl.PlatformID, platform.RevertToParent, platform.CurrentTime)
+}
+
+// FilterEvent applies Tk's focus model to a real event before it is
+// dispatched (TkFocusFilterEvent, TkFocusKeyEvent) and reports whether to
+// dispatch it:
+//   - FocusIn/FocusOut on child windows are dropped; on toplevels they
+//     move the application focus and are replaced by FocusIn/FocusOut on
+//     the focus windows.
+//   - Leaving a toplevel ends an implicit (pointer) focus.
+//   - Key events go to the focus window, wherever X delivered them.
+func (m *Manager) FilterEvent(ev *event.Event) bool {
+	var w *window.Window
+	if m.winDisplay != nil {
+		w = m.winDisplay.LookupWindow(ev.Window)
+	}
+	if w == nil {
+		return true
+	}
+	switch ev.Type {
+	case event.FocusInType, event.FocusOutType:
+		if !w.IsTopLevel() || ev.FocusMode == platform.FocusModeGrab || ev.FocusMode == platform.FocusModeUngrab {
+			return false
+		}
+		switch ev.FocusDetail {
+		case platform.FocusDetailVirtual, platform.FocusDetailNonlinearVirtual,
+			platform.FocusDetailInferior, platform.FocusDetailPointerRoot:
+			return false
+		}
+		if ev.Type == event.FocusInType {
+			m.toplevelFocusIn(w, ev.FocusDetail == platform.FocusDetailPointer)
+		} else if ev.FocusDetail != platform.FocusDetailPointer {
+			// A FocusOut NotifyPointer comes with our own XSetInputFocus
+			// while the focus was implicit; the FocusIn that follows says
+			// where it went.
+			m.toplevelFocusOut(w)
+		}
 		return false
-	}
-	switch {
-	case ev.Type == event.FocusOutType && ev.Window != 0 && ev.Window == m.echoOut:
-		m.echoOut = 0
-		return true
-	case ev.Type == event.FocusInType && ev.Window != 0 && ev.Window == m.echoIn:
-		m.echoIn = 0
-		return true
-	}
-	return false
-}
-
-// HandleFocusIn processes a real X FocusIn event on a window.
-// It marks the toplevel as viewable (WM has mapped it) and restores
-// focus to the last focused widget within that toplevel.
-func (m *Manager) HandleFocusIn(w *window.Window) {
-	tl := findToplevel(w)
-	if tl == nil {
-		tl = w
-	}
-
-	// Mark toplevel as ready — X confirms it is now viewable.
-	m.toplevelReady[tl] = true
-
-	// Restore the remembered focus widget for this toplevel.
-	if remembered, ok := m.toplevelFocus[tl]; ok && remembered != nil {
-		m.SetFocus(remembered)
-	} else {
-		// Default to the toplevel itself.
-		m.SetFocus(tl)
-	}
-}
-
-// HandleFocusOut processes an X FocusOut event.
-func (m *Manager) HandleFocusOut(w *window.Window) {
-	if m.focusWin != nil {
-		old := m.focusWin
-		m.focusWin = nil
-		if m.OnFocusChange != nil {
-			m.OnFocusChange(old, nil)
+	case event.LeaveType:
+		if m.implicit && w.IsTopLevel() && ev.FocusDetail != platform.FocusDetailInferior {
+			m.toplevelFocusOut(w)
 		}
-		m.dispatcher.Dispatch(&event.Event{
-			Type:   event.FocusOutType,
-			Window: old.PlatformID,
-		})
+	case event.KeyPressType, event.KeyReleaseType:
+		target := m.focusWin
+		if target == nil {
+			target = m.toplevelFocus[findToplevel(w)]
+		}
+		if target != nil && target != w && target.PlatformID != 0 && !target.IsDestroyed() {
+			if ox, oy, tl := offsetInToplevel(w); tl != nil {
+				if tx, ty, ttl := offsetInToplevel(target); ttl == tl {
+					ev.X, ev.Y = ev.X+ox-tx, ev.Y+oy-ty
+				}
+			}
+			ev.Window = target.PlatformID
+		}
+	}
+	return true
+}
+
+// offsetInToplevel returns the position of w's interior within its
+// toplevel's, and the toplevel.
+func offsetInToplevel(w *window.Window) (x, y int, tl *window.Window) {
+	for ; w != nil && !w.IsTopLevel(); w = w.Parent {
+		x += w.X + w.BorderWidth
+		y += w.Y + w.BorderWidth
+	}
+	return x, y, w
+}
+
+// toplevelFocusIn handles the X focus arriving at toplevel tl: its
+// remembered focus window (or tl) becomes the focus.
+func (m *Manager) toplevelFocusIn(tl *window.Window, implicit bool) {
+	m.toplevelReady[tl] = true
+	m.appLost = false
+	m.implicit = implicit
+	if !implicit {
+		m.xFocus = tl.PlatformID
+	}
+	w := m.toplevelFocus[tl]
+	if w == nil || w.IsDestroyed() {
+		w = tl
+		m.toplevelFocus[tl] = tl
+	}
+	m.moveTo(w)
+}
+
+// toplevelFocusOut handles toplevel tl losing the X focus: if the focus
+// window is in tl it gets FocusOut and the application has no focus.
+func (m *Manager) toplevelFocusOut(tl *window.Window) {
+	m.implicit = false
+	if m.xFocus == tl.PlatformID {
+		m.xFocus = 0
+	}
+	if m.focusWin != nil && findToplevel(m.focusWin) == tl {
+		m.appLost = true
+		m.moveTo(nil)
 	}
 }
 
@@ -286,6 +338,9 @@ func (m *Manager) HandleDestroyWindow(w *window.Window) {
 // Uses a global binding so it works regardless of which widget has focus.
 func (m *Manager) BindTraversal(w *window.Window) {
 	m.dispatcher.BindGlobal(event.KeyPressMask, func(ev *event.Event) {
+		if ev.Handled {
+			return
+		}
 		// Look up the window that received the event so we can find
 		// the toplevel even when no widget has focus yet.
 		var eventWin *window.Window

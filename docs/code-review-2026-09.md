@@ -414,14 +414,14 @@ headless) scores every demo exactly as `master` does.
 | P5, P6, P8 | done | one XftDraw per display; ttk redraws queued at idle; canvas bitmaps via a depth-1 pixmap |
 | P7 | done | elements sized once per `Place`; theme values are still parsed per lookup |
 | P9 | unchanged | Tk's `DisplayFrame` also double-buffers; P1 makes it once per event burst |
-| 2.2 | mostly done | display-proc `Flush`, `seeIndex`, `Sequence.String`, Xft fallbacks, polyline copies, `InternAtom`, `Clipboard`, label line breaks, canvas `Delete` (1000 one by one: 1.80 → 0.22 ms), GDI pens/brushes/measuring DC, Cocoa GC/pixmap lookups without `NSNumber` boxing (Windows and Cocoa untested on their platforms); not done: menu measurement caching, per-descendant `XDestroyWindow` (Cocoa relies on it), grid allocations |
+| 2.2 | mostly done | display-proc `Flush`, `seeIndex`, `Sequence.String`, Xft fallbacks, polyline copies, `InternAtom`, `Clipboard`, label line breaks, canvas `Delete` (1000 one by one: 1.80 → 0.22 ms), GDI pens/brushes/measuring DC, Cocoa GC/pixmap lookups without `NSNumber` boxing (Windows and Cocoa untested on their platforms); menu measurements cached; not done: per-descendant `XDestroyWindow` (Cocoa relies on it), grid allocations |
 | 2.3 | done | colours and fonts shared per value, name indexes bounded; `Define` no longer closes live fonts; wm atoms live on `window.Display` |
 | B1–B3, B5–B9 | done | local grab via `App.GrabManager` in the event filter; focus echoes swallowed |
-| B4 | open | the focus rework (Tk-style internal focus with key redirection) remains |
+| B4 | done | Tk's model: X focus on toplevels, keys redirected to the focus widget, toplevel focus changes turned into FocusIn/FocusOut, implicit (pointer) focus without a WM; widgets, menus and dialogs go through `widget.Focus` |
 | W1–W17 | done | W6 honours `wm geometry` and records user resizes (ConfigureEvent); W11 keeps tab characters and lays them out to Tk's default tab stops |
 | C1–C8 | done | |
 | X1, X3, WN1–WN4 | done | WN* untested on Windows |
-| X2 | open | the colour cache assumes 0xRRGGBB TrueColor throughout; fixing `PutImageRGBA` alone would not help |
+| X2 | done | logical 0xRRGGBB pixels converted at the X11 boundary (visual masks, or XAllocColor cells on colormapped visuals); checked at depths 8, 16, 24, 30 |
 | Section 4 | partly | dead `canvas.displayFunc` removed, `NewButton` builds its layout once, widget/ttk tests run without cgo; the dead-API decisions (`gc/`, `Widget.Configure`, `BindEngine`, `config.Table`, toplevel/tearoff duplication) are left to the maintainers |
 
 `TestDamageRedrawMatchesFullRedraw` (canvas) fails intermittently when
