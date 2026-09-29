@@ -21,8 +21,7 @@ func (d *WindowsDisplay) FillRectangle(drawable platform.DrawableID, gc platform
 		return
 	}
 
-	brush := g.createBrush()
-	defer w32.DeleteObject(w32.HGDIOBJ(brush))
+	brush := g.getBrush()
 
 	if g.function != platform.GXcopy {
 		w32.SetROP2(hdc, gcROP2(g.function))
@@ -46,8 +45,7 @@ func (d *WindowsDisplay) DrawRectangle(drawable platform.DrawableID, gc platform
 		return
 	}
 
-	pen := g.createPen()
-	defer w32.DeleteObject(w32.HGDIOBJ(pen))
+	pen := g.getPen()
 	oldPen := w32.SelectObject(hdc, w32.HGDIOBJ(pen))
 	defer w32.SelectObject(hdc, oldPen)
 
@@ -72,8 +70,7 @@ func (d *WindowsDisplay) DrawLine(drawable platform.DrawableID, gc platform.GCID
 		return
 	}
 
-	pen := g.createPen()
-	defer w32.DeleteObject(w32.HGDIOBJ(pen))
+	pen := g.getPen()
 	oldPen := w32.SelectObject(hdc, w32.HGDIOBJ(pen))
 	defer w32.SelectObject(hdc, oldPen)
 
@@ -98,8 +95,7 @@ func (d *WindowsDisplay) DrawLines(drawable platform.DrawableID, gc platform.GCI
 		return
 	}
 
-	pen := g.createPen()
-	defer w32.DeleteObject(w32.HGDIOBJ(pen))
+	pen := g.getPen()
 	oldPen := w32.SelectObject(hdc, w32.HGDIOBJ(pen))
 	defer w32.SelectObject(hdc, oldPen)
 
@@ -138,8 +134,7 @@ func (d *WindowsDisplay) FillPolygon(drawable platform.DrawableID, gc platform.G
 		return
 	}
 
-	brush := g.createBrush()
-	defer w32.DeleteObject(w32.HGDIOBJ(brush))
+	brush := g.getBrush()
 	oldBrush := w32.SelectObject(hdc, w32.HGDIOBJ(brush))
 	defer w32.SelectObject(hdc, oldBrush)
 
@@ -177,8 +172,7 @@ func (d *WindowsDisplay) FillArc(drawable platform.DrawableID, gc platform.GCID,
 		return
 	}
 
-	brush := g.createBrush()
-	defer w32.DeleteObject(w32.HGDIOBJ(brush))
+	brush := g.getBrush()
 	oldBrush := w32.SelectObject(hdc, w32.HGDIOBJ(brush))
 	defer w32.SelectObject(hdc, oldBrush)
 
@@ -215,8 +209,7 @@ func (d *WindowsDisplay) DrawArc(drawable platform.DrawableID, gc platform.GCID,
 		return
 	}
 
-	pen := g.createPen()
-	defer w32.DeleteObject(w32.HGDIOBJ(pen))
+	pen := g.getPen()
 	oldPen := w32.SelectObject(hdc, w32.HGDIOBJ(pen))
 	defer w32.SelectObject(hdc, oldPen)
 
