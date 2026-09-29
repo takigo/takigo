@@ -321,12 +321,7 @@ func (p *packer) arrange() {
 			// for toplevels so the window manager adjusts the window size.
 			container.ReqWidth = maxWidth
 			container.ReqHeight = maxHeight
-			container.Width = maxWidth
-			container.Height = maxHeight
-			if container.PlatformID != platform.WindowID(0) {
-				container.Display.Server.ResizeWindow(container.PlatformID,
-					uint(maxWidth), uint(maxHeight))
-			}
+			window.ResizeToplevel(container, maxWidth, maxHeight)
 		} else {
 			geometry.GeometryRequest(container, maxWidth, maxHeight)
 		}

@@ -35,6 +35,9 @@ type WmInfo interface {
 	OnDeleteWindow(fn func())
 	OffDeleteWindow()
 	SetGeometry(geom string) error
+	// GeometryRequest returns the size the toplevel takes for a content
+	// request of reqW x reqH: the request, unless the user set a size.
+	GeometryRequest(reqW, reqH int) (w, h int)
 }
 
 // Window represents a single window in the takigo hierarchy.
@@ -199,6 +202,23 @@ var mappedHooks []func(*Window)
 
 // AddMappedHook registers fn to run whenever MarkMapped maps a window.
 func AddMappedHook(fn func(*Window)) { mappedHooks = append(mappedHooks, fn) }
+
+// ResizeToplevel gives toplevel w the size for a content request of
+// reqW x reqH, as Tk_GeometryRequest does through the window manager
+// code: a size set with wm geometry is kept.
+func ResizeToplevel(w *Window, reqW, reqH int) {
+	width, height := reqW, reqH
+	if w.WmData != nil {
+		width, height = w.WmData.GeometryRequest(reqW, reqH)
+	}
+	if width == w.Width && height == w.Height {
+		return
+	}
+	w.Width, w.Height = width, height
+	if w.PlatformID != 0 {
+		w.Display.Server.ResizeWindow(w.PlatformID, uint(width), uint(height))
+	}
+}
 
 // SyncBackground gives w's platform window its current BackgroundPixel
 // if that changed since the window was created: widgets pick their colour

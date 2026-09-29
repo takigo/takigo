@@ -305,3 +305,23 @@ func TestProtocols(t *testing.T) {
 		t.Error("default WM_DELETE_WINDOW did not destroy the window")
 	}
 }
+
+func (s *fakeServer) ResizeWindow(_ platform.WindowID, width, height uint) {
+	s.moves = append(s.moves, [4]int{-1, -1, int(width), int(height)})
+}
+
+func TestResizeToplevelKeepsUserGeometry(t *testing.T) {
+	info, _ := newToplevel(t)
+	w := info.Win
+	window.ResizeToplevel(w, 120, 80)
+	if w.Width != 120 || w.Height != 80 {
+		t.Fatalf("size without wm geometry = %dx%d, want the request 120x80", w.Width, w.Height)
+	}
+	if err := info.SetGeometry("300x200"); err != nil {
+		t.Fatal(err)
+	}
+	window.ResizeToplevel(w, 150, 90)
+	if w.Width != 300 || w.Height != 200 {
+		t.Errorf("size after wm geometry 300x200 = %dx%d, want it kept", w.Width, w.Height)
+	}
+}
