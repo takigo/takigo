@@ -1,4 +1,4 @@
-//go:build linux || freebsd || openbsd || netbsd
+//go:build (linux || freebsd || openbsd || netbsd) && cgo
 
 package takigo
 
