@@ -44,6 +44,9 @@ type X11Display struct {
 	// cgo call (and, past Xlib's small cache, a round trip).
 	atomMu    sync.Mutex
 	atomCache map[string]platform.AtomID
+
+	// pf maps takigo's logical 0xRRGGBB pixels to the visual's.
+	pf *pixelFormat
 }
 
 // NewDisplayServer opens an X11 display connection and returns a composed
@@ -55,6 +58,7 @@ func NewDisplayServer(name string) (platform.DisplayServer, font.FontOpener, err
 	}
 	core := &X11Display{
 		dpy: dpy,
+		pf:  newPixelFormat(dpy, dpy.DefaultScreen()),
 		atoms: &platform.Atoms{
 			WMName:        platform.AtomID(xlib.XA_WM_NAME),
 			String:        platform.AtomID(xlib.XA_STRING),
@@ -111,8 +115,11 @@ func (s *X11Display) ScreenWidth(screen int) int    { return s.dpy.ScreenWidth(s
 func (s *X11Display) ScreenHeight(screen int) int   { return s.dpy.ScreenHeight(screen) }
 func (s *X11Display) ScreenWidthMM(screen int) int  { return s.dpy.ScreenWidthMM(screen) }
 func (s *X11Display) ScreenHeightMM(screen int) int { return s.dpy.ScreenHeightMM(screen) }
-func (s *X11Display) WhitePixel(screen int) uint64  { return s.dpy.WhitePixel(screen) }
-func (s *X11Display) BlackPixel(screen int) uint64  { return s.dpy.BlackPixel(screen) }
+
+// WhitePixel and BlackPixel are logical pixels, like every pixel the
+// backend takes; see pixelFormat.
+func (s *X11Display) WhitePixel(screen int) uint64  { return 0xffffff }
+func (s *X11Display) BlackPixel(screen int) uint64  { return 0 }
 func (s *X11Display) ConnectionNumber() int         { return s.dpy.ConnectionNumber() }
 func (s *X11Display) Sync(discard bool)             { s.dpy.Sync(discard) }
 func (s *X11Display) Flush()                        { s.dpy.Flush() }
@@ -126,8 +133,8 @@ func (s *X11Display) CreateWindow(parent platform.WindowID, x, y int, width, hei
 	depth int, class uint, valueMask uint64, attrs *platform.WindowAttrs) platform.WindowID {
 
 	xattrs := &xlib.WindowAttributes{
-		BackgroundPixel:  attrs.BackgroundPixel,
-		BorderPixel:      attrs.BorderPixel,
+		BackgroundPixel:  s.pf.pixel(attrs.BackgroundPixel),
+		BorderPixel:      s.pf.pixel(attrs.BorderPixel),
 		BitGravity:       attrs.BitGravity,
 		EventMask:        attrs.EventMask,
 		OverrideRedirect: attrs.OverrideRedirect,
@@ -147,7 +154,8 @@ func (s *X11Display) CreateWindow(parent platform.WindowID, x, y int, width, hei
 }
 
 func (s *X11Display) CreateSimpleWindow(parent platform.WindowID, x, y int, width, height, borderWidth uint, border, background uint64) platform.WindowID {
-	return platform.WindowID(s.dpy.CreateSimpleWindow(xlib.Window(parent), x, y, width, height, borderWidth, border, background))
+	return platform.WindowID(s.dpy.CreateSimpleWindow(xlib.Window(parent), x, y, width, height, borderWidth,
+		s.pf.pixel(border), s.pf.pixel(background)))
 }
 
 func (s *X11Display) DestroyWindow(w platform.WindowID) {
@@ -215,7 +223,7 @@ func (s *X11Display) DrawArc(drawable platform.DrawableID, gc platform.GCID, x, 
 func (s *X11Display) ClearWindow(w platform.WindowID) { s.dpy.ClearWindow(xlib.Window(w)) }
 
 func (s *X11Display) SetWindowBackground(w platform.WindowID, pixel uint64) {
-	s.dpy.SetWindowBackground(xlib.Window(w), pixel)
+	s.dpy.SetWindowBackground(xlib.Window(w), s.pf.pixel(pixel))
 }
 
 func (s *X11Display) ClearArea(w platform.WindowID, x, y int, width, height uint, exposures bool) {
@@ -231,8 +239,33 @@ func (s *X11Display) PutImageRGBA(drawable platform.DrawableID, gc platform.GCID
 	srcX, srcY, dstX, dstY, w, h int, bgPixel uint64) {
 	screen := s.dpy.DefaultScreen()
 	visual := s.dpy.DefaultVisual(screen)
-	s.dpy.PutImageRGBA(xlib.Drawable(drawable), toXGC(gc), visual, depth,
-		rgbaData, stride, imgW, imgH, srcX, srcY, dstX, dstY, w, h, bgPixel)
+	if s.pf.identity {
+		s.dpy.PutImageRGBA(xlib.Drawable(drawable), toXGC(gc), visual, depth,
+			rgbaData, stride, imgW, imgH, srcX, srcY, dstX, dstY, w, h, bgPixel)
+		return
+	}
+	// Other visuals: composite over bgPixel as put_rgba_image does, then
+	// convert each colour to a visual pixel.
+	if w <= 0 || h <= 0 {
+		return
+	}
+	bg := [3]uint64{bgPixel >> 16 & 0xff, bgPixel >> 8 & 0xff, bgPixel & 0xff}
+	pixels := make([]uint64, w*h)
+	for y := range h {
+		for x := range w {
+			i := (srcY+y)*stride + (srcX+x)*4
+			if i+3 >= len(rgbaData) {
+				continue
+			}
+			a := uint64(rgbaData[i+3])
+			var c [3]uint64
+			for k := range c {
+				c[k] = min(uint64(rgbaData[i+k])+bg[k]*(255-a)/255, 255)
+			}
+			pixels[y*w+x] = s.pf.pixel(c[0]<<16 | c[1]<<8 | c[2])
+		}
+	}
+	s.dpy.PutPixels(xlib.Drawable(drawable), toXGC(gc), visual, depth, pixels, w, h, dstX, dstY)
 }
 
 func (s *X11Display) GetImageRGBA(drawable platform.DrawableID, x, y, w, h int) []byte {
@@ -248,8 +281,8 @@ func (s *X11Display) SetDashes(gc platform.GCID, dashOffset int, dashList []byte
 
 func (s *X11Display) CreateGC(drawable platform.DrawableID, valueMask uint64, values *platform.GCValues) platform.GCID {
 	xv := &xlib.GCValues{
-		Foreground: values.Foreground,
-		Background: values.Background,
+		Foreground: s.pf.pixel(values.Foreground),
+		Background: s.pf.pixel(values.Background),
 		LineWidth:  values.LineWidth,
 		Function:   values.Function,
 	}
@@ -258,10 +291,10 @@ func (s *X11Display) CreateGC(drawable platform.DrawableID, valueMask uint64, va
 
 func (s *X11Display) FreeGC(gc platform.GCID) { s.dpy.FreeGC(toXGC(gc)) }
 func (s *X11Display) SetForeground(gc platform.GCID, pixel uint64) {
-	s.dpy.SetForeground(toXGC(gc), pixel)
+	s.dpy.SetForeground(toXGC(gc), s.pf.pixel(pixel))
 }
 func (s *X11Display) SetBackground(gc platform.GCID, pixel uint64) {
-	s.dpy.SetBackground(toXGC(gc), pixel)
+	s.dpy.SetBackground(toXGC(gc), s.pf.pixel(pixel))
 }
 func (s *X11Display) SetLineAttributes(gc platform.GCID, lineWidth uint, lineStyle, capStyle, joinStyle int) {
 	s.dpy.SetLineAttributes(toXGC(gc), lineWidth, lineStyle, capStyle, joinStyle)
