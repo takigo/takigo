@@ -134,33 +134,43 @@ func showFileDialog(parent widget.Caregiver, cfg fileConfig) (string, bool) {
 
 	populateList()
 
-	// Double-click on listbox to navigate/select.
+	// Like tkfbox.tcl, a click (ListBrowse) puts a file's name in the
+	// entry and a double click (ListInvoke) opens a directory or accepts
+	// a file; a double click is a second press on the same item within
+	// Tk's 500ms.
+	var lastClickTime platform.Timestamp
+	lastClickIdx := -1
 	app.Dispatcher().Bind(fileList.Window().PlatformID, event.ButtonPressMask, func(ev *event.Event) {
 		if ev.Button != 1 {
 			return
 		}
-		// Check for double-click by looking at selection.
 		sel := fileList.Selection()
 		if len(sel) == 0 {
 			return
 		}
 		items := fileList.GetItems()
-		if sel[0] >= len(items) {
+		idx := sel[0]
+		if idx >= len(items) {
 			return
 		}
-		item := items[sel[0]]
-		if before, ok := strings.CutSuffix(item, "/"); ok {
-			// Directory — navigate.
-			dirName := before
+		double := idx == lastClickIdx && uint64(ev.Time-lastClickTime) < 500
+		lastClickTime, lastClickIdx = ev.Time, idx
+		item := items[idx]
+		dirName, isDir := strings.CutSuffix(item, "/")
+		switch {
+		case !isDir:
+			fnEntry.SetText(item)
+			if double {
+				d.Close(ResultOK)
+			}
+		case double:
+			lastClickIdx = -1
 			if dirName == ".." {
 				currentDir = filepath.Dir(currentDir)
 			} else {
 				currentDir = filepath.Join(currentDir, dirName)
 			}
 			populateList()
-		} else {
-			// File — put in entry.
-			fnEntry.SetText(item)
 		}
 	})
 
