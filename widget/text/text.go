@@ -396,7 +396,6 @@ func (t *TextWidget) Insert(index, txt string) {
 	if !ok {
 		return
 	}
-	txt = expandTabs(txt)
 	endIdx := t.doc.Insert(idx, txt)
 	if t.undoEnabled {
 		t.undoStack.RecordInsert(idx, endIdx, txt)
