@@ -96,7 +96,7 @@ func (t *TextWidget) handleFocus(ev *event.Event) {
 func (t *TextWidget) handleButtonPress(ev *event.Event) {
 	switch ev.Button {
 	case 1:
-		t.App.Server().SetInputFocus(t.Win.PlatformID, platform.RevertToParent, platform.CurrentTime)
+		widget.Focus(t.App, t.Win)
 		idx := t.indexFromPixel(ev.X, ev.Y)
 		// Fire tag Button-1 bindings before modifying selection.
 		if len(t.tagBindings) > 0 {
@@ -324,6 +324,7 @@ func (t *TextWidget) handleKeyPress(ev *event.Event) {
 		if t.readOnly {
 			return
 		}
+		ev.Handled = true // text.tcl's <Tab> ends in break: no traversal
 		t.deleteSelection()
 		// text.tcl binds <Tab> to insert a real tab character.
 		insertAt := t.doc.Marks["insert"].Pos

@@ -31,6 +31,7 @@ type Menubar struct {
 type barEntry struct {
 	label               string
 	underline           int
+	ulX, ulW            int // underline offset and width, set by layout
 	sub                 *Menu
 	x, y, width, height int
 }
@@ -89,6 +90,10 @@ func (mb *Menubar) geometry(maxWidth int) int {
 		e := &mb.entries[i]
 		// GetMenuIndicatorGeometry: a cascade's indicator space is -borderwidth.
 		e.width = mb.Font.MeasureString(e.label) + bw + 2*abw + 10
+		if runes := []rune(e.label); e.underline >= 0 && e.underline < len(runes) {
+			e.ulX = mb.Font.MeasureString(string(runes[:e.underline]))
+			e.ulW = mb.Font.MeasureString(string(runes[e.underline]))
+		}
 		e.height = ls + 1 + 2*abw + 10 // GetMenuLabelGeometry adds 1
 		if x+e.width+bw > maxWidth && i > rowStart {
 			place(rowStart, i)
@@ -187,8 +192,7 @@ func (mb *Menubar) display() {
 			df.DrawString(pix, left, baseline, e.label, fg, r, g, b)
 		}
 		if runes := []rune(e.label); e.underline >= 0 && e.underline < len(runes) {
-			ux := left + mb.Font.MeasureString(string(runes[:e.underline]))
-			uw := mb.Font.MeasureString(string(runes[e.underline]))
+			ux, uw := left+e.ulX, e.ulW
 			pos, uh := font.Underline(mb.Font)
 			d.SetForeground(gc, fg)
 			d.FillRectangle(pix, gc, ux, baseline+pos, uint(uw), uint(uh))

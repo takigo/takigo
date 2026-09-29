@@ -208,6 +208,14 @@ parent's manager's `RequestProc` re-runs the layout.
   "accelerator" modifiers as `ControlMask|platform.CommandMask`: Mod2 is
   Command on macOS but NumLock on X11 and Windows.
 
+- **Focus.** Take the keyboard focus with `widget.Focus(app, w)` (Tk's
+  `focus`), never `SetInputFocus`: as in Tk, the X focus stays on the
+  toplevel and `focus.Manager` redirects key events to the focus widget,
+  so a key handler receives keys only while its widget has the focus. A
+  class handler that consumes a key (Text's `<Tab>`) sets `ev.Handled` so
+  Tab traversal leaves it alone. Popups (menus, dropdowns) take the focus
+  on post and give it back on unpost.
+
 - **Redraws.** Classic widgets draw in a private `display()` registered
   with `Base.SetDisplayProc`; the exported `Display()` only calls
   `Base.EventuallyRedraw`, which coalesces requests into one idle-time

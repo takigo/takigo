@@ -127,6 +127,7 @@ func (p *X11EventParser) ParseCrossingEvent(ev *platform.RawEvent) platform.Cros
 		Y:           c.Y,
 		State:       c.State,
 		Time:        platform.Timestamp(c.Time),
+		Detail:      c.Detail,
 	}
 }
 

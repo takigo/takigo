@@ -45,6 +45,8 @@ type Dialog struct {
 	done        chan struct{}
 	closed      bool
 	returnBound bool
+	// defaultButton gets the focus while the dialog runs.
+	defaultButton *window.Window
 }
 
 // New creates a new dialog as a transient window over parent.
@@ -84,16 +86,33 @@ func New(parent widget.Caregiver, title string, minWidth, minHeight int) *Dialog
 	app.RegisterCloseHandler(d.Toplevel.Window().PlatformID, closeFn)
 
 	// Bind Escape to cancel.
-	app.Dispatcher().Bind(d.Toplevel.Window().PlatformID, event.KeyPressMask, func(ev *event.Event) {
-		if ev.KeySym == platform.XK_Escape {
-			d.Close(ResultCancel)
-		}
-	})
+	d.bindKey(platform.XK_Escape, func() { d.Close(ResultCancel) })
 
 	// Destroyed from elsewhere (its parent went away): end Run.
 	d.Toplevel.Window().OnDestroy(func() { d.finish(ResultCancel, false) })
 
 	return d
+}
+
+// bindKey runs fn for keysym pressed anywhere in the dialog, like Tk's
+// bind $w <Key> on the dialog toplevel: keys go to the focus widget, so
+// the handler matches on the toplevel of the event's window.
+func (d *Dialog) bindKey(keysym platform.KeySym, fn func()) {
+	tw := d.Toplevel.Window()
+	d.App.Dispatcher().BindGlobalFor(tw.PlatformID, event.KeyPressMask, func(ev *event.Event) {
+		if ev.KeySym != keysym {
+			return
+		}
+		for w := tw.Display.LookupWindow(ev.Window); w != nil; w = w.Parent {
+			if w == tw {
+				fn()
+				return
+			}
+			if w.IsTopLevel() {
+				return
+			}
+		}
+	})
 }
 
 // grabber is the App's optional grab support (takigo.App.GrabManager).
@@ -147,6 +166,20 @@ func (d *Dialog) Run() DialogResult {
 			}
 		}()
 	}
+
+	// tk::SetFocusGrab: the focus goes to the default button (or the
+	// dialog) while it runs, and back afterwards (RestoreFocusGrab).
+	oldFocus := widget.FocusWindow(d.App)
+	if d.defaultButton != nil {
+		widget.Focus(d.App, d.defaultButton)
+	} else {
+		widget.Focus(d.App, tw)
+	}
+	defer func() {
+		if oldFocus != nil && !oldFocus.IsDestroyed() {
+			widget.Focus(d.App, oldFocus)
+		}
+	}()
 
 	// Run a nested event loop until the dialog is closed.
 	d.App.RunNestedLoop(d.done)
@@ -249,11 +282,8 @@ func addButtons(d *Dialog, buttons []dialogButton) {
 		if b.isDefault && !d.returnBound {
 			d.returnBound = true
 			defResult := res
-			d.App.Dispatcher().Bind(d.Toplevel.Window().PlatformID, event.KeyPressMask, func(ev *event.Event) {
-				if ev.KeySym == platform.XK_Return {
-					d.Close(defResult)
-				}
-			})
+			d.defaultButton = btn.Window()
+			d.bindKey(platform.XK_Return, func() { d.Close(defResult) })
 		}
 	}
 }

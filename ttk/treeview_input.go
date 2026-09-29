@@ -158,7 +158,7 @@ func (tv *Treeview) handleLeave(ev *event.Event) {
 // handleButtonPress handles mouse button press events.
 func (tv *Treeview) handleButtonPress(ev *event.Event) {
 	// Take focus.
-	tv.App.Server().SetInputFocus(tv.Win.PlatformID, platform.RevertToParent, platform.CurrentTime)
+	widget.Focus(tv.App, tv.Win)
 
 	if ev.Button == 1 {
 		hit := tv.hitTest(ev.X-treeviewFieldBorder, ev.Y-treeviewFieldBorder)

@@ -42,13 +42,16 @@ static int get_rgba_image(Display *dpy, Drawable d, Visual *visual,
 	while (!((rm >> rs) & 1)) rs++;
 	while (!((gm >> gs) & 1)) gs++;
 	while (!((bm >> bs) & 1)) bs++;
+	// Channels may be narrower or wider than 8 bits (5-6-5, 10-10-10):
+	// scale each to 0..255.
+	unsigned long rmax = rm >> rs, gmax = gm >> gs, bmax = bm >> bs;
 	for (int j = 0; j < h; j++) {
 		for (int i = 0; i < w; i++) {
 			unsigned long p = XGetPixel(img, i, j);
 			unsigned char *o = out + (j * w + i) * 4;
-			o[0] = (p & rm) >> rs;
-			o[1] = (p & gm) >> gs;
-			o[2] = (p & bm) >> bs;
+			o[0] = (((p & rm) >> rs) * 255 + rmax / 2) / rmax;
+			o[1] = (((p & gm) >> gs) * 255 + gmax / 2) / gmax;
+			o[2] = (((p & bm) >> bs) * 255 + bmax / 2) / bmax;
 			o[3] = 255;
 		}
 	}

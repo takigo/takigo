@@ -73,6 +73,7 @@ type CrossingEvent struct {
 	X, Y        int
 	State       uint
 	Time        Timestamp
+	Detail      int // X NotifyAncestor..NotifyNonlinearVirtual (FocusDetail* values)
 }
 
 // DestroyEvent holds parsed destroy event data.
@@ -97,8 +98,13 @@ const (
 
 // Focus detail constants.
 const (
-	FocusDetailInferior = 2 // focus moved to a child window — not a real app focus-loss
-	FocusDetailPointer  = 5 // pointer-driven focus change (synthetic, can be ignored)
+	FocusDetailAncestor         = 0
+	FocusDetailVirtual          = 1
+	FocusDetailInferior         = 2 // focus moved to a child window — not a real app focus-loss
+	FocusDetailNonlinear        = 3
+	FocusDetailNonlinearVirtual = 4
+	FocusDetailPointer          = 5 // implicit focus: X focus is PointerRoot and the pointer is here
+	FocusDetailPointerRoot      = 6
 )
 
 // PropertyEvent holds parsed property event data.
