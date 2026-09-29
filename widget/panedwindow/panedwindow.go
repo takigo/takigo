@@ -545,6 +545,7 @@ func (pw *PanedWindow) placePanes() {
 		p.win.Y = paneY
 		p.win.Width = paneW
 		p.win.Height = paneH
+		window.SyncBackground(p.win)
 		d.MapWindow(p.win.PlatformID)
 		window.MarkMapped(p.win)
 

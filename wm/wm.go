@@ -360,6 +360,7 @@ func (info *WmInfo) Deiconify() {
 		Input:        true,
 		InitialState: platform.NormalState,
 	})
+	window.SyncBackground(w)
 	w.Display.Server.MapWindow(w.PlatformID)
 	window.MarkMapped(w)
 }

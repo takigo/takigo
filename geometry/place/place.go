@@ -328,6 +328,7 @@ func (p *placer) arrange() {
 			// Tk maps content only once its container is mapped; the
 			// container's MarkMapped re-arranges and maps it then.
 			if child.Flags&window.FlagMapped == 0 && window.ContainerViewable(container, child) {
+				window.SyncBackground(child)
 				container.Display.Server.MapWindow(child.PlatformID)
 				window.MarkMapped(child)
 			}
