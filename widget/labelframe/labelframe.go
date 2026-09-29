@@ -7,6 +7,7 @@ import (
 
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/event"
+	"github.com/msorc/takigo/geometry"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/screenunit"
@@ -92,7 +93,7 @@ func LabelAnchor(a option.Anchor) LabelframeOption {
 // The widget should be a child of the labelframe. When set, the widget
 // is positioned on the border where the text label would normally go.
 func LabelWidgetOpt(w widget.Widget) LabelframeOption {
-	return func(lf *Labelframe) { lf.LabelWidget = w }
+	return func(lf *Labelframe) { lf.manageLabel(w) }
 }
 
 // PadX sets internal horizontal padding.
@@ -454,12 +455,48 @@ func (lf *Labelframe) Configure(opts ...option.Option) {
 // SetLabelWidget sets a widget as the label after construction.
 // This is needed when the label widget is a child of the labelframe itself.
 func (lf *Labelframe) SetLabelWidget(w widget.Widget) {
+	lf.manageLabel(w)
+	lf.labelChanged()
+}
+
+// manageLabel makes w the label widget and the labelframe its geometry
+// manager, as tkFrame.c does with Tk_ManageGeometry, so the label's size
+// requests re-lay the labelframe out and its destruction drops it.
+func (lf *Labelframe) manageLabel(w widget.Widget) {
 	lf.LabelWidget = w
+	if w != nil {
+		geometry.ManageGeometry(w.Window(), &labelGeomMgr{lf})
+	}
+}
+
+// labelChanged recomputes the label space after the label changed.
+func (lf *Labelframe) labelChanged() {
 	lf.computeTextSize()
 	lf.updateInternalBorder()
 	lf.Display()
 	// Notify geometry manager that internal borders changed.
 	lf.Win.NotifyConfigure()
+}
+
+// labelGeomMgr manages a labelframe's -labelwidget (FrameRequestProc,
+// FrameLostContentProc).
+type labelGeomMgr struct{ lf *Labelframe }
+
+func (m *labelGeomMgr) Name() string { return "labelframe" }
+
+func (m *labelGeomMgr) RequestProc(content *window.Window) {
+	if lw := m.lf.LabelWidget; lw != nil && lw.Window() == content && !m.lf.Destroyed {
+		m.lf.labelChanged()
+	}
+}
+
+func (m *labelGeomMgr) LostContentProc(content *window.Window) {
+	if lw := m.lf.LabelWidget; lw != nil && lw.Window() == content {
+		m.lf.LabelWidget = nil
+		if !m.lf.Destroyed {
+			m.lf.labelChanged()
+		}
+	}
 }
 
 // Destroy cleans up the labelframe.

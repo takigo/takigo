@@ -4,11 +4,13 @@ import (
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/font"
+	"github.com/msorc/takigo/geometry"
 	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/window"
 	"math"
+	"slices"
 )
 
 // notebookTab holds information about a single notebook tab.
@@ -74,6 +76,10 @@ func (nb *Notebook) Add(pane *window.Window, text string) {
 		Underline: -1,
 	}
 	nb.tabs = append(nb.tabs, tab)
+	// The notebook manages its panes (ttkNotebook.c is a Ttk_Manager): a
+	// pane's size requests reach it, and a pane destroyed or taken over by
+	// another manager leaves its tab.
+	geometry.ManageGeometry(pane, &nbGeomMgr{nb})
 	nb.computeTabGeometry()
 	nb.updateReqSize()
 
@@ -86,6 +92,47 @@ func (nb *Notebook) Add(pane *window.Window, text string) {
 		pane.Flags &^= window.FlagMapped
 		nb.Display()
 	}
+}
+
+// nbGeomMgr is the geometry manager of a notebook's panes.
+type nbGeomMgr struct{ nb *Notebook }
+
+func (m *nbGeomMgr) Name() string { return "notebook" }
+
+// RequestProc resizes the notebook for a pane's new request and lays the
+// selected pane out again.
+func (m *nbGeomMgr) RequestProc(content *window.Window) {
+	nb := m.nb
+	nb.updateReqSize()
+	if nb.selected >= 0 && nb.selected < len(nb.tabs) && nb.tabs[nb.selected].Window == content {
+		nb.layoutPane(nb.tabs[nb.selected])
+	}
+}
+
+// LostContentProc removes the pane's tab (Ttk_ManagerLostContent →
+// NotebookRemoveTab).
+func (m *nbGeomMgr) LostContentProc(content *window.Window) {
+	nb := m.nb
+	i := slices.IndexFunc(nb.tabs, func(t notebookTab) bool { return t.Window == content })
+	if i < 0 {
+		return
+	}
+	nb.tabs = slices.Delete(nb.tabs, i, i+1)
+	if nb.Destroyed {
+		return
+	}
+	switch {
+	case len(nb.tabs) == 0:
+		nb.selected = -1
+	case i < nb.selected:
+		nb.selected--
+	case i == nb.selected:
+		nb.selected = -1
+		nb.Select(min(i, len(nb.tabs)-1))
+	}
+	nb.computeTabGeometry()
+	nb.updateReqSize()
+	nb.Display()
 }
 
 // updateReqSize computes the notebook's requested size from the maximum
