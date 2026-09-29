@@ -160,6 +160,9 @@ type XftFont struct {
 	fontByRune map[rune]*C.XftFont
 	// Set of opened fallback fonts (for cleanup in Close).
 	fallbackFonts map[*C.XftFont]bool
+	// fallbackOrder lists fallbackFonts in the order they were opened; a
+	// rune the primary font lacks is looked up in them before fontconfig.
+	fallbackOrder []*C.XftFont
 
 	// Glyph advance cache for MeasureString: asciiAdvance[r] is the width
 	// of ASCII rune r plus one (0 = not measured yet); advance holds the
@@ -342,15 +345,32 @@ func (f *XftFont) fontForRune(r rune) *C.XftFont {
 	if C.xft_char_exists(dpy, f.font, C.FcChar32(r)) != 0 {
 		chosen = f.font
 	} else {
+		// A fallback opened for an earlier rune often covers this one
+		// (a CJK paragraph), which is far cheaper than FcFontMatch.
+		for _, fb := range f.fallbackOrder {
+			if C.xft_char_exists(dpy, fb, C.FcChar32(r)) != 0 {
+				chosen = fb
+				break
+			}
+		}
+	}
+	if chosen == nil {
 		fb := C.find_fallback_font(dpy, f.screen, f.font.pattern, C.FcChar32(r))
-		if fb != nil {
+		switch {
+		case fb == nil:
+			chosen = f.font // no fallback; will draw a box
+		case f.fallbackFonts[fb]:
+			// Xft handed back a font already open here with one more
+			// reference; keep a single one.
+			C.XftFontClose(dpy, fb)
+			chosen = fb
+		default:
 			if f.fallbackFonts == nil {
 				f.fallbackFonts = make(map[*C.XftFont]bool)
 			}
 			f.fallbackFonts[fb] = true
+			f.fallbackOrder = append(f.fallbackOrder, fb)
 			chosen = fb
-		} else {
-			chosen = f.font // no fallback; will draw a box
 		}
 	}
 	f.fontByRune[r] = chosen
@@ -596,6 +616,7 @@ func (f *XftFont) Close() {
 		C.XftFontClose(dpy, fb)
 	}
 	f.fallbackFonts = nil
+	f.fallbackOrder = nil
 	f.fontByRune = nil
 	for _, rf := range f.rotatedVariants {
 		if rf != nil {
