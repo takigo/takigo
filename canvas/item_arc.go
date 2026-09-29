@@ -14,7 +14,7 @@ type ArcItem struct {
 	// Per-Display state for the outline stipple (see setLineAttrs).
 	drawable         platform.DrawableID
 	originX, originY int
-	stippleOff       func()
+	stippled         bool
 	coords           [4]float64 // bounding box of the ellipse
 	start            float64    // start angle in degrees
 	extent           float64    // angular extent in degrees
@@ -175,14 +175,14 @@ func (a *ArcItem) setLineAttrs(d platform.DisplayServer, gc platform.GCID) {
 		d.SetDashes(gc, 0, a.dash)
 	}
 	d.SetLineAttributes(gc, uint(a.outlineWidth), lineStyle, platform.CapButt, platform.JoinMiter)
-	a.stippleOff = a.canvas.stippleOn(d, a.drawable, gc, a.outlineStipple, a.originX, a.originY)
+	a.stippled = a.canvas.stippleOn(d, a.drawable, gc, a.outlineStipple, a.originX, a.originY)
 }
 
 func (a *ArcItem) resetLineAttrs(d platform.DisplayServer, gc platform.GCID) {
 	d.SetLineAttributes(gc, 1, platform.LineSolid, platform.CapButt, platform.JoinMiter)
-	if a.stippleOff != nil {
-		a.stippleOff()
-		a.stippleOff = nil
+	if a.stippled {
+		stippleOff(d, gc)
+		a.stippled = false
 	}
 }
 

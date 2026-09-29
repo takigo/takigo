@@ -128,6 +128,7 @@ func (b *ItemBase) RemoveTag(tag string) {
 type itemEntry struct {
 	id   int64
 	item Item
+	mark uint64 // last markEntries stamp (membership during list passes)
 }
 
 // drawableCoord ports Tk_CanvasDrawableCoords: canvas coordinate v minus the

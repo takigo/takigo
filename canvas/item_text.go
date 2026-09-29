@@ -24,6 +24,21 @@ type TextItem struct {
 	// Cursor state (for focus/edit support).
 	cursorPos int  // byte position in text (0 = before first char)
 	hasFocus  bool // true when this item has canvas keyboard focus
+
+	// lay is Tk's textPtr->textLayout: computed when the text, font, -width
+	// or -justify change (updateBBox), drawn as is by Display.
+	lay textLayout
+}
+
+// textLayout ports Tk_ComputeTextLayout for the item: lines broken at
+// newlines and -width, each split at tabs into segments with their x
+// offsets, the layout as wide as its widest line, and each line's x offset
+// for -justify.
+type textLayout struct {
+	lines []string
+	segs  [][]font.Segment
+	xs    []int
+	w, h  int
 }
 
 // InsertText inserts s at the given byte position and advances the cursor.
@@ -121,17 +136,24 @@ func (t *TextItem) Configure(opts []ItemOption) error {
 	return nil
 }
 
-// layout ports Tk_ComputeTextLayout for the item: lines broken at
-// newlines and -width, the layout as wide as its widest line, and each
-// line's x offset for -justify.
-func (t *TextItem) layout() (lines []string, xs []int, w, h int) {
-	lines = font.WrapLines(t.font, t.text, t.wrapLength)
+func (t *TextItem) relayout() {
+	t.lay = textLayout{}
+	if t.font == nil {
+		return
+	}
+	// Like Tk_ComputeTextLayout, an empty text is one empty line high, so
+	// the insertion cursor of an empty focused item has a height.
+	lines := font.WrapLines(t.font, t.text, t.wrapLength)
+	segs := make([][]font.Segment, len(lines))
 	widths := make([]int, len(lines))
+	w := 0
 	for i, l := range lines {
-		widths[i] = font.TextWidth(t.font, l)
+		segs[i] = font.Segments(t.font, l)
+		last := segs[i][len(segs[i])-1]
+		widths[i] = last.X + t.font.MeasureString(last.Text)
 		w = max(w, widths[i])
 	}
-	xs = make([]int, len(lines))
+	xs := make([]int, len(lines))
 	for i := range lines {
 		switch t.justify {
 		case option.JustifyCenter:
@@ -140,10 +162,18 @@ func (t *TextItem) layout() (lines []string, xs []int, w, h int) {
 			xs[i] = w - widths[i]
 		}
 	}
-	return lines, xs, w, len(lines) * t.font.Metrics().Linespace()
+	t.lay = textLayout{lines: lines, segs: segs, xs: xs, w: w,
+		h: len(lines) * t.font.Metrics().Linespace()}
 }
 
+// updateBBox recomputes the layout and the bounding box; Translate and
+// Scale, which change neither the text nor its font, only call computeBBox.
 func (t *TextItem) updateBBox() {
+	t.relayout()
+	t.computeBBox()
+}
+
+func (t *TextItem) computeBBox() {
 	if t.font == nil || len(t.text) == 0 {
 		t.X1 = int(t.x)
 		t.Y1 = int(t.y)
@@ -152,7 +182,7 @@ func (t *TextItem) updateBBox() {
 		return
 	}
 
-	_, _, textW, textH := t.layout()
+	textW, textH := t.lay.w, t.lay.h
 
 	ax, ay := anchorOffset(t.anchor, textW, textH)
 
@@ -203,10 +233,10 @@ func (t *TextItem) Display(d platform.DisplayServer, drawable platform.DrawableI
 	}
 
 	m := t.font.Metrics()
-	lines, xs, textW, textH := t.layout()
+	lines, xs := t.lay.lines, t.lay.xs
 	ls := m.Linespace()
 
-	ax, ay := anchorOffset(t.anchor, textW, textH)
+	ax, ay := anchorOffset(t.anchor, t.lay.w, t.lay.h)
 
 	if t.angle == 0 {
 		// DisplayCanvText: drawOrigin = (x, y) + anchor offset, rounded by
@@ -215,8 +245,8 @@ func (t *TextItem) Display(d platform.DisplayServer, drawable platform.DrawableI
 		drawY := drawableCoord(t.y+float64(ay), originY)
 
 		if df, ok := t.font.(platform.DrawableFont); ok {
-			for i, line := range lines {
-				for _, seg := range font.Segments(t.font, line) {
+			for i := range lines {
+				for _, seg := range t.lay.segs[i] {
 					if seg.Text != "" {
 						df.DrawString(drawable, drawX+xs[i]+seg.X, drawY+i*ls+m.Ascent,
 							seg.Text, t.color.Pixel, t.color.Red, t.color.Green, t.color.Blue)
@@ -278,13 +308,13 @@ func (t *TextItem) AreaOverlap(ax1, ay1, ax2, ay2 float64) int {
 func (t *TextItem) Scale(ox, oy, sx, sy float64) {
 	t.x = ox + (t.x-ox)*sx
 	t.y = oy + (t.y-oy)*sy
-	t.updateBBox()
+	t.computeBBox()
 }
 
 func (t *TextItem) Translate(dx, dy float64) {
 	t.x += dx
 	t.y += dy
-	t.updateBBox()
+	t.computeBBox()
 }
 
 func (t *TextItem) Delete(d platform.DisplayServer) {}
