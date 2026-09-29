@@ -18,6 +18,7 @@ type EventData struct {
 // binding associates a parsed pattern sequence with its handler.
 type binding struct {
 	seq     Sequence
+	key     string // seq.String(), computed once for matching on the hot path
 	handler HandlerFunc
 }
 
@@ -46,10 +47,10 @@ func NewBindingTable() *BindingTable {
 func (bt *BindingTable) Add(tag string, seq Sequence, handler HandlerFunc) {
 	bt.mu.Lock()
 	defer bt.mu.Unlock()
-	nb := binding{seq: seq, handler: handler}
-	list := bt.bindings[tag]
 	key := seq.String()
-	if i := slices.IndexFunc(list, func(b binding) bool { return b.seq.String() == key }); i >= 0 {
+	nb := binding{seq: seq, key: key, handler: handler}
+	list := bt.bindings[tag]
+	if i := slices.IndexFunc(list, func(b binding) bool { return b.key == key }); i >= 0 {
 		list = slices.Clone(list)
 		list[i] = nb
 		bt.bindings[tag] = list
@@ -67,7 +68,7 @@ func (bt *BindingTable) Remove(tag string, seq Sequence) {
 	target := seq.String()
 	var kept []binding
 	for _, b := range bt.bindings[tag] {
-		if b.seq.String() != target {
+		if b.key != target {
 			kept = append(kept, b)
 		}
 	}

@@ -39,6 +39,11 @@ type X11Display struct {
 
 	wakeMu  sync.Mutex
 	wakeWin platform.WindowID // hidden window that WakeEventReader sends to
+
+	// atomCache maps names to interned atoms so repeat lookups skip the
+	// cgo call (and, past Xlib's small cache, a round trip).
+	atomMu    sync.Mutex
+	atomCache map[string]platform.AtomID
 }
 
 // NewDisplayServer opens an X11 display connection and returns a composed
@@ -406,7 +411,19 @@ func (s *X11Display) FreeCursor(cursor platform.CursorID) { s.dpy.FreeCursor(xli
 // --- PropertyManager ---
 
 func (s *X11Display) InternAtom(name string, onlyIfExists bool) platform.AtomID {
-	return platform.AtomID(s.dpy.InternAtom(name, onlyIfExists))
+	s.atomMu.Lock()
+	defer s.atomMu.Unlock()
+	if a, ok := s.atomCache[name]; ok {
+		return a
+	}
+	a := platform.AtomID(s.dpy.InternAtom(name, onlyIfExists))
+	if a != 0 {
+		if s.atomCache == nil {
+			s.atomCache = make(map[string]platform.AtomID)
+		}
+		s.atomCache[name] = a
+	}
+	return a
 }
 
 func (s *X11Display) GetAtomName(atom platform.AtomID) string {

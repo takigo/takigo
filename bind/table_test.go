@@ -299,3 +299,25 @@ func TestLookupSnapshotSurvivesRebinding(t *testing.T) {
 		t.Errorf("table has %d bindings, want 2", got)
 	}
 }
+
+func TestUpdateClickState(t *testing.T) {
+	e := &Engine{}
+	click := func(typ event.Type, ms, x int) Modifier {
+		return e.updateClickState(&event.Event{Type: typ, Window: 1, Button: 1,
+			Time: platform.Timestamp(ms), RootX: x, RootY: 10})
+	}
+	press, release := event.ButtonPressType, event.ButtonReleaseType
+
+	if click(press, 1000, 10) != 0 || click(release, 1050, 10) != 0 {
+		t.Fatal("first click counted as a repeat")
+	}
+	if click(press, 1200, 12) != ModDouble {
+		t.Error("second nearby press is not a double click")
+	}
+	if click(release, 1250, 12) != ModDouble {
+		t.Error("second release is not a double click (<Double-ButtonRelease-1>)")
+	}
+	if click(press, 1400, 30) != 0 {
+		t.Error("a press 18px away continued the click count")
+	}
+}

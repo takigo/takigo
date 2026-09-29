@@ -366,19 +366,20 @@ func (a *App) BindEng() *bind.Engine {
 
 // Clipboard returns the application's clipboard manager.
 func (a *App) Clipboard() widget.ClipboardManager {
-	return &appClipboard{mgr: a.selMgr}
+	return appClipboard{mgr: a.selMgr}
 }
 
-// appClipboard adapts selection.Manager to widget.ClipboardManager.
+// appClipboard adapts selection.Manager to widget.ClipboardManager. It is
+// pointer-shaped, so returning it as an interface does not allocate.
 type appClipboard struct {
 	mgr *selection.Manager
 }
 
-func (c *appClipboard) Set(owner platform.WindowID, text string, time platform.Timestamp) {
+func (c appClipboard) Set(owner platform.WindowID, text string, time platform.Timestamp) {
 	c.mgr.OwnClipboard(owner, text, time)
 }
 
-func (c *appClipboard) Get(requestor platform.WindowID, time platform.Timestamp, callback func(string)) {
+func (c appClipboard) Get(requestor platform.WindowID, time platform.Timestamp, callback func(string)) {
 	c.mgr.RequestWithCallback(requestor, time, callback)
 }
 
