@@ -48,6 +48,11 @@ type LayoutNode struct {
 	Parcel   Box
 	Children *LayoutNode
 	Next     *LayoutNode
+
+	// Set by measure: the node's own size (element and children, without
+	// its siblings) and the element's padding.
+	w, h int
+	pad  Padding
 }
 
 // Layout holds the root of an instantiated layout tree.
@@ -88,29 +93,27 @@ func (l *Layout) Size(state State) (int, int) {
 	if l.Root == nil {
 		return 0, 0
 	}
-	return nodeSize(l.Root, state, 0)
+	return measure(l.Root, state, 0)
 }
 
-func nodeSize(n *LayoutNode, state State, depth int) (int, int) {
+// measure sizes n, its descendants and its following siblings bottom-up,
+// asking each element for its size once and recording every node's own
+// size, and returns the size of the sibling list that starts at n
+// (Ttk_NodeListSize). Place reuses the recorded sizes instead of sizing
+// each subtree again at every ancestor level.
+func measure(n *LayoutNode, state State, depth int) (int, int) {
 	if n == nil || depth > 1000 {
 		return 0, 0
 	}
-
-	// Element's own size and padding.
 	ew, eh, epad := n.Element.Size(state)
-	_ = ew
-	_ = eh
+	cw, ch := measure(n.Children, state, depth+1)
+	n.w = max(ew, cw) + epad.Width()
+	n.h = max(eh, ch) + epad.Height()
+	n.pad = epad
 
-	// Children size (packed sequentially).
-	cw, ch := childrenSize(n.Children, state, depth+1)
-
-	// Content size = max of element content and children.
-	w := max(ew, cw) + epad.Width()
-	h := max(eh, ch) + epad.Height()
-
-	// Accumulate siblings (Ttk_NodeListSize).
+	w, h := n.w, n.h
 	if n.Next != nil {
-		nw, nh := nodeSize(n.Next, state, depth)
+		nw, nh := measure(n.Next, state, depth)
 		switch {
 		case n.Flags&packSet == 0:
 			w, h = max(w, nw), max(h, nh)
@@ -122,15 +125,6 @@ func nodeSize(n *LayoutNode, state State, depth int) (int, int) {
 			h = max(h, nh)
 		}
 	}
-
-	return w, h
-}
-
-func childrenSize(n *LayoutNode, state State, depth int) (int, int) {
-	if n == nil || depth > 1000 {
-		return 0, 0
-	}
-	w, h := nodeSize(n, state, depth)
 	return w, h
 }
 
@@ -139,17 +133,13 @@ func (l *Layout) Place(state State, bounds Box) {
 	if l.Root == nil {
 		return
 	}
+	measure(l.Root, state, 0)
 	placeNodes(l.Root, state, bounds, 0)
 }
 
 func placeNodes(n *LayoutNode, state State, cavity Box, depth int) {
 	for cur := n; cur != nil; cur = cur.Next {
-		ew, eh, epad := cur.Element.Size(state)
-
-		// Children size for this node.
-		cw, ch := childrenSize(cur.Children, state, depth+1)
-		nodeW := max(ew, cw) + epad.Width()
-		nodeH := max(eh, ch) + epad.Height()
+		nodeW, nodeH, epad := cur.w, cur.h, cur.pad
 
 		// Determine pack side.
 		side := Side(cur.Flags & _packMask)
