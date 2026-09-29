@@ -212,9 +212,24 @@ func (t *TextWidget) wrapLine(lineIdx, availWidth, lm1, lm2, rm int) []displayLi
 		}
 
 		end := lineLen
-		w := t.measureRange(lineIdx, start, end)
 
-		if w <= ew {
+		// Find the last character end that fits: gallop from start for
+		// one that does not, then bisect, so a display line costs
+		// O(log n) measurements of about its own length rather than
+		// measuring the whole remainder of the logical line.
+		lo, hi := start, -1 // [start, lo) fits; [start, hi) does not
+		for step := 1; ; step *= 2 {
+			probe := min(start+step, end)
+			if t.measureRange(lineIdx, start, probe) > ew {
+				hi = probe
+				break
+			}
+			lo = probe
+			if probe == end {
+				break
+			}
+		}
+		if hi < 0 {
 			result = append(result, displayLine{
 				logicalLine: lineIdx,
 				startChar:   start,
@@ -225,19 +240,15 @@ func (t *TextWidget) wrapLine(lineIdx, availWidth, lm1, lm2, rm int) []displayLi
 			})
 			break
 		}
-
-		// Binary search for break point.
-		lo, hi := start+1, end
-		for lo < hi {
+		for hi-lo > 1 {
 			mid := (lo + hi) / 2
-			mw := t.measureRange(lineIdx, start, mid)
-			if mw <= ew {
-				lo = mid + 1
+			if t.measureRange(lineIdx, start, mid) <= ew {
+				lo = mid
 			} else {
 				hi = mid
 			}
 		}
-		breakAt := lo - 1
+		breakAt := lo
 		if breakAt <= start {
 			breakAt = start + 1
 		}

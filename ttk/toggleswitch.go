@@ -324,21 +324,6 @@ func (ts *Toggleswitch) Get() bool {
 func bindToggleswitch(ts *Toggleswitch, app widget.AppContext) {
 	win := ts.Win
 
-	app.Dispatcher().Bind(win.PlatformID, event.ExposureMask, func(ev *event.Event) {
-		if ev.ExposeCount > 0 {
-			return
-		}
-		ts.Display()
-	})
-
-	app.Dispatcher().Bind(win.PlatformID, event.StructureNotifyMask, func(ev *event.Event) {
-		if ev.Type == event.ConfigureType {
-			win.Width = ev.ConfigWidth
-			win.Height = ev.ConfigHeight
-			ts.Display()
-		}
-	})
-
 	app.Dispatcher().Bind(win.PlatformID, event.ButtonPressMask, func(ev *event.Event) {
 		if ev.Button == 1 {
 			ts.ChangeState(StatePressed, 0)

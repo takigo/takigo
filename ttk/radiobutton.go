@@ -298,38 +298,14 @@ func (r *Radiobutton) Select() {
 func bindTtkRadiobutton(r *Radiobutton, app widget.AppContext) {
 	win := r.Win
 
-	// Expose — override bindTtkCommon.
-	app.Dispatcher().Bind(win.PlatformID, event.ExposureMask, func(ev *event.Event) {
-		if ev.ExposeCount > 0 {
-			return
-		}
-		r.Display()
-	})
-
-	// Configure — override bindTtkCommon.
-	app.Dispatcher().Bind(win.PlatformID, event.StructureNotifyMask, func(ev *event.Event) {
-		if ev.Type == event.ConfigureType {
-			win.Width = ev.ConfigWidth
-			win.Height = ev.ConfigHeight
-			r.Display()
-		}
-	})
-
 	// Enter → set hover state and redraw.
 	app.Dispatcher().Bind(win.PlatformID, event.EnterMask, func(ev *event.Event) {
 		r.ChangeState(StateHover|StateActive, 0)
-		r.Display()
 	})
 
 	// Leave → clear hover state and redraw.
 	app.Dispatcher().Bind(win.PlatformID, event.LeaveMask, func(ev *event.Event) {
 		r.ChangeState(0, StateHover|StateActive|StatePressed)
-		r.Display()
-	})
-
-	// Focus → redraw to show/hide focus ring.
-	app.Dispatcher().Bind(win.PlatformID, event.FocusChangeMask, func(ev *event.Event) {
-		r.Display()
 	})
 
 	// Button1 press → +StatePressed.

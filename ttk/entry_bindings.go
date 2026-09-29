@@ -14,24 +14,6 @@ import (
 func bindEntry(e *Entry, app widget.AppContext) {
 	win := e.Win
 
-	// Expose.
-	app.Dispatcher().Bind(win.PlatformID, event.ExposureMask, func(ev *event.Event) {
-		if ev.ExposeCount > 0 {
-			return
-		}
-		e.Display()
-	})
-
-	// Configure (resize).
-	app.Dispatcher().Bind(win.PlatformID, event.StructureNotifyMask, func(ev *event.Event) {
-		if ev.Type == event.ConfigureType {
-			win.Width = ev.ConfigWidth
-			win.Height = ev.ConfigHeight
-			e.Display()
-			win.NotifyConfigure()
-		}
-	})
-
 	// Button1: position cursor. Shift extends selection. Double/triple select word/line.
 	app.Dispatcher().Bind(win.PlatformID, event.ButtonPressMask, func(ev *event.Event) {
 		if e.StateMode == EntryDisabled {

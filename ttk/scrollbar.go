@@ -287,24 +287,6 @@ func (s *Scrollbar) hitTest(x, y int) sbRegion {
 func bindTtkScrollbar(s *Scrollbar, app widget.AppContext) {
 	w := s.Win
 
-	// Expose — override bindTtkCommon's binding.
-	app.Dispatcher().Bind(w.PlatformID, event.ExposureMask, func(ev *event.Event) {
-		if ev.ExposeCount > 0 {
-			return
-		}
-		s.Display()
-	})
-
-	// Configure — override bindTtkCommon's binding.
-	app.Dispatcher().Bind(w.PlatformID, event.StructureNotifyMask, func(ev *event.Event) {
-		if ev.Type == event.ConfigureType {
-			w.Width = ev.ConfigWidth
-			w.Height = ev.ConfigHeight
-			s.computeGeometry()
-			s.Display()
-		}
-	})
-
 	// Button press.
 	app.Dispatcher().Bind(w.PlatformID, event.ButtonPressMask, func(ev *event.Event) {
 		// Mouse wheel.

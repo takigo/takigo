@@ -30,6 +30,7 @@ type TtkWidget struct {
 	pixmapW int
 	pixmapH int
 
+	// NeedRedraw is set while a redisplay is queued for idle time.
 	NeedRedraw bool
 	Destroyed  bool
 
@@ -54,6 +55,7 @@ func InitTtkWidget(w *TtkWidget, win *window.Window, app widget.AppContext, styl
 	if win.Class == "" {
 		win.Class = classForStyle(styleName)
 	}
+	bindTtkCommon(w, app)
 
 	if w.Theme == nil {
 		return
@@ -86,8 +88,6 @@ func InitTtkWidget(w *TtkWidget, win *window.Window, app widget.AppContext, styl
 			win.ReqHeight = rh
 		}
 	}
-
-	bindTtkCommon(w, app)
 }
 
 // Display renders the widget using double-buffered drawing.
@@ -144,11 +144,7 @@ func (w *TtkWidget) ChangeState(set, clear State) {
 	old := w.State
 	w.State = (w.State & ^clear) | set
 	if w.State != old {
-		if w.DisplayFunc != nil {
-			w.DisplayFunc()
-		} else {
-			w.Display()
-		}
+		w.redisplay()
 	}
 }
 
@@ -212,7 +208,27 @@ func (w *TtkWidget) AppContext() widget.AppContext {
 
 // redisplay draws with the concrete widget's DisplayFunc when it has one
 // (widgets without a layout, e.g. progressbar), else the layout display.
+// redisplay schedules one idle-time redraw, as TtkRedisplayWidget does, so
+// the Expose, Configure and state changes of one event burst draw once.
 func (w *TtkWidget) redisplay() {
+	if w.NeedRedraw || w.Destroyed {
+		return
+	}
+	if w.App == nil {
+		w.displayNow()
+		return
+	}
+	w.NeedRedraw = true
+	w.App.DoWhenIdle(func() {
+		w.NeedRedraw = false
+		if !w.Destroyed {
+			w.displayNow()
+		}
+	})
+}
+
+// displayNow draws with the concrete widget's Display.
+func (w *TtkWidget) displayNow() {
 	if w.DisplayFunc != nil {
 		w.DisplayFunc()
 		return
