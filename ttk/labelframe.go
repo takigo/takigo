@@ -2,6 +2,7 @@ package ttk
 
 import (
 	"github.com/msorc/takigo/font"
+	"github.com/msorc/takigo/geometry"
 	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/window"
@@ -32,17 +33,52 @@ func LabelframePadding(spec string) LabelframeOption {
 // LabelframeLabelWidget sets -labelwidget: a widget (usually a child of the
 // labelframe) shown in the label's place instead of -text.
 func LabelframeLabelWidget(w window.Windower) LabelframeOption {
-	return func(lf *Labelframe) { lf.LabelWidget = w.Window() }
+	return func(lf *Labelframe) { lf.manageLabel(w.Window()) }
 }
 
 // SetLabelWidget is "configure -labelwidget" after creation.
 func (lf *Labelframe) SetLabelWidget(w window.Windower) {
-	lf.LabelWidget = w.Window()
+	lf.manageLabel(w.Window())
+	lf.labelChanged()
+}
+
+// manageLabel makes w the label widget and, as ttkLabelframe.c does with
+// its Ttk_Manager, its geometry manager, so its size requests re-lay the
+// labelframe out and its destruction drops it.
+func (lf *Labelframe) manageLabel(w *window.Window) {
+	lf.LabelWidget = w
+	if w != nil {
+		geometry.ManageGeometry(w, &lfGeomMgr{lf})
+	}
+}
+
+// labelChanged recomputes the margins and request after the label changed.
+func (lf *Labelframe) labelChanged() {
 	lf.updateMargins()
 	if lf.Win.GeomManager != nil {
 		lf.Win.GeomManager.RequestProc(lf.Win)
 	}
 	lf.Display()
+}
+
+// lfGeomMgr manages a labelframe's -labelwidget.
+type lfGeomMgr struct{ lf *Labelframe }
+
+func (m *lfGeomMgr) Name() string { return "labelframe" }
+
+func (m *lfGeomMgr) RequestProc(content *window.Window) {
+	if m.lf.LabelWidget == content && !m.lf.Destroyed {
+		m.lf.labelChanged()
+	}
+}
+
+func (m *lfGeomMgr) LostContentProc(content *window.Window) {
+	if m.lf.LabelWidget == content {
+		m.lf.LabelWidget = nil
+		if !m.lf.Destroyed {
+			m.lf.labelChanged()
+		}
+	}
 }
 
 // LabelframeBorderWidth sets -borderwidth.
