@@ -560,7 +560,6 @@ func (s *Scale) display() {
 			d.DrawRectangle(pix, gc, i, i, uint(w.Width-1-2*i), uint(w.Height-1-2*i))
 		}
 	}
-	d.Flush()
 }
 
 type fontMetrics struct{ ascent, descent int }

@@ -367,7 +367,6 @@ func (t *TextWidget) display() {
 	// -highlightbackground).
 	t.DrawHighlightBorder(t.hasFocus, 0)
 
-	d.Flush()
 }
 
 // scheduleRedraw schedules a redraw via the idle loop.

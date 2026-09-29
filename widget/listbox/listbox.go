@@ -626,7 +626,6 @@ func (lb *Listbox) display() {
 				hl, hl, w.Width-2*hl, w.Height-2*hl, lb.BorderWidth, lb.Relief)
 		}
 		lb.DrawHighlightBorder(lb.HasFocus, 0)
-		d.Flush()
 	}()
 
 	if lb.Font == nil || lb.lineHeight <= 0 {
