@@ -351,21 +351,16 @@ func (d *WindowsDisplay) PutImageRGBA(drawable platform.DrawableID, gc platform.
 			di := dstRow + col*4
 			if si+3 < len(rgbaData) {
 				r, g, b, a := rgbaData[si], rgbaData[si+1], rgbaData[si+2], rgbaData[si+3]
-				if a == 0 {
-					// Transparent: use background.
-					bgR := byte(bgPixel >> 16)
-					bgG := byte(bgPixel >> 8)
-					bgB := byte(bgPixel)
-					dst[di+0] = bgB
-					dst[di+1] = bgG
-					dst[di+2] = bgR
-					dst[di+3] = 0xFF
-				} else {
-					dst[di+0] = b
-					dst[di+1] = g
-					dst[di+2] = r
-					dst[di+3] = a
-				}
+				// Composite over bgPixel like the X11 put_rgba_image: the
+				// data is premultiplied, so out = src + bg*(1-a). BitBlt
+				// ignores the alpha byte, so a partly transparent pixel
+				// must be blended here.
+				inv := uint32(255 - a)
+				blend := func(c, bg byte) byte { return byte(min(uint32(c)+uint32(bg)*inv/255, 255)) }
+				dst[di+0] = blend(b, byte(bgPixel))
+				dst[di+1] = blend(g, byte(bgPixel>>8))
+				dst[di+2] = blend(r, byte(bgPixel>>16))
+				dst[di+3] = 0xFF
 			}
 		}
 	}

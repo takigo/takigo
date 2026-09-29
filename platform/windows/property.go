@@ -13,10 +13,18 @@ import (
 // Per-window property storage for emulating X11 properties.
 type windowProperties struct {
 	mu         sync.Mutex
-	properties map[platform.AtomID][]byte
+	properties map[platform.AtomID]property
 	wmHints    *platform.WMHints
 	sizeHints  *platform.SizeHints
 	protocols  []platform.AtomID
+}
+
+// property is one emulated X property: its data, type and format (8, 16
+// or 32), which GetWindowProperty reports back as XGetWindowProperty does.
+type property struct {
+	data   []byte
+	typ    platform.AtomID
+	format int
 }
 
 var (
@@ -30,7 +38,7 @@ func getProps(w platform.WindowID) *windowProperties {
 	p := propsDB[w]
 	if p == nil {
 		p = &windowProperties{
-			properties: make(map[platform.AtomID][]byte),
+			properties: make(map[platform.AtomID]property),
 		}
 		propsDB[w] = p
 	}
@@ -101,8 +109,7 @@ func (d *WindowsDisplay) ChangeProperty(w platform.WindowID, prop, propType plat
 	format int, mode int, data []byte, nelements int) {
 	p := getProps(w)
 	p.mu.Lock()
-	p.properties[prop] = make([]byte, len(data))
-	copy(p.properties[prop], data)
+	p.properties[prop] = property{data: append([]byte(nil), data...), typ: propType, format: format}
 	p.mu.Unlock()
 }
 
@@ -125,7 +132,7 @@ func (d *WindowsDisplay) GetWindowProperty(w platform.WindowID, property platfor
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	data, ok := p.properties[property]
+	prop, ok := p.properties[property]
 	if !ok {
 		return nil, 0, 0
 	}
@@ -133,7 +140,7 @@ func (d *WindowsDisplay) GetWindowProperty(w platform.WindowID, property platfor
 	if shouldDelete {
 		delete(p.properties, property)
 	}
-	return data, d.atoms.String, 8
+	return prop.data, prop.typ, prop.format
 }
 
 func (d *WindowsDisplay) DeleteProperty(w platform.WindowID, prop platform.AtomID) {
