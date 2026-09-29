@@ -103,6 +103,9 @@ type windowInfo struct {
 	bgPixel    uint64
 	isOverride bool // override-redirect (popup)
 	isTopLevel bool // top-level window (parent was display root)
+	// cursor is the window's own cursor (DefineCursor); 0 inherits the
+	// parent's, as an X window with cursor None does.
+	cursor w32.HCURSOR
 }
 
 // NewDisplayServer initializes the Windows display and returns a composed
@@ -161,7 +164,7 @@ func NewDisplayServer(displayName string) (platform.DisplayServer, font.FontOpen
 		Style:         w32.CS_HREDRAW | w32.CS_VREDRAW | w32.CS_DBLCLKS,
 		LpfnWndProc:   w32.GetWndProcPtr(),
 		HInstance:     hInstance,
-		HCursor:       w32.LoadCursor(0, w32.MAKEINTRESOURCE(w32.IDC_ARROW)),
+		HCursor:       0, // per window, set on WM_SETCURSOR
 		HbrBackground: w32.HBRUSH(w32.GetStockObject(w32.WHITE_BRUSH)),
 		LpszClassName: className,
 	}

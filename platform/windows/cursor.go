@@ -36,9 +36,40 @@ func (d *WindowsDisplay) CreateFontCursor(shape uint) platform.CursorID {
 	return platform.CursorID(uintptr(hcursor))
 }
 
+// Cursors are per window: the window class is shared by every takigo
+// window, so setting its cursor changed the whole application. The window
+// procedure applies the cursor on WM_SETCURSOR, as tkWinPointer.c does.
 func (d *WindowsDisplay) DefineCursor(w platform.WindowID, cursorID platform.CursorID) {
-	hcursor := w32.HCURSOR(uintptr(cursorID))
-	w32.SetClassLongPtr(toHWND(w), w32.GCLP_HCURSOR, uintptr(hcursor))
+	d.setWindowCursor(toHWND(w), w32.HCURSOR(uintptr(cursorID)))
+}
+
+// setWindowCursor records hwnd's cursor and shows it at once if the
+// pointer is over hwnd.
+func (d *WindowsDisplay) setWindowCursor(hwnd w32.HWND, c w32.HCURSOR) {
+	d.windowMu.Lock()
+	if info := d.windowData[hwnd]; info != nil {
+		info.cursor = c
+	}
+	d.windowMu.Unlock()
+	if hwnd == d.hoverHWND {
+		w32.SetCursorFunc(d.cursorFor(hwnd))
+	}
+}
+
+// cursorFor returns the cursor for hwnd: its own, else the nearest
+// ancestor's, else the arrow.
+func (d *WindowsDisplay) cursorFor(hwnd w32.HWND) w32.HCURSOR {
+	d.windowMu.RLock()
+	defer d.windowMu.RUnlock()
+	for info := d.windowData[hwnd]; info != nil; info = d.windowData[info.parent] {
+		if info.cursor != 0 {
+			return info.cursor
+		}
+		if info.isTopLevel || info.parent == 0 {
+			break
+		}
+	}
+	return w32.LoadCursor(0, w32.MAKEINTRESOURCE(w32.IDC_ARROW))
 }
 
 func (d *WindowsDisplay) SetCursorShape(w platform.WindowID, shape uint) {
@@ -59,13 +90,11 @@ func (d *WindowsDisplay) SetCursorShape(w platform.WindowID, shape uint) {
 		d.cursorMu.Unlock()
 	}
 
-	w32.SetClassLongPtr(toHWND(w), w32.GCLP_HCURSOR, uintptr(hcursor))
+	d.setWindowCursor(toHWND(w), hcursor)
 }
 
 func (d *WindowsDisplay) UndefineCursor(w platform.WindowID) {
-	// Reset to default arrow cursor.
-	hcursor := w32.LoadCursor(0, w32.MAKEINTRESOURCE(w32.IDC_ARROW))
-	w32.SetClassLongPtr(toHWND(w), w32.GCLP_HCURSOR, uintptr(hcursor))
+	d.setWindowCursor(toHWND(w), 0)
 }
 
 func (d *WindowsDisplay) FreeCursor(cursorID platform.CursorID) {

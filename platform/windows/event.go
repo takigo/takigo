@@ -455,6 +455,10 @@ func (d *WindowsDisplay) wndProc(hwnd w32.HWND, msg uint32, wParam w32.WPARAM, l
 			EventType:   platform.DestroyNotifyEvent,
 			EventWindow: wid,
 		})
+		// Windows destroys children with their parent without a
+		// DestroyWindow call per child, and recycles HWNDs, so the
+		// per-window state goes here.
+		d.forgetWindow(hwnd)
 		return 0
 
 	case w32.WM_CLOSE:
@@ -487,6 +491,12 @@ func (d *WindowsDisplay) wndProc(hwnd w32.HWND, msg uint32, wParam w32.WPARAM, l
 			w32.DeleteObject(w32.HGDIOBJ(brush))
 		}
 		return 1
+
+	case w32.WM_SETCURSOR:
+		if w32.LOWORD(uintptr(lParam)) == w32.HTCLIENT {
+			w32.SetCursorFunc(d.cursorFor(hwnd))
+			return 1
+		}
 
 	case w32.WM_MOUSELEAVE:
 		if d.hoverHWND == hwnd {
