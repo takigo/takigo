@@ -2,6 +2,7 @@ package canvas
 
 import (
 	"log"
+	"slices"
 
 	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/draw"
@@ -22,6 +23,14 @@ type Canvas struct {
 	idMap    map[int64]*itemEntry
 	tagIndex map[string]map[int64]*itemEntry // tag name → item IDs for O(1) tag lookup
 	nextID   int64
+	markSeq  uint64 // last stamp handed out by markEntries
+
+	// Items that need placing in positionWindowItems.
+	nWindowItems int
+
+	// Scratch buffers reused by the item Display procs within one paint.
+	ptBuf    []platform.Point
+	coordBuf []float64
 
 	stipples map[string]platform.PixmapID // depth-1 pixmaps by bitmap spec
 
@@ -44,8 +53,9 @@ type Canvas struct {
 
 	// Item pick / events.
 	currentItem  *itemEntry
-	itemBindings map[string][]itemHandler
-	closeEnough  float64 // hit-test tolerance (default 1.0)
+	itemBindings map[string][]itemHandler // by tag
+	idBindings   map[int64][]itemHandler  // by item ID
+	closeEnough  float64                  // hit-test tolerance (default 1.0)
 
 	// Keyboard focus for text items.
 	focusItemID int64 // 0 = none
@@ -62,6 +72,36 @@ type Canvas struct {
 
 	// displayFunc is stored so ScheduleRedraw can call it.
 	displayFunc func()
+}
+
+// newCanvas returns a Canvas with its item bookkeeping initialised and no
+// window; New attaches the window and applies the options.
+func newCanvas() *Canvas {
+	return &Canvas{
+		idMap:        make(map[int64]*itemEntry),
+		tagIndex:     make(map[string]map[int64]*itemEntry),
+		nextID:       1,
+		itemBindings: make(map[string][]itemHandler),
+		idBindings:   make(map[int64][]itemHandler),
+		closeEnough:  1.0,
+	}
+}
+
+// markEntries stamps entries with a fresh mark so a pass over the display
+// list can test membership with a field compare instead of a set lookup.
+func (c *Canvas) markEntries(entries []*itemEntry) uint64 {
+	c.markSeq++
+	for _, e := range entries {
+		e.mark = c.markSeq
+	}
+	return c.markSeq
+}
+
+// scratchPoints returns n points for one item's Display proc; the next
+// call reuses the slice.
+func (c *Canvas) scratchPoints(n int) []platform.Point {
+	c.ptBuf = slices.Grow(c.ptBuf[:0], n)[:n]
+	return c.ptBuf
 }
 
 // CanvasOption configures a Canvas.
@@ -130,13 +170,7 @@ func New(parent widget.Caregiver, name string, opts ...CanvasOption) *Canvas {
 	w := window.NewChildWindow(parent.Window(), name, 0, 0, 1, 1)
 	window.MakeWindowExist(w)
 
-	c := &Canvas{
-		idMap:        make(map[int64]*itemEntry),
-		tagIndex:     make(map[string]map[int64]*itemEntry),
-		nextID:       1,
-		itemBindings: make(map[string][]itemHandler),
-		closeEnough:  1.0,
-	}
+	c := newCanvas()
 	widget.InitBase(&c.Base, w, app)
 	w.OnDestroy(c.Destroy)
 	w.Class = "Canvas"
@@ -292,7 +326,7 @@ func (c *Canvas) paint(x1, y1, x2, y2 int) {
 	// Draw items bottom to top.
 	for _, entry := range c.items {
 		item := entry.item
-		if base := itemBase(item); base != nil && base.State() == ItemStateHidden {
+		if item.State() == ItemStateHidden {
 			continue
 		}
 
@@ -312,7 +346,9 @@ func (c *Canvas) paint(x1, y1, x2, y2 int) {
 		x1-c.xOrigin+c.inset, y1-c.yOrigin+c.inset)
 
 	// Position embedded window items.
-	c.positionWindowItems()
+	if c.nWindowItems > 0 {
+		c.positionWindowItems()
+	}
 }
 
 // positionWindowItems maps and positions all embedded WindowItems relative to
@@ -475,6 +511,9 @@ func (c *Canvas) addItem(item Item) int64 {
 	entry := &itemEntry{id: id, item: item}
 	c.items = append(c.items, entry)
 	c.idMap[id] = entry
+	if _, ok := item.(*WindowItem); ok {
+		c.nWindowItems++
+	}
 
 	// Register initial tags in the index.
 	for _, tag := range base.Tags {
@@ -574,33 +613,23 @@ func (c *Canvas) Delete(tagOrID string) {
 
 	c.redrawItems(entries...)
 	d := c.Win.Display.Server
-	deleteSet := make(map[int64]bool, len(entries))
+	stamp := c.markEntries(entries)
 	for _, e := range entries {
-		deleteSet[e.id] = true
 		e.item.Delete(d)
 		delete(c.idMap, e.id)
-	}
-
-	// Remove from display list.
-	filtered := c.items[:0]
-	for _, e := range c.items {
-		if !deleteSet[e.id] {
-			filtered = append(filtered, e)
+		if _, ok := e.item.(*WindowItem); ok {
+			c.nWindowItems--
 		}
-	}
-	c.items = filtered
-
-	// Remove deleted items from tag index.
-	for _, e := range entries {
 		if base := itemBase(e.item); base != nil {
 			for _, tag := range base.Tags {
 				c.tagIndexRemove(tag, e.id)
 			}
 		}
 	}
+	c.items = slices.DeleteFunc(c.items, func(e *itemEntry) bool { return e.mark == stamp })
 
 	// Clear current item if deleted.
-	if c.currentItem != nil && deleteSet[c.currentItem.id] {
+	if c.currentItem != nil && c.currentItem.mark == stamp {
 		c.currentItem = nil
 	}
 }
@@ -637,24 +666,17 @@ func (c *Canvas) Raise(tagOrID string) {
 	if len(entries) == 0 {
 		return
 	}
-	moveSet := make(map[int64]bool, len(entries))
-	for _, e := range entries {
-		moveSet[e.id] = true
-	}
-
-	// In-place partition: kept items first, moved items appended at end.
-	n := len(c.items)
+	// In-place stable partition: kept items first, then entries, which
+	// resolve already returns in display order.
+	stamp := c.markEntries(entries)
 	j := 0
-	moved := make([]*itemEntry, 0, len(entries))
-	for i := range n {
-		if moveSet[c.items[i].id] {
-			moved = append(moved, c.items[i])
-		} else {
-			c.items[j] = c.items[i]
+	for _, e := range c.items {
+		if e.mark != stamp {
+			c.items[j] = e
 			j++
 		}
 	}
-	copy(c.items[j:], moved)
+	copy(c.items[j:], entries)
 	c.redrawItems(entries...)
 }
 
@@ -664,27 +686,17 @@ func (c *Canvas) Lower(tagOrID string) {
 	if len(entries) == 0 {
 		return
 	}
-	moveSet := make(map[int64]bool, len(entries))
-	for _, e := range entries {
-		moveSet[e.id] = true
-	}
-
-	// In-place partition: moved items first, kept items shifted right.
-	n := len(c.items)
-	j := n - 1
-	kept := make([]*itemEntry, 0, n-len(entries))
-	for i := n - 1; i >= 0; i-- {
-		if moveSet[c.items[i].id] {
-			c.items[j] = c.items[i]
+	// In-place stable partition from the back: kept items shifted right,
+	// then entries (in display order) at the front.
+	stamp := c.markEntries(entries)
+	j := len(c.items)
+	for _, e := range slices.Backward(c.items) {
+		if e.mark != stamp {
 			j--
-		} else {
-			kept = append(kept, c.items[i])
+			c.items[j] = e
 		}
 	}
-	// kept is in reverse order; copy reversed into the front.
-	for i, k := 0, len(kept)-1; k >= 0; i, k = i+1, k-1 {
-		c.items[i] = kept[k]
-	}
+	copy(c.items[:j], entries)
 	c.redrawItems(entries...)
 }
 

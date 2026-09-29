@@ -7,12 +7,13 @@ import (
 
 // stippleOn switches gc to FillStippled with the bitmap spec (a built-in
 // name or "@file.xbm") anchored at the canvas origin, as
-// Tk_CanvasSetStippleOrigin does. It returns a func that restores solid
-// fills; with an empty or unknown spec it does nothing.
+// Tk_CanvasSetStippleOrigin does, and reports whether it did; the caller
+// then restores solid fills with stippleOff. With an empty or unknown spec
+// it does nothing.
 func (c *Canvas) stippleOn(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID,
-	spec string, originX, originY int) func() {
+	spec string, originX, originY int) bool {
 	if spec == "" || c == nil {
-		return func() {}
+		return false
 	}
 	pm, ok := c.stipples[spec]
 	if !ok {
@@ -25,12 +26,17 @@ func (c *Canvas) stippleOn(d platform.DisplayServer, drawable platform.DrawableI
 		c.stipples[spec] = pm
 	}
 	if pm == 0 {
-		return func() {}
+		return false
 	}
 	d.SetStipple(gc, pm)
 	d.SetFillStyle(gc, platform.FillStippled)
 	d.SetTSOrigin(gc, -originX, -originY)
-	return func() { d.SetFillStyle(gc, platform.FillSolid) }
+	return true
+}
+
+// stippleOff restores solid fills after stippleOn returned true.
+func stippleOff(d platform.DisplayServer, gc platform.GCID) {
+	d.SetFillStyle(gc, platform.FillSolid)
 }
 
 // Stipple sets -stipple (fill stipple; the line stipple for line items).

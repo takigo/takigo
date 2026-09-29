@@ -40,6 +40,11 @@ func (c *Canvas) FindClosest(x, y, halo float64, start string) int64 {
 		if hidden(e) {
 			continue
 		}
+		// Like Tk's shrinking search box: only an item whose bounding box
+		// comes within best+halo of the point can tie or beat the closest.
+		if !bboxNear(e.item, x, y, best+halo) {
+			continue
+		}
 		if d := dist(e); d <= best {
 			closest, best = i, d
 		}
