@@ -1,7 +1,7 @@
 package text
 
 import (
-	"strings"
+	"slices"
 
 	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/draw"
@@ -10,29 +10,17 @@ import (
 	"github.com/msorc/takigo/platform"
 )
 
-// tabWidth is the number of spaces per tab stop.
-const tabWidth = 4
-
-// expandTabs replaces tab characters with spaces to align to tabWidth stops.
-func expandTabs(s string) string {
-	if !strings.ContainsRune(s, '\t') {
-		return s
+// tabAdvance ports SizeOfTab for the default tabs (no -tabs, tabular
+// style): the index'th tab of a display line (from 0) ends at stop
+// (index+1) × tabWidth average characters, where x is the width laid out
+// so far; a tab is never narrower than a space.
+func (t *TextWidget) tabAdvance(index, x int) int {
+	chars := t.tabWidth
+	if chars <= 0 {
+		chars = 8
 	}
-	var buf strings.Builder
-	col := 0
-	for _, r := range s {
-		if r == '\t' {
-			spaces := tabWidth - (col % tabWidth)
-			for range spaces {
-				buf.WriteByte(' ')
-			}
-			col += spaces
-		} else {
-			buf.WriteRune(r)
-			col++
-		}
-	}
-	return buf.String()
+	stop := max(t.Font.MeasureString("0")*chars, 1)
+	return max(stop*(index+1)-x, t.Font.MeasureString(" "))
 }
 
 // displayLine represents one visual line (possibly a fragment of a logical line).
@@ -53,6 +41,7 @@ type displayLine struct {
 // textSegment is a run of text with uniform style.
 type textSegment struct {
 	text       string
+	runes      int // characters covered (a tab or window draws no text)
 	x          int
 	width      int
 	fg         *color.Color
@@ -113,46 +102,46 @@ func (t *TextWidget) measureRange(lineIdx, startChar, endChar int) int {
 		return 0
 	}
 	line := t.doc.Lines[lineIdx-1]
+	text := line.Text[startChar:endChar]
 
-	// Collect embedded window positions in this range.
-	type winInfo struct {
-		char  int
-		width int
-	}
-	var wins []winInfo
+	// Embedded windows in this range, by character position.
+	var wins map[int]int
 	for _, ew := range t.embeddedWindows {
 		m, ok := t.doc.Marks[ew.markName]
-		if !ok || m.Pos.Line != lineIdx {
+		if !ok || m.Pos.Line != lineIdx || m.Pos.Char < startChar || m.Pos.Char >= endChar {
 			continue
 		}
-		if m.Pos.Char >= startChar && m.Pos.Char < endChar {
-			wins = append(wins, winInfo{char: m.Pos.Char, width: ew.win.ReqWidth + 2*ew.padX})
+		if wins == nil {
+			wins = map[int]int{}
 		}
+		wins[m.Pos.Char] = ew.win.ReqWidth + 2*ew.padX
+	}
+	if wins == nil && !slices.Contains(text, '\t') {
+		return t.Font.MeasureString(string(text))
 	}
 
-	if len(wins) == 0 {
-		return t.Font.MeasureString(string(line.Text[startChar:endChar]))
-	}
-
-	// Sort by position (insertion sort for small N).
-	for i := 1; i < len(wins); i++ {
-		for j := i; j > 0 && wins[j].char < wins[j-1].char; j-- {
-			wins[j], wins[j-1] = wins[j-1], wins[j]
+	// Tabs advance to their stop from the start of the range (the display
+	// line), windows take their own width, and the runs between are
+	// measured as text.
+	width, run, tabIdx := 0, startChar, -1
+	flush := func(end int) {
+		if end > run {
+			width += t.Font.MeasureString(string(line.Text[run:end]))
 		}
 	}
-
-	width := 0
-	pos := startChar
-	for _, wi := range wins {
-		if wi.char > pos {
-			width += t.Font.MeasureString(string(line.Text[pos:wi.char]))
+	for i := startChar; i < endChar; i++ {
+		if w, ok := wins[i]; ok {
+			flush(i)
+			width += w
+			run = i + 1
+		} else if line.Text[i] == '\t' {
+			flush(i)
+			tabIdx++
+			width += t.tabAdvance(tabIdx, width)
+			run = i + 1
 		}
-		width += wi.width
-		pos = wi.char + 1
 	}
-	if pos < endChar {
-		width += t.Font.MeasureString(string(line.Text[pos:endChar]))
-	}
+	flush(endChar)
 	return width
 }
 
@@ -460,7 +449,7 @@ func (t *TextWidget) segmentsForRange(lineIdx, startChar, endChar int) []textSeg
 	// Add breakpoints around embedded window placeholders so each
 	// placeholder rune becomes its own segment.
 	for i := 0; i < endChar-startChar; i++ {
-		if text[i] == runeEmbeddedWindow {
+		if text[i] == runeEmbeddedWindow || text[i] == '\t' {
 			breaks = append(breaks, i, i+1)
 		}
 	}
@@ -481,12 +470,20 @@ func (t *TextWidget) segmentsForRange(lineIdx, startChar, endChar int) []textSeg
 
 	// Build segments between breakpoints.
 	var segments []textSegment
-	x := 0
+	x, tabIdx := 0, -1
 	for i := 0; i < len(breaks)-1; i++ {
 		segStart := breaks[i]
 		segEnd := breaks[i+1]
 		segText := string(text[segStart:segEnd])
 		segWidth := t.Font.MeasureString(segText)
+		isTab := segEnd-segStart == 1 && text[segStart] == '\t'
+		if isTab {
+			// CharLayoutProc hands tabs to SizeOfTab: the chunk draws
+			// nothing and reaches the next tab stop.
+			tabIdx++
+			segWidth = t.tabAdvance(tabIdx, x)
+			segText = ""
+		}
 
 		// Handle embedded window placeholder: use window width, empty text.
 		if segEnd-segStart == 1 && text[segStart] == runeEmbeddedWindow {
@@ -525,7 +522,9 @@ func (t *TextWidget) segmentsForRange(lineIdx, startChar, endChar int) []textSeg
 			}
 			if tag.Font != nil {
 				f = tag.Font
-				segWidth = f.MeasureString(segText)
+				if !isTab && segText != "" {
+					segWidth = f.MeasureString(segText)
+				}
 			}
 			if tag.Underline {
 				underline = true
@@ -547,6 +546,7 @@ func (t *TextWidget) segmentsForRange(lineIdx, startChar, endChar int) []textSeg
 
 		segments = append(segments, textSegment{
 			text:       segText,
+			runes:      segEnd - segStart,
 			x:          x,
 			width:      segWidth,
 			fg:         fg,
@@ -732,8 +732,6 @@ func (t *TextWidget) drawSelectionHighlight(d platform.DisplayServer, gc platfor
 	}
 	segStartIdx := Index{Line: dl.logicalLine, Char: dl.startChar}
 	segEndIdx := Index{Line: dl.logicalLine, Char: dl.endChar}
-	lineText := t.doc.Lines[dl.logicalLine-1].Text
-
 	// The sel tag may hold several disjoint ranges; paint each part that
 	// falls on this display line.
 	for _, sr := range selRanges {
@@ -751,8 +749,8 @@ func (t *TextWidget) drawSelectionHighlight(d platform.DisplayServer, gc platfor
 		if hlStart >= hlEnd {
 			continue
 		}
-		hlStartX := xOffset + t.Font.MeasureString(string(lineText[dl.startChar:hlStart]))
-		hlEndX := xOffset + t.Font.MeasureString(string(lineText[dl.startChar:hlEnd]))
+		hlStartX := xOffset + t.measureRange(dl.logicalLine, dl.startChar, hlStart)
+		hlEndX := xOffset + t.measureRange(dl.logicalLine, dl.startChar, hlEnd)
 		d.SetForeground(gc, t.selBg.Pixel)
 		d.FillRectangle(drawable, gc, hlStartX, t.insetY+dl.y, uint(hlEndX-hlStartX), uint(dl.height))
 	}
@@ -868,6 +866,13 @@ func (t *TextWidget) indexFromPixel(x, y int) Index {
 			if xInContent <= seg.x {
 				return Index{Line: dl.logicalLine, Char: dl.startChar + runeOffset}
 			}
+			if len(segRunes) != seg.runes {
+				// A tab or embedded window: before or after it, by half.
+				if xInContent-seg.x >= seg.width/2 {
+					return Index{Line: dl.logicalLine, Char: dl.startChar + runeOffset + seg.runes}
+				}
+				return Index{Line: dl.logicalLine, Char: dl.startChar + runeOffset}
+			}
 			xInSeg := xInContent - seg.x
 			f := seg.font
 			if f == nil {
@@ -895,7 +900,7 @@ func (t *TextWidget) indexFromPixel(x, y int) Index {
 			}
 			return Index{Line: dl.logicalLine, Char: dl.startChar + runeOffset + charIdx}
 		}
-		runeOffset += len(segRunes)
+		runeOffset += seg.runes
 	}
 
 	return Index{Line: dl.logicalLine, Char: dl.endChar}
