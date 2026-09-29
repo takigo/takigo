@@ -187,7 +187,7 @@ func ParseIndex(doc *Document, spec string) (Index, bool) {
 	case "sel.last":
 		ranges := doc.TagRangesFor("sel")
 		if len(ranges) > 0 {
-			return ranges[0].End, true
+			return ranges[len(ranges)-1].End, true
 		}
 		return Index{}, false
 	}

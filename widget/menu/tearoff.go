@@ -4,6 +4,7 @@ import (
 	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/event"
+	"github.com/msorc/takigo/font"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/widget"
@@ -17,7 +18,7 @@ type TearoffWindow struct {
 	win         *window.Window
 	entries     []MenuEntry
 	font        interface{ platform.DrawableFont }
-	fontI       any // the actual font.Font
+	fontI       font.Font
 	app         widget.AppContext
 	entryHeight int
 	sepHeight   int
@@ -262,21 +263,10 @@ func (tw *TearoffWindow) display() {
 	}
 
 	df := tw.font
-	if df == nil {
-		d.Flush()
+	if df == nil || tw.fontI == nil {
 		return
 	}
-
-	// Get metrics from the font interface.
-	type metricsGetter interface {
-		Metrics() fontMetrics
-	}
-	mf, hasMf := tw.fontI.(metricsGetter)
-	if !hasMf {
-		d.Flush()
-		return
-	}
-	fm := mf.Metrics()
+	fm := tw.fontI.Metrics()
 	yPos := tw.borderWidth
 
 	for i, e := range tw.entries {
@@ -299,7 +289,7 @@ func (tw *TearoffWindow) display() {
 		}
 
 		textX := tw.borderWidth + 20
-		textY := yPos + (tw.entryHeight-fm.Linespace())/2 + fm.Ascent()
+		textY := yPos + (tw.entryHeight-fm.Linespace())/2 + fm.Ascent
 
 		var fgCol *color.ColorRef
 		if e.State == widget.StateDisabled {
@@ -331,22 +321,17 @@ func (tw *TearoffWindow) display() {
 				// Underline for keyboard mnemonic.
 				runes := []rune(e.Label)
 				if e.Underline >= 0 && e.Underline < len(runes) {
-					if ms, ok := tw.fontI.(interface{ MeasureString(string) int }); ok {
-						prefix := string(runes[:e.Underline])
-						ch := string(runes[e.Underline])
-						ulX := textX + ms.MeasureString(prefix)
-						ulW := ms.MeasureString(ch)
-						ulY := textY + 2
-						d.SetForeground(gc, fgCol.Pixel)
-						d.DrawLine(w.Drawable(), gc, ulX, ulY, ulX+ulW, ulY)
-					}
+					prefix := string(runes[:e.Underline])
+					ch := string(runes[e.Underline])
+					ulX := textX + tw.fontI.MeasureString(prefix)
+					ulW := tw.fontI.MeasureString(ch)
+					ulY := textY + 2
+					d.SetForeground(gc, fgCol.Pixel)
+					d.DrawLine(w.Drawable(), gc, ulX, ulY, ulX+ulW, ulY)
 				}
 			}
 			if e.AccelStr != "" {
-				accelW := 0
-				if ms, ok := tw.fontI.(interface{ MeasureString(string) int }); ok {
-					accelW = ms.MeasureString(e.AccelStr)
-				}
+				accelW := tw.fontI.MeasureString(e.AccelStr)
 				accelX := w.Width - tw.borderWidth - accelW - 8
 				df.DrawString(w.Drawable(), accelX, textY, e.AccelStr,
 					fgCol.Pixel, fgCol.Red, fgCol.Green, fgCol.Blue)
@@ -360,11 +345,4 @@ func (tw *TearoffWindow) display() {
 		yPos += tw.entryHeight
 	}
 
-	d.Flush()
-}
-
-// fontMetrics is a local alias to avoid importing the font package.
-type fontMetrics interface {
-	Linespace() int
-	Ascent() int
 }

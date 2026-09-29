@@ -41,6 +41,42 @@ type textLayout struct {
 	w, h  int
 }
 
+// cursorLine returns the display line holding the insertion cursor and
+// the cursor's byte offset in it. It walks the text as font.WrapLines
+// consumed it: a newline ends a paragraph, and the blanks at a wrap are
+// dropped (a cursor among them sits at the end of the line before).
+func (t *TextItem) cursorLine() (line, col int) {
+	lines := t.lay.lines
+	pos := 0
+	for i, l := range lines {
+		if i > 0 {
+			j := pos
+			for j < len(t.text) && (t.text[j] == ' ' || t.text[j] == '\t') {
+				j++
+			}
+			if pos < len(t.text) && t.text[pos] == '\n' {
+				pos++
+			} else if j < len(t.text) && t.text[j] == '\n' {
+				pos = j + 1
+			} else {
+				pos = j
+			}
+		}
+		if pos+len(l) > len(t.text) || t.text[pos:pos+len(l)] != l {
+			return 0, 0 // not the layout of this text; draw at the start
+		}
+		if next := pos + len(l); t.cursorPos <= next || i == len(lines)-1 {
+			if t.cursorPos < pos {
+				// Among the blanks dropped at the wrap before this line.
+				return max(i-1, 0), len(lines[max(i-1, 0)])
+			}
+			return i, min(t.cursorPos-pos, len(l))
+		}
+		pos += len(l)
+	}
+	return 0, 0
+}
+
 // InsertText inserts s at the given byte position and advances the cursor.
 func (t *TextItem) InsertText(pos int, s string) {
 	if pos < 0 {
@@ -255,14 +291,17 @@ func (t *TextItem) Display(d platform.DisplayServer, drawable platform.DrawableI
 			}
 		}
 
-		// Draw text cursor if focused.
+		// Draw text cursor if focused, on the display line holding it
+		// (DisplayCanvText via Tk_CharBbox).
 		if t.hasFocus {
-			cursorX := drawX
-			if t.cursorPos > 0 && t.cursorPos <= len(t.text) {
-				cursorX += t.font.MeasureString(t.text[:t.cursorPos])
+			li, col := t.cursorLine()
+			cursorX, cursorY := drawX, drawY
+			if li < len(lines) {
+				cursorX += xs[li] + font.TextWidth(t.font, lines[li][:col])
+				cursorY += li * ls
 			}
 			d.SetForeground(gc, t.color.Pixel)
-			d.FillRectangle(drawable, gc, cursorX, drawY, 2, uint(ls))
+			d.FillRectangle(drawable, gc, cursorX, cursorY, 2, uint(ls))
 		}
 		return
 	}

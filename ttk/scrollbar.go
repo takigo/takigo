@@ -143,10 +143,13 @@ func (s *Scrollbar) computeGeometry() {
 	}
 	box := s.arrowBox()
 	s.troughStart = sbTroughBorder + box
-	s.troughEnd = totalLen - sbTroughBorder - box
-	size := float64(s.troughEnd - s.troughStart - sbMinThumb)
+	s.troughEnd = max(totalLen-sbTroughBorder-box, s.troughStart)
+	// A bar too short for the minimum thumb gets a thumb filling the
+	// trough rather than a negative length.
+	size := float64(max(s.troughEnd-s.troughStart-sbMinThumb, 0))
 	s.thumbStart = s.troughStart + int(size*s.First)
-	s.thumbEnd = s.troughStart + int(size*s.Last) + sbMinThumb
+	s.thumbEnd = min(s.troughStart+int(size*s.Last)+sbMinThumb, s.troughEnd)
+	s.thumbStart = min(s.thumbStart, s.thumbEnd)
 }
 
 // Display draws the default theme's Horizontal/Vertical.Scrollbar layout:
@@ -188,6 +191,9 @@ func (s *Scrollbar) Display() {
 		return along, across, length, thick
 	}
 	thinRaised := func(x, y, bw, bh int) {
+		if bw <= 0 || bh <= 0 {
+			return
+		}
 		d.SetForeground(gc, bgColor)
 		d.FillRectangle(w.Drawable(), gc, x, y, uint(bw), uint(bh))
 		// DrawBorder with borderWidth 1: thinShadowColors[raised] = LITE, DARK.
@@ -280,24 +286,6 @@ func (s *Scrollbar) hitTest(x, y int) sbRegion {
 
 func bindTtkScrollbar(s *Scrollbar, app widget.AppContext) {
 	w := s.Win
-
-	// Expose — override bindTtkCommon's binding.
-	app.Dispatcher().Bind(w.PlatformID, event.ExposureMask, func(ev *event.Event) {
-		if ev.ExposeCount > 0 {
-			return
-		}
-		s.Display()
-	})
-
-	// Configure — override bindTtkCommon's binding.
-	app.Dispatcher().Bind(w.PlatformID, event.StructureNotifyMask, func(ev *event.Event) {
-		if ev.Type == event.ConfigureType {
-			w.Width = ev.ConfigWidth
-			w.Height = ev.ConfigHeight
-			s.computeGeometry()
-			s.Display()
-		}
-	})
 
 	// Button press.
 	app.Dispatcher().Bind(w.PlatformID, event.ButtonPressMask, func(ev *event.Event) {

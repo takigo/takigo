@@ -288,3 +288,41 @@ func TestLoopAfterCancel(t *testing.T) {
 		t.Error("cancel after the callback ran reported true")
 	}
 }
+
+func TestLoopIdleWaitsForQueuedEvents(t *testing.T) {
+	const n = 50
+	srv := newFakeServer()
+	d := NewDispatcher()
+	l := NewLoop(srv, nil, d)
+
+	var pending bool
+	handled, idleRuns := 0, 0
+	d.BindGlobal(StructureNotifyMask, func(ev *Event) {
+		if handled == 0 {
+			// Let the reader queue the rest before handling more.
+			deadline := time.Now().Add(2 * time.Second)
+			for len(l.eventCh) < n-1 && time.Now().Before(deadline) {
+				runtime.Gosched()
+			}
+		}
+		handled++
+		if !pending {
+			pending = true
+			l.DoWhenIdle(func() {
+				pending = false
+				idleRuns++
+				if handled == n {
+					l.Quit()
+				}
+			})
+		}
+	})
+	for i := range n {
+		srv.events <- mapEvent(i)
+	}
+	runLoop(t, l)()
+
+	if idleRuns != 1 {
+		t.Errorf("idle queue ran %d times for %d queued events, want 1", idleRuns, n)
+	}
+}

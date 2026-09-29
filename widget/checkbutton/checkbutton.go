@@ -299,7 +299,9 @@ func (c *Checkbutton) computeGeometry() {
 	}
 
 	inset := c.BorderWidth + c.HighlightWidth
-	img := c.activeImage()
+	// TkpComputeButtonGeometry sizes from -image alone; -selectimage is
+	// drawn in the same space.
+	img := c.Img
 	var width, height int
 	c.indicatorSpace = 0
 	if img != nil {
@@ -321,9 +323,10 @@ func (c *Checkbutton) computeGeometry() {
 	w.ReqHeight = height + 2*inset
 }
 
-// activeImage returns the image to display based on current state.
+// activeImage returns the image to display: as in TkpDisplayButton,
+// -selectimage replaces -image while selected, and only when -image is set.
 func (c *Checkbutton) activeImage() widget.WidgetImage {
-	if c.Selected() && c.SelectImg != nil {
+	if c.Img != nil && c.Selected() && c.SelectImg != nil {
 		return c.SelectImg
 	}
 	return c.Img
@@ -502,7 +505,6 @@ func (c *Checkbutton) display() {
 
 	c.DrawHighlightBorder(c.HasFocus, 0)
 
-	d.Flush()
 }
 
 // Toggle flips the checkbutton state by alternating the linked variable

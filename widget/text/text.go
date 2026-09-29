@@ -240,7 +240,7 @@ func NewPeer(doc *Document, parent widget.Caregiver, name string, opts ...TextOp
 
 	t.undoStack = NewUndoStack(0)
 	t.layout.init(t)
-	doc.Listeners = append(doc.Listeners, t.layout.apply)
+	unsubLayout := doc.Subscribe(t.layout.apply)
 
 	for _, opt := range opts {
 		opt(t)
@@ -259,10 +259,15 @@ func NewPeer(doc *Document, parent widget.Caregiver, name string, opts ...TextOp
 	w.SetCursor(uint(cursor.XTerm))
 	bindText(t, app)
 
-	// Register as a document listener so edits from other peers trigger a redraw.
-	doc.Listeners = append(doc.Listeners, func(Change) {
+	// Register as a document listener so edits from other peers trigger a
+	// redraw; the peer stops listening when destroyed.
+	unsubRedraw := doc.Subscribe(func(Change) {
 		t.notifyYScrollbar()
 		t.scheduleRedraw()
+	})
+	w.OnDestroy(func() {
+		unsubLayout()
+		unsubRedraw()
 	})
 
 	return t
@@ -362,7 +367,6 @@ func (t *TextWidget) display() {
 	// -highlightbackground).
 	t.DrawHighlightBorder(t.hasFocus, 0)
 
-	d.Flush()
 }
 
 // scheduleRedraw schedules a redraw via the idle loop.
@@ -392,7 +396,6 @@ func (t *TextWidget) Insert(index, txt string) {
 	if !ok {
 		return
 	}
-	txt = expandTabs(txt)
 	endIdx := t.doc.Insert(idx, txt)
 	if t.undoEnabled {
 		t.undoStack.RecordInsert(idx, endIdx, txt)
@@ -587,10 +590,17 @@ func (t *TextWidget) Destroy() {
 		return
 	}
 	t.Destroyed = true
+	d := t.Win.Display.Server
 	if t.pixmap != 0 {
-		t.Win.Display.Server.FreePixmap(t.pixmap)
+		d.FreePixmap(t.pixmap)
 		t.pixmap = 0
 	}
+	for _, pm := range t.stippleCache {
+		if pm != 0 {
+			d.FreePixmap(pm)
+		}
+	}
+	t.stippleCache = nil
 	window.DestroyWindow(t.Win)
 }
 
@@ -814,6 +824,25 @@ func (t *TextWidget) scrollDownToShow(idx Index) {
 	availHeight := t.Win.Height - 2*t.insetY
 	if availHeight <= 0 {
 		return
+	}
+
+	// Jump close to the answer with the layout cache: the top that puts
+	// idx's display line at the bottom of the view. The loop below then
+	// settles it by at most a line or two instead of stepping from the
+	// current top one display line at a time.
+	if idx.Line >= 1 && idx.Line <= t.doc.LineCount() {
+		ll := t.layout.line(idx.Line)
+		bottom := t.layout.pixelsBefore(idx.Line)
+		for k, h := range ll.hs {
+			bottom += h
+			if k < len(ll.dls) && idx.Char <= ll.dls[k].endChar {
+				break
+			}
+		}
+		l, off := t.layout.lineAtPixel(max(bottom-availHeight, 0))
+		if t.computeDisplayLinesBefore(l, off) > t.computeDisplayLinesBefore(t.topLine, t.topCharOffset) {
+			t.topLine, t.topCharOffset = l, off
+		}
 	}
 
 	// Scroll down one display line at a time.

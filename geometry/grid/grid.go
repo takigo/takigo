@@ -8,6 +8,7 @@ import (
 	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/window"
+	"log"
 )
 
 // Sticky flags for positioning within a cell.
@@ -32,6 +33,7 @@ type GridOption func(*gridConfig)
 type gridConfig struct {
 	row        int
 	column     int
+	rowSet     bool // -row was given; otherwise the next free row is used
 	rowSpan    int
 	columnSpan int
 	sticky     int
@@ -54,7 +56,7 @@ func In(container window.Windower) GridOption {
 var containerOf = map[*window.Window]*window.Window{}
 
 // Row sets the row.
-func Row(r int) GridOption { return func(c *gridConfig) { c.row = r } }
+func Row(r int) GridOption { return func(c *gridConfig) { c.row, c.rowSet = r, true } }
 
 // Column sets the column.
 func Column(col int) GridOption { return func(c *gridConfig) { c.column = col } }
@@ -318,7 +320,11 @@ func Grid(children geometry.Elementer, opts ...GridOption) {
 		cfg.columnSpan = 1
 	}
 
-	// Bounds check.
+	// Bounds check; tkGrid.c rejects negative indices ("bad row value").
+	if cfg.row < 0 || cfg.column < 0 {
+		log.Printf("grid: bad row/column value %d/%d: must be a non-negative integer", cfg.row, cfg.column)
+		return
+	}
 	if cfg.row+cfg.rowSpan > maxElement || cfg.column+cfg.columnSpan > maxElement {
 		return
 	}
@@ -345,7 +351,7 @@ func Grid(children geometry.Elementer, opts ...GridOption) {
 
 	// Auto-assign row if not specified.
 	row := cfg.row
-	if row == 0 && cfg.column == 0 {
+	if !cfg.rowSet {
 		row = g.nextRow()
 	}
 
@@ -523,9 +529,6 @@ func (g *gridder) remove(child *window.Window) {
 			g.entries = append(g.entries[:i], g.entries[i+1:]...)
 			break
 		}
-	}
-	if len(g.entries) == 0 {
-		delete(gridders, g.container)
 	}
 }
 
@@ -1032,12 +1035,7 @@ func (g *gridder) arrange() {
 			if container.ReqWidth != totalReqW || container.ReqHeight != totalReqH {
 				container.ReqWidth = totalReqW
 				container.ReqHeight = totalReqH
-				container.Width = totalReqW
-				container.Height = totalReqH
-				if container.PlatformID != platform.WindowID(0) {
-					container.Display.Server.ResizeWindow(container.PlatformID,
-						uint(totalReqW), uint(totalReqH))
-				}
+				window.ResizeToplevel(container, totalReqW, totalReqH)
 			}
 		} else {
 			geometry.GeometryRequest(container, totalReqW, totalReqH)
@@ -1107,6 +1105,7 @@ func (g *gridder) arrange() {
 			// Tk maps content only once its container is mapped; the
 			// container's MarkMapped re-arranges and maps it then.
 			if child.Flags&window.FlagMapped == 0 && window.ContainerViewable(container, child) {
+				window.SyncBackground(child)
 				container.Display.Server.MapWindow(child.PlatformID)
 				window.MarkMapped(child)
 			}

@@ -2,6 +2,7 @@ package text
 
 import (
 	"slices"
+	"strings"
 	"testing"
 )
 
@@ -369,5 +370,119 @@ func TestSetSelectionUnchangedIsNoop(t *testing.T) {
 	tw.setSelection(Index{1, 2}, Index{1, 2})
 	if tw.HasSelection() {
 		t.Fatal("empty selection left sel ranges")
+	}
+}
+
+func TestWrapLineBreaksAtWords(t *testing.T) {
+	tw := newBenchWidget(docWithText(strings.Repeat("abcd ", 30)), 200, 100)
+	// 7px per rune: 70px holds 10 runes, so each display line is "abcd abcd ".
+	lines := tw.wrapLine(1, 70, 0, 0, 0)
+	if len(lines) != 15 {
+		t.Fatalf("got %d display lines, want 15", len(lines))
+	}
+	for i, dl := range lines {
+		if dl.startChar != 10*i || dl.endChar != min(10*i+10, 150) {
+			t.Errorf("line %d = [%d,%d), want [%d,%d)", i, dl.startChar, dl.endChar, 10*i, 10*i+10)
+		}
+	}
+}
+
+func TestSubscribeUnsubscribe(t *testing.T) {
+	doc := docWithText("abc")
+	calls := 0
+	unsub := doc.Subscribe(func(Change) { calls++ })
+	doc.Insert(Index{1, 0}, "x")
+	unsub()
+	unsub()
+	doc.Insert(Index{1, 0}, "y")
+	if calls != 1 {
+		t.Errorf("listener ran %d times, want 1 (before unsubscribing)", calls)
+	}
+}
+
+func TestSelLastIsEndOfLastRange(t *testing.T) {
+	doc := docWithText("abcdefghij")
+	doc.TagAdd("sel", Index{1, 1}, Index{1, 3})
+	doc.TagAdd("sel", Index{1, 6}, Index{1, 8})
+	if got, ok := ParseIndex(doc, "sel.last"); !ok || got != (Index{1, 8}) {
+		t.Errorf("sel.last = %v, %v; want 1.8", got, ok)
+	}
+}
+
+// refScrollDownToShow is scrollDownToShow without the layout-cache jump.
+func refScrollDownToShow(t *TextWidget, idx Index) {
+	for range 100000 {
+		dlines := t.computeVisibleLines()
+		if len(dlines) == 0 {
+			return
+		}
+		last := dlines[len(dlines)-1]
+		if idx.Line < last.logicalLine || (idx.Line == last.logicalLine && idx.Char <= last.endChar) {
+			return
+		}
+		t.scrollByDisplayLines(1)
+	}
+}
+
+func TestScrollDownToShowMatchesStepping(t *testing.T) {
+	text := benchText(300, 150)
+	for _, h := range []int{100, 133, 260} {
+		for _, target := range []Index{{40, 0}, {41, 100}, {150, 5}, {299, 140}, {300, 0}} {
+			fast := newBenchWidget(docWithText(text), 400, h)
+			slow := newBenchWidget(docWithText(text), 400, h)
+			fast.scrollDownToShow(target)
+			refScrollDownToShow(slow, target)
+			if fast.topLine != slow.topLine || fast.topCharOffset != slow.topCharOffset {
+				t.Errorf("height %d, see %v: top = %d/%d, stepping gives %d/%d", h, target,
+					fast.topLine, fast.topCharOffset, slow.topLine, slow.topCharOffset)
+			}
+		}
+	}
+}
+
+// fixedFont measures 7px per rune, so a default tab stop is 8×7 = 56px.
+func TestTabsKeptAndLaidOutToStops(t *testing.T) {
+	tw := newBenchWidget(docWithText(""), 400, 100)
+	tw.tabWidth = 8
+	tw.Insert("1.0", "ab\tc\td")
+	if got := tw.Get("1.0", "1.end"); got != "ab\tc\td" {
+		t.Fatalf("Get = %q, want the tabs kept", got)
+	}
+	// "ab" = 14, tab to 56, "c" to 63, second tab to 112, "d" to 119.
+	if w := tw.measureRange(1, 0, 6); w != 119 {
+		t.Errorf("line width = %d, want 119", w)
+	}
+	segs := tw.segmentsForRange(1, 0, 6)
+	var xs []int
+	for _, s := range segs {
+		xs = append(xs, s.x)
+	}
+	if want := []int{0, 14, 56, 63, 112}; !slices.Equal(xs, want) {
+		t.Errorf("segment x = %v, want %v", xs, want)
+	}
+}
+
+func TestTabPastItsStopIsASpace(t *testing.T) {
+	tw := newBenchWidget(docWithText("abcdefghij\tx"), 400, 100)
+	tw.tabWidth = 8
+	// 10 chars = 70px, past the first stop (56): tabular tabs then take
+	// one space (7px), as SizeOfTab does.
+	if w := tw.measureRange(1, 0, 12); w != 70+7+7 {
+		t.Errorf("width = %d, want 84", w)
+	}
+}
+
+func TestClickOnTabPicksNearerSide(t *testing.T) {
+	tw := newBenchWidget(docWithText("ab\tc"), 400, 100)
+	tw.tabWidth = 8
+	// The tab spans x 14..56.
+	if got := tw.indexFromPixel(tw.insetX+20, tw.insetY+2); got != (Index{1, 2}) {
+		t.Errorf("click in the tab's first half = %v, want 1.2", got)
+	}
+	if got := tw.indexFromPixel(tw.insetX+50, tw.insetY+2); got != (Index{1, 3}) {
+		t.Errorf("click in the tab's second half = %v, want 1.3", got)
+	}
+	if got := tw.indexFromPixel(tw.insetX+58, tw.insetY+2); got != (Index{1, 3}) {
+		t.Errorf("click on c = %v, want 1.3", got)
 	}
 }

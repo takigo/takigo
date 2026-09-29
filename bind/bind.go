@@ -66,9 +66,14 @@ func (e *Engine) RegisterWindow(w *window.Window, className string) {
 	e.tags[w.PlatformID] = info
 }
 
-// UnregisterWindow removes a window from the binding engine.
+// UnregisterWindow removes a window from the binding engine along with
+// the bindings on its path name, as Tk_DestroyWindow does via
+// Tk_DeleteAllBindings, so a later window with the same path starts clean.
 func (e *Engine) UnregisterWindow(w *window.Window) {
 	delete(e.tags, w.PlatformID)
+	if w.PathName != "" {
+		e.table.RemoveAll(w.PathName)
+	}
 }
 
 // BindTags returns the current tag chain for a window.

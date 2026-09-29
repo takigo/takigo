@@ -5,6 +5,7 @@ package panedwindow
 
 import (
 	"log"
+	"slices"
 
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/event"
@@ -44,7 +45,19 @@ func (m *pwGeomMgr) RequestProc(content *window.Window) {
 	pw.propagateReqSize()
 }
 
-func (m *pwGeomMgr) LostContentProc(content *window.Window) {}
+// LostContentProc drops a pane that was destroyed or taken over by
+// another manager, as PanedWindowLostPaneProc does.
+func (m *pwGeomMgr) LostContentProc(content *window.Window) {
+	pw := m.pw
+	i := slices.IndexFunc(pw.panes, func(p pane) bool { return p.win == content })
+	if i < 0 {
+		return
+	}
+	pw.panes = slices.Delete(pw.panes, i, i+1)
+	if !pw.Win.IsDestroyed() {
+		pw.contentChanged()
+	}
+}
 
 // propagateReqSize computes the panedwindow's natural size from its panes
 // and calls geometry.GeometryRequest so the pack manager above can resize.
@@ -532,6 +545,7 @@ func (pw *PanedWindow) placePanes() {
 		p.win.Y = paneY
 		p.win.Width = paneW
 		p.win.Height = paneH
+		window.SyncBackground(p.win)
 		d.MapWindow(p.win.PlatformID)
 		window.MarkMapped(p.win)
 
@@ -665,7 +679,6 @@ func (pw *PanedWindow) display() {
 		}
 	}
 
-	d.Flush()
 }
 
 // Configure applies options.

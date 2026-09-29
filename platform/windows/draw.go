@@ -21,8 +21,7 @@ func (d *WindowsDisplay) FillRectangle(drawable platform.DrawableID, gc platform
 		return
 	}
 
-	brush := g.createBrush()
-	defer w32.DeleteObject(w32.HGDIOBJ(brush))
+	brush := g.getBrush()
 
 	if g.function != platform.GXcopy {
 		w32.SetROP2(hdc, gcROP2(g.function))
@@ -46,8 +45,7 @@ func (d *WindowsDisplay) DrawRectangle(drawable platform.DrawableID, gc platform
 		return
 	}
 
-	pen := g.createPen()
-	defer w32.DeleteObject(w32.HGDIOBJ(pen))
+	pen := g.getPen()
 	oldPen := w32.SelectObject(hdc, w32.HGDIOBJ(pen))
 	defer w32.SelectObject(hdc, oldPen)
 
@@ -72,8 +70,7 @@ func (d *WindowsDisplay) DrawLine(drawable platform.DrawableID, gc platform.GCID
 		return
 	}
 
-	pen := g.createPen()
-	defer w32.DeleteObject(w32.HGDIOBJ(pen))
+	pen := g.getPen()
 	oldPen := w32.SelectObject(hdc, w32.HGDIOBJ(pen))
 	defer w32.SelectObject(hdc, oldPen)
 
@@ -98,8 +95,7 @@ func (d *WindowsDisplay) DrawLines(drawable platform.DrawableID, gc platform.GCI
 		return
 	}
 
-	pen := g.createPen()
-	defer w32.DeleteObject(w32.HGDIOBJ(pen))
+	pen := g.getPen()
 	oldPen := w32.SelectObject(hdc, w32.HGDIOBJ(pen))
 	defer w32.SelectObject(hdc, oldPen)
 
@@ -138,8 +134,7 @@ func (d *WindowsDisplay) FillPolygon(drawable platform.DrawableID, gc platform.G
 		return
 	}
 
-	brush := g.createBrush()
-	defer w32.DeleteObject(w32.HGDIOBJ(brush))
+	brush := g.getBrush()
 	oldBrush := w32.SelectObject(hdc, w32.HGDIOBJ(brush))
 	defer w32.SelectObject(hdc, oldBrush)
 
@@ -177,8 +172,7 @@ func (d *WindowsDisplay) FillArc(drawable platform.DrawableID, gc platform.GCID,
 		return
 	}
 
-	brush := g.createBrush()
-	defer w32.DeleteObject(w32.HGDIOBJ(brush))
+	brush := g.getBrush()
 	oldBrush := w32.SelectObject(hdc, w32.HGDIOBJ(brush))
 	defer w32.SelectObject(hdc, oldBrush)
 
@@ -215,8 +209,7 @@ func (d *WindowsDisplay) DrawArc(drawable platform.DrawableID, gc platform.GCID,
 		return
 	}
 
-	pen := g.createPen()
-	defer w32.DeleteObject(w32.HGDIOBJ(pen))
+	pen := g.getPen()
 	oldPen := w32.SelectObject(hdc, w32.HGDIOBJ(pen))
 	defer w32.SelectObject(hdc, oldPen)
 
@@ -351,21 +344,16 @@ func (d *WindowsDisplay) PutImageRGBA(drawable platform.DrawableID, gc platform.
 			di := dstRow + col*4
 			if si+3 < len(rgbaData) {
 				r, g, b, a := rgbaData[si], rgbaData[si+1], rgbaData[si+2], rgbaData[si+3]
-				if a == 0 {
-					// Transparent: use background.
-					bgR := byte(bgPixel >> 16)
-					bgG := byte(bgPixel >> 8)
-					bgB := byte(bgPixel)
-					dst[di+0] = bgB
-					dst[di+1] = bgG
-					dst[di+2] = bgR
-					dst[di+3] = 0xFF
-				} else {
-					dst[di+0] = b
-					dst[di+1] = g
-					dst[di+2] = r
-					dst[di+3] = a
-				}
+				// Composite over bgPixel like the X11 put_rgba_image: the
+				// data is premultiplied, so out = src + bg*(1-a). BitBlt
+				// ignores the alpha byte, so a partly transparent pixel
+				// must be blended here.
+				inv := uint32(255 - a)
+				blend := func(c, bg byte) byte { return byte(min(uint32(c)+uint32(bg)*inv/255, 255)) }
+				dst[di+0] = blend(b, byte(bgPixel))
+				dst[di+1] = blend(g, byte(bgPixel>>8))
+				dst[di+2] = blend(r, byte(bgPixel>>16))
+				dst[di+3] = 0xFF
 			}
 		}
 	}

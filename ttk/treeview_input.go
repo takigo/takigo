@@ -101,9 +101,6 @@ func (tv *Treeview) hitTest(x, y int) hitResult {
 func bindTreeview(tv *Treeview, app widget.AppContext) {
 	win := tv.Win
 
-	// Expose.
-	app.Dispatcher().Bind(win.PlatformID, event.ExposureMask, tv.handleExpose)
-
 	// Configure (resize).
 	app.Dispatcher().Bind(win.PlatformID, event.StructureNotifyMask, tv.handleConfigure)
 
@@ -125,14 +122,6 @@ func bindTreeview(tv *Treeview, app widget.AppContext) {
 	// Enter/Leave for hover state.
 	app.Dispatcher().Bind(win.PlatformID, event.EnterMask, tv.handleEnter)
 	app.Dispatcher().Bind(win.PlatformID, event.LeaveMask, tv.handleLeave)
-}
-
-// handleExpose handles Exposure events.
-func (tv *Treeview) handleExpose(ev *event.Event) {
-	if ev.ExposeCount > 0 {
-		return
-	}
-	tv.Display()
 }
 
 // handleConfigure handles ConfigureNotify (resize) events.

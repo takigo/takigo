@@ -2,7 +2,6 @@ package text
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/platform"
@@ -151,7 +150,7 @@ func (t *TextWidget) handleLeave(ev *event.Event) {
 // handleKeyPress handles keyboard events.
 func (t *TextWidget) handleKeyPress(ev *event.Event) {
 	shift := ev.State&platform.ShiftMask != 0
-	ctrl := ev.State&(platform.ControlMask|platform.Mod2Mask) != 0 // Ctrl or Cmd (macOS)
+	ctrl := ev.State&(platform.ControlMask|platform.CommandMask) != 0
 
 	switch ev.KeySym {
 	case platform.XK_Left:
@@ -326,9 +325,9 @@ func (t *TextWidget) handleKeyPress(ev *event.Event) {
 			return
 		}
 		t.deleteSelection()
+		// text.tcl binds <Tab> to insert a real tab character.
 		insertAt := t.doc.Marks["insert"].Pos
-		spaces := tabWidth - (insertAt.Char % tabWidth)
-		tabStr := strings.Repeat(" ", spaces)
+		tabStr := "\t"
 		endIdx := t.doc.Insert(insertAt, tabStr)
 		if t.undoEnabled {
 			t.undoStack.RecordInsert(insertAt, endIdx, tabStr)

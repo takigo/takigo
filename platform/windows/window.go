@@ -106,10 +106,21 @@ func (d *WindowsDisplay) CreateSimpleWindow(parent platform.WindowID, x, y int, 
 func (d *WindowsDisplay) DestroyWindow(w platform.WindowID) {
 	hwnd := toHWND(w)
 	w32.DestroyWindow(hwnd)
+	d.forgetWindow(hwnd)
+}
 
+// forgetWindow drops the state kept for hwnd (WM_DESTROY also calls it
+// for each destroyed descendant).
+func (d *WindowsDisplay) forgetWindow(hwnd w32.HWND) {
 	d.windowMu.Lock()
 	delete(d.windowData, hwnd)
 	d.windowMu.Unlock()
+	if d.hoverHWND == hwnd {
+		d.hoverHWND = 0
+	}
+	propsMu.Lock()
+	delete(propsDB, fromHWND(hwnd))
+	propsMu.Unlock()
 }
 
 func (d *WindowsDisplay) MapWindow(w platform.WindowID) {

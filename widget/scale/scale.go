@@ -186,11 +186,15 @@ func (s *Scale) Get() float64 {
 
 // roundToResolution ports TkRoundValueToResolution.
 func (s *Scale) roundToResolution(v float64) float64 {
+	return s.roundInterval(v-s.From) + s.From
+}
+
+// roundInterval ports TkRoundIntervalToResolution.
+func (s *Scale) roundInterval(d float64) float64 {
 	r := s.Resolution
 	if r <= 0 {
-		return v
+		return d
 	}
-	d := v - s.From
 	tick := math.Floor(d / r)
 	rounded := r * tick
 	if rem := d - rounded; rem < 0 {
@@ -200,7 +204,7 @@ func (s *Scale) roundToResolution(v float64) float64 {
 	} else if rem >= r/2 {
 		rounded = (tick + 1) * r
 	}
-	return rounded + s.From
+	return rounded
 }
 
 func (s *Scale) clampValue(v float64) float64 {
@@ -376,9 +380,15 @@ func (s *Scale) formatTick(v float64) string { return s.formatValue(v) }
 // ticks returns the tick values, thinned so the labels do not overlap as
 // in DisplayHorizontalScale/DisplayVerticalScale.
 func (s *Scale) ticks() []float64 {
-	interval := s.TickInterval
+	// ConfigureScale rounds -tickinterval to the resolution and points it
+	// from -from towards -to; an interval below half the resolution rounds
+	// to zero and draws no ticks.
+	interval := s.roundInterval(s.TickInterval)
 	if interval == 0 || s.Font == nil {
 		return nil
+	}
+	if (interval < 0) != (s.To-s.From < 0) {
+		interval = -interval
 	}
 	n := math.Abs((s.To - s.From) / interval)
 	var maxTicks float64
@@ -550,7 +560,6 @@ func (s *Scale) display() {
 			d.DrawRectangle(pix, gc, i, i, uint(w.Width-1-2*i), uint(w.Height-1-2*i))
 		}
 	}
-	d.Flush()
 }
 
 type fontMetrics struct{ ascent, descent int }

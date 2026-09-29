@@ -28,6 +28,7 @@ type fakeServer struct {
 	screenW     int
 	screenH     int
 	internCalls int
+	pings       [][2]platform.WindowID
 }
 
 func newFake() *fakeServer {
@@ -44,6 +45,10 @@ func (s *fakeServer) InternAtom(name string, _ bool) platform.AtomID {
 	s.atoms[name] = a
 	return a
 }
+func (s *fakeServer) SendClientMessage(w, target platform.WindowID, _ platform.AtomID, _, _, _, _, _ int64) {
+	s.pings = append(s.pings, [2]platform.WindowID{w, target})
+}
+func (s *fakeServer) Flush()                                              {}
 func (s *fakeServer) SetWMHints(_ platform.WindowID, h *platform.WMHints) { s.hints = h }
 func (s *fakeServer) SetClassHint(_ platform.WindowID, name, class string) {
 	s.class = [2]string{name, class}
@@ -74,7 +79,6 @@ func (s *fakeServer) ScreenHeight(int) int                            { return s
 func newToplevel(t *testing.T) (*WmInfo, *fakeServer) {
 	t.Helper()
 	s := newFake()
-	t.Cleanup(func() { delete(atomCache, s) })
 	d := &window.Display{Server: s, Windows: map[platform.WindowID]*window.Window{}}
 	w := &window.Window{Display: d, PlatformID: 7, Name: "top", Width: 200, Height: 100}
 	return Init(w), s
@@ -271,6 +275,9 @@ func TestProtocols(t *testing.T) {
 	if !msg("_NET_WM_PING") {
 		t.Error("_NET_WM_PING not handled")
 	}
+	if root := info.Win.Display.RootWindow; len(s.pings) != 1 || s.pings[0] != [2]platform.WindowID{root, root} {
+		t.Errorf("_NET_WM_PING reply = %v, want one message to the root window %d", s.pings, root)
+	}
 	if info.HandleClientMessage(s.atoms["WM_DELETE_WINDOW"], [5]int64{}) {
 		t.Error("handled a message that is not WM_PROTOCOLS")
 	}
@@ -296,5 +303,48 @@ func TestProtocols(t *testing.T) {
 	info.OffDeleteWindow()
 	if !msg("WM_DELETE_WINDOW") || !info.Win.IsDestroyed() || !s.destroyed {
 		t.Error("default WM_DELETE_WINDOW did not destroy the window")
+	}
+}
+
+func (s *fakeServer) ResizeWindow(_ platform.WindowID, width, height uint) {
+	s.moves = append(s.moves, [4]int{-1, -1, int(width), int(height)})
+}
+
+func TestResizeToplevelKeepsUserGeometry(t *testing.T) {
+	info, _ := newToplevel(t)
+	w := info.Win
+	window.ResizeToplevel(w, 120, 80)
+	if w.Width != 120 || w.Height != 80 {
+		t.Fatalf("size without wm geometry = %dx%d, want the request 120x80", w.Width, w.Height)
+	}
+	if err := info.SetGeometry("300x200"); err != nil {
+		t.Fatal(err)
+	}
+	window.ResizeToplevel(w, 150, 90)
+	if w.Width != 300 || w.Height != 200 {
+		t.Errorf("size after wm geometry 300x200 = %dx%d, want it kept", w.Width, w.Height)
+	}
+}
+
+func TestConfigureNotifyRecordsUserResize(t *testing.T) {
+	info, _ := newToplevel(t)
+	w := info.Win
+	w.ReqWidth, w.ReqHeight = 120, 80
+	window.ResizeToplevel(w, 120, 80)
+	window.ResizeToplevel(w, 130, 90)
+
+	// Our own requests coming back, even late, are not user resizes.
+	info.ConfigureNotify(120, 80)
+	info.ConfigureNotify(130, 90)
+	if info.UserW > 0 || info.UserH > 0 {
+		t.Fatalf("own resize taken as the user's: %dx%d", info.UserW, info.UserH)
+	}
+
+	// The user drags the window to 400x300: the size sticks.
+	info.ConfigureNotify(400, 300)
+	w.Width, w.Height = 400, 300
+	window.ResizeToplevel(w, 140, 95)
+	if w.Width != 400 || w.Height != 300 {
+		t.Errorf("size after a user resize and a new request = %dx%d, want 400x300", w.Width, w.Height)
 	}
 }

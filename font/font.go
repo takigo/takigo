@@ -169,7 +169,7 @@ func parseXLFD(xlfd string) (Attributes, error) {
 // parseOptionValue parses "-family Times -size 12 -weight bold" format.
 func parseOptionValue(desc string) (Attributes, error) {
 	attrs := DefaultAttributes()
-	parts := strings.Fields(desc)
+	parts := splitList(desc)
 
 	for i := 0; i < len(parts)-1; i += 2 {
 		key := parts[i]
@@ -206,12 +206,12 @@ func parseOptionValue(desc string) (Attributes, error) {
 // parseSimple parses "Family ?size? ?style...?" format.
 func parseSimple(desc string) (Attributes, error) {
 	attrs := DefaultAttributes()
-	parts := strings.Fields(desc)
+	parts := splitList(desc)
 	if len(parts) == 0 {
 		return attrs, nil
 	}
 
-	// First word: family (may be quoted with braces in Tcl, but we simplify).
+	// First element: family, braced when it has spaces ({DejaVu Sans} 12).
 	attrs.Family = parts[0]
 
 	for _, p := range parts[1:] {
@@ -252,4 +252,54 @@ func Underline(f Font) (pos, height int) {
 		}
 	}
 	return pos, height
+}
+
+// splitList splits a font description into Tcl list elements: words
+// separated by whitespace, where {...} (nesting) or "..." groups words into
+// one element, as Tk_GetFontFromObj reads "{DejaVu Sans} 12 bold".
+func splitList(s string) []string {
+	var out []string
+	for i := 0; i < len(s); {
+		for i < len(s) && (s[i] == ' ' || s[i] == '\t' || s[i] == '\n') {
+			i++
+		}
+		if i == len(s) {
+			break
+		}
+		switch s[i] {
+		case '{':
+			depth, j := 1, i+1
+			for ; j < len(s) && depth > 0; j++ {
+				switch s[j] {
+				case '{':
+					depth++
+				case '}':
+					depth--
+				}
+			}
+			end := j
+			if depth == 0 {
+				end = j - 1
+			}
+			out = append(out, s[i+1:end])
+			i = j
+		case '"':
+			j := strings.IndexByte(s[i+1:], '"')
+			if j < 0 {
+				out = append(out, s[i+1:])
+				i = len(s)
+			} else {
+				out = append(out, s[i+1:i+1+j])
+				i += j + 2
+			}
+		default:
+			j := i
+			for j < len(s) && s[j] != ' ' && s[j] != '\t' && s[j] != '\n' {
+				j++
+			}
+			out = append(out, s[i:j])
+			i = j
+		}
+	}
+	return out
 }

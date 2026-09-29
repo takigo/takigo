@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"slices"
 	"strconv"
 
 	"github.com/msorc/takigo/color"
@@ -165,7 +166,6 @@ func New(parent widget.Caregiver, name string, opts ...SpinboxOption) *Spinbox {
 		From:        0,
 		To:          100,
 		Increment:   1,
-		Format:      "%.0f",
 		buttonWidth: 16,
 	}
 	widget.InitBase(&s.Base, w, app)
@@ -223,9 +223,8 @@ func (s *Spinbox) GetText() string {
 // SetText sets the spinbox text.
 func (s *Spinbox) SetText(text string) {
 	s.text = []rune(text)
-	if s.InsertPos > len(s.text) {
-		s.InsertPos = len(s.text)
-	}
+	s.InsertPos = min(s.InsertPos, len(s.text))
+	s.LeftIndex = min(s.LeftIndex, len(s.text))
 	s.ClearSelection()
 	s.computeGeometry()
 	s.Display()
@@ -234,6 +233,7 @@ func (s *Spinbox) SetText(text string) {
 // SpinUp increments the value.
 func (s *Spinbox) SpinUp() {
 	if len(s.Values) > 0 {
+		s.syncValuesIndex()
 		s.valuesIndex++
 		if s.valuesIndex >= len(s.Values) {
 			if s.Wrap {
@@ -265,6 +265,7 @@ func (s *Spinbox) SpinUp() {
 // SpinDown decrements the value.
 func (s *Spinbox) SpinDown() {
 	if len(s.Values) > 0 {
+		s.syncValuesIndex()
 		s.valuesIndex--
 		if s.valuesIndex < 0 {
 			if s.Wrap {
@@ -301,11 +302,57 @@ func (s *Spinbox) currentNumericValue() float64 {
 	return val
 }
 
-func (s *Spinbox) formatValue(v float64) string {
-	if s.Increment >= 1 {
-		return fmt.Sprintf("%.0f", math.Round(v))
+// syncValuesIndex finds the text in -values if it was changed since the
+// last spin, as SpinboxInvoke does; an unknown text keeps the index.
+func (s *Spinbox) syncValuesIndex() {
+	if s.valuesIndex >= 0 && s.valuesIndex < len(s.Values) && s.Values[s.valuesIndex] == string(s.text) {
+		return
 	}
-	return fmt.Sprintf(s.Format, v)
+	if i := slices.Index(s.Values, string(s.text)); i >= 0 {
+		s.valuesIndex = i
+	}
+}
+
+func (s *Spinbox) formatValue(v float64) string {
+	if s.Format != "" {
+		return fmt.Sprintf(s.Format, v)
+	}
+	return fmt.Sprintf(s.digitFormat(), v)
+}
+
+// digitFormat ports ComputeFormat: enough digits for the -from/-to range at
+// the -increment's precision, in %f or, when shorter, %e notation.
+func (s *Spinbox) digitFormat() string {
+	maxValue := max(math.Abs(s.From), math.Abs(s.To))
+	if maxValue == 0 {
+		maxValue = 1
+	}
+	mostSig := int(math.Floor(math.Log10(maxValue)))
+	leastSig := 0
+	if math.Abs(s.Increment) > math.SmallestNonzeroFloat64 {
+		leastSig = int(math.Floor(math.Log10(s.Increment)))
+	}
+	numDigits := max(mostSig-leastSig+1, 1)
+
+	eDigits := numDigits + 4
+	if numDigits > 1 {
+		eDigits++
+	}
+	afterDecimal := max(numDigits-mostSig-1, 0)
+	fDigits := afterDecimal
+	if mostSig >= 0 {
+		fDigits = mostSig + afterDecimal
+	}
+	if afterDecimal > 0 {
+		fDigits++
+	}
+	if mostSig < 0 {
+		fDigits++
+	}
+	if fDigits <= eDigits {
+		return fmt.Sprintf("%%.%df", afterDecimal)
+	}
+	return fmt.Sprintf("%%.%de", numDigits-1)
 }
 
 func (s *Spinbox) fireCommand() {
@@ -456,9 +503,7 @@ func (s *Spinbox) computeGeometry() {
 		s.LeftIndex = 0
 		s.layoutX = s.inset
 	} else {
-		if s.LeftIndex < 0 {
-			s.LeftIndex = 0
-		}
+		s.LeftIndex = max(0, min(s.LeftIndex, len(s.text)))
 		leftCharX := entryutil.MeasureRunes(s.Font, s.text[:s.LeftIndex])
 		s.layoutX = s.inset - leftCharX
 	}
@@ -598,7 +643,6 @@ func (s *Spinbox) display() {
 	}
 	s.DrawHighlightBorder(s.HasFocus, 0)
 
-	d.Flush()
 }
 
 // drawButtons ports the spin button drawing in DisplayEntry (tkEntry.c).

@@ -18,6 +18,7 @@ import (
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/focus"
 	"github.com/msorc/takigo/font"
+	"github.com/msorc/takigo/grab"
 	"github.com/msorc/takigo/image"
 	"github.com/msorc/takigo/internal/treedump"
 	"github.com/msorc/takigo/platform"
@@ -42,6 +43,7 @@ type App struct {
 	bindEng    *bind.Engine
 	focusMgr   *focus.Manager
 	selMgr     *selection.Manager
+	grabMgr    *grab.Manager
 }
 
 // NewApp creates a new takigo application. It opens the X11 display,
@@ -105,17 +107,42 @@ func NewApp(opts ...AppOption) (*App, error) {
 		imageReg:   image.NewRegistry(),
 		bindEng:    bindEng,
 		selMgr:     selMgr,
+		grabMgr:    grab.NewManager(server, dispatcher),
 	}
 
 	// Tk never reads a child window's size back from X: the geometry
 	// managers own it. A queued ConfigureNotify can describe a size that has
 	// since been replaced, so report the current one to every handler.
 	loop.SetEventFilter(func(ev *event.Event) {
-		if ev.Type != event.ConfigureType {
-			return
-		}
-		if w := d.LookupWindow(ev.Window); w != nil && !w.IsTopLevel() {
-			ev.ConfigWidth, ev.ConfigHeight = w.Width, w.Height
+		switch ev.Type {
+		case event.ConfigureType:
+			w := d.LookupWindow(ev.Window)
+			switch {
+			case w == nil:
+			case !w.IsTopLevel():
+				ev.ConfigWidth, ev.ConfigHeight = w.Width, w.Height
+			case w.WmData != nil:
+				// A size the user dragged to becomes the toplevel's
+				// geometry (ConfigureEvent in tkUnixWm.c).
+				w.WmData.ConfigureNotify(ev.ConfigWidth, ev.ConfigHeight)
+			}
+		case event.FocusInType, event.FocusOutType:
+			// focus.Manager dispatches FocusOut/FocusIn itself when it
+			// moves the focus; the real pair X then reports is dropped so
+			// widgets see each change once (-validate focus ran twice).
+			if app.focusMgr != nil && app.focusMgr.SwallowEcho(ev) {
+				ev.Type = 0
+			}
+		case event.KeyPressType, event.KeyReleaseType, event.ButtonPressType, event.ButtonReleaseType,
+			event.MotionType, event.EnterType, event.LeaveType:
+			// A local grab (tkGrab.c's TkPointerEvent) discards input
+			// for this application's windows outside the grab tree.
+			if app.grabMgr.Current() == nil {
+				return
+			}
+			if w := d.LookupWindow(ev.Window); w != nil && app.grabMgr.ShouldRedirect(w) {
+				ev.Type = 0
+			}
 		}
 	})
 
@@ -267,6 +294,7 @@ func (a *App) MainLoop() {
 	// Lay out before mapping, as Tk maps "." at idle time after geometry
 	// propagation, so the window appears at its final size.
 	a.loop.UpdateIdleTasks()
+	window.SyncBackground(a.root)
 	a.display.Server.MapWindow(a.root.PlatformID)
 	window.MarkMapped(a.root)
 	a.display.Server.Flush()
@@ -316,13 +344,15 @@ func (a *App) Destroy() {
 	// The reader goroutine may be blocked reading this display; closing it
 	// underneath the read is a use-after-free in Xlib.
 	a.loop.Stop(time.Second)
+	// Destroy handlers may still draw or measure text, so the windows go
+	// before the images and fonts they use (as in Tk's DeleteWindowsExitProc).
+	window.DestroyWindow(a.root)
 	if a.imageReg != nil {
 		a.imageReg.DestroyAll()
 	}
 	if a.fontReg != nil {
 		a.fontReg.Close()
 	}
-	window.DestroyWindow(a.root)
 	a.display.Close()
 }
 
@@ -352,6 +382,12 @@ func (a *App) WmInfo() *wm.WmInfo {
 	return a.wmInfo
 }
 
+// GrabManager returns the application's grab manager; a local grab set on
+// it confines input to the grab window's subtree, as Tk's grab does.
+func (a *App) GrabManager() *grab.Manager {
+	return a.grabMgr
+}
+
 // BindEngine returns the application's binding engine.
 func (a *App) BindEngine() widget.BindEngine {
 	return a.bindEng
@@ -364,19 +400,20 @@ func (a *App) BindEng() *bind.Engine {
 
 // Clipboard returns the application's clipboard manager.
 func (a *App) Clipboard() widget.ClipboardManager {
-	return &appClipboard{mgr: a.selMgr}
+	return appClipboard{mgr: a.selMgr}
 }
 
-// appClipboard adapts selection.Manager to widget.ClipboardManager.
+// appClipboard adapts selection.Manager to widget.ClipboardManager. It is
+// pointer-shaped, so returning it as an interface does not allocate.
 type appClipboard struct {
 	mgr *selection.Manager
 }
 
-func (c *appClipboard) Set(owner platform.WindowID, text string, time platform.Timestamp) {
+func (c appClipboard) Set(owner platform.WindowID, text string, time platform.Timestamp) {
 	c.mgr.OwnClipboard(owner, text, time)
 }
 
-func (c *appClipboard) Get(requestor platform.WindowID, time platform.Timestamp, callback func(string)) {
+func (c appClipboard) Get(requestor platform.WindowID, time platform.Timestamp, callback func(string)) {
 	c.mgr.RequestWithCallback(requestor, time, callback)
 }
 

@@ -41,6 +41,9 @@ type Photo struct {
 // maxPhotoPixmaps bounds the per-background pixmaps kept for one photo.
 const maxPhotoPixmaps = 4
 
+// maxXBMDim bounds the width and height an XBM header may declare.
+const maxXBMDim = 1 << 16
+
 // photoPixmap is a Photo rendered over one background pixel.
 type photoPixmap struct {
 	id platform.PixmapID
@@ -116,6 +119,9 @@ func NewPhotoFromXBM(name, src string, fg, bg color.RGBA) (*Photo, error) {
 	}
 	if w == 0 || h == 0 {
 		return nil, fmt.Errorf("image: xbm: missing width or height")
+	}
+	if w < 0 || h < 0 || w > maxXBMDim || h > maxXBMDim {
+		return nil, fmt.Errorf("image: xbm: invalid size %dx%d", w, h)
 	}
 
 	_, rest, ok := strings.Cut(src, "{")

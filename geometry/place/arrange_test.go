@@ -263,3 +263,19 @@ func TestPlaceWithoutParent(t *testing.T) {
 		t.Error("placed a window with no parent")
 	}
 }
+
+func TestRelativePlacementFollowsContainerResize(t *testing.T) {
+	d, _ := newDisplay()
+	c := newContainer(d, 200, 100)
+	ch := newChild(c, 30, 20)
+	Place(ch, RelWidth(0.5))
+	Forget(ch)
+	Place(ch, RelWidth(0.5))
+	t.Cleanup(func() { Forget(ch) })
+
+	c.Width = 400
+	c.NotifyConfigure()
+	if ch.Width != 200 {
+		t.Errorf("width after the container grew to 400 = %d, want 200", ch.Width)
+	}
+}

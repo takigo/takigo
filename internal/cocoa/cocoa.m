@@ -6,6 +6,7 @@
 #import <QuartzCore/QuartzCore.h>
 #import <objc/runtime.h>
 #include "cocoa.h"
+#include "idmap.h"
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
@@ -38,6 +39,21 @@
 
 static TKApplication *tkApp = nil;
 static NSMutableDictionary<NSNumber *, TKContentView *> *windowRegistry = nil;
+
+// The last window looked up: consecutive primitives mostly hit the same
+// window, so this skips boxing its ID for the dictionary each time.
+static uint64_t lastViewID;
+static TKContentView *lastView;
+
+static TKContentView *lookupView(uint64_t wid) {
+    if (wid != 0 && wid == lastViewID) return lastView;
+    TKContentView *v = windowRegistry[@(wid)];
+    if (v) {
+        lastViewID = wid;
+        lastView = v;
+    }
+    return v;
+}
 static uintptr_t nextWindowID = 1;
 static uintptr_t nextGCID = 1;
 static uintptr_t nextPixmapID = 0x80000000; // offset to avoid collision with window IDs
@@ -118,12 +134,10 @@ typedef struct {
     int dashCount;
 } CocoaGCState;
 
-static NSMutableDictionary<NSNumber *, NSValue *> *gcRegistry = nil;
+static idmap gcRegistry;
 
 static CocoaGCState *lookupGC(CocoaGCID gcid) {
-    NSValue *v = gcRegistry[@(gcid)];
-    if (!v) return NULL;
-    return (CocoaGCState *)[v pointerValue];
+    return (CocoaGCState *)idmap_get(&gcRegistry, gcid);
 }
 
 // ============================================================================
@@ -138,12 +152,10 @@ typedef struct {
     void *data; // pixel buffer
 } CocoaPixmap;
 
-static NSMutableDictionary<NSNumber *, NSValue *> *pixmapRegistry = nil;
+static idmap pixmapRegistry;
 
 static CocoaPixmap *lookupPixmap(CocoaPixmapID pmid) {
-    NSValue *v = pixmapRegistry[@(pmid)];
-    if (!v) return NULL;
-    return (CocoaPixmap *)[v pointerValue];
+    return (CocoaPixmap *)idmap_get(&pixmapRegistry, pmid);
 }
 
 // ============================================================================
@@ -173,7 +185,7 @@ static CGContextRef getDrawableContext(CocoaDrawableID d) {
     if (pm) return pm->ctx;
 
     // Otherwise it's a window — get the view's backing context
-    TKContentView *view = windowRegistry[@(d)];
+    TKContentView *view = lookupView(d);
     if (view && view.backingContext) {
         return view.backingContext;
     }
@@ -187,7 +199,7 @@ static void getDrawableSize(CocoaDrawableID d, unsigned int *w, unsigned int *h)
         *h = pm->height;
         return;
     }
-    TKContentView *view = windowRegistry[@(d)];
+    TKContentView *view = lookupView(d);
     if (view) {
         NSRect bounds = [view bounds];
         *w = (unsigned int)bounds.size.width;
@@ -454,6 +466,7 @@ static void applyGC(CGContextRef ctx, CocoaGCState *gc) {
                owner:self
             userInfo:nil];
     [self addTrackingArea:ta];
+    [ta release];
 }
 
 // ---- Key events ----
@@ -760,7 +773,7 @@ static void applyGC(CGContextRef ctx, CocoaGCState *gc) {
 
 - (void)windowDidMove:(NSNotification *)notification {
     TKWindow *window = (TKWindow *)[notification object];
-    TKContentView *view = windowRegistry[@(_windowID)];
+    TKContentView *view = lookupView(_windowID);
     // Only post configure events for mapped windows. The window may receive
     // move notifications during initial creation (before layout completes),
     // and posting those would inject stale sizes into the event queue.
@@ -817,8 +830,6 @@ void CocoaInit(void) {
         tkApp.delegate = tkApp;
 
         windowRegistry = [NSMutableDictionary new];
-        gcRegistry = [NSMutableDictionary new];
-        pixmapRegistry = [NSMutableDictionary new];
         atomByName = [NSMutableDictionary new];
         atomByID = [NSMutableDictionary new];
 
@@ -963,6 +974,7 @@ CocoaWindowID CocoaCreateWindow(CocoaWindowID parent, int x, int y,
                 view.isTopLevel = NO;
                 view.isMapped = YES; // root is always "mapped"
                 windowRegistry[@(wid)] = view;
+                [view release]; // owned by windowRegistry
                 rootWindowID = wid;
                 result = wid;
                 return;
@@ -1007,13 +1019,14 @@ CocoaWindowID CocoaCreateWindow(CocoaWindowID parent, int x, int y,
                 TKWindowDelegate *delegate = [TKWindowDelegate new];
                 delegate.windowID = wid;
                 [window setDelegate:delegate];
-                // Keep delegate alive (retained by window)
+                // setDelegate: does not retain; the associated object owns it.
                 objc_setAssociatedObject(window, "delegate", delegate, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+                [delegate release];
 
                 view.isTopLevel = YES;
             } else {
                 // Child view — add as subview of parent
-                TKContentView *parentView = windowRegistry[@(parent)];
+                TKContentView *parentView = lookupView(parent);
                 if (parentView) {
                     view.frame = NSMakeRect(x, y, w, h);
                     [parentView addSubview:view];
@@ -1021,6 +1034,7 @@ CocoaWindowID CocoaCreateWindow(CocoaWindowID parent, int x, int y,
             }
 
             windowRegistry[@(wid)] = view;
+            [view release]; // owned by windowRegistry (and its superview/window)
             result = wid;
         }
     };
@@ -1045,13 +1059,17 @@ CocoaWindowID CocoaCreateSimpleWindow(CocoaWindowID parent, int x, int y,
 void CocoaDestroyWindow(CocoaWindowID w) {
     runOnMain(^{
         @autoreleasepool {
-            TKContentView *view = windowRegistry[@(w)];
+            TKContentView *view = lookupView(w);
             if (!view) return;
 
             if (view.isTopLevel) {
                 [[view window] close];
             } else {
                 [view removeFromSuperview];
+            }
+            if (lastViewID == w) {
+                lastViewID = 0;
+                lastView = nil;
             }
             [windowRegistry removeObjectForKey:@(w)];
         }
@@ -1061,7 +1079,7 @@ void CocoaDestroyWindow(CocoaWindowID w) {
 void CocoaMapWindow(CocoaWindowID w) {
     runOnMain(^{
         @autoreleasepool {
-            TKContentView *view = windowRegistry[@(w)];
+            TKContentView *view = lookupView(w);
             if (!view) return;
             view.isMapped = YES;
 
@@ -1115,7 +1133,7 @@ void CocoaMapRaised(CocoaWindowID w) {
 void CocoaUnmapWindow(CocoaWindowID w) {
     runOnMain(^{
         @autoreleasepool {
-            TKContentView *view = windowRegistry[@(w)];
+            TKContentView *view = lookupView(w);
             if (!view) return;
             view.isMapped = NO;
 
@@ -1137,7 +1155,7 @@ void CocoaUnmapWindow(CocoaWindowID w) {
 void CocoaRaiseWindow(CocoaWindowID w) {
     runOnMain(^{
         @autoreleasepool {
-            TKContentView *view = windowRegistry[@(w)];
+            TKContentView *view = lookupView(w);
             if (!view) return;
             if (view.isTopLevel) {
                 [[view window] makeKeyAndOrderFront:nil];
@@ -1155,7 +1173,7 @@ void CocoaRaiseWindow(CocoaWindowID w) {
 void CocoaLowerWindow(CocoaWindowID w) {
     runOnMain(^{
         @autoreleasepool {
-            TKContentView *view = windowRegistry[@(w)];
+            TKContentView *view = lookupView(w);
             if (!view) return;
             if (view.isTopLevel) {
                 [[view window] orderBack:nil];
@@ -1167,7 +1185,7 @@ void CocoaLowerWindow(CocoaWindowID w) {
 void CocoaMoveWindow(CocoaWindowID w, int x, int y) {
     runOnMain(^{
         @autoreleasepool {
-            TKContentView *view = windowRegistry[@(w)];
+            TKContentView *view = lookupView(w);
             if (!view) return;
             if (view.isTopLevel) {
                 NSRect frame = [[view window] frame];
@@ -1186,7 +1204,7 @@ void CocoaMoveWindow(CocoaWindowID w, int x, int y) {
 void CocoaResizeWindow(CocoaWindowID w, unsigned int width, unsigned int height) {
     runOnMain(^{
         @autoreleasepool {
-            TKContentView *view = windowRegistry[@(w)];
+            TKContentView *view = lookupView(w);
             if (!view) return;
             if (view.isTopLevel) {
                 NSRect frame = [[view window] frame];
@@ -1209,7 +1227,7 @@ void CocoaMoveResizeWindow(CocoaWindowID w, int x, int y,
                             unsigned int width, unsigned int height) {
     runOnMain(^{
         @autoreleasepool {
-            TKContentView *view = windowRegistry[@(w)];
+            TKContentView *view = lookupView(w);
             if (!view) return;
             if (view.isTopLevel) {
                 int screenH = CocoaScreenHeight();
@@ -1226,7 +1244,7 @@ void CocoaMoveResizeWindow(CocoaWindowID w, int x, int y,
 
 void CocoaSelectInput(CocoaWindowID w, int64_t eventMask) {
     runOnMain(^{
-        TKContentView *view = windowRegistry[@(w)];
+        TKContentView *view = lookupView(w);
         if (view) {
             view.eventMask = eventMask;
         }
@@ -1236,7 +1254,7 @@ void CocoaSelectInput(CocoaWindowID w, int64_t eventMask) {
 void CocoaStoreName(CocoaWindowID w, const char *name) {
     NSString *title = [NSString stringWithUTF8String:name];
     runOnMain(^{
-        TKContentView *view = windowRegistry[@(w)];
+        TKContentView *view = lookupView(w);
         if (view && view.isTopLevel) {
             [[view window] setTitle:title];
         }
@@ -1249,8 +1267,8 @@ void CocoaTranslateCoordinates(CocoaWindowID src, CocoaWindowID dst,
     __block int ry = srcY;
     runOnMain(^{
         @autoreleasepool {
-            TKContentView *srcView = windowRegistry[@(src)];
-            TKContentView *dstView = windowRegistry[@(dst)];
+            TKContentView *srcView = lookupView(src);
+            TKContentView *dstView = lookupView(dst);
             if (!srcView || !dstView) return;
 
             NSPoint p = NSMakePoint(srcX, srcY);
@@ -1279,7 +1297,7 @@ void CocoaTranslateCoordinates(CocoaWindowID src, CocoaWindowID dst,
 
 void CocoaSetWindowBackground(CocoaWindowID w, uint64_t pixel) {
     runOnMain(^{
-        TKContentView *view = windowRegistry[@(w)];
+        TKContentView *view = lookupView(w);
         if (view) {
             view.bgPixel = pixel;
             if (view.isTopLevel) {
@@ -1292,7 +1310,7 @@ void CocoaSetWindowBackground(CocoaWindowID w, uint64_t pixel) {
 void CocoaClearWindow(CocoaWindowID w) {
     runOnMain(^{
         @autoreleasepool {
-            TKContentView *view = windowRegistry[@(w)];
+            TKContentView *view = lookupView(w);
             if (!view || !view.backingContext) return;
 
             NSRect bounds = [view bounds];
@@ -1310,7 +1328,7 @@ void CocoaClearArea(CocoaWindowID w, int x, int y,
                      unsigned int width, unsigned int height, bool exposures) {
     runOnMain(^{
         @autoreleasepool {
-            TKContentView *view = windowRegistry[@(w)];
+            TKContentView *view = lookupView(w);
             if (!view || !view.backingContext) return;
 
             CGFloat r, g, b;
@@ -1336,7 +1354,7 @@ void CocoaClearArea(CocoaWindowID w, int x, int y,
 
 void CocoaSetInputFocus(CocoaWindowID w) {
     runOnMain(^{
-        TKContentView *view = windowRegistry[@(w)];
+        TKContentView *view = lookupView(w);
         if (view && [view window]) {
             [[view window] makeFirstResponder:view];
         }
@@ -1357,16 +1375,12 @@ CocoaGCID CocoaCreateGC(uint64_t fg, uint64_t bg, int lineWidth, int function) {
     gc->joinStyle = 0; // JoinMiter
 
     CocoaGCID gcid = nextGCID++;
-    gcRegistry[@(gcid)] = [NSValue valueWithPointer:gc];
+    idmap_put(&gcRegistry, gcid, gc);
     return gcid;
 }
 
 void CocoaFreeGC(CocoaGCID gcid) {
-    NSValue *v = gcRegistry[@(gcid)];
-    if (v) {
-        free([v pointerValue]);
-        [gcRegistry removeObjectForKey:@(gcid)];
-    }
+    free(idmap_del(&gcRegistry, gcid));
 }
 
 void CocoaSetForeground(CocoaGCID gcid, uint64_t pixel) {
@@ -1417,7 +1431,7 @@ void CocoaFillRectangle(CocoaDrawableID d, CocoaGCID gcid,
     CGContextFillRect(ctx, CGRectMake(x, y, w, h));
     CGContextRestoreGState(ctx);
 
-    TKContentView *view = windowRegistry[@(d)];
+    TKContentView *view = lookupView(d);
     if (view) [view setNeedsDisplayInRect:NSMakeRect(x, y, w, h)];
 }
 
@@ -1432,7 +1446,7 @@ void CocoaDrawRectangle(CocoaDrawableID d, CocoaGCID gcid,
     CGContextStrokeRect(ctx, CGRectMake(x + 0.5, y + 0.5, w, h));
     CGContextRestoreGState(ctx);
 
-    TKContentView *view = windowRegistry[@(d)];
+    TKContentView *view = lookupView(d);
     if (view) [view setNeedsDisplayInRect:NSMakeRect(x, y, w + 1, h + 1)];
 }
 
@@ -1449,7 +1463,7 @@ void CocoaDrawLine(CocoaDrawableID d, CocoaGCID gcid,
     CGContextStrokePath(ctx);
     CGContextRestoreGState(ctx);
 
-    TKContentView *view = windowRegistry[@(d)];
+    TKContentView *view = lookupView(d);
     if (view) {
         int minX = x1 < x2 ? x1 : x2;
         int minY = y1 < y2 ? y1 : y2;
@@ -1484,7 +1498,7 @@ void CocoaDrawLines(CocoaDrawableID d, CocoaGCID gcid,
     CGContextStrokePath(ctx);
     CGContextRestoreGState(ctx);
 
-    TKContentView *view = windowRegistry[@(d)];
+    TKContentView *view = lookupView(d);
     if (view) [view setNeedsDisplay:YES];
 }
 
@@ -1514,7 +1528,7 @@ void CocoaFillPolygon(CocoaDrawableID d, CocoaGCID gcid,
     CGContextFillPath(ctx);
     CGContextRestoreGState(ctx);
 
-    TKContentView *view = windowRegistry[@(d)];
+    TKContentView *view = lookupView(d);
     if (view) [view setNeedsDisplay:YES];
 }
 
@@ -1547,7 +1561,7 @@ void CocoaFillArc(CocoaDrawableID d, CocoaGCID gcid,
     CGContextFillPath(ctx);
     CGContextRestoreGState(ctx);
 
-    TKContentView *view = windowRegistry[@(d)];
+    TKContentView *view = lookupView(d);
     if (view) [view setNeedsDisplayInRect:NSMakeRect(x, y, w, h)];
 }
 
@@ -1576,7 +1590,7 @@ void CocoaDrawArc(CocoaDrawableID d, CocoaGCID gcid,
     CGContextStrokePath(ctx);
     CGContextRestoreGState(ctx);
 
-    TKContentView *view = windowRegistry[@(d)];
+    TKContentView *view = lookupView(d);
     if (view) [view setNeedsDisplayInRect:NSMakeRect(x, y, w + 1, h + 1)];
 }
 
@@ -1612,7 +1626,7 @@ void CocoaCopyArea(CocoaDrawableID src, CocoaDrawableID dst, CocoaGCID gcid,
 
     CGImageRelease(croppedImg);
 
-    TKContentView *view = windowRegistry[@(dst)];
+    TKContentView *view = lookupView(dst);
     if (view) [view setNeedsDisplayInRect:NSMakeRect(dstX, dstY, w, h)];
 }
 
@@ -1653,7 +1667,7 @@ void CocoaPutImageRGBA(CocoaDrawableID d, CocoaGCID gcid, int depth,
 
     CGImageRelease(srcImg);
 
-    TKContentView *view = windowRegistry[@(d)];
+    TKContentView *view = lookupView(d);
     if (view) [view setNeedsDisplayInRect:NSMakeRect(dstX, dstY, w, h)];
 }
 
@@ -1686,18 +1700,16 @@ CocoaPixmapID CocoaCreatePixmap(unsigned int width, unsigned int height,
     }
 
     CocoaPixmapID pmid = nextPixmapID++;
-    pixmapRegistry[@(pmid)] = [NSValue valueWithPointer:pm];
+    idmap_put(&pixmapRegistry, pmid, pm);
     return pmid;
 }
 
 void CocoaFreePixmap(CocoaPixmapID pmid) {
-    NSValue *v = pixmapRegistry[@(pmid)];
-    if (!v) return;
-    CocoaPixmap *pm = (CocoaPixmap *)[v pointerValue];
+    CocoaPixmap *pm = (CocoaPixmap *)idmap_del(&pixmapRegistry, pmid);
+    if (!pm) return;
     if (pm->ctx) CGContextRelease(pm->ctx);
     if (pm->data) free(pm->data);
     free(pm);
-    [pixmapRegistry removeObjectForKey:@(pmid)];
 }
 
 CocoaPixmapID CocoaCreateBitmapFromData(const unsigned char *bits,
@@ -1758,7 +1770,7 @@ CocoaCursorID CocoaCreateCursor(unsigned int shape) {
 
 void CocoaDefineCursor(CocoaWindowID w, CocoaCursorID cursor) {
     runOnMain(^{
-        TKContentView *view = windowRegistry[@(w)];
+        TKContentView *view = lookupView(w);
         if (view) {
             NSCursor *c = (NSCursor *)(void *)cursor;
             [view addCursorRect:[view bounds] cursor:c];
@@ -1769,7 +1781,7 @@ void CocoaDefineCursor(CocoaWindowID w, CocoaCursorID cursor) {
 
 void CocoaSetCursorShape(CocoaWindowID w, unsigned int shape) {
     runOnMain(^{
-        TKContentView *view = windowRegistry[@(w)];
+        TKContentView *view = lookupView(w);
         if (view) {
             NSCursor *c = cursorForShape(shape);
             [view addCursorRect:[view bounds] cursor:c];
@@ -1780,7 +1792,7 @@ void CocoaSetCursorShape(CocoaWindowID w, unsigned int shape) {
 
 void CocoaUndefineCursor(CocoaWindowID w) {
     runOnMain(^{
-        TKContentView *view = windowRegistry[@(w)];
+        TKContentView *view = lookupView(w);
         if (view) {
             [view discardCursorRects];
             [[NSCursor arrowCursor] set];
@@ -1948,11 +1960,11 @@ uint64_t CocoaInternAtom(const char *name, bool onlyIfExists) {
     }
 }
 
-const char *CocoaGetAtomName(uint64_t atom) {
+// CocoaGetAtomName returns a malloc'd copy; the caller frees it.
+char *CocoaGetAtomName(uint64_t atom) {
     @autoreleasepool {
         NSString *name = atomByID[@(atom)];
-        if (!name) return "";
-        return [name UTF8String]; // valid until pool is drained
+        return strdup(name ? [name UTF8String] : "");
     }
 }
 
@@ -2071,14 +2083,14 @@ int CocoaMeasureString(CocoaFontID fid, const char *s, int len) {
         CocoaFont *cf = lookupFont(fid);
         if (!cf || !cf->font) return 0;
 
-        NSString *str = [[NSString alloc] initWithBytes:s length:len encoding:NSUTF8StringEncoding];
+        NSString *str = [[[NSString alloc] initWithBytes:s length:len encoding:NSUTF8StringEncoding] autorelease];
         if (!str) return 0;
 
         NSDictionary *attrs = @{
             (id)kCTFontAttributeName: (id)cf->font
         };
-        NSAttributedString *attrStr = [[NSAttributedString alloc] initWithString:str
-                                                                      attributes:attrs];
+        NSAttributedString *attrStr = [[[NSAttributedString alloc] initWithString:str
+                                                                       attributes:attrs] autorelease];
         CTLineRef line = CTLineCreateWithAttributedString((CFAttributedStringRef)attrStr);
         if (!line) return 0;
 
@@ -2096,7 +2108,7 @@ void CocoaDrawString(CocoaDrawableID d, CocoaFontID fid,
         CocoaFont *cf = lookupFont(fid);
         if (!ctx || !cf || !cf->font) return;
 
-        NSString *str = [[NSString alloc] initWithBytes:s length:len encoding:NSUTF8StringEncoding];
+        NSString *str = [[[NSString alloc] initWithBytes:s length:len encoding:NSUTF8StringEncoding] autorelease];
         if (!str) return;
 
         CGFloat cr = r / 65535.0;
@@ -2108,8 +2120,8 @@ void CocoaDrawString(CocoaDrawableID d, CocoaFontID fid,
             (id)kCTFontAttributeName: (id)cf->font,
             (id)kCTForegroundColorAttributeName: (id)color
         };
-        NSAttributedString *attrStr = [[NSAttributedString alloc] initWithString:str
-                                                                      attributes:attrs];
+        NSAttributedString *attrStr = [[[NSAttributedString alloc] initWithString:str
+                                                                       attributes:attrs] autorelease];
         CTLineRef line = CTLineCreateWithAttributedString((CFAttributedStringRef)attrStr);
         CGColorRelease(color);
         if (!line) return;
@@ -2128,7 +2140,7 @@ void CocoaDrawString(CocoaDrawableID d, CocoaFontID fid,
 
         CFRelease(line);
 
-        TKContentView *view = windowRegistry[@(d)];
+        TKContentView *view = lookupView(d);
         if (view) [view setNeedsDisplay:YES];
     }
 }
@@ -2149,7 +2161,7 @@ void CocoaSetWMHints(CocoaWindowID w, bool input, int initialState) {
 void CocoaSetWMNormalHints(CocoaWindowID w, int minW, int minH,
                             int maxW, int maxH) {
     runOnMain(^{
-        TKContentView *view = windowRegistry[@(w)];
+        TKContentView *view = lookupView(w);
         if (!view || !view.isTopLevel) return;
         NSWindow *window = [view window];
         if (minW > 0 && minH > 0) {
@@ -2167,8 +2179,8 @@ void CocoaSetClassHint(CocoaWindowID w, const char *name, const char *cls) {
 
 void CocoaSetTransientFor(CocoaWindowID w, CocoaWindowID parent) {
     runOnMain(^{
-        TKContentView *view = windowRegistry[@(w)];
-        TKContentView *parentView = windowRegistry[@(parent)];
+        TKContentView *view = lookupView(w);
+        TKContentView *parentView = lookupView(parent);
         if (!view || !parentView) return;
         NSWindow *childWin = [view window];
         NSWindow *parentWin = [parentView window];
@@ -2180,7 +2192,7 @@ void CocoaSetTransientFor(CocoaWindowID w, CocoaWindowID parent) {
 
 void CocoaIconifyWindow(CocoaWindowID w) {
     runOnMain(^{
-        TKContentView *view = windowRegistry[@(w)];
+        TKContentView *view = lookupView(w);
         if (view && view.isTopLevel) {
             [[view window] miniaturize:nil];
         }
@@ -2194,7 +2206,7 @@ void CocoaWithdrawWindow(CocoaWindowID w) {
 void CocoaSetIconName(CocoaWindowID w, const char *name) {
     NSString *iconName = [NSString stringWithUTF8String:name];
     runOnMain(^{
-        TKContentView *view = windowRegistry[@(w)];
+        TKContentView *view = lookupView(w);
         if (view && view.isTopLevel) {
             [[view window] setMiniwindowTitle:iconName];
         }

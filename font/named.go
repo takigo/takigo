@@ -36,7 +36,8 @@ type Registry struct {
 	mu     sync.Mutex
 	opener FontOpener
 	named  map[string]Attributes
-	cache  map[string]Font
+	cache  map[string]Font     // name or descriptor → font, a shortcut
+	opened map[Attributes]Font // every font opened, by its attributes
 }
 
 // NewRegistry creates a new font registry with the given font opener.
@@ -45,6 +46,7 @@ func NewRegistry(opener FontOpener) *Registry {
 		opener: opener,
 		named:  make(map[string]Attributes),
 		cache:  make(map[string]Font),
+		opened: make(map[Attributes]Font),
 	}
 
 	// Register default named fonts.
@@ -59,11 +61,9 @@ func (r *Registry) Define(name string, attrs Attributes) {
 	defer r.mu.Unlock()
 
 	r.named[name] = attrs
-	// Invalidate cached font for this name.
-	if f, ok := r.cache[name]; ok {
-		f.Close()
-		delete(r.cache, name)
-	}
+	// The next Get of this name opens the new attributes. The old font is
+	// not closed: widgets that got it may still draw with it.
+	delete(r.cache, name)
 }
 
 // Get returns a font by name. If name is a registered named font,
@@ -90,15 +90,27 @@ func (r *Registry) Get(name string) (Font, error) {
 		}
 	}
 
-	// Open via platform-specific opener.
-	f, err := r.opener.OpenFont(attrs)
-	if err != nil {
-		return nil, err
+	// Different names and spellings resolving to the same attributes
+	// share one opened font; the name index is only a shortcut and is
+	// reset when it grows large (fonts stay open in opened).
+	f, ok := r.opened[attrs]
+	if !ok {
+		var err error
+		f, err = r.opener.OpenFont(attrs)
+		if err != nil {
+			return nil, err
+		}
+		r.opened[attrs] = f
 	}
-
+	if len(r.cache) >= maxCachedNames {
+		clear(r.cache)
+	}
 	r.cache[name] = f
 	return f, nil
 }
+
+// maxCachedNames bounds the name → font shortcut index of a Registry.
+const maxCachedNames = 1024
 
 // GetAttrs returns the attributes for a named font.
 // Returns zero Attributes and false if the name is not registered.
@@ -131,9 +143,10 @@ func (r *Registry) Close() {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	for _, f := range r.cache {
+	for _, f := range r.opened {
 		f.Close()
 	}
+	r.opened = make(map[Attributes]Font)
 	r.cache = make(map[string]Font)
 }
 

@@ -24,6 +24,7 @@ type Canvas struct {
 	tagIndex map[string]map[int64]*itemEntry // tag name → item IDs for O(1) tag lookup
 	nextID   int64
 	markSeq  uint64 // last stamp handed out by markEntries
+	dead     int    // deleted entries still in items (see compact)
 
 	// Items that need placing in positionWindowItems.
 	nWindowItems int
@@ -69,9 +70,6 @@ type Canvas struct {
 
 	// Tk -width/-height: the drawing area, excluding the inset.
 	reqW, reqH int
-
-	// displayFunc is stored so ScheduleRedraw can call it.
-	displayFunc func()
 }
 
 // newCanvas returns a Canvas with its item bookkeeping initialised and no
@@ -89,6 +87,16 @@ func newCanvas() *Canvas {
 
 // markEntries stamps entries with a fresh mark so a pass over the display
 // list can test membership with a field compare instead of a set lookup.
+// compact drops deleted entries from the display list; every reader of
+// c.items calls it first.
+func (c *Canvas) compact() {
+	if c.dead == 0 {
+		return
+	}
+	c.items = slices.DeleteFunc(c.items, func(e *itemEntry) bool { return e.dead })
+	c.dead = 0
+}
+
 func (c *Canvas) markEntries(entries []*itemEntry) uint64 {
 	c.markSeq++
 	for _, e := range entries {
@@ -195,7 +203,6 @@ func New(parent widget.Caregiver, name string, opts ...CanvasOption) *Canvas {
 	w.ReqHeight = c.reqH + 2*c.inset
 
 	// Store display function reference for idle callback.
-	c.displayFunc = c.Display
 
 	// Like Tk_CreateWindow, the canvas is 1x1 until a geometry manager
 	// sizes it; -scrollregion confinement before then depends on that.
@@ -279,6 +286,7 @@ func (c *Canvas) redrawDamage() {
 // with the same pixmap origin and clip whatever the area, so a partial
 // repaint produces the same pixels as a full one.
 func (c *Canvas) paint(x1, y1, x2, y2 int) {
+	c.compact()
 	w := c.Win
 	d := w.Display.Server
 	winW := w.Width - 2*c.inset
@@ -354,6 +362,7 @@ func (c *Canvas) paint(x1, y1, x2, y2 int) {
 // positionWindowItems maps and positions all embedded WindowItems relative to
 // the canvas window. Items outside the visible area are unmapped.
 func (c *Canvas) positionWindowItems() {
+	c.compact()
 	d := c.App.Server()
 	winW := c.Win.Width - 2*c.inset
 	winH := c.Win.Height - 2*c.inset
@@ -442,6 +451,7 @@ func (c *Canvas) scheduleIdle() {
 
 // Destroy cleans up the canvas and all its items.
 func (c *Canvas) Destroy() {
+	c.compact()
 	if c.Destroyed {
 		return
 	}
@@ -456,6 +466,13 @@ func (c *Canvas) Destroy() {
 	c.items = nil
 	c.idMap = nil
 	c.tagIndex = nil
+
+	for _, p := range c.stipples {
+		if p != 0 {
+			d.FreePixmap(p)
+		}
+	}
+	c.stipples = nil
 
 	// Free pixmap.
 	if c.pixmap != 0 {
@@ -625,8 +642,21 @@ func (c *Canvas) Delete(tagOrID string) {
 				c.tagIndexRemove(tag, e.id)
 			}
 		}
+		// DeleteItems drops the item's bindings and its focus.
+		delete(c.idBindings, e.id)
+		if c.focusItemID == e.id {
+			c.focusItemID = 0
+		}
 	}
-	c.items = slices.DeleteFunc(c.items, func(e *itemEntry) bool { return e.mark == stamp })
+	// The entries leave the display list at the next compact, so deleting
+	// items one by one costs O(1) each rather than a pass over the list.
+	for _, e := range entries {
+		e.dead = true
+	}
+	c.dead += len(entries)
+	if c.dead > len(c.items)/2 {
+		c.compact() // amortised: a create/delete loop without paints stays bounded
+	}
 
 	// Clear current item if deleted.
 	if c.currentItem != nil && c.currentItem.mark == stamp {
@@ -662,6 +692,7 @@ func (c *Canvas) Scale(tagOrID string, ox, oy, sx, sy float64) {
 
 // Raise moves items matching tagOrID to the top of the display list.
 func (c *Canvas) Raise(tagOrID string) {
+	c.compact()
 	entries := c.resolve(tagOrID)
 	if len(entries) == 0 {
 		return
@@ -682,6 +713,7 @@ func (c *Canvas) Raise(tagOrID string) {
 
 // Lower moves items matching tagOrID to the bottom of the display list.
 func (c *Canvas) Lower(tagOrID string) {
+	c.compact()
 	entries := c.resolve(tagOrID)
 	if len(entries) == 0 {
 		return
@@ -767,6 +799,7 @@ func (c *Canvas) FindWithTag(tagOrID string) []int64 {
 // Supported modes: "all", "closest" (args: x, y), "enclosed" (args: x1,y1,x2,y2),
 // "overlapping" (args: x1,y1,x2,y2).
 func (c *Canvas) Find(mode string, args ...float64) []int64 {
+	c.compact()
 	switch mode {
 	case "all":
 		ids := make([]int64, len(c.items))

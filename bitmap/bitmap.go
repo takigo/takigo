@@ -77,6 +77,10 @@ func parseXBM(src string) (w, h int, bits []byte) {
 		}
 		bits = append(bits, byte(b))
 	}
+	// Reject sizes the data cannot back, so callers can index bits freely.
+	if w <= 0 || h <= 0 || w > 1<<16 || h > 1<<16 || len(bits) < (w+7)/8*h {
+		return 0, 0, nil
+	}
 	return w, h, bits
 }
 

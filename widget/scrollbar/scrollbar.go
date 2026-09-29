@@ -257,7 +257,6 @@ func (s *Scrollbar) display() {
 		draw.Fill3DRectangle(d, w.Drawable(), gc, borderFor(regionThumb),
 			s.thumbStart, inset, s.thumbEnd-s.thumbStart, width, ebw, option.ReliefRaised)
 	}
-	d.Flush()
 }
 
 // hitTest returns which region a pixel coordinate falls in.

@@ -1,6 +1,9 @@
 package font
 
-import "strings"
+import (
+	"sort"
+	"strings"
+)
 
 // Measurer is the part of Font needed for text layout.
 type Measurer interface {
@@ -35,30 +38,70 @@ func WrapLines(f Measurer, text string, wrapLength int) []string {
 }
 
 // fitLine returns the longest prefix of s that fits in wrapLength, preferring
-// to end at a word boundary.
+// to end at a word boundary. Widths grow with the prefix, so it gallops and
+// then bisects over the word ends it has scanned, measuring O(log n)
+// prefixes no longer than about one line instead of every word end and the
+// whole remainder.
 func fitLine(f Measurer, s string, wrapLength int) string {
-	if TextWidth(f, s) <= wrapLength {
-		return s
-	}
-	best := -1
-	for i := 1; i < len(s); i++ {
-		if (s[i] == ' ' || s[i] == '\t') && s[i-1] != ' ' && s[i-1] != '\t' {
-			if TextWidth(f, s[:i]) > wrapLength {
-				break
+	fits := func(end int) bool { return TextWidth(f, s[:end]) <= wrapLength }
+
+	// ends holds the word ends found so far; len(s) counts as one.
+	var ends []int
+	scanned := 0
+	wordEnd := func(k int) (int, bool) {
+		for len(ends) <= k && scanned < len(s) {
+			scanned++
+			if scanned == len(s) || (isBlank(s[scanned]) && !isBlank(s[scanned-1])) {
+				ends = append(ends, scanned)
 			}
-			best = i
+		}
+		if k < len(ends) {
+			return ends[k], true
+		}
+		return 0, false
+	}
+
+	lo, hi := -1, 0 // ends[lo] fits (or lo < 0); ends[hi] does not, once found
+	for {
+		e, ok := wordEnd(hi)
+		if !ok {
+			break
+		}
+		if !fits(e) {
+			break
+		}
+		if e == len(s) {
+			return s
+		}
+		lo, hi = hi, 2*hi+1
+	}
+	hi = min(hi, len(ends))
+	for hi-lo > 1 {
+		mid := (lo + hi) / 2
+		if fits(ends[mid]) {
+			lo = mid
+		} else {
+			hi = mid
 		}
 	}
-	if best > 0 {
-		return s[:best]
+	if lo >= 0 {
+		return s[:ends[lo]]
 	}
-	runes := []rune(s)
-	n := 1
-	for n < len(runes) && f.MeasureString(string(runes[:n+1])) <= wrapLength {
-		n++
+
+	// A single word wider than the line: split it at the last character
+	// that fits, keeping at least one.
+	var cuts []int // cuts[k] ends the prefix of k+1 runes
+	for i := range s {
+		if i > 0 {
+			cuts = append(cuts, i)
+		}
 	}
-	return string(runes[:n])
+	cuts = append(cuts, len(s))
+	n := sort.Search(len(cuts), func(k int) bool { return f.MeasureString(s[:cuts[k]]) > wrapLength })
+	return s[:cuts[max(n-1, 0)]]
 }
+
+func isBlank(c byte) bool { return c == ' ' || c == '\t' }
 
 // Segment is a run of text without tabs and its x offset within its line.
 type Segment struct {

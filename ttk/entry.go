@@ -2,6 +2,7 @@ package ttk
 
 import (
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -177,7 +178,7 @@ func NewEntry(parent widget.Caregiver, name string, opts ...EntryOption) *Entry 
 		Redraw: func() {
 			e.Display()
 		},
-		Editable: func() bool { return e.StateMode != EntryDisabled },
+		Editable: func() bool { return e.StateMode == EntryNormal },
 		Validate: e.runValidate,
 	}
 
@@ -321,7 +322,7 @@ func (e *Entry) BBox(idx string) (x, y, w, h int, err error) {
 		return 0, 0, 0, 0, nil
 	}
 	m := e.Font.Metrics()
-	x = e.edit.TextX + e.Font.MeasureString(string(e.edit.Text[:p]))
+	x = e.edit.TextX - e.edit.XOffset + e.Font.MeasureString(string(e.edit.Text[:p]))
 	y = e.insetY
 	w = e.Font.MeasureString(string(e.edit.Text[p : p+1]))
 	if w < 1 {
@@ -471,7 +472,7 @@ func (e *Entry) Display() {
 	// Scroll the text horizontally if the insertion cursor has moved off-screen.
 	e.maybeScrollIntoView(display)
 
-	textX := e.edit.TextX
+	textX := e.edit.TextX - e.edit.XOffset
 	if e.Font != nil {
 		m := e.Font.Metrics()
 		textY := (height-m.Linespace())/2 + m.Ascent
@@ -489,9 +490,7 @@ func (e *Entry) Display() {
 			}
 			selStartX := textX + e.Font.MeasureString(string(display[:sf]))
 			selEndX := textX + e.Font.MeasureString(string(display[:sl]))
-			if selStartX < textX {
-				selStartX = textX
-			}
+			selStartX = max(selStartX, e.edit.TextX)
 			if selEndX > width-2 {
 				selEndX = width - 2
 			}
@@ -516,7 +515,7 @@ func (e *Entry) Display() {
 					}
 					seg := string(display[start:end])
 					segX := textX + e.Font.MeasureString(string(display[:start]))
-					if segX >= width {
+					if segX >= width || segX+e.Font.MeasureString(seg) <= 0 {
 						return
 					}
 					r := uint16((clr>>16)&0xFF) * 257
@@ -548,7 +547,7 @@ func (e *Entry) Display() {
 			curIdx := e.edit.InsertPos
 			curX := textX + e.Font.MeasureString(string(display[:curIdx]))
 			rightEdge := width - 2
-			if curX >= textX && curX < rightEdge {
+			if curX >= e.edit.TextX && curX < rightEdge {
 				d.SetForeground(gc, insertColor)
 				d.FillRectangle(pixDrawable, gc, curX, e.insetY, uint(insertWidth), uint(height-2*e.insetY))
 			}
@@ -559,39 +558,47 @@ func (e *Entry) Display() {
 	d.CopyArea(pixDrawable, win.Drawable(), gc, 0, 0, uint(width), uint(height), 0, 0)
 	d.Flush()
 
-	// Notify any xscroll listener.
 	if e.XScrollCmd != nil {
-		e.XScrollCmd(float64(e.leftIndex)/float64(max1(len(display))), 1)
+		e.XScrollCmd(e.xview(display))
 	}
 }
 
-func max1(n int) int {
-	if n < 1 {
-		return 1
+// xview returns the visible fraction of the text, as ttkEntry.c's
+// EntryDoLayout computes xscroll.first and xscroll.last.
+func (e *Entry) xview(display []rune) (first, last float64) {
+	if len(display) == 0 || e.Font == nil {
+		return 0, 1
 	}
-	return n
+	visible := max(e.Win.Width-e.edit.TextX-2, 1)
+	right := entrytext.RuneIndexAtPixel(e.Font, display, e.edit.XOffset+visible)
+	n := float64(len(display))
+	return float64(e.leftIndex) / n, float64(max(right, e.leftIndex)) / n
 }
 
-// maybeScrollIntoView shifts e.leftIndex so the insertion cursor stays in view.
+// maybeScrollIntoView shifts e.leftIndex so the insertion cursor stays in
+// view and, like EntryDoLayout, so no blank space is left at the right while
+// text is scrolled off the left.
 func (e *Entry) maybeScrollIntoView(display []rune) {
 	if e.Font == nil || e.Win.Width <= 0 {
+		e.leftIndex, e.edit.XOffset = 0, 0
 		return
 	}
-	textX := e.edit.TextX
-	visible := max(e.Win.Width-textX-2, 1)
+	visible := max(e.Win.Width-e.edit.TextX-2, 1)
+	prefix := func(i int) int { return e.Font.MeasureString(string(display[:i])) }
 	curIdx := min(e.edit.InsertPos, len(display))
-	e.leftIndex = min(e.leftIndex, len(display))
-	cursorX := e.Font.MeasureString(string(display[:curIdx]))
-	firstX := e.Font.MeasureString(string(display[:e.leftIndex]))
-	if cursorX-firstX < 0 {
-		for e.leftIndex > 0 && e.Font.MeasureString(string(display[:e.leftIndex])) > cursorX-visible+firstX {
-			e.leftIndex--
-		}
-	} else if cursorX-firstX > visible {
-		for e.leftIndex < curIdx && e.Font.MeasureString(string(display[:e.leftIndex+1]))-firstX <= cursorX-visible {
-			e.leftIndex++
-		}
+	left := min(e.leftIndex, len(display))
+	cursorX := prefix(curIdx)
+	if curIdx < left {
+		left = curIdx
+	} else if cursorX-prefix(left) > visible {
+		left = sort.Search(curIdx, func(i int) bool { return cursorX-prefix(i) <= visible })
 	}
+	if left > 0 {
+		total := prefix(len(display))
+		left = min(left, sort.Search(left, func(i int) bool { return total-prefix(i) <= visible }))
+	}
+	e.leftIndex = left
+	e.edit.XOffset = prefix(left)
 }
 
 // ---- helpers ----
