@@ -3,6 +3,8 @@
 package x11
 
 import (
+	"bytes"
+	"encoding/binary"
 	"github.com/msorc/takigo/font"
 	"github.com/msorc/takigo/platform"
 	"os"
@@ -530,12 +532,27 @@ func TestX11DisplayPropertyManager(t *testing.T) {
 	t.Log("Calling ChangePropertyAtoms")
 	propMgr.ChangePropertyAtoms(win, atom, []platform.AtomID{atom})
 
-	// Test GetWindowProperty
+	// Test GetWindowProperty: format-32 items come back as 4 bytes each.
 	t.Log("Calling GetWindowProperty")
 	data, atype, format := propMgr.GetWindowProperty(win, atom, 0, 1024, false)
-	_ = data
-	_ = atype
-	_ = format
+	if format != 32 || atype != core.Atoms().Atom || len(data) != 4 {
+		t.Fatalf("GetWindowProperty after ChangePropertyAtoms = (%d bytes, type %d, format %d)", len(data), atype, format)
+	}
+	if got := platform.AtomID(binary.NativeEndian.Uint32(data)); got != atom {
+		t.Errorf("atom property = %d, want %d", got, atom)
+	}
+
+	want := []uint32{1, 0xdeadbeef, 0xffffffff}
+	packed := make([]byte, 4*len(want))
+	for i, v := range want {
+		binary.NativeEndian.PutUint32(packed[i*4:], v)
+	}
+	propMgr.ChangeProperty(win, atom, core.Atoms().Cardinal, 32, platform.PropModeReplace, packed, len(want))
+	data, atype, format = propMgr.GetWindowProperty(win, atom, 0, 1024, false)
+	if format != 32 || atype != core.Atoms().Cardinal || !bytes.Equal(data, packed) {
+		t.Errorf("cardinal round trip = (%x, type %d, format %d), want (%x, type %d, format 32)",
+			data, atype, format, packed, core.Atoms().Cardinal)
+	}
 
 	// Test DeleteProperty
 	t.Log("Calling DeleteProperty")
