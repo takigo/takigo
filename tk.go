@@ -119,6 +119,13 @@ func NewApp(opts ...AppOption) (*App, error) {
 			if w := d.LookupWindow(ev.Window); w != nil && !w.IsTopLevel() {
 				ev.ConfigWidth, ev.ConfigHeight = w.Width, w.Height
 			}
+		case event.FocusInType, event.FocusOutType:
+			// focus.Manager dispatches FocusOut/FocusIn itself when it
+			// moves the focus; the real pair X then reports is dropped so
+			// widgets see each change once (-validate focus ran twice).
+			if app.focusMgr != nil && app.focusMgr.SwallowEcho(ev) {
+				ev.Type = 0
+			}
 		case event.KeyPressType, event.KeyReleaseType, event.ButtonPressType, event.ButtonReleaseType,
 			event.MotionType, event.EnterType, event.LeaveType:
 			// A local grab (tkGrab.c's TkPointerEvent) discards input
