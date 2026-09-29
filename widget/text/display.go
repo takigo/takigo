@@ -730,33 +730,32 @@ func (t *TextWidget) drawSelectionHighlight(d platform.DisplayServer, gc platfor
 	if len(selRanges) == 0 || t.selBg == nil {
 		return
 	}
-	sr := selRanges[0]
-
 	segStartIdx := Index{Line: dl.logicalLine, Char: dl.startChar}
 	segEndIdx := Index{Line: dl.logicalLine, Char: dl.endChar}
-	if Compare(segEndIdx, sr.Start) <= 0 || Compare(segStartIdx, sr.End) >= 0 {
-		return
-	}
-
 	lineText := t.doc.Lines[dl.logicalLine-1].Text
 
-	hlStart := dl.startChar
-	if sr.Start.Line == dl.logicalLine && sr.Start.Char > hlStart {
-		hlStart = sr.Start.Char
+	// The sel tag may hold several disjoint ranges; paint each part that
+	// falls on this display line.
+	for _, sr := range selRanges {
+		if Compare(segEndIdx, sr.Start) <= 0 || Compare(segStartIdx, sr.End) >= 0 {
+			continue
+		}
+		hlStart := dl.startChar
+		if sr.Start.Line == dl.logicalLine && sr.Start.Char > hlStart {
+			hlStart = sr.Start.Char
+		}
+		hlEnd := dl.endChar
+		if sr.End.Line == dl.logicalLine && sr.End.Char < hlEnd {
+			hlEnd = sr.End.Char
+		}
+		if hlStart >= hlEnd {
+			continue
+		}
+		hlStartX := xOffset + t.Font.MeasureString(string(lineText[dl.startChar:hlStart]))
+		hlEndX := xOffset + t.Font.MeasureString(string(lineText[dl.startChar:hlEnd]))
+		d.SetForeground(gc, t.selBg.Pixel)
+		d.FillRectangle(drawable, gc, hlStartX, t.insetY+dl.y, uint(hlEndX-hlStartX), uint(dl.height))
 	}
-	hlEnd := dl.endChar
-	if sr.End.Line == dl.logicalLine && sr.End.Char < hlEnd {
-		hlEnd = sr.End.Char
-	}
-	if hlStart >= hlEnd {
-		return
-	}
-
-	hlStartX := xOffset + t.Font.MeasureString(string(lineText[dl.startChar:hlStart]))
-	hlEndX := xOffset + t.Font.MeasureString(string(lineText[dl.startChar:hlEnd]))
-
-	d.SetForeground(gc, t.selBg.Pixel)
-	d.FillRectangle(drawable, gc, hlStartX, t.insetY+dl.y, uint(hlEndX-hlStartX), uint(dl.height))
 }
 
 // drawCursor draws the text insertion cursor.

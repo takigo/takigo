@@ -34,12 +34,30 @@ type Document struct {
 	// Listeners are called (in registration order) after every Insert,
 	// Delete or layout-affecting tag change.
 	Listeners []func(Change)
+
+	// subs are the listeners added with Subscribe, called after Listeners.
+	subs []*func(Change)
 }
 
 // notifyListeners calls all registered change listeners.
 func (d *Document) notifyListeners(ch Change) {
 	for _, fn := range d.Listeners {
 		fn(ch)
+	}
+	for _, fn := range d.subs {
+		(*fn)(ch)
+	}
+}
+
+// Subscribe adds a change listener like Listeners and returns a function
+// that removes it, for widgets (peers) that go away before the document.
+func (d *Document) Subscribe(fn func(Change)) (unsubscribe func()) {
+	p := &fn
+	d.subs = append(slices.Clip(d.subs), p)
+	return func() {
+		if i := slices.Index(d.subs, p); i >= 0 {
+			d.subs = slices.Delete(slices.Clone(d.subs), i, i+1)
+		}
 	}
 }
 
