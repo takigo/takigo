@@ -2,6 +2,7 @@ package text
 
 import (
 	"slices"
+	"strings"
 	"testing"
 )
 
@@ -369,5 +370,19 @@ func TestSetSelectionUnchangedIsNoop(t *testing.T) {
 	tw.setSelection(Index{1, 2}, Index{1, 2})
 	if tw.HasSelection() {
 		t.Fatal("empty selection left sel ranges")
+	}
+}
+
+func TestWrapLineBreaksAtWords(t *testing.T) {
+	tw := newBenchWidget(docWithText(strings.Repeat("abcd ", 30)), 200, 100)
+	// 7px per rune: 70px holds 10 runes, so each display line is "abcd abcd ".
+	lines := tw.wrapLine(1, 70, 0, 0, 0)
+	if len(lines) != 15 {
+		t.Fatalf("got %d display lines, want 15", len(lines))
+	}
+	for i, dl := range lines {
+		if dl.startChar != 10*i || dl.endChar != min(10*i+10, 150) {
+			t.Errorf("line %d = [%d,%d), want [%d,%d)", i, dl.startChar, dl.endChar, 10*i, 10*i+10)
+		}
 	}
 }

@@ -130,21 +130,6 @@ func (sg *Sizegrip) Display() {
 func bindSizegrip(sg *Sizegrip, app widget.AppContext) {
 	win := sg.Win
 
-	app.Dispatcher().Bind(win.PlatformID, event.ExposureMask, func(ev *event.Event) {
-		if ev.ExposeCount > 0 {
-			return
-		}
-		sg.Display()
-	})
-
-	app.Dispatcher().Bind(win.PlatformID, event.StructureNotifyMask, func(ev *event.Event) {
-		if ev.Type == event.ConfigureType {
-			win.Width = ev.ConfigWidth
-			win.Height = ev.ConfigHeight
-			sg.Display()
-		}
-	})
-
 	app.Dispatcher().Bind(win.PlatformID, event.EnterMask, func(ev *event.Event) {
 		sg.ChangeState(StateHover|StateActive, 0)
 	})

@@ -410,23 +410,6 @@ func (nb *Notebook) hitTestTab(x, y int) int {
 func bindNotebook(nb *Notebook, app widget.AppContext) {
 	win := nb.Win
 
-	// Expose.
-	app.Dispatcher().Bind(win.PlatformID, event.ExposureMask, func(ev *event.Event) {
-		if ev.ExposeCount > 0 {
-			return
-		}
-		nb.Display()
-	})
-
-	// Configure (resize).
-	app.Dispatcher().Bind(win.PlatformID, event.StructureNotifyMask, func(ev *event.Event) {
-		if ev.Type == event.ConfigureType {
-			win.Width = ev.ConfigWidth
-			win.Height = ev.ConfigHeight
-			nb.Display()
-		}
-	})
-
 	// Button1 on tab → select + take focus (enables Ctrl+Tab traversal).
 	app.Dispatcher().Bind(win.PlatformID, event.ButtonPressMask, func(ev *event.Event) {
 		if ev.Button == 1 {

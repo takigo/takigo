@@ -484,21 +484,6 @@ func sbClamp(idx, max int) int {
 func bindSpinbox(s *Spinbox, app widget.AppContext) {
 	win := s.Win
 
-	app.Dispatcher().Bind(win.PlatformID, event.ExposureMask, func(ev *event.Event) {
-		if ev.ExposeCount > 0 {
-			return
-		}
-		s.Display()
-	})
-
-	app.Dispatcher().Bind(win.PlatformID, event.StructureNotifyMask, func(ev *event.Event) {
-		if ev.Type == event.ConfigureType {
-			win.Width = ev.ConfigWidth
-			win.Height = ev.ConfigHeight
-			s.Display()
-		}
-	})
-
 	app.Dispatcher().Bind(win.PlatformID, event.EnterMask, func(ev *event.Event) {
 		s.ChangeState(StateHover|StateActive, 0)
 	})

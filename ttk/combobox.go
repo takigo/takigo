@@ -568,21 +568,6 @@ func (c *Combobox) updateCursor(x int) {
 func bindCombobox(c *Combobox, app widget.AppContext) {
 	win := c.Win
 
-	app.Dispatcher().Bind(win.PlatformID, event.ExposureMask, func(ev *event.Event) {
-		if ev.ExposeCount > 0 {
-			return
-		}
-		c.Display()
-	})
-
-	app.Dispatcher().Bind(win.PlatformID, event.StructureNotifyMask, func(ev *event.Event) {
-		if ev.Type == event.ConfigureType {
-			win.Width = ev.ConfigWidth
-			win.Height = ev.ConfigHeight
-			c.Display()
-		}
-	})
-
 	app.Dispatcher().Bind(win.PlatformID, event.EnterMask, func(ev *event.Event) {
 		c.ChangeState(StateHover|StateActive, 0)
 		c.updateCursor(ev.X)
@@ -664,7 +649,6 @@ func bindCombobox(c *Combobox, app widget.AppContext) {
 	app.Dispatcher().Bind(win.PlatformID, event.FocusChangeMask, func(ev *event.Event) {
 		if ev.Type == event.FocusInType {
 			c.ChangeState(StateFocus, 0)
-			c.Display()
 		} else if ev.Type == event.FocusOutType {
 			c.ChangeState(0, StateFocus)
 			c.edit.ClearSelection()
