@@ -69,9 +69,6 @@ type Canvas struct {
 
 	// Tk -width/-height: the drawing area, excluding the inset.
 	reqW, reqH int
-
-	// displayFunc is stored so ScheduleRedraw can call it.
-	displayFunc func()
 }
 
 // newCanvas returns a Canvas with its item bookkeeping initialised and no
@@ -195,7 +192,6 @@ func New(parent widget.Caregiver, name string, opts ...CanvasOption) *Canvas {
 	w.ReqHeight = c.reqH + 2*c.inset
 
 	// Store display function reference for idle callback.
-	c.displayFunc = c.Display
 
 	// Like Tk_CreateWindow, the canvas is 1x1 until a geometry manager
 	// sizes it; -scrollregion confinement before then depends on that.
