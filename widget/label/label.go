@@ -47,6 +47,10 @@ type Label struct {
 
 	textWidth  int
 	textHeight int
+
+	// lines caches textLines for linesKey.
+	lines    []string
+	linesKey labelLayoutKey
 }
 
 // LabelOption configures a Label.
@@ -299,15 +303,31 @@ func New(parent widget.Caregiver, name string, opts ...LabelOption) *Label {
 	return l
 }
 
-// textLines returns the text split into display lines, applying WrapLen if set.
+// textLines returns the text split into display lines, applying WrapLen if
+// set. The result is kept until the text, font or wrap length changes, as
+// Tk keeps the label's textLayout between ComputeLabelGeometry and display.
 func (l *Label) textLines() []string {
 	if l.Text == "" {
 		return nil
 	}
-	if l.WrapLen <= 0 || l.Font == nil {
-		return strings.Split(l.Text, "\n")
+	k := labelLayoutKey{l.Text, l.Font, l.WrapLen}
+	if l.linesKey == k && l.lines != nil {
+		return l.lines
 	}
-	return font.WrapLines(l.Font, l.Text, l.WrapLen)
+	if l.WrapLen <= 0 || l.Font == nil {
+		l.lines = strings.Split(l.Text, "\n")
+	} else {
+		l.lines = font.WrapLines(l.Font, l.Text, l.WrapLen)
+	}
+	l.linesKey = k
+	return l.lines
+}
+
+// labelLayoutKey is what a label's line breaks depend on.
+type labelLayoutKey struct {
+	text string
+	font font.Font
+	wrap int
 }
 
 // computeGeometry computes the text/image size and sets the requested window size.
