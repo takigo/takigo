@@ -27,7 +27,10 @@ static void send_client_message(Display *dpy, Window w, Window target, Atom msgT
 }
 */
 import "C"
-import "unsafe"
+import (
+	"encoding/binary"
+	"unsafe"
+)
 
 // SizeHints flags.
 const (
@@ -139,9 +142,22 @@ func (d *Display) DeleteProperty(w Window, prop Atom) {
 	C.XDeleteProperty(d.ptr, C.Window(w), C.Atom(prop))
 }
 
-// ChangeProperty sets a window property.
+// ChangeProperty sets a window property. Format-32 data is packed as
+// 4 bytes per item in native byte order; Xlib wants C longs, so it is
+// widened here.
 func (d *Display) ChangeProperty(w Window, prop, propType Atom, format int, mode int, data []byte, nelements int) {
 	var dataPtr *C.uchar
+	if format == 32 {
+		nelements = min(nelements, len(data)/4)
+		longs := make([]C.ulong, max(nelements, 1))
+		for i := range nelements {
+			longs[i] = C.ulong(binary.NativeEndian.Uint32(data[i*4:]))
+		}
+		dataPtr = (*C.uchar)(unsafe.Pointer(&longs[0]))
+		C.XChangeProperty(d.ptr, C.Window(w), C.Atom(prop), C.Atom(propType),
+			C.int(format), C.int(mode), dataPtr, C.int(nelements))
+		return
+	}
 	if len(data) > 0 {
 		dataPtr = (*C.uchar)(unsafe.Pointer(&data[0]))
 	}
@@ -154,9 +170,13 @@ func (d *Display) ChangePropertyAtoms(w Window, prop Atom, atoms []Atom) {
 	if len(atoms) == 0 {
 		return
 	}
+	longs := make([]C.ulong, len(atoms))
+	for i, a := range atoms {
+		longs[i] = C.ulong(a)
+	}
 	C.XChangeProperty(d.ptr, C.Window(w), C.Atom(prop), C.XA_ATOM,
 		32, C.PropModeReplace,
-		(*C.uchar)(unsafe.Pointer(&atoms[0])), C.int(len(atoms)))
+		(*C.uchar)(unsafe.Pointer(&longs[0])), C.int(len(atoms)))
 }
 
 // PropertyReplace mode.

@@ -122,14 +122,14 @@ func setIconFromRGBA(win *window.Window, rgba *image.RGBA) {
 	w := rgba.Bounds().Dx()
 	h := rgba.Bounds().Dy()
 	data := make([]byte, (2+w*h)*4)
-	binary.LittleEndian.PutUint32(data[0:4], uint32(w))
-	binary.LittleEndian.PutUint32(data[4:8], uint32(h))
+	binary.NativeEndian.PutUint32(data[0:4], uint32(w))
+	binary.NativeEndian.PutUint32(data[4:8], uint32(h))
 	for y := range h {
 		for x := range w {
 			offset := (2 + y*w + x) * 4
 			r, g, b, a := rgba.At(x+rgba.Bounds().Min.X, y+rgba.Bounds().Min.Y).RGBA()
 			// Convert 16-bit -> 8-bit and pack as ARGB.
-			binary.LittleEndian.PutUint32(data[offset:offset+4],
+			binary.NativeEndian.PutUint32(data[offset:offset+4],
 				uint32(a>>8)<<24|uint32(r>>8)<<16|uint32(g>>8)<<8|uint32(b>>8))
 		}
 	}
@@ -143,8 +143,8 @@ func setFallbackIcon(win *window.Window) {
 	d := win.Display.Server
 	const size = 16
 	data := make([]byte, (2+size*size)*4)
-	binary.LittleEndian.PutUint32(data[0:4], size)
-	binary.LittleEndian.PutUint32(data[4:8], size)
+	binary.NativeEndian.PutUint32(data[0:4], size)
+	binary.NativeEndian.PutUint32(data[4:8], size)
 	for y := range size {
 		for x := range size {
 			offset := (2 + y*size + x) * 4
@@ -154,7 +154,7 @@ func setFallbackIcon(win *window.Window) {
 			if topBar || stem {
 				r, g, b = 0xFF, 0xFF, 0xFF
 			}
-			binary.LittleEndian.PutUint32(data[offset:offset+4],
+			binary.NativeEndian.PutUint32(data[offset:offset+4],
 				uint32(a)<<24|uint32(r)<<16|uint32(g)<<8|uint32(b))
 		}
 	}
