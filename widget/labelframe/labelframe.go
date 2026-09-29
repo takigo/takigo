@@ -353,7 +353,6 @@ func (lf *Labelframe) display() {
 	if !lf.hasLabel() {
 		draw.Draw3DRectangle(d, w.Drawable(), gc, border,
 			hl, hl, w.Width-2*hl, w.Height-2*hl, bw, lf.Relief)
-		d.Flush()
 		return
 	}
 
@@ -409,7 +408,6 @@ func (lf *Labelframe) display() {
 		lf.placeLabelWidget(boxX, boxY, boxW, boxH)
 	}
 
-	d.Flush()
 }
 
 // placeLabelWidget puts the -labelwidget window on the label box, like

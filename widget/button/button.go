@@ -474,7 +474,6 @@ func (b *Button) display() {
 	}
 	b.DrawHighlightBorder(b.HasFocus, focusPad)
 
-	d.Flush()
 }
 
 // drawCompoundButton draws image and text in compound mode for a button.

@@ -264,7 +264,6 @@ func (tw *TearoffWindow) display() {
 
 	df := tw.font
 	if df == nil || tw.fontI == nil {
-		d.Flush()
 		return
 	}
 	fm := tw.fontI.Metrics()
@@ -346,5 +345,4 @@ func (tw *TearoffWindow) display() {
 		yPos += tw.entryHeight
 	}
 
-	d.Flush()
 }

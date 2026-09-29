@@ -469,7 +469,6 @@ func (l *Label) display() {
 		}
 	}
 
-	d.Flush()
 }
 
 // compoundSize computes the image+text block size; the gap is padX/padY,

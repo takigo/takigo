@@ -679,7 +679,6 @@ func (pw *PanedWindow) display() {
 		}
 	}
 
-	d.Flush()
 }
 
 // Configure applies options.

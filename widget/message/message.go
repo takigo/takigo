@@ -368,7 +368,6 @@ func (m *Message) display() {
 
 	// Draw text.
 	if m.Font == nil || len(m.lines) == 0 || m.Foreground == nil {
-		d.Flush()
 		return
 	}
 
@@ -396,7 +395,6 @@ func (m *Message) display() {
 		}
 	}
 
-	d.Flush()
 }
 
 // Configure applies options to the message.

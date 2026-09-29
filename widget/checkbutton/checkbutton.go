@@ -505,7 +505,6 @@ func (c *Checkbutton) display() {
 
 	c.DrawHighlightBorder(c.HasFocus, 0)
 
-	d.Flush()
 }
 
 // Toggle flips the checkbutton state by alternating the linked variable

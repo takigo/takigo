@@ -643,7 +643,6 @@ func (s *Spinbox) display() {
 	}
 	s.DrawHighlightBorder(s.HasFocus, 0)
 
-	d.Flush()
 }
 
 // drawButtons ports the spin button drawing in DisplayEntry (tkEntry.c).

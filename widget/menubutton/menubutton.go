@@ -314,7 +314,6 @@ func (mb *Menubutton) display() {
 		}
 	}
 
-	d.Flush()
 }
 
 // SetText changes the button label and requests a re-layout if the size changed.

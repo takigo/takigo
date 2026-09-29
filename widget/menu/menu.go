@@ -694,7 +694,6 @@ func (m *Menu) display() {
 
 	df, isDF := m.Font.(platform.DrawableFont)
 	if !isDF {
-		d.Flush()
 		return
 	}
 
@@ -732,7 +731,6 @@ func (m *Menu) display() {
 		m.displayMultiColumn(d, gc, yStart)
 	}
 
-	d.Flush()
 }
 
 func (m *Menu) displaySingleColumn(d platform.DisplayServer, gc platform.GCID, df platform.DrawableFont, fm font.Metrics, yStart int) {

@@ -709,7 +709,6 @@ func (e *Entry) display() {
 	// -highlightbackground).
 	e.DrawHighlightBorder(e.HasFocus, 0)
 
-	d.Flush()
 }
 
 // Configure applies options.

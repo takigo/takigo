@@ -197,7 +197,6 @@ func (mb *Menubar) display() {
 	if mb.Relief != option.ReliefFlat && mb.Border != nil {
 		draw.Draw3DRectangle(d, pix, gc, mb.Border, 0, 0, w.Width, w.Height, mb.BorderWidth, mb.Relief)
 	}
-	d.Flush()
 }
 
 // post shows entry i's cascade below it (TkPostSubmenu for a menubar) for
