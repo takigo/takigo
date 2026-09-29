@@ -8,9 +8,13 @@ import (
 	takigo "github.com/msorc/takigo"
 )
 
-// RequireDisplay skips the test if no X11 display is available.
+// RequireDisplay skips the test if no X11 display is available or the
+// build has no display backend (CGO_ENABLED=0 on Unix).
 func RequireDisplay(t *testing.T) {
 	t.Helper()
+	if !haveBackend {
+		t.Skip("no display backend in this build (cgo disabled)")
+	}
 	if os.Getenv("DISPLAY") == "" && os.Getenv("WAYLAND_DISPLAY") == "" {
 		t.Skip("no display available (set DISPLAY or use xvfb-run)")
 	}
