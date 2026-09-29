@@ -172,7 +172,7 @@ func (s *Spinbox) handleMotion(ev *event.Event) {
 // handleKeyPress handles keyboard events.
 func (s *Spinbox) handleKeyPress(ev *event.Event) {
 	shift := ev.State&platform.ShiftMask != 0
-	ctrl := ev.State&(platform.ControlMask|platform.Mod2Mask) != 0 // Ctrl or Cmd (macOS)
+	ctrl := ev.State&(platform.ControlMask|platform.CommandMask) != 0
 
 	switch ev.KeySym {
 	case platform.XK_Up:

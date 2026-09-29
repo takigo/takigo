@@ -1,6 +1,7 @@
 package canvas
 
 import (
+	"bytes"
 	"fmt"
 	"strconv"
 	"strings"
@@ -16,7 +17,7 @@ import (
 // methods on this context to emit PostScript fragments; the context owns the
 // output buffer, font table, and optional color/font mappings.
 type PSContext struct {
-	buf       strings.Builder
+	buf       bytes.Buffer
 	itemStart int // offset of the current item's first byte in buf
 
 	// Page geometry (PostScript points; 72 pt/in).
@@ -79,16 +80,16 @@ func (ps *PSContext) Reset() { ps.buf.Reset() }
 // caller can wrap them in gsave/grestore.
 func (ps *PSContext) ResetItemBuf() { ps.itemStart = ps.buf.Len() }
 
-// TakeItemBuf returns the bytes written since the last ResetItemBuf and
-// resets itemStart.
+// TakeItemBuf removes the bytes written since the last ResetItemBuf from
+// the output and returns them.
 func (ps *PSContext) TakeItemBuf() string {
 	end := ps.buf.Len()
 	if ps.itemStart >= end {
 		ps.itemStart = end
 		return ""
 	}
-	out := ps.buf.String()[ps.itemStart:end]
-	ps.itemStart = end
+	out := string(ps.buf.Bytes()[ps.itemStart:end])
+	ps.buf.Truncate(ps.itemStart)
 	return out
 }
 
@@ -107,7 +108,7 @@ func (ps *PSContext) write(s string) { ps.buf.WriteString(s) }
 
 // writef appends a sprintf-style format string.
 func (ps *PSContext) writef(format string, args ...any) {
-	ps.buf.WriteString(fmt.Sprintf(format, args...))
+	fmt.Fprintf(&ps.buf, format, args...)
 }
 
 // registerFont notes that a font is in use; called from the Font emitter

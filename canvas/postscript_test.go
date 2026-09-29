@@ -256,3 +256,20 @@ func TestSampledSpline(t *testing.T) {
 		t.Errorf("sampleSpline returned fewer points than input: %v", out)
 	}
 }
+
+func TestPostscriptEmitsEachItemOnce(t *testing.T) {
+	c := newBenchCanvas()
+	c.createItem(newRectOvalItem("rectangle", 10, 10, 50, 40, c), []ItemOption{fillPixel(0xff0000)})
+	c.createItem(newRectOvalItem("rectangle", 60, 10, 90, 40, c), []ItemOption{fillPixel(0x00ff00)})
+	out, err := c.Postscript()
+	if err != nil {
+		t.Fatal(err)
+	}
+	body := out[strings.Index(out, "%%EndSetup"):]
+	if n := strings.Count(body, "stroke\n"); n != 2 {
+		t.Errorf("%d outlines stroked, want 2 (one per item):\n%s", n, body)
+	}
+	if strings.Count(body, "gsave") != strings.Count(body, "grestore") {
+		t.Errorf("unbalanced gsave/grestore:\n%s", body)
+	}
+}

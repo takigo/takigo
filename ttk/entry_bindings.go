@@ -103,7 +103,7 @@ func bindEntry(e *Entry, app widget.AppContext) {
 	})
 
 	// Hide cursor when the user clicks any other window.
-	app.Dispatcher().BindGlobal(event.ButtonPressMask, func(ev *event.Event) {
+	app.Dispatcher().BindGlobalFor(win.PlatformID, event.ButtonPressMask, func(ev *event.Event) {
 		if e.State&StateFocus == 0 || e.StateMode == EntryDisabled {
 			return
 		}
