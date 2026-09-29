@@ -129,6 +129,7 @@ type itemEntry struct {
 	id   int64
 	item Item
 	mark uint64 // last markEntries stamp (membership during list passes)
+	dead bool   // deleted, still in c.items until compact
 }
 
 // drawableCoord ports Tk_CanvasDrawableCoords: canvas coordinate v minus the

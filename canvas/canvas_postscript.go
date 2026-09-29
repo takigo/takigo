@@ -15,6 +15,7 @@ import (
 //   - If -writer is set: writes to the writer and returns "".
 //   - Otherwise: returns the full PostScript string.
 func (c *Canvas) Postscript(opts ...PostscriptOption) (string, error) {
+	c.compact()
 	cfg := psConfig{
 		Prolog:    true,
 		ColorMode: "color",
