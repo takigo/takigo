@@ -37,3 +37,58 @@ func TestDeleteDropsItemBindingsAndFocus(t *testing.T) {
 		t.Errorf("focusItemID = %d after deleting the focus item, want 0", c.focusItemID)
 	}
 }
+
+func TestTextCursorLine(t *testing.T) {
+	c := newBenchCanvas()
+	tests := []struct {
+		text      string
+		wrap, pos int
+		line, col int
+	}{
+		{"ab\ncd", 0, 4, 1, 1},
+		{"ab\ncd", 0, 2, 0, 2},
+		{"ab\ncd", 0, 3, 1, 0},
+		{"ab\n\ncd", 0, 3, 1, 0},
+		// 7px per rune, wrap at 21px: "abc" / "def"; the space is dropped.
+		{"abc def", 21, 5, 1, 1},
+		{"abc def", 21, 3, 0, 3},
+	}
+	for _, tt := range tests {
+		ti := benchText(c, 0, 0, tt.text)
+		ti.wrapLength = tt.wrap
+		ti.updateBBox()
+		ti.cursorPos = tt.pos
+		if l, col := ti.cursorLine(); l != tt.line || col != tt.col {
+			t.Errorf("%q wrap %d cursor %d: line %d col %d, want %d %d (lines %q)",
+				tt.text, tt.wrap, tt.pos, l, col, tt.line, tt.col, ti.lay.lines)
+		}
+	}
+}
+
+func TestArcPointDistance(t *testing.T) {
+	c := newBenchCanvas()
+	// Quarter arc of a 100x100 circle centred at (50,50), from 0° to 90°:
+	// the curve runs from (100,50) up to (50,0).
+	a := newArcItem(0, 0, 100, 100, c)
+	a.start, a.extent = 0, 90
+	a.style = ArcStyleArc
+	a.outlineWidth = 1
+
+	if d := a.PointDistance(50+50*0.7071, 50-50*0.7071); d > 0.6 {
+		t.Errorf("point on the arc at 45°: distance %.2f, want ~0", d)
+	}
+	if d := a.PointDistance(20, 80); d < 20 {
+		t.Errorf("point across the circle from the arc: distance %.2f, want far", d)
+	}
+	a.style = ArcStylePieslice
+	a.fill = a.outline
+	if d := a.PointDistance(60, 40); d != 0 {
+		t.Errorf("point inside a filled pieslice: distance %.2f, want 0", d)
+	}
+	if got := a.AreaOverlap(0, 60, 40, 100); got != -1 {
+		t.Errorf("rectangle in the missing quadrant: AreaOverlap = %d, want -1", got)
+	}
+	if got := a.AreaOverlap(-10, -10, 110, 110); got != 1 {
+		t.Errorf("rectangle around the arc: AreaOverlap = %d, want 1", got)
+	}
+}
