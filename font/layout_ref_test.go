@@ -34,7 +34,7 @@ func refFitLine(f Measurer, s string, wrapLength int) string {
 
 func refWrapLines(f Measurer, text string, wrapLength int) []string {
 	var lines []string
-	for _, para := range strings.Split(text, "\n") {
+	for para := range strings.SplitSeq(text, "\n") {
 		if para == "" {
 			lines = append(lines, "")
 			continue
