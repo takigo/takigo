@@ -38,6 +38,12 @@ type WmInfo interface {
 	// GeometryRequest returns the size the toplevel takes for a content
 	// request of reqW x reqH: the request, unless the user set a size.
 	GeometryRequest(reqW, reqH int) (w, h int)
+	// ExpectSize records that the application asked for this size, so
+	// the ConfigureNotify answering it is not taken for a user resize.
+	ExpectSize(w, h int)
+	// ConfigureNotify handles the toplevel's reported size before the
+	// window takes it, recording a user resize as its geometry.
+	ConfigureNotify(w, h int)
 }
 
 // Window represents a single window in the takigo hierarchy.
@@ -216,6 +222,9 @@ func ResizeToplevel(w *Window, reqW, reqH int) {
 	}
 	w.Width, w.Height = width, height
 	if w.PlatformID != 0 {
+		if w.WmData != nil {
+			w.WmData.ExpectSize(width, height)
+		}
 		w.Display.Server.ResizeWindow(w.PlatformID, uint(width), uint(height))
 	}
 }

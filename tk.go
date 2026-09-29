@@ -116,8 +116,15 @@ func NewApp(opts ...AppOption) (*App, error) {
 	loop.SetEventFilter(func(ev *event.Event) {
 		switch ev.Type {
 		case event.ConfigureType:
-			if w := d.LookupWindow(ev.Window); w != nil && !w.IsTopLevel() {
+			w := d.LookupWindow(ev.Window)
+			switch {
+			case w == nil:
+			case !w.IsTopLevel():
 				ev.ConfigWidth, ev.ConfigHeight = w.Width, w.Height
+			case w.WmData != nil:
+				// A size the user dragged to becomes the toplevel's
+				// geometry (ConfigureEvent in tkUnixWm.c).
+				w.WmData.ConfigureNotify(ev.ConfigWidth, ev.ConfigHeight)
 			}
 		case event.FocusInType, event.FocusOutType:
 			// focus.Manager dispatches FocusOut/FocusIn itself when it
