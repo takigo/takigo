@@ -11,36 +11,6 @@ package xlib
 // Helper to get event type from XEvent union.
 static int xevent_type(XEvent *ev) { return ev->type; }
 
-// Key event accessors.
-static Window xevent_key_window(XEvent *ev) { return ev->xkey.window; }
-static Window xevent_key_root(XEvent *ev) { return ev->xkey.root; }
-static unsigned int xevent_key_state(XEvent *ev) { return ev->xkey.state; }
-static unsigned int xevent_key_keycode(XEvent *ev) { return ev->xkey.keycode; }
-static int xevent_key_x(XEvent *ev) { return ev->xkey.x; }
-static int xevent_key_y(XEvent *ev) { return ev->xkey.y; }
-static int xevent_key_x_root(XEvent *ev) { return ev->xkey.x_root; }
-static int xevent_key_y_root(XEvent *ev) { return ev->xkey.y_root; }
-static Time xevent_key_time(XEvent *ev) { return ev->xkey.time; }
-
-// Button event accessors.
-static Window xevent_button_window(XEvent *ev) { return ev->xbutton.window; }
-static unsigned int xevent_button_button(XEvent *ev) { return ev->xbutton.button; }
-static unsigned int xevent_button_state(XEvent *ev) { return ev->xbutton.state; }
-static int xevent_button_x(XEvent *ev) { return ev->xbutton.x; }
-static int xevent_button_y(XEvent *ev) { return ev->xbutton.y; }
-static int xevent_button_x_root(XEvent *ev) { return ev->xbutton.x_root; }
-static int xevent_button_y_root(XEvent *ev) { return ev->xbutton.y_root; }
-static Time xevent_button_time(XEvent *ev) { return ev->xbutton.time; }
-
-// Motion event accessors.
-static Window xevent_motion_window(XEvent *ev) { return ev->xmotion.window; }
-static unsigned int xevent_motion_state(XEvent *ev) { return ev->xmotion.state; }
-static int xevent_motion_x(XEvent *ev) { return ev->xmotion.x; }
-static int xevent_motion_y(XEvent *ev) { return ev->xmotion.y; }
-static int xevent_motion_x_root(XEvent *ev) { return ev->xmotion.x_root; }
-static int xevent_motion_y_root(XEvent *ev) { return ev->xmotion.y_root; }
-static Time xevent_motion_time(XEvent *ev) { return ev->xmotion.time; }
-
 // Expose event accessors.
 static Window xevent_expose_window(XEvent *ev) { return ev->xexpose.window; }
 static int xevent_expose_x(XEvent *ev) { return ev->xexpose.x; }
@@ -62,12 +32,6 @@ static Atom xevent_client_message_type(XEvent *ev) { return ev->xclient.message_
 static int xevent_client_format(XEvent *ev) { return ev->xclient.format; }
 static long xevent_client_data_l(XEvent *ev, int i) { return ev->xclient.data.l[i]; }
 
-// Crossing event accessors.
-static Window xevent_crossing_window(XEvent *ev) { return ev->xcrossing.window; }
-static int xevent_crossing_x(XEvent *ev) { return ev->xcrossing.x; }
-static int xevent_crossing_y(XEvent *ev) { return ev->xcrossing.y; }
-static unsigned int xevent_crossing_state(XEvent *ev) { return ev->xcrossing.state; }
-static Time xevent_crossing_time(XEvent *ev) { return ev->xcrossing.time; }
 
 // Focus event accessors.
 static Window xevent_focus_window(XEvent *ev) { return ev->xfocus.window; }
@@ -107,6 +71,48 @@ static int xevent_property_deleted(XEvent *ev) { return ev->xproperty.state == P
 
 // Any event window accessor.
 static Window xevent_any_window(XEvent *ev) { return ev->xany.window; }
+
+// takigo_input carries the fields of a key, button, motion or crossing
+// event, so parsing one costs a single cgo call instead of one per field.
+typedef struct {
+    Window window, root;
+    Time time;
+    int x, y, x_root, y_root;
+    unsigned int state, detail;
+} takigo_input;
+
+static void xevent_input(XEvent *ev, takigo_input *o) {
+    switch (ev->type) {
+    case KeyPress: case KeyRelease: {
+        XKeyEvent *k = &ev->xkey;
+        o->window = k->window; o->root = k->root; o->time = k->time;
+        o->x = k->x; o->y = k->y; o->x_root = k->x_root; o->y_root = k->y_root;
+        o->state = k->state; o->detail = k->keycode;
+        break;
+    }
+    case ButtonPress: case ButtonRelease: {
+        XButtonEvent *b = &ev->xbutton;
+        o->window = b->window; o->root = b->root; o->time = b->time;
+        o->x = b->x; o->y = b->y; o->x_root = b->x_root; o->y_root = b->y_root;
+        o->state = b->state; o->detail = b->button;
+        break;
+    }
+    case MotionNotify: {
+        XMotionEvent *m = &ev->xmotion;
+        o->window = m->window; o->root = m->root; o->time = m->time;
+        o->x = m->x; o->y = m->y; o->x_root = m->x_root; o->y_root = m->y_root;
+        o->state = m->state; o->detail = 0;
+        break;
+    }
+    case EnterNotify: case LeaveNotify: {
+        XCrossingEvent *c = &ev->xcrossing;
+        o->window = c->window; o->root = c->root; o->time = c->time;
+        o->x = c->x; o->y = c->y; o->x_root = c->x_root; o->y_root = c->y_root;
+        o->state = c->state; o->detail = c->detail;
+        break;
+    }
+    }
+}
 
 // XLookupString wrapper.
 static int lookup_string(XEvent *ev, char *buf, int buflen, KeySym *ks) {
@@ -253,19 +259,7 @@ func (e *RawEvent) ParseKeyEvent() KeyEvent {
 		str = C.GoStringN(&buf[0], n)
 	}
 
-	return KeyEvent{
-		EventWindow: Window(C.xevent_key_window(&e.ev)),
-		RootWindow:  Window(C.xevent_key_root(&e.ev)),
-		X:           int(C.xevent_key_x(&e.ev)),
-		Y:           int(C.xevent_key_y(&e.ev)),
-		RootX:       int(C.xevent_key_x_root(&e.ev)),
-		RootY:       int(C.xevent_key_y_root(&e.ev)),
-		State:       uint(C.xevent_key_state(&e.ev)),
-		KeyCode:     uint(C.xevent_key_keycode(&e.ev)),
-		KeySym:      KeySym(ks),
-		Str:         str,
-		Time:        Time(C.xevent_key_time(&e.ev)),
-	}
+	return e.keyEvent(KeySym(ks), str)
 }
 
 // ParseKeyEventIM extracts key event data using Xutf8LookupString via XIM.
@@ -288,19 +282,7 @@ func (d *Display) ParseKeyEventIM(e *RawEvent) KeyEvent {
 		str = C.GoStringN(&buf[0], n)
 	}
 
-	return KeyEvent{
-		EventWindow: Window(C.xevent_key_window(&e.ev)),
-		RootWindow:  Window(C.xevent_key_root(&e.ev)),
-		X:           int(C.xevent_key_x(&e.ev)),
-		Y:           int(C.xevent_key_y(&e.ev)),
-		RootX:       int(C.xevent_key_x_root(&e.ev)),
-		RootY:       int(C.xevent_key_y_root(&e.ev)),
-		State:       uint(C.xevent_key_state(&e.ev)),
-		KeyCode:     uint(C.xevent_key_keycode(&e.ev)),
-		KeySym:      KeySym(ks),
-		Str:         str,
-		Time:        Time(C.xevent_key_time(&e.ev)),
-	}
+	return e.keyEvent(KeySym(ks), str)
 }
 
 // ButtonEvent holds parsed button press/release data.
@@ -315,15 +297,41 @@ type ButtonEvent struct {
 
 // ParseButtonEvent extracts button event data.
 func (e *RawEvent) ParseButtonEvent() ButtonEvent {
+	in := e.input()
 	return ButtonEvent{
-		EventWindow: Window(C.xevent_button_window(&e.ev)),
-		X:           int(C.xevent_button_x(&e.ev)),
-		Y:           int(C.xevent_button_y(&e.ev)),
-		RootX:       int(C.xevent_button_x_root(&e.ev)),
-		RootY:       int(C.xevent_button_y_root(&e.ev)),
-		State:       uint(C.xevent_button_state(&e.ev)),
-		Button:      uint(C.xevent_button_button(&e.ev)),
-		Time:        Time(C.xevent_button_time(&e.ev)),
+		EventWindow: Window(in.window),
+		X:           int(in.x),
+		Y:           int(in.y),
+		RootX:       int(in.x_root),
+		RootY:       int(in.y_root),
+		State:       uint(in.state),
+		Button:      uint(in.detail),
+		Time:        Time(in.time),
+	}
+}
+
+// input reads a key, button, motion or crossing event in one cgo call.
+func (e *RawEvent) input() C.takigo_input {
+	var in C.takigo_input
+	C.xevent_input(&e.ev, &in)
+	return in
+}
+
+// keyEvent builds a KeyEvent from the event and its looked-up keysym.
+func (e *RawEvent) keyEvent(ks KeySym, str string) KeyEvent {
+	in := e.input()
+	return KeyEvent{
+		EventWindow: Window(in.window),
+		RootWindow:  Window(in.root),
+		X:           int(in.x),
+		Y:           int(in.y),
+		RootX:       int(in.x_root),
+		RootY:       int(in.y_root),
+		State:       uint(in.state),
+		KeyCode:     uint(in.detail),
+		KeySym:      ks,
+		Str:         str,
+		Time:        Time(in.time),
 	}
 }
 
@@ -338,14 +346,15 @@ type MotionEvent struct {
 
 // ParseMotionEvent extracts motion event data.
 func (e *RawEvent) ParseMotionEvent() MotionEvent {
+	in := e.input()
 	return MotionEvent{
-		EventWindow: Window(C.xevent_motion_window(&e.ev)),
-		X:           int(C.xevent_motion_x(&e.ev)),
-		Y:           int(C.xevent_motion_y(&e.ev)),
-		RootX:       int(C.xevent_motion_x_root(&e.ev)),
-		RootY:       int(C.xevent_motion_y_root(&e.ev)),
-		State:       uint(C.xevent_motion_state(&e.ev)),
-		Time:        Time(C.xevent_motion_time(&e.ev)),
+		EventWindow: Window(in.window),
+		X:           int(in.x),
+		Y:           int(in.y),
+		RootX:       int(in.x_root),
+		RootY:       int(in.y_root),
+		State:       uint(in.state),
+		Time:        Time(in.time),
 	}
 }
 
@@ -418,12 +427,13 @@ type CrossingEvent struct {
 
 // ParseCrossingEvent extracts crossing event data.
 func (e *RawEvent) ParseCrossingEvent() CrossingEvent {
+	in := e.input()
 	return CrossingEvent{
-		EventWindow: Window(C.xevent_crossing_window(&e.ev)),
-		X:           int(C.xevent_crossing_x(&e.ev)),
-		Y:           int(C.xevent_crossing_y(&e.ev)),
-		State:       uint(C.xevent_crossing_state(&e.ev)),
-		Time:        Time(C.xevent_crossing_time(&e.ev)),
+		EventWindow: Window(in.window),
+		X:           int(in.x),
+		Y:           int(in.y),
+		State:       uint(in.state),
+		Time:        Time(in.time),
 	}
 }
 
