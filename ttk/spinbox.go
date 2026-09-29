@@ -498,7 +498,7 @@ func bindSpinbox(s *Spinbox, app widget.AppContext) {
 			return
 		}
 		if ev.Button == 1 {
-			app.Server().SetInputFocus(win.PlatformID, platform.RevertToParent, platform.CurrentTime)
+			widget.Focus(app, win)
 
 			btn := s.hitButton(ev.X, ev.Y)
 			if btn == "up" {

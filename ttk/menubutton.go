@@ -79,6 +79,7 @@ func NewMenubutton(parent widget.Caregiver, name string, opts ...MenubuttonOptio
 	app := parent.AppContext()
 	win := window.NewChildWindow(parent.Window(), name, 0, 0, 1, 1)
 	window.MakeWindowExist(win)
+	win.Flags |= window.FlagFocusable // ttk::takefocus accepts it
 
 	mb := &Menubutton{
 		Direction: DirBelow,

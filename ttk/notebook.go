@@ -44,6 +44,7 @@ func NewNotebook(parent widget.Caregiver, name string, opts ...NotebookOption) *
 	app := parent.AppContext()
 	win := window.NewChildWindow(parent.Window(), name, 0, 0, 300, 200)
 	window.MakeWindowExist(win)
+	win.Flags |= window.FlagFocusable // ttk::takefocus accepts it
 
 	nb := &Notebook{
 		selected: -1,
@@ -464,7 +465,7 @@ func bindNotebook(nb *Notebook, app widget.AppContext) {
 			idx := nb.hitTestTab(ev.X, ev.Y)
 			if idx >= 0 && nb.tabs[idx].State&StateDisabled == 0 {
 				nb.Select(idx)
-				win.Display.Server.SetInputFocus(win.PlatformID, platform.RevertToParent, ev.Time)
+				widget.Focus(nb.App, win)
 			}
 		}
 	})

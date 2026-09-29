@@ -918,7 +918,7 @@ func (c *Canvas) Focus(tagOrID string) {
 			c.redrawItems(e)
 			// Make canvas window focusable and give it X11 focus.
 			c.Win.Flags |= window.FlagFocusable
-			c.App.Server().SetInputFocus(c.Win.PlatformID, platform.RevertToParent, platform.CurrentTime)
+			widget.Focus(c.App, c.Win)
 			break
 		}
 	}
