@@ -414,12 +414,11 @@ headless) scores every demo exactly as `master` does.
 | P5, P6, P8 | done | one XftDraw per display; ttk redraws queued at idle; canvas bitmaps via a depth-1 pixmap |
 | P7 | done | elements sized once per `Place`; theme values are still parsed per lookup |
 | P9 | unchanged | Tk's `DisplayFrame` also double-buffers; P1 makes it once per event burst |
-| 2.2 | mostly done | display-proc `Flush`, `seeIndex`, `Sequence.String`, Xft fallbacks, polyline copies, `InternAtom`, `Clipboard`; not done: label/menu measurement caching, canvas `Delete` O(n²), GDI pen/DC caches, Cocoa boxing, per-descendant `XDestroyWindow` (Cocoa relies on it), grid allocations |
+| 2.2 | mostly done | display-proc `Flush`, `seeIndex`, `Sequence.String`, Xft fallbacks, polyline copies, `InternAtom`, `Clipboard`, label line breaks, canvas `Delete` (1000 one by one: 1.80 → 0.22 ms), GDI pens/brushes/measuring DC, Cocoa GC/pixmap lookups without `NSNumber` boxing (Windows and Cocoa untested on their platforms); not done: menu measurement caching, per-descendant `XDestroyWindow` (Cocoa relies on it), grid allocations |
 | 2.3 | done | colours and fonts shared per value, name indexes bounded; `Define` no longer closes live fonts; wm atoms live on `window.Display` |
 | B1–B3, B5–B9 | done | local grab via `App.GrabManager` in the event filter; focus echoes swallowed |
 | B4 | open | the focus rework (Tk-style internal focus with key redirection) remains |
-| W1–W10, W12–W17 | done | W6 honours `wm geometry`; interactive resizes are not yet recorded as user geometry |
-| W11 | partly | `sel.last`, multi-range selection, peer listeners and stipples fixed; tabs are still expanded to 4 spaces on insert |
+| W1–W17 | done | W6 honours `wm geometry` and records user resizes (ConfigureEvent); W11 keeps tab characters and lays them out to Tk's default tab stops |
 | C1–C8 | done | |
 | X1, X3, WN1–WN4 | done | WN* untested on Windows |
 | X2 | open | the colour cache assumes 0xRRGGBB TrueColor throughout; fixing `PutImageRGBA` alone would not help |
