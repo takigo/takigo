@@ -4,7 +4,6 @@ package selection
 
 import (
 	"encoding/binary"
-	"strconv"
 	"sync"
 	"time"
 	"unicode/utf8"
@@ -210,13 +209,8 @@ func (m *Manager) startIncr(requestor platform.WindowID, property, typ platform.
 	m.outgoing[incrKey{requestor, property}] = &outgoingIncr{typ: typ, data: data}
 	m.mu.Unlock()
 	m.server.SelectInput(requestor, platform.PropertyChangeMask)
-	// Format-32 property data is an array of C longs in Xlib.
-	size := make([]byte, strconv.IntSize/8)
-	if len(size) == 8 {
-		binary.NativeEndian.PutUint64(size, uint64(len(data)))
-	} else {
-		binary.NativeEndian.PutUint32(size, uint32(len(data)))
-	}
+	size := make([]byte, 4)
+	binary.NativeEndian.PutUint32(size, uint32(len(data)))
 	m.server.ChangeProperty(requestor, property, m.incr, 32, platform.PropModeReplace, size, 1)
 }
 
