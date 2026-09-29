@@ -54,6 +54,7 @@ func CreateMainWindow(d *Display, x, y, width, height int) *Window {
 
 	// Register in display's window table.
 	d.RegisterWindow(w.PlatformID, w)
+	w.serverBackground = w.BackgroundPixel
 
 	// Debug aid: when TAKIGO_DEBUG_NAME_WIDGETS=1 is set, set each widget's
 	// Go name as its X11 window name so external tools (xdotool, scripts/
@@ -115,6 +116,7 @@ func MakeWindowExist(w *Window) {
 	)
 
 	d.RegisterWindow(w.PlatformID, w)
+	w.serverBackground = w.BackgroundPixel
 
 	// See CreateMainWindow for the TAKIGO_DEBUG_NAME_WIDGETS rationale.
 	if os.Getenv("TAKIGO_DEBUG_NAME_WIDGETS") == "1" && w.Name != "" {

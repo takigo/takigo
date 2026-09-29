@@ -77,6 +77,8 @@ type Window struct {
 
 	// Background pixel for the window.
 	BackgroundPixel uint64
+	// serverBackground is the background the platform window last got.
+	serverBackground uint64
 
 	// Graphics context for basic drawing.
 	GC platform.GCID
@@ -160,6 +162,7 @@ func applyBackgroundRecursiveDepth(w *Window, colorName string, depth int) {
 	// Update X11 window background attribute and trigger a redraw.
 	if w.PlatformID != 0 && w.Flags&FlagMapped != 0 && w.Width > 0 && w.Height > 0 {
 		w.Display.Server.SetWindowBackground(w.PlatformID, w.BackgroundPixel)
+		w.serverBackground = w.BackgroundPixel
 		w.Display.Server.ClearArea(w.PlatformID, 0, 0, uint(w.Width), uint(w.Height), true)
 	}
 	for _, child := range w.Children {
@@ -196,6 +199,19 @@ var mappedHooks []func(*Window)
 
 // AddMappedHook registers fn to run whenever MarkMapped maps a window.
 func AddMappedHook(fn func(*Window)) { mappedHooks = append(mappedHooks, fn) }
+
+// SyncBackground gives w's platform window its current BackgroundPixel
+// if that changed since the window was created: widgets pick their colour
+// after the window exists, and Tk_SetWindowBackground keeps the server's
+// copy in step, so the server clears to it on map and resize instead of
+// the creation-time white. Call it before mapping w.
+func SyncBackground(w *Window) {
+	if w.PlatformID == 0 || w.serverBackground == w.BackgroundPixel {
+		return
+	}
+	w.Display.Server.SetWindowBackground(w.PlatformID, w.BackgroundPixel)
+	w.serverBackground = w.BackgroundPixel
+}
 
 // MarkMapped records that w has been mapped (after MapWindow) and, if it was
 // not mapped before, lets the geometry managers map its content.

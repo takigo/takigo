@@ -128,6 +128,7 @@ func (nb *Notebook) Select(index int) {
 	for i, tab := range nb.tabs {
 		if i == index {
 			nb.layoutPane(tab)
+			window.SyncBackground(tab.Window)
 			tab.Window.Display.Server.MapWindow(tab.Window.PlatformID)
 			window.MarkMapped(tab.Window)
 		} else {

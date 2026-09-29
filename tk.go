@@ -267,6 +267,7 @@ func (a *App) MainLoop() {
 	// Lay out before mapping, as Tk maps "." at idle time after geometry
 	// propagation, so the window appears at its final size.
 	a.loop.UpdateIdleTasks()
+	window.SyncBackground(a.root)
 	a.display.Server.MapWindow(a.root.PlatformID)
 	window.MarkMapped(a.root)
 	a.display.Server.Flush()
