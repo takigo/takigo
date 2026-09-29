@@ -8,6 +8,9 @@ import (
 	"strings"
 )
 
+// maxXBMDim bounds the width and height an XBM header may declare.
+const maxXBMDim = 1 << 16
+
 // XBMData holds parsed XBM (X BitMap) data.
 type XBMData struct {
 	Width, Height int
@@ -41,6 +44,9 @@ func ParseXBM(src string) (*XBMData, error) {
 
 	if xbm.Width == 0 || xbm.Height == 0 {
 		return nil, fmt.Errorf("xbm: missing width or height")
+	}
+	if xbm.Width < 0 || xbm.Height < 0 || xbm.Width > maxXBMDim || xbm.Height > maxXBMDim {
+		return nil, fmt.Errorf("xbm: invalid size %dx%d", xbm.Width, xbm.Height)
 	}
 
 	// Extract hex bytes from the static array.

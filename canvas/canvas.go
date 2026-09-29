@@ -457,6 +457,13 @@ func (c *Canvas) Destroy() {
 	c.idMap = nil
 	c.tagIndex = nil
 
+	for _, p := range c.stipples {
+		if p != 0 {
+			d.FreePixmap(p)
+		}
+	}
+	c.stipples = nil
+
 	// Free pixmap.
 	if c.pixmap != 0 {
 		d.FreePixmap(c.pixmap)
@@ -624,6 +631,11 @@ func (c *Canvas) Delete(tagOrID string) {
 			for _, tag := range base.Tags {
 				c.tagIndexRemove(tag, e.id)
 			}
+		}
+		// DeleteItems drops the item's bindings and its focus.
+		delete(c.idBindings, e.id)
+		if c.focusItemID == e.id {
+			c.focusItemID = 0
 		}
 	}
 	c.items = slices.DeleteFunc(c.items, func(e *itemEntry) bool { return e.mark == stamp })

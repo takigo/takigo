@@ -7,6 +7,7 @@ package gdi
 import (
 	"github.com/msorc/takigo/font"
 	"sort"
+	"sync"
 	"syscall"
 	"unsafe"
 
@@ -197,6 +198,20 @@ func (f *GDIFont) DrawString(drawable platform.DrawableID, x, y int, s string, p
 // Verify DrawableFont at compile time.
 var _ platform.DrawableFont = (*GDIFont)(nil)
 
+// Go never frees a syscall.NewCallback and caps how many exist, so the
+// enumeration callback is created once and reports to enumSink, which
+// enumMu guards for the duration of one synchronous EnumFontFamiliesEx.
+var (
+	enumMu   sync.Mutex
+	enumSink func(name string)
+	enumCB   = sync.OnceValue(func() uintptr {
+		return syscall.NewCallback(func(lf *w32.LOGFONTW, tm *w32.TEXTMETRICW, fontType uint32, lParam w32.LPARAM) uintptr {
+			enumSink(utf16ToString(lf.LfFaceName[:]))
+			return 1 // continue enumeration
+		})
+	})
+)
+
 // ListFamilies returns all available font families on Windows.
 func ListFamilies() []string {
 	screenDC := w32.GetDC(0)
@@ -208,16 +223,16 @@ func ListFamilies() []string {
 	var lf w32.LOGFONTW
 	lf.LfCharSet = w32.DEFAULT_CHARSET
 
-	cb := syscall.NewCallback(func(lf *w32.LOGFONTW, tm *w32.TEXTMETRICW, fontType uint32, lParam w32.LPARAM) uintptr {
-		name := utf16ToString(lf.LfFaceName[:])
+	enumMu.Lock()
+	enumSink = func(name string) {
 		if !seen[name] {
 			seen[name] = true
 			families = append(families, name)
 		}
-		return 1 // continue enumeration
-	})
-
-	w32.EnumFontFamiliesEx(screenDC, &lf, cb, 0, 0)
+	}
+	w32.EnumFontFamiliesEx(screenDC, &lf, enumCB(), 0, 0)
+	enumSink = nil
+	enumMu.Unlock()
 
 	sort.Strings(families)
 	return families

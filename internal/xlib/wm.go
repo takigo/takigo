@@ -23,7 +23,13 @@ static void send_client_message(Display *dpy, Window w, Window target, Atom msgT
 	ev.xclient.data.l[2] = d2;
 	ev.xclient.data.l[3] = d3;
 	ev.xclient.data.l[4] = d4;
-	XSendEvent(dpy, target, False, NoEventMask, &ev);
+	// Client messages to the root window are for the window manager, which
+	// selects SubstructureRedirect there (EWMH); elsewhere the owner gets it.
+	long mask = NoEventMask;
+	if (target == DefaultRootWindow(dpy)) {
+		mask = SubstructureRedirectMask | SubstructureNotifyMask;
+	}
+	XSendEvent(dpy, target, False, mask, &ev);
 }
 */
 import "C"

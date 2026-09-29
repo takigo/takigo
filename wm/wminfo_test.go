@@ -28,6 +28,7 @@ type fakeServer struct {
 	screenW     int
 	screenH     int
 	internCalls int
+	pings       [][2]platform.WindowID
 }
 
 func newFake() *fakeServer {
@@ -44,6 +45,10 @@ func (s *fakeServer) InternAtom(name string, _ bool) platform.AtomID {
 	s.atoms[name] = a
 	return a
 }
+func (s *fakeServer) SendClientMessage(w, target platform.WindowID, _ platform.AtomID, _, _, _, _, _ int64) {
+	s.pings = append(s.pings, [2]platform.WindowID{w, target})
+}
+func (s *fakeServer) Flush() {}
 func (s *fakeServer) SetWMHints(_ platform.WindowID, h *platform.WMHints) { s.hints = h }
 func (s *fakeServer) SetClassHint(_ platform.WindowID, name, class string) {
 	s.class = [2]string{name, class}
@@ -270,6 +275,9 @@ func TestProtocols(t *testing.T) {
 	}
 	if !msg("_NET_WM_PING") {
 		t.Error("_NET_WM_PING not handled")
+	}
+	if root := info.Win.Display.RootWindow; len(s.pings) != 1 || s.pings[0] != [2]platform.WindowID{root, root} {
+		t.Errorf("_NET_WM_PING reply = %v, want one message to the root window %d", s.pings, root)
 	}
 	if info.HandleClientMessage(s.atoms["WM_DELETE_WINDOW"], [5]int64{}) {
 		t.Error("handled a message that is not WM_PROTOCOLS")

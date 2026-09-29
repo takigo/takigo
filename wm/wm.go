@@ -412,9 +412,13 @@ func (info *WmInfo) HandleClientMessage(messageType platform.AtomID, data [5]int
 	}
 	protocolAtom := platform.AtomID(data[0])
 
-	// Handle _NET_WM_PING: reflect back to root.
+	// _NET_WM_PING: send the message back to the root window unchanged
+	// but for its window field, as TkWmProtocolEventProc does.
 	if protocolAtom == info.atoms.NetWMPing {
-		// Would need to send event back to root. Skip for now.
+		d := info.Win.Display
+		d.Server.SendClientMessage(d.RootWindow, d.RootWindow, messageType,
+			data[0], data[1], data[2], data[3], data[4])
+		d.Server.Flush()
 		return true
 	}
 

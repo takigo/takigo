@@ -21,6 +21,27 @@ func TestBindingTableAddAndLookup(t *testing.T) {
 	}
 }
 
+func TestBindingTableAddReplacesSameSequence(t *testing.T) {
+	bt := NewBindingTable()
+	seq, _ := Parse("<Button-1>")
+	other, _ := Parse("<Button-3>")
+	bt.Add("Button", seq, func(ev *EventData) bool { return false })
+	bt.Add("Button", other, func(ev *EventData) bool { return false })
+	before := bt.Lookup("Button")
+	bt.Add("Button", seq, func(ev *EventData) bool { return true })
+
+	bindings := bt.Lookup("Button")
+	if len(bindings) != 2 {
+		t.Fatalf("expected 2 bindings after rebinding, got %d", len(bindings))
+	}
+	if !bindings[0].handler(nil) {
+		t.Error("rebinding did not replace the handler")
+	}
+	if before[0].handler(nil) {
+		t.Error("rebinding modified a slice handed out by Lookup")
+	}
+}
+
 func TestBindingTableLookupEmpty(t *testing.T) {
 	bt := NewBindingTable()
 	bindings := bt.Lookup("nonexistent")
