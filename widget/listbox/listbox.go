@@ -7,6 +7,7 @@ import (
 
 	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/draw"
+	"github.com/msorc/takigo/font"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/widget"
@@ -41,6 +42,12 @@ type Listbox struct {
 	lineHeight int
 	inset      int
 
+	// Widest item in pixels (Tk's listPtr->maxWidth), valid while
+	// maxWidthOK is set and the font is maxWidthFont.
+	maxWidthPx   int
+	maxWidthOK   bool
+	maxWidthFont font.Font
+
 	// Preferred dimensions.
 	PrefWidth  int // in characters
 	PrefHeight int // in lines
@@ -70,7 +77,10 @@ type Listbox struct {
 type ListboxOption func(*Listbox)
 
 func Items(items ...string) ListboxOption {
-	return func(lb *Listbox) { lb.items = append([]string{}, items...) }
+	return func(lb *Listbox) {
+		lb.items = append([]string{}, items...)
+		lb.maxWidthOK = false
+	}
 }
 func SelectModeOpt(m SelectMode) ListboxOption {
 	return func(lb *Listbox) { lb.selectMode = m }
@@ -222,17 +232,32 @@ func (lb *Listbox) Insert(index int, items ...string) {
 	newItems = append(newItems, items...)
 	newItems = append(newItems, lb.items[index:]...)
 	lb.items = newItems
-
-	// Adjust selection indices.
-	newSel := make(map[int]bool)
-	for idx := range lb.selected {
-		if idx >= index {
-			newSel[idx+len(items)] = true
-		} else {
-			newSel[idx] = true
+	if lb.maxWidthOK && lb.Font == lb.maxWidthFont {
+		for _, it := range items {
+			lb.maxWidthPx = max(lb.maxWidthPx, lb.Font.MeasureString(it))
 		}
 	}
-	lb.selected = newSel
+
+	// InsertEls: indices at or after index move down.
+	n := len(items)
+	shift := func(i int) (int, bool) {
+		if i >= index {
+			return i + n, true
+		}
+		return i, true
+	}
+	lb.selected = remapKeys(lb.selected, shift)
+	lb.itemFg = remapKeys(lb.itemFg, shift)
+	lb.itemBg = remapKeys(lb.itemBg, shift)
+	if index <= lb.selAnchor {
+		lb.selAnchor += n
+	}
+	if index < lb.topIndex {
+		lb.topIndex += n
+	}
+	if lb.activeIndex >= 0 && index <= lb.activeIndex {
+		lb.activeIndex += n
+	}
 
 	lb.notifyYScrollbar()
 	lb.Display()
@@ -251,22 +276,47 @@ func (lb *Listbox) Delete(first, last int) {
 	}
 
 	count := last - first + 1
-	lb.items = append(lb.items[:first], lb.items[last+1:]...)
-
-	// Adjust selection.
-	newSel := make(map[int]bool)
-	for idx := range lb.selected {
-		if idx >= first && idx <= last {
-			continue
-		}
-		if idx > last {
-			newSel[idx-count] = true
-		} else {
-			newSel[idx] = true
+	if lb.maxWidthOK && lb.Font == lb.maxWidthFont {
+		for _, it := range lb.items[first : last+1] {
+			if lb.Font.MeasureString(it) >= lb.maxWidthPx {
+				lb.maxWidthOK = false
+				break
+			}
 		}
 	}
-	lb.selected = newSel
+	lb.items = append(lb.items[:first], lb.items[last+1:]...)
 
+	// DeleteEls: deleted indices go, later ones move up.
+	shift := func(i int) (int, bool) {
+		switch {
+		case i > last:
+			return i - count, true
+		case i >= first:
+			return 0, false
+		}
+		return i, true
+	}
+	lb.selected = remapKeys(lb.selected, shift)
+	lb.itemFg = remapKeys(lb.itemFg, shift)
+	lb.itemBg = remapKeys(lb.itemBg, shift)
+	switch {
+	case last < lb.selAnchor:
+		lb.selAnchor -= count
+	case first <= lb.selAnchor:
+		lb.selAnchor = first
+	}
+	switch {
+	case last < lb.topIndex:
+		lb.topIndex -= count
+	case first < lb.topIndex:
+		lb.topIndex = first
+	}
+	switch {
+	case last < lb.activeIndex:
+		lb.activeIndex -= count
+	case first <= lb.activeIndex:
+		lb.activeIndex = first
+	}
 	if lb.activeIndex >= len(lb.items) {
 		lb.activeIndex = len(lb.items) - 1
 	}
@@ -370,16 +420,10 @@ func (lb *Listbox) YView(index int) {
 
 // YViewScroll scrolls by count units or pages.
 func (lb *Listbox) YViewScroll(count int, pages bool) {
-	if pages {
-		vis := max(lb.visibleLines(), 1)
+	// ListboxYviewSubCmd: a page is fullLines-2 rows, or one row when the
+	// list shows two or fewer.
+	if vis := lb.visibleLines(); pages && vis > 2 {
 		count *= vis - 2
-		if count == 0 {
-			if count > 0 {
-				count = 1
-			} else {
-				count = -1
-			}
-		}
 	}
 	lb.YView(lb.topIndex + count)
 }
@@ -454,15 +498,36 @@ func (lb *Listbox) notifyYScrollbar() {
 	lb.notifyXScrollbar()
 }
 
-// maxWidth is Tk's listPtr->maxWidth: the widest element in pixels.
+// maxWidth is Tk's listPtr->maxWidth: the widest element in pixels. It is
+// kept up to date by Insert and recomputed only after the widest element
+// is deleted or the font changes.
 func (lb *Listbox) maxWidth() int {
-	mw := 0
-	if lb.Font != nil {
+	if lb.Font == nil {
+		return 0
+	}
+	if !lb.maxWidthOK || lb.Font != lb.maxWidthFont {
+		mw := 0
 		for _, it := range lb.items {
 			mw = max(mw, lb.Font.MeasureString(it))
 		}
+		lb.maxWidthPx, lb.maxWidthOK, lb.maxWidthFont = mw, true, lb.Font
 	}
-	return mw
+	return lb.maxWidthPx
+}
+
+// remapKeys moves the entries of an index-keyed map by fn, dropping those
+// for which it reports false.
+func remapKeys[V any](m map[int]V, fn func(int) (int, bool)) map[int]V {
+	if len(m) == 0 {
+		return m
+	}
+	out := make(map[int]V, len(m))
+	for i, v := range m {
+		if j, ok := fn(i); ok {
+			out[j] = v
+		}
+	}
+	return out
 }
 
 func (lb *Listbox) xScrollUnit() int {
