@@ -118,10 +118,9 @@ func (d *Dialog) Run() DialogResult {
 	width := max(d.minWidth, reqW+20)   // 20 for some horizontal margin
 	height := max(d.minHeight, reqH+20) // 20 for some vertical margin
 
-	// Apply the computed size.
-	tw.Width = width
-	tw.Height = height
-	tw.Display.Server.MoveResizeWindow(tw.PlatformID, tw.X, tw.Y, uint(width), uint(height))
+	// Apply the computed size as the dialog's geometry, so later content
+	// requests keep it (as with wm geometry in Tk).
+	_ = d.Toplevel.WmInfo.SetGeometry(fmt.Sprintf("%dx%d", width, height))
 	d.Toplevel.WmInfo.SetResizable(false, false)
 
 	// Center over parent.

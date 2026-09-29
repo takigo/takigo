@@ -1035,12 +1035,7 @@ func (g *gridder) arrange() {
 			if container.ReqWidth != totalReqW || container.ReqHeight != totalReqH {
 				container.ReqWidth = totalReqW
 				container.ReqHeight = totalReqH
-				container.Width = totalReqW
-				container.Height = totalReqH
-				if container.PlatformID != platform.WindowID(0) {
-					container.Display.Server.ResizeWindow(container.PlatformID,
-						uint(totalReqW), uint(totalReqH))
-				}
+				window.ResizeToplevel(container, totalReqW, totalReqH)
 			}
 		} else {
 			geometry.GeometryRequest(container, totalReqW, totalReqH)

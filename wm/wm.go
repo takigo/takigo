@@ -241,6 +241,19 @@ func (info *WmInfo) SetGeometry(geom string) error {
 	return nil
 }
 
+// GeometryRequest ports the size part of TkWmUpdateGeom: a size given with
+// wm geometry wins over the content's request.
+func (info *WmInfo) GeometryRequest(reqW, reqH int) (int, int) {
+	w, h := reqW, reqH
+	if info.UserW > 0 {
+		w = info.UserW
+	}
+	if info.UserH > 0 {
+		h = info.UserH
+	}
+	return w, h
+}
+
 // applyGeometry sends the geometry to the X server.
 func (info *WmInfo) applyGeometry() {
 	w := info.Win
