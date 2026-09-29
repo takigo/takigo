@@ -33,11 +33,16 @@ func (t *TextWidget) clearSelection() {
 
 // setSelection sets the selection between anchor and pos.
 func (t *TextWidget) setSelection(anchor, pos Index) {
+	lo, hi := anchor, pos
+	if Compare(pos, anchor) < 0 {
+		lo, hi = pos, anchor
+	}
+	if cur := t.doc.TagRangesFor("sel"); len(cur) == 1 && cur[0].Start == lo && cur[0].End == hi {
+		return
+	}
 	t.clearSelection()
-	if Compare(anchor, pos) < 0 {
-		t.doc.TagAdd("sel", anchor, pos)
-	} else if Compare(pos, anchor) < 0 {
-		t.doc.TagAdd("sel", pos, anchor)
+	if Compare(lo, hi) < 0 {
+		t.doc.TagAdd("sel", lo, hi)
 	}
 }
 

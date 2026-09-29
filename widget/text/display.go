@@ -367,8 +367,8 @@ func (t *TextWidget) computeVisibleLines() []displayLine {
 	y := 0
 
 	for lineIdx := t.topLine; lineIdx <= t.doc.LineCount() && y < availHeight; lineIdx++ {
-		props := t.resolveLineProps(lineIdx)
-		dls := t.setMetrics(lineIdx, t.wrapLine(lineIdx, availWidth, props.lm1, props.lm2, props.rm))
+		ll := t.layout.line(lineIdx)
+		props, dls := ll.props, ll.dls
 		startDL := 0
 		if lineIdx == t.topLine {
 			startDL = t.topCharOffset
@@ -408,14 +408,7 @@ func (t *TextWidget) segmentsForRange(lineIdx, startChar, endChar int) []textSeg
 		start bool
 	}
 	var events []tagEvent
-	for _, tr := range t.doc.TagRanges {
-		tag, ok := t.doc.Tags[tr.TagName]
-		if !ok || tag == nil {
-			continue
-		}
-		if tr.Start.Line > lineIdx || tr.End.Line < lineIdx {
-			continue
-		}
+	t.doc.tagsOnLine(lineIdx, func(_ *Tag, tr TagRange) {
 		tStart := 0
 		if tr.Start.Line == lineIdx && tr.Start.Char > startChar {
 			tStart = tr.Start.Char - startChar
@@ -431,11 +424,11 @@ func (t *TextWidget) segmentsForRange(lineIdx, startChar, endChar int) []textSeg
 			tEnd = endChar - startChar
 		}
 		if tStart >= tEnd {
-			continue
+			return
 		}
 		events = append(events, tagEvent{pos: tStart, name: tr.TagName, start: true})
 		events = append(events, tagEvent{pos: tEnd, name: tr.TagName, start: false})
-	}
+	})
 
 	// Sort events by position.
 	for i := 1; i < len(events); i++ {
@@ -562,8 +555,9 @@ func (t *TextWidget) segmentsForRange(lineIdx, startChar, endChar int) []textSeg
 	return segments
 }
 
-// renderToPixmap draws the text widget content to the offscreen pixmap.
-func (t *TextWidget) renderToPixmap() {
+// renderToPixmap draws the text widget content to the offscreen pixmap and
+// returns the display lines it laid out.
+func (t *TextWidget) renderToPixmap() []displayLine {
 	w := t.Win
 	d := w.Display.Server
 	gc := w.GC
@@ -581,12 +575,12 @@ func (t *TextWidget) renderToPixmap() {
 	d.FillRectangle(pxDrawable, gc, 0, 0, uint(winW), uint(winH))
 
 	if t.Font == nil {
-		return
+		return nil
 	}
 
 	drawableFont, isDrawable := t.Font.(platform.DrawableFont)
 	if !isDrawable {
-		return
+		return nil
 	}
 
 	dlines := t.computeVisibleLines()
@@ -715,6 +709,7 @@ func (t *TextWidget) renderToPixmap() {
 			}
 		}
 	}
+	return dlines
 }
 
 // drawSelectionHighlight draws the selection highlight for a display line if applicable.
@@ -907,43 +902,17 @@ func (t *TextWidget) lineHeight() int {
 // computeDisplayLinesBefore returns the total number of display line slots from
 // the top of the document to (but not including) the given logical line and offset.
 func (t *TextWidget) computeDisplayLinesBefore(lineIdx, dlOffset int) int {
-	availWidth := t.Win.Width - 2*t.insetX
-	count := 0
-	for l := 1; l < lineIdx; l++ {
-		props := t.resolveLineProps(l)
-		count += len(t.wrapLine(l, availWidth, props.lm1, props.lm2, props.rm))
-	}
-	count += dlOffset
-	return count
+	return t.layout.displayLinesBefore(lineIdx) + dlOffset
 }
 
 // displayLinePixels returns the heights of lineIdx's display lines including
-// their -spacing1/2/3, as computeVisibleLines stacks them.
+// their -spacing1/2/3, as computeVisibleLines stacks them. The result must
+// not be modified.
 func (t *TextWidget) displayLinePixels(lineIdx int) []int {
-	availWidth := t.Win.Width - 2*t.insetX
-	props := t.resolveLineProps(lineIdx)
-	dls := t.setMetrics(lineIdx, t.wrapLine(lineIdx, availWidth, props.lm1, props.lm2, props.rm))
-	hs := make([]int, len(dls))
-	for i, dl := range dls {
-		h := dl.height + props.sp2
-		if i == 0 {
-			h += props.sp1 - props.sp2
-		}
-		if i == len(dls)-1 {
-			h += props.sp3
-		}
-		hs[i] = h
-	}
-	return hs
+	return t.layout.line(lineIdx).hs
 }
 
 // totalDisplayLines returns the total number of display lines in the document.
 func (t *TextWidget) totalDisplayLines() int {
-	availWidth := t.Win.Width - 2*t.insetX
-	count := 0
-	for l := 1; l <= t.doc.LineCount(); l++ {
-		props := t.resolveLineProps(l)
-		count += len(t.wrapLine(l, availWidth, props.lm1, props.lm2, props.rm))
-	}
-	return count
+	return t.layout.totalDisplayLines()
 }

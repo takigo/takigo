@@ -1,6 +1,8 @@
 package text
 
 import (
+	"slices"
+	"sort"
 	"strings"
 
 	"github.com/msorc/takigo/color"
@@ -16,19 +18,28 @@ type Line struct {
 // Multiple TextWidget instances may share one Document (peering); each
 // registers a change listener that is called after every insert or delete.
 type Document struct {
-	Lines     []*Line
-	Marks     map[string]*Mark
-	Tags      map[string]*Tag
-	TagRanges []TagRange
+	Lines []*Line
+	Marks map[string]*Mark
+	Tags  map[string]*Tag
 
-	// Listeners are called (in registration order) after every Insert or Delete.
-	Listeners []func()
+	// tagsByPriority orders Tags lowest priority first; a tag's priority is
+	// its creation order, as in Tk, with "sel" fixed at selPriority.
+	tagsByPriority []*Tag
+	nextPriority   int
+
+	// layoutGen counts tag configuration changes; a widget's layout cache
+	// is keyed on it.
+	layoutGen int
+
+	// Listeners are called (in registration order) after every Insert,
+	// Delete or layout-affecting tag change.
+	Listeners []func(Change)
 }
 
 // notifyListeners calls all registered change listeners.
-func (d *Document) notifyListeners() {
+func (d *Document) notifyListeners(ch Change) {
 	for _, fn := range d.Listeners {
-		fn()
+		fn(ch)
 	}
 }
 
@@ -41,8 +52,7 @@ func NewDocument() *Document {
 			"insert":  {Name: "insert", Pos: Index{1, 0}, Gravity: GravityRight},
 			"current": {Name: "current", Pos: Index{1, 0}, Gravity: GravityLeft},
 		},
-		Tags:      make(map[string]*Tag),
-		TagRanges: nil,
+		Tags: make(map[string]*Tag),
 	}
 	return doc
 }
@@ -96,52 +106,40 @@ func (d *Document) Insert(idx Index, text string) Index {
 
 	runes := []rune(text)
 	insertedLines := splitRunes(runes)
+	newlines, lastLineLen := countNewlines(runes)
 
 	// Adjust marks before the structural change.
 	for _, m := range d.Marks {
-		d.adjustMarkInsert(m, idx, runes)
+		d.adjustMarkInsert(m, idx, newlines, lastLineLen)
 	}
-	d.adjustTagRangesInsert(idx, runes)
+	for _, tg := range d.tagsByPriority {
+		tg.adjustInsert(idx, newlines, lastLineLen)
+	}
 
 	line := d.Lines[idx.Line-1]
-	after := append([]rune(nil), line.Text[idx.Char:]...)
 
-	if len(insertedLines) == 1 {
-		// Insert within the same line.
-		newText := make([]rune, 0, idx.Char+len(insertedLines[0])+len(after))
-		newText = append(newText, line.Text[:idx.Char]...)
-		newText = append(newText, insertedLines[0]...)
-		newText = append(newText, after...)
-		line.Text = newText
+	if newlines == 0 {
+		line.Text = slices.Insert(line.Text, idx.Char, insertedLines[0]...)
 		result := Index{Line: idx.Line, Char: idx.Char + len(insertedLines[0])}
-		d.notifyListeners()
+		d.notifyListeners(Change{From: idx.Line, To: idx.Line})
 		return result
 	}
 
-	// Multi-line insert.
-	// Modify the first line.
+	after := slices.Clone(line.Text[idx.Char:])
 	line.Text = append(line.Text[:idx.Char], insertedLines[0]...)
 
-	// Create new lines for middle + last.
-	newLines := make([]*Line, len(insertedLines)-1)
+	newLines := make([]*Line, newlines)
 	for i := 1; i < len(insertedLines); i++ {
 		newLines[i-1] = &Line{Text: insertedLines[i]}
 	}
-	// Append 'after' to the last new line.
 	lastNew := newLines[len(newLines)-1]
 	endChar := len(lastNew.Text)
 	lastNew.Text = append(lastNew.Text, after...)
 
-	// Splice new lines into the document.
-	insertPos := idx.Line // 0-based position in slice = idx.Line (after current line)
-	newAllLines := make([]*Line, 0, len(d.Lines)+len(newLines))
-	newAllLines = append(newAllLines, d.Lines[:insertPos]...)
-	newAllLines = append(newAllLines, newLines...)
-	newAllLines = append(newAllLines, d.Lines[insertPos:]...)
-	d.Lines = newAllLines
+	d.Lines = slices.Insert(d.Lines, idx.Line, newLines...)
 
-	result := Index{Line: idx.Line + len(newLines), Char: endChar}
-	d.notifyListeners()
+	result := Index{Line: idx.Line + newlines, Char: endChar}
+	d.notifyListeners(Change{From: idx.Line, To: idx.Line, Delta: newlines})
 	return result
 }
 
@@ -157,27 +155,23 @@ func (d *Document) Delete(start, end Index) {
 	for _, m := range d.Marks {
 		d.adjustMarkDelete(m, start, end)
 	}
-	d.adjustTagRangesDelete(start, end)
+	for _, tg := range d.tagsByPriority {
+		tg.adjustDelete(start, end)
+	}
 
 	if start.Line == end.Line {
-		// Single-line delete.
 		line := d.Lines[start.Line-1]
-		line.Text = append(line.Text[:start.Char], line.Text[end.Char:]...)
-		d.notifyListeners()
+		line.Text = slices.Delete(line.Text, start.Char, end.Char)
+		d.notifyListeners(Change{From: start.Line, To: start.Line})
 		return
 	}
 
-	// Multi-line delete: merge first and last lines, remove middle.
+	// Multi-line delete: merge first and last lines, remove those between.
 	firstLine := d.Lines[start.Line-1]
 	lastLine := d.Lines[end.Line-1]
 	firstLine.Text = append(firstLine.Text[:start.Char], lastLine.Text[end.Char:]...)
-
-	// Remove lines from start.Line+1 through end.Line (inclusive, 0-based).
-	removeStart := start.Line // 0-based index of first line to remove
-	removeEnd := end.Line     // 0-based index past last line to remove
-	copy(d.Lines[removeStart:], d.Lines[removeEnd:])
-	d.Lines = d.Lines[:len(d.Lines)-(removeEnd-removeStart)]
-	d.notifyListeners()
+	d.Lines = slices.Delete(d.Lines, start.Line, end.Line)
+	d.notifyListeners(Change{From: start.Line, To: start.Line, Delta: start.Line - end.Line})
 }
 
 // --- Mark methods ---
@@ -220,100 +214,126 @@ func (d *Document) MarkNames() []string {
 
 // --- Tag methods ---
 
+// tag returns the named tag, creating it with the next priority.
+func (d *Document) tag(name string) *Tag {
+	tg, ok := d.Tags[name]
+	if !ok {
+		tg = &Tag{Name: name, Priority: d.nextPriority}
+		d.Tags[name] = tg
+	}
+	if !tg.registered {
+		d.putTag(tg)
+	}
+	return tg
+}
+
+// putTag installs tg in the document at its Priority.
+func (d *Document) putTag(tg *Tag) {
+	if old, ok := d.Tags[tg.Name]; ok && old.registered {
+		old.registered = false
+		d.tagsByPriority = slices.DeleteFunc(d.tagsByPriority, func(t *Tag) bool { return t == old })
+	}
+	d.Tags[tg.Name] = tg
+	tg.registered = true
+	if tg.Priority >= d.nextPriority && tg.Priority < selPriority {
+		d.nextPriority = tg.Priority + 1
+	}
+	i := sort.Search(len(d.tagsByPriority), func(i int) bool {
+		return d.tagsByPriority[i].Priority > tg.Priority
+	})
+	d.tagsByPriority = slices.Insert(d.tagsByPriority, i, tg)
+}
+
 // TagAdd adds a tag to the given range.
 func (d *Document) TagAdd(tagName string, start, end Index) {
+	d.tagAdd(tagName, start, end, false)
+}
+
+func (d *Document) tagAdd(tagName string, start, end Index, toEnd bool) {
 	start = Clamp(start, d)
 	end = Clamp(end, d)
 	if Compare(start, end) >= 0 {
 		return
 	}
-	// Ensure the tag exists.
-	if _, ok := d.Tags[tagName]; !ok {
-		d.Tags[tagName] = &Tag{Name: tagName}
+	tg := d.tag(tagName)
+	tg.add(start, end, toEnd)
+	if tg.affectsLayout() {
+		d.notifyListeners(Change{From: start.Line, To: end.Line})
 	}
-	d.TagRanges = append(d.TagRanges, TagRange{TagName: tagName, Start: start, End: end})
 }
 
-// TagRemove removes a tag from the given range. This removes any tag ranges
-// that overlap with [start, end).
+// TagRemove removes a tag from the given range, trimming or splitting the
+// ranges that overlap [start, end).
 func (d *Document) TagRemove(tagName string, start, end Index) {
-	start = Clamp(start, d)
-	end = Clamp(end, d)
-	n := 0
-	for _, tr := range d.TagRanges {
-		if tr.TagName == tagName && Compare(tr.Start, end) < 0 && Compare(tr.End, start) > 0 {
-			continue // remove this range
-		}
-		d.TagRanges[n] = tr
-		n++
+	tg, ok := d.Tags[tagName]
+	if !ok {
+		return
 	}
-	d.TagRanges = d.TagRanges[:n]
+	start, end = Clamp(start, d), Clamp(end, d)
+	tg.remove(start, end)
+	if tg.affectsLayout() {
+		d.notifyListeners(Change{From: start.Line, To: end.Line})
+	}
 }
 
 // TagConfigure configures a tag's display attributes.
 func (d *Document) TagConfigure(tagName string, cache *color.Cache, reg *font.Registry, opts ...TagOption) {
-	tag, ok := d.Tags[tagName]
-	if !ok {
-		tag = &Tag{Name: tagName}
-		d.Tags[tagName] = tag
-	}
+	tag := d.tag(tagName)
 	for _, opt := range opts {
 		opt(cache, reg, tag)
 	}
+	d.layoutGen++
 }
 
-// TagRangesFor returns all ranges for a given tag name.
+// TagRangesFor returns the ranges of a tag, sorted and disjoint. The
+// result must not be modified.
 func (d *Document) TagRangesFor(tagName string) []TagRange {
-	var result []TagRange
-	for _, tr := range d.TagRanges {
-		if tr.TagName == tagName {
-			result = append(result, tr)
-		}
+	if tg, ok := d.Tags[tagName]; ok {
+		return tg.ranges
 	}
-	return result
+	return nil
 }
 
 // TagsAt returns the tags active at a given index, sorted by priority (lowest first).
 func (d *Document) TagsAt(idx Index) []*Tag {
 	idx = Clamp(idx, d)
 	var result []*Tag
-	seen := make(map[string]bool)
-	for _, tr := range d.TagRanges {
-		if seen[tr.TagName] {
-			continue
-		}
-		if Compare(idx, tr.Start) >= 0 && Compare(idx, tr.End) < 0 {
-			if tag, ok := d.Tags[tr.TagName]; ok {
-				result = append(result, tag)
-				seen[tr.TagName] = true
-			}
-		}
-	}
-	// Sort by priority (stable, ascending).
-	for i := 1; i < len(result); i++ {
-		for j := i; j > 0 && result[j].Priority < result[j-1].Priority; j-- {
-			result[j], result[j-1] = result[j-1], result[j]
+	for _, tg := range d.tagsByPriority {
+		if tg.covers(idx) {
+			result = append(result, tg)
 		}
 	}
 	return result
 }
 
+// tagsOnLine calls fn for every tag range touching the line, lowest
+// priority tag first.
+func (d *Document) tagsOnLine(line int, fn func(*Tag, TagRange)) {
+	for _, tg := range d.tagsByPriority {
+		for _, tr := range tg.rangesOnLine(line) {
+			fn(tg, tr)
+		}
+	}
+}
+
 // --- Internal helpers ---
 
-// adjustMarkInsert adjusts a mark's position after an insert at idx.
-func (d *Document) adjustMarkInsert(m *Mark, idx Index, runes []rune) {
-	// Count newlines and chars after last newline.
-	newlineCount := 0
-	lastLineLen := 0
+// countNewlines returns the number of newlines in runes and the number of
+// runes after the last one.
+func countNewlines(runes []rune) (newlines, lastLineLen int) {
 	for _, r := range runes {
 		if r == '\n' {
-			newlineCount++
+			newlines++
 			lastLineLen = 0
 		} else {
 			lastLineLen++
 		}
 	}
+	return newlines, lastLineLen
+}
 
+// adjustMarkInsert adjusts a mark's position after an insert at idx.
+func (d *Document) adjustMarkInsert(m *Mark, idx Index, newlineCount, lastLineLen int) {
 	cmp := Compare(m.Pos, idx)
 	if cmp < 0 {
 		return // mark is before insert point
@@ -353,30 +373,6 @@ func (d *Document) adjustMarkDelete(m *Mark, start, end Index) {
 	}
 }
 
-// adjustTagRangesInsert adjusts all tag ranges after an insert.
-func (d *Document) adjustTagRangesInsert(idx Index, runes []rune) {
-	newlineCount := 0
-	lastLineLen := 0
-	for _, r := range runes {
-		if r == '\n' {
-			newlineCount++
-			lastLineLen = 0
-		} else {
-			lastLineLen++
-		}
-	}
-
-	for i := range d.TagRanges {
-		tr := &d.TagRanges[i]
-		// Tag Start has right gravity: shifts when insert is at or after Start.
-		// Tag End has left gravity: shifts only when insert is strictly before End.
-		// This matches Tk's behavior where inserting at a tag's End does NOT
-		// expand the tag to cover the newly inserted text.
-		tr.Start = adjustIdxInsert(tr.Start, idx, newlineCount, lastLineLen, false)
-		tr.End = adjustIdxInsert(tr.End, idx, newlineCount, lastLineLen, !tr.ToEnd)
-	}
-}
-
 func adjustIdxInsert(pos, insertAt Index, newlines, lastLineLen int, leftGravity bool) Index {
 	cmp := Compare(pos, insertAt)
 	if leftGravity {
@@ -403,20 +399,6 @@ func adjustIdxInsert(pos, insertAt Index, newlines, lastLineLen int, leftGravity
 	return pos
 }
 
-// adjustTagRangesDelete adjusts all tag ranges after a delete.
-func (d *Document) adjustTagRangesDelete(start, end Index) {
-	n := 0
-	for _, tr := range d.TagRanges {
-		tr.Start = adjustIdxDelete(tr.Start, start, end)
-		tr.End = adjustIdxDelete(tr.End, start, end)
-		if Compare(tr.Start, tr.End) < 0 {
-			d.TagRanges[n] = tr
-			n++
-		}
-	}
-	d.TagRanges = d.TagRanges[:n]
-}
-
 func adjustIdxDelete(pos, start, end Index) Index {
 	if Compare(pos, start) <= 0 {
 		return pos
@@ -441,10 +423,10 @@ func splitRunes(runes []rune) [][]rune {
 	start := 0
 	for i, r := range runes {
 		if r == '\n' {
-			result = append(result, runes[start:i])
+			result = append(result, runes[start:i:i])
 			start = i + 1
 		}
 	}
-	result = append(result, runes[start:])
+	result = append(result, runes[start:len(runes):len(runes)])
 	return result
 }
