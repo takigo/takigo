@@ -4,10 +4,10 @@ package dialog
 
 import (
 	"fmt"
-	"sync"
 
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/geometry/pack"
+	"github.com/msorc/takigo/grab"
 	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/button"
@@ -43,7 +43,7 @@ type Dialog struct {
 	minHeight   int
 	result      DialogResult
 	done        chan struct{}
-	closeOnce   sync.Once
+	closed      bool
 	returnBound bool
 }
 
@@ -90,10 +90,19 @@ func New(parent widget.Caregiver, title string, minWidth, minHeight int) *Dialog
 		}
 	})
 
+	// Destroyed from elsewhere (its parent went away): end Run.
+	d.Toplevel.Window().OnDestroy(func() { d.finish(ResultCancel, false) })
+
 	return d
 }
 
-// Run shows the dialog, grabs input, and blocks until Close is called.
+// grabber is the App's optional grab support (takigo.App.GrabManager).
+type grabber interface {
+	GrabManager() *grab.Manager
+}
+
+// Run shows the dialog, takes a local grab, and blocks until Close is
+// called or the dialog is destroyed.
 // It runs a nested event loop so events continue to be processed.
 func (d *Dialog) Run() DialogResult {
 	tw := d.Toplevel.Window()
@@ -126,6 +135,20 @@ func (d *Dialog) Run() DialogResult {
 	d.Toplevel.Show()
 	tw.Display.Server.Flush()
 
+	// Like tk_dialog and tk_messageBox, take a local grab so the rest of
+	// the application ignores input until the dialog closes.
+	if g, ok := d.App.(grabber); ok {
+		gm := g.GrabManager()
+		prev := gm.Current()
+		gm.Set(tw, false)
+		defer func() {
+			gm.Release()
+			if prev != nil && !prev.IsDestroyed() {
+				gm.Set(prev, false)
+			}
+		}()
+	}
+
 	// Run a nested event loop until the dialog is closed.
 	d.App.RunNestedLoop(d.done)
 
@@ -133,18 +156,28 @@ func (d *Dialog) Run() DialogResult {
 }
 
 // Close sets the result, hides the dialog, and signals done.
-func (d *Dialog) Close(result DialogResult) {
-	d.closeOnce.Do(func() {
-		d.result = result
+func (d *Dialog) Close(result DialogResult) { d.finish(result, true) }
 
-		// Unregister the close handler.
-		d.App.UnregisterCloseHandler(d.Toplevel.Window().PlatformID)
+// finish ends the dialog once; destroy is false when its toplevel is
+// already being destroyed.
+func (d *Dialog) finish(result DialogResult, destroy bool) {
+	// A flag rather than sync.Once: destroying the toplevel re-enters
+	// finish through its destroy hook.
+	if d.closed {
+		return
+	}
+	d.closed = true
+	d.result = result
 
+	// Unregister the close handler.
+	d.App.UnregisterCloseHandler(d.Toplevel.Window().PlatformID)
+
+	if destroy {
 		d.Toplevel.Hide()
 		d.Toplevel.Destroy()
+	}
 
-		close(d.done)
-	})
+	close(d.done)
 }
 
 // centerOverParent positions the dialog centered over the parent window.

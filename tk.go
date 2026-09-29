@@ -18,6 +18,7 @@ import (
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/focus"
 	"github.com/msorc/takigo/font"
+	"github.com/msorc/takigo/grab"
 	"github.com/msorc/takigo/image"
 	"github.com/msorc/takigo/internal/treedump"
 	"github.com/msorc/takigo/platform"
@@ -42,6 +43,7 @@ type App struct {
 	bindEng    *bind.Engine
 	focusMgr   *focus.Manager
 	selMgr     *selection.Manager
+	grabMgr    *grab.Manager
 }
 
 // NewApp creates a new takigo application. It opens the X11 display,
@@ -105,17 +107,28 @@ func NewApp(opts ...AppOption) (*App, error) {
 		imageReg:   image.NewRegistry(),
 		bindEng:    bindEng,
 		selMgr:     selMgr,
+		grabMgr:    grab.NewManager(server, dispatcher),
 	}
 
 	// Tk never reads a child window's size back from X: the geometry
 	// managers own it. A queued ConfigureNotify can describe a size that has
 	// since been replaced, so report the current one to every handler.
 	loop.SetEventFilter(func(ev *event.Event) {
-		if ev.Type != event.ConfigureType {
-			return
-		}
-		if w := d.LookupWindow(ev.Window); w != nil && !w.IsTopLevel() {
-			ev.ConfigWidth, ev.ConfigHeight = w.Width, w.Height
+		switch ev.Type {
+		case event.ConfigureType:
+			if w := d.LookupWindow(ev.Window); w != nil && !w.IsTopLevel() {
+				ev.ConfigWidth, ev.ConfigHeight = w.Width, w.Height
+			}
+		case event.KeyPressType, event.KeyReleaseType, event.ButtonPressType, event.ButtonReleaseType,
+			event.MotionType, event.EnterType, event.LeaveType:
+			// A local grab (tkGrab.c's TkPointerEvent) discards input
+			// for this application's windows outside the grab tree.
+			if app.grabMgr.Current() == nil {
+				return
+			}
+			if w := d.LookupWindow(ev.Window); w != nil && app.grabMgr.ShouldRedirect(w) {
+				ev.Type = 0
+			}
 		}
 	})
 
@@ -353,6 +366,12 @@ func (a *App) Server() platform.DisplayServer {
 // title, geometry, size constraints, resizable, iconify, etc.
 func (a *App) WmInfo() *wm.WmInfo {
 	return a.wmInfo
+}
+
+// GrabManager returns the application's grab manager; a local grab set on
+// it confines input to the grab window's subtree, as Tk's grab does.
+func (a *App) GrabManager() *grab.Manager {
+	return a.grabMgr
 }
 
 // BindEngine returns the application's binding engine.
