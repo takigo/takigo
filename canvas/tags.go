@@ -27,15 +27,20 @@ func (c *Canvas) resolve(tagOrID string) []*itemEntry {
 		}
 		return nil
 	default:
-		// Tag name: use tag index for O(1) lookup per tag.
+		// Tag name: mark the indexed entries, then collect them in display
+		// order.
 		indexed := c.tagIndex[tagOrID]
 		if len(indexed) == 0 {
 			return nil
 		}
-		// Return entries in display order (iterate items, filter by index).
+		c.markSeq++
+		stamp := c.markSeq
+		for _, entry := range indexed {
+			entry.mark = stamp
+		}
 		result := make([]*itemEntry, 0, len(indexed))
 		for _, entry := range c.items {
-			if indexed[entry.id] != nil {
+			if entry.mark == stamp {
 				result = append(result, entry)
 			}
 		}
@@ -57,17 +62,30 @@ func itemBase(item Item) *ItemBase {
 	return nil
 }
 
-// findClosest returns the topmost item within halo distance of (x, y).
-// Items are searched from top (last) to bottom (first) in display order.
+// findClosest ports CanvasFindClosest (tk/generic/tkCanvas.c): the topmost
+// item within halo of (x, y), skipping hidden items and, before the distance
+// test, items whose bounding box is not within halo of the point.
 func (c *Canvas) findClosest(x, y float64, halo float64) *itemEntry {
 	for _, entry := range slices.Backward(c.items) {
-		if base := itemBase(entry.item); base != nil && base.State() == ItemStateHidden {
+		item := entry.item
+		if item.State() == ItemStateHidden {
 			continue
 		}
-		dist := entry.item.PointDistance(x, y)
-		if dist <= halo {
+		if !bboxNear(item, x, y, halo) {
+			continue
+		}
+		if item.PointDistance(x, y) <= halo {
 			return entry
 		}
 	}
 	return nil
+}
+
+// bboxNear reports whether item's bounding box comes within dist of (x, y).
+// Every item's box contains what its PointDistance measures, so a false
+// result rules the item out without calling it.
+func bboxNear(item Item, x, y, dist float64) bool {
+	x1, y1, x2, y2 := item.BBox()
+	return float64(x1) <= x+dist && float64(x2) >= x-dist &&
+		float64(y1) <= y+dist && float64(y2) >= y-dist
 }

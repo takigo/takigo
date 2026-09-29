@@ -262,7 +262,9 @@ parent's manager's `RequestProc` re-runs the layout.
   `geometry/pack/pack_test.go`, `canvas/geometry_test.go`, `screenunit/screenunit_test.go`,
   `wm/wm_test.go`, `bind/{table,pattern}_test.go`).
 - Fuzz targets: `bind/pattern_fuzz_test.go`, `geometry/grid/grid_fuzz_test.go`.
-  Benchmarks: `event/dispatch_bench_test.go` (dispatcher hot path).
+  Benchmarks: `event/dispatch_bench_test.go` (dispatcher hot path),
+  `canvas/bench_test.go` (pick, find, tag resolution, display-list edits and
+  item redraw on a display-free canvas: `go test ./canvas/ -run '^$' -bench .`).
 - CI (`.github/workflows/ci.yml`) runs vet, gofmt and `go test -race`
   on Linux under Xvfb, vets Windows and builds/tests macOS.
 

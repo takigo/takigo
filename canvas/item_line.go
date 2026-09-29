@@ -104,8 +104,11 @@ func (l *LineItem) Display(d platform.DisplayServer, drawable platform.DrawableI
 		return
 	}
 
+	c := l.canvas
 	d.SetForeground(gc, l.color.Pixel)
-	defer l.canvas.stippleOn(d, drawable, gc, l.stipple, originX, originY)()
+	if c.stippleOn(d, drawable, gc, l.stipple, originX, originY) {
+		defer stippleOff(d, gc)
+	}
 	lineStyle := platform.LineSolid
 	if len(l.dash) > 0 {
 		lineStyle = platform.LineOnOffDash
@@ -113,11 +116,15 @@ func (l *LineItem) Display(d platform.DisplayServer, drawable platform.DrawableI
 	}
 	d.SetLineAttributes(gc, uint(l.width), lineStyle, l.capStyle, l.joinStyle)
 
-	// Get display coords (copy so we can shorten endpoints for arrowheads).
-	displayCoords := append([]float64{}, l.coords...)
+	// Display coords go through the canvas scratch buffer so the endpoints
+	// can be shortened for arrowheads without touching l.coords.
+	var displayCoords []float64
 	if l.smooth && len(l.coords) >= 6 {
-		displayCoords = generateBezierSpline(l.coords, false, l.splineSteps)
+		displayCoords = appendBezierSpline(c.coordBuf[:0], l.coords, false, l.splineSteps)
+	} else {
+		displayCoords = append(c.coordBuf[:0], l.coords...)
 	}
+	c.coordBuf = displayCoords
 
 	// Shorten line endpoints so the thick shaft meets the arrowhead polygon
 	// edge seamlessly. Tk computes a backup distance by interpolating between
@@ -144,12 +151,9 @@ func (l *LineItem) Display(d platform.DisplayServer, drawable platform.DrawableI
 		}
 	}
 
-	points := make([]platform.Point, len(displayCoords)/2)
-	for i := 0; i < len(displayCoords)-1; i += 2 {
-		points[i/2] = platform.Point{
-			X: int16(drawableCoord(displayCoords[i], originX)),
-			Y: int16(drawableCoord(displayCoords[i+1], originY)),
-		}
+	points := c.scratchPoints(len(displayCoords) / 2)
+	for i := range points {
+		points[i] = drawablePoint(displayCoords[2*i], displayCoords[2*i+1], originX, originY)
 	}
 
 	if len(points) >= 2 {
@@ -220,7 +224,8 @@ func (l *LineItem) drawArrow(d platform.DisplayServer, drawable platform.Drawabl
 	p[5] = p[3]*frac + vertY*(1-frac)
 	p[6] = p[8]*frac + vertX*(1-frac)
 	p[7] = p[9]*frac + vertY*(1-frac)
-	pts := make([]platform.Point, 6)
+	// The shaft has been drawn, so the scratch points are free again.
+	pts := l.canvas.scratchPoints(6)
 	for k := range pts {
 		pts[k] = drawablePoint(p[2*k], p[2*k+1], originX, originY)
 	}
@@ -231,21 +236,21 @@ func (l *LineItem) PointDistance(x, y float64) float64 {
 	if len(l.coords) < 4 {
 		return math.MaxFloat64
 	}
-	minDist := math.MaxFloat64
+	// Plain compares: the float min/max builtins also order NaN and -0.
+	minSq := math.MaxFloat64
 	for i := 0; i < len(l.coords)-3; i += 2 {
-		d := segmentPointDistance(x, y,
+		if d := segmentPointDistanceSq(x, y,
 			l.coords[i], l.coords[i+1],
-			l.coords[i+2], l.coords[i+3])
-		if d < minDist {
-			minDist = d
+			l.coords[i+2], l.coords[i+3]); d < minSq {
+			minSq = d
 		}
 	}
 	// Subtract half the line width for hit testing.
-	minDist -= float64(l.width) / 2
-	if minDist < 0 {
-		minDist = 0
+	dist := math.Sqrt(minSq) - float64(l.width)/2
+	if dist < 0 {
+		return 0
 	}
-	return minDist
+	return dist
 }
 
 func (l *LineItem) AreaOverlap(ax1, ay1, ax2, ay2 float64) int {
@@ -376,10 +381,16 @@ func psArrow(l *LineItem, ps *PSContext, first bool) {
 // segmentPointDistance computes the distance from point (px,py) to the
 // line segment from (x1,y1) to (x2,y2).
 func segmentPointDistance(px, py, x1, y1, x2, y2 float64) float64 {
+	return math.Sqrt(segmentPointDistanceSq(px, py, x1, y1, x2, y2))
+}
+
+// segmentPointDistanceSq is the squared segmentPointDistance, for callers
+// that take the minimum over many segments.
+func segmentPointDistanceSq(px, py, x1, y1, x2, y2 float64) float64 {
 	dx := x2 - x1
 	dy := y2 - y1
 	if dx == 0 && dy == 0 {
-		return math.Sqrt((px-x1)*(px-x1) + (py-y1)*(py-y1))
+		return (px-x1)*(px-x1) + (py-y1)*(py-y1)
 	}
 	t := ((px-x1)*dx + (py-y1)*dy) / (dx*dx + dy*dy)
 	if t < 0 {
@@ -389,5 +400,5 @@ func segmentPointDistance(px, py, x1, y1, x2, y2 float64) float64 {
 	}
 	closestX := x1 + t*dx
 	closestY := y1 + t*dy
-	return math.Sqrt((px-closestX)*(px-closestX) + (py-closestY)*(py-closestY))
+	return (px-closestX)*(px-closestX) + (py-closestY)*(py-closestY)
 }
