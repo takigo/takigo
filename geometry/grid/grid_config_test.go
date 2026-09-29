@@ -45,3 +45,16 @@ func TestGridRowColumn(t *testing.T) {
 		t.Error("negative row/column was accepted")
 	}
 }
+
+func TestGridKeepsContainerConfigWhenEmpty(t *testing.T) {
+	parent := &window.Window{PathName: ".gridkeep"}
+	a := &window.Window{PathName: ".gridkeep.a", Parent: parent}
+	ColumnConfigure(parent, 0, Weight(1))
+	Grid(geometry.Group{a}, Row(0), Column(0))
+	Forget(a)
+	Grid(geometry.Group{a}, Row(0), Column(0))
+	t.Cleanup(func() { Forget(a) })
+	if conf := gridders[parent].colConf[0]; conf == nil || conf.Weight != 1 {
+		t.Errorf("column 0 config after regridding = %+v, want weight 1", conf)
+	}
+}

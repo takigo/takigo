@@ -83,6 +83,10 @@ var mgr = &placeManager{}
 // placers tracks per-container state.
 var placers = map[*window.Window]*placer{}
 
+// hooked records the containers whose destroy and configure hooks are
+// registered.
+var hooked = map[*window.Window]bool{}
+
 type placeManager struct{}
 
 func (m *placeManager) Name() string { return "place" }
@@ -168,7 +172,22 @@ func Place(child window.Windower, opts ...PlaceOption) {
 	if !ok {
 		p = &placer{container: parent}
 		placers[parent] = p
-		parent.OnDestroy(func() { forgetContainer(parent) })
+	}
+	if !hooked[parent] {
+		// The placer is dropped when its last content goes but the hooks
+		// stay with the window, so register them once.
+		hooked[parent] = true
+		parent.OnDestroy(func() {
+			forgetContainer(parent)
+			delete(hooked, parent)
+		})
+		// Relative placement follows the container's size, whatever
+		// resizes it (PlaceStructureProc).
+		parent.OnConfigure(func() {
+			if pp, ok := placers[parent]; ok {
+				pp.scheduleArrange()
+			}
+		})
 	}
 
 	// Update or add entry.
