@@ -827,6 +827,25 @@ func (t *TextWidget) scrollDownToShow(idx Index) {
 		return
 	}
 
+	// Jump close to the answer with the layout cache: the top that puts
+	// idx's display line at the bottom of the view. The loop below then
+	// settles it by at most a line or two instead of stepping from the
+	// current top one display line at a time.
+	if idx.Line >= 1 && idx.Line <= t.doc.LineCount() {
+		ll := t.layout.line(idx.Line)
+		bottom := t.layout.pixelsBefore(idx.Line)
+		for k, h := range ll.hs {
+			bottom += h
+			if k < len(ll.dls) && idx.Char <= ll.dls[k].endChar {
+				break
+			}
+		}
+		l, off := t.layout.lineAtPixel(max(bottom-availHeight, 0))
+		if t.computeDisplayLinesBefore(l, off) > t.computeDisplayLinesBefore(t.topLine, t.topCharOffset) {
+			t.topLine, t.topCharOffset = l, off
+		}
+	}
+
 	// Scroll down one display line at a time.
 	for range 1000 { // safety limit
 		dlines := t.computeVisibleLines()
