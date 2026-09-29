@@ -2,7 +2,7 @@ package text
 
 import "strings"
 
-// Tag methods on *TextWidget. Tags are stored in t.doc.TagRanges;
+// Tag methods on *TextWidget. Tag ranges are stored on each *Tag in t.doc;
 // per-tag bindings and hover state live on the widget itself
 // (t.tagBindings, t.hoverTags).
 
@@ -13,11 +13,7 @@ func (t *TextWidget) TagAdd(tagName, startIndex, endIndex string) {
 	if !ok1 || !ok2 {
 		return
 	}
-	n := len(t.doc.TagRanges)
-	t.doc.TagAdd(tagName, start, end)
-	if strings.TrimSpace(endIndex) == "end" && len(t.doc.TagRanges) > n {
-		t.doc.TagRanges[n].ToEnd = true
-	}
+	t.doc.tagAdd(tagName, start, end, strings.TrimSpace(endIndex) == "end")
 }
 
 // TagRemove removes a tag from the given range.
@@ -50,10 +46,8 @@ func (t *TextWidget) TagBind(tagName, eventName string, handler func()) {
 // tagsAtIndex returns the set of tag names that cover the given index.
 func (t *TextWidget) tagsAtIndex(idx Index) map[string]bool {
 	result := make(map[string]bool)
-	for _, tr := range t.doc.TagRanges {
-		if Compare(idx, tr.Start) >= 0 && Compare(idx, tr.End) < 0 {
-			result[tr.TagName] = true
-		}
+	for _, tg := range t.doc.TagsAt(idx) {
+		result[tg.Name] = true
 	}
 	return result
 }
