@@ -8,6 +8,7 @@ import "math"
 // the topmost closest item below start. Hidden items are skipped; 0 means
 // none.
 func (c *Canvas) FindClosest(x, y, halo float64, start string) int64 {
+	c.compact()
 	if len(c.items) == 0 {
 		return 0
 	}

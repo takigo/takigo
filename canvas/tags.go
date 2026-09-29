@@ -18,6 +18,7 @@ func (c *Canvas) resolve(tagOrID string) []*itemEntry {
 
 	switch tagOrID {
 	case "all":
+		c.compact()
 		result := make([]*itemEntry, len(c.items))
 		copy(result, c.items)
 		return result
@@ -38,6 +39,7 @@ func (c *Canvas) resolve(tagOrID string) []*itemEntry {
 		for _, entry := range indexed {
 			entry.mark = stamp
 		}
+		c.compact()
 		result := make([]*itemEntry, 0, len(indexed))
 		for _, entry := range c.items {
 			if entry.mark == stamp {
@@ -66,6 +68,7 @@ func itemBase(item Item) *ItemBase {
 // item within halo of (x, y), skipping hidden items and, before the distance
 // test, items whose bounding box is not within halo of the point.
 func (c *Canvas) findClosest(x, y float64, halo float64) *itemEntry {
+	c.compact()
 	for _, entry := range slices.Backward(c.items) {
 		item := entry.item
 		if item.State() == ItemStateHidden {

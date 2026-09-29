@@ -92,3 +92,16 @@ func TestArcPointDistance(t *testing.T) {
 		t.Errorf("rectangle around the arc: AreaOverlap = %d, want 1", got)
 	}
 }
+
+func TestDeleteKeepsDisplayOrder(t *testing.T) {
+	c := newBenchCanvas()
+	ids := benchScene(c, 10)
+	for _, i := range []int{1, 4, 5, 9} {
+		c.Delete(strconv.FormatInt(ids[i], 10))
+	}
+	c.Raise(strconv.FormatInt(ids[0], 10))
+	want := []int64{ids[2], ids[3], ids[6], ids[7], ids[8], ids[0]}
+	if got := c.FindWithTag("all"); !slices.Equal(got, want) {
+		t.Errorf("display list after deletes and a raise = %v, want %v", got, want)
+	}
+}
