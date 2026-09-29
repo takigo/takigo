@@ -48,11 +48,15 @@ type WmInfo struct {
 	Class    string // WM_CLASS res_class
 
 	// Geometry.
-	UserX, UserY int  // user-requested position
-	UserW, UserH int  // user-requested size (-1 = not set)
-	NegativeX    bool // x from right edge
-	NegativeY    bool // y from bottom edge
-	PositionSet  bool // user has set position
+	UserX, UserY int // user-requested position
+	UserW, UserH int // user-requested size (-1 = not set)
+
+	// pending holds sizes the application requested whose ConfigureNotify
+	// has not arrived yet.
+	pending     [][2]int
+	NegativeX   bool // x from right edge
+	NegativeY   bool // y from bottom edge
+	PositionSet bool // user has set position
 
 	// Size constraints.
 	MinWidth, MinHeight int
@@ -254,6 +258,41 @@ func (info *WmInfo) GeometryRequest(reqW, reqH int) (int, int) {
 	return w, h
 }
 
+// ExpectSize records a size the application requested; see
+// ConfigureNotify. Like WM_SYNC_PENDING it tells our own resizes from the
+// user's; only the last few requests are kept.
+func (info *WmInfo) ExpectSize(w, h int) {
+	const keep = 16
+	info.pending = append(info.pending, [2]int{w, h})
+	if n := len(info.pending); n > keep {
+		info.pending = slices.Clone(info.pending[n-keep:])
+	}
+}
+
+// ConfigureNotify ports the size part of ConfigureEvent (tkUnixWm.c): a
+// reported size that is neither the current one nor one the application
+// asked for was made by the user (dragging a border) and becomes the
+// window's geometry, which later content requests then keep. A dimension
+// still equal to the request stays unset.
+func (info *WmInfo) ConfigureNotify(width, height int) {
+	for i, p := range info.pending {
+		if p == [2]int{width, height} {
+			info.pending = info.pending[i+1:]
+			return
+		}
+	}
+	w := info.Win
+	if width == w.Width && height == w.Height {
+		return
+	}
+	if !(info.UserW <= 0 && width == w.ReqWidth) {
+		info.UserW = width
+	}
+	if !(info.UserH <= 0 && height == w.ReqHeight) {
+		info.UserH = height
+	}
+}
+
 // applyGeometry sends the geometry to the X server.
 func (info *WmInfo) applyGeometry() {
 	w := info.Win
@@ -261,6 +300,7 @@ func (info *WmInfo) applyGeometry() {
 	if w.PlatformID == platform.WindowID(0) {
 		return
 	}
+	info.ExpectSize(w.Width, w.Height)
 	d.MoveResizeWindow(w.PlatformID, w.X, w.Y, uint(w.Width), uint(w.Height))
 	info.updateSizeHints()
 }

@@ -325,3 +325,26 @@ func TestResizeToplevelKeepsUserGeometry(t *testing.T) {
 		t.Errorf("size after wm geometry 300x200 = %dx%d, want it kept", w.Width, w.Height)
 	}
 }
+
+func TestConfigureNotifyRecordsUserResize(t *testing.T) {
+	info, _ := newToplevel(t)
+	w := info.Win
+	w.ReqWidth, w.ReqHeight = 120, 80
+	window.ResizeToplevel(w, 120, 80)
+	window.ResizeToplevel(w, 130, 90)
+
+	// Our own requests coming back, even late, are not user resizes.
+	info.ConfigureNotify(120, 80)
+	info.ConfigureNotify(130, 90)
+	if info.UserW > 0 || info.UserH > 0 {
+		t.Fatalf("own resize taken as the user's: %dx%d", info.UserW, info.UserH)
+	}
+
+	// The user drags the window to 400x300: the size sticks.
+	info.ConfigureNotify(400, 300)
+	w.Width, w.Height = 400, 300
+	window.ResizeToplevel(w, 140, 95)
+	if w.Width != 400 || w.Height != 300 {
+		t.Errorf("size after a user resize and a new request = %dx%d, want 400x300", w.Width, w.Height)
+	}
+}
