@@ -9,6 +9,10 @@ import (
 const (
 	// doubleClickMs is the maximum time between clicks for double-click.
 	doubleClickMs = 500
+
+	// nearbyPixels is how far (NEARBY_PIXELS) the pointer may move
+	// between the clicks of a double or triple click.
+	nearbyPixels = 5
 )
 
 // tagInfo holds the binding tag chain for a registered window.
@@ -41,11 +45,19 @@ type Engine struct {
 	// and that wait for their next pattern (tkBind.c's promotion lists).
 	prom []promEntry
 
-	// Double-click state tracking.
-	lastClickTime platform.Timestamp
-	lastClickWin  platform.WindowID
-	lastClickBtn  uint
-	clickCount    int
+	// Repeat counts for Double/Triple, kept per event type as Tk keeps
+	// one curEvent per type: [0] for ButtonPress, [1] for ButtonRelease.
+	clicks [2]clickState
+}
+
+// clickState is the last button event of one type and its repeat count.
+type clickState struct {
+	time  platform.Timestamp
+	win   platform.WindowID
+	btn   uint
+	rootX int
+	rootY int
+	count int
 }
 
 // tagInfoFor returns w's tag chain, creating the default one (Tk's
@@ -109,7 +121,7 @@ func (e *Engine) dispatch(ev *event.Event, runClass bool) bool {
 				continue
 			}
 			if n > 1 {
-				e.promote(tag, b.seq, 1, ev.Window)
+				e.promote(tag, b.key, b.seq, 1, ev.Window)
 				continue
 			}
 			if score := pat.specificity(); score > bestScore {
@@ -162,8 +174,7 @@ type completedSeq struct {
 
 // promote records that seq (bound to tag) matched up to pattern next-1 on
 // window, unless it is already waiting there.
-func (e *Engine) promote(tag string, seq Sequence, next int, window platform.WindowID) {
-	key := seq.String()
+func (e *Engine) promote(tag, key string, seq Sequence, next int, window platform.WindowID) {
 	for _, p := range e.prom {
 		if p.tag == tag && p.key == key && p.next == next && p.window == window {
 			return
@@ -241,7 +252,7 @@ func isModifierKeySym(ks platform.KeySym) bool {
 // findBinding returns the binding in bindings whose sequence prints as key.
 func findBinding(bindings []binding, key string) *binding {
 	for i := range bindings {
-		if bindings[i].seq.String() == key {
+		if bindings[i].key == key {
 			return &bindings[i]
 		}
 	}
@@ -321,24 +332,30 @@ func matchVirtual(virtuals []virtualMatch, bindings []binding) *binding {
 // updateClickState tracks button press timing for double/triple click.
 // Returns ModDouble or ModTriple modifier if applicable.
 func (e *Engine) updateClickState(ev *event.Event) Modifier {
-	if ev.Type != event.ButtonPressType {
+	var c *clickState
+	switch ev.Type {
+	case event.ButtonPressType:
+		c = &e.clicks[0]
+	case event.ButtonReleaseType:
+		c = &e.clicks[1]
+	default:
 		return 0
 	}
 
-	elapsed := uint64(ev.Time) - uint64(e.lastClickTime)
-	if e.lastClickWin == ev.Window &&
-		e.lastClickBtn == ev.Button &&
-		elapsed < doubleClickMs {
-		e.clickCount++
+	// MatchEventNearby: same window and button, within NEARBY_MS and
+	// NEARBY_PIXELS of the previous event of this type.
+	elapsed := uint64(ev.Time) - uint64(c.time)
+	if c.count > 0 && c.win == ev.Window && c.btn == ev.Button &&
+		elapsed <= doubleClickMs &&
+		abs(ev.RootX-c.rootX) <= nearbyPixels && abs(ev.RootY-c.rootY) <= nearbyPixels {
+		c.count++
 	} else {
-		e.clickCount = 1
+		c.count = 1
 	}
+	c.time, c.win, c.btn = ev.Time, ev.Window, ev.Button
+	c.rootX, c.rootY = ev.RootX, ev.RootY
 
-	e.lastClickTime = ev.Time
-	e.lastClickWin = ev.Window
-	e.lastClickBtn = ev.Button
-
-	switch e.clickCount {
+	switch c.count {
 	case 2:
 		return ModDouble
 	case 3:
@@ -346,6 +363,13 @@ func (e *Engine) updateClickState(ev *event.Event) Modifier {
 	default:
 		return 0
 	}
+}
+
+func abs(n int) int {
+	if n < 0 {
+		return -n
+	}
+	return n
 }
 
 // buildTagChain creates the default tag chain for a window:

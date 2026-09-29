@@ -18,6 +18,9 @@ type BitmapItem struct {
 	xbm        *XBMData
 	Foreground color.RGBA // default: black
 	Background color.RGBA // default: transparent (A=0)
+
+	// mask is xbm as a depth-1 pixmap, made on first display and kept.
+	mask platform.PixmapID
 }
 
 func newBitmapItem(x, y float64, xbm *XBMData, c *Canvas) *BitmapItem {
@@ -95,15 +98,33 @@ func (bi *BitmapItem) Display(d platform.DisplayServer, drawable platform.Drawab
 	drawX := drawableCoord(bi.x, originX) + ax
 	drawY := drawableCoord(bi.y, originY) + ay
 
-	rgba := bi.xbm.ToRGBA(bi.Foreground, bi.Background)
-
-	win := bi.canvas.Win
-	bgPixel := win.BackgroundPixel
-	if bi.canvas.Base.Background != nil {
-		bgPixel = bi.canvas.Base.Background.Pixel
+	// DisplayBitmap (tkCanvBmap.c) draws through the bitmap on the
+	// server: the background fills the box unless transparent, and the
+	// foreground goes where bits are set, so transparent pixels show the
+	// items beneath instead of the canvas background.
+	if bi.mask == 0 {
+		bi.mask = d.CreateBitmapFromData(drawable, bi.xbm.Bits, uint(w), uint(h))
+		if bi.mask == 0 {
+			return
+		}
 	}
+	if bi.Background.A != 0 {
+		d.SetForeground(gc, rgbPixel(bi.Background))
+		d.FillRectangle(drawable, gc, drawX, drawY, uint(w), uint(h))
+	}
+	if bi.Foreground.A != 0 {
+		d.SetForeground(gc, rgbPixel(bi.Foreground))
+		d.SetStipple(gc, bi.mask)
+		d.SetFillStyle(gc, platform.FillStippled)
+		d.SetTSOrigin(gc, drawX, drawY)
+		d.FillRectangle(drawable, gc, drawX, drawY, uint(w), uint(h))
+		d.SetFillStyle(gc, platform.FillSolid)
+	}
+}
 
-	d.PutImageRGBA(drawable, gc, win.Depth, rgba, w, w, h, 0, 0, drawX, drawY, w, h, bgPixel)
+// rgbPixel is the TrueColor pixel of c, as color.Cache computes pixels.
+func rgbPixel(c color.RGBA) uint64 {
+	return uint64(c.R)<<16 | uint64(c.G)<<8 | uint64(c.B)
 }
 
 func (bi *BitmapItem) PointDistance(x, y float64) float64 {
@@ -133,7 +154,12 @@ func (bi *BitmapItem) Translate(dx, dy float64) {
 	bi.updateBBox()
 }
 
-func (bi *BitmapItem) Delete(d platform.DisplayServer) {}
+func (bi *BitmapItem) Delete(d platform.DisplayServer) {
+	if bi.mask != 0 {
+		d.FreePixmap(bi.mask)
+		bi.mask = 0
+	}
+}
 
 // Postscript emits a PostScript representation of the bitmap item.
 //

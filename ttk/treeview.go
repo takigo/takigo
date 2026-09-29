@@ -2,6 +2,7 @@ package ttk
 
 import (
 	"fmt"
+	"slices"
 	"sort"
 
 	"github.com/msorc/takigo/font"
@@ -306,26 +307,21 @@ func (tv *Treeview) Delete(ids ...string) {
 		if item == nil || id == "" {
 			continue
 		}
+		if item.Parent != nil {
+			item.Parent.Children = slices.DeleteFunc(item.Parent.Children, func(c *TreeItem) bool { return c == item })
+		}
 		tv.removeItem(item)
 	}
 	tv.scheduleRedisplay()
 }
 
+// removeItem forgets item and its descendants; the caller unlinks item
+// from its parent.
 func (tv *Treeview) removeItem(item *TreeItem) {
-	// Remove children recursively.
 	for _, child := range item.Children {
 		tv.removeItem(child)
 	}
-	// Remove from parent's children.
-	if item.Parent != nil {
-		children := item.Parent.Children
-		for i, c := range children {
-			if c == item {
-				item.Parent.Children = append(children[:i], children[i+1:]...)
-				break
-			}
-		}
-	}
+	item.Children = nil
 	delete(tv.items, item.ID)
 	delete(tv.selection, item.ID)
 	if tv.focus == item.ID {
@@ -654,14 +650,9 @@ func (tv *Treeview) YView(index int) {
 
 // YViewScroll scrolls by count units or pages.
 func (tv *Treeview) YViewScroll(count int, pages bool) {
+	// TtkScrollviewCommand: a page is the number of rows in view.
 	if pages {
-		vis := max(tv.visibleRows(), 1)
-		count *= vis - 2
-		if count == 0 {
-			if pages {
-				count = 1
-			}
-		}
+		count *= max(tv.visibleRows(), 1)
 	}
 	tv.YView(tv.topIndex + count)
 }

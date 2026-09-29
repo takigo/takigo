@@ -125,11 +125,20 @@ func bindCanvas(c *Canvas) {
 		case platform.XK_Return:
 			ti.InsertText(ti.cursorPos, "\n")
 		default:
-			// Insert printable character.
-			if ev.KeySym >= 0x20 && ev.KeySym < 0x7f {
-				ti.InsertText(ti.cursorPos, string(rune(ev.KeySym)))
-			} else if ev.KeySym > 0x7f && ev.KeySym < 0x10ffff {
-				ti.InsertText(ti.cursorPos, string(rune(ev.KeySym)))
+			// Insert what %A would give: the composed string, or the
+			// keysym's character; modifiers, function keys and Control
+			// combinations have none.
+			if ev.State&platform.ControlMask != 0 {
+				break
+			}
+			s := ev.Str
+			if s == "" {
+				if r := platform.KeySymToRune(ev.KeySym); r != 0 {
+					s = string(r)
+				}
+			}
+			if s != "" && s[0] >= 0x20 && s[0] != 0x7f {
+				ti.InsertText(ti.cursorPos, s)
 			}
 		}
 		c.redrawItems(e)

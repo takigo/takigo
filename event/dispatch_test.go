@@ -225,3 +225,23 @@ func TestDispatcherConcurrentBind(t *testing.T) {
 	close(stop)
 	wg.Wait()
 }
+
+func TestDispatcherBindGlobalForUnbindsWithOwner(t *testing.T) {
+	d := NewDispatcher()
+	var owned, other int
+	d.BindGlobalFor(platform.WindowID(5), ButtonPressMask, func(ev *Event) { owned++ })
+	id := d.BindGlobalFor(platform.WindowID(6), ButtonPressMask, func(ev *Event) { other++ })
+
+	d.Dispatch(&Event{Type: ButtonPressType, Window: platform.WindowID(99)})
+	d.Unbind(platform.WindowID(5))
+	d.Dispatch(&Event{Type: ButtonPressType, Window: platform.WindowID(99)})
+	if owned != 1 || other != 2 {
+		t.Fatalf("owned=%d other=%d, want 1 and 2", owned, other)
+	}
+	if !d.UnbindID(id) {
+		t.Fatal("UnbindID of an owned global handler failed")
+	}
+	if len(d.global) != 0 || len(d.owned) != 0 || len(d.byID) != 0 {
+		t.Errorf("leftover registrations: global=%d owned=%d byID=%d", len(d.global), len(d.owned), len(d.byID))
+	}
+}

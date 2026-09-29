@@ -6,6 +6,7 @@ import (
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/screenunit"
+	"sort"
 )
 
 // Display renders the treeview to its window via double-buffered pixmap.
@@ -294,11 +295,17 @@ func (tv *Treeview) drawClippedText(f font.Font, drawable platform.DrawableID,
 	if avail <= 0 {
 		return
 	}
-	for i := len(text); i > 0; i-- {
-		if f.MeasureString(text[:i]) <= avail {
-			df.DrawString(drawable, x, y, text[:i]+ellipsis, pixel, r, g, b)
-			return
+	// Longest prefix, cut at a rune boundary, that fits: widths grow with
+	// the prefix, so binary-search the rune starts.
+	var cuts []int
+	for i := range text {
+		if i > 0 {
+			cuts = append(cuts, i)
 		}
+	}
+	n := sort.Search(len(cuts), func(k int) bool { return f.MeasureString(text[:cuts[k]]) > avail })
+	if n > 0 {
+		df.DrawString(drawable, x, y, text[:cuts[n-1]]+ellipsis, pixel, r, g, b)
 	}
 }
 

@@ -314,7 +314,6 @@ func (mb *Menubutton) display() {
 		}
 	}
 
-	d.Flush()
 }
 
 // SetText changes the button label and requests a re-layout if the size changed.
@@ -398,7 +397,7 @@ func bindMenubutton(mb *Menubutton, app widget.AppContext) {
 	// Alt+letter global binding for mnemonic navigation.
 	if mb.Underline >= 0 && mb.Underline < len([]rune(mb.Text)) {
 		mnemonicRune := unicode.ToLower([]rune(mb.Text)[mb.Underline])
-		app.Dispatcher().BindGlobal(event.KeyPressMask, func(ev *event.Event) {
+		app.Dispatcher().BindGlobalFor(w.PlatformID, event.KeyPressMask, func(ev *event.Event) {
 			if ev.State&platform.Mod1Mask == 0 {
 				return
 			}

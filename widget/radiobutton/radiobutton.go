@@ -450,7 +450,6 @@ func (r *Radiobutton) display() {
 
 	r.DrawHighlightBorder(r.HasFocus, 0)
 
-	d.Flush()
 }
 
 // Select selects this radiobutton (sets the variable to this button's value).

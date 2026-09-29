@@ -181,3 +181,11 @@ func BenchmarkSelectionDrag(b *testing.B) {
 		tw.updateSelection(idx)
 	}
 }
+
+// BenchmarkWrapLongParagraph lays out one 20k-character logical line.
+func BenchmarkWrapLongParagraph(b *testing.B) {
+	t := newBenchWidget(docWithText(strings.Repeat("lorem ipsum dolor ", 1111)), 600, 400)
+	for b.Loop() {
+		t.wrapLine(1, 590, 0, 0, 0)
+	}
+}

@@ -160,6 +160,9 @@ type XftFont struct {
 	fontByRune map[rune]*C.XftFont
 	// Set of opened fallback fonts (for cleanup in Close).
 	fallbackFonts map[*C.XftFont]bool
+	// fallbackOrder lists fallbackFonts in the order they were opened; a
+	// rune the primary font lacks is looked up in them before fontconfig.
+	fallbackOrder []*C.XftFont
 
 	// Glyph advance cache for MeasureString: asciiAdvance[r] is the width
 	// of ASCII rune r plus one (0 = not measured yet); advance holds the
@@ -342,15 +345,32 @@ func (f *XftFont) fontForRune(r rune) *C.XftFont {
 	if C.xft_char_exists(dpy, f.font, C.FcChar32(r)) != 0 {
 		chosen = f.font
 	} else {
+		// A fallback opened for an earlier rune often covers this one
+		// (a CJK paragraph), which is far cheaper than FcFontMatch.
+		for _, fb := range f.fallbackOrder {
+			if C.xft_char_exists(dpy, fb, C.FcChar32(r)) != 0 {
+				chosen = fb
+				break
+			}
+		}
+	}
+	if chosen == nil {
 		fb := C.find_fallback_font(dpy, f.screen, f.font.pattern, C.FcChar32(r))
-		if fb != nil {
+		switch {
+		case fb == nil:
+			chosen = f.font // no fallback; will draw a box
+		case f.fallbackFonts[fb]:
+			// Xft handed back a font already open here with one more
+			// reference; keep a single one.
+			C.XftFontClose(dpy, fb)
+			chosen = fb
+		default:
 			if f.fallbackFonts == nil {
 				f.fallbackFonts = make(map[*C.XftFont]bool)
 			}
 			f.fallbackFonts[fb] = true
+			f.fallbackOrder = append(f.fallbackOrder, fb)
 			chosen = fb
-		} else {
-			chosen = f.font // no fallback; will draw a box
 		}
 	}
 	f.fontByRune[r] = chosen
@@ -412,16 +432,79 @@ func (f *XftFont) DrawStringAngle(drawable platform.DrawableID, x, y int, angleD
 	}
 	defer xlib.XftMu.Unlock()
 	dpy := (*C.Display)(f.display.Ptr())
-	draw := C.XftDrawCreate(dpy, C.Drawable(xlib.Drawable(drawable)), f.visual, f.colormap)
+	draw := f.xftDraw(dpy, xlib.Drawable(drawable))
 	if draw == nil {
 		return
 	}
-	defer C.XftDrawDestroy(draw)
 	cs := C.CString(s)
 	defer C.free(unsafe.Pointer(cs))
 	color := C.make_xft_color(C.ulong(pixel), C.ushort(r), C.ushort(g), C.ushort(b))
 	C.XftDrawStringUtf8(draw, &color, rotFont, C.int(x), C.int(y),
 		(*C.FcChar8)(unsafe.Pointer(cs)), C.int(len(s)))
+}
+
+// xftDraws keeps one XftDraw per display and retargets it with
+// XftDrawChange, as Tk keeps fontPtr->ftDraw, instead of creating and
+// destroying one (with its RENDER Picture) per string. Its drawable must
+// be forgotten before that drawable goes away, or Xft later frees a
+// Picture the server already dropped with its window (RenderBadPicture):
+// the X11 backend calls ForgetDrawable from FreePixmap and ForgetAll from
+// DestroyWindow and Close. Guarded by xlib.XftMu.
+var xftDraws = map[*C.Display]*cachedDraw{}
+
+type cachedDraw struct {
+	draw     *C.XftDraw
+	drawable xlib.Drawable
+	visual   *C.Visual
+	colormap C.Colormap
+}
+
+// xftDraw returns the display's XftDraw aimed at drawable. The caller
+// holds xlib.XftMu.
+func (f *XftFont) xftDraw(dpy *C.Display, drawable xlib.Drawable) *C.XftDraw {
+	c := xftDraws[dpy]
+	if c != nil && (c.visual != f.visual || c.colormap != f.colormap) {
+		C.XftDrawDestroy(c.draw)
+		delete(xftDraws, dpy)
+		c = nil
+	}
+	if c == nil {
+		draw := C.XftDrawCreate(dpy, C.Drawable(drawable), f.visual, f.colormap)
+		if draw == nil {
+			return nil
+		}
+		xftDraws[dpy] = &cachedDraw{draw, drawable, f.visual, f.colormap}
+		return draw
+	}
+	if c.drawable != drawable {
+		C.XftDrawChange(c.draw, C.Drawable(drawable))
+		c.drawable = drawable
+	}
+	return c.draw
+}
+
+// ForgetDrawable drops the cached XftDraw of display d if it targets
+// drawable; call it before freeing drawable.
+func ForgetDrawable(d *xlib.Display, drawable xlib.Drawable) {
+	xlib.XftMu.Lock()
+	defer xlib.XftMu.Unlock()
+	dpy := (*C.Display)(d.Ptr())
+	if c := xftDraws[dpy]; c != nil && c.drawable == drawable {
+		C.XftDrawDestroy(c.draw)
+		delete(xftDraws, dpy)
+	}
+}
+
+// ForgetAll drops the cached XftDraw of display d; call it before
+// destroying a window (which also destroys its descendants) or closing d.
+func ForgetAll(d *xlib.Display) {
+	xlib.XftMu.Lock()
+	defer xlib.XftMu.Unlock()
+	dpy := (*C.Display)(d.Ptr())
+	if c := xftDraws[dpy]; c != nil {
+		C.XftDrawDestroy(c.draw)
+		delete(xftDraws, dpy)
+	}
 }
 
 // getOrCreateRotated returns (creating if needed) a rotated XFT font for the
@@ -452,15 +535,10 @@ func (f *XftFont) drawStringXlib(drawable xlib.Drawable, x, y int, s string, pix
 	defer xlib.XftMu.Unlock()
 
 	dpy := (*C.Display)(f.display.Ptr())
-
-	// Create a fresh XftDraw per call. Caching across drawables causes
-	// RenderBadPicture errors when a window is destroyed — the XftDraw
-	// holds a stale RENDER Picture reference to the old drawable.
-	draw := C.XftDrawCreate(dpy, C.Drawable(drawable), f.visual, f.colormap)
+	draw := f.xftDraw(dpy, drawable)
 	if draw == nil {
 		return
 	}
-	defer C.XftDrawDestroy(draw)
 
 	color := C.make_xft_color(C.ulong(pixel), C.ushort(r), C.ushort(g), C.ushort(b))
 
@@ -538,6 +616,7 @@ func (f *XftFont) Close() {
 		C.XftFontClose(dpy, fb)
 	}
 	f.fallbackFonts = nil
+	f.fallbackOrder = nil
 	f.fontByRune = nil
 	for _, rf := range f.rotatedVariants {
 		if rf != nil {

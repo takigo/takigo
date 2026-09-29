@@ -21,6 +21,27 @@ func TestBindingTableAddAndLookup(t *testing.T) {
 	}
 }
 
+func TestBindingTableAddReplacesSameSequence(t *testing.T) {
+	bt := NewBindingTable()
+	seq, _ := Parse("<Button-1>")
+	other, _ := Parse("<Button-3>")
+	bt.Add("Button", seq, func(ev *EventData) bool { return false })
+	bt.Add("Button", other, func(ev *EventData) bool { return false })
+	before := bt.Lookup("Button")
+	bt.Add("Button", seq, func(ev *EventData) bool { return true })
+
+	bindings := bt.Lookup("Button")
+	if len(bindings) != 2 {
+		t.Fatalf("expected 2 bindings after rebinding, got %d", len(bindings))
+	}
+	if !bindings[0].handler(nil) {
+		t.Error("rebinding did not replace the handler")
+	}
+	if before[0].handler(nil) {
+		t.Error("rebinding modified a slice handed out by Lookup")
+	}
+}
+
 func TestBindingTableLookupEmpty(t *testing.T) {
 	bt := NewBindingTable()
 	bindings := bt.Lookup("nonexistent")
@@ -276,5 +297,27 @@ func TestLookupSnapshotSurvivesRebinding(t *testing.T) {
 	}
 	if got := len(bt.Lookup("Button")); got != 2 {
 		t.Errorf("table has %d bindings, want 2", got)
+	}
+}
+
+func TestUpdateClickState(t *testing.T) {
+	e := &Engine{}
+	click := func(typ event.Type, ms, x int) Modifier {
+		return e.updateClickState(&event.Event{Type: typ, Window: 1, Button: 1,
+			Time: platform.Timestamp(ms), RootX: x, RootY: 10})
+	}
+	press, release := event.ButtonPressType, event.ButtonReleaseType
+
+	if click(press, 1000, 10) != 0 || click(release, 1050, 10) != 0 {
+		t.Fatal("first click counted as a repeat")
+	}
+	if click(press, 1200, 12) != ModDouble {
+		t.Error("second nearby press is not a double click")
+	}
+	if click(release, 1250, 12) != ModDouble {
+		t.Error("second release is not a double click (<Double-ButtonRelease-1>)")
+	}
+	if click(press, 1400, 30) != 0 {
+		t.Error("a press 18px away continued the click count")
 	}
 }

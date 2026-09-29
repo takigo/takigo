@@ -35,6 +35,15 @@ type WmInfo interface {
 	OnDeleteWindow(fn func())
 	OffDeleteWindow()
 	SetGeometry(geom string) error
+	// GeometryRequest returns the size the toplevel takes for a content
+	// request of reqW x reqH: the request, unless the user set a size.
+	GeometryRequest(reqW, reqH int) (w, h int)
+	// ExpectSize records that the application asked for this size, so
+	// the ConfigureNotify answering it is not taken for a user resize.
+	ExpectSize(w, h int)
+	// ConfigureNotify handles the toplevel's reported size before the
+	// window takes it, recording a user resize as its geometry.
+	ConfigureNotify(w, h int)
 }
 
 // Window represents a single window in the takigo hierarchy.
@@ -77,6 +86,8 @@ type Window struct {
 
 	// Background pixel for the window.
 	BackgroundPixel uint64
+	// serverBackground is the background the platform window last got.
+	serverBackground uint64
 
 	// Graphics context for basic drawing.
 	GC platform.GCID
@@ -160,6 +171,7 @@ func applyBackgroundRecursiveDepth(w *Window, colorName string, depth int) {
 	// Update X11 window background attribute and trigger a redraw.
 	if w.PlatformID != 0 && w.Flags&FlagMapped != 0 && w.Width > 0 && w.Height > 0 {
 		w.Display.Server.SetWindowBackground(w.PlatformID, w.BackgroundPixel)
+		w.serverBackground = w.BackgroundPixel
 		w.Display.Server.ClearArea(w.PlatformID, 0, 0, uint(w.Width), uint(w.Height), true)
 	}
 	for _, child := range w.Children {
@@ -196,6 +208,39 @@ var mappedHooks []func(*Window)
 
 // AddMappedHook registers fn to run whenever MarkMapped maps a window.
 func AddMappedHook(fn func(*Window)) { mappedHooks = append(mappedHooks, fn) }
+
+// ResizeToplevel gives toplevel w the size for a content request of
+// reqW x reqH, as Tk_GeometryRequest does through the window manager
+// code: a size set with wm geometry is kept.
+func ResizeToplevel(w *Window, reqW, reqH int) {
+	width, height := reqW, reqH
+	if w.WmData != nil {
+		width, height = w.WmData.GeometryRequest(reqW, reqH)
+	}
+	if width == w.Width && height == w.Height {
+		return
+	}
+	w.Width, w.Height = width, height
+	if w.PlatformID != 0 {
+		if w.WmData != nil {
+			w.WmData.ExpectSize(width, height)
+		}
+		w.Display.Server.ResizeWindow(w.PlatformID, uint(width), uint(height))
+	}
+}
+
+// SyncBackground gives w's platform window its current BackgroundPixel
+// if that changed since the window was created: widgets pick their colour
+// after the window exists, and Tk_SetWindowBackground keeps the server's
+// copy in step, so the server clears to it on map and resize instead of
+// the creation-time white. Call it before mapping w.
+func SyncBackground(w *Window) {
+	if w.PlatformID == 0 || w.serverBackground == w.BackgroundPixel {
+		return
+	}
+	w.Display.Server.SetWindowBackground(w.PlatformID, w.BackgroundPixel)
+	w.serverBackground = w.BackgroundPixel
+}
 
 // MarkMapped records that w has been mapped (after MapWindow) and, if it was
 // not mapped before, lets the geometry managers map its content.

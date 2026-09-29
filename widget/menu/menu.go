@@ -74,11 +74,12 @@ type Menu struct {
 	// State.
 	posted                bool
 	grabbed               bool
-	motionSincePost       bool // true once pointer moves after Post(); gates first ButtonRelease
-	suppressFocusOut      bool // set briefly when we ourselves call SetInputFocus for a cascade
-	skipGlobalButtonPress bool // skip the first BindGlobal ButtonPress (the click that opened us)
-	screenX               int  // absolute screen X set by Post()
-	screenY               int  // absolute screen Y set by Post()
+	motionSincePost       bool   // true once pointer moves after Post(); gates first ButtonRelease
+	suppressFocusOut      bool   // set briefly when we ourselves call SetInputFocus for a cascade
+	skipGlobalButtonPress bool   // skip the first BindGlobal ButtonPress (the click that opened us)
+	onUnpost              func() // run once when the menu is next unposted (menubar deactivation)
+	screenX               int    // absolute screen X set by Post()
+	screenY               int    // absolute screen Y set by Post()
 
 	// TearOff enables a tearoff grip at the top of the menu.
 	TearOff bool
@@ -372,6 +373,16 @@ func (m *Menu) Post(x, y int) {
 	// Keyboard events reach the menu via SetInputFocus (no keyboard grab).
 	// skipGlobalButtonPress may have been set by PostFromButton() to skip the
 	// ButtonPress event that caused this Post() call; leave it as-is here.
+	m.grab()
+	d.SetInputFocus(w.PlatformID, platform.RevertToParent, platform.CurrentTime)
+
+	m.Display()
+}
+
+// grab takes the pointer grab for the posted menu.
+func (m *Menu) grab() {
+	w := m.Win
+	d := w.Display.Server
 	const grabMask = uint(platform.ButtonPressMask | platform.ButtonReleaseMask)
 	ret := d.GrabPointer(w.PlatformID, true, grabMask,
 		platform.GrabModeAsync, platform.GrabModeAsync,
@@ -384,9 +395,6 @@ func (m *Menu) Post(x, y int) {
 			platform.WindowID(0), platform.CursorID(0), platform.CurrentTime)
 	}
 	m.grabbed = ret == platform.GrabSuccess
-	d.SetInputFocus(w.PlatformID, platform.RevertToParent, platform.CurrentTime)
-
-	m.Display()
 }
 
 // Unpost unmaps the menu and releases grabs.
@@ -412,7 +420,23 @@ func (m *Menu) Unpost() {
 	d.UnmapWindow(w.PlatformID)
 	m.posted = false
 	m.activeIndex = -1
+	m.skipGlobalButtonPress = false
+	// A cascade handed its parent's grab over when it was posted; give it
+	// back so the still-posted parent keeps tracking clicks elsewhere.
+	if p := m.parent; p != nil {
+		if p.postedCascade == m {
+			p.postedCascade = nil
+		}
+		if p.posted && !p.grabbed {
+			p.grab()
+			d.SetInputFocus(p.Win.PlatformID, platform.RevertToParent, platform.CurrentTime)
+		}
+	}
 	m.parent = nil
+	if fn := m.onUnpost; fn != nil {
+		m.onUnpost = nil
+		fn()
+	}
 }
 
 // IsPosted returns whether the menu is currently posted.
@@ -670,7 +694,6 @@ func (m *Menu) display() {
 
 	df, isDF := m.Font.(platform.DrawableFont)
 	if !isDF {
-		d.Flush()
 		return
 	}
 
@@ -708,7 +731,6 @@ func (m *Menu) display() {
 		m.displayMultiColumn(d, gc, yStart)
 	}
 
-	d.Flush()
 }
 
 func (m *Menu) displaySingleColumn(d platform.DisplayServer, gc platform.GCID, df platform.DrawableFont, fm font.Metrics, yStart int) {

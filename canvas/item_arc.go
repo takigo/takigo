@@ -186,26 +186,104 @@ func (a *ArcItem) resetLineAttrs(d platform.DisplayServer, gc platform.GCID) {
 	}
 }
 
-func (a *ArcItem) PointDistance(x, y float64) float64 {
-	// Approximate: use distance to bounding box.
-	return rectPointDistance(x, y, a.coords[0], a.coords[1], a.coords[2], a.coords[3])
+// shape returns the arc's outline as a polyline in canvas coordinates:
+// the curve, closed through its chord or through the centre for chord and
+// pieslice styles. Angles run counterclockwise from 3 o'clock.
+func (a *ArcItem) shape() []float64 {
+	x1, y1, x2, y2 := a.coords[0], a.coords[1], a.coords[2], a.coords[3]
+	cx, cy := (x1+x2)/2, (y1+y2)/2
+	rx, ry := math.Abs(x2-x1)/2, math.Abs(y2-y1)/2
+	const segs = 60
+	pts := make([]float64, 0, 2*segs+6)
+	start, extent := a.start*math.Pi/180, a.extent*math.Pi/180
+	for i := 0; i <= segs; i++ {
+		t := start + extent*float64(i)/segs
+		pts = append(pts, cx+rx*math.Cos(t), cy-ry*math.Sin(t))
+	}
+	switch a.style {
+	case ArcStylePieslice:
+		pts = append(pts, cx, cy, pts[0], pts[1])
+	case ArcStyleChord:
+		pts = append(pts, pts[0], pts[1])
+	}
+	return pts
 }
 
+// PointDistance ports ArcToPoint: zero inside a filled chord or pieslice,
+// otherwise the distance to the outline less half its width.
+func (a *ArcItem) PointDistance(x, y float64) float64 {
+	pts := a.shape()
+	if a.style != ArcStyleArc && a.fill != nil && pointInPolygon(x, y, pts) {
+		return 0
+	}
+	best := math.MaxFloat64
+	for i := 0; i+3 < len(pts); i += 2 {
+		best = min(best, segmentPointDistance(x, y, pts[i], pts[i+1], pts[i+2], pts[i+3]))
+	}
+	if a.outline != nil {
+		best -= float64(a.outlineWidth) / 2
+	}
+	return max(best, 0)
+}
+
+// AreaOverlap ports ArcToArea: 1 when the arc lies inside the rectangle,
+// -1 when it misses it, 0 when they overlap.
 func (a *ArcItem) AreaOverlap(ax1, ay1, ax2, ay2 float64) int {
-	x1, y1, x2, y2 := a.coords[0], a.coords[1], a.coords[2], a.coords[3]
-	if x1 > x2 {
-		x1, x2 = x2, x1
+	pts := a.shape()
+	hw := 0.0
+	if a.outline != nil {
+		hw = float64(a.outlineWidth) / 2
 	}
-	if y1 > y2 {
-		y1, y2 = y2, y1
+	inside, anyIn := true, false
+	for i := 0; i+1 < len(pts); i += 2 {
+		px, py := pts[i], pts[i+1]
+		in := px-hw >= ax1 && px+hw <= ax2 && py-hw >= ay1 && py+hw <= ay2
+		inside = inside && in
+		anyIn = anyIn || (px >= ax1-hw && px <= ax2+hw && py >= ay1-hw && py <= ay2+hw)
 	}
-	if ax2 < x1 || ax1 > x2 || ay2 < y1 || ay1 > y2 {
-		return -1
-	}
-	if ax1 <= x1 && ax2 >= x2 && ay1 <= y1 && ay2 >= y2 {
+	switch {
+	case inside:
 		return 1
+	case anyIn:
+		return 0
 	}
-	return 0
+	// No outline point is near the rectangle: they still overlap when an
+	// outline segment crosses it or a filled shape contains it.
+	for i := 0; i+3 < len(pts); i += 2 {
+		if segmentHitsRect(pts[i], pts[i+1], pts[i+2], pts[i+3], ax1-hw, ay1-hw, ax2+hw, ay2+hw) {
+			return 0
+		}
+	}
+	if a.style != ArcStyleArc && a.fill != nil && pointInPolygon((ax1+ax2)/2, (ay1+ay2)/2, pts) {
+		return 0
+	}
+	return -1
+}
+
+// segmentHitsRect reports whether segment (x1,y1)-(x2,y2) meets the
+// rectangle, by Liang-Barsky clipping.
+func segmentHitsRect(x1, y1, x2, y2, rx1, ry1, rx2, ry2 float64) bool {
+	t0, t1 := 0.0, 1.0
+	dx, dy := x2-x1, y2-y1
+	for _, e := range [4][2]float64{{-dx, x1 - rx1}, {dx, rx2 - x1}, {-dy, y1 - ry1}, {dy, ry2 - y1}} {
+		p, q := e[0], e[1]
+		if p == 0 {
+			if q < 0 {
+				return false
+			}
+			continue
+		}
+		r := q / p
+		if p < 0 {
+			t0 = max(t0, r)
+		} else {
+			t1 = min(t1, r)
+		}
+		if t0 > t1 {
+			return false
+		}
+	}
+	return true
 }
 
 func (a *ArcItem) Scale(ox, oy, sx, sy float64) {

@@ -207,21 +207,24 @@ const (
 
 // Window messages.
 const (
-	WM_NULL                 = 0x0000
-	WM_CREATE               = 0x0001
-	WM_DESTROY              = 0x0002
-	WM_MOVE                 = 0x0003
-	WM_SIZE                 = 0x0005
-	WM_ACTIVATE             = 0x0006
-	WM_SETFOCUS             = 0x0007
-	WM_KILLFOCUS            = 0x0008
-	WM_ENABLE               = 0x000A
-	WM_PAINT                = 0x000F
-	WM_CLOSE                = 0x0010
-	WM_QUIT                 = 0x0012
-	WM_ERASEBKGND           = 0x0014
-	WM_SHOWWINDOW           = 0x0018
-	WM_SETCURSOR            = 0x0020
+	WM_NULL       = 0x0000
+	WM_CREATE     = 0x0001
+	WM_DESTROY    = 0x0002
+	WM_MOVE       = 0x0003
+	WM_SIZE       = 0x0005
+	WM_ACTIVATE   = 0x0006
+	WM_SETFOCUS   = 0x0007
+	WM_KILLFOCUS  = 0x0008
+	WM_ENABLE     = 0x000A
+	WM_PAINT      = 0x000F
+	WM_CLOSE      = 0x0010
+	WM_QUIT       = 0x0012
+	WM_ERASEBKGND = 0x0014
+	WM_SHOWWINDOW = 0x0018
+	WM_SETCURSOR  = 0x0020
+
+	// HTCLIENT is WM_SETCURSOR's hit-test code for the client area.
+	HTCLIENT                = 1
 	WM_GETMINMAXINFO        = 0x0024
 	WM_WINDOWPOSCHANGING    = 0x0046
 	WM_WINDOWPOSCHANGED     = 0x0047

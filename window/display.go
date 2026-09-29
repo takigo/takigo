@@ -28,6 +28,10 @@ type Display struct {
 	WMDeleteWindow platform.AtomID
 	WMProtocols    platform.AtomID
 
+	// WMAtoms caches package wm's interned atoms for this display, so
+	// they live and die with it (wm cannot be imported here).
+	WMAtoms any
+
 	// DoWhenIdle, when set, schedules fn to run once the event loop is
 	// idle. Geometry managers use it to coalesce re-layouts as Tk does
 	// with Tcl_DoWhenIdle; with no loop (unit tests) they lay out at once.

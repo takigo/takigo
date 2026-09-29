@@ -57,12 +57,22 @@ func TestParseNamedColor(t *testing.T) {
 }
 
 func TestParseInvalid(t *testing.T) {
-	invalids := []string{"", "#zz", "#12345", "nonexistent"}
+	invalids := []string{"", "#zz", "#12345", "nonexistent", "#zzzzzz", "#12g", "#-12345", "#1234567890123"}
 	for _, s := range invalids {
 		_, _, _, err := Parse(s)
 		if err == nil {
 			t.Errorf("Parse(%q) should return error", s)
 		}
+	}
+}
+
+func TestParseHexRRRGGGBBB(t *testing.T) {
+	r, g, b, err := Parse("#fff800123")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r != 0xffff || g != 0x8008 || b != 0x1231 {
+		t.Errorf("Parse(#fff800123) = %04x %04x %04x, want ffff 8008 1231", r, g, b)
 	}
 }
 

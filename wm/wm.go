@@ -48,11 +48,15 @@ type WmInfo struct {
 	Class    string // WM_CLASS res_class
 
 	// Geometry.
-	UserX, UserY int  // user-requested position
-	UserW, UserH int  // user-requested size (-1 = not set)
-	NegativeX    bool // x from right edge
-	NegativeY    bool // y from bottom edge
-	PositionSet  bool // user has set position
+	UserX, UserY int // user-requested position
+	UserW, UserH int // user-requested size (-1 = not set)
+
+	// pending holds sizes the application requested whose ConfigureNotify
+	// has not arrived yet.
+	pending     [][2]int
+	NegativeX   bool // x from right edge
+	NegativeY   bool // y from bottom edge
+	PositionSet bool // user has set position
 
 	// Size constraints.
 	MinWidth, MinHeight int
@@ -90,12 +94,12 @@ type wmAtoms struct {
 	WMTransientFor       platform.AtomID
 }
 
-var atomCache = map[platform.DisplayServer]*wmAtoms{}
-
-func getAtoms(d platform.DisplayServer) *wmAtoms {
-	if a, ok := atomCache[d]; ok {
+// getAtoms returns the WM atoms of disp, interning them on first use.
+func getAtoms(disp *window.Display) *wmAtoms {
+	if a, ok := disp.WMAtoms.(*wmAtoms); ok {
 		return a
 	}
+	d := disp.Server
 	a := &wmAtoms{
 		NetWMName:            d.InternAtom("_NET_WM_NAME", false),
 		NetWMIconName:        d.InternAtom("_NET_WM_ICON_NAME", false),
@@ -110,7 +114,7 @@ func getAtoms(d platform.DisplayServer) *wmAtoms {
 		WMProtocols:          d.InternAtom("WM_PROTOCOLS", false),
 		WMTransientFor:       d.InternAtom("WM_TRANSIENT_FOR", false),
 	}
-	atomCache[d] = a
+	disp.WMAtoms = a
 	return a
 }
 
@@ -118,7 +122,7 @@ func getAtoms(d platform.DisplayServer) *wmAtoms {
 // Call after the X window is created.
 func Init(w *window.Window) *WmInfo {
 	d := w.Display.Server
-	atoms := getAtoms(d)
+	atoms := getAtoms(w.Display)
 
 	info := &WmInfo{
 		Win:          w,
@@ -241,6 +245,54 @@ func (info *WmInfo) SetGeometry(geom string) error {
 	return nil
 }
 
+// GeometryRequest ports the size part of TkWmUpdateGeom: a size given with
+// wm geometry wins over the content's request.
+func (info *WmInfo) GeometryRequest(reqW, reqH int) (int, int) {
+	w, h := reqW, reqH
+	if info.UserW > 0 {
+		w = info.UserW
+	}
+	if info.UserH > 0 {
+		h = info.UserH
+	}
+	return w, h
+}
+
+// ExpectSize records a size the application requested; see
+// ConfigureNotify. Like WM_SYNC_PENDING it tells our own resizes from the
+// user's; only the last few requests are kept.
+func (info *WmInfo) ExpectSize(w, h int) {
+	const keep = 16
+	info.pending = append(info.pending, [2]int{w, h})
+	if n := len(info.pending); n > keep {
+		info.pending = slices.Clone(info.pending[n-keep:])
+	}
+}
+
+// ConfigureNotify ports the size part of ConfigureEvent (tkUnixWm.c): a
+// reported size that is neither the current one nor one the application
+// asked for was made by the user (dragging a border) and becomes the
+// window's geometry, which later content requests then keep. A dimension
+// still equal to the request stays unset.
+func (info *WmInfo) ConfigureNotify(width, height int) {
+	for i, p := range info.pending {
+		if p == [2]int{width, height} {
+			info.pending = info.pending[i+1:]
+			return
+		}
+	}
+	w := info.Win
+	if width == w.Width && height == w.Height {
+		return
+	}
+	if !(info.UserW <= 0 && width == w.ReqWidth) {
+		info.UserW = width
+	}
+	if !(info.UserH <= 0 && height == w.ReqHeight) {
+		info.UserH = height
+	}
+}
+
 // applyGeometry sends the geometry to the X server.
 func (info *WmInfo) applyGeometry() {
 	w := info.Win
@@ -248,6 +300,7 @@ func (info *WmInfo) applyGeometry() {
 	if w.PlatformID == platform.WindowID(0) {
 		return
 	}
+	info.ExpectSize(w.Width, w.Height)
 	d.MoveResizeWindow(w.PlatformID, w.X, w.Y, uint(w.Width), uint(w.Height))
 	info.updateSizeHints()
 }
@@ -360,6 +413,7 @@ func (info *WmInfo) Deiconify() {
 		Input:        true,
 		InitialState: platform.NormalState,
 	})
+	window.SyncBackground(w)
 	w.Display.Server.MapWindow(w.PlatformID)
 	window.MarkMapped(w)
 }
@@ -412,9 +466,13 @@ func (info *WmInfo) HandleClientMessage(messageType platform.AtomID, data [5]int
 	}
 	protocolAtom := platform.AtomID(data[0])
 
-	// Handle _NET_WM_PING: reflect back to root.
+	// _NET_WM_PING: send the message back to the root window unchanged
+	// but for its window field, as TkWmProtocolEventProc does.
 	if protocolAtom == info.atoms.NetWMPing {
-		// Would need to send event back to root. Skip for now.
+		d := info.Win.Display
+		d.Server.SendClientMessage(d.RootWindow, d.RootWindow, messageType,
+			data[0], data[1], data[2], data[3], data[4])
+		d.Server.Flush()
 		return true
 	}
 

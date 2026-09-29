@@ -74,24 +74,32 @@ func (c *Cache) Get(name string) (*Color, error) {
 		return nil, err
 	}
 
-	// Construct pixel value for TrueColor displays.
-	pixel := trueColorPixel(r, g, b)
-
-	col := &Color{
-		Pixel: pixel,
-		Red:   r,
-		Green: g,
-		Blue:  b,
-		Name:  name,
-	}
-
 	c.mu.Lock()
+	defer c.mu.Unlock()
+	// Names are case-insensitive and many name one value ("red",
+	// "Red", "#f00", a colour chooser's every #rrggbb), so they share one
+	// Color per value; the name index is only a shortcut and is reset
+	// when it grows large. Colors stay valid for their holders.
+	col := c.byValue[colorKey{r, g, b}]
+	if col == nil {
+		col = &Color{
+			Pixel: trueColorPixel(r, g, b),
+			Red:   r,
+			Green: g,
+			Blue:  b,
+			Name:  name,
+		}
+		c.byValue[colorKey{r, g, b}] = col
+	}
+	if len(c.byName) >= maxNamedColors {
+		clear(c.byName)
+	}
 	c.byName[name] = col
-	c.byValue[colorKey{r, g, b}] = col
-	c.mu.Unlock()
-
 	return col, nil
 }
+
+// maxNamedColors bounds the name index of a Cache.
+const maxNamedColors = 4096
 
 // GetByValue allocates or retrieves a cached color by RGB values (16-bit).
 func (c *Cache) GetByValue(r, g, b uint16) (*Color, error) {
@@ -134,32 +142,31 @@ func Parse(name string) (r, g, b uint16, err error) {
 	return 0, 0, 0, fmt.Errorf("unknown color %q", name)
 }
 
-// parseHex parses hex color formats: RGB, RRGGBB, RRRRGGGGBBBB.
+// parseHex parses #RGB, #RRGGBB, #RRRGGGBBB and #RRRRGGGGBBBB, widening
+// each component to 16 bits by repeating its digits as XParseColor
+// (tk/xlib/xcolors.c) does, and rejects any non-hex digit.
 func parseHex(hex string) (r, g, b uint16, err error) {
-	switch len(hex) {
-	case 3: // #RGB
-		rv, _ := strconv.ParseUint(string(hex[0])+string(hex[0]), 16, 16)
-		gv, _ := strconv.ParseUint(string(hex[1])+string(hex[1]), 16, 16)
-		bv, _ := strconv.ParseUint(string(hex[2])+string(hex[2]), 16, 16)
-		// TkParseColor replicates digits: #RGB is #RRRRGGGGBBBB.
-		return uint16(rv * 257), uint16(gv * 257), uint16(bv * 257), nil
-
-	case 6: // #RRGGBB
-		rv, _ := strconv.ParseUint(hex[0:2], 16, 16)
-		gv, _ := strconv.ParseUint(hex[2:4], 16, 16)
-		bv, _ := strconv.ParseUint(hex[4:6], 16, 16)
-		// TkParseColor: #RRGGBB is #RRRRGGGGBBBB.
-		return uint16(rv * 257), uint16(gv * 257), uint16(bv * 257), nil
-
-	case 12: // #RRRRGGGGBBBB
-		rv, _ := strconv.ParseUint(hex[0:4], 16, 16)
-		gv, _ := strconv.ParseUint(hex[4:8], 16, 16)
-		bv, _ := strconv.ParseUint(hex[8:12], 16, 16)
-		return uint16(rv), uint16(gv), uint16(bv), nil
-
-	default:
+	n := len(hex) / 3
+	if len(hex)%3 != 0 || n < 1 || n > 4 {
 		return 0, 0, 0, fmt.Errorf("invalid hex color #%s", hex)
 	}
+	var c [3]uint16
+	for i := range c {
+		v, perr := strconv.ParseUint(hex[i*n:(i+1)*n], 16, 16)
+		if perr != nil {
+			return 0, 0, 0, fmt.Errorf("invalid hex color #%s", hex)
+		}
+		switch n {
+		case 1:
+			v *= 0x1111
+		case 2:
+			v *= 0x101
+		case 3:
+			v = v<<4 | v>>8
+		}
+		c[i] = uint16(v)
+	}
+	return c[0], c[1], c[2], nil
 }
 
 // trueColorPixel constructs a 24-bit TrueColor pixel from 16-bit RGB.

@@ -124,6 +124,9 @@ func TestParseDescriptorSimple(t *testing.T) {
 		{"Courier 10 italic", Attributes{Family: "Courier", Size: 10, Slant: SlantItalic}},
 		{"Helvetica 12 bold italic", Attributes{Family: "Helvetica", Size: 12, Weight: WeightBold, Slant: SlantItalic}},
 		{"sans-serif", DefaultAttributes()},
+		{"{DejaVu Sans} 11 bold", Attributes{Family: "DejaVu Sans", Size: 11, Weight: WeightBold}},
+		{`"DejaVu Sans Mono" 9 italic`, Attributes{Family: "DejaVu Sans Mono", Size: 9, Slant: SlantItalic}},
+		{"-family {DejaVu Serif} -size 13", Attributes{Family: "DejaVu Serif", Size: 13}},
 	}
 
 	for _, tt := range tests {

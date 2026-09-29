@@ -71,7 +71,9 @@ func TestParseXBMInvalid(t *testing.T) {
 		wantBits int
 	}{
 		{"empty", "", 0, 0, 0},
-		{"no define", "static unsigned char bits[] = { 0x00 };", 0, 0, 1},
+		{"no define", "static unsigned char bits[] = { 0x00 };", 0, 0, 0},
+		{"negative width", "#define t_width -8\n#define t_height 1\nstatic char t_bits[] = { 0x00 };", 0, 0, 0},
+		{"data too short", "#define t_width 16\n#define t_height 2\nstatic char t_bits[] = { 0x00, 0x01 };", 0, 0, 0},
 		{"no braces", "#define test_width 8\n#define test_height 8", 0, 0, 0},
 		{"malformed", "#define test_width foo", 0, 0, 0},
 	}

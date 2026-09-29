@@ -76,8 +76,22 @@ func OutlineWidth(w int) ItemOption {
 // Tags sets the tags on an item.
 func Tags(tags ...string) ItemOption {
 	return func(_ *Canvas, item Item) error {
-		if base := itemBase(item); base != nil {
-			base.Tags = append([]string{}, tags...)
+		base := itemBase(item)
+		if base == nil {
+			return nil
+		}
+		c := base.canvas
+		indexed := c != nil && c.idMap[base.ID] != nil
+		if indexed {
+			for _, t := range base.Tags {
+				c.tagIndexRemove(t, base.ID)
+			}
+		}
+		base.Tags = append([]string{}, tags...)
+		if indexed {
+			for _, t := range base.Tags {
+				c.tagIndexAdd(t, base.ID)
+			}
 		}
 		return nil
 	}

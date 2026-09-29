@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/msorc/takigo/font"
+	"github.com/msorc/takigo/font/xft"
 	"github.com/msorc/takigo/internal/xlib"
 	"github.com/msorc/takigo/platform"
 )
@@ -38,6 +39,11 @@ type X11Display struct {
 
 	wakeMu  sync.Mutex
 	wakeWin platform.WindowID // hidden window that WakeEventReader sends to
+
+	// atomCache maps names to interned atoms so repeat lookups skip the
+	// cgo call (and, past Xlib's small cache, a round trip).
+	atomMu    sync.Mutex
+	atomCache map[string]platform.AtomID
 }
 
 // NewDisplayServer opens an X11 display connection and returns a composed
@@ -89,7 +95,10 @@ func (s *X11Display) FontOpener(screen int) font.FontOpener {
 
 // --- DisplayCore ---
 
-func (s *X11Display) Close()             { s.dpy.Close() }
+func (s *X11Display) Close() {
+	xft.ForgetAll(s.dpy)
+	s.dpy.Close()
+}
 func (s *X11Display) DefaultScreen() int { return s.dpy.DefaultScreen() }
 func (s *X11Display) DefaultRootWindow() platform.WindowID {
 	return platform.WindowID(s.dpy.DefaultRootWindow())
@@ -141,12 +150,15 @@ func (s *X11Display) CreateSimpleWindow(parent platform.WindowID, x, y int, widt
 	return platform.WindowID(s.dpy.CreateSimpleWindow(xlib.Window(parent), x, y, width, height, borderWidth, border, background))
 }
 
-func (s *X11Display) DestroyWindow(w platform.WindowID) { s.dpy.DestroyWindow(xlib.Window(w)) }
-func (s *X11Display) MapWindow(w platform.WindowID)     { s.dpy.MapWindow(xlib.Window(w)) }
-func (s *X11Display) MapRaised(w platform.WindowID)     { s.dpy.MapRaised(xlib.Window(w)) }
-func (s *X11Display) UnmapWindow(w platform.WindowID)   { s.dpy.UnmapWindow(xlib.Window(w)) }
-func (s *X11Display) RaiseWindow(w platform.WindowID)   { s.dpy.RaiseWindow(xlib.Window(w)) }
-func (s *X11Display) LowerWindow(w platform.WindowID)   { s.dpy.LowerWindow(xlib.Window(w)) }
+func (s *X11Display) DestroyWindow(w platform.WindowID) {
+	xft.ForgetAll(s.dpy)
+	s.dpy.DestroyWindow(xlib.Window(w))
+}
+func (s *X11Display) MapWindow(w platform.WindowID)   { s.dpy.MapWindow(xlib.Window(w)) }
+func (s *X11Display) MapRaised(w platform.WindowID)   { s.dpy.MapRaised(xlib.Window(w)) }
+func (s *X11Display) UnmapWindow(w platform.WindowID) { s.dpy.UnmapWindow(xlib.Window(w)) }
+func (s *X11Display) RaiseWindow(w platform.WindowID) { s.dpy.RaiseWindow(xlib.Window(w)) }
+func (s *X11Display) LowerWindow(w platform.WindowID) { s.dpy.LowerWindow(xlib.Window(w)) }
 func (s *X11Display) MoveWindow(w platform.WindowID, x, y int) {
 	s.dpy.MoveWindow(xlib.Window(w), x, y)
 }
@@ -274,7 +286,10 @@ func (s *X11Display) CreatePixmap(drawable platform.DrawableID, width, height, d
 	return platform.PixmapID(s.dpy.CreatePixmap(xlib.Drawable(drawable), width, height, depth))
 }
 
-func (s *X11Display) FreePixmap(pixmap platform.PixmapID) { s.dpy.FreePixmap(xlib.Pixmap(pixmap)) }
+func (s *X11Display) FreePixmap(pixmap platform.PixmapID) {
+	xft.ForgetDrawable(s.dpy, xlib.Drawable(pixmap))
+	s.dpy.FreePixmap(xlib.Pixmap(pixmap))
+}
 
 func (s *X11Display) CreateBitmapFromData(drawable platform.DrawableID, bits []byte, width, height uint) platform.PixmapID {
 	return platform.PixmapID(s.dpy.CreateBitmapFromData(xlib.Drawable(drawable), bits, width, height))
@@ -396,7 +411,19 @@ func (s *X11Display) FreeCursor(cursor platform.CursorID) { s.dpy.FreeCursor(xli
 // --- PropertyManager ---
 
 func (s *X11Display) InternAtom(name string, onlyIfExists bool) platform.AtomID {
-	return platform.AtomID(s.dpy.InternAtom(name, onlyIfExists))
+	s.atomMu.Lock()
+	defer s.atomMu.Unlock()
+	if a, ok := s.atomCache[name]; ok {
+		return a
+	}
+	a := platform.AtomID(s.dpy.InternAtom(name, onlyIfExists))
+	if a != 0 {
+		if s.atomCache == nil {
+			s.atomCache = make(map[string]platform.AtomID)
+		}
+		s.atomCache[name] = a
+	}
+	return a
 }
 
 func (s *X11Display) GetAtomName(atom platform.AtomID) string {

@@ -32,6 +32,12 @@ type Manager struct {
 
 	// Callback invoked when focus changes (for widgets to redraw).
 	OnFocusChange func(lost, gained *window.Window)
+
+	// xFocus is the window SetFocus last gave the X input focus to.
+	// echoOut and echoIn are the real FocusOut/FocusIn X will report for
+	// that move; SwallowEcho drops them, since SetFocus already delivered
+	// the change (Tk generates its own focus events and ignores X's).
+	xFocus, echoOut, echoIn platform.WindowID
 }
 
 // NewManager creates a new focus manager.
@@ -94,8 +100,31 @@ func (m *Manager) SetFocus(w *window.Window) {
 	// Only safe after a real X FocusIn has confirmed the toplevel is viewable;
 	// calling SetInputFocus before the WM maps the window causes BadMatch.
 	if tl != nil && m.toplevelReady[tl] && w.PlatformID != platform.WindowID(0) {
+		m.echoOut, m.echoIn = 0, w.PlatformID
+		if old != nil && old.PlatformID == m.xFocus {
+			m.echoOut = old.PlatformID
+		}
+		m.xFocus = w.PlatformID
 		m.display.SetInputFocus(w.PlatformID, platform.RevertToParent, platform.CurrentTime)
 	}
+}
+
+// SwallowEcho reports whether ev is the real X FocusOut or FocusIn that
+// merely echoes a focus move SetFocus already dispatched; each expected
+// event is swallowed once, and other focus events pass.
+func (m *Manager) SwallowEcho(ev *event.Event) bool {
+	if ev.FocusMode != platform.FocusModeNormal {
+		return false
+	}
+	switch {
+	case ev.Type == event.FocusOutType && ev.Window != 0 && ev.Window == m.echoOut:
+		m.echoOut = 0
+		return true
+	case ev.Type == event.FocusInType && ev.Window != 0 && ev.Window == m.echoIn:
+		m.echoIn = 0
+		return true
+	}
+	return false
 }
 
 // HandleFocusIn processes a real X FocusIn event on a window.

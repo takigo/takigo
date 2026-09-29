@@ -237,31 +237,31 @@ func (m *Message) wrapText(maxWidth int) ([]string, int, int) {
 
 	metrics := m.Font.Metrics()
 
+	// Break decisions add word widths, as Tk_ComputeTextLayout measures
+	// chunk by chunk, instead of re-measuring the growing line per word;
+	// each emitted line is measured once for the real width.
+	spaceW := m.Font.MeasureString(" ")
+	emit := func(line string) {
+		result = append(result, line)
+		actualWidth = max(actualWidth, m.Font.MeasureString(line))
+	}
 	for _, para := range paragraphs {
 		words := strings.Fields(para)
 		if len(words) == 0 {
 			result = append(result, "")
 			continue
 		}
-		current := words[0]
-		for _, word := range words[1:] {
-			candidate := current + " " + word
-			if maxWidth > 0 && m.Font.MeasureString(candidate) > maxWidth {
-				result = append(result, current)
-				w := m.Font.MeasureString(current)
-				if w > actualWidth {
-					actualWidth = w
-				}
-				current = word
+		start, curW := 0, m.Font.MeasureString(words[0])
+		for i := 1; i < len(words); i++ {
+			ww := m.Font.MeasureString(words[i])
+			if maxWidth > 0 && curW+spaceW+ww > maxWidth {
+				emit(strings.Join(words[start:i], " "))
+				start, curW = i, ww
 			} else {
-				current = candidate
+				curW += spaceW + ww
 			}
 		}
-		result = append(result, current)
-		w := m.Font.MeasureString(current)
-		if w > actualWidth {
-			actualWidth = w
-		}
+		emit(strings.Join(words[start:], " "))
 	}
 
 	height := len(result) * metrics.Linespace()
@@ -368,7 +368,6 @@ func (m *Message) display() {
 
 	// Draw text.
 	if m.Font == nil || len(m.lines) == 0 || m.Foreground == nil {
-		d.Flush()
 		return
 	}
 
@@ -396,7 +395,6 @@ func (m *Message) display() {
 		}
 	}
 
-	d.Flush()
 }
 
 // Configure applies options to the message.

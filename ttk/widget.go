@@ -30,6 +30,7 @@ type TtkWidget struct {
 	pixmapW int
 	pixmapH int
 
+	// NeedRedraw is set while a redisplay is queued for idle time.
 	NeedRedraw bool
 	Destroyed  bool
 
@@ -46,6 +47,19 @@ type TtkWidget struct {
 
 // InitTtkWidget sets up a TTK widget: resolves style, creates layout, binds events.
 func InitTtkWidget(w *TtkWidget, win *window.Window, app widget.AppContext, styleName string) {
+	initTtkBase(w, win, app, styleName)
+	if w.Theme == nil {
+		return
+	}
+	if tmpl := w.Theme.GetLayout(styleName); tmpl != nil {
+		w.Layout = NewLayout(tmpl, w.Theme, w.Context, w.Context.Style)
+	}
+	w.updateReqFromLayout()
+}
+
+// initTtkBase is InitTtkWidget without the layout, for widgets that build
+// their own (with a bound label element) once their options are applied.
+func initTtkBase(w *TtkWidget, win *window.Window, app widget.AppContext, styleName string) {
 	win.OnDestroy(w.Destroy)
 	w.Win = win
 	w.App = app
@@ -54,6 +68,7 @@ func InitTtkWidget(w *TtkWidget, win *window.Window, app widget.AppContext, styl
 	if win.Class == "" {
 		win.Class = classForStyle(styleName)
 	}
+	bindTtkCommon(w, app)
 
 	if w.Theme == nil {
 		return
@@ -67,27 +82,23 @@ func InitTtkWidget(w *TtkWidget, win *window.Window, app widget.AppContext, styl
 		Style:   style,
 	}
 
-	tmpl := w.Theme.GetLayout(styleName)
-	if tmpl != nil {
-		w.Layout = NewLayout(tmpl, w.Theme, w.Context, style)
-	}
-
 	// Set window background from style.
 	bg := LookupColor(style, "-background", 0, 0xd9d9d9)
 	win.BackgroundPixel = bg
+}
 
-	// Compute initial requested size.
-	if w.Layout != nil {
-		rw, rh := w.Layout.Size(w.State)
-		if rw > 0 {
-			win.ReqWidth = rw
-		}
-		if rh > 0 {
-			win.ReqHeight = rh
-		}
+// updateReqFromLayout sets the window's request from the layout's size.
+func (w *TtkWidget) updateReqFromLayout() {
+	if w.Layout == nil {
+		return
 	}
-
-	bindTtkCommon(w, app)
+	rw, rh := w.Layout.Size(w.State)
+	if rw > 0 {
+		w.Win.ReqWidth = rw
+	}
+	if rh > 0 {
+		w.Win.ReqHeight = rh
+	}
 }
 
 // Display renders the widget using double-buffered drawing.
@@ -144,11 +155,7 @@ func (w *TtkWidget) ChangeState(set, clear State) {
 	old := w.State
 	w.State = (w.State & ^clear) | set
 	if w.State != old {
-		if w.DisplayFunc != nil {
-			w.DisplayFunc()
-		} else {
-			w.Display()
-		}
+		w.redisplay()
 	}
 }
 
@@ -212,7 +219,27 @@ func (w *TtkWidget) AppContext() widget.AppContext {
 
 // redisplay draws with the concrete widget's DisplayFunc when it has one
 // (widgets without a layout, e.g. progressbar), else the layout display.
+// redisplay schedules one idle-time redraw, as TtkRedisplayWidget does, so
+// the Expose, Configure and state changes of one event burst draw once.
 func (w *TtkWidget) redisplay() {
+	if w.NeedRedraw || w.Destroyed {
+		return
+	}
+	if w.App == nil {
+		w.displayNow()
+		return
+	}
+	w.NeedRedraw = true
+	w.App.DoWhenIdle(func() {
+		w.NeedRedraw = false
+		if !w.Destroyed {
+			w.displayNow()
+		}
+	})
+}
+
+// displayNow draws with the concrete widget's Display.
+func (w *TtkWidget) displayNow() {
 	if w.DisplayFunc != nil {
 		w.DisplayFunc()
 		return

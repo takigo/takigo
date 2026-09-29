@@ -46,8 +46,9 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-      - run: go build ./font/ ./widget/... ./ttk/... ./canvas/ ./dialog/ ./geometry/... ./bind/ ./event/ ./window/
-      - run: go test -short ./font/ ./bind/ ./event/ ./geometry/... ./screenunit/ ./color/ ./widget/frame/ ./widget/label/ ./widget/text/
+      - run: go build . ./font/ ./widget/... ./ttk/... ./canvas/ ./dialog/ ./geometry/... ./bind/ ./event/ ./window/
+      # internal/testutil skips display tests when the build has no backend.
+      - run: go test -short ./font/ ./bind/ ./event/ ./geometry/... ./screenunit/ ./color/ ./widget/... ./ttk/... ./canvas/ ./dialog/ ./wm/ ./image/ ./bitmap/ ./window/ ./internal/nanosvg/
 
   windows-vet:
     # The Windows backend is pure Go (syscall), so it can be checked from Linux.

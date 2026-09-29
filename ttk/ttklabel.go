@@ -144,6 +144,12 @@ func NewLabel(parent widget.Caregiver, name string, opts ...LabelOption) *Label 
 	for _, opt := range opts {
 		opt(l)
 	}
+	win.OnDestroy(func() {
+		if l.unsub != nil {
+			l.unsub()
+			l.unsub = nil
+		}
+	})
 
 	l.updateReqSize()
 	return l

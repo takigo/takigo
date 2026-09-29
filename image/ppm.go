@@ -32,6 +32,12 @@ func NewPhotoFromPPMReader(name string, r io.Reader) (*Photo, error) {
 	return NewPhoto(name, img), nil
 }
 
+// Limits on the size a Netpbm header may declare.
+const (
+	maxPPMDim    = 1 << 16
+	maxPPMPixels = 1 << 26
+)
+
 // decodePPM parses the Netpbm format (P1..P6) and returns an *image.RGBA.
 // Reference: http://netpbm.sourceforge.net/doc/ppm.html
 func decodePPM(r io.Reader) (*goimage.RGBA, error) {
@@ -54,7 +60,8 @@ func decodePPM(r io.Reader) (*goimage.RGBA, error) {
 	if err != nil {
 		return nil, fmt.Errorf("missing height: %w", err)
 	}
-	if w <= 0 || h <= 0 {
+	// The header is untrusted: bound the size before allocating for it.
+	if w <= 0 || h <= 0 || w > maxPPMDim || h > maxPPMDim || w*h > maxPPMPixels {
 		return nil, fmt.Errorf("invalid dimensions %dx%d", w, h)
 	}
 

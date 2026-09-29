@@ -215,7 +215,7 @@ void CocoaPumpEvents(void);
 // ---- Window properties (emulated atom system) ----
 
 uint64_t CocoaInternAtom(const char *name, bool onlyIfExists);
-const char *CocoaGetAtomName(uint64_t atom);
+char *CocoaGetAtomName(uint64_t atom);
 
 // ---- Font support (Core Text) ----
 
