@@ -55,6 +55,11 @@ type colData struct {
 type Menu struct {
 	widget.Base
 
+	// widths caches text widths in widthFont (labels, accelerators and
+	// underline prefixes), measured once rather than on every redraw.
+	widths    map[string]int
+	widthFont font.Font
+
 	entries       []MenuEntry
 	activeIndex   int // -1 = none; -2 = tearoff region
 	postedCascade *Menu
@@ -349,6 +354,22 @@ func (m *Menu) PostFromButton(x, y int) {
 	m.Post(x, y)
 }
 
+// textWidth returns the width of s in the menu's font, cached.
+func (m *Menu) textWidth(s string) int {
+	if m.Font == nil {
+		return 0
+	}
+	if m.widthFont != m.Font {
+		m.widths, m.widthFont = map[string]int{}, m.Font
+	}
+	w, ok := m.widths[s]
+	if !ok {
+		w = m.Font.MeasureString(s)
+		m.widths[s] = w
+	}
+	return w
+}
+
 // Post maps the menu at screen coordinates (x, y).
 func (m *Menu) Post(x, y int) {
 	m.computeGeometry()
@@ -574,14 +595,14 @@ func (m *Menu) entryContentWidth(e MenuEntry) int {
 	if e.Image != nil && e.Compound == widget.CompoundNone && e.Label == "" {
 		w = e.Image.Width()
 	} else {
-		w = m.Font.MeasureString(e.Label)
+		w = m.textWidth(e.Label)
 		if e.Image != nil {
 			w += e.Image.Width() + 4
 		}
 	}
 	w += 40
 	if e.AccelStr != "" {
-		w += m.Font.MeasureString(e.AccelStr) + 20
+		w += m.textWidth(e.AccelStr) + 20
 	}
 	return w
 }
@@ -820,8 +841,8 @@ func (m *Menu) displaySingleColumn(d platform.DisplayServer, gc platform.GCID, d
 				if e.Underline >= 0 && e.Underline < len(runes) {
 					prefix := string(runes[:e.Underline])
 					ch := string(runes[e.Underline])
-					ulX := textX + m.Font.MeasureString(prefix)
-					ulW := m.Font.MeasureString(ch)
+					ulX := textX + m.textWidth(prefix)
+					ulW := m.textWidth(ch)
 					ulY := textY + 2
 					d.SetForeground(gc, fgCol.Pixel)
 					d.DrawLine(w.Drawable(), gc, ulX, ulY, ulX+ulW, ulY)
@@ -829,7 +850,7 @@ func (m *Menu) displaySingleColumn(d platform.DisplayServer, gc platform.GCID, d
 			}
 
 			if e.AccelStr != "" {
-				accelW := m.Font.MeasureString(e.AccelStr)
+				accelW := m.textWidth(e.AccelStr)
 				accelX := w.Width - m.BorderWidth - accelW - 8
 				df.DrawString(w.Drawable(), accelX, textY, e.AccelStr,
 					fgCol.Pixel, fgCol.Red, fgCol.Green, fgCol.Blue)
