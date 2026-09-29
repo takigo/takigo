@@ -9,6 +9,7 @@ import (
 	"sort"
 	"sync"
 	"syscall"
+	"unicode/utf16"
 	"unsafe"
 
 	w32 "github.com/msorc/takigo/internal/win32"
@@ -26,6 +27,13 @@ type GDIFont struct {
 	attrs     font.Attributes
 	metrics   font.Metrics
 	resolveDC DCResolver
+
+	// measureDC is a memory DC with hfont selected, made on the first
+	// MeasureString and kept (Tk keeps its font's DC state likewise)
+	// instead of a CreateCompatibleDC/DeleteDC pair per measurement.
+	measureMu sync.Mutex
+	measureDC w32.HDC
+	oldFont   w32.HGDIOBJ
 }
 
 // OpenGDI creates a GDI font from font attributes.
@@ -135,22 +143,29 @@ func (f *GDIFont) MeasureString(s string) int {
 	if s == "" {
 		return 0
 	}
-	memDC := w32.CreateCompatibleDC(f.screenDC)
-	oldFont := w32.SelectObject(memDC, w32.HGDIOBJ(f.hfont))
-	utf16Str := syscall.StringToUTF16(s)
-	// Remove null terminator for length.
-	count := len(utf16Str)
-	if count > 0 && utf16Str[count-1] == 0 {
-		count--
+	f.measureMu.Lock()
+	defer f.measureMu.Unlock()
+	if f.measureDC == 0 {
+		if f.hfont == 0 {
+			return 0
+		}
+		f.measureDC = w32.CreateCompatibleDC(f.screenDC)
+		f.oldFont = w32.SelectObject(f.measureDC, w32.HGDIOBJ(f.hfont))
 	}
+	u := utf16.Encode([]rune(s))
 	var size w32.SIZE
-	w32.GetTextExtentPoint32(memDC, &utf16Str[0], int32(count), &size)
-	w32.SelectObject(memDC, oldFont)
-	w32.DeleteDC(memDC)
+	w32.GetTextExtentPoint32(f.measureDC, &u[0], int32(len(u)), &size)
 	return int(size.CX)
 }
 
 func (f *GDIFont) Close() {
+	f.measureMu.Lock()
+	if f.measureDC != 0 {
+		w32.SelectObject(f.measureDC, f.oldFont)
+		w32.DeleteDC(f.measureDC)
+		f.measureDC = 0
+	}
+	f.measureMu.Unlock()
 	if f.hfont != 0 {
 		w32.DeleteObject(w32.HGDIOBJ(f.hfont))
 		f.hfont = 0
