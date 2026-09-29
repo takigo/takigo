@@ -200,19 +200,47 @@ func (mb *Menubar) display() {
 	d.Flush()
 }
 
-// post shows entry i's cascade below it (TkPostSubmenu for a menubar).
-func (mb *Menubar) post(i int) {
-	if mb.posted != nil {
-		mb.posted.Unpost()
-		mb.posted = nil
-	}
+// post shows entry i's cascade below it (TkPostSubmenu for a menubar) for
+// the click being handled.
+func (mb *Menubar) post(i int) { mb.postEntry(i, true) }
+
+// postEntry posts entry i's cascade; fromClick says a ButtonPress is being
+// dispatched, which the menu's global click handler must then ignore.
+func (mb *Menubar) postEntry(i int, fromClick bool) {
+	old := mb.posted
+	mb.posted = nil
 	mb.active = i
-	if i >= 0 && mb.entries[i].sub != nil {
+	if i >= 0 && mb.entries[i].sub != nil && mb.entries[i].sub != old {
 		e := mb.entries[i]
 		w := mb.Win
 		x, y := w.Display.Server.TranslateCoordinates(w.PlatformID, w.Display.RootWindow, e.x, e.y+e.height)
 		mb.posted = e.sub
-		e.sub.PostFromButton(x, y)
+		sub := e.sub
+		sub.onUnpost = func() {
+			// Closed from elsewhere (a click outside, Escape, an invoke):
+			// the menubar entry goes back to normal.
+			if mb.posted == sub {
+				mb.posted, mb.active = nil, -1
+				mb.Display()
+			}
+		}
+		if fromClick {
+			e.sub.PostFromButton(x, y)
+		} else {
+			e.sub.Post(x, y)
+		}
+	} else if i >= 0 && mb.entries[i].sub == old {
+		mb.posted, old = old, nil
+	}
+	// Unpost the previous menu only after the new one holds the pointer
+	// grab (a client's new grab replaces its old one) and the focus, so
+	// unmapping it neither ungrabs nor reverts the focus, which would
+	// otherwise come back through the toplevel and unpost the new menu.
+	if old != nil {
+		if mb.posted != nil {
+			old.grabbed = false
+		}
+		old.Unpost()
 	}
 	mb.Display()
 }
@@ -250,7 +278,7 @@ func bindMenubar(mb *Menubar, app widget.AppContext) {
 		switch {
 		case mb.posted != nil && mb.posted.IsPosted():
 			if i >= 0 && i != mb.active {
-				mb.post(i)
+				mb.postEntry(i, false)
 			}
 		case i != mb.active:
 			mb.posted = nil
