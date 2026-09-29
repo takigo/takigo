@@ -395,3 +395,37 @@ background provide the fill, which also needs finding B7 below.
    (event parsing): these are the remaining measurable CPU costs.
 4. Focus rework (B3/B4) and the ttk redraw coalescing (P6/P7), which are
    larger design changes.
+
+---
+
+## 7. Status (branch `review-2026-09-fixes`)
+
+Each fix below has a regression test where the behaviour is testable
+without a window manager; the demo parity batch (`demo_batch.sh --retake`,
+headless) scores every demo exactly as `master` does.
+
+| Item | Status | Notes |
+|------|--------|-------|
+| Fix-first 1–12, 15 | done | `platform.CommandMask`; `Dispatcher.BindGlobalFor` ties widget global handlers to their window |
+| Fix-first 13, 14, M1 | done, untested | Cocoa retain/release and Windows `TrackMouseEvent`: no macOS SDK / Windows host here (Windows builds and vets) |
+| P1 | done | idle queue waits while events are queued (bounded to 64) |
+| P2, P3 | done | `font.WrapLines` 2.96 → 0.21 ms, text `wrapLine` 26 → 1.1 ms on 20k chars; listbox keeps `maxWidth` |
+| P4 | done | one cgo call per input event; raw events are not pooled yet |
+| P5, P6, P8 | done | one XftDraw per display; ttk redraws queued at idle; canvas bitmaps via a depth-1 pixmap |
+| P7 | done | elements sized once per `Place`; theme values are still parsed per lookup |
+| P9 | unchanged | Tk's `DisplayFrame` also double-buffers; P1 makes it once per event burst |
+| 2.2 | mostly done | display-proc `Flush`, `seeIndex`, `Sequence.String`, Xft fallbacks, polyline copies, `InternAtom`, `Clipboard`; not done: label/menu measurement caching, canvas `Delete` O(n²), GDI pen/DC caches, Cocoa boxing, per-descendant `XDestroyWindow` (Cocoa relies on it), grid allocations |
+| 2.3 | done | colours and fonts shared per value, name indexes bounded; `Define` no longer closes live fonts; wm atoms live on `window.Display` |
+| B1–B3, B5–B9 | done | local grab via `App.GrabManager` in the event filter; focus echoes swallowed |
+| B4 | open | the focus rework (Tk-style internal focus with key redirection) remains |
+| W1–W10, W12–W17 | done | W6 honours `wm geometry`; interactive resizes are not yet recorded as user geometry |
+| W11 | partly | `sel.last`, multi-range selection, peer listeners and stipples fixed; tabs are still expanded to 4 spaces on insert |
+| C1–C8 | done | |
+| X1, X3, WN1–WN4 | done | WN* untested on Windows |
+| X2 | open | the colour cache assumes 0xRRGGBB TrueColor throughout; fixing `PutImageRGBA` alone would not help |
+| Section 4 | partly | dead `canvas.displayFunc` removed, `NewButton` builds its layout once, widget/ttk tests run without cgo; the dead-API decisions (`gc/`, `Widget.Configure`, `BindEngine`, `config.Table`, toplevel/tearoff duplication) are left to the maintainers |
+
+`TestDamageRedrawMatchesFullRedraw` (canvas) fails intermittently when
+`go test ./...` runs all packages against one Xvfb server (other test
+windows overlap it at 0,0 and take the focus highlight); it fails the
+same way on `master` and passes alone.

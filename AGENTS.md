@@ -202,7 +202,11 @@ parent's manager's `RequestProc` re-runs the layout.
   a binding on the widget's path runs first and returning `true` (break)
   from it, or `SetBindTags` without the class, suppresses them. Handlers
   for other events (Expose, Configure, Destroy, Focus…) run before any
-  binding, like Tk's C event handlers.
+  binding, like Tk's C event handlers. A widget that needs events for
+  every window uses `Dispatcher().BindGlobalFor(w.PlatformID, …)`, which
+  goes away with the widget (`BindGlobal` handlers live forever). Test
+  "accelerator" modifiers as `ControlMask|platform.CommandMask`: Mod2 is
+  Command on macOS but NumLock on X11 and Windows.
 
 - **Redraws.** Classic widgets draw in a private `display()` registered
   with `Base.SetDisplayProc`; the exported `Display()` only calls
