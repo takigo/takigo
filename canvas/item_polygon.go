@@ -97,24 +97,27 @@ func (p *PolygonItem) Display(d platform.DisplayServer, drawable platform.Drawab
 		return
 	}
 
+	c := p.canvas
 	displayCoords := p.coords
 	if p.smooth && len(p.coords) >= 6 {
-		displayCoords = generateBezierSpline(p.coords, true, p.splineSteps)
+		displayCoords = appendBezierSpline(c.coordBuf[:0], p.coords, true, p.splineSteps)
+		c.coordBuf = displayCoords
 	}
 
-	points := make([]platform.Point, len(displayCoords)/2)
-	for i := 0; i < len(displayCoords)-1; i += 2 {
-		points[i/2] = platform.Point{
-			X: int16(drawableCoord(displayCoords[i], originX)),
-			Y: int16(drawableCoord(displayCoords[i+1], originY)),
-		}
+	// One extra point closes the outline below.
+	n := len(displayCoords) / 2
+	points := c.scratchPoints(n + 1)[:n]
+	for i := range points {
+		points[i] = drawablePoint(displayCoords[2*i], displayCoords[2*i+1], originX, originY)
 	}
 
 	if fill := p.fillFor(p.fill); fill != nil && len(points) >= 3 {
 		d.SetForeground(gc, fill.Pixel)
-		off := p.canvas.stippleOn(d, drawable, gc, p.stipple, originX, originY)
+		stippled := c.stippleOn(d, drawable, gc, p.stipple, originX, originY)
 		d.FillPolygon(drawable, gc, points, platform.PolygonComplex, platform.CoordModeOrigin)
-		off()
+		if stippled {
+			stippleOff(d, gc)
+		}
 	}
 
 	if p.outline != nil && p.outlineWidth > 0 && len(points) >= 2 {
@@ -127,9 +130,8 @@ func (p *PolygonItem) Display(d platform.DisplayServer, drawable platform.Drawab
 		// ConfigurePolygon's outline GC: CapRound and -joinstyle (round).
 		d.SetLineAttributes(gc, uint(p.outlineWidth), lineStyle, platform.CapRound, platform.JoinRound)
 		// Close the polygon by appending the first point.
-		closed := make([]platform.Point, len(points)+1)
-		copy(closed, points)
-		closed[len(points)] = points[0]
+		closed := points[:n+1]
+		closed[n] = points[0]
 		d.DrawLines(drawable, gc, closed, platform.CoordModeOrigin)
 		d.SetLineAttributes(gc, 1, platform.LineSolid, platform.CapButt, platform.JoinMiter)
 	}
@@ -144,18 +146,17 @@ func (p *PolygonItem) PointDistance(x, y float64) float64 {
 		return 0
 	}
 	// Otherwise return distance to nearest edge.
-	minDist := math.MaxFloat64
+	minSq := math.MaxFloat64
 	n := len(p.coords) / 2
+	px, py := p.coords[2*n-2], p.coords[2*n-1]
 	for i := range n {
-		j := (i + 1) % n
-		d := segmentPointDistance(x, y,
-			p.coords[i*2], p.coords[i*2+1],
-			p.coords[j*2], p.coords[j*2+1])
-		if d < minDist {
-			minDist = d
+		qx, qy := p.coords[2*i], p.coords[2*i+1]
+		if d := segmentPointDistanceSq(x, y, px, py, qx, qy); d < minSq {
+			minSq = d
 		}
+		px, py = qx, qy
 	}
-	return minDist
+	return math.Sqrt(minSq)
 }
 
 func (p *PolygonItem) AreaOverlap(ax1, ay1, ax2, ay2 float64) int {

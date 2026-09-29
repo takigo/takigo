@@ -1,10 +1,11 @@
 package canvas
 
 import (
-	"github.com/msorc/takigo/geometry/place"
+	"strconv"
 	"unicode/utf8"
 
 	"github.com/msorc/takigo/event"
+	"github.com/msorc/takigo/geometry/place"
 	"github.com/msorc/takigo/platform"
 )
 
@@ -187,103 +188,38 @@ func (c *Canvas) dispatchItemEvent(ev *event.Event) {
 	c.dispatchToItem(c.currentItem, ev)
 }
 
-// dispatchToItem dispatches an event to all matching bindings for an item.
+// dispatchToItem dispatches an event to all matching bindings for an item:
+// those on its ID, then those on each of its tags.
 func (c *Canvas) dispatchToItem(entry *itemEntry, ev *event.Event) {
+	if len(c.idBindings) == 0 && len(c.itemBindings) == 0 {
+		return
+	}
 	evMask := event.TypeToMask(ev.Type)
 	if evMask == 0 {
 		return
 	}
-
-	// Check bindings by item ID.
-	idKey := itemBindKey(entry.id)
-	if handlers, ok := c.itemBindings[idKey]; ok {
-		for _, h := range handlers {
-			if h.mask&evMask != 0 {
-				h.handler(ev)
-			}
-		}
-	}
-
-	// Check bindings by tag.
+	runItemHandlers(c.idBindings[entry.id], evMask, ev)
 	if base := itemBase(entry.item); base != nil {
 		for _, tag := range base.Tags {
-			if handlers, ok := c.itemBindings[tag]; ok {
-				for _, h := range handlers {
-					if h.mask&evMask != 0 {
-						h.handler(ev)
-					}
-				}
-			}
+			runItemHandlers(c.itemBindings[tag], evMask, ev)
 		}
 	}
 }
 
-// itemBindKey returns the binding map key for an item ID.
-func itemBindKey(id int64) string {
-	return "#" + itoa(id)
-}
-
-func itoa(n int64) string {
-	if n == 0 {
-		return "0"
+func runItemHandlers(handlers []itemHandler, evMask event.Mask, ev *event.Event) {
+	for _, h := range handlers {
+		if h.mask&evMask != 0 {
+			h.handler(ev)
+		}
 	}
-	buf := make([]byte, 0, 20)
-	neg := n < 0
-	if neg {
-		n = -n
-	}
-	for n > 0 {
-		buf = append(buf, byte('0'+n%10))
-		n /= 10
-	}
-	if neg {
-		buf = append(buf, '-')
-	}
-	// Reverse.
-	for i, j := 0, len(buf)-1; i < j; i, j = i+1, j-1 {
-		buf[i], buf[j] = buf[j], buf[i]
-	}
-	return string(buf)
 }
 
 // BindItem binds an event handler to items matching tagOrID.
 func (c *Canvas) BindItem(tagOrID string, mask event.Mask, handler func(*event.Event)) {
-	// For numeric IDs, use the "#ID" key format.
-	key := tagOrID
-	if _, err := parseInt64(tagOrID); err == nil {
-		key = "#" + tagOrID
+	h := itemHandler{mask: mask, handler: handler}
+	if id, err := strconv.ParseInt(tagOrID, 10, 64); err == nil {
+		c.idBindings[id] = append(c.idBindings[id], h)
+		return
 	}
-	c.itemBindings[key] = append(c.itemBindings[key], itemHandler{
-		mask:    mask,
-		handler: handler,
-	})
+	c.itemBindings[tagOrID] = append(c.itemBindings[tagOrID], h)
 }
-
-func parseInt64(s string) (int64, error) {
-	var n int64
-	neg := false
-	i := 0
-	if len(s) > 0 && s[0] == '-' {
-		neg = true
-		i = 1
-	}
-	if i >= len(s) {
-		return 0, errNotInt
-	}
-	for ; i < len(s); i++ {
-		if s[i] < '0' || s[i] > '9' {
-			return 0, errNotInt
-		}
-		n = n*10 + int64(s[i]-'0')
-	}
-	if neg {
-		n = -n
-	}
-	return n, nil
-}
-
-type parseError struct{}
-
-func (parseError) Error() string { return "not an integer" }
-
-var errNotInt = parseError{}
