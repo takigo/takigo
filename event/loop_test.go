@@ -3,6 +3,7 @@ package event
 import (
 	"context"
 	"runtime"
+	"slices"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -325,4 +326,74 @@ func TestLoopIdleWaitsForQueuedEvents(t *testing.T) {
 	if idleRuns != 1 {
 		t.Errorf("idle queue ran %d times for %d queued events, want 1", idleRuns, n)
 	}
+}
+
+// A callback that runs a nested loop (a modal dialog) must not hold back
+// the callbacks queued behind it: the nested loop runs them, in order.
+func TestLoopNestedRunsRestOfBatch(t *testing.T) {
+	posts := map[string]func(*Loop, func()){
+		"RunOnMain":  (*Loop).RunOnMain,
+		"DoWhenIdle": (*Loop).DoWhenIdle,
+	}
+	for name, post := range posts {
+		t.Run(name, func(t *testing.T) {
+			l := NewLoop(newFakeServer(), nil, NewDispatcher())
+			var order []int
+			nested := make(chan struct{})
+			post(l, func() {
+				order = append(order, 1)
+				l.RunNested(nested)
+				order = append(order, 4)
+				l.Quit()
+			})
+			post(l, func() { order = append(order, 2) })
+			post(l, func() {
+				order = append(order, 3)
+				close(nested)
+			})
+			runLoop(t, l)()
+			if !slices.Equal(order, []int{1, 2, 3, 4}) {
+				t.Errorf("callbacks ran in order %v, want [1 2 3 4]", order)
+			}
+		})
+	}
+}
+
+// UpdateIdleTasks from an idle callback runs the idle callbacks queued
+// behind its caller too, as a nested TclServiceIdle does.
+func TestLoopUpdateIdleTasksFromIdleCallback(t *testing.T) {
+	l := NewLoop(newFakeServer(), nil, NewDispatcher())
+	laidOut, seen := false, false
+	l.DoWhenIdle(func() {
+		l.UpdateIdleTasks()
+		seen = laidOut
+		l.Quit()
+	})
+	l.DoWhenIdle(func() { laidOut = true })
+	runLoop(t, l)()
+	if !seen {
+		t.Error("UpdateIdleTasks returned before the idle callback queued behind its caller ran")
+	}
+}
+
+// Callbacks that keep rescheduling themselves wait for the next round, so
+// events still get through.
+func TestLoopReschedulingCallbacksDoNotStarveEvents(t *testing.T) {
+	srv := newFakeServer()
+	d := NewDispatcher()
+	l := NewLoop(srv, nil, d)
+	d.BindGlobal(StructureNotifyMask, func(*Event) { l.Quit() })
+	var idle, main func()
+	idle = func() { l.DoWhenIdle(idle) }
+	main = func() { l.RunOnMain(main) }
+	sent := false
+	l.DoWhenIdle(func() {
+		idle()
+		main()
+		if !sent {
+			sent = true
+			srv.events <- mapEvent(0)
+		}
+	})
+	runLoop(t, l)()
 }

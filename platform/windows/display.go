@@ -111,6 +111,10 @@ type windowInfo struct {
 // NewDisplayServer initializes the Windows display and returns a composed
 // DisplayServer along with a FontOpener for the default screen.
 func NewDisplayServer(displayName string) (platform.DisplayServer, font.FontOpener, error) {
+	// A window's messages go to the queue of the thread that created it,
+	// so the calling goroutine, which goes on to run the event loop, must
+	// stay on this thread. init covers only the main goroutine.
+	runtime.LockOSThread()
 
 	// Per-monitor V2, as tk/win/wish.exe.manifest.in declares: Windows then
 	// scales the title bar, menus and common dialogs for each monitor. Like

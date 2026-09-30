@@ -1,6 +1,9 @@
 package color
 
-import "testing"
+import (
+	"sync"
+	"testing"
+)
 
 func TestParseHexRGB(t *testing.T) {
 	r, g, b, err := Parse("#f00")
@@ -111,5 +114,23 @@ func TestParseHexBlack(t *testing.T) {
 	}
 	if r != 0 || g != 0 || b != 0 {
 		t.Errorf("#000000 = (%d,%d,%d), want (0,0,0)", r, g, b)
+	}
+}
+
+// Concurrent GetByValue calls for one value share one Color.
+func TestGetByValueConcurrent(t *testing.T) {
+	c := NewCache(0)
+	for v := range uint16(200) {
+		var wg sync.WaitGroup
+		got := make([]*Color, 8)
+		for i := range got {
+			wg.Go(func() { got[i], _ = c.GetByValue(v, v, v) })
+		}
+		wg.Wait()
+		for _, col := range got {
+			if col != got[0] {
+				t.Fatalf("value %d: GetByValue returned different Colors for the same value", v)
+			}
+		}
 	}
 }

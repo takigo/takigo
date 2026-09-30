@@ -35,7 +35,7 @@ func In(container window.Windower) PlaceOption {
 }
 
 // containerOf records each content window's container.
-var containerOf = map[*window.Window]*window.Window{}
+var containerOf = new(geometry.Table[*window.Window])
 
 // X sets the absolute x position.
 func X(v int) PlaceOption { return func(c *placeConfig) { c.x = v } }
@@ -81,18 +81,18 @@ type placer struct {
 var mgr = &placeManager{}
 
 // placers tracks per-container state.
-var placers = map[*window.Window]*placer{}
+var placers = new(geometry.Table[*placer])
 
 // hooked records the containers whose destroy and configure hooks are
 // registered.
-var hooked = map[*window.Window]bool{}
+var hooked = new(geometry.Table[bool])
 
 type placeManager struct{}
 
 func (m *placeManager) Name() string { return "place" }
 
 func (m *placeManager) RequestProc(content *window.Window) {
-	if p, ok := placers[containerFor(content)]; ok {
+	if p, ok := placers.Get(containerFor(content)); ok {
 		p.scheduleArrange()
 	}
 }
@@ -101,8 +101,8 @@ func (m *placeManager) RequestProc(content *window.Window) {
 // destroyed or taken over by another geometry manager.
 func (m *placeManager) LostContentProc(content *window.Window) {
 	container := containerFor(content)
-	delete(containerOf, content)
-	if p, ok := placers[container]; ok {
+	containerOf.Delete(content)
+	if p, ok := placers.Get(container); ok {
 		p.remove(content)
 		p.scheduleArrange()
 	}
@@ -111,7 +111,7 @@ func (m *placeManager) LostContentProc(content *window.Window) {
 // containerFor returns the window content is managed in: its -in
 // container if one was given, else its parent.
 func containerFor(content *window.Window) *window.Window {
-	if c := containerOf[content]; c != nil {
+	if c := containerOf.Of(content); c != nil {
 		return c
 	}
 	return content.Parent
@@ -121,14 +121,14 @@ func containerFor(content *window.Window) *window.Window {
 // in it from outside its subtree (via -in) becomes unmanaged, as in
 // Tk's DestroyNotify handling in the geometry managers.
 func forgetContainer(container *window.Window) {
-	p, ok := placers[container]
+	p, ok := placers.Get(container)
 	if !ok {
 		return
 	}
-	delete(placers, container)
+	placers.Delete(container)
 	for _, e := range p.entries {
-		if w := e.window; containerOf[w] == container {
-			delete(containerOf, w)
+		if w := e.window; containerOf.Of(w) == container {
+			containerOf.Delete(w)
 			w.GeomManager = nil
 			if w.IsMapped() && !w.IsDestroyed() && w.PlatformID != 0 {
 				w.Display.Server.UnmapWindow(w.PlatformID)
@@ -159,32 +159,32 @@ func Place(child window.Windower, opts ...PlaceOption) {
 	if cfg.in != nil {
 		parent = cfg.in
 	}
-	if old := containerOf[w]; old != nil && old != parent {
-		if op, ok := placers[old]; ok {
+	if old := containerOf.Of(w); old != nil && old != parent {
+		if op, ok := placers.Get(old); ok {
 			op.remove(w)
 		}
 	}
-	containerOf[w] = parent
+	containerOf.Set(w, parent)
 
 	geometry.ManageGeometry(w, mgr)
 
-	p, ok := placers[parent]
+	p, ok := placers.Get(parent)
 	if !ok {
 		p = &placer{container: parent}
-		placers[parent] = p
+		placers.Set(parent, p)
 	}
-	if !hooked[parent] {
+	if !hooked.Of(parent) {
 		// The placer is dropped when its last content goes but the hooks
 		// stay with the window, so register them once.
-		hooked[parent] = true
+		hooked.Set(parent, true)
 		parent.OnDestroy(func() {
 			forgetContainer(parent)
-			delete(hooked, parent)
+			hooked.Delete(parent)
 		})
 		// Relative placement follows the container's size, whatever
 		// resizes it (PlaceStructureProc).
 		parent.OnConfigure(func() {
-			if pp, ok := placers[parent]; ok {
+			if pp, ok := placers.Get(parent); ok {
 				pp.scheduleArrange()
 			}
 		})
@@ -206,15 +206,15 @@ func Place(child window.Windower, opts ...PlaceOption) {
 // Forget removes a child from place management.
 func Forget(child window.Windower) {
 	w := child.Window()
-	parent := containerOf[w]
+	parent := containerOf.Of(w)
 	if parent == nil {
 		parent = w.Parent
 	}
 	if parent == nil {
 		return
 	}
-	delete(containerOf, w)
-	if p, ok := placers[parent]; ok {
+	containerOf.Delete(w)
+	if p, ok := placers.Get(parent); ok {
 		p.remove(w)
 	}
 	w.GeomManager = nil
@@ -233,7 +233,7 @@ func (p *placer) remove(child *window.Window) {
 		}
 	}
 	if len(p.entries) == 0 {
-		delete(placers, p.container)
+		placers.Delete(p.container)
 	}
 }
 
@@ -358,10 +358,17 @@ func (p *placer) arrange() {
 	}
 }
 
-// ArrangeAll triggers layout for all place-managed containers.
-func ArrangeAll() {
-	for _, p := range placers {
+// ArrangeAll triggers layout for the place-managed containers in root's
+// subtree, root included.
+func ArrangeAll(root *window.Window) {
+	if root == nil {
+		return
+	}
+	if p, ok := placers.Get(root); ok {
 		p.scheduleArrange()
+	}
+	for _, c := range root.Children {
+		ArrangeAll(c)
 	}
 }
 
@@ -371,12 +378,12 @@ func ArrangeAll() {
 func init() {
 	window.AddMappedHook(ArrangeContainer)
 	window.AddMovedHook(func(w *window.Window) {
-		if p, ok := placers[w]; ok && p.hasForeign() {
+		if p, ok := placers.Get(w); ok && p.hasForeign() {
 			p.scheduleArrange()
 		}
 	})
 	window.AddUnmappedHook(func(w *window.Window) {
-		p, ok := placers[w]
+		p, ok := placers.Get(w)
 		if !ok {
 			return
 		}
@@ -401,7 +408,7 @@ func (p *placer) hasForeign() bool {
 
 // ArrangeContainer triggers layout for a specific container.
 func ArrangeContainer(container *window.Window) {
-	if p, ok := placers[container]; ok {
+	if p, ok := placers.Get(container); ok {
 		p.arrange()
 	}
 }

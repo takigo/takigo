@@ -328,6 +328,13 @@ func (a *App) Quit() {
 	a.loop.Quit()
 }
 
+// Done returns a channel that is closed once Quit has been called. A
+// goroutine waiting for the result of a RunOnMain callback selects on it
+// too: callbacks still queued when the loop quits never run.
+func (a *App) Done() <-chan struct{} {
+	return a.loop.Done()
+}
+
 // Destroy cleans up all resources. Call after MainLoop returns.
 func (a *App) Destroy() {
 	// The reader goroutine may be blocked reading this display; closing it

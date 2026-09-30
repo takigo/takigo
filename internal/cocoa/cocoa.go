@@ -278,6 +278,14 @@ func NextEvent() *RawEvent {
 
 func Pending() int { return int(C.CocoaPending()) }
 
+// WakeEventReader returns a NextEvent blocked in another goroutine with an
+// event of no type.
+func WakeEventReader() { C.CocoaWakeEventReader() }
+
+// IsMainThread reports whether the caller runs on the main thread, the
+// only one AppKit may be used from.
+func IsMainThread() bool { return C.CocoaIsMainThread() != 0 }
+
 // ---- Atoms ----
 
 func InternAtom(name string, onlyIfExists bool) Atom {

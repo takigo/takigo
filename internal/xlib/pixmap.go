@@ -8,27 +8,18 @@ package xlib
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 
+#include "xerror.h"
+
 // get_rgba_image reads an area with XGetImage into RGBA (alpha 255).
-static int get_image_failed;
-
-static int get_image_error(Display *dpy, XErrorEvent *ev)
-{
-	get_image_failed = 1;
-	return 0;
-}
-
 // Images of pixmaps carry no colour masks, so visual's are used then.
 // XGetImage fails with BadMatch on unviewable windows; like Tk, trap that.
+// The caller holds trapMu.
 static int get_rgba_image(Display *dpy, Drawable d, Visual *visual,
 	int x, int y, int w, int h, unsigned char *out)
 {
-	XSync(dpy, False);
-	get_image_failed = 0;
-	int (*old)(Display *, XErrorEvent *) = XSetErrorHandler(get_image_error);
+	takigo_trap_errors(dpy);
 	XImage *img = XGetImage(dpy, d, x, y, w, h, AllPlanes, ZPixmap);
-	XSync(dpy, False);
-	XSetErrorHandler(old);
-	if (get_image_failed) {
+	if (takigo_untrap_errors(dpy)) {
 		if (img) XDestroyImage(img);
 		return 0;
 	}
@@ -123,7 +114,14 @@ static void put_rgba_image(Display *dpy, Drawable d, GC gc, Visual *visual,
 }
 */
 import "C"
-import "unsafe"
+import (
+	"sync"
+	"unsafe"
+)
+
+// trapMu serializes the process-wide X error trap (xerror.c) between the
+// displays of different Apps.
+var trapMu sync.Mutex
 
 // CreatePixmap creates a pixmap of the given dimensions and depth.
 func (d *Display) CreatePixmap(drawable Drawable, width, height, depth uint) Pixmap {
@@ -169,6 +167,8 @@ func (d *Display) GetImageRGBA(drawable Drawable, visual *Visual, x, y, w, h int
 		return nil
 	}
 	out := make([]byte, w*h*4)
+	trapMu.Lock()
+	defer trapMu.Unlock()
 	if C.get_rgba_image(d.ptr, C.Drawable(drawable), visual.ptr, C.int(x), C.int(y), C.int(w), C.int(h),
 		(*C.uchar)(unsafe.Pointer(&out[0]))) == 0 {
 		return nil

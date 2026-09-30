@@ -210,8 +210,9 @@ func TestAnchorCalculations(t *testing.T) {
 }
 
 func TestArrangeAllEmpty(t *testing.T) {
-	// Should not panic with empty placers
-	ArrangeAll()
+	// Should not panic without a window or without placers
+	ArrangeAll(nil)
+	ArrangeAll(&window.Window{})
 }
 
 func TestArrangeContainerNil(t *testing.T) {

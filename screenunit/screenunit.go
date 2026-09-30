@@ -16,14 +16,22 @@ import (
 	"math"
 	"strconv"
 	"strings"
+	"sync/atomic"
 )
 
-// screenWidthPx and screenWidthMM store the screen dimensions
-// used for unit conversion. Default assumes 96 DPI.
-var (
-	screenWidthPx = 1920
-	screenWidthMM = 508 // ~96 DPI: 1920 / (25.4 * 96) * 1000 ≈ 508mm
-)
+// metrics are the screen dimensions used for unit conversion.
+type metrics struct {
+	widthPx, widthMM int
+}
+
+// screen holds the current metrics. They are process-wide, set by each
+// NewApp and read by every App's loop goroutine, so they are swapped
+// atomically; the default assumes 96 DPI (1920 / (25.4 * 96) * 1000 ≈ 508mm).
+var screen atomic.Pointer[metrics]
+
+func init() {
+	screen.Store(&metrics{widthPx: 1920, widthMM: 508})
+}
 
 // SetScreenDPI configures the screen dimensions used for unit conversion.
 // widthPx and widthMM are the raw X11 screen dimensions.
@@ -38,22 +46,22 @@ var (
 //
 // This ensures that "4i" converts to exactly 4 * xftDPI pixels.
 func SetScreenDPI(widthPx, widthMM int, xftDPI float64) {
+	m := *screen.Load()
 	if widthPx > 0 && widthMM > 0 {
-		screenWidthPx = widthPx
-		screenWidthMM = widthMM
+		m.widthPx = widthPx
+		m.widthMM = widthMM
 	}
-	if xftDPI > 0 && screenWidthPx > 0 {
-		screenWidthMM = int(math.Round(float64(screenWidthPx) * 25.4 / xftDPI))
-		if screenWidthMM <= 0 {
-			screenWidthMM = 1
-		}
+	if xftDPI > 0 && m.widthPx > 0 {
+		m.widthMM = max(int(math.Round(float64(m.widthPx)*25.4/xftDPI)), 1)
 	}
+	screen.Store(&m)
 }
 
 // DPI returns the current screen DPI (dots per inch).
 // Standard desktop DPI is 96; HiDPI displays may be 144, 192, etc.
 func DPI() float64 {
-	return float64(screenWidthPx) * 25.4 / float64(screenWidthMM)
+	m := screen.Load()
+	return float64(m.widthPx) * 25.4 / float64(m.widthMM)
 }
 
 // ScalingFactor returns the ratio of actual DPI to the standard 96 DPI baseline.
@@ -187,6 +195,7 @@ func parseDistance(s string) (float64, error) {
 	}
 
 	// Convert: value_in_mm * pixels_per_mm
-	// pixels_per_mm = screenWidthPx / screenWidthMM
-	return val * multiplier * float64(screenWidthPx) / float64(screenWidthMM), nil
+	// pixels_per_mm = widthPx / widthMM
+	m := screen.Load()
+	return val * multiplier * float64(m.widthPx) / float64(m.widthMM), nil
 }

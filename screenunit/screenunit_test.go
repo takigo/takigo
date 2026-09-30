@@ -2,6 +2,7 @@ package screenunit
 
 import (
 	"math"
+	"sync"
 	"testing"
 )
 
@@ -152,13 +153,13 @@ func TestTryPxInvalid(t *testing.T) {
 }
 
 func TestSetScreenDPIIgnoresInvalid(t *testing.T) {
-	old := screenWidthPx
+	old := screen.Load().widthPx
 	SetScreenDPI(0, 500, 0)
-	if screenWidthPx != old {
+	if screen.Load().widthPx != old {
 		t.Error("SetScreenDPI should ignore zero widthPx")
 	}
 	SetScreenDPI(1920, 0, 0)
-	if screenWidthPx != old {
+	if screen.Load().widthPx != old {
 		t.Error("SetScreenDPI should ignore zero widthMM")
 	}
 }
@@ -181,4 +182,24 @@ func TestPxOrKeepsPreviousOnBadInput(t *testing.T) {
 			t.Errorf("PxOr(%#v, %d) = %d, want %d", tt.v, tt.prev, got, tt.want)
 		}
 	}
+}
+
+// NewApp sets the metrics while other Apps' loops convert distances.
+func TestSetScreenDPIConcurrentWithPx(t *testing.T) {
+	defer SetScreenDPI(1920, 508, 0)
+	var wg sync.WaitGroup
+	wg.Go(func() {
+		for range 1000 {
+			SetScreenDPI(1920, 508, 96)
+		}
+	})
+	wg.Go(func() {
+		for range 1000 {
+			if px := Px("1i"); px != 96 {
+				t.Errorf(`Px("1i") = %d, want 96`, px)
+				return
+			}
+		}
+	})
+	wg.Wait()
 }
