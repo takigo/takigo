@@ -206,3 +206,30 @@ func TestNewlineBreaksAutoGroup(t *testing.T) {
 		t.Errorf("after undo = %q, want empty", s)
 	}
 }
+
+// TestRedoUndoneDelete checks that redoing an undone deletion deletes again.
+func TestRedoUndoneDelete(t *testing.T) {
+	doc := docWithText("abc")
+	u := NewUndoStack(0)
+	u.RecordDelete(Index{1, 1}, Index{1, 2}, "b")
+	doc.Delete(Index{1, 1}, Index{1, 2})
+	text := func() string { return doc.Get(Index{1, 0}, doc.EndIndex()) }
+
+	steps := []struct {
+		do   func(*Document) bool
+		want string
+	}{
+		{u.Undo, "abc"},
+		{u.Redo, "ac"},
+		{u.Undo, "abc"},
+		{u.Redo, "ac"},
+	}
+	for i, s := range steps {
+		if !s.do(doc) {
+			t.Fatalf("step %d did nothing", i)
+		}
+		if got := text(); got != s.want {
+			t.Fatalf("step %d: text = %q, want %q", i, got, s.want)
+		}
+	}
+}

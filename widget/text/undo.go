@@ -128,10 +128,10 @@ func (u *UndoStack) Undo(doc *Document) bool {
 			doc.Delete(action.Start, action.End)
 			redoGroup = append(redoGroup, action)
 		case ActionDelete:
-			// Undo delete = insert
+			// Undo delete = insert; redoing it deletes the text again.
 			endIdx := doc.Insert(action.Start, action.Text)
 			redoGroup = append(redoGroup, UndoAction{
-				Type: ActionInsert, Start: action.Start, End: endIdx, Text: action.Text,
+				Type: ActionDelete, Start: action.Start, End: endIdx, Text: action.Text,
 			})
 		}
 	}
