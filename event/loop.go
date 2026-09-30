@@ -56,8 +56,12 @@ type Loop struct {
 	mainPending []func()
 	wake        chan struct{}
 
-	// idleQueue holds idle callbacks taken from idlePending; loop-only.
+	// idleQueue and mainQueue hold the callbacks taken from idlePending
+	// and mainPending, in order; loop-only. They are fields, not locals of
+	// the functions running them, so that a callback running a nested loop
+	// (a modal dialog) leaves the callbacks queued behind it to that loop.
 	idleQueue []func()
+	mainQueue []func()
 
 	// rawHandler is called for every raw event before type conversion.
 	// Used to handle event types (e.g. selection) not routed through Dispatcher.
@@ -127,6 +131,10 @@ func (l *Loop) run(extraDone, ctxDone <-chan struct{}) {
 			deferred = 0
 		} else {
 			deferred++
+		}
+		if len(l.mainQueue) > 0 {
+			// Left behind by the callback that started this nested loop.
+			l.runMainQueue()
 		}
 
 		select {
@@ -340,16 +348,13 @@ func (l *Loop) UpdateIdleTasks() {
 // runMainQueue runs the callbacks posted with RunOnMain or After.
 func (l *Loop) runMainQueue() {
 	l.mu.Lock()
-	queue := l.mainPending
-	l.mainPending = nil
+	l.mainQueue = append(l.mainQueue, l.mainPending...)
+	clear(l.mainPending)
+	l.mainPending = l.mainPending[:0]
 	l.mu.Unlock()
-	if len(queue) == 0 {
-		return
+	if runQueue(&l.mainQueue) {
+		l.server.Flush()
 	}
-	for _, fn := range queue {
-		fn()
-	}
-	l.server.Flush()
 }
 
 // processIdleQueue runs all pending idle callbacks. Callbacks scheduled
@@ -360,15 +365,30 @@ func (l *Loop) processIdleQueue() {
 	clear(l.idlePending)
 	l.idlePending = l.idlePending[:0]
 	l.mu.Unlock()
-	if len(l.idleQueue) == 0 {
-		return
+	if runQueue(&l.idleQueue) {
+		l.server.Flush()
 	}
-	queue := l.idleQueue
-	l.idleQueue = nil
-	for _, fn := range queue {
+}
+
+// runQueue runs the callbacks that are in *q now, taking them off one at a
+// time so that a nested loop started by one of them sees, and runs, the
+// rest (TclServiceIdle does the same with its idle generation). It reports
+// whether there was anything to run.
+func runQueue(q *[]func()) bool {
+	n := len(*q)
+	for range n {
+		if len(*q) == 0 {
+			break // a nested loop ran the rest
+		}
+		fn := (*q)[0]
+		(*q)[0] = nil
+		*q = (*q)[1:]
 		fn()
 	}
-	l.server.Flush()
+	if len(*q) == 0 {
+		*q = nil
+	}
+	return n > 0
 }
 
 // readEvents runs in its own goroutine for the lifetime of the loop,
