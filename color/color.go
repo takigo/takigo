@@ -112,19 +112,20 @@ func (c *Cache) GetByValue(r, g, b uint16) (*Color, error) {
 	}
 	c.mu.RUnlock()
 
-	pixel := trueColorPixel(r, g, b)
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	// Another goroutine may have added it since the read lock was dropped.
+	if col, ok := c.byValue[key]; ok {
+		return col, nil
+	}
 	col := &Color{
-		Pixel: pixel,
+		Pixel: trueColorPixel(r, g, b),
 		Red:   r,
 		Green: g,
 		Blue:  b,
 		Name:  fmt.Sprintf("#%04x%04x%04x", r, g, b),
 	}
-
-	c.mu.Lock()
 	c.byValue[key] = col
-	c.mu.Unlock()
-
 	return col, nil
 }
 
