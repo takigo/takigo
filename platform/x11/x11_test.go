@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"github.com/msorc/takigo/font"
+	"github.com/msorc/takigo/internal/displaylock"
 	"github.com/msorc/takigo/platform"
 	"os"
 	"testing"
@@ -16,6 +17,7 @@ func requireDisplay(t *testing.T) {
 	if os.Getenv("DISPLAY") == "" && os.Getenv("WAYLAND_DISPLAY") == "" {
 		t.Skip("no display available (set DISPLAY or use xvfb-run)")
 	}
+	displaylock.Acquire(t)
 }
 
 func TestX11DisplayCore(t *testing.T) {
