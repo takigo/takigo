@@ -74,14 +74,9 @@ func main() {
 		)
 		if ok {
 			fgHex = color
-			c, err := app.ColorCache().Get(color)
-			if err == nil {
-				// Apply foreground to both buttons.
-				backBtn.Foreground = c
-				backBtn.Display()
-				foreBtn.Foreground = c
-				foreBtn.Display()
-			}
+			// Apply foreground to both buttons.
+			backBtn.Configure(button.Foreground(color))
+			foreBtn.Configure(button.Foreground(color))
 		}
 	}
 

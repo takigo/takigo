@@ -4,7 +4,6 @@
 package menubutton
 
 import (
-	"log"
 	"unicode"
 
 	"github.com/msorc/takigo/color"
@@ -60,36 +59,25 @@ type MenubuttonOption func(*Menubutton)
 func Text(s string) MenubuttonOption            { return func(mb *Menubutton) { mb.Text = s } }
 func MenuOpt(m *menu.Menu) MenubuttonOption     { return func(mb *Menubutton) { mb.Menu = m } }
 func DirectionOpt(d Direction) MenubuttonOption { return func(mb *Menubutton) { mb.Direction = d } }
-func PadX(p int) MenubuttonOption               { return func(mb *Menubutton) { mb.PadX = p } }
-func PadY(p int) MenubuttonOption               { return func(mb *Menubutton) { mb.PadY = p } }
-func UnderlineOpt(i int) MenubuttonOption       { return func(mb *Menubutton) { mb.Underline = i } }
-func IndicatorOnOpt(on bool) MenubuttonOption   { return func(mb *Menubutton) { mb.IndicatorOn = on } }
-func OptionMenuOpt(on bool) MenubuttonOption    { return func(mb *Menubutton) { mb.OptionMenu = on } }
+func PadX(p any) MenubuttonOption {
+	return func(mb *Menubutton) { mb.PadX = screenunit.PxOr(p, mb.PadX) }
+}
+func PadY(p any) MenubuttonOption {
+	return func(mb *Menubutton) { mb.PadY = screenunit.PxOr(p, mb.PadY) }
+}
+func UnderlineOpt(i int) MenubuttonOption     { return func(mb *Menubutton) { mb.Underline = i } }
+func IndicatorOnOpt(on bool) MenubuttonOption { return func(mb *Menubutton) { mb.IndicatorOn = on } }
+func OptionMenuOpt(on bool) MenubuttonOption  { return func(mb *Menubutton) { mb.OptionMenu = on } }
 
 // Relief sets -relief.
 func Relief(r option.Relief) MenubuttonOption { return func(mb *Menubutton) { mb.Relief = r } }
 
 func Background(name string) MenubuttonOption {
-	return func(mb *Menubutton) {
-		col, err := mb.App.ColorCache().Get(name)
-		if err != nil {
-			log.Printf("menubutton: failed to get color %q: %v", name, err)
-			return
-		}
-		mb.Background = col
-		mb.UpdateBorder()
-	}
+	return func(mb *Menubutton) { mb.SetBackgroundName(name) }
 }
 
 func Foreground(name string) MenubuttonOption {
-	return func(mb *Menubutton) {
-		col, err := mb.App.ColorCache().Get(name)
-		if err != nil {
-			log.Printf("menubutton: failed to get color %q: %v", name, err)
-			return
-		}
-		mb.Foreground = col
-	}
+	return func(mb *Menubutton) { mb.SetForegroundName(name) }
 }
 
 // --- Ttk-compatible aliases (prefix with Menubutton) for consistent naming ---
@@ -171,7 +159,7 @@ func New(parent widget.Caregiver, name string, opts ...MenubuttonOption) *Menubu
 	mb.computeGeometry()
 
 	if mb.Background != nil {
-		w.BackgroundPixel = mb.Background.Pixel
+		w.SetBackgroundPixel(mb.Background.Pixel)
 	}
 
 	bindMenubutton(mb, app)
@@ -318,23 +306,12 @@ func (mb *Menubutton) display() {
 
 // SetText changes the button label and requests a re-layout if the size changed.
 func (mb *Menubutton) SetText(text string) {
-	mb.Text = text
-	mb.computeGeometry()
-	if mb.Win.GeomManager != nil {
-		mb.Win.GeomManager.RequestProc(mb.Win)
-	}
-	mb.Display()
+	mb.Configure(Text(text))
 }
 
 // Configure applies options.
-func (mb *Menubutton) Configure(opts ...option.Option) {
-	option.Apply(mb, opts)
-	mb.UpdateBorder()
-	mb.computeGeometry()
-	if mb.Background != nil {
-		mb.Win.BackgroundPixel = mb.Background.Pixel
-	}
-	mb.Display()
+func (mb *Menubutton) Configure(opts ...MenubuttonOption) {
+	widget.Configure(mb, opts, mb.computeGeometry)
 }
 
 // Destroy cleans up.

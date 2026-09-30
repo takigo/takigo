@@ -3,8 +3,6 @@
 package menu
 
 import (
-	"log"
-
 	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/font"
@@ -102,16 +100,16 @@ func TearOffOpt(on bool) MenuOption {
 }
 
 func Background(name string) MenuOption {
-	return func(m *Menu) {
-		col, err := m.App.ColorCache().Get(name)
-		if err != nil {
-			log.Printf("menu: failed to get color %q: %v", name, err)
-			return
-		}
-		m.Background = col
-		m.UpdateBorder()
-	}
+	return func(m *Menu) { m.SetBackgroundName(name) }
 }
+
+// FontOpt sets the font of the menu entries.
+func FontOpt(name string) MenuOption {
+	return func(m *Menu) { m.SetFontName(name) }
+}
+
+// MenuFontOpt is an alias for FontOpt.
+var MenuFontOpt = FontOpt
 
 // New creates a new Menu. The menu is an override-redirect window,
 // initially unmapped, created as a child of the root X window.
@@ -193,7 +191,7 @@ func New(parent widget.Caregiver, name string, opts ...MenuOption) *Menu {
 	}
 
 	if m.Background != nil {
-		w.BackgroundPixel = m.Background.Pixel
+		w.SetBackgroundPixel(m.Background.Pixel)
 	}
 
 	bindMenu(m, app)
@@ -1027,13 +1025,8 @@ func (m *Menu) postCascade(index int) {
 }
 
 // Configure applies options.
-func (m *Menu) Configure(opts ...option.Option) {
-	option.Apply(m, opts)
-	m.UpdateBorder()
-	if m.Background != nil {
-		m.Win.BackgroundPixel = m.Background.Pixel
-	}
-	m.Display()
+func (m *Menu) Configure(opts ...MenuOption) {
+	widget.Configure(m, opts, m.computeGeometry)
 }
 
 // Destroy cleans up.

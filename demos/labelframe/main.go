@@ -98,18 +98,16 @@ func main() {
 	enableCb.Command = func() {
 		for _, cb := range optionCbs {
 			if enableVar.Get() == "1" {
-				cb.State = widget.StateNormal
+				cb.Configure(checkbutton.State(widget.StateNormal))
 			} else {
-				cb.State = widget.StateDisabled
+				cb.Configure(checkbutton.State(widget.StateDisabled))
 			}
-			cb.Display()
 		}
 	}
 
 	// Initially disable all option checkbuttons.
 	for _, cb := range optionCbs {
-		cb.State = widget.StateDisabled
-		cb.Display()
+		cb.Configure(checkbutton.State(widget.StateDisabled))
 	}
 
 	grid.ColumnConfigure(body, 0, grid.Weight(1))

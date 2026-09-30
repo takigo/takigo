@@ -84,7 +84,7 @@ func initTtkBase(w *TtkWidget, win *window.Window, app widget.AppContext, styleN
 
 	// Set window background from style.
 	bg := LookupColor(style, "-background", 0, 0xd9d9d9)
-	win.BackgroundPixel = bg
+	win.SetBackgroundPixel(bg)
 }
 
 // updateReqFromLayout sets the window's request from the layout's size.
@@ -99,6 +99,50 @@ func (w *TtkWidget) updateReqFromLayout() {
 	if rh > 0 {
 		w.Win.ReqHeight = rh
 	}
+}
+
+// resize recomputes the size request with compute and re-runs the parent's
+// geometry manager when it changed, as TtkResizeWidget does.
+func (w *TtkWidget) resize(compute func()) {
+	win := w.Win
+	reqW, reqH := win.ReqWidth, win.ReqHeight
+	compute()
+	if (win.ReqWidth != reqW || win.ReqHeight != reqH) && win.GeomManager != nil {
+		win.GeomManager.RequestProc(win)
+	}
+}
+
+// configure applies opts to w and then does what TtkWidgetConfigureCommand
+// does with STYLE_CHANGED and GEOMETRY_CHANGED: sync derives state from the
+// new option values (it may change StyleName), the layout is rebuilt when
+// the style name changed, size recomputes the request (the layout's when
+// nil), content and parent are re-arranged when margins or request changed,
+// and a redisplay is queued.
+func configure[W any, O ~func(W)](tw *TtkWidget, w W, opts []O, sync, size func()) {
+	win := tw.Win
+	style := tw.StyleName
+	reqW, reqH := win.ReqWidth, win.ReqHeight
+	insets := win.ContentInsets()
+	for _, opt := range opts {
+		opt(w)
+	}
+	if sync != nil {
+		sync()
+	}
+	if tw.StyleName != style {
+		tw.RefreshTheme()
+	}
+	if size == nil {
+		size = tw.updateReqFromLayout
+	}
+	size()
+	if win.ContentInsets() != insets {
+		win.NotifyConfigure()
+	}
+	if (win.ReqWidth != reqW || win.ReqHeight != reqH) && win.GeomManager != nil {
+		win.GeomManager.RequestProc(win)
+	}
+	tw.redisplay()
 }
 
 // Display renders the widget using double-buffered drawing.
@@ -186,7 +230,7 @@ func (w *TtkWidget) RefreshTheme() {
 
 	// Update window background from new style.
 	bg := LookupColor(style, "-background", 0, 0xd9d9d9)
-	w.Win.BackgroundPixel = bg
+	w.Win.SetBackgroundPixel(bg)
 }
 
 // Destroy frees resources and destroys the window.

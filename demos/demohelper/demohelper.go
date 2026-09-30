@@ -227,14 +227,7 @@ func updateValueLabel(valLabel *ttk.Label, text string) {
 	if valLabel.Destroyed {
 		return
 	}
-	valLabel.Text = text
-	if valLabel.Layout != nil {
-		rw, rh := valLabel.Layout.Size(valLabel.State)
-		if rw > 0 && rh > 0 {
-			geometry.GeometryRequest(valLabel.Win, rw, rh)
-		}
-	}
-	valLabel.Display()
+	valLabel.Configure(ttk.LabelText(text))
 }
 
 // variableGet extracts the current value from any *widget.Variable[T].

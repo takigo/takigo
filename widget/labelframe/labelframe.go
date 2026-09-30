@@ -3,8 +3,6 @@
 package labelframe
 
 import (
-	"log"
-
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/geometry"
@@ -41,20 +39,17 @@ func Text(s string) LabelframeOption {
 
 // Background sets the background color.
 func Background(name string) LabelframeOption {
-	return func(lf *Labelframe) {
-		col, err := lf.App.ColorCache().Get(name)
-		if err != nil {
-			log.Printf("labelframe: failed to get color %q: %v", name, err)
-			return
-		}
-		lf.Background = col
-		lf.UpdateBorder()
-	}
+	return func(lf *Labelframe) { lf.SetBackgroundName(name) }
+}
+
+// Foreground sets the label text color.
+func Foreground(name string) LabelframeOption {
+	return func(lf *Labelframe) { lf.SetForegroundName(name) }
 }
 
 // BorderWidth sets the border width.
-func BorderWidth(w int) LabelframeOption {
-	return func(lf *Labelframe) { lf.BorderWidth = w }
+func BorderWidth(w any) LabelframeOption {
+	return func(lf *Labelframe) { lf.BorderWidth = screenunit.PxOr(w, lf.BorderWidth) }
 }
 
 // Relief sets the border relief.
@@ -74,14 +69,7 @@ func Height(h int) LabelframeOption {
 
 // FontOpt sets the font.
 func FontOpt(name string) LabelframeOption {
-	return func(lf *Labelframe) {
-		f, err := lf.App.FontRegistry().Get(name)
-		if err != nil {
-			log.Printf("labelframe: failed to get font %q: %v", name, err)
-			return
-		}
-		lf.Font = f
-	}
+	return func(lf *Labelframe) { lf.SetFontName(name) }
 }
 
 // LabelAnchor sets where the label sits on the border.
@@ -145,6 +133,9 @@ var LabelframePadX = PadX
 // LabelframePadY is an alias for PadY.
 var LabelframePadY = PadY
 
+// LabelframeForeground is an alias for Foreground.
+var LabelframeForeground = Foreground
+
 // New creates a new Labelframe widget.
 func New(parent widget.Caregiver, name string, opts ...LabelframeOption) *Labelframe {
 	app := parent.AppContext()
@@ -170,7 +161,7 @@ func New(parent widget.Caregiver, name string, opts ...LabelframeOption) *Labelf
 	lf.updateInternalBorder()
 
 	if lf.Background != nil {
-		w.BackgroundPixel = lf.Background.Pixel
+		w.SetBackgroundPixel(lf.Background.Pixel)
 	}
 
 	// Bind events.
@@ -441,15 +432,11 @@ func (lf *Labelframe) Window() *window.Window {
 }
 
 // Configure applies options.
-func (lf *Labelframe) Configure(opts ...option.Option) {
-	option.Apply(lf, opts)
-	lf.UpdateBorder()
-	lf.computeTextSize()
-	lf.updateInternalBorder()
-	if lf.Background != nil {
-		lf.Win.BackgroundPixel = lf.Background.Pixel
-	}
-	lf.Display()
+func (lf *Labelframe) Configure(opts ...LabelframeOption) {
+	widget.Configure(lf, opts, func() {
+		lf.computeTextSize()
+		lf.updateInternalBorder()
+	})
 }
 
 // SetLabelWidget sets a widget as the label after construction.

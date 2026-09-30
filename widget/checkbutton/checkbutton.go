@@ -4,8 +4,6 @@
 package checkbutton
 
 import (
-	"log"
-
 	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/option"
@@ -105,39 +103,17 @@ func TristateValueOpt(v string) CheckbuttonOption {
 
 // Background sets the background color.
 func Background(name string) CheckbuttonOption {
-	return func(c *Checkbutton) {
-		col, err := c.App.ColorCache().Get(name)
-		if err != nil {
-			log.Printf("checkbutton: failed to get color %q: %v", name, err)
-			return
-		}
-		c.Background = col
-		c.UpdateBorder()
-	}
+	return func(c *Checkbutton) { c.SetBackgroundName(name) }
 }
 
 // Foreground sets the text color.
 func Foreground(name string) CheckbuttonOption {
-	return func(c *Checkbutton) {
-		col, err := c.App.ColorCache().Get(name)
-		if err != nil {
-			log.Printf("checkbutton: failed to get color %q: %v", name, err)
-			return
-		}
-		c.Foreground = col
-	}
+	return func(c *Checkbutton) { c.SetForegroundName(name) }
 }
 
 // FontOpt sets the font.
 func FontOpt(name string) CheckbuttonOption {
-	return func(c *Checkbutton) {
-		f, err := c.App.FontRegistry().Get(name)
-		if err != nil {
-			log.Printf("checkbutton: failed to get font %q: %v", name, err)
-			return
-		}
-		c.Font = f
-	}
+	return func(c *Checkbutton) { c.SetFontName(name) }
 }
 
 // Anchor sets the text anchor.
@@ -170,6 +146,20 @@ func SelectImageOpt(img widget.WidgetImage) CheckbuttonOption {
 // IndicatorOnOpt sets whether the indicator (checkbox square) is drawn.
 func IndicatorOnOpt(on bool) CheckbuttonOption {
 	return func(c *Checkbutton) { c.IndicatorOn = on }
+}
+
+// SelectColor sets -selectcolor, the indicator's colour when selected.
+func SelectColor(name string) CheckbuttonOption {
+	return func(c *Checkbutton) {
+		if col, ok := c.LookupColor(name); ok {
+			c.SelectColor = col.Ref()
+		}
+	}
+}
+
+// State sets -state (normal, active or disabled).
+func State(st widget.State) CheckbuttonOption {
+	return func(c *Checkbutton) { c.State = st }
 }
 
 // --- Ttk-compatible aliases (prefix with Checkbutton) for consistent naming ---
@@ -220,6 +210,12 @@ var CheckbuttonSelectImageOpt = SelectImageOpt
 
 // CheckbuttonIndicatorOnOpt is an alias for IndicatorOnOpt.
 var CheckbuttonIndicatorOnOpt = IndicatorOnOpt
+
+// CheckbuttonState is an alias for State.
+var CheckbuttonState = State
+
+// CheckbuttonSelectColor is an alias for SelectColor.
+var CheckbuttonSelectColor = SelectColor
 
 // New creates a new Checkbutton widget as a child of parent.
 func New(parent widget.Caregiver, name string, opts ...CheckbuttonOption) *Checkbutton {
@@ -278,7 +274,7 @@ func New(parent widget.Caregiver, name string, opts ...CheckbuttonOption) *Check
 	c.computeGeometry()
 
 	if c.Background != nil {
-		w.BackgroundPixel = c.Background.Pixel
+		w.SetBackgroundPixel(c.Background.Pixel)
 	}
 
 	bindCheckbutton(c, app)
@@ -531,14 +527,8 @@ func (c *Checkbutton) Invoke() {
 }
 
 // Configure applies options.
-func (c *Checkbutton) Configure(opts ...option.Option) {
-	option.Apply(c, opts)
-	c.UpdateBorder()
-	c.computeGeometry()
-	if c.Background != nil {
-		c.Win.BackgroundPixel = c.Background.Pixel
-	}
-	c.Display()
+func (c *Checkbutton) Configure(opts ...CheckbuttonOption) {
+	widget.Configure(c, opts, c.computeGeometry)
 }
 
 // Destroy cleans up the checkbutton.

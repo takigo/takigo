@@ -7,15 +7,12 @@ import (
 	"os"
 
 	"github.com/msorc/takigo"
-	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
-	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/button"
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
-	"github.com/msorc/takigo/window"
 )
 
 func main() {
@@ -41,37 +38,11 @@ func main() {
 	btns := demohelper.AddSeeDismiss(f)
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
-	// setBg applies the named color to a frame or label and pushes the
-	// resolved pixel to the X window. The option setters silently fall
-	// back on unknown color names, so we check Background == nil before
-	// touching the window. Both frame and label embed widget.Base, so
-	// once the option is applied the post-processing is identical.
-	setBg := func(name string, w widget.Widget) {
-		var bg *color.Color
-		var win *window.Window
-		switch b := any(w).(type) {
-		case *frame.Frame:
-			frame.Background(name)(b)
-			bg, win = b.Background, b.Win
-		case *label.Label:
-			label.Background(name)(b)
-			bg, win = b.Background, b.Win
-		default:
-			return
-		}
-		if bg == nil || win == nil {
-			return
-		}
-		win.BackgroundPixel = bg.Pixel
-		win.Display.Server.SetWindowBackground(win.PlatformID, bg.Pixel)
-		w.Display()
-	}
-
 	// Color-changing function: change the frame and label backgrounds.
 	// Buttons keep their own default background (matching Tk's behavior).
 	changeColor := func(colorName string) {
-		setBg(colorName, f)
-		setBg(colorName, msg)
+		f.Configure(frame.Background(colorName))
+		msg.Configure(label.Background(colorName))
 	}
 
 	// Color buttons — match Tk's button.tcl (X11 named colors, width 10).

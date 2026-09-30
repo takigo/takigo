@@ -31,18 +31,26 @@ func NewSeparator(parent widget.Caregiver, name string, opts ...SeparatorOption)
 		opt(s)
 	}
 
-	// Choose style based on orientation.
-	styleName := "TSeparator.Horizontal"
-	if s.Orient == Vertical {
-		styleName = "TSeparator.Vertical"
-	}
-
-	InitTtkWidget(&s.TtkWidget, win, app, styleName)
-
-	// SeparatorElementSize in tk/generic/ttk/ttkElements.c: 2x2 for both
-	// orientations; the geometry manager stretches it.
-	win.ReqWidth = 2
-	win.ReqHeight = 2
+	InitTtkWidget(&s.TtkWidget, win, app, s.orientStyle())
+	s.requestSize()
 
 	return s
+}
+
+func (s *Separator) orientStyle() string {
+	if s.Orient == Vertical {
+		return "TSeparator.Vertical"
+	}
+	return "TSeparator.Horizontal"
+}
+
+// requestSize ports SeparatorElementSize (tk/generic/ttk/ttkElements.c):
+// 2x2 for both orientations; the geometry manager stretches it.
+func (s *Separator) requestSize() {
+	s.Win.ReqWidth, s.Win.ReqHeight = 2, 2
+}
+
+// Configure sets options after creation.
+func (s *Separator) Configure(opts ...SeparatorOption) {
+	configure(&s.TtkWidget, s, opts, func() { s.StyleName = s.orientStyle() }, s.requestSize)
 }

@@ -3,12 +3,11 @@
 package square
 
 import (
-	"log"
-
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/window"
 )
@@ -33,33 +32,22 @@ type SquareOption func(*Square)
 
 // Background sets the background color.
 func Background(name string) SquareOption {
-	return func(s *Square) {
-		col, err := s.App.ColorCache().Get(name)
-		if err != nil {
-			log.Printf("square: failed to get color %q: %v", name, err)
-			return
-		}
-		s.Background = col
-		s.UpdateBorder()
-	}
+	return func(s *Square) { s.SetBackgroundName(name) }
 }
 
 // Foreground sets the square's color.
 func Foreground(name string) SquareOption {
 	return func(s *Square) {
-		col, err := s.App.ColorCache().Get(name)
-		if err != nil {
-			log.Printf("square: failed to get color %q: %v", name, err)
-			return
+		if s.SetForegroundName(name) {
+			col := s.Foreground
+			s.FgBorder = draw.NewBorder(col.Red, col.Green, col.Blue)
 		}
-		s.Foreground = col
-		s.FgBorder = draw.NewBorder(col.Red, col.Green, col.Blue)
 	}
 }
 
 // BorderWidthOpt sets the 3D border width.
-func BorderWidthOpt(w int) SquareOption {
-	return func(s *Square) { s.BorderWidth = w }
+func BorderWidthOpt(w any) SquareOption {
+	return func(s *Square) { s.BorderWidth = screenunit.PxOr(w, s.BorderWidth) }
 }
 
 // Relief sets the border relief.
@@ -151,7 +139,7 @@ func New(parent widget.Caregiver, name string, opts ...SquareOption) *Square {
 	s.keepInWindow()
 
 	if s.Background != nil {
-		w.BackgroundPixel = s.Background.Pixel
+		w.SetBackgroundPixel(s.Background.Pixel)
 	}
 
 	app.Dispatcher().Bind(w.PlatformID, event.ExposureMask, func(ev *event.Event) {
@@ -260,14 +248,8 @@ func (s *Square) Display() {
 }
 
 // Configure applies options to the square.
-func (s *Square) Configure(opts ...option.Option) {
-	option.Apply(s, opts)
-	s.UpdateBorder()
-	s.keepInWindow()
-	if s.Background != nil {
-		s.Win.BackgroundPixel = s.Background.Pixel
-	}
-	s.Display()
+func (s *Square) Configure(opts ...SquareOption) {
+	widget.Configure(s, opts, s.keepInWindow)
 }
 
 // Destroy cleans up the square widget.

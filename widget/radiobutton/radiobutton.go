@@ -4,8 +4,6 @@
 package radiobutton
 
 import (
-	"log"
-
 	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/option"
@@ -95,39 +93,17 @@ func Var(v *widget.Variable[string]) RadiobuttonOption {
 
 // Background sets the background color.
 func Background(name string) RadiobuttonOption {
-	return func(r *Radiobutton) {
-		col, err := r.App.ColorCache().Get(name)
-		if err != nil {
-			log.Printf("radiobutton: failed to get color %q: %v", name, err)
-			return
-		}
-		r.Background = col
-		r.UpdateBorder()
-	}
+	return func(r *Radiobutton) { r.SetBackgroundName(name) }
 }
 
 // Foreground sets the text color.
 func Foreground(name string) RadiobuttonOption {
-	return func(r *Radiobutton) {
-		col, err := r.App.ColorCache().Get(name)
-		if err != nil {
-			log.Printf("radiobutton: failed to get color %q: %v", name, err)
-			return
-		}
-		r.Foreground = col
-	}
+	return func(r *Radiobutton) { r.SetForegroundName(name) }
 }
 
 // FontOpt sets the font.
 func FontOpt(name string) RadiobuttonOption {
-	return func(r *Radiobutton) {
-		f, err := r.App.FontRegistry().Get(name)
-		if err != nil {
-			log.Printf("radiobutton: failed to get font %q: %v", name, err)
-			return
-		}
-		r.Font = f
-	}
+	return func(r *Radiobutton) { r.SetFontName(name) }
 }
 
 // Anchor sets the text anchor.
@@ -270,7 +246,7 @@ func New(parent widget.Caregiver, name string, opts ...RadiobuttonOption) *Radio
 	r.computeGeometry()
 
 	if r.Background != nil {
-		w.BackgroundPixel = r.Background.Pixel
+		w.SetBackgroundPixel(r.Background.Pixel)
 	}
 
 	bindRadiobutton(r, app)
@@ -470,14 +446,8 @@ func (r *Radiobutton) Invoke() {
 }
 
 // Configure applies options.
-func (r *Radiobutton) Configure(opts ...option.Option) {
-	option.Apply(r, opts)
-	r.UpdateBorder()
-	r.computeGeometry()
-	if r.Background != nil {
-		r.Win.BackgroundPixel = r.Background.Pixel
-	}
-	r.Display()
+func (r *Radiobutton) Configure(opts ...RadiobuttonOption) {
+	widget.Configure(r, opts, r.computeGeometry)
 }
 
 // Destroy cleans up the radiobutton.

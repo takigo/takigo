@@ -104,15 +104,7 @@ func ButtonBackground(name string) SpinboxOption {
 }
 
 func Background(name string) SpinboxOption {
-	return func(s *Spinbox) {
-		col, err := s.App.ColorCache().Get(name)
-		if err != nil {
-			log.Printf("spinbox: failed to get color %q: %v", name, err)
-			return
-		}
-		s.Background = col
-		s.UpdateBorder()
-	}
+	return func(s *Spinbox) { s.SetBackgroundName(name) }
 }
 
 // --- Ttk-compatible aliases (prefix with Spinbox) for consistent naming ---
@@ -205,7 +197,7 @@ func New(parent widget.Caregiver, name string, opts ...SpinboxOption) *Spinbox {
 	s.computeGeometry()
 
 	if s.Background != nil {
-		w.BackgroundPixel = s.Background.Pixel
+		w.SetBackgroundPixel(s.Background.Pixel)
 	}
 
 	w.Flags |= window.FlagFocusable
@@ -703,14 +695,8 @@ func (s *Spinbox) drawButtons(d platform.DisplayServer, gc platform.GCID) {
 }
 
 // Configure applies options.
-func (s *Spinbox) Configure(opts ...option.Option) {
-	option.Apply(s, opts)
-	s.UpdateBorder()
-	s.computeGeometry()
-	if s.Background != nil {
-		s.Win.BackgroundPixel = s.Background.Pixel
-	}
-	s.Display()
+func (s *Spinbox) Configure(opts ...SpinboxOption) {
+	widget.Configure(s, opts, s.computeGeometry)
 }
 
 // Destroy cleans up the spinbox.

@@ -87,15 +87,26 @@ func NewRadiobutton(parent widget.Caregiver, name string, opts ...RadiobuttonOpt
 		opt(r)
 	}
 
-	// Sync initial selected state from variable.
-	if r.Variable != nil && r.Variable.Get() == r.Value {
-		r.State |= StateSelected
-		r.State &^= StateAlternate
-	}
+	r.syncSelected()
 
 	r.computeSize()
 	bindTtkRadiobutton(r, app)
 	return r
+}
+
+// syncSelected sets the selected state from -variable and -value.
+func (r *Radiobutton) syncSelected() {
+	if r.Variable != nil && r.Variable.Get() == r.Value {
+		r.State |= StateSelected
+		r.State &^= StateAlternate
+	} else {
+		r.State &^= StateSelected
+	}
+}
+
+// Configure sets options after creation.
+func (r *Radiobutton) Configure(opts ...RadiobuttonOption) {
+	configure(&r.TtkWidget, r, opts, r.syncSelected, r.computeSize)
 }
 
 func (r *Radiobutton) computeSize() {

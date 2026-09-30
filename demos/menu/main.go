@@ -66,8 +66,7 @@ func main() {
 	pack.Pack(msg, pack.SideOpt(pack.Top))
 
 	setStatus := func(s string) {
-		statusLabel.Text = s
-		statusLabel.Display()
+		statusLabel.Configure(label.Text(s))
 	}
 
 	// ── File menu ──

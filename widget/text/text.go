@@ -177,13 +177,10 @@ func New(parent widget.Caregiver, name string, opts ...TextOption) *TextWidget {
 		opt(t)
 	}
 
-	t.inset = t.BorderWidth + t.HighlightWidth
-	t.insetX = t.inset + t.PadX
-	t.insetY = t.inset + t.PadY
 	t.computeGeometry()
 
 	if t.Background != nil {
-		w.BackgroundPixel = t.Background.Pixel
+		w.SetBackgroundPixel(t.Background.Pixel)
 	}
 
 	w.Flags |= window.FlagFocusable
@@ -246,13 +243,10 @@ func NewPeer(doc *Document, parent widget.Caregiver, name string, opts ...TextOp
 		opt(t)
 	}
 
-	t.inset = t.BorderWidth + t.HighlightWidth
-	t.insetX = t.inset + t.PadX
-	t.insetY = t.inset + t.PadY
 	t.computeGeometry()
 
 	if t.Background != nil {
-		w.BackgroundPixel = t.Background.Pixel
+		w.SetBackgroundPixel(t.Background.Pixel)
 	}
 
 	w.Flags |= window.FlagFocusable
@@ -275,6 +269,9 @@ func NewPeer(doc *Document, parent widget.Caregiver, name string, opts ...TextOp
 
 // computeGeometry calculates the requested window size.
 func (t *TextWidget) computeGeometry() {
+	t.inset = t.BorderWidth + t.HighlightWidth
+	t.insetX = t.inset + t.PadX
+	t.insetY = t.inset + t.PadY
 	if t.Font == nil {
 		return
 	}
@@ -491,8 +488,7 @@ func (t *TextWidget) Edit(mode string) {
 
 // SetWrapMode changes the wrap mode at runtime.
 func (t *TextWidget) SetWrapMode(mode WrapMode) {
-	t.wrapMode = mode
-	t.Display()
+	t.Configure(WrapModeOpt(mode))
 }
 
 // --- Scroll API ---
@@ -571,17 +567,8 @@ func (t *TextWidget) XViewScroll(count int, pages bool) {
 }
 
 // Configure applies options.
-func (t *TextWidget) Configure(opts ...option.Option) {
-	option.Apply(t, opts)
-	t.UpdateBorder()
-	t.inset = t.BorderWidth + t.HighlightWidth
-	t.insetX = t.inset + t.PadX
-	t.insetY = t.inset + t.PadY
-	t.computeGeometry()
-	if t.Background != nil {
-		t.Win.BackgroundPixel = t.Background.Pixel
-	}
-	t.Display()
+func (t *TextWidget) Configure(opts ...TextOption) {
+	widget.Configure(t, opts, t.computeGeometry)
 }
 
 // Destroy cleans up the text widget.
@@ -706,16 +693,12 @@ func (t *TextWidget) MarkGravity(markName string, gravity MarkGravity) {
 
 // SetPadX sets horizontal padding between the border and the text content.
 func (t *TextWidget) SetPadX(n int) {
-	t.PadX = n
-	t.insetX = t.inset + n
-	t.Display()
+	t.Configure(PadXOpt(n))
 }
 
 // SetPadY sets vertical padding between the border and the text content.
 func (t *TextWidget) SetPadY(n int) {
-	t.PadY = n
-	t.insetY = t.inset + n
-	t.Display()
+	t.Configure(PadYOpt(n))
 }
 
 // positionEmbeddedWindows moves embedded windows to their correct inline
