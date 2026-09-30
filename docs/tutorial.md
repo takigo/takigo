@@ -1652,24 +1652,49 @@ all := tw.Get("1.0", "end")
 
 ### Indices
 
-An index names a position between characters:
+An index names a position between characters. It has the same grammar as in
+Tk: a *base*, optionally followed by *modifiers*.
 
-| Index | Meaning |
-|-------|---------|
+| Base | Meaning |
+|------|---------|
 | `"3.0"` | Line 3 (1-based), character 0 (0-based) — the start of line 3. |
 | `"3.end"` | End of line 3 (before its newline). |
 | `"end"` | End of the text. |
 | `"insert"` | The insertion cursor. |
-| `"sel.first"`, `"sel.last"` | Selection bounds (only when there is a selection). |
 | any mark name | The mark's position. |
+| `"tag.first"`, `"tag.last"` | Start of the first / end of the last range of a tag, e.g. `"sel.first"`. Invalid when the tag has no ranges. |
+| `"@x,y"` | The character nearest the pixel `(x, y)` in the widget. |
+| an embedded window's path | Its position, e.g. `".t.btn"`. |
 
-The port doesn't support index arithmetic such as `"insert +1c"` or
-`"end -1c"`. For computed positions use the Go helpers on the document:
-`tw.Doc()` returns a `*text.Document`, and `text.ParseIndex`,
-`text.Forward`, `text.Backward`, `text.WordStart`, `text.WordEnd`,
-`text.LineStart` and `text.LineEnd` work with `text.Index{Line, Char}`
-values. `tw.EndIndex()` returns the end position as an index string, which is
-convenient for "remember where this insert started":
+| Modifier | Meaning |
+|----------|---------|
+| `+ n chars`, `- n chars` | Move `n` characters (a line break counts as one). Also `indices`; `any` and `display` variants are accepted. |
+| `+ n lines`, `- n lines` | Same character offset, `n` lines down or up. |
+| `+ n display lines` | Same x position, `n` wrapped display lines down (or up with `-`). |
+| `linestart`, `lineend` | Start or end of the line; with `display`, of the wrapped display line. |
+| `wordstart`, `wordend` | Start of the word at the index, or just past its end. |
+
+Units can be abbreviated as in Tk (`"insert +1c"`, `"insert -2l"`), spaces are
+optional, and modifiers chain left to right:
+
+```go
+tw.Delete("insert linestart", "insert lineend")    // clear the current line
+word := tw.Get("insert wordstart", "insert wordend")
+tw.TagAdd("hl", "sel.first", "sel.first +5c")
+tw.See("end -1 lines")
+body := tw.Get("1.0", "end -1c")                   // everything, as in Tcl
+```
+
+As in Tk, `"end"` sits after an implicit final newline, so `"end -1c"` is the
+end of the content. Here, `Get("1.0", "end")` and `Get("1.0", "end -1c")`
+return the same text: a Go document has no trailing newline to include.
+
+The same arithmetic is available on `text.Index{Line, Char}` values through
+the document (`tw.Doc()`): `text.ParseIndex(doc, spec)` resolves an index
+string, and `text.Forward`, `text.Backward`, `text.LineStart` and
+`text.LineEnd` move positions directly. `tw.EndIndex()` returns the end
+position as an index string, which is convenient for "remember where this
+insert started":
 
 ```go
 start := tw.EndIndex()
@@ -2966,6 +2991,7 @@ Tips:
 | `destroy .b` | `b.Destroy()` |
 | `pack .b -side left -fill x -expand 1` | `pack.Pack(b, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillX), pack.Expand(true))` |
 | `pack forget .b` | `pack.Forget(b)` |
+| `pack .b -before .x` | `pack.Pack(b, pack.Before(x))` |
 | `grid .l .e -sticky ew` | `grid.Grid(geometry.Group{l, e}, grid.Sticky(grid.EW))` |
 | `grid .x -row 1 -column 2` | `grid.Grid(x, grid.Row(1), grid.Column(2))` |
 | `grid columnconfigure . 0 -weight 1` | `grid.ColumnConfigure(app, 0, grid.Weight(1))` |
@@ -2996,6 +3022,7 @@ Tips:
 | `font create H -size 16 -weight bold` | `app.FontRegistry().Define("H", font.Attributes{Size: 16, Weight: font.WeightBold})` |
 | `.t insert end "x" tag` | `start := t.EndIndex(); t.Insert("end", "x"); t.TagAdd("tag", start, t.EndIndex())` |
 | `.t tag configure b -font {...}` | `t.TagConfigure("b", text.TagFont("..."))` |
+| `.t get "insert linestart" "insert lineend"` | `t.Get("insert linestart", "insert lineend")` |
 | `.c create rectangle 0 0 10 10 -fill red -tags box` | `c.CreateRectangle(0, 0, 10, 10, canvas.FillColor("red"), canvas.Tags("box"))` |
 | `.c bind box <1> cb` | `c.BindItem("box", event.ButtonPressMask, cb)` (check `ev.Button`) |
 | `ttk::style configure Accent.TButton -background X` | `ttk.CurrentTheme().GetStyle("Accent.TButton").Defaults["-background"] = pixel` |
