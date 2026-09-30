@@ -55,9 +55,11 @@ func (u *UndoStack) RecordInsert(start, end Index, text string) {
 	u.redoStack = nil
 }
 
-// RecordDelete records a delete action.
+// RecordDelete records a delete action. As in Tk, which records the
+// deleted range's characters (TextGetText), embedded windows and images are
+// not part of it: undo brings the text back but not them.
 func (u *UndoStack) RecordDelete(start, end Index, text string) {
-	action := UndoAction{Type: ActionDelete, Start: start, End: end, Text: text}
+	action := UndoAction{Type: ActionDelete, Start: start, End: end, Text: withoutPlaceholders(text)}
 
 	// Auto-group: if current group is a single-char backspace at adjacent position, merge.
 	if len(u.current) == 1 && u.current[0].Type == ActionDelete &&
@@ -158,7 +160,7 @@ func (u *UndoStack) Redo(doc *Document) bool {
 				Type: ActionInsert, Start: action.Start, End: endIdx, Text: action.Text,
 			})
 		case ActionDelete:
-			text := doc.Get(action.Start, action.End)
+			text := withoutPlaceholders(doc.Get(action.Start, action.End))
 			doc.Delete(action.Start, action.End)
 			undoGroup = append(undoGroup, UndoAction{
 				Type: ActionDelete, Start: action.Start, End: action.End, Text: text,

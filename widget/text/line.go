@@ -44,6 +44,59 @@ type Document struct {
 	// peer shows them, as in Tk.
 	images   map[string]widget.WidgetImage
 	imageSeq int
+
+	// objects are the marks of embedded windows and images, each just
+	// before its placeholder character; objectSubs are told when a Delete
+	// removes one.
+	objects    map[string]bool
+	objectSubs []*func(name string)
+}
+
+// addObject records the embedded window or image whose placeholder follows
+// the mark name.
+func (d *Document) addObject(name string) {
+	if d.objects == nil {
+		d.objects = map[string]bool{}
+	}
+	d.objects[name] = true
+}
+
+// subscribeObjects registers fn to be called with the mark name of each
+// embedded window or image a Delete removes.
+func (d *Document) subscribeObjects(fn func(name string)) (unsubscribe func()) {
+	p := &fn
+	d.objectSubs = append(slices.Clip(d.objectSubs), p)
+	return func() {
+		if i := slices.Index(d.objectSubs, p); i >= 0 {
+			d.objectSubs = slices.Delete(slices.Clone(d.objectSubs), i, i+1)
+		}
+	}
+}
+
+// objectsIn returns the embedded objects whose placeholders lie in
+// [start, end).
+func (d *Document) objectsIn(start, end Index) []string {
+	var names []string
+	for name := range d.objects {
+		if m := d.Marks[name]; m != nil && Compare(m.Pos, start) >= 0 && Compare(m.Pos, end) < 0 {
+			names = append(names, name)
+		}
+	}
+	return names
+}
+
+// dropObjects forgets deleted embedded objects and tells the subscribers,
+// as the B-tree calls a segment's deleteProc (EmbWinDeleteProc,
+// EmbImageDeleteProc).
+func (d *Document) dropObjects(names []string) {
+	for _, name := range names {
+		delete(d.objects, name)
+		delete(d.images, name)
+		delete(d.Marks, name)
+		for _, fn := range d.objectSubs {
+			(*fn)(name)
+		}
+	}
 }
 
 // isPlaceholder reports whether the character at pos is an embedded
@@ -223,6 +276,8 @@ func (d *Document) Delete(start, end Index) {
 		return
 	}
 
+	gone := d.objectsIn(start, end)
+
 	// Adjust marks and tags.
 	for _, m := range d.Marks {
 		d.adjustMarkDelete(m, start, end)
@@ -234,6 +289,7 @@ func (d *Document) Delete(start, end Index) {
 	if start.Line == end.Line {
 		line := d.Lines[start.Line-1]
 		line.Text = slices.Delete(line.Text, start.Char, end.Char)
+		d.dropObjects(gone)
 		d.notifyListeners(Change{From: start.Line, To: start.Line})
 		return
 	}
@@ -243,6 +299,7 @@ func (d *Document) Delete(start, end Index) {
 	lastLine := d.Lines[end.Line-1]
 	firstLine.Text = append(firstLine.Text[:start.Char], lastLine.Text[end.Char:]...)
 	d.Lines = slices.Delete(d.Lines, start.Line, end.Line)
+	d.dropObjects(gone)
 	d.notifyListeners(Change{From: start.Line, To: start.Line, Delta: start.Line - end.Line})
 }
 

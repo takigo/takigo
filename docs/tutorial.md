@@ -1774,6 +1774,14 @@ tw.WindowCreate("end", btn.Window())   // create the widget as a child of the te
 tw.ImageCreate("end", img)             // any image, see chapter 14
 ```
 
+As in Tk, each embedded window or image occupies one index position: text
+flows around it and it moves with edits before it. Its path (for a window)
+or its image name can be used as an index, e.g. `tw.See(".t.more")`.
+Deleting its position removes it; for a window that destroys the widget,
+while `tw.RemoveWindow(w)` only takes it out of the text. `Get` and the
+selection return just the characters, and undoing a deletion brings back
+the text but not the windows or images that were in it.
+
 ### Peers
 
 Several text widgets can share one document, each with its own view, cursor

@@ -5,6 +5,7 @@ package text
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/msorc/takigo/color"
@@ -164,6 +165,7 @@ func New(parent widget.Caregiver, name string, opts ...TextOption) *TextWidget {
 	t.doc.putTag(selTag)
 	t.layout.init(t)
 	t.doc.Listeners = append(t.doc.Listeners, t.layout.apply)
+	t.doc.subscribeObjects(t.objectDeleted)
 
 	t.undoStack = NewUndoStack(100)
 
@@ -253,9 +255,11 @@ func NewPeer(doc *Document, parent widget.Caregiver, name string, opts ...TextOp
 		t.notifyYScrollbar()
 		t.scheduleRedraw()
 	})
+	unsubObjects := doc.subscribeObjects(t.objectDeleted)
 	w.OnDestroy(func() {
 		unsubLayout()
 		unsubRedraw()
+		unsubObjects()
 	})
 
 	return t
@@ -627,6 +631,7 @@ func (t *TextWidget) WindowCreatePad(indexStr string, w *window.Window, padX, pa
 	t.ewSeq++
 	markName := fmt.Sprintf("_ew%d", t.ewSeq)
 	t.doc.MarkSet(markName, idx)
+	t.doc.addObject(markName)
 	t.embeddedWindows = append(t.embeddedWindows, embeddedWin{markName: markName, win: w,
 		padX: screenunit.PxOr(padX, 0), padY: screenunit.PxOr(padY, 0)})
 }
@@ -646,6 +651,7 @@ func (t *TextWidget) ImageCreate(indexStr string, img widget.WidgetImage) {
 	d.imageSeq++
 	name := fmt.Sprintf("_ei%d", d.imageSeq)
 	d.MarkSet(name, idx)
+	d.addObject(name)
 	if d.images == nil {
 		d.images = map[string]widget.WidgetImage{}
 	}
@@ -679,14 +685,27 @@ func (t *TextWidget) RemoveWindow(win *window.Window) {
 	for i, ew := range t.embeddedWindows {
 		if ew.win == win {
 			d.UnmapWindow(win.PlatformID)
-			// Delete placeholder character and mark.
+			// Forget the window first so deleting its placeholder does not
+			// destroy it (objectDeleted), then delete the placeholder.
+			t.embeddedWindows = append(t.embeddedWindows[:i], t.embeddedWindows[i+1:]...)
 			if m, ok := t.doc.Marks[ew.markName]; ok {
 				pos := m.Pos
 				t.doc.Delete(pos, Index{Line: pos.Line, Char: pos.Char + 1})
 				t.doc.MarkUnset(ew.markName)
 			}
-			t.embeddedWindows = append(t.embeddedWindows[:i], t.embeddedWindows[i+1:]...)
 			t.Display()
+			return
+		}
+	}
+}
+
+// objectDeleted destroys an embedded window of this widget whose position
+// was deleted, as EmbWinDeleteProc does.
+func (t *TextWidget) objectDeleted(name string) {
+	for i, ew := range t.embeddedWindows {
+		if ew.markName == name {
+			t.embeddedWindows = slices.Delete(t.embeddedWindows, i, i+1)
+			window.DestroyWindow(ew.win)
 			return
 		}
 	}
