@@ -106,7 +106,6 @@ cmd/                                               — top-level test programs (
 
 scripts/                                           — bash + tcl screenshot/compare pipeline (see below)
 docs/architecture-review.md                        — architecture review snapshot (2026-08-31)
-nemotron_review.md                                 — code review + log of implemented fixes
 THREADING.md                                       — threading contract: loop-only vs goroutine-safe APIs
 tk/  tcl/                                          — vendored Tk 9.1 + Tcl 9.1 source (gitignored) — REFERENCE ONLY
 tmp/                                               — gitignored; screenshot output and progress files
