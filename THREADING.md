@@ -46,11 +46,10 @@ These types use internal synchronization (`sync.Mutex`/`sync.RWMutex` or channel
 |------|---------|--------------|-------|
 | `*event.Dispatcher` | `event` | `Bind`, `BindGlobal`, `Unbind`, `UnbindID` | Copy-on-write handler lists under a `sync.RWMutex`; a handler unbound during a dispatch is not called. `Dispatch()` is loop-only. |
 | `*event.Loop` | `event` | `DoWhenIdle`, `After`, `RunOnMain`, `Quit`, `SetRawEventHandler` (before `Run`) | Append to mutex-guarded queues; never block. `Quit` is idempotent. `Run()`/`RunNested()` are loop-only. |
-| `*takigo.App` | `takigo` | `DoWhenIdle`, `After`, `RunOnMain`, `Quit`, `Dispatcher()`, `ColorCache()`, `FontRegistry()`, `ImageRegistry()`, `Server()`, `BindEngine()`, `Clipboard()`, `FocusManager()`, `WmInfo()` | Delegates to `Loop` or returns the (shared) singletons; what you may call on those depends on their own row. `RunNestedLoop`, `RegisterCloseHandler` and `UnregisterCloseHandler` are loop-only. |
+| `*takigo.App` | `takigo` | `DoWhenIdle`, `After`, `RunOnMain`, `Quit`, `Done`, `Dispatcher()`, `ColorCache()`, `FontRegistry()`, `ImageRegistry()`, `Server()`, `BindEngine()`, `BindEng()`, `Clipboard()`, `FocusManager()`, `GrabManager()`, `WmInfo()` | Delegates to `Loop` or returns the (shared) singletons; what you may call on those depends on their own row. `RunNestedLoop`, `RunNestedLoopContext`, `UpdateIdleTasks`, `RegisterCloseHandler` and `UnregisterCloseHandler` are loop-only. |
 | `*color.Cache` | `color` | `Get`, `GetByValue` | Uses `sync.RWMutex`. |
 | `*font.Registry` | `font` | `Define`, `Get`, `GetAttrs`, `Derive`, `Close` | Uses `sync.Mutex`. |
 | `*image.Registry` | `image` | `Register`, `Get`, `Unregister`, `DestroyAll` | Uses `sync.RWMutex`. |
-| `platform.DisplayServer` | `platform` | All methods | Backend-dependent. X11 uses thread-safe Xlib calls; Cocoa/Win32 require main-thread calls (enforced by event loop). |
 
 ---
 
@@ -62,13 +61,17 @@ These types **must only be accessed from the event loop goroutine**. They have n
 |------|---------|--------|
 | `*window.Window` | `window` | Hierarchy (`Parent`, `Children`), geometry (`X`, `Y`, `Width`, `Height`, `ReqWidth`, `ReqHeight`), flags, `GC`, `WmData`, `BackgroundHook`. |
 | `*window.Display` | `window` | Window lookup map, screen info. |
-| `*widget.Base` / all widgets | `widget` | All fields: visual options, `NeedRedraw`, `Destroyed`, `Border`. |
+| `*widget.Base` / all widgets, canvas, text | `widget`, `ttk`, `canvas` | All fields: visual options, `NeedRedraw`, `Destroyed`, `Border`; canvas items, text documents. |
+| `*widget.Variable[T]` | `widget` | `Set` runs the listeners, which configure widgets. |
+| `*image.Photo` | `image` | Pixels and the pixmap cache. Decoding a file into a new Photo is fine anywhere; once a widget shows it, change it on the loop. |
 | `*draw.Border` | `draw` | Precomputed 3D border colors. |
-| Geometry managers (`*pack.Packer`, `*grid.Gridder`, `*placer.Placer`) | `geometry/pack`, `geometry/grid`, `geometry/place` | Package-global `packers` map, per-container layout state. |
+| Geometry managers (`pack`, `grid`, `place`) | `geometry/pack`, `geometry/grid`, `geometry/place` | Per-container layout state, kept on the windows (`Window.Value`). |
 | `*wm.WmInfo` | `wm` | Per-toplevel WM state (title, geometry, protocols, handlers). |
 | `*focus.Manager` | `focus` | Focus traversal ring, focused window tracking. |
+| `*grab.Manager` | `grab` | The current grab window. |
 | `*bind.Engine` | `bind` | Binding tables, tag chains, class bindings. |
-| `*event.Loop` (internal fields) | `event` | `rawHandler`, `idleQueue`, `dispatcher`, `pumper` — only `Run()` goroutine touches these. |
+| `platform.DisplayServer` | `platform` | On X11 concurrent calls do not corrupt memory (Xlib is thread-safe after `XInitThreads`), but the state they act on is the loop's: shared GCs, the input context, sequences of requests that must not interleave. Cocoa/Win32 calls must come from the loop's thread. |
+| `*event.Loop` (internal fields) | `event` | `rawHandler`, `idleQueue`, `mainQueue`, `dispatcher`, `pumper` — only `Run()` goroutine touches these. |
 
 ---
 
@@ -91,7 +94,15 @@ app.Quit()
 
 // Nested event loop for modal dialogs (must be called from a handler on the event loop).
 app.RunNestedLoop(done <-chan struct{})
+
+// Closed once Quit has been called.
+app.Done() <-chan struct{}
 ```
+
+A nested loop runs everything the outer loop would: events, timers, and the
+idle and `RunOnMain` callbacks that were queued behind the callback that
+started it, in the order they were posted. Widgets behind a modal dialog keep
+repainting.
 
 **Do not** call widget methods, window methods, or geometry managers from background goroutines. Instead, capture needed data and use `RunOnMain`:
 
@@ -105,13 +116,50 @@ app.RunOnMain(func() {
 })
 ```
 
+To get a value back, send it on a channel and also wait for `app.Done()`:
+callbacks still queued when the loop quits never run. Never wait like this on
+the loop goroutine itself — the callback cannot run until you return.
+
+```go
+res := make(chan int, 1)
+app.RunOnMain(func() { res <- b.Window().Width })
+select {
+case width := <-res:
+    use(width)
+case <-app.Done():
+}
+```
+
+---
+
+## Multiple Apps
+
+On X11 a process may run several Apps at once, each with its own display
+connection and its own loop goroutine (the goroutine that calls `Run`). Every
+rule above then holds per App: an App's windows, widgets and managers belong
+to its loop goroutine, and another App's goroutine is a "background goroutine"
+to it. `multiapp_test.go` runs this under the race detector.
+
+Some state is process-wide and shared by all Apps:
+
+| State | Rule |
+|-------|------|
+| ttk themes (`ttk.RegisterTheme`, `Theme` elements, styles, layouts) | The `Theme` methods are goroutine-safe. A style's `Defaults` and `Maps` are plain maps: fill them in before widgets use the style, or while no other App is running. |
+| Current theme (`ttk.SetCurrentTheme`) | One for the process; other Apps' widgets are not told about a change. |
+| `screenunit` DPI | Set by every `NewApp`; the last one wins. Reads and writes are atomic. |
+| libXft | Serialized by `xlib.XftMu`; nothing to do. |
+| X error handler | One for the process; `GetImageRGBA`'s error trap is serialized. |
+
+Windows and macOS support one App at a time: Win32 has one window procedure
+for the process, AppKit one `NSApp`. Apps one after another are fine.
+
 ---
 
 ## Platform Backend Considerations
 
-- **X11**: `platform.DisplayServer` methods are generally thread-safe (`xlib.OpenDisplay` calls `XInitThreads` before the first connection). The reader goroutine calls `NextEvent()` concurrently with the event loop calling `Flush()`.
-- **macOS/Cocoa**: All AppKit calls **must** run on the main thread. The event loop runs on the main thread; `EventPumper.PumpEvents()` is called from the event loop. Background goroutines must use `RunOnMain`.
-- **Windows**: Similar to macOS — window messages must be processed on the thread that created the window. The event loop runs on that thread.
+- **X11**: `xlib.OpenDisplay` calls `XInitThreads` before the first connection, because the reader goroutine calls `NextEvent()` while the event loop draws and flushes. That makes Xlib calls memory-safe from any goroutine; it does not make the display server a goroutine-safe API (see the loop-only table).
+- **macOS/Cocoa**: All AppKit calls **must** run on the main thread. `NewApp` must be called from the main goroutine (it fails elsewhere) and the event loop runs there; `EventPumper.PumpEvents()` is called from the event loop. Background goroutines must use `RunOnMain`.
+- **Windows**: Window messages are processed on the thread that created the window. `NewApp` locks its goroutine to that thread; call `Run` from the same goroutine.
 
 ---
 
@@ -119,14 +167,13 @@ app.RunOnMain(func() {
 
 | Category | Types | Access Pattern |
 |----------|-------|----------------|
-| **Goroutine-safe (sync)** | `Dispatcher` (bind/unbind), `Loop` (posting methods), `App` (posting methods), `color.Cache`, `font.Registry`, `image.Registry` | Any goroutine |
-| **Loop-only** | `Window`, `Display`, `Base`/widgets, `Border`, geometry managers, `WmInfo`, `focus.Manager`, `selection.Manager` (its mutex guards only its own maps; it calls the display server and callbacks), `bind.Engine` | Event loop goroutine only |
-| **Platform-dependent** | `DisplayServer` | X11: any; Cocoa/Win32: main thread only (enforced by loop) |
+| **Goroutine-safe (sync)** | `Dispatcher` (bind/unbind), `Loop` (posting methods), `App` (posting methods), `color.Cache`, `font.Registry`, `image.Registry`, `ttk.Theme` methods | Any goroutine |
+| **Loop-only** | `Window`, `Display`, `Base`/widgets, `Variable`, `Photo`, `Border`, geometry managers, `WmInfo`, `focus.Manager`, `grab.Manager`, `selection.Manager` (its mutex guards only its own maps; it calls the display server and callbacks), `bind.Engine`, `DisplayServer` | The App's event loop goroutine only |
 
 ---
 
 ## Enforcement
 
-- `go vet` and `-race` detector will catch most violations.
-- The `event.Loop` struct documents its threading contract in its type comment (`event/loop.go:22-26`).
+- Nothing checks at run time which goroutine calls a loop-only API; the `-race` detector reports violations that a test exercises.
+- The `event.Loop` struct documents its threading contract in its type comment.
 - `widget.Base` and `window.Window` have no synchronization — treat them as **not thread-safe**.
