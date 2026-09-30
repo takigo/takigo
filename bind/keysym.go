@@ -2,7 +2,11 @@
 // matching, tag-based dispatch chains, virtual events, and double-click support.
 package bind
 
-import "github.com/msorc/takigo/platform"
+import (
+	"strconv"
+
+	"github.com/msorc/takigo/platform"
+)
 
 // keysymNames maps lowercase keysym name strings to platform.KeySym values.
 // Used by the pattern parser to resolve key names in patterns like <Key-Return>.
@@ -142,6 +146,29 @@ func lookupKeySym(name string) platform.KeySym {
 		}
 	}
 	return 0
+}
+
+// keysymNamesByValue is the inverse of keysymNames; where several names share
+// a keysym (prior/pageup) the shortest, then alphabetically first, is kept.
+var keysymNamesByValue = func() map[platform.KeySym]string {
+	m := make(map[platform.KeySym]string, len(keysymNames))
+	for name, ks := range keysymNames {
+		if old, ok := m[ks]; !ok || len(name) < len(old) || len(name) == len(old) && name < old {
+			m[ks] = name
+		}
+	}
+	return m
+}()
+
+// keySymName returns a name for ks that lookupKeySym resolves back to ks.
+func keySymName(ks platform.KeySym) string {
+	if name, ok := keysymNamesByValue[ks]; ok {
+		return name
+	}
+	if ks >= 0x20 && ks <= 0x7e {
+		return string(rune(ks))
+	}
+	return "0x" + strconv.FormatUint(uint64(ks), 16)
 }
 
 // toLower is a simple ASCII-only lowercase conversion.

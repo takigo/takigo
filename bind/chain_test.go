@@ -94,3 +94,45 @@ func TestChainStopsWhenClassHandlerDestroysWindow(t *testing.T) {
 		t.Error(`"all" binding ran after the class handler destroyed the window`)
 	}
 }
+
+// TestKeyBindingsForDifferentKeysCoexist checks that bindings for different
+// keys on one tag are separate bindings: each key runs its own handler, and
+// <Key> only gets the keys no more specific binding matches.
+func TestKeyBindingsForDifferentKeysCoexist(t *testing.T) {
+	const top, lb platform.WindowID = 1, 2
+	d := &window.Display{Windows: map[platform.WindowID]*window.Window{}}
+	root := &window.Window{PlatformID: top, PathName: ".", Display: d, Flags: window.FlagTopLevel, Class: "Toplevel"}
+	l := &window.Window{PlatformID: lb, PathName: ".l", Name: "l", Parent: root, Display: d, Class: "Listbox"}
+	d.RegisterWindow(top, root)
+	d.RegisterWindow(lb, l)
+
+	disp := event.NewDispatcher()
+	e := NewEngine(d)
+	e.Install(disp)
+	var got []string
+	for _, p := range []string{"<space>", "<F2>", "<Delete>", "<Control-o>", "<Control-s>", "<Key>"} {
+		if err := e.Bind(".l", p, func(*EventData) bool { got = append(got, p); return false }); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	keys := []struct {
+		sym   platform.KeySym
+		state uint
+		want  string
+	}{
+		{platform.XK_space, 0, "<space>"},
+		{platform.KeySym(0xffbf), 0, "<F2>"},
+		{platform.XK_Delete, 0, "<Delete>"},
+		{platform.KeySym('o'), platform.ControlMask, "<Control-o>"},
+		{platform.KeySym('s'), platform.ControlMask, "<Control-s>"},
+		{platform.KeySym('x'), 0, "<Key>"},
+	}
+	for _, k := range keys {
+		got = nil
+		disp.Dispatch(&event.Event{Type: event.KeyPressType, Window: lb, KeySym: k.sym, State: k.state})
+		if !slices.Equal(got, []string{k.want}) {
+			t.Errorf("keysym %#x state %#x ran %q, want [%q]", k.sym, k.state, got, k.want)
+		}
+	}
+}
