@@ -11,7 +11,7 @@ import (
 
 // RequireDisplay skips the test if no X11 display is available or the
 // build has no display backend (CGO_ENABLED=0 on Unix).
-func RequireDisplay(t *testing.T) {
+func RequireDisplay(t testing.TB) {
 	t.Helper()
 	if !haveBackend {
 		t.Skip("no display backend in this build (cgo disabled)")

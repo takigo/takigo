@@ -297,6 +297,11 @@ package maps: several Apps may run at once on different goroutines
   `wm/wm_test.go`, `bind/{table,pattern}_test.go`).
 - Fuzz targets: `bind/pattern_fuzz_test.go`, `geometry/grid/grid_fuzz_test.go`.
   Benchmarks: `event/dispatch_bench_test.go` (dispatcher hot path),
+  `event/loop_bench_test.go` (idle and RunOnMain queues),
+  `geometry/{pack,grid,place}/bench_test.go` (arrange, forget/re-manage on a
+  display-free fake), `ttk/theme_bench_test.go` (style lookup, layout build),
+  `bench_test.go` (relayout, ttk create/destroy, pixel read-back; needs a
+  display),
   `canvas/bench_test.go` (pick, find, tag resolution, display-list edits and
   item redraw on a display-free canvas: `go test ./canvas/ -run '^$' -bench .`).
 - CI (`.github/workflows/ci.yml`) runs vet, gofmt and `go test -race`
