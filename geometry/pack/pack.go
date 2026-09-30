@@ -3,6 +3,7 @@
 package pack
 
 import (
+	"log"
 	"slices"
 
 	"github.com/msorc/takigo/geometry"
@@ -46,6 +47,15 @@ type packConfig struct {
 	iPadX           int
 	iPadY           int
 	in              *window.Window // -in: a container other than the parent
+
+	// Per-call placement, not kept with the content: -in given in this
+	// call, and -before/-after.
+	inGiven       bool
+	before, after *window.Window
+}
+
+func defaultConfig() packConfig {
+	return packConfig{side: Top, fill: FillNone, anchor: option.AnchorCenter}
 }
 
 // Side sets the packing side.
@@ -172,94 +182,194 @@ func forgetContainer(container *window.Window) {
 	}
 }
 
-// Pack adds children to their parent's pack layout.
-// Accepts a geometry.Elementer (e.g. geometry.Group) containing one or more
-// widgets. All widgets receive the same options, matching Tk's
-// "pack configure .w1 .w2 .w3 -side left" behavior.
-// See tk/generic/tkPack.c ConfigureContent.
 // In is pack's -in: manage the content inside container, which must be the
 // content's parent or a descendant of it (Tk_MaintainGeometry keeps it there).
+// The content goes at the end of container's packing order.
 func In(container window.Windower) PackOption {
-	return func(c *packConfig) { c.in = container.Window() }
+	return func(c *packConfig) { c.in, c.inGiven = container.Window(), true }
+}
+
+// Before is pack's -before: put the content in sibling's container, just
+// before sibling in its packing order. sibling must be packed.
+func Before(sibling window.Windower) PackOption {
+	return func(c *packConfig) { c.before, c.after = sibling.Window(), nil }
+}
+
+// After is pack's -after: put the content in sibling's container, just after
+// sibling in its packing order. sibling must be packed.
+func After(sibling window.Windower) PackOption {
+	return func(c *packConfig) { c.after, c.before = sibling.Window(), nil }
 }
 
 // containerOf records each content window's container (Tk's containerPtr).
 var containerOf = new(geometry.Table[*window.Window])
 
+// Pack packs children, like Tk's "pack configure .w1 .w2 ... options".
+// It accepts a geometry.Elementer (e.g. geometry.Group) of one or more
+// widgets, which all receive the same options.
+//
+// As in tkPack.c ConfigureContent, content that is already packed keeps the
+// options not given here, and its place in the packing order unless In,
+// Before or After is given; new content starts from the defaults and goes
+// at the end. With Before or After, the first widget goes next to the
+// sibling and the rest follow it in order.
 func Pack(children geometry.Elementer, opts ...PackOption) {
-	cfg := packConfig{
-		side:   Top,
-		fill:   FillNone,
-		anchor: option.AnchorCenter,
-	}
-	for _, opt := range opts {
-		opt(&cfg)
-	}
-
 	elements := children.GeometryElements()
 
 	// Arrange each affected container once, after all elements are added,
 	// rather than once per element.
 	var touched []*packer
-	for _, elem := range elements {
-		w := elem.Window()
-		parent := w.Parent
-		if cfg.in != nil {
-			parent = cfg.in
-		}
-		if parent == nil {
-			continue
-		}
-		if old := containerOf.Of(w); old != nil && old != parent {
-			if op, ok := packers.Get(old); ok {
-				op.remove(w)
-				op.scheduleArrange()
-			}
-		}
-		containerOf.Set(w, parent)
-
-		geometry.ManageGeometry(w, mgr)
-
-		p, ok := packers.Get(parent)
-		if !ok {
-			p = &packer{container: parent}
-			packers.Set(parent, p)
-		}
-		if !hooked.Of(parent) {
-			// The packer is dropped when its last content goes but the
-			// hooks stay with the window, so register them once.
-			hooked.Set(parent, true)
-			parent.OnDestroy(func() {
-				forgetContainer(parent)
-				hooked.Delete(parent)
-			})
-			// Re-layout when resized by external forces (e.g. PanedWindow).
-			parent.OnConfigure(func() {
-				if pp, ok2 := packers.Get(parent); ok2 {
-					pp.scheduleArrange()
-				}
-			})
-		}
-
-		// Update or add entry.
-		found := false
-		for _, e := range p.entries {
-			if e.window == w {
-				e.config = cfg
-				found = true
-				break
-			}
-		}
-		if !found {
-			p.entries = append(p.entries, &packEntry{window: w, config: cfg})
-		}
+	touch := func(p *packer) {
 		if !slices.Contains(touched, p) {
 			touched = append(touched, p)
 		}
 	}
+	// With a position (In, Before, After) the first content goes there and
+	// each later one right after the one before it (Tk's prevPtr).
+	var prev *window.Window
+	positionGiven := false
+	for i, elem := range elements {
+		w := elem.Window()
+		cur := containerOf.Of(w)
+		var entry *packEntry
+		if cur != nil {
+			if p, ok := packers.Get(cur); ok {
+				entry = p.entry(w)
+			}
+		}
+		cfg := defaultConfig()
+		if entry != nil {
+			cfg = entry.config
+		}
+		for _, opt := range opts {
+			opt(&cfg)
+		}
+
+		// Where the content goes: container and position in its order.
+		container := cur
+		var at *window.Window // insert next to this sibling
+		afterAt := true
+		inGiven := cfg.inGiven
+		switch {
+		case i > 0 && positionGiven:
+			if prev == nil {
+				continue
+			}
+			container, at = containerFor(prev), prev
+		case cfg.before != nil || cfg.after != nil:
+			positionGiven = true
+			sib := cfg.after
+			if sib == nil {
+				sib, afterAt = cfg.before, false
+			}
+			if containerOf.Of(sib) == nil {
+				log.Printf("pack: window %q isn't packed", sib.PathName)
+				return
+			}
+			if sib != w { // next to itself: stay in place (tkPack.c)
+				container, at = containerOf.Of(sib), sib
+			}
+		case inGiven:
+			positionGiven = true
+			container = cfg.in
+		case entry == nil:
+			container = w.Parent
+		}
+		if container == nil {
+			continue
+		}
+		cfg.in = nil
+		if container != w.Parent {
+			cfg.in = container
+		}
+		cfg.inGiven, cfg.before, cfg.after = false, nil, nil
+
+		if entry != nil && at == nil && container == cur && !inGiven {
+			entry.config = cfg
+			if p, ok := packers.Get(cur); ok {
+				touch(p)
+			}
+			prev = w
+			continue
+		}
+
+		if entry != nil && container == cur {
+			// Move within its packing order.
+			p, _ := packers.Get(cur)
+			p.entries = slices.DeleteFunc(p.entries, func(x *packEntry) bool { return x == entry })
+			entry.config = cfg
+			p.insert(entry, at, afterAt)
+			touch(p)
+			prev = w
+			continue
+		}
+		if entry != nil {
+			if op, ok := packers.Get(cur); ok {
+				op.remove(w)
+				touch(op)
+			}
+		}
+		containerOf.Set(w, container)
+		geometry.ManageGeometry(w, mgr)
+		p := packerFor(container)
+		e := &packEntry{window: w, config: cfg}
+		p.insert(e, at, afterAt)
+		touch(p)
+		prev = w
+	}
 	for _, p := range touched {
 		p.scheduleArrange()
 	}
+}
+
+// packerFor returns container's packer, creating it and its hooks.
+func packerFor(container *window.Window) *packer {
+	p, ok := packers.Get(container)
+	if !ok {
+		p = &packer{container: container}
+		packers.Set(container, p)
+	}
+	if !hooked.Of(container) {
+		// The packer is dropped when its last content goes but the
+		// hooks stay with the window, so register them once.
+		hooked.Set(container, true)
+		container.OnDestroy(func() {
+			forgetContainer(container)
+			hooked.Delete(container)
+		})
+		// Re-layout when resized by external forces (e.g. PanedWindow).
+		container.OnConfigure(func() {
+			if pp, ok2 := packers.Get(container); ok2 {
+				pp.scheduleArrange()
+			}
+		})
+	}
+	return p
+}
+
+// entry returns child's entry, or nil.
+func (p *packer) entry(child *window.Window) *packEntry {
+	for _, e := range p.entries {
+		if e.window == child {
+			return e
+		}
+	}
+	return nil
+}
+
+// insert adds e next to sibling (after it when after is set), or at the
+// end when sibling is nil or not in this packer.
+func (p *packer) insert(e *packEntry, sibling *window.Window, after bool) {
+	i := len(p.entries)
+	if sibling != nil {
+		if j := slices.IndexFunc(p.entries, func(x *packEntry) bool { return x.window == sibling }); j >= 0 {
+			i = j
+			if after {
+				i++
+			}
+		}
+	}
+	p.entries = slices.Insert(p.entries, i, e)
 }
 
 // Forget removes a child from pack management.

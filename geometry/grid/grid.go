@@ -34,6 +34,7 @@ type gridConfig struct {
 	row        int
 	column     int
 	rowSet     bool // -row was given; otherwise the next free row is used
+	columnSet  bool // -column was given
 	rowSpan    int
 	columnSpan int
 	sticky     int
@@ -59,7 +60,7 @@ var containerOf = new(geometry.Table[*window.Window])
 func Row(r int) GridOption { return func(c *gridConfig) { c.row, c.rowSet = r, true } }
 
 // Column sets the column.
-func Column(col int) GridOption { return func(c *gridConfig) { c.column = col } }
+func Column(col int) GridOption { return func(c *gridConfig) { c.column, c.columnSet = col, true } }
 
 // RowSpan sets the number of rows to span.
 func RowSpan(n int) GridOption { return func(c *gridConfig) { c.rowSpan = n } }
@@ -331,12 +332,13 @@ func Grid(children geometry.Elementer, opts ...GridOption) {
 
 	elements := children.GeometryElements()
 
-	// Find the first real widget to determine the parent.
+	// The container relative placements refer to: -in, or the first real
+	// widget's current container or parent.
 	var parent *window.Window
 	for _, elem := range elements {
 		w := elem.Window()
 		if _, rel := isRelative(w); !rel {
-			parent = w.Parent
+			parent = containerFor(w)
 			break
 		}
 	}
@@ -347,17 +349,29 @@ func Grid(children geometry.Elementer, opts ...GridOption) {
 		return
 	}
 
-	g := gridderFor(parent)
-
-	// Auto-assign row if not specified.
+	// Content without a row goes in the container's next free row, the
+	// same one for the whole call (tkGrid.c's defaultRow).
+	autoRows := map[*window.Window]int{}
+	autoRow := func(container *window.Window) int {
+		r, ok := autoRows[container]
+		if !ok {
+			r = gridderFor(container).nextRow()
+			autoRows[container] = r
+		}
+		return r
+	}
 	row := cfg.row
 	if !cfg.rowSet {
-		row = g.nextRow()
+		row = autoRow(parent)
 	}
 
 	// First pass: place real widgets, handle RelEmpty (x) and RelLeft (-).
 	// RelLeft increases the previous widget's columnSpan.
 	// See tk/generic/tkGrid.c lines 3162–3220.
+	//
+	// As in ConfigureContent, content that is already gridded starts from
+	// its current options and keeps its row, column and container unless
+	// they are given; new content starts from the defaults.
 	col := cfg.column
 	var lastEntry *gridEntry
 	for _, elem := range elements {
@@ -379,38 +393,79 @@ func Grid(children geometry.Elementer, opts ...GridOption) {
 			continue
 		}
 
-		// Count trailing RelLeft to compute default columnSpan.
-		ecfg := cfg
-		ecfg.row = row
-		ecfg.column = col
+		old := containerOf.Of(w)
+		var existing *gridEntry
+		if old != nil {
+			if og, ok := gridders.Get(old); ok {
+				existing = og.entry(w)
+			}
+		}
+		ecfg := gridConfig{rowSpan: 1, columnSpan: 1}
+		if existing != nil {
+			ecfg = existing.config
+		}
+		for _, opt := range opts {
+			opt(&ecfg)
+		}
+		ecfg.rowSpan = max(ecfg.rowSpan, 1)
+		ecfg.columnSpan = max(ecfg.columnSpan, 1)
 
-		if old := containerOf.Of(w); old != nil && old != parent {
+		container := w.Parent
+		switch {
+		case cfg.in != nil:
+			container = cfg.in
+		case existing != nil:
+			container = old
+		}
+		if container == nil {
+			col++
+			continue
+		}
+		ecfg.in = nil
+		if container != w.Parent {
+			ecfg.in = container
+		}
+		switch {
+		case cfg.rowSet:
+			ecfg.row = cfg.row
+		case existing != nil:
+			ecfg.row = existing.config.row
+		case container == parent:
+			ecfg.row = row
+		default:
+			ecfg.row = autoRow(container)
+		}
+		if cfg.columnSet || existing == nil {
+			ecfg.column = col
+		}
+		ecfg.rowSet, ecfg.columnSet = false, false
+
+		if old != nil && old != container {
 			if og, ok := gridders.Get(old); ok {
 				og.remove(w)
 				og.scheduleArrange()
 			}
+			existing = nil
 		}
-		containerOf.Set(w, parent)
+		containerOf.Set(w, container)
 		geometry.ManageGeometry(w, mgr)
 
-		// Update or add entry.
-		found := false
-		for _, e := range g.entries {
-			if e.window == w {
-				e.config = ecfg
-				found = true
-				lastEntry = e
-				break
-			}
+		g := gridderFor(container)
+		if existing != nil {
+			existing.config = ecfg
+			lastEntry = existing
+		} else {
+			lastEntry = &gridEntry{window: w, config: ecfg}
+			g.entries = append(g.entries, lastEntry)
 		}
-		if !found {
-			entry := &gridEntry{window: w, config: ecfg}
-			g.entries = append(g.entries, entry)
-			lastEntry = entry
+		if container != parent {
+			g.scheduleArrange()
 		}
 
 		col++
 	}
+
+	g := gridderFor(parent)
 
 	// Second pass: handle RelUp ('^') — extend rowSpan of widget above.
 	// See tk/generic/tkGrid.c lines 3480–3565.
@@ -521,6 +576,16 @@ func GetPropagate(container window.Windower) bool {
 		return g.propagate
 	}
 	return true
+}
+
+// entry returns child's entry, or nil.
+func (g *gridder) entry(child *window.Window) *gridEntry {
+	for _, e := range g.entries {
+		if e.window == child {
+			return e
+		}
+	}
+	return nil
 }
 
 func (g *gridder) remove(child *window.Window) {

@@ -324,7 +324,8 @@ pack.Pack(content, pack.FillOpt(pack.FillBoth), pack.Expand(true))
 | `PadX(p)`, `PadY(p)` | External padding on both sides. |
 | `PadXPair(l, r)`, `PadYPair(t, b)` | Asymmetric external padding. |
 | `IPadX(p)`, `IPadY(p)` | Internal padding added to the widget's own size. |
-| `In(container)` | Pack inside another container (must be the parent or a descendant of it). |
+| `In(container)` | Pack inside another container (must be the parent or a descendant of it), at the end of its order. |
+| `Before(w)`, `After(w)` | Put the widget just before or after the packed widget `w` in the packing order. |
 
 Rules of thumb that hold in Tk and here:
 
@@ -344,8 +345,28 @@ import "github.com/msorc/takigo/geometry"
 pack.Pack(geometry.Group{ok, cancel, help}, pack.SideOpt(pack.Left), pack.PadX(4))
 ```
 
-`pack.Forget(w)` removes a widget from the layout without destroying it; pack
-it again to bring it back.
+**Packing a widget again** works like Tcl's `pack configure`: only the options
+you give change, and the widget keeps its place in the packing order unless
+you pass `In`, `Before` or `After`. So adjusting one option at run time is
+just:
+
+```go
+pack.Pack(sidebar, pack.FillOpt(pack.FillY)) // side, padding etc. stay as they were
+```
+
+`Before` and `After` also insert new widgets anywhere in the order — for
+example a search bar shown on demand above existing content:
+
+```go
+pack.Pack(searchBar, pack.Before(content), pack.FillOpt(pack.FillX))
+```
+
+With a group, the first widget goes next to the sibling and the others follow
+it in order.
+
+`pack.Forget(w)` removes a widget from the layout without destroying it. Pack
+it again to bring it back; it then starts from the default options and goes
+at the end, as a newly packed widget does.
 
 ### 4.2 grid
 
@@ -387,11 +408,17 @@ positions the whole grid when the container is larger than it, and
 `grid.SetPropagate(container, false)` stops the grid from resizing its
 container.
 
-> **Every `grid.Grid` call sets the widget's complete configuration.** Unlike
-> Tcl's `grid configure`, which merges new options into the old ones, calling
-> `grid.Grid` again on a gridded widget replaces its row, column, span, sticky
-> and padding, and anything you leave out goes back to its default. Give all
-> the options in one call.
+**Gridding a widget again** works like Tcl's `grid configure`: only the
+options you give change. A widget that is already gridded keeps its row,
+column and container unless you pass `Row`, `Column` or `In`:
+
+```go
+grid.Grid(entry, grid.Sticky(grid.NSEW)) // same cell, new sticky
+grid.Grid(entry, grid.Column(2))         // same row, new column
+```
+
+`grid.Forget(w)` clears a widget's grid options; gridding it again starts
+from the defaults.
 
 A **group** is laid out left to right across one row, which makes simple
 forms very compact. Tk's relative-placement shortcuts (`x`, `-`, `^`) are
@@ -2964,6 +2991,7 @@ Tips:
 | `tk_messageBox -type yesno -message M` | `dialog.ShowMessage(app, dialog.MsgMessage(M), dialog.MsgButtons(dialog.BtnYesNo))` |
 | `tk_getOpenFile` / `tk_getSaveFile` | `dialog.OpenFile(app, ...)` / `dialog.SaveFile(app, ...)` |
 | `tk_chooseDirectory` / `tk_chooseColor` | `dialog.ChooseDirectory(app)` / `dialog.ChooseColor(app)` |
+| `pack .b -before .x` | `pack.Pack(b, pack.Before(x))` |
 | `image create photo -file f.png` | `img, _ := image.NewPhotoFromFile("name", "f.png"); app.ImageRegistry().Register(img)` |
 | `font create H -size 16 -weight bold` | `app.FontRegistry().Define("H", font.Attributes{Size: 16, Weight: font.WeightBold})` |
 | `.t insert end "x" tag` | `start := t.EndIndex(); t.Insert("end", "x"); t.TagAdd("tag", start, t.EndIndex())` |
