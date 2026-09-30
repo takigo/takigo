@@ -114,21 +114,32 @@ func NewCombobox(parent widget.Caregiver, name string, opts ...ComboboxOption) *
 		opt(c)
 	}
 	c.requestSize()
-
-	if c.CbState == ComboDisabled {
-		c.ChangeState(StateDisabled, 0)
-	} else if c.CbState == ComboReadonly {
-		c.ChangeState(StateReadonly, 0)
-	}
-
-	if c.CbState == ComboNormal {
-		win.SetCursor(uint(cursor.XTerm))
-	} else {
-		win.SetCursor(uint(cursor.LeftPtr))
-	}
+	c.syncState()
 	bindCombobox(c, app)
 
 	return c
+}
+
+// syncState applies -state to the widget state and cursor.
+func (c *Combobox) syncState() {
+	switch c.CbState {
+	case ComboDisabled:
+		c.ChangeState(StateDisabled, StateReadonly)
+	case ComboReadonly:
+		c.ChangeState(StateReadonly, StateDisabled)
+	default:
+		c.ChangeState(0, StateDisabled|StateReadonly)
+	}
+	if c.CbState == ComboNormal {
+		c.Win.SetCursor(uint(cursor.XTerm))
+	} else {
+		c.Win.SetCursor(uint(cursor.LeftPtr))
+	}
+}
+
+// Configure sets options after creation.
+func (c *Combobox) Configure(opts ...ComboboxOption) {
+	configure(&c.TtkWidget, c, opts, c.syncState, c.requestSize)
 }
 
 // fieldPad ports FieldElementSize: -borderwidth widened to -focuswidth.

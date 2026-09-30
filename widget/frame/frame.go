@@ -4,12 +4,12 @@ package frame
 
 import (
 	"github.com/msorc/takigo/draw"
-	"log"
 
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/geometry/place"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/window"
 )
@@ -25,20 +25,12 @@ type FrameOption func(*Frame)
 
 // Background sets the background color by name.
 func Background(name string) FrameOption {
-	return func(f *Frame) {
-		col, err := f.App.ColorCache().Get(name)
-		if err != nil {
-			log.Printf("frame: failed to get color %q: %v", name, err)
-			return
-		}
-		f.Background = col
-		f.UpdateBorder()
-	}
+	return func(f *Frame) { f.SetBackgroundName(name) }
 }
 
 // BorderWidth sets the border width in pixels.
-func BorderWidth(w int) FrameOption {
-	return func(f *Frame) { f.BorderWidth = w }
+func BorderWidth(w any) FrameOption {
+	return func(f *Frame) { f.BorderWidth = screenunit.PxOr(w, f.BorderWidth) }
 }
 
 // Relief sets the border relief.
@@ -48,8 +40,8 @@ func Relief(r option.Relief) FrameOption {
 
 // Width sets the requested width.
 // HighlightThickness sets -highlightthickness.
-func HighlightThickness(n int) FrameOption {
-	return func(f *Frame) { f.HighlightWidth = n }
+func HighlightThickness(n any) FrameOption {
+	return func(f *Frame) { f.HighlightWidth = screenunit.PxOr(n, f.HighlightWidth) }
 }
 
 func Width(w int) FrameOption {
@@ -104,7 +96,7 @@ func New(parent widget.Caregiver, name string, opts ...FrameOption) *Frame {
 
 	// Update X window background.
 	if f.Background != nil {
-		w.BackgroundPixel = f.Background.Pixel
+		w.SetBackgroundPixel(f.Background.Pixel)
 	}
 
 	// Bind events.
@@ -143,14 +135,8 @@ func (f *Frame) display() {
 }
 
 // Configure applies options to the frame.
-func (f *Frame) Configure(opts ...option.Option) {
-	option.Apply(f, opts)
-	f.UpdateBorder()
-	f.updateInternalBorder()
-	if f.Background != nil {
-		f.Win.BackgroundPixel = f.Background.Pixel
-	}
-	f.Display()
+func (f *Frame) Configure(opts ...FrameOption) {
+	widget.Configure(f, opts, f.updateInternalBorder)
 }
 
 // Destroy cleans up the frame.

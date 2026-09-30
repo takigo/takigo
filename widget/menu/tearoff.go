@@ -133,7 +133,7 @@ func (m *Menu) Detach() {
 	}
 	if m.Background != nil {
 		tw.bg = m.Background.Ref()
-		w.BackgroundPixel = m.Background.Pixel
+		w.SetBackgroundPixel(m.Background.Pixel)
 	}
 	if m.Foreground != nil {
 		tw.fg = m.Foreground.Ref()

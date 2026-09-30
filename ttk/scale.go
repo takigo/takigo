@@ -29,6 +29,7 @@ type Scale struct {
 	overThumb bool
 	repeatGen int
 	unsub     func()
+	linked    *widget.Variable[float64]
 }
 
 // ScaleOption configures a Scale.
@@ -71,23 +72,48 @@ func NewScale(parent widget.Caregiver, name string, opts ...ScaleOption) *Scale 
 	for _, opt := range opts {
 		opt(s)
 	}
-	style := "Horizontal.TScale"
-	if s.Orient == Vertical {
-		style = "Vertical.TScale"
-	}
-	InitTtkWidget(&s.TtkWidget, win, app, style)
+	InitTtkWidget(&s.TtkWidget, win, app, s.orientStyle())
 	win.OnDestroy(s.Destroy)
 	win.Class = "TScale"
-	if s.Variable != nil {
-		s.Value = s.Variable.Get()
-		s.unsub = s.Variable.OnChange(func(_, v float64) {
-			s.Value = v
-			s.Display()
-		})
-	}
+	s.linkVariable()
 	s.requestSize()
 	bindScale(s, app)
 	return s
+}
+
+func (s *Scale) orientStyle() string {
+	if s.Orient == Vertical {
+		return "Vertical.TScale"
+	}
+	return "Horizontal.TScale"
+}
+
+// linkVariable takes the value from -variable and follows its changes.
+func (s *Scale) linkVariable() {
+	if s.Variable == s.linked {
+		return
+	}
+	if s.unsub != nil {
+		s.unsub()
+		s.unsub = nil
+	}
+	s.linked = s.Variable
+	if s.Variable == nil {
+		return
+	}
+	s.Value = s.Variable.Get()
+	s.unsub = s.Variable.OnChange(func(_, v float64) {
+		s.Value = v
+		s.Display()
+	})
+}
+
+// Configure sets options after creation.
+func (s *Scale) Configure(opts ...ScaleOption) {
+	configure(&s.TtkWidget, s, opts, func() {
+		s.StyleName = s.orientStyle()
+		s.linkVariable()
+	}, s.requestSize)
 }
 
 func (s *Scale) sliderDim() int { return 16 * screenunit.ScalingPct() / 100 }

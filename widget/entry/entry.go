@@ -10,6 +10,7 @@ import (
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/entryutil"
 	"github.com/msorc/takigo/window"
@@ -100,39 +101,17 @@ func Show(ch rune) EntryOption {
 
 // Background sets the background color.
 func Background(name string) EntryOption {
-	return func(e *Entry) {
-		col, err := e.App.ColorCache().Get(name)
-		if err != nil {
-			log.Printf("entry: failed to get color %q: %v", name, err)
-			return
-		}
-		e.Background = col
-		e.UpdateBorder()
-	}
+	return func(e *Entry) { e.SetBackgroundName(name) }
 }
 
 // Foreground sets the text color.
 func Foreground(name string) EntryOption {
-	return func(e *Entry) {
-		col, err := e.App.ColorCache().Get(name)
-		if err != nil {
-			log.Printf("entry: failed to get color %q: %v", name, err)
-			return
-		}
-		e.Foreground = col
-	}
+	return func(e *Entry) { e.SetForegroundName(name) }
 }
 
 // FontOpt sets the font.
 func FontOpt(name string) EntryOption {
-	return func(e *Entry) {
-		f, err := e.App.FontRegistry().Get(name)
-		if err != nil {
-			log.Printf("entry: failed to get font %q: %v", name, err)
-			return
-		}
-		e.Font = f
-	}
+	return func(e *Entry) { e.SetFontName(name) }
 }
 
 // Width sets the preferred width in characters.
@@ -152,8 +131,8 @@ func ValidateCmdOpt(fn func(string) bool) EntryOption {
 }
 
 // BorderWidth sets the border width.
-func BorderWidth(w int) EntryOption {
-	return func(e *Entry) { e.BorderWidth = w }
+func BorderWidth(w any) EntryOption {
+	return func(e *Entry) { e.BorderWidth = screenunit.PxOr(w, e.BorderWidth) }
 }
 
 // ScrollCommand sets the callback for scrollbar notification.
@@ -251,7 +230,7 @@ func New(parent widget.Caregiver, name string, opts ...EntryOption) *Entry {
 	e.computeGeometry()
 
 	if e.Background != nil {
-		w.BackgroundPixel = e.Background.Pixel
+		w.SetBackgroundPixel(e.Background.Pixel)
 	}
 
 	w.Flags |= window.FlagFocusable
@@ -712,14 +691,8 @@ func (e *Entry) display() {
 }
 
 // Configure applies options.
-func (e *Entry) Configure(opts ...option.Option) {
-	option.Apply(e, opts)
-	e.UpdateBorder()
-	e.computeGeometry()
-	if e.Background != nil {
-		e.Win.BackgroundPixel = e.Background.Pixel
-	}
-	e.Display()
+func (e *Entry) Configure(opts ...EntryOption) {
+	widget.Configure(e, opts, e.computeGeometry)
 }
 
 // Destroy cleans up the entry.

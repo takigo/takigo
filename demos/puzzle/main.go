@@ -8,7 +8,6 @@ import (
 	"os"
 
 	"github.com/msorc/takigo"
-	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/geometry/place"
@@ -55,15 +54,8 @@ func main() {
 		frame.Height(screenunit.Px("90p")),
 		frame.BorderWidth(2),
 		frame.Relief(option.ReliefSunken),
+		frame.Background(fmt.Sprintf("#%04x%04x%04x", troughCol.Red, troughCol.Green, troughCol.Blue)),
 	)
-	troughColor := &color.Color{
-		Pixel: troughCol.Pixel,
-		Red:   troughCol.Red,
-		Green: troughCol.Green,
-		Blue:  troughCol.Blue,
-	}
-	puzzleFrame.Background = troughColor
-	puzzleFrame.Window().BackgroundPixel = troughCol.Pixel
 	pack.Pack(puzzleFrame, pack.SideOpt(pack.Top), pack.PadX("1c"), pack.PadY("1c"))
 	// Inset children by the border width so place tiles don't overlap the
 	// sunken bevel (matches Tcl, where the place manager respects the frame's

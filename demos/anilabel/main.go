@@ -112,8 +112,7 @@ func main() {
 			for i := range sl.runes {
 				visible[i] = sl.runes[(sl.offset+i)%len(sl.runes)]
 			}
-			sl.label.Text = string(visible)
-			sl.label.Display()
+			sl.label.Configure(label.Text(string(visible)))
 			app.After(interval, animate)
 		}
 		app.After(interval, animate)

@@ -81,8 +81,7 @@ func main() {
 	liveLabel := label.New(f, "live", label.Text("(live)"))
 	pack.Pack(liveLabel, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadX("5p"))
 	statusVar.OnChange(func(_, val string) {
-		liveLabel.Text = "(live) " + val
-		liveLabel.Display()
+		liveLabel.Configure(label.Text("(live) " + val))
 	})
 
 	// 5. Integer-only entry with -validate "key".

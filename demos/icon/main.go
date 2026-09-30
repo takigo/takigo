@@ -72,17 +72,14 @@ func main() {
 	)
 	// $w.frame.b1 configure -selectcolor [$w.frame.b1 cget -background]
 	// (set selectcolor to background so it's invisible when selected)
-	b1.SelectColor = b1.Background.Ref()
+	b1.Configure(checkbutton.SelectColor(b1.Background.Name))
 
 	// checkbutton $w.frame.b2 -bitmap letters -indicatoron 0 -selectcolor SeaGreen1
 	b2 := checkbutton.New(fr, "b2",
 		checkbutton.ImageOpt(lettersImg),
 		checkbutton.IndicatorOnOpt(false),
+		checkbutton.SelectColor("SeaGreen1"),
 	)
-
-	if sc, err := app.ColorCache().Get("SeaGreen1"); err == nil {
-		b2.SelectColor = sc.Ref()
-	}
 
 	// frame $w.frame.left
 	left := frame.New(fr, "left")

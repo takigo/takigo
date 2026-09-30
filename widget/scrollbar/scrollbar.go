@@ -136,7 +136,7 @@ func New(parent widget.Caregiver, name string, opts ...ScrollbarOption) *Scrollb
 	}
 
 	if s.Background != nil {
-		w.BackgroundPixel = s.Background.Pixel
+		w.SetBackgroundPixel(s.Background.Pixel)
 	}
 
 	bindScrollbar(s, app)
@@ -284,10 +284,8 @@ func (s *Scrollbar) hitTest(x, y int) region {
 }
 
 // Configure applies options.
-func (s *Scrollbar) Configure(opts ...option.Option) {
-	option.Apply(s, opts)
-	s.computeGeometry()
-	s.Display()
+func (s *Scrollbar) Configure(opts ...ScrollbarOption) {
+	widget.Configure(s, opts, s.computeGeometry)
 }
 
 // Destroy cleans up the scrollbar.

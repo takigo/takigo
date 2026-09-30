@@ -723,8 +723,7 @@ func (b *fileBrowser) listBrowse() {
 
 func (b *fileBrowser) setOKText(s string) {
 	if b.okBtn.Text != s {
-		b.okBtn.Text = s
-		b.okBtn.Display()
+		b.okBtn.Configure(ttk.ButtonText(s))
 	}
 }
 

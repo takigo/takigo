@@ -541,24 +541,41 @@ func (tv *Treeview) ColumnConfigure(id string, opts ...ColumnOption) {
 	tv.Display()
 }
 
-// requestSize ports TreeviewSize: the displayed columns by -height rows plus
-// the heading, inside the Treeview.field border; a change re-runs the
-// parent's geometry manager like Tk_GeometryRequest.
-func (tv *Treeview) requestSize() {
+// computeSize ports TreeviewSize: the displayed columns by -height rows plus
+// the heading, inside the Treeview.field border.
+func (tv *Treeview) computeSize() {
 	headH := 0
 	if tv.showHeadings {
 		headH = tv.headingHeight
 	}
-	w := tv.totalWidth() + 2*treeviewFieldBorder
-	h := tv.heightRows*tv.rowHeight + headH + 2*treeviewFieldBorder
-	win := tv.Win
-	if w == win.ReqWidth && h == win.ReqHeight {
-		return
+	tv.Win.ReqWidth = tv.totalWidth() + 2*treeviewFieldBorder
+	tv.Win.ReqHeight = tv.heightRows*tv.rowHeight + headH + 2*treeviewFieldBorder
+}
+
+// requestSize recomputes the request; a change re-runs the parent's
+// geometry manager like Tk_GeometryRequest.
+func (tv *Treeview) requestSize() {
+	tv.resize(tv.computeSize)
+}
+
+// fitColumns keeps the request and re-fits the columns once the tree is
+// mapped (ttkTreeview.c); before that the request follows the columns.
+func (tv *Treeview) fitColumns() {
+	if tv.Win.IsViewable() {
+		tv.slack = tv.treeAreaWidth() - tv.totalWidth()
+		tv.resizeColumns(tv.totalWidth())
+	} else {
+		tv.slack = -tv.totalWidth()
 	}
-	win.ReqWidth, win.ReqHeight = w, h
-	if win.GeomManager != nil {
-		win.GeomManager.RequestProc(win)
-	}
+}
+
+// Configure sets options after creation.
+func (tv *Treeview) Configure(opts ...TreeviewOption) {
+	configure(&tv.TtkWidget, tv, opts, tv.fitColumns, func() {
+		if !tv.Win.IsViewable() {
+			tv.computeSize()
+		}
+	})
 }
 
 // HeadingOption configures a column heading.

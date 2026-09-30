@@ -61,37 +61,3 @@ func TestJustifyConstants(t *testing.T) {
 		seen[j] = true
 	}
 }
-
-func TestApply(t *testing.T) {
-	type target struct{ val int }
-	tgt := &target{}
-	opts := []Option{
-		func(t any) { t.(*target).val = 42 },
-	}
-	Apply(tgt, opts)
-	if tgt.val != 42 {
-		t.Errorf("Apply: val = %d, want 42", tgt.val)
-	}
-}
-
-func TestApplyMultiple(t *testing.T) {
-	type target struct{ a, b int }
-	tgt := &target{}
-	opts := []Option{
-		func(t any) { t.(*target).a = 1 },
-		func(t any) { t.(*target).b = 2 },
-	}
-	Apply(tgt, opts)
-	if tgt.a != 1 || tgt.b != 2 {
-		t.Errorf("Apply: a=%d b=%d, want a=1 b=2", tgt.a, tgt.b)
-	}
-}
-
-func TestApplyEmpty(t *testing.T) {
-	type target struct{ val int }
-	tgt := &target{val: 10}
-	Apply(tgt, nil)
-	if tgt.val != 10 {
-		t.Errorf("Apply(nil): val = %d, want 10", tgt.val)
-	}
-}

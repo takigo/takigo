@@ -40,8 +40,7 @@ func main() {
 	pack.Pack(statusLabel, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX), pack.PadY(5))
 
 	setStatus := func(msg string) {
-		statusLabel.Text = msg
-		statusLabel.Display()
+		statusLabel.Configure(label.Text(msg))
 	}
 
 	// --- Dialog Buttons ---

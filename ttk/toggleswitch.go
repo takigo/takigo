@@ -25,6 +25,7 @@ type Toggleswitch struct {
 
 	selected bool
 	unsub    func()
+	linked   *widget.Variable[bool]
 }
 
 // ToggleswitchOption configures a Toggleswitch.
@@ -63,27 +64,45 @@ func NewToggleswitch(parent widget.Caregiver, name string, opts ...ToggleswitchO
 		opt(ts)
 	}
 
-	// Sync initial state from variable.
-	if ts.Variable != nil {
-		ts.selected = ts.Variable.Get()
-		if ts.selected {
-			ts.State |= StateSelected
-		}
-		ts.unsub = ts.Variable.OnChange(func(_, _ bool) {
-			ts.selected = ts.Variable.Get()
-			if ts.selected {
-				ts.State |= StateSelected
-			} else {
-				ts.State &^= StateSelected
-			}
-			ts.Display()
-		})
-	}
+	ts.linkVariable()
 
 	ts.computeSize()
 	bindTtkHover(&ts.TtkWidget, app)
 	bindToggleswitch(ts, app)
 	return ts
+}
+
+// linkVariable syncs the state from -variable and follows its changes.
+func (ts *Toggleswitch) linkVariable() {
+	if ts.Variable == ts.linked {
+		return
+	}
+	if ts.unsub != nil {
+		ts.unsub()
+		ts.unsub = nil
+	}
+	ts.linked = ts.Variable
+	if ts.Variable == nil {
+		return
+	}
+	sync := func() {
+		ts.selected = ts.Variable.Get()
+		if ts.selected {
+			ts.State |= StateSelected
+		} else {
+			ts.State &^= StateSelected
+		}
+	}
+	sync()
+	ts.unsub = ts.Variable.OnChange(func(_, _ bool) {
+		sync()
+		ts.Display()
+	})
+}
+
+// Configure sets options after creation.
+func (ts *Toggleswitch) Configure(opts ...ToggleswitchOption) {
+	configure(&ts.TtkWidget, ts, opts, ts.linkVariable, ts.computeSize)
 }
 
 // Toggleswitch2 geometry (tk/library/ttk/elements.tcl, troughData(2) and

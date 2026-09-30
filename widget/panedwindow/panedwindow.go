@@ -4,7 +4,6 @@
 package panedwindow
 
 import (
-	"log"
 	"slices"
 
 	"github.com/msorc/takigo/draw"
@@ -193,15 +192,7 @@ func HandleSizeOpt(s int) PanedWindowOption {
 }
 
 func Background(name string) PanedWindowOption {
-	return func(pw *PanedWindow) {
-		col, err := pw.App.ColorCache().Get(name)
-		if err != nil {
-			log.Printf("panedwindow: failed to get color %q: %v", name, err)
-			return
-		}
-		pw.Background = col
-		pw.UpdateBorder()
-	}
+	return func(pw *PanedWindow) { pw.SetBackgroundName(name) }
 }
 
 // --- Ttk-compatible aliases (prefix with Panedwindow) for consistent naming ---
@@ -244,7 +235,7 @@ func New(parent widget.Caregiver, name string, opts ...PanedWindowOption) *Paned
 	}
 
 	if pw.Background != nil {
-		w.BackgroundPixel = pw.Background.Pixel
+		w.SetBackgroundPixel(pw.Background.Pixel)
 	}
 
 	bindPanedWindow(pw, app)
@@ -682,13 +673,8 @@ func (pw *PanedWindow) display() {
 }
 
 // Configure applies options.
-func (pw *PanedWindow) Configure(opts ...option.Option) {
-	option.Apply(pw, opts)
-	pw.UpdateBorder()
-	if pw.Background != nil {
-		pw.Win.BackgroundPixel = pw.Background.Pixel
-	}
-	pw.scheduleArrange()
+func (pw *PanedWindow) Configure(opts ...PanedWindowOption) {
+	widget.Configure(pw, opts, pw.scheduleArrange)
 }
 
 // Destroy cleans up.

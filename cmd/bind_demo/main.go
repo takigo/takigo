@@ -37,8 +37,7 @@ func main() {
 	pack.Pack(statusLabel, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillX), pack.Expand(true))
 
 	setStatus := func(msg string) {
-		statusLabel.Text = msg
-		statusLabel.Display()
+		statusLabel.Configure(label.Text(msg))
 	}
 
 	// Two buttons to demonstrate per-widget bindings.

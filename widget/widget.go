@@ -57,9 +57,6 @@ type Widget interface {
 	// Display draws the widget.
 	Display()
 
-	// Configure sets options on the widget.
-	Configure(opts ...option.Option)
-
 	// Destroy cleans up the widget.
 	Destroy()
 }
@@ -288,10 +285,8 @@ func InitBase(b *Base, win *window.Window, app AppContext) {
 
 	// Register background hook so ApplyBackgroundRecursive can update this widget.
 	win.BackgroundHook = func(colorName string) {
-		if c, err := app.ColorCache().Get(colorName); err == nil {
-			b.Background = c
-			b.Win.BackgroundPixel = c.Pixel
-			b.UpdateBorder()
+		if b.SetBackgroundName(colorName) {
+			b.Win.SetBackgroundPixel(b.Background.Pixel)
 		}
 	}
 }

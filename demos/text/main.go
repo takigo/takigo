@@ -35,10 +35,7 @@ func main() {
 			ttk.ButtonText("Show Font Dialog"),
 			ttk.ButtonCommand(func() {
 				if f, ok := dialog.ChooseFont(app); ok {
-					if parsed, err := app.FontRegistry().Get(f); err == nil {
-						tw.Font = parsed
-						tw.Display()
-					}
+					tw.Configure(text.FontOpt(f))
 				}
 			}),
 		)
