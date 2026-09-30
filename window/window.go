@@ -123,31 +123,60 @@ type Window struct {
 	drawTarget platform.DrawableID
 
 	// values holds other packages' per-window state; see Value.
-	values map[any]any
+	values []valueEntry
+}
+
+// ValueKey identifies one package's entry in a window's values; use a
+// *ValueKey of its own, e.g. var key = new(window.ValueKey). Keys compare
+// by address, so the struct must not be empty.
+type ValueKey struct{ _ byte }
+
+type valueEntry struct {
+	key *ValueKey
+	v   any
 }
 
 // Value returns what SetValue stored on w under key, or nil. Packages keep
 // their per-window state here, under a key of their own, instead of in a
 // package-level map, which every App in the process would share: Tk keeps
-// such tables per display (dispPtr->packerHashTable and the like).
+// such tables per display (dispPtr->packerHashTable and the like). A window
+// has only a few entries, so they are a slice searched by key address.
 // A nil window has no values.
-func (w *Window) Value(key any) any {
+func (w *Window) Value(key *ValueKey) any {
 	if w == nil {
 		return nil
 	}
-	return w.values[key]
+	for i := range w.values {
+		if w.values[i].key == key {
+			return w.values[i].v
+		}
+	}
+	return nil
 }
 
 // SetValue stores v on w under key; a nil v removes the entry.
-func (w *Window) SetValue(key, v any) {
+func (w *Window) SetValue(key *ValueKey, v any) {
+	for i := range w.values {
+		if w.values[i].key != key {
+			continue
+		}
+		if v != nil {
+			w.values[i].v = v
+			return
+		}
+		last := len(w.values) - 1
+		w.values[i] = w.values[last]
+		w.values[last] = valueEntry{}
+		w.values = w.values[:last]
+		return
+	}
 	if v == nil {
-		delete(w.values, key)
 		return
 	}
 	if w.values == nil {
-		w.values = map[any]any{}
+		w.values = make([]valueEntry, 0, 2)
 	}
-	w.values[key] = v
+	w.values = append(w.values, valueEntry{key, v})
 }
 
 // OnDestroy registers fn to run when w is destroyed, whether directly or
