@@ -63,12 +63,14 @@ type Treeview struct {
 	TtkWidget
 
 	// Columns.
-	columns         []*TreeColumn
-	showTree        bool // show tree column (#0)
-	slack           int  // tree area width minus the columns (ttkTreeview.c)
-	showHeadings    bool // show heading row
-	treeColumnWidth int
-	treeHeadingText string
+	columns            []*TreeColumn
+	showTree           bool // show tree column (#0)
+	slack              int  // tree area width minus the columns (ttkTreeview.c)
+	showHeadings       bool // show heading row
+	treeColumnWidth    int
+	treeHeadingText    string
+	treeHeadingAnchor  option.Anchor
+	treeHeadingCommand func()
 
 	// Data.
 	root   *TreeItem            // hidden root (ID="")
@@ -187,17 +189,18 @@ func NewTreeview(parent widget.Caregiver, name string, opts ...TreeviewOption) *
 	window.MakeWindowExist(win)
 
 	tv := &Treeview{
-		showTree:        true,
-		showHeadings:    true,
-		treeColumnWidth: 200,
-		root:            &TreeItem{ID: ""},
-		items:           map[string]*TreeItem{"": nil}, // root mapped as ""
-		selection:       make(map[string]bool),
-		selectMode:      TreeSelectExtended,
-		selAnchor:       -1,
-		indent:          20,
-		heightRows:      10,
-		resizeCol:       -1,
+		showTree:          true,
+		showHeadings:      true,
+		treeColumnWidth:   200,
+		treeHeadingAnchor: option.AnchorCenter,
+		root:              &TreeItem{ID: ""},
+		items:             map[string]*TreeItem{"": nil}, // root mapped as ""
+		selection:         make(map[string]bool),
+		selectMode:        TreeSelectExtended,
+		selAnchor:         -1,
+		indent:            20,
+		heightRows:        10,
+		resizeCol:         -1,
 	}
 
 	tv.Font, _ = app.FontRegistry().Get(font.TkDefaultFont)
@@ -516,11 +519,17 @@ func ColSeparatorOpt(b bool) ColumnOption { return func(c *TreeColumn) { c.Separ
 // ColumnConfigure configures a data column by ID.
 func (tv *Treeview) ColumnConfigure(id string, opts ...ColumnOption) {
 	col := tv.findColumn(id)
+	if id == "#0" {
+		col = &TreeColumn{ID: "#0", Width: tv.treeColumnWidth, MinWidth: 20}
+	}
 	if col == nil {
 		return
 	}
 	for _, opt := range opts {
 		opt(col)
+	}
+	if id == "#0" {
+		tv.treeColumnWidth = col.Width
 	}
 	if tv.Win.IsViewable() {
 		// Mapped: keep the request, re-fit the columns (ttkTreeview.c).
@@ -575,11 +584,14 @@ func HeadCommand(fn func()) HeadingOption {
 func (tv *Treeview) HeadingConfigure(id string, opts ...HeadingOption) {
 	if id == "#0" {
 		// Tree column heading.
-		col := &TreeColumn{ID: "#0", HeadingText: tv.treeHeadingText}
+		col := &TreeColumn{ID: "#0", HeadingText: tv.treeHeadingText,
+			HeadingAnchor: tv.treeHeadingAnchor, HeadingCommand: tv.treeHeadingCommand}
 		for _, opt := range opts {
 			opt(col)
 		}
 		tv.treeHeadingText = col.HeadingText
+		tv.treeHeadingAnchor = col.HeadingAnchor
+		tv.treeHeadingCommand = col.HeadingCommand
 		tv.Display()
 		return
 	}

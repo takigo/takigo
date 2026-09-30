@@ -87,9 +87,19 @@ func (tv *Treeview) Display() {
 			// Tree column heading.
 			draw.Fill3DRectangle(d, pixDrawable, gc, border,
 				colX, 0, tv.treeColumnWidth, tv.headingHeight, 1, option.ReliefRaised)
+			treeSorted := tv.sortInd != nil && tv.sortInd.columnID == "#0"
 			if tv.treeHeadingText != "" {
-				tv.drawAlignedText(tv.headingFont(), pixDrawable, colX+1, 0, tv.treeColumnWidth-2,
-					tv.headingHeight, tv.treeHeadingText, option.AnchorCenter, fg, fgR, fgG, fgB)
+				textW := tv.treeColumnWidth - 2
+				if treeSorted {
+					textW -= 12
+				}
+				if textW > 0 {
+					tv.drawAlignedText(tv.headingFont(), pixDrawable, colX+1, 0, textW,
+						tv.headingHeight, tv.treeHeadingText, tv.treeHeadingAnchor, fg, fgR, fgG, fgB)
+				}
+			}
+			if treeSorted {
+				tv.drawSortIndicator(d, pixDrawable, gc, colX+tv.treeColumnWidth-14, tv.headingHeight/2, tv.sortInd.reverse, fg)
 			}
 			colX += tv.treeColumnWidth
 		}
