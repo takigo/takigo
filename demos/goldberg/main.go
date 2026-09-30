@@ -2024,12 +2024,11 @@ func main() {
 	show.Command = func() {
 		if ctrl.Win.Flags&window.FlagMapped != 0 {
 			pack.Forget(ctrl)
-			show.Text = "▶"
+			show.Configure(ttk.ButtonText("▶"))
 		} else {
 			pack.Pack(ctrl, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillBoth), pack.IPadY(5))
-			show.Text = "◀"
+			show.Configure(ttk.ButtonText("◀"))
 		}
-		show.Display()
 	}
 	place.Place(show, place.In(c), place.RelX(1), place.RelY(0), place.Anchor(option.AnchorNE))
 

@@ -4,7 +4,6 @@
 package button
 
 import (
-	"log"
 	"strings"
 
 	"github.com/msorc/takigo/color"
@@ -77,39 +76,20 @@ func Command(fn func()) ButtonOption {
 
 // Background sets the background color.
 func Background(name string) ButtonOption {
-	return func(b *Button) {
-		col, err := b.App.ColorCache().Get(name)
-		if err != nil {
-			log.Printf("button: failed to get color %q: %v", name, err)
-			return
-		}
-		b.Background = col
-		b.UpdateBorder()
-	}
+	return func(b *Button) { b.SetBackgroundName(name) }
 }
 
 // Foreground sets the text color.
 func Foreground(name string) ButtonOption {
-	return func(b *Button) {
-		col, err := b.App.ColorCache().Get(name)
-		if err != nil {
-			log.Printf("button: failed to get color %q: %v", name, err)
-			return
-		}
-		b.Foreground = col
-	}
+	return func(b *Button) { b.SetForegroundName(name) }
 }
 
 // FontOpt sets the font.
 func FontOpt(name string) ButtonOption {
 	return func(b *Button) {
-		f, err := b.App.FontRegistry().Get(name)
-		if err != nil {
-			log.Printf("button: failed to get font %q: %v", name, err)
-			return
+		if b.SetFontName(name) {
+			b.zeroCharWidth = b.Font.MeasureString("0")
 		}
-		b.Font = f
-		b.zeroCharWidth = f.MeasureString("0")
 	}
 }
 
@@ -124,8 +104,8 @@ func CompoundOpt(c widget.Compound) ButtonOption {
 }
 
 // BorderWidth sets the border width.
-func BorderWidth(w int) ButtonOption {
-	return func(b *Button) { b.BorderWidth = w }
+func BorderWidth(w any) ButtonOption {
+	return func(b *Button) { b.BorderWidth = screenunit.PxOr(w, b.BorderWidth) }
 }
 
 // Default sets -default: DefaultNormal leaves 5px for a default ring,
@@ -260,7 +240,7 @@ func New(parent widget.Caregiver, name string, opts ...ButtonOption) *Button {
 
 	// Update X window background.
 	if b.Background != nil {
-		w.BackgroundPixel = b.Background.Pixel
+		w.SetBackgroundPixel(b.Background.Pixel)
 	}
 
 	// Bind events.
@@ -554,20 +534,12 @@ func (b *Button) Invoke() {
 
 // SetText updates the button's label text and refreshes its size and display.
 func (b *Button) SetText(s string) {
-	b.Text = s
-	b.computeGeometry()
-	b.Display()
+	b.Configure(Text(s))
 }
 
 // Configure applies options to the button.
-func (b *Button) Configure(opts ...option.Option) {
-	option.Apply(b, opts)
-	b.UpdateBorder()
-	b.computeGeometry()
-	if b.Background != nil {
-		b.Win.BackgroundPixel = b.Background.Pixel
-	}
-	b.Display()
+func (b *Button) Configure(opts ...ButtonOption) {
+	widget.Configure(b, opts, b.computeGeometry)
 }
 
 // Destroy cleans up the button.

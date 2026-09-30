@@ -170,8 +170,7 @@ func applyBackgroundRecursiveDepth(w *Window, colorName string, depth int) {
 	}
 	// Update X11 window background attribute and trigger a redraw.
 	if w.PlatformID != 0 && w.Flags&FlagMapped != 0 && w.Width > 0 && w.Height > 0 {
-		w.Display.Server.SetWindowBackground(w.PlatformID, w.BackgroundPixel)
-		w.serverBackground = w.BackgroundPixel
+		SyncBackground(w)
 		w.Display.Server.ClearArea(w.PlatformID, 0, 0, uint(w.Width), uint(w.Height), true)
 	}
 	for _, child := range w.Children {
@@ -240,6 +239,25 @@ func SyncBackground(w *Window) {
 	}
 	w.Display.Server.SetWindowBackground(w.PlatformID, w.BackgroundPixel)
 	w.serverBackground = w.BackgroundPixel
+}
+
+// ContentInsets returns the internal borders and minimum request, which
+// together decide how w's content is arranged. Tk_SetInternalBorderEx and
+// Tk_SetMinimumRequestSize make the geometry managers recompute when they
+// change; callers compare two snapshots and call NotifyConfigure.
+func (w *Window) ContentInsets() [6]int {
+	return [6]int{
+		w.InternalBorderLeft, w.InternalBorderRight,
+		w.InternalBorderTop, w.InternalBorderBottom,
+		w.MinReqWidth, w.MinReqHeight,
+	}
+}
+
+// SetBackgroundPixel records pixel as w's background and gives it to the
+// platform window if that exists (Tk_SetWindowBackground).
+func (w *Window) SetBackgroundPixel(pixel uint64) {
+	w.BackgroundPixel = pixel
+	SyncBackground(w)
 }
 
 // MarkMapped records that w has been mapped (after MapWindow) and, if it was

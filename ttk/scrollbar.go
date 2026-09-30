@@ -75,28 +75,36 @@ func NewScrollbar(parent widget.Caregiver, name string, opts ...ScrollbarOption)
 		opt(s)
 	}
 
-	styleName := "Vertical.TScrollbar"
-	if s.Orient == Horizontal {
-		styleName = "Horizontal.TScrollbar"
-	}
-
-	InitTtkWidget(&s.TtkWidget, win, app, styleName)
+	InitTtkWidget(&s.TtkWidget, win, app, s.orientStyle())
 	s.DisplayFunc = s.Display
-
-	// Minimum length as in Tk's default theme: two arrow boxes plus the
-	// 8px minimum thumb (38px for the default 9p arrows).
-	minLen := 2*s.sbWidth + 8
-	if s.Orient == Vertical {
-		win.ReqWidth = s.sbWidth
-		win.ReqHeight = minLen
-	} else {
-		win.ReqWidth = minLen
-		win.ReqHeight = s.sbWidth
-	}
+	s.requestSize()
 
 	bindTtkHover(&s.TtkWidget, app)
 	bindTtkScrollbar(s, app)
 	return s
+}
+
+func (s *Scrollbar) orientStyle() string {
+	if s.Orient == Horizontal {
+		return "Horizontal.TScrollbar"
+	}
+	return "Vertical.TScrollbar"
+}
+
+// requestSize requests the minimum length of Tk's default theme: two
+// arrow boxes plus the 8px minimum thumb (38px for the default 9p arrows).
+func (s *Scrollbar) requestSize() {
+	minLen := 2*s.sbWidth + 8
+	if s.Orient == Vertical {
+		s.Win.ReqWidth, s.Win.ReqHeight = s.sbWidth, minLen
+	} else {
+		s.Win.ReqWidth, s.Win.ReqHeight = minLen, s.sbWidth
+	}
+}
+
+// Configure sets options after creation.
+func (s *Scrollbar) Configure(opts ...ScrollbarOption) {
+	configure(&s.TtkWidget, s, opts, func() { s.StyleName = s.orientStyle() }, s.requestSize)
 }
 
 // Set updates the thumb position. Called by the scrolled widget.

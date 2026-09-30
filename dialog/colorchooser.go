@@ -34,8 +34,6 @@ func ChooseColor(parent widget.Caregiver, opts ...ColorOption) (string, bool) {
 		opt(&cfg)
 	}
 
-	app := parent.AppContext()
-
 	// Parse initial color.
 	r, g, b := parseHexColor(cfg.initialColor)
 
@@ -54,12 +52,7 @@ func ChooseColor(parent widget.Caregiver, opts ...ColorOption) (string, bool) {
 		chosenColor = hex
 
 		// Update preview frame background.
-		if col, err := app.ColorCache().Get(hex); err == nil {
-			previewFrame.Background = col
-			previewFrame.UpdateBorder()
-			previewFrame.Window().BackgroundPixel = col.Pixel
-			previewFrame.Display()
-		}
+		previewFrame.Configure(frame.Background(hex))
 
 		// Update hex entry.
 		hexEntry.SetText(hex)

@@ -62,10 +62,7 @@ func FrameBackground(pixel uint64) FrameOption {
 // FrameStyleOpt sets the -style, e.g. "TEntry" to draw a frame like an
 // entry field (as the ttkpane demo does around a classic text widget).
 func FrameStyleOpt(name string) FrameOption {
-	return func(f *Frame) {
-		f.StyleName = name
-		f.RefreshTheme()
-	}
+	return func(f *Frame) { f.StyleName = name }
 }
 
 // NewFrame creates a themed frame widget.
@@ -80,17 +77,37 @@ func NewFrame(parent widget.Caregiver, name string, opts ...FrameOption) *Frame 
 	for _, opt := range opts {
 		opt(f)
 	}
-
-	// FrameMargins: the widget's own -padding plus -borderwidth (not the
-	// style's) become the content margins.
-	win.InternalBorderLeft = f.padding.Left + f.borderWidth
-	win.InternalBorderRight = f.padding.Right + f.borderWidth
-	win.InternalBorderTop = f.padding.Top + f.borderWidth
-	win.InternalBorderBottom = f.padding.Bottom + f.borderWidth
+	if f.StyleName != "TFrame" {
+		f.RefreshTheme()
+	}
+	f.updateMargins()
 
 	// FrameSize requests only -width/-height (0 when unset); the margins
 	// are added on top.
 	win.ReqWidth, win.ReqHeight = max(f.width, 1), max(f.height, 1)
 
 	return f
+}
+
+// updateMargins ports FrameMargins: the widget's own -padding plus
+// -borderwidth (not the style's) become the content margins.
+func (f *Frame) updateMargins() {
+	win := f.Win
+	win.InternalBorderLeft = f.padding.Left + f.borderWidth
+	win.InternalBorderRight = f.padding.Right + f.borderWidth
+	win.InternalBorderTop = f.padding.Top + f.borderWidth
+	win.InternalBorderBottom = f.padding.Bottom + f.borderWidth
+}
+
+// Configure sets options after creation. Only a changed -width/-height
+// resets the request: otherwise it belongs to the content's geometry
+// manager, which the changed margins make recompute it.
+func (f *Frame) Configure(opts ...FrameOption) {
+	width, height := f.width, f.height
+	configure(&f.TtkWidget, f, opts, nil, func() {
+		f.updateMargins()
+		if f.width != width || f.height != height {
+			f.Win.ReqWidth, f.Win.ReqHeight = max(f.width, 1), max(f.height, 1)
+		}
+	})
 }

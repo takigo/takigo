@@ -36,7 +36,7 @@ func main() {
 			app.Quit()
 		})
 	// after idle {.dialog2.msg configure -wraplength 4i}
-	app.DoWhenIdle(func() { d.Msg.Apply(label.WrapLength("4i")) })
+	app.DoWhenIdle(func() { d.Msg.Configure(label.WrapLength("4i")) })
 	// tk_dialog gives the default button the focus (tk::SetFocusGrab).
 	app.After(0, func() { app.FocusManager().SetFocus(d.Buttons[0].Window()) })
 

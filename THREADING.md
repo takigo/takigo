@@ -97,11 +97,11 @@ app.RunNestedLoop(done <-chan struct{})
 
 ```go
 // ❌ Wrong: called from background goroutine
-button.Configure(widget.TextOpt("new text"))
+b.Configure(button.Text("new text"))
 
 // ✅ Correct: schedule on event loop
 app.RunOnMain(func() {
-    button.Configure(widget.TextOpt("new text"))
+    b.Configure(button.Text("new text"))
 })
 ```
 

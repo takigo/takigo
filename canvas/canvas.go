@@ -126,13 +126,7 @@ func Height(h any) CanvasOption {
 }
 
 func Background(name string) CanvasOption {
-	return func(c *Canvas) {
-		col, err := c.App.ColorCache().Get(name)
-		if err == nil {
-			c.Base.Background = col
-			c.UpdateBorder()
-		}
-	}
+	return func(c *Canvas) { c.SetBackgroundName(name) }
 }
 
 func BorderWidthOpt(w int) CanvasOption {
@@ -210,7 +204,7 @@ func New(parent widget.Caregiver, name string, opts ...CanvasOption) *Canvas {
 
 	// Set window background pixel for child window creation.
 	if c.Base.Background != nil {
-		w.BackgroundPixel = c.Base.Background.Pixel
+		w.SetBackgroundPixel(c.Base.Background.Pixel)
 	}
 
 	// Set up event handlers.
@@ -495,6 +489,9 @@ func (c *Canvas) Configure(opts ...CanvasOption) {
 	// Tk relays out at idle, so CanvasSetOrigin still sees the old window
 	// size; our geometry managers resize synchronously, so confine first.
 	c.setOrigin(c.xOrigin, c.yOrigin)
+	if c.Base.Background != nil {
+		c.Win.SetBackgroundPixel(c.Base.Background.Pixel)
+	}
 	if rw, rh := c.reqW+2*c.inset, c.reqH+2*c.inset; rw != c.Win.ReqWidth || rh != c.Win.ReqHeight {
 		geometry.GeometryRequest(c.Win, rw, rh)
 	}

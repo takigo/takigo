@@ -3,8 +3,6 @@
 package label
 
 import (
-	"log"
-
 	gocolor "image/color"
 	"strings"
 
@@ -80,44 +78,22 @@ func TextVariable(v *widget.Variable[string]) LabelOption {
 
 // Background sets the background color.
 func Background(name string) LabelOption {
-	return func(l *Label) {
-		col, err := l.App.ColorCache().Get(name)
-		if err != nil {
-			log.Printf("label: failed to get color %q: %v", name, err)
-			return
-		}
-		l.Background = col
-		l.UpdateBorder()
-	}
+	return func(l *Label) { l.SetBackgroundName(name) }
 }
 
 // Foreground sets the text color.
 func Foreground(name string) LabelOption {
-	return func(l *Label) {
-		col, err := l.App.ColorCache().Get(name)
-		if err != nil {
-			log.Printf("label: failed to get color %q: %v", name, err)
-			return
-		}
-		l.Foreground = col
-	}
+	return func(l *Label) { l.SetForegroundName(name) }
 }
 
 // FontOpt sets the font.
 func FontOpt(name string) LabelOption {
-	return func(l *Label) {
-		f, err := l.App.FontRegistry().Get(name)
-		if err != nil {
-			log.Printf("label: failed to get font %q: %v", name, err)
-			return
-		}
-		l.Font = f
-	}
+	return func(l *Label) { l.SetFontName(name) }
 }
 
 // BorderWidth sets the border width.
-func BorderWidth(w int) LabelOption {
-	return func(l *Label) { l.BorderWidth = w }
+func BorderWidth(w any) LabelOption {
+	return func(l *Label) { l.BorderWidth = screenunit.PxOr(w, l.BorderWidth) }
 }
 
 // Relief sets the border relief.
@@ -281,7 +257,7 @@ func New(parent widget.Caregiver, name string, opts ...LabelOption) *Label {
 
 	// Update X window background.
 	if l.Background != nil {
-		w.BackgroundPixel = l.Background.Pixel
+		w.SetBackgroundPixel(l.Background.Pixel)
 	}
 
 	// Bind events.
@@ -565,41 +541,14 @@ func drawCompound(l *Label, w *window.Window,
 }
 
 // Configure applies options to the label.
-func (l *Label) Configure(opts ...option.Option) {
-	option.Apply(l, opts)
-	l.UpdateBorder()
-	l.computeGeometry()
-	if l.Background != nil {
-		l.Win.BackgroundPixel = l.Background.Pixel
-	}
-	l.Display()
-}
-
-// Apply sets label options after construction, like Tk's configure: the
-// geometry is recomputed and the geometry manager re-arranges the parent.
-func (l *Label) Apply(opts ...LabelOption) {
-	for _, opt := range opts {
-		opt(l)
-	}
-	l.UpdateBorder()
-	l.computeGeometry()
-	if l.Win.GeomManager != nil {
-		l.Win.GeomManager.RequestProc(l.Win)
-	}
-	l.Display()
+func (l *Label) Configure(opts ...LabelOption) {
+	widget.Configure(l, opts, l.computeGeometry)
 }
 
 // SetImage sets or clears the label image at runtime, recomputing geometry
 // and requesting re-layout from the geometry manager.
 func (l *Label) SetImage(img widget.WidgetImage) {
-	l.Img = img
-	l.computeGeometry()
-	// Notify the geometry manager that our requested size changed,
-	// so the parent container re-arranges (like Tk_GeometryRequest).
-	if l.Win.GeomManager != nil {
-		l.Win.GeomManager.RequestProc(l.Win)
-	}
-	l.Display()
+	l.Configure(ImageOpt(img))
 }
 
 // Destroy cleans up the label, unsubscribing from any linked TextVariable.

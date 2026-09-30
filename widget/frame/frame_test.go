@@ -115,3 +115,28 @@ func TestFrameDestroy(t *testing.T) {
 		t.Error("Destroyed flag should be true after setting")
 	}
 }
+
+type fakeManager struct{ requests int }
+
+func (*fakeManager) Name() string                   { return "fake" }
+func (m *fakeManager) RequestProc(*window.Window)   { m.requests++ }
+func (*fakeManager) LostContentProc(*window.Window) {}
+
+func TestFrameConfigureOptions(t *testing.T) {
+	m := &fakeManager{}
+	f := &Frame{Win: &window.Window{GeomManager: m}}
+	arranged := 0
+	f.Win.OnConfigure(func() { arranged++ })
+
+	f.Configure(BorderWidth(2), HighlightThickness("3"))
+	if f.Win.InternalBorderLeft != 5 || arranged != 1 {
+		t.Errorf("InternalBorderLeft = %d, arranged = %d, want 5, 1", f.Win.InternalBorderLeft, arranged)
+	}
+	if m.requests != 0 {
+		t.Errorf("requests = %d after a border change, want 0", m.requests)
+	}
+	f.Configure(Width(300))
+	if f.Win.ReqWidth != 300 || m.requests != 1 {
+		t.Errorf("ReqWidth = %d, requests = %d, want 300, 1", f.Win.ReqWidth, m.requests)
+	}
+}

@@ -79,25 +79,35 @@ func NewProgressbar(parent widget.Caregiver, name string, opts ...ProgressbarOpt
 		opt(p)
 	}
 
-	styleName := "Horizontal.TProgressbar"
-	if p.Orient == Vertical {
-		styleName = "Vertical.TProgressbar"
-	}
-
-	InitTtkWidget(&p.TtkWidget, win, app, styleName)
+	InitTtkWidget(&p.TtkWidget, win, app, p.orientStyle())
 	win.OnDestroy(p.Destroy)
 	p.DisplayFunc = p.Display
-
-	// -length along the bar; across it the pbar -thickness inside the
-	// trough's 1px sunken border.
-	thick := LookupInt(p.Context.Style, "-thickness", p.State, screenunit.Px("3p")) + 2*pbTroughBorder
-	if p.Orient == Horizontal {
-		win.ReqWidth, win.ReqHeight = p.Length, thick
-	} else {
-		win.ReqWidth, win.ReqHeight = thick, p.Length
-	}
+	p.requestSize()
 
 	return p
+}
+
+func (p *Progressbar) orientStyle() string {
+	if p.Orient == Vertical {
+		return "Vertical.TProgressbar"
+	}
+	return "Horizontal.TProgressbar"
+}
+
+// requestSize requests -length along the bar; across it the pbar
+// -thickness inside the trough's 1px sunken border.
+func (p *Progressbar) requestSize() {
+	thick := LookupInt(p.Context.Style, "-thickness", p.State, screenunit.Px("3p")) + 2*pbTroughBorder
+	if p.Orient == Horizontal {
+		p.Win.ReqWidth, p.Win.ReqHeight = p.Length, thick
+	} else {
+		p.Win.ReqWidth, p.Win.ReqHeight = thick, p.Length
+	}
+}
+
+// Configure sets options after creation.
+func (p *Progressbar) Configure(opts ...ProgressbarOption) {
+	configure(&p.TtkWidget, p, opts, func() { p.StyleName = p.orientStyle() }, p.requestSize)
 }
 
 // pbTroughBorder is the default theme trough's sunken border width.

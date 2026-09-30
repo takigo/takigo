@@ -65,11 +65,9 @@ func main() {
 		ttk.ButtonText("Neat!"),
 		ttk.ButtonUnderline(0),
 		ttk.ButtonCommand(func() {
-			neatLabel.Text = "Yeah, I know..."
-			neatLabel.Display()
+			neatLabel.Configure(ttk.LabelText("Yeah, I know..."))
 			app.After(500*time.Millisecond, func() {
-				neatLabel.Text = ""
-				neatLabel.Display()
+				neatLabel.Configure(ttk.LabelText(""))
 			})
 		}),
 	)

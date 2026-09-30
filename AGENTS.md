@@ -169,7 +169,23 @@ parent's manager's `RequestProc` re-runs the layout.
 - **Functional options.** Define `type XxxOption func(*Xxx)` and one
   constructor per settable field. Option setters that look up a resource
   (color, font) `log.Printf` a warning on lookup failure and keep the
-  previous value — see `Background` in `widget/button/button.go`.
+  previous value; the shared `widget.Base` setters do this
+  (`SetBackgroundName`, `SetForegroundName`, `SetFontName`, `LookupColor`,
+  …) — see `Background` in `widget/button/button.go`.
+
+- **Runtime configuration.** Every widget has a typed
+  `Configure(opts ...XxxOption)` taking the same options as its
+  constructor (Tk's `configure`). Change options after creation through
+  it — never by writing a field and calling `Display()`, or by calling an
+  option func directly. Classic widgets implement it with
+  `widget.Configure(w, opts, w.computeGeometry)`, which does what Tk's
+  WorldChanged procs do: rebuilds the border, recomputes the geometry,
+  syncs the window background (`Window.SetBackgroundPixel`), re-arranges
+  the content when the margins changed, asks the geometry manager to
+  re-lay out when the request changed, and schedules a redraw. Ttk
+  widgets use `configure(&w.TtkWidget, w, opts, sync, size)` in
+  `ttk/widget.go`, which also rebuilds the layout when the style name
+  changed. `SetText`-style methods are thin wrappers over `Configure`.
 
 - **Option naming.** Classic widget packages use the bare Tk option name
   where possible (`button.Text`, `label.Width`, `label.Background`,
@@ -364,7 +380,7 @@ lookup.
 
 | Task | Location |
 |---|---|
-| Add a Tk widget option | mirror `tk/generic/<file>.c` + `library/<widget>.tcl`; update `widget/<name>/<name>.go` option setter, then `bindings.go` if it triggers a redraw |
+| Add a Tk widget option | mirror `tk/generic/<file>.c` + `library/<widget>.tcl`; add the option setter (and alias) in `widget/<name>/<name>.go` and read the field in `computeGeometry`/`display` — `Configure` then handles it at runtime |
 | Add a new platform capability | extend `platform.DisplayServer` (`platform/display.go`) and implement in all three `platform/<x11|cocoa|windows>/` |
 | Add a new ttk theme | drop a `ttk/<name>theme/theme.go` that registers with `ttk.RegisterTheme(...)` at init; require it from demos with `_ "github.com/msorc/takigo/ttk/<name>theme"` |
 | Fix a wrong-looking demo | use the `tk-demo-compare` skill — it drives the comparison and edit loop end-to-end |

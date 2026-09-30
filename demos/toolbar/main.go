@@ -118,11 +118,7 @@ func main() {
 		ttk.ComboboxValues(families),
 		ttk.ComboboxCbState(ttk.ComboReadonly),
 		ttk.ComboboxCommand(func(val string) {
-			f, err := app.FontRegistry().Get(val + " 10")
-			if err == nil {
-				tw.Font = f
-				tw.Display()
-			}
+			tw.Configure(text.FontOpt(val + " 10"))
 		}),
 	)
 
