@@ -8,6 +8,7 @@ import (
 	"github.com/msorc/takigo/font"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
+	"github.com/msorc/takigo/widget"
 )
 
 // tabAdvance ports SizeOfTab for the default tabs (no -tabs, tabular
@@ -55,6 +56,7 @@ type textSegment struct {
 	relief     option.Relief
 	reliefBW   int // border-width for 3D relief drawing
 	reliefSet  bool
+	img        widget.WidgetImage // an embedded image, drawn instead of text
 }
 
 // lineProps holds resolved per-logical-line properties from tags.
@@ -104,7 +106,7 @@ func (t *TextWidget) measureRange(lineIdx, startChar, endChar int) int {
 	line := t.doc.Lines[lineIdx-1]
 	text := line.Text[startChar:endChar]
 
-	// Embedded windows in this range, by character position.
+	// Embedded windows and images in this range, by character position.
 	var wins map[int]int
 	for _, ew := range t.embeddedWindows {
 		m, ok := t.doc.Marks[ew.markName]
@@ -116,6 +118,15 @@ func (t *TextWidget) measureRange(lineIdx, startChar, endChar int) int {
 		}
 		wins[m.Pos.Char] = ew.win.ReqWidth + 2*ew.padX
 	}
+	t.doc.eachImage(func(pos Index, img widget.WidgetImage) {
+		if pos.Line != lineIdx || pos.Char < startChar || pos.Char >= endChar {
+			return
+		}
+		if wins == nil {
+			wins = map[int]int{}
+		}
+		wins[pos.Char] = img.Width()
+	})
 	if wins == nil && !slices.Contains(text, '\t') {
 		return t.Font.MeasureString(string(text))
 	}
@@ -333,14 +344,11 @@ func (t *TextWidget) setMetrics(lineIdx int, dls []displayLine) []displayLine {
 	for i := range dls {
 		a, d := t.lineMetrics(lineIdx, dls[i].startChar, dls[i].endChar, i == len(dls)-1)
 		minH := 0
-		for _, ei := range t.embeddedImages {
-			// Images take no placeholder, so one at the end of the line
-			// belongs to its last display line.
-			atEnd := i == len(dls)-1 && ei.index.Char >= dls[i].endChar
-			if ei.index.Line == lineIdx && (in(i, ei.index.Char) || atEnd) {
-				minH = max(minH, ei.img.Height())
+		t.doc.eachImage(func(pos Index, img widget.WidgetImage) {
+			if pos.Line == lineIdx && in(i, pos.Char) {
+				minH = max(minH, img.Height())
 			}
-		}
+		})
 		for _, ew := range t.embeddedWindows {
 			if m, ok := t.doc.Marks[ew.markName]; ok && m.Pos.Line == lineIdx && in(i, m.Pos.Char) {
 				minH = max(minH, ew.win.ReqHeight+2*ew.padY)
@@ -485,12 +493,17 @@ func (t *TextWidget) segmentsForRange(lineIdx, startChar, endChar int) []textSeg
 			segText = ""
 		}
 
-		// Handle embedded window placeholder: use window width, empty text.
+		// Handle embedded window and image placeholders: use their width,
+		// empty text.
+		var segImg widget.WidgetImage
 		if segEnd-segStart == 1 && text[segStart] == runeEmbeddedWindow {
 			if ew := t.embeddedWinAt(lineIdx, startChar+segStart); ew != nil {
 				// EmbWinLayoutProc: the chunk is the window plus -padx each side.
 				segWidth = ew.win.ReqWidth + 2*ew.padX
 				segText = ""
+			} else if img := t.doc.imageAt(Index{Line: lineIdx, Char: startChar + segStart}); img != nil {
+				// EmbImageLayoutProc: the chunk is the image.
+				segWidth, segText, segImg = img.Width(), "", img
 			}
 		}
 
@@ -560,6 +573,7 @@ func (t *TextWidget) segmentsForRange(lineIdx, startChar, endChar int) []textSeg
 			relief:     relief,
 			reliefBW:   reliefBW,
 			reliefSet:  reliefSet,
+			img:        segImg,
 		})
 		x += segWidth
 	}
@@ -647,6 +661,20 @@ func (t *TextWidget) renderToPixmap() []displayLine {
 				d.SetFillStyle(gc, platform.FillSolid)
 			}
 
+			// EmbImageDisplayProc, -align center: centred in the line.
+			if seg.img != nil {
+				bgPx := uint64(0xFFFFFF)
+				if seg.bg != nil {
+					bgPx = seg.bg.Pixel
+				} else if t.Background != nil {
+					bgPx = t.Background.Pixel
+				}
+				iw, ih := seg.img.Width(), seg.img.Height()
+				seg.img.Draw(d, pxDrawable, gc, w.Depth, 0, 0, iw, ih,
+					segX, t.insetY+dl.y+(dl.height-ih)/2, bgPx)
+				continue
+			}
+
 			// Draw text.
 			df := drawableFont
 			if seg.font != nil {
@@ -701,25 +729,6 @@ func (t *TextWidget) renderToPixmap() []displayLine {
 		t.drawCursor(d, gc, pxDrawable, dlines)
 	}
 
-	// Draw inline images.
-	if len(t.embeddedImages) > 0 {
-		bgPx := uint64(0xFFFFFF)
-		if t.Background != nil {
-			bgPx = t.Background.Pixel
-		}
-		for _, ei := range t.embeddedImages {
-			for _, dl := range dlines {
-				if dl.logicalLine == ei.index.Line {
-					imgX := t.insetX + dl.leftMargin
-					imgY := t.insetY + dl.y
-					ei.img.Draw(d, pxDrawable, gc, w.Depth,
-						0, 0, ei.img.Width(), ei.img.Height(),
-						imgX, imgY, bgPx)
-					break
-				}
-			}
-		}
-	}
 	return dlines
 }
 

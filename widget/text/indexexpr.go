@@ -10,7 +10,7 @@ import (
 // ForwBack, StartEnd): a base followed by any number of modifiers.
 //
 //	base:     line.char | line.end | end | @x,y | mark | tag.first |
-//	          tag.last | embedded window path
+//	          tag.last | embedded window path | embedded image name
 //	modifier: +/- count ?any|display? chars|indices|lines
 //	          ?display? linestart|lineend|wordstart|wordend
 //
@@ -155,6 +155,9 @@ func parseBase(doc *Document, t *TextWidget, spec string) (Index, string, bool) 
 	}
 	if m := doc.MarkPos(name); m != nil {
 		return *m, rest, true
+	}
+	if idx, ok := doc.imageIndex(name); ok {
+		return idx, rest, true
 	}
 	return Index{}, "", false
 }

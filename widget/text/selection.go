@@ -12,7 +12,7 @@ func (t *TextWidget) GetSelection() string {
 	if len(ranges) == 0 {
 		return ""
 	}
-	return t.doc.Get(ranges[0].Start, ranges[0].End)
+	return withoutPlaceholders(t.doc.Get(ranges[0].Start, ranges[0].End))
 }
 
 // SelectAll selects all text.
