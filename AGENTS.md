@@ -17,7 +17,7 @@ fetches go1.27 from proxy.golang.org)
 go build ./...
 
 # Run all unit tests. Most tests don't need an X display; GUI tests
-# (tk_test.go, platform/x11/x11_test.go, anything using internal/testutil)
+# (tests/, platform/x11/x11_test.go, anything using internal/testutil)
 # call t.Skip when DISPLAY is unset.
 go test -short ./...
 
@@ -58,7 +58,7 @@ code is not lint-clean — don't mass-fix unrelated warnings.
 
 ```
 tk.go / tk_x11.go / tk_darwin.go / tk_windows.go  — top-level App + per-platform platformInit
-tk_test.go                                         — display-skipping smoke tests
+tests/                                              — black-box App tests and benchmarks (need a display)
 
 widget/                                            — Widget interface, Base struct, defaults, AppContext
 widget/<name>/                                     — classic widgets: button, label, frame, entry,
@@ -300,7 +300,7 @@ package maps: several Apps may run at once on different goroutines
   `event/loop_bench_test.go` (idle and RunOnMain queues),
   `geometry/{pack,grid,place}/bench_test.go` (arrange, forget/re-manage on a
   display-free fake), `ttk/theme_bench_test.go` (style lookup, layout build),
-  `bench_test.go` (relayout, ttk create/destroy, pixel read-back; needs a
+  `tests/bench_test.go` (relayout, ttk create/destroy, pixel read-back; needs a
   display),
   `canvas/bench_test.go` (pick, find, tag resolution, display-list edits and
   item redraw on a display-free canvas: `go test ./canvas/ -run '^$' -bench .`).

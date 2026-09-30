@@ -1,24 +1,16 @@
-package takigo
+package takigo_test
 
 import (
-	"os"
 	"testing"
 
-	"github.com/msorc/takigo/internal/displaylock"
+	takigo "github.com/msorc/takigo"
+	"github.com/msorc/takigo/internal/testutil"
 )
 
-func requireDisplay(t *testing.T) {
-	t.Helper()
-	if os.Getenv("DISPLAY") == "" && os.Getenv("WAYLAND_DISPLAY") == "" {
-		t.Skip("no display available (set DISPLAY or use xvfb-run)")
-	}
-	displaylock.Acquire(t)
-}
-
 func TestNewApp(t *testing.T) {
-	requireDisplay(t)
+	testutil.RequireDisplay(t)
 
-	app, err := NewApp(Title("test"), Size(200, 150))
+	app, err := takigo.NewApp(takigo.Title("test"), takigo.Size(200, 150))
 	if err != nil {
 		t.Fatalf("NewApp: %v", err)
 	}
@@ -42,11 +34,11 @@ func TestNewApp(t *testing.T) {
 }
 
 func TestNewAppDestroyCycle(t *testing.T) {
-	requireDisplay(t)
+	testutil.RequireDisplay(t)
 
 	// Create and destroy multiple times to check for leaks/panics.
 	for range 3 {
-		app, err := NewApp(Title("cycle-test"), Size(100, 100))
+		app, err := takigo.NewApp(takigo.Title("cycle-test"), takigo.Size(100, 100))
 		if err != nil {
 			t.Fatalf("NewApp: %v", err)
 		}
