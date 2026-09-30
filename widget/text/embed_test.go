@@ -5,6 +5,7 @@ import (
 
 	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/widget"
+	"github.com/msorc/takigo/window"
 )
 
 // testImage is a display-free embedded image.
@@ -120,5 +121,61 @@ func TestEmbeddedImageLayout(t *testing.T) {
 	// half of "c" (51-58), so the index before it.
 	if got := tw.indexFromPixel(53, 5); got != (Index{1, 4}) {
 		t.Errorf("indexFromPixel(53, 5) = %v, want 1.4", got)
+	}
+}
+
+// TestDeletingEmbeddedObjects checks what deleting an embedded window's or
+// image's position does: as in Tk the window is destroyed, and an adjacent
+// object is unaffected.
+func TestDeletingEmbeddedObjects(t *testing.T) {
+	root := &window.Window{PathName: ".", Display: &window.Display{}}
+	tw := newBenchWidget(docWithText("abc"), 400, 100)
+	win := window.NewChildWindow(root, "b", 0, 0, 10, 10)
+	tw.WindowCreate("1.1", win)
+	tw.ImageCreate("1.2", testImage{"one", 10, 10})
+	tw.ImageCreate("1.3", testImage{"two", 10, 10})
+	// a W one two b c
+
+	tw.Delete("1.2", "1.3") // image "one"
+	if _, ok := tw.doc.imageIndex("one"); ok {
+		t.Error(`image "one" still there after deleting it`)
+	}
+	if got, ok := tw.doc.imageIndex("two"); !ok || got != (Index{1, 2}) {
+		t.Errorf(`image "two" at %v, %v; want 1.2`, got, ok)
+	}
+	if win.IsDestroyed() || len(tw.embeddedWindows) != 1 {
+		t.Fatal("deleting an image affected the window")
+	}
+
+	tw.Delete("1.0", "1.2") // "a" and the window
+	if !win.IsDestroyed() {
+		t.Error("window not destroyed with its position")
+	}
+	if len(tw.embeddedWindows) != 0 {
+		t.Errorf("%d embedded windows left", len(tw.embeddedWindows))
+	}
+	if got, ok := tw.doc.imageIndex("two"); !ok || got != (Index{1, 0}) {
+		t.Errorf(`image "two" at %v, %v; want 1.0`, got, ok)
+	}
+	if len(tw.doc.objects) != 1 {
+		t.Errorf("%d embedded objects tracked, want 1", len(tw.doc.objects))
+	}
+}
+
+// TestUndoDeleteOmitsEmbeddedObjects checks Tk's undo of a deletion across
+// embedded objects: the text comes back, the objects don't, and no bare
+// placeholder is left behind.
+func TestUndoDeleteOmitsEmbeddedObjects(t *testing.T) {
+	tw := newBenchWidget(docWithText("ab"), 400, 100)
+	tw.ImageCreate("1.1", testImage{"pic", 10, 10})
+	tw.undoEnabled, tw.undoStack = true, NewUndoStack(0)
+
+	tw.Delete("1.0", "end")
+	tw.Edit("undo")
+	if got := tw.doc.Get(Index{1, 0}, tw.doc.EndIndex()); got != "ab" {
+		t.Errorf("after undo the document holds %q, want %q", got, "ab")
+	}
+	if _, ok := tw.doc.imageIndex("pic"); ok {
+		t.Error("undo brought the image back")
 	}
 }

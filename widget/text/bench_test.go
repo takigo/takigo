@@ -29,6 +29,7 @@ func newBenchWidget(doc *Document, w, h int) *TextWidget {
 	t.doc.putTag(&Tag{Name: "sel", Priority: selPriority})
 	t.layout.init(t)
 	t.doc.Listeners = append(t.doc.Listeners, t.layout.apply)
+	t.doc.subscribeObjects(t.objectDeleted)
 	return t
 }
 
