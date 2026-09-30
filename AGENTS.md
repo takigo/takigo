@@ -80,6 +80,7 @@ platform/windows/                                  — Windows backend (uses int
 internal/xlib/, internal/cocoa/, internal/win32/   — low-level bindings (cgo where needed)
 internal/treedump/                                 — widget-tree JSON dump (TAKIGO_DUMP_TREE) shared with scripts/tk_dump_tree.tcl
 internal/testutil/                                 — helpers for tests that need a real display
+internal/displaylock/                              — per-display lock file that serializes display tests across packages
 
 geometry/                                          — shared manager infrastructure, Elementer, Group
 geometry/pack/  geometry/grid/  geometry/place/    — the three Tk geometry managers
@@ -153,7 +154,10 @@ on it — return them explicitly from `NewDisplayServer` (as `FontOpener` is).
 
 `geometry/{pack,grid,place}/` each register themselves as `window.GeomManager`
 singletons. When a widget calls `geometry.GeometryRequest(w, w, h)`, the
-parent's manager's `RequestProc` re-runs the layout.
+parent's manager's `RequestProc` re-runs the layout. Their per-container
+state lives on the windows (`geometry.Table`, `Window.Value`), not in
+package maps: several Apps may run at once on different goroutines
+(`THREADING.md`, "Multiple Apps"), so keep per-window state there too.
 
 ---
 
@@ -285,7 +289,9 @@ parent's manager's `RequestProc` re-runs the layout.
 - Unit tests live next to the code: `canvas/xbm_test.go`, etc.
 - Tests that need a real display must call `requireDisplay(t)` /
   `testutil.RequireDisplay(t)` first, which `t.Skip`s when neither
-  `DISPLAY` nor `WAYLAND_DISPLAY` is set.
+  `DISPLAY` nor `WAYLAND_DISPLAY` is set. It also holds
+  `internal/displaylock` for the test: `go test ./...` runs the packages'
+  binaries in parallel on one screen, where their windows overlap.
 - Prefer table-driven tests for pure logic (`geometry/grid/grid_test.go`,
   `geometry/pack/pack_test.go`, `canvas/geometry_test.go`, `screenunit/screenunit_test.go`,
   `wm/wm_test.go`, `bind/{table,pattern}_test.go`).
