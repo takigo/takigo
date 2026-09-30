@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/msorc/takigo/event"
+	"github.com/msorc/takigo/geometry/grid"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/grab"
 	"github.com/msorc/takigo/platform"
@@ -37,6 +38,10 @@ type Dialog struct {
 	App      widget.AppContext
 	Content  *frame.Frame // content area
 	BtnFrame *frame.Frame // button row at bottom
+
+	// Resizable lets the user resize the dialog; the size computed by
+	// Run becomes its minimum.
+	Resizable bool
 
 	parent      *window.Window
 	minWidth    int
@@ -98,14 +103,20 @@ func New(parent widget.Caregiver, title string, minWidth, minHeight int) *Dialog
 // bind $w <Key> on the dialog toplevel: keys go to the focus widget, so
 // the handler matches on the toplevel of the event's window.
 func (d *Dialog) bindKey(keysym platform.KeySym, fn func()) {
+	d.bindKeyEvent(keysym, func(*event.Event) { fn() })
+}
+
+// bindKeyEvent is bindKey with the event, for handlers that depend on
+// the focus window or the modifiers.
+func (d *Dialog) bindKeyEvent(keysym platform.KeySym, fn func(ev *event.Event)) {
 	tw := d.Toplevel.Window()
 	d.App.Dispatcher().BindGlobalFor(tw.PlatformID, event.KeyPressMask, func(ev *event.Event) {
-		if ev.KeySym != keysym {
+		if ev.KeySym != keysym || ev.Handled {
 			return
 		}
 		for w := tw.Display.LookupWindow(ev.Window); w != nil; w = w.Parent {
 			if w == tw {
-				fn()
+				fn(ev)
 				return
 			}
 			if w.IsTopLevel() {
@@ -127,8 +138,10 @@ func (d *Dialog) Run() DialogResult {
 	tw := d.Toplevel.Window()
 
 	// Auto-size: compute required size from content, use min dimensions as floor.
-	// The content and buttons have been packed, so their ReqWidth/ReqHeight
-	// reflect the minimum space needed.
+	// Pack and grid propagate requested sizes at idle time; arrange the
+	// tree now, children first, so the nested containers' ReqWidth/ReqHeight
+	// reflect the space their content needs.
+	arrangeNow(tw)
 	contentReq := d.Content.Window().ReqWidth
 	btnReq := d.BtnFrame.Window().ReqWidth
 	reqW := max(contentReq, btnReq)
@@ -140,7 +153,12 @@ func (d *Dialog) Run() DialogResult {
 	// Apply the computed size as the dialog's geometry, so later content
 	// requests keep it (as with wm geometry in Tk).
 	_ = d.Toplevel.WmInfo.SetGeometry(fmt.Sprintf("%dx%d", width, height))
-	d.Toplevel.WmInfo.SetResizable(false, false)
+	if d.Resizable {
+		d.Toplevel.WmInfo.SetMinSize(width, height)
+		d.Toplevel.WmInfo.SetResizable(true, true)
+	} else {
+		d.Toplevel.WmInfo.SetResizable(false, false)
+	}
 
 	// Center over parent.
 	centerOverParent(d.Toplevel.WmInfo, d.parent, width, height)
@@ -149,6 +167,7 @@ func (d *Dialog) Run() DialogResult {
 	// ArrangeContainer only handles direct children, so we need ArrangeAll
 	// to also re-layout children nested inside Content and BtnFrame.
 	pack.ArrangeAll()
+	grid.ArrangeAll()
 
 	d.Toplevel.Show()
 	tw.Display.Server.Flush()
@@ -210,6 +229,16 @@ func (d *Dialog) finish(result DialogResult, destroy bool) {
 	}
 
 	close(d.done)
+}
+
+// arrangeNow lays out every pack and grid container under w, children
+// first, so each container's requested size is up to date.
+func arrangeNow(w *window.Window) {
+	for _, c := range w.Children {
+		arrangeNow(c)
+	}
+	pack.ArrangeContainer(w)
+	grid.ArrangeContainer(w)
 }
 
 // centerOverParent positions the dialog centered over the parent window.

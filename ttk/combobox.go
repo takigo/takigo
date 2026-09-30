@@ -485,9 +485,13 @@ func (c *Combobox) closeDropdown() {
 	}
 
 	if c.dropWin != nil {
-		c.App.Dispatcher().Unbind(c.dropWin.PlatformID)
-		d.UnmapWindow(c.dropWin.PlatformID)
-		window.DestroyWindow(c.dropWin)
+		// The dropdown is a child window: destroying the combobox already
+		// destroyed it before this runs from the destroy hook.
+		if !c.dropWin.IsDestroyed() {
+			c.App.Dispatcher().Unbind(c.dropWin.PlatformID)
+			d.UnmapWindow(c.dropWin.PlatformID)
+			window.DestroyWindow(c.dropWin)
+		}
 		c.dropWin = nil
 	}
 }
@@ -593,6 +597,9 @@ func bindCombobox(c *Combobox, app widget.AppContext) {
 		if ev.Button == 1 {
 			arrowX := win.Width - c.arrowWidth
 			if ev.X >= arrowX || c.CbState == ComboReadonly {
+				// ttk::combobox::Press: the widget takes the focus so the
+				// posted list gets the keys.
+				widget.Focus(app, win)
 				c.arrowPressed = true
 				c.Display()
 				if c.dropOpen {
@@ -623,7 +630,40 @@ func bindCombobox(c *Combobox, app widget.AppContext) {
 
 	// Key events for editable combobox (mirrors entry/bindings.go).
 	app.Dispatcher().Bind(win.PlatformID, event.KeyPressMask, func(ev *event.Event) {
-		if c.State&StateDisabled != 0 || c.CbState != ComboNormal {
+		if c.State&StateDisabled != 0 {
+			return
+		}
+		// The posted listbox's bindings in combobox.tcl: Escape unposts,
+		// Up/Down move the highlight and Return takes the value. Escape
+		// is consumed so a dialog's own Escape binding leaves it alone.
+		if c.dropOpen {
+			switch ev.KeySym {
+			case platform.XK_Escape:
+				ev.Handled = true
+				c.closeDropdown()
+				return
+			case platform.XK_Up, platform.XK_Down:
+				delta := 1
+				if ev.KeySym == platform.XK_Up {
+					delta = -1
+				}
+				c.dropSel = min(max(c.dropSel+delta, 0), len(c.Values)-1)
+				c.displayDropdown()
+				return
+			case platform.XK_Return, platform.XK_space:
+				ev.Handled = true
+				if c.dropSel >= 0 && c.dropSel < len(c.Values) {
+					c.Set(c.Values[c.dropSel])
+				}
+				c.closeDropdown()
+				return
+			}
+		} else if ev.KeySym == platform.XK_Down && ev.State&platform.Mod1Mask != 0 {
+			// <Alt-Down> posts the list (ttk::combobox::Post).
+			c.openDropdown()
+			return
+		}
+		if c.CbState != ComboNormal {
 			return
 		}
 
