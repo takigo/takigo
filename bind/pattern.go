@@ -73,6 +73,10 @@ func patternString(p Pattern) string {
 		b.WriteByte('-')
 		b.WriteString(strconv.Itoa(int(p.Button)))
 	}
+	if p.KeySym != 0 {
+		b.WriteByte('-')
+		b.WriteString(keySymName(p.KeySym))
+	}
 	b.WriteByte('>')
 	return b.String()
 }

@@ -42,6 +42,32 @@ func TestBindingTableAddReplacesSameSequence(t *testing.T) {
 	}
 }
 
+func TestBindingTableKeepsBindingsForDifferentKeys(t *testing.T) {
+	bt := NewBindingTable()
+	patterns := []string{"<space>", "<F2>", "<Delete>", "<Key>", "<Control-s>", "<Control-o>", "<KeyRelease-a>"}
+	for _, p := range patterns {
+		seq, err := Parse(p)
+		if err != nil {
+			t.Fatal(err)
+		}
+		bt.Add(".l", seq, nil)
+	}
+	if got := len(bt.Lookup(".l")); got != len(patterns) {
+		t.Fatalf("table has %d bindings for %d distinct patterns", got, len(patterns))
+	}
+
+	seq, _ := Parse("<Key-space>")
+	bt.Remove(".l", seq)
+	for _, b := range bt.Lookup(".l") {
+		if b.seq.Patterns[0].KeySym == platform.XK_space {
+			t.Error("Remove(<Key-space>) left the <space> binding")
+		}
+	}
+	if got := len(bt.Lookup(".l")); got != len(patterns)-1 {
+		t.Errorf("Remove(<Key-space>) left %d bindings, want %d", got, len(patterns)-1)
+	}
+}
+
 func TestBindingTableLookupEmpty(t *testing.T) {
 	bt := NewBindingTable()
 	bindings := bt.Lookup("nonexistent")

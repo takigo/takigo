@@ -1,6 +1,8 @@
 package bind
 
 import (
+	"fmt"
+	"slices"
 	"testing"
 
 	"github.com/msorc/takigo/event"
@@ -295,5 +297,37 @@ func TestSpecificityControlShiftButton(t *testing.T) {
 	got := seq.Patterns[0].specificity()
 	if got != 8 {
 		t.Errorf("specificity(<Control-Shift-Button-1>) = %d, want 8", got)
+	}
+}
+
+// TestSequenceStringRoundTripsKeys checks that String names the key, so
+// patterns for different keys differ and the string parses back to the
+// same pattern.
+func TestSequenceStringRoundTripsKeys(t *testing.T) {
+	inputs := []string{"<Key>", "<KeyRelease-Escape>", "<Control-Shift-z>", "<Alt-F4>", "q", "<Key-at>", "<Prior>", "<Next>"}
+	for name := range keysymNames {
+		inputs = append(inputs, "<Key-"+name+">")
+	}
+	seen := map[string]string{}
+	for _, in := range inputs {
+		seq, err := Parse(in)
+		if err != nil {
+			t.Fatalf("Parse(%q): %v", in, err)
+		}
+		s := seq.String()
+		back, err := Parse(s)
+		if err != nil {
+			t.Errorf("Parse(%q) (String of %q): %v", s, in, err)
+			continue
+		}
+		if !slices.Equal(back.Patterns, seq.Patterns) {
+			t.Errorf("%q -> %q parses to %+v, want %+v", in, s, back.Patterns, seq.Patterns)
+		}
+		ks := seq.Patterns[0]
+		id := fmt.Sprintf("%v/%v/%v", ks.EventType, ks.Modifiers, ks.KeySym)
+		if other, ok := seen[s]; ok && other != id {
+			t.Errorf("different patterns %s and %s share the string %q", other, id, s)
+		}
+		seen[s] = id
 	}
 }
