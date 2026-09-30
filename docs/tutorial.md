@@ -1195,8 +1195,8 @@ Entry types:
 | `AddCascade(label, submenu)`, `AddCascadeUL(...)` | A submenu. |
 | `AddSeparator()` | A separator line. |
 
-Unlike Tk, menus have no tear-off entry unless you ask for one with
-`menu.TearOffOpt(true)`.
+As in Tk 9, menus have no tear-off entry unless you ask for one with
+`menu.TearOffOpt(true)` (Tk 8 added one by default).
 
 > **Accelerator text is only a label.** As in Tk, `"Ctrl+S"` next to a menu
 > entry doesn't make Ctrl+S do anything. Bind the key yourself (chapter 7);
