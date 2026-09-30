@@ -187,11 +187,13 @@ func TestParseSingleCharQ(t *testing.T) {
 
 func TestParseErrors(t *testing.T) {
 	errors := []string{
-		"",           // empty
-		"<Unknown>",  // unknown event type
-		"<Button-0>", // invalid button number
-		"<Button-6>", // button out of range
-		"abc",        // multi-char non-pattern
+		"",            // empty
+		"<Unknown>",   // unknown event type
+		"<Button-0>",  // invalid button number
+		"<Button-10>", // button out of range (Tk takes 1-9)
+		"<Motion-6>",  // only buttons 1-5 can be held modifiers
+		"<Enter-1>",   // button detail on a non-button event
+		"abc",         // multi-char non-pattern
 	}
 	for _, s := range errors {
 		_, err := Parse(s)
@@ -329,5 +331,74 @@ func TestSequenceStringRoundTripsKeys(t *testing.T) {
 			t.Errorf("different patterns %s and %s share the string %q", other, id, s)
 		}
 		seen[s] = id
+	}
+}
+
+// TestParseButtonShorthands checks Tk's button forms: a lone digit is a
+// button press (<1>, <Double-1>), B1..B5 and <Motion-N> require a held
+// button, and <Key-1> is still the digit key.
+func TestParseButtonShorthands(t *testing.T) {
+	tests := []struct {
+		in     string
+		typ    event.Type
+		button uint
+		key    platform.KeySym
+		mods   Modifier
+	}{
+		{in: "<1>", typ: event.ButtonPressType, button: 1},
+		{in: "<3>", typ: event.ButtonPressType, button: 3},
+		{in: "<Double-1>", typ: event.ButtonPressType, button: 1, mods: ModDouble},
+		{in: "<Control-2>", typ: event.ButtonPressType, button: 2, mods: ModControl},
+		{in: "<Button-9>", typ: event.ButtonPressType, button: 9},
+		{in: "<Key-1>", typ: event.KeyPressType, key: platform.KeySym('1')},
+		{in: "1", typ: event.KeyPressType, key: platform.KeySym('1')},
+		{in: "<B1-Motion>", typ: event.MotionType, mods: ModButton1},
+		{in: "<Button1-Motion>", typ: event.MotionType, mods: ModButton1},
+		{in: "<Motion-1>", typ: event.MotionType, mods: ModButton1},
+		{in: "<Motion-1-3>", typ: event.MotionType, mods: ModButton1 | ModButton3},
+		{in: "<Shift-B2-Motion>", typ: event.MotionType, mods: ModShift | ModButton2},
+		{in: "<B1-ButtonRelease-3>", typ: event.ButtonReleaseType, button: 3, mods: ModButton1},
+	}
+	for _, tt := range tests {
+		seq, err := Parse(tt.in)
+		if err != nil {
+			t.Errorf("Parse(%q): %v", tt.in, err)
+			continue
+		}
+		p := seq.Patterns[0]
+		if p.EventType != tt.typ || p.Button != tt.button || p.KeySym != tt.key || p.Modifiers != tt.mods {
+			t.Errorf("Parse(%q) = %+v, want type %v button %d key %#x mods %#x",
+				tt.in, p, tt.typ, tt.button, tt.key, tt.mods)
+		}
+		back, err := Parse(seq.String())
+		if err != nil || !slices.Equal(back.Patterns, seq.Patterns) {
+			t.Errorf("Parse(%q) = %+v, %v; want %+v", seq.String(), back.Patterns, err, seq.Patterns)
+		}
+	}
+}
+
+func TestPatternMatchesHeldButton(t *testing.T) {
+	drag := MustParse("<B1-Motion>").Patterns[0]
+	plain := MustParse("<Motion>").Patterns[0]
+	tests := []struct {
+		state       uint
+		drag, plain bool
+	}{
+		{state: 0, drag: false, plain: true},
+		{state: platform.Button1Mask, drag: true, plain: true},
+		{state: platform.Button3Mask, drag: false, plain: true},
+		{state: platform.Button1Mask | platform.ShiftMask, drag: true, plain: true},
+	}
+	for _, tt := range tests {
+		ev := &event.Event{Type: event.MotionType, State: tt.state}
+		if got := drag.matches(ev, 0); got != tt.drag {
+			t.Errorf("<B1-Motion> with state %#x: matches = %v, want %v", tt.state, got, tt.drag)
+		}
+		if got := plain.matches(ev, 0); got != tt.plain {
+			t.Errorf("<Motion> with state %#x: matches = %v, want %v", tt.state, got, tt.plain)
+		}
+	}
+	if drag.specificity() <= plain.specificity() {
+		t.Error("<B1-Motion> should be more specific than <Motion>")
 	}
 }

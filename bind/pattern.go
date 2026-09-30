@@ -19,7 +19,26 @@ const (
 	ModMeta
 	ModDouble
 	ModTriple
+	// ModButton1..ModButton5 require that mouse button to be held
+	// (Tk's B1..B5 / Button1..Button5 modifiers, as in <B1-Motion>).
+	ModButton1
+	ModButton2
+	ModButton3
+	ModButton4
+	ModButton5
 )
+
+// buttonMods pairs each button modifier with its event state bit.
+var buttonMods = [...]struct {
+	mod   Modifier
+	state uint
+}{
+	{ModButton1, platform.Button1Mask},
+	{ModButton2, platform.Button2Mask},
+	{ModButton3, platform.Button3Mask},
+	{ModButton4, platform.Button4Mask},
+	{ModButton5, platform.Button5Mask},
+}
 
 // Pattern describes a single event pattern to match.
 type Pattern struct {
@@ -67,6 +86,11 @@ func patternString(p Pattern) string {
 	}
 	if p.Modifiers&ModMeta != 0 {
 		b.WriteString("Meta-")
+	}
+	for i, bm := range buttonMods {
+		if p.Modifiers&bm.mod != 0 {
+			b.WriteString("B" + strconv.Itoa(i+1) + "-")
+		}
 	}
 	b.WriteString(eventTypeName(p.EventType))
 	if p.Button != 0 {
@@ -118,7 +142,8 @@ func eventTypeName(t event.Type) string {
 
 // Parse parses a Tk-style event pattern string into a Sequence.
 // Supported formats:
-//   - <Button-1>, <ButtonRelease-1>
+//   - <Button-1>, <ButtonRelease-1>, and <1> (a lone digit is a button)
+//   - <B1-Motion>, <Motion-1> (motion with button 1 held)
 //   - <Key-a>, <Key-Return>, <KeyRelease-Escape>
 //   - <Control-a>, <Control-Shift-x>
 //   - <Double-Button-1>, <Triple-Button-1>
@@ -230,8 +255,16 @@ func parseInner(s string) (Pattern, error) {
 			break
 		}
 
-		// If we reach here, treat everything remaining as a key name.
+		// If we reach here, treat everything remaining as a key name,
+		// except that a lone digit with no event type is a button, as in
+		// Tk: <1> is <ButtonPress-1>, while <Key-1> is the digit key.
 		keyName := strings.Join(parts, "-")
+		if n := buttonNumber(keyName); n != 0 {
+			p.EventType = event.ButtonPressType
+			p.Button = n
+			parts = nil
+			continue
+		}
 		p.EventType = event.KeyPressType
 		ks := lookupKeySym(keyName)
 		if ks == 0 {
@@ -245,7 +278,7 @@ func parseInner(s string) (Pattern, error) {
 		return Pattern{}, fmt.Errorf("no event type specified")
 	}
 
-	p.Modifiers = mods
+	p.Modifiers |= mods
 	return p, nil
 }
 
@@ -260,6 +293,16 @@ func parseModifier(lower string) (Modifier, bool) {
 		return ModAlt, true
 	case "meta", "mod4", "super":
 		return ModMeta, true
+	case "b1", "button1":
+		return ModButton1, true
+	case "b2", "button2":
+		return ModButton2, true
+	case "b3", "button3":
+		return ModButton3, true
+	case "b4", "button4":
+		return ModButton4, true
+	case "b5", "button5":
+		return ModButton5, true
 	case "double":
 		return ModDouble, true
 	case "triple":
@@ -307,11 +350,20 @@ func parseEventType(lower string) (event.Type, bool) {
 func setDetail(p *Pattern, detail string) error {
 	switch p.EventType {
 	case event.ButtonPressType, event.ButtonReleaseType:
-		n, err := strconv.Atoi(detail)
-		if err != nil || n < 1 || n > 5 {
+		n := buttonNumber(detail)
+		if n == 0 {
 			return fmt.Errorf("invalid button number %q", detail)
 		}
-		p.Button = uint(n)
+		p.Button = n
+	case event.MotionType:
+		// <Motion-1> is <B1-Motion>; Tk accepts several: <Motion-1-2>.
+		for f := range strings.SplitSeq(detail, "-") {
+			n := buttonNumber(f)
+			if n == 0 || n > uint(len(buttonMods)) {
+				return fmt.Errorf("invalid button number %q", f)
+			}
+			p.Modifiers |= buttonMods[n-1].mod
+		}
 	case event.KeyPressType, event.KeyReleaseType:
 		ks := lookupKeySym(detail)
 		if ks == 0 {
@@ -340,16 +392,7 @@ func (p *Pattern) matches(ev *event.Event, clickMods Modifier) bool {
 	evMods |= clickMods // add double/triple from click tracking
 
 	reqMods := p.Modifiers &^ (ModDouble | ModTriple) // keyboard/pointer modifiers
-	if reqMods&ModControl != 0 && evMods&ModControl == 0 {
-		return false
-	}
-	if reqMods&ModShift != 0 && evMods&ModShift == 0 {
-		return false
-	}
-	if reqMods&ModAlt != 0 && evMods&ModAlt == 0 {
-		return false
-	}
-	if reqMods&ModMeta != 0 && evMods&ModMeta == 0 {
+	if reqMods&^evMods != 0 {
 		return false
 	}
 
@@ -418,5 +461,19 @@ func eventModifiers(ev *event.Event) Modifier {
 	if ev.State&platform.Mod4Mask != 0 {
 		m |= ModMeta
 	}
+	for _, bm := range buttonMods {
+		if ev.State&bm.state != 0 {
+			m |= bm.mod
+		}
+	}
 	return m
+}
+
+// buttonNumber returns the button a detail names (Tk's GetButtonNumber:
+// a single digit 1-9), or 0.
+func buttonNumber(s string) uint {
+	if len(s) == 1 && s[0] >= '1' && s[0] <= '9' {
+		return uint(s[0] - '0')
+	}
+	return 0
 }
