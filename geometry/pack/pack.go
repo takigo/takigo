@@ -115,18 +115,18 @@ type packer struct {
 var mgr = &packManager{}
 
 // packers tracks per-container state.
-var packers = map[*window.Window]*packer{}
+var packers = new(geometry.Table[*packer])
 
 // hooked records the containers whose destroy and configure hooks are
 // registered.
-var hooked = map[*window.Window]bool{}
+var hooked = new(geometry.Table[bool])
 
 type packManager struct{}
 
 func (m *packManager) Name() string { return "pack" }
 
 func (m *packManager) RequestProc(content *window.Window) {
-	if p, ok := packers[containerFor(content)]; ok {
+	if p, ok := packers.Get(containerFor(content)); ok {
 		p.scheduleArrange()
 	}
 }
@@ -135,8 +135,8 @@ func (m *packManager) RequestProc(content *window.Window) {
 // destroyed or taken over by another geometry manager.
 func (m *packManager) LostContentProc(content *window.Window) {
 	container := containerFor(content)
-	delete(containerOf, content)
-	if p, ok := packers[container]; ok {
+	containerOf.Delete(content)
+	if p, ok := packers.Get(container); ok {
 		p.remove(content)
 		p.scheduleArrange()
 	}
@@ -145,7 +145,7 @@ func (m *packManager) LostContentProc(content *window.Window) {
 // containerFor returns the window content is managed in: its -in
 // container if one was given, else its parent.
 func containerFor(content *window.Window) *window.Window {
-	if c := containerOf[content]; c != nil {
+	if c := containerOf.Of(content); c != nil {
 		return c
 	}
 	return content.Parent
@@ -155,14 +155,14 @@ func containerFor(content *window.Window) *window.Window {
 // in it from outside its subtree (via -in) becomes unmanaged, as in
 // Tk's DestroyNotify handling in the geometry managers.
 func forgetContainer(container *window.Window) {
-	p, ok := packers[container]
+	p, ok := packers.Get(container)
 	if !ok {
 		return
 	}
-	delete(packers, container)
+	packers.Delete(container)
 	for _, e := range p.entries {
-		if w := e.window; containerOf[w] == container {
-			delete(containerOf, w)
+		if w := e.window; containerOf.Of(w) == container {
+			containerOf.Delete(w)
 			w.GeomManager = nil
 			if w.IsMapped() && !w.IsDestroyed() && w.PlatformID != 0 {
 				w.Display.Server.UnmapWindow(w.PlatformID)
@@ -184,7 +184,7 @@ func In(container window.Windower) PackOption {
 }
 
 // containerOf records each content window's container (Tk's containerPtr).
-var containerOf = map[*window.Window]*window.Window{}
+var containerOf = new(geometry.Table[*window.Window])
 
 func Pack(children geometry.Elementer, opts ...PackOption) {
 	cfg := packConfig{
@@ -210,32 +210,32 @@ func Pack(children geometry.Elementer, opts ...PackOption) {
 		if parent == nil {
 			continue
 		}
-		if old := containerOf[w]; old != nil && old != parent {
-			if op, ok := packers[old]; ok {
+		if old := containerOf.Of(w); old != nil && old != parent {
+			if op, ok := packers.Get(old); ok {
 				op.remove(w)
 				op.scheduleArrange()
 			}
 		}
-		containerOf[w] = parent
+		containerOf.Set(w, parent)
 
 		geometry.ManageGeometry(w, mgr)
 
-		p, ok := packers[parent]
+		p, ok := packers.Get(parent)
 		if !ok {
 			p = &packer{container: parent}
-			packers[parent] = p
+			packers.Set(parent, p)
 		}
-		if !hooked[parent] {
+		if !hooked.Of(parent) {
 			// The packer is dropped when its last content goes but the
 			// hooks stay with the window, so register them once.
-			hooked[parent] = true
+			hooked.Set(parent, true)
 			parent.OnDestroy(func() {
 				forgetContainer(parent)
-				delete(hooked, parent)
+				hooked.Delete(parent)
 			})
 			// Re-layout when resized by external forces (e.g. PanedWindow).
 			parent.OnConfigure(func() {
-				if pp, ok2 := packers[parent]; ok2 {
+				if pp, ok2 := packers.Get(parent); ok2 {
 					pp.scheduleArrange()
 				}
 			})
@@ -265,21 +265,21 @@ func Pack(children geometry.Elementer, opts ...PackOption) {
 // Forget removes a child from pack management.
 func Forget(child window.Windower) {
 	w := child.Window()
-	parent := containerOf[w]
+	parent := containerOf.Of(w)
 	if parent == nil {
 		parent = w.Parent
 	}
 	if parent == nil {
 		return
 	}
-	delete(containerOf, w)
+	containerOf.Delete(w)
 	w.GeomManager = nil
 	// pack forget unmaps the content and re-packs the rest.
 	if w.IsMapped() && w.PlatformID != platform.WindowID(0) {
 		w.Display.Server.UnmapWindow(w.PlatformID)
 		window.MarkUnmapped(w)
 	}
-	if p, ok := packers[parent]; ok {
+	if p, ok := packers.Get(parent); ok {
 		p.remove(w)
 		p.scheduleArrange()
 	}
@@ -294,7 +294,7 @@ func (p *packer) remove(child *window.Window) {
 		}
 	}
 	if len(p.entries) == 0 {
-		delete(packers, p.container)
+		packers.Delete(p.container)
 	}
 }
 
@@ -575,11 +575,17 @@ func anchorPosition(a option.Anchor, frameX, frameY, frameW, frameH, childW, chi
 	return x, y
 }
 
-// ArrangeAll triggers layout for all pack-managed containers.
-// Call this after window resize events.
-func ArrangeAll() {
-	for _, p := range packers {
+// ArrangeAll triggers layout for the pack-managed containers in root's
+// subtree, root included.
+func ArrangeAll(root *window.Window) {
+	if root == nil {
+		return
+	}
+	if p, ok := packers.Get(root); ok {
 		p.scheduleArrange()
+	}
+	for _, c := range root.Children {
+		ArrangeAll(c)
 	}
 }
 
@@ -589,12 +595,12 @@ func ArrangeAll() {
 func init() {
 	window.AddMappedHook(ArrangeContainer)
 	window.AddMovedHook(func(w *window.Window) {
-		if p, ok := packers[w]; ok && p.hasForeign() {
+		if p, ok := packers.Get(w); ok && p.hasForeign() {
 			p.scheduleArrange()
 		}
 	})
 	window.AddUnmappedHook(func(w *window.Window) {
-		if p, ok := packers[w]; ok {
+		if p, ok := packers.Get(w); ok {
 			p.unmapForeign()
 		}
 	})
@@ -625,7 +631,7 @@ func (p *packer) unmapForeign() {
 
 // ArrangeContainer triggers layout for a specific container.
 func ArrangeContainer(container *window.Window) {
-	if p, ok := packers[container]; ok {
+	if p, ok := packers.Get(container); ok {
 		p.arrange()
 	}
 }

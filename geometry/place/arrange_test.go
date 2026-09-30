@@ -107,7 +107,7 @@ func TestPlaceReconfigureAndForget(t *testing.T) {
 	ch := newChild(c, 30, 20)
 	Place(ch, X(10))
 	Place(ch, X(20))
-	p := placers[c]
+	p := placers.Of(c)
 	if p == nil || len(p.entries) != 1 {
 		t.Fatalf("re-placing added an entry: %+v", p)
 	}
@@ -119,10 +119,10 @@ func TestPlaceReconfigureAndForget(t *testing.T) {
 	}
 
 	Forget(ch)
-	if _, ok := placers[c]; ok {
+	if _, ok := placers.Get(c); ok {
 		t.Error("container state kept after its last content was forgotten")
 	}
-	if _, ok := containerOf[ch]; ok {
+	if _, ok := containerOf.Get(ch); ok {
 		t.Error("containerOf kept a forgotten window")
 	}
 	if ch.GeomManager != nil || ch.IsMapped() || s.mapped[ch.PlatformID] {
@@ -176,13 +176,13 @@ func TestManagerProcs(t *testing.T) {
 	}
 
 	mgr.LostContentProc(a)
-	if len(placers[c].entries) != 1 || placers[c].entries[0].window != b {
+	if len(placers.Of(c).entries) != 1 || placers.Of(c).entries[0].window != b {
 		t.Error("LostContentProc did not drop the content")
 	}
 
 	b.ReqHeight = 44
 	delete(s.moves, b.PlatformID)
-	ArrangeAll()
+	ArrangeAll(c)
 	if s.moves[b.PlatformID][3] != 44 {
 		t.Error("ArrangeAll did not re-arrange")
 	}
@@ -201,7 +201,7 @@ func TestPlaceIn(t *testing.T) {
 	if got, want := geom(ch), [4]int{80, 75, 20, 10}; got != want {
 		t.Errorf("geometry = %v, want %v", got, want)
 	}
-	if !placers[sib].hasForeign() {
+	if !placers.Of(sib).hasForeign() {
 		t.Error("hasForeign = false for -in content")
 	}
 
@@ -221,7 +221,7 @@ func TestPlaceIn(t *testing.T) {
 	}
 
 	Place(ch, X(1))
-	if _, ok := placers[sib]; ok {
+	if _, ok := placers.Get(sib); ok {
 		t.Error("moving content back to its parent left it in the -in container")
 	}
 	if containerFor(ch) != top || geom(ch)[0] != 1 {
@@ -230,16 +230,16 @@ func TestPlaceIn(t *testing.T) {
 
 	Place(ch, In(sib))
 	window.DestroyWindow(sib)
-	if _, ok := placers[sib]; ok {
+	if _, ok := placers.Get(sib); ok {
 		t.Error("state kept for a destroyed container")
 	}
 	if ch.GeomManager != nil || ch.IsMapped() {
 		t.Error("-in content still managed or mapped after its container was destroyed")
 	}
-	if _, ok := containerOf[ch]; ok {
+	if _, ok := containerOf.Get(ch); ok {
 		t.Error("containerOf kept content of a destroyed container")
 	}
-	delete(placers, top)
+	placers.Delete(top)
 }
 
 func TestDestroyContentDropsIt(t *testing.T) {
@@ -248,10 +248,10 @@ func TestDestroyContentDropsIt(t *testing.T) {
 	ch := newChild(c, 30, 20)
 	Place(ch)
 	window.DestroyWindow(ch)
-	if _, ok := placers[c]; ok {
+	if _, ok := placers.Get(c); ok {
 		t.Error("container state kept after its content was destroyed")
 	}
-	if _, ok := containerOf[ch]; ok {
+	if _, ok := containerOf.Get(ch); ok {
 		t.Error("containerOf kept a destroyed window")
 	}
 }
