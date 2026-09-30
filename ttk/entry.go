@@ -62,6 +62,7 @@ type Entry struct {
 	// Text variable linkage.
 	TextVar *widget.Variable[string]
 	unsub   func()
+	linked  *widget.Variable[string]
 
 	// Layout metrics.
 	insetX int
@@ -187,46 +188,70 @@ func NewEntry(parent widget.Caregiver, name string, opts ...EntryOption) *Entry 
 	win.OnDestroy(e.Destroy)
 	e.DisplayFunc = e.Display
 
-	// Default size based on font metrics.
-	if e.Font != nil {
-		m := e.Font.Metrics()
-		avgW := e.Font.MeasureString("0")
-		if avgW < 1 {
-			avgW = 8
-		}
-		// The field border (inset) plus TEntry's -padding 1 on each side.
-		win.ReqWidth = e.WidthChars*avgW + 2*e.insetX + 2
-		win.ReqHeight = m.Linespace() + 2*e.insetY + 2
-	}
-
 	for _, opt := range opts {
 		opt(e)
 	}
-
-	// Sync initial state.
-	switch e.StateMode {
-	case EntryDisabled:
-		e.ChangeState(StateDisabled, 0)
-	case EntryReadonly:
-		e.ChangeState(StateReadonly, 0)
+	if e.StyleName != "TEntry" {
+		e.RefreshTheme()
 	}
+	e.requestSize()
+	e.syncState()
 	win.SetCursor(uint(cursor.XTerm))
-
-	// Text variable link.
-	if e.TextVar != nil {
-		e.edit.Text = []rune(e.TextVar.Get())
-		e.edit.InsertPos = len(e.edit.Text)
-		e.unsub = e.TextVar.OnChange(func(_, val string) {
-			if val == e.edit.Get() {
-				return
-			}
-			e.edit.Set(val)
-		})
-	}
+	e.linkTextVar()
 
 	bindEntry(e, app)
 
 	return e
+}
+
+// requestSize requests -width average characters by one line, plus the
+// field border (inset) and TEntry's -padding 1 on each side.
+func (e *Entry) requestSize() {
+	if e.Font == nil {
+		return
+	}
+	m := e.Font.Metrics()
+	avgW := e.Font.MeasureString("0")
+	if avgW < 1 {
+		avgW = 8
+	}
+	e.Win.ReqWidth = e.WidthChars*avgW + 2*e.insetX + 2
+	e.Win.ReqHeight = m.Linespace() + 2*e.insetY + 2
+}
+
+// syncState applies -state to the widget state.
+func (e *Entry) syncState() {
+	switch e.StateMode {
+	case EntryDisabled:
+		e.ChangeState(StateDisabled, StateReadonly)
+	case EntryReadonly:
+		e.ChangeState(StateReadonly, StateDisabled)
+	default:
+		e.ChangeState(0, StateDisabled|StateReadonly)
+	}
+}
+
+// linkTextVar takes the text from -textvariable and follows its changes.
+func (e *Entry) linkTextVar() {
+	if e.TextVar == e.linked {
+		return
+	}
+	if e.unsub != nil {
+		e.unsub()
+		e.unsub = nil
+	}
+	e.linked = e.TextVar
+	if e.TextVar == nil {
+		return
+	}
+	e.edit.Text = []rune(e.TextVar.Get())
+	e.edit.InsertPos = len(e.edit.Text)
+	e.unsub = e.TextVar.OnChange(func(_, val string) {
+		if val == e.edit.Get() {
+			return
+		}
+		e.edit.Set(val)
+	})
 }
 
 // Window returns the underlying window.
@@ -391,23 +416,16 @@ func (s *Selection) Range(first, last string) error {
 // SetState changes the entry state.
 func (e *Entry) SetState(s EntryState) {
 	e.StateMode = s
-	switch s {
-	case EntryDisabled:
-		e.ChangeState(StateDisabled, 0)
-	case EntryReadonly:
-		e.ChangeState(StateReadonly, 0)
-	default:
-		e.ChangeState(0, StateDisabled|StateReadonly)
-	}
+	e.syncState()
 	e.Display()
 }
 
-// Configure applies additional options at runtime.
+// Configure sets options after creation.
 func (e *Entry) Configure(opts ...EntryOption) {
-	for _, opt := range opts {
-		opt(e)
-	}
-	e.Display()
+	configure(&e.TtkWidget, e, opts, func() {
+		e.syncState()
+		e.linkTextVar()
+	}, e.requestSize)
 }
 
 // Identify returns the element name under the given point.

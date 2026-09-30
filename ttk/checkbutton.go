@@ -23,9 +23,11 @@ type Checkbutton struct {
 
 	selected bool
 	unsub    func()
+	linked   *widget.Variable[bool]
 	// layoutMode is set for styles such as Toolbutton whose layout has no
 	// indicator: the widget is drawn from the style's layout like a button.
 	layoutMode bool
+	hoverBound bool
 }
 
 // GetText implements TextProvider.
@@ -100,34 +102,8 @@ func NewCheckbutton(parent widget.Caregiver, name string, opts ...CheckbuttonOpt
 		opt(c)
 	}
 
-	// Sync initial state from variable.
-	if c.Variable != nil {
-		c.selected = c.Variable.Get()
-		if c.selected {
-			c.State |= StateSelected
-			c.State &^= StateAlternate
-		}
-		c.unsub = c.Variable.OnChange(func(_, _ bool) {
-			c.selected = c.Variable.Get()
-			if c.selected {
-				c.State |= StateSelected
-			} else {
-				c.State &^= StateSelected
-			}
-			c.State &^= StateAlternate
-			c.Display()
-		})
-	}
-
-	if c.StyleName != "TCheckbutton" && c.Theme != nil {
-		if tmpl := c.Theme.GetLayout(c.StyleName); tmpl != nil {
-			c.setStyle(c.Theme.ResolveStyle(c.StyleName))
-			c.LabelFactory = NewLabelElementFactory(c)
-			c.Layout = newLayoutWithLabel(tmpl, c.Theme, c.Context, c.Context.Style, c.LabelFactory)
-			c.layoutMode = true
-			bindTtkHover(&c.TtkWidget, app)
-		}
-	}
+	c.linkVariable()
+	c.useStyleLayout()
 
 	// Compute initial size.
 	c.computeSize()
@@ -136,8 +112,72 @@ func NewCheckbutton(parent widget.Caregiver, name string, opts ...CheckbuttonOpt
 	return c
 }
 
+// linkVariable syncs the state from -variable and follows its changes.
+func (c *Checkbutton) linkVariable() {
+	if c.Variable == c.linked {
+		return
+	}
+	if c.unsub != nil {
+		c.unsub()
+		c.unsub = nil
+	}
+	c.linked = c.Variable
+	if c.Variable == nil {
+		return
+	}
+	c.selected = c.Variable.Get()
+	if c.selected {
+		c.State |= StateSelected
+		c.State &^= StateAlternate
+	} else {
+		c.State &^= StateSelected
+	}
+	c.unsub = c.Variable.OnChange(func(_, _ bool) {
+		c.selected = c.Variable.Get()
+		if c.selected {
+			c.State |= StateSelected
+		} else {
+			c.State &^= StateSelected
+		}
+		c.State &^= StateAlternate
+		c.Display()
+	})
+}
+
+// useStyleLayout switches to the style's own layout for styles such as
+// Toolbutton that have one; other styles keep the indicator drawing.
+func (c *Checkbutton) useStyleLayout() {
+	c.layoutMode = false
+	if c.StyleName == "TCheckbutton" || c.Theme == nil {
+		return
+	}
+	tmpl := c.Theme.GetLayout(c.StyleName)
+	if tmpl == nil {
+		return
+	}
+	c.setStyle(c.Theme.ResolveStyle(c.StyleName))
+	c.LabelFactory = NewLabelElementFactory(c)
+	c.Layout = newLayoutWithLabel(tmpl, c.Theme, c.Context, c.Context.Style, c.LabelFactory)
+	c.layoutMode = true
+	if !c.hoverBound {
+		c.hoverBound = true
+		bindTtkHover(&c.TtkWidget, c.App)
+	}
+}
+
+// Configure sets options after creation.
+func (c *Checkbutton) Configure(opts ...CheckbuttonOption) {
+	style := c.StyleName
+	configure(&c.TtkWidget, c, opts, c.linkVariable, func() {
+		if c.StyleName != style {
+			c.useStyleLayout()
+		}
+		c.computeSize()
+	})
+}
+
 func (c *Checkbutton) computeSize() {
-	if c.layoutMode {
+	if c.layoutMode && c.Layout != nil {
 		c.Win.ReqWidth, c.Win.ReqHeight = c.Layout.Size(c.State)
 		return
 	}

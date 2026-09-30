@@ -3,8 +3,6 @@
 package listbox
 
 import (
-	"log"
-
 	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/font"
@@ -92,26 +90,11 @@ func JustifyOpt(j option.Justify) ListboxOption {
 }
 
 func Background(name string) ListboxOption {
-	return func(lb *Listbox) {
-		col, err := lb.App.ColorCache().Get(name)
-		if err != nil {
-			log.Printf("listbox: failed to get color %q: %v", name, err)
-			return
-		}
-		lb.Background = col
-		lb.UpdateBorder()
-	}
+	return func(lb *Listbox) { lb.SetBackgroundName(name) }
 }
 
 func Foreground(name string) ListboxOption {
-	return func(lb *Listbox) {
-		col, err := lb.App.ColorCache().Get(name)
-		if err != nil {
-			log.Printf("listbox: failed to get color %q: %v", name, err)
-			return
-		}
-		lb.Foreground = col
-	}
+	return func(lb *Listbox) { lb.SetForegroundName(name) }
 }
 
 func YScrollCommand(fn func(float64, float64)) ListboxOption {
@@ -198,7 +181,7 @@ func New(parent widget.Caregiver, name string, opts ...ListboxOption) *Listbox {
 	lb.computeGeometry()
 
 	if lb.Background != nil {
-		w.BackgroundPixel = lb.Background.Pixel
+		w.SetBackgroundPixel(lb.Background.Pixel)
 	}
 
 	w.Flags |= window.FlagFocusable
@@ -376,8 +359,7 @@ func (lb *Listbox) ItemConfigure(idx int, fg, bg string) {
 
 // SetJustify changes the text justification and redraws.
 func (lb *Listbox) SetJustify(j option.Justify) {
-	lb.Justify = j
-	lb.Display()
+	lb.Configure(JustifyOpt(j))
 }
 
 // See scrolls the listbox so that the item at index is visible.
@@ -701,14 +683,8 @@ func (lb *Listbox) display() {
 }
 
 // Configure applies options.
-func (lb *Listbox) Configure(opts ...option.Option) {
-	option.Apply(lb, opts)
-	lb.UpdateBorder()
-	lb.computeGeometry()
-	if lb.Background != nil {
-		lb.Win.BackgroundPixel = lb.Background.Pixel
-	}
-	lb.Display()
+func (lb *Listbox) Configure(opts ...ListboxOption) {
+	widget.Configure(lb, opts, lb.computeGeometry)
 }
 
 // Destroy cleans up the listbox.

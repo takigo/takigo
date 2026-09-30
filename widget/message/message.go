@@ -4,7 +4,6 @@
 package message
 
 import (
-	"log"
 	"strings"
 
 	"github.com/msorc/takigo/draw"
@@ -44,44 +43,22 @@ func Text(s string) MessageOption {
 
 // Background sets the background color.
 func Background(name string) MessageOption {
-	return func(m *Message) {
-		col, err := m.App.ColorCache().Get(name)
-		if err != nil {
-			log.Printf("message: failed to get color %q: %v", name, err)
-			return
-		}
-		m.Background = col
-		m.UpdateBorder()
-	}
+	return func(m *Message) { m.SetBackgroundName(name) }
 }
 
 // Foreground sets the text color.
 func Foreground(name string) MessageOption {
-	return func(m *Message) {
-		col, err := m.App.ColorCache().Get(name)
-		if err != nil {
-			log.Printf("message: failed to get color %q: %v", name, err)
-			return
-		}
-		m.Foreground = col
-	}
+	return func(m *Message) { m.SetForegroundName(name) }
 }
 
 // FontOpt sets the font.
 func FontOpt(name string) MessageOption {
-	return func(m *Message) {
-		f, err := m.App.FontRegistry().Get(name)
-		if err != nil {
-			log.Printf("message: failed to get font %q: %v", name, err)
-			return
-		}
-		m.Font = f
-	}
+	return func(m *Message) { m.SetFontName(name) }
 }
 
 // BorderWidth sets the border width.
-func BorderWidth(w int) MessageOption {
-	return func(m *Message) { m.BorderWidth = w }
+func BorderWidth(w any) MessageOption {
+	return func(m *Message) { m.BorderWidth = screenunit.PxOr(w, m.BorderWidth) }
 }
 
 // Relief sets the border relief.
@@ -203,7 +180,7 @@ func New(parent widget.Caregiver, name string, opts ...MessageOption) *Message {
 	m.computeGeometry()
 
 	if m.Background != nil {
-		w.BackgroundPixel = m.Background.Pixel
+		w.SetBackgroundPixel(m.Background.Pixel)
 	}
 
 	app.Dispatcher().Bind(w.PlatformID, event.ExposureMask, func(ev *event.Event) {
@@ -398,14 +375,8 @@ func (m *Message) display() {
 }
 
 // Configure applies options to the message.
-func (m *Message) Configure(opts ...option.Option) {
-	option.Apply(m, opts)
-	m.UpdateBorder()
-	m.computeGeometry()
-	if m.Background != nil {
-		m.Win.BackgroundPixel = m.Background.Pixel
-	}
-	m.Display()
+func (m *Message) Configure(opts ...MessageOption) {
+	widget.Configure(m, opts, m.computeGeometry)
 }
 
 // Destroy cleans up the message widget.

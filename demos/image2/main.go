@@ -209,12 +209,11 @@ func main() {
 			currentPhotoName = newPhoto.Name()
 
 			// Show the full image in the "Image:" labelframe.
-			imgLabel.Text = ""
-			imgLabel.SetImage(newPhoto)
+			imgLabel.Configure(label.Text(""), label.ImageOpt(newPhoto))
 
 			// "tk fileicon $filename 48".
-			iconLabel.Compound = widget.CompoundTop
-			iconLabel.SetImage(demohelper.FileIcon(path, 48))
+			iconLabel.Configure(label.CompoundOpt(widget.CompoundTop),
+				label.ImageOpt(demohelper.FileIcon(path, 48)))
 		})
 		return false
 	})

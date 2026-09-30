@@ -1,6 +1,6 @@
 package text
 
-import "log"
+import "github.com/msorc/takigo/screenunit"
 
 // WrapMode specifies how lines are wrapped at widget boundaries.
 type WrapMode int
@@ -31,49 +31,27 @@ func WrapModeOpt(mode WrapMode) TextOption {
 
 // Background sets the background color.
 func Background(name string) TextOption {
-	return func(t *TextWidget) {
-		col, err := t.App.ColorCache().Get(name)
-		if err != nil {
-			log.Printf("text: failed to get color %q: %v", name, err)
-			return
-		}
-		t.Background = col
-		t.UpdateBorder()
-	}
+	return func(t *TextWidget) { t.SetBackgroundName(name) }
 }
 
 // Foreground sets the text foreground color.
 func Foreground(name string) TextOption {
-	return func(t *TextWidget) {
-		col, err := t.App.ColorCache().Get(name)
-		if err != nil {
-			log.Printf("text: failed to get color %q: %v", name, err)
-			return
-		}
-		t.Foreground = col
-	}
+	return func(t *TextWidget) { t.SetForegroundName(name) }
 }
 
 // FontOpt sets the font.
 func FontOpt(name string) TextOption {
-	return func(t *TextWidget) {
-		f, err := t.App.FontRegistry().Get(name)
-		if err != nil {
-			log.Printf("text: failed to get font %q: %v", name, err)
-			return
-		}
-		t.Font = f
-	}
+	return func(t *TextWidget) { t.SetFontName(name) }
 }
 
 // BorderWidthOpt sets the border width.
-func BorderWidthOpt(w int) TextOption {
-	return func(t *TextWidget) { t.BorderWidth = w }
+func BorderWidthOpt(w any) TextOption {
+	return func(t *TextWidget) { t.BorderWidth = screenunit.PxOr(w, t.BorderWidth) }
 }
 
 // HighlightThickness sets -highlightthickness.
-func HighlightThickness(n int) TextOption {
-	return func(t *TextWidget) { t.HighlightWidth = n }
+func HighlightThickness(n any) TextOption {
+	return func(t *TextWidget) { t.HighlightWidth = screenunit.PxOr(n, t.HighlightWidth) }
 }
 
 // TabWidth sets the tab width in characters.
@@ -115,19 +93,13 @@ func SetGridOpt(on bool) TextOption {
 }
 
 // PadXOpt sets horizontal padding between the border and the text content.
-func PadXOpt(n int) TextOption {
-	return func(t *TextWidget) {
-		t.PadX = n
-		t.insetX = t.inset + t.PadX
-	}
+func PadXOpt(n any) TextOption {
+	return func(t *TextWidget) { t.PadX = screenunit.PxOr(n, t.PadX) }
 }
 
 // PadYOpt sets vertical padding between the border and the text content.
-func PadYOpt(n int) TextOption {
-	return func(t *TextWidget) {
-		t.PadY = n
-		t.insetY = t.inset + t.PadY
-	}
+func PadYOpt(n any) TextOption {
+	return func(t *TextWidget) { t.PadY = screenunit.PxOr(n, t.PadY) }
 }
 
 // --- Ttk-compatible aliases (prefix with Text) for consistent naming ---

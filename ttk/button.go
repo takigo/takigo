@@ -148,6 +148,11 @@ func NewButton(parent widget.Caregiver, name string, opts ...ButtonOption) *Butt
 	return b
 }
 
+// Configure sets options after creation.
+func (b *Button) Configure(opts ...ButtonOption) {
+	configure(&b.TtkWidget, b, opts, nil, nil)
+}
+
 // Invoke executes the button's command.
 func (b *Button) Invoke() {
 	if b.State&StateDisabled != 0 {

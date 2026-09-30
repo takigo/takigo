@@ -6,7 +6,6 @@ import (
 	"log"
 
 	"github.com/msorc/takigo/event"
-	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/window"
@@ -38,15 +37,7 @@ func IconName(s string) ToplevelOption {
 
 // Background sets the background color.
 func Background(name string) ToplevelOption {
-	return func(t *Toplevel) {
-		col, err := t.App.ColorCache().Get(name)
-		if err != nil {
-			log.Printf("toplevel: failed to get color %q: %v", name, err)
-			return
-		}
-		t.Background = col
-		t.UpdateBorder()
-	}
+	return func(t *Toplevel) { t.SetBackgroundName(name) }
 }
 
 // Geometry sets the geometry string (e.g. "400x300+100+100").
@@ -173,7 +164,7 @@ func New(parent widget.Caregiver, name string, opts ...ToplevelOption) *Toplevel
 
 	// Update window background.
 	if t.Background != nil {
-		w.BackgroundPixel = t.Background.Pixel
+		w.SetBackgroundPixel(t.Background.Pixel)
 	}
 
 	// Bind events.
@@ -211,13 +202,8 @@ func (t *Toplevel) display() {
 }
 
 // Configure applies options.
-func (t *Toplevel) Configure(opts ...option.Option) {
-	option.Apply(t, opts)
-	t.UpdateBorder()
-	if t.Background != nil {
-		t.Win.BackgroundPixel = t.Background.Pixel
-	}
-	t.Display()
+func (t *Toplevel) Configure(opts ...ToplevelOption) {
+	widget.Configure(t, opts, nil)
 }
 
 // Show maps the toplevel window.

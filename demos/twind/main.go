@@ -417,8 +417,7 @@ func main() {
 	defaultBtn := button.New(tw, "default",
 		button.Text("Default"),
 		button.Command(func() {
-			text.Background("#ffffff")(tw)
-			tw.Display()
+			tw.Configure(text.Background("#ffffff"))
 		}),
 	)
 	tw.WindowCreatePad(defaultBtnLine, defaultBtn.Window(), "3p", 0)
@@ -455,8 +454,7 @@ func main() {
 		clrBtn := button.New(tw, name,
 			button.Text(colorName),
 			button.Command(func() {
-				text.Background(colorName)(tw)
-				tw.Display()
+				tw.Configure(text.Background(colorName))
 			}),
 		)
 		tw.WindowCreatePad(btnLine, clrBtn.Window(), "3p", "1.5p")
@@ -476,9 +474,7 @@ func main() {
 	bigBBtn := button.New(tw, "bigB",
 		button.Text("Big borders"),
 		button.Command(func() {
-			tw.BorderWidth = 12
-			tw.UpdateBorder()
-			tw.Display()
+			tw.Configure(text.BorderWidthOpt(12))
 		}),
 	)
 	tw.WindowCreate(tw.EndIndex(), bigBBtn.Window())
@@ -486,9 +482,7 @@ func main() {
 	smallBBtn := button.New(tw, "smallB",
 		button.Text("Small borders"),
 		button.Command(func() {
-			tw.BorderWidth = normalBorder
-			tw.UpdateBorder()
-			tw.Display()
+			tw.Configure(text.BorderWidthOpt(normalBorder))
 		}),
 	)
 	tw.WindowCreate(tw.EndIndex(), smallBBtn.Window())
@@ -496,8 +490,7 @@ func main() {
 	bigHBtn := button.New(tw, "bigH",
 		button.Text("Big highlight"),
 		button.Command(func() {
-			tw.HighlightWidth = 12
-			tw.Display()
+			tw.Configure(text.HighlightThickness(12))
 		}),
 	)
 	tw.WindowCreate(tw.EndIndex(), bigHBtn.Window())
@@ -505,8 +498,7 @@ func main() {
 	smallHBtn := button.New(tw, "smallH",
 		button.Text("Small highlight"),
 		button.Command(func() {
-			tw.HighlightWidth = normalHighlight
-			tw.Display()
+			tw.Configure(text.HighlightThickness(normalHighlight))
 		}),
 	)
 	tw.WindowCreate(tw.EndIndex(), smallHBtn.Window())

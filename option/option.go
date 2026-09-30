@@ -1,17 +1,6 @@
-// Package option defines the functional option types used throughout takigo.
-// Options are used both at widget creation time and for runtime configuration.
+// Package option defines the option value types shared by takigo widgets:
+// Relief, Anchor and Justify.
 package option
-
-// Option is a functional option that configures a widget or resource.
-// It is applied to an Configurable target during creation or reconfiguration.
-type Option func(target any)
-
-// Apply applies a slice of options to a target.
-func Apply(target any, opts []Option) {
-	for _, opt := range opts {
-		opt(target)
-	}
-}
 
 // Relief specifies how a widget border appears.
 type Relief int

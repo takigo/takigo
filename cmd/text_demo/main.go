@@ -25,7 +25,7 @@ func main() {
 
 	root := app.Root()
 	bgColor, _ := app.ColorCache().Get("#d9d9d9")
-	root.BackgroundPixel = bgColor.Pixel
+	root.SetBackgroundPixel(bgColor.Pixel)
 
 	// Status label at bottom.
 	statusLabel := label.New(app, "status",

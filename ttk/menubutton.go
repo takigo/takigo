@@ -146,6 +146,11 @@ func NewMenubutton(parent widget.Caregiver, name string, opts ...MenubuttonOptio
 	return mb
 }
 
+// Configure sets options after creation.
+func (mb *Menubutton) Configure(opts ...MenubuttonOption) {
+	configure(&mb.TtkWidget, mb, opts, nil, nil)
+}
+
 // Display renders the menubutton with an indicator arrow.
 func (mb *Menubutton) Display() {
 	if mb.Destroyed {

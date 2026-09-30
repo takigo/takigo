@@ -39,7 +39,7 @@ func main() {
 
 	root := app.Root()
 	bgColor, _ := app.ColorCache().Get("#d9d9d9")
-	root.BackgroundPixel = bgColor.Pixel
+	root.SetBackgroundPixel(bgColor.Pixel)
 
 	// TODO: wm iconwindow . [toplevel ._iconWindow]
 	// TODO: wm iconname . "tkWidgetDemo"
@@ -66,10 +66,7 @@ func main() {
 	pack.Pack(menuBar, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
 
 	// menu .menuBar.file -tearoff 0
-	fileMenu := menu.New(app, "file")
-	if menuFont, err := app.FontRegistry().Get(tkfont.TkMenuFont); err == nil {
-		fileMenu.Font = menuFont
-	}
+	fileMenu := menu.New(app, "file", menu.FontOpt(tkfont.TkMenuFont))
 	// .menuBar.file add command -label "About..." -accelerator "<F1>"
 	fileMenu.AddCommandAccel("About...", "F1", func() {
 		// TODO: tkAboutDialog — use dialog.ShowMessage
@@ -232,8 +229,7 @@ func main() {
 			t.TagBind(tagName, "<Button-1>", func() {
 				dir := filepath.Join(demoBase, demoDir)
 				// showStatus
-				statusLabel.Text = fmt.Sprintf("Running: %s...", demoDesc)
-				statusLabel.Display()
+				statusLabel.Configure(label.Text(fmt.Sprintf("Running: %s...", demoDesc)))
 				cmd := exec.Command("go", "run", ".")
 				cmd.Dir = dir
 				cmd.Stdout = os.Stdout
@@ -256,20 +252,18 @@ func main() {
 			// .t tag bind demo <Enter> { ... .t config -cursor hand2 ... showStatus }
 			t.TagBind(tagName, "<Enter>", func() {
 				t.Window().SetCursor(uint(cursor.Hand2))
-				statusLabel.Text = fmt.Sprintf("Run the \"%s\" sample program", demoDir)
-				statusLabel.Display()
+				statusLabel.Configure(label.Text(fmt.Sprintf("Run the \"%s\" sample program", demoDir)))
 			})
 			// .t tag bind demo <Leave> { ... .t config -cursor xterm ... }
 			t.TagBind(tagName, "<Leave>", func() {
 				t.Window().SetCursor(uint(cursor.XTerm))
-				statusLabel.Text = "   "
-				statusLabel.Display()
+				statusLabel.Configure(label.Text("   "))
 			})
 		}
 	}
 
 	// .t configure -state disabled
-	text.ReadOnly(true)(t)
+	t.Configure(text.ReadOnly(true))
 
 	// Scroll to top.
 	t.See("1.0")

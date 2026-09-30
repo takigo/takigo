@@ -91,11 +91,7 @@ func main() {
 			fontDesc, ok := dialog.ChooseFont(app, opts...)
 			if ok {
 				currentFontDesc = fontDesc
-				fnt, err := app.FontRegistry().Get(fontDesc)
-				if err == nil {
-					tw.Font = fnt
-					tw.Display()
-				}
+				tw.Configure(text.FontOpt(fontDesc))
 			}
 		}),
 	)

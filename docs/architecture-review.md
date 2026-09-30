@@ -21,6 +21,7 @@ Scope: package layout, platform abstraction, widget API, geometry/event subsyste
 - `Canvas.Configure` (`canvas/canvas.go:323`) and `ttk.Entry.Configure` (`ttk/entry.go:402`) do it right with typed `CanvasOption` / `EntryOption`.
 - No demo calls `Configure` on a classic widget; the feature is dead code.
 - **Fix**: drop `widget.Widget.Configure` from the interface; let each widget declare its own typed option slice. Then `option.Option` / `option.Apply` / `option/option_test.go` (97 LOC) can be deleted.
+- **Status**: done (2026-09-30). Every classic and ttk widget has a typed `Configure(opts ...XxxOption)` backed by `widget.Configure` / `ttk.configure`; `option.Option` and `option.Apply` are gone.
 
 ### 2. `BindEngine` interface is unused surface
 - `widget.BindEngine` (`widget/widget.go:90`) defines `RegisterWindow` / `UnregisterWindow`.
@@ -92,6 +93,7 @@ Scope: package layout, platform abstraction, widget API, geometry/event subsyste
 ### 15. `Window.BackgroundPixel` mutated in three places
 - `Base.InitBase`'s `BackgroundHook`, every widget's `Display()`, and `ApplyBackgroundRecursive`. The "mirrors `Base.Background.Pixel`" invariant is convention only — no enforcement.
 - **Fix**: add `Window.SetBackground(c *color.Color)` that updates pixel + Background + X attribute atomically.
+- **Status**: done (2026-09-30) as `Window.SetBackgroundPixel`, the only writer of `BackgroundPixel` outside `window/`.
 
 ### 16. `config.Table` is dead infrastructure
 - `config/table.go` and `config/types.go` provide a typed cget / configure mechanism, have tests, and no production caller. Tk's cget / configure introspection is unimplemented.
@@ -102,6 +104,7 @@ Scope: package layout, platform abstraction, widget API, geometry/event subsyste
 
 ### 18. `option` package mixes value types and the generic option mechanism
 - `option.Option`, `option.Apply`, `option.Relief`, `option.Anchor`, `option.Justify`. The value types belong with widgets; `Option` / `Apply` exist only because of issue #1.
+- **Status**: done (2026-09-30). `Option` / `Apply` removed; the package holds only the value types.
 
 ### 19. `App.RegisterCloseHandler` / `App.UnregisterCloseHandler` are dead
 - Toplevels have `OnClose` / `OnDeleteWindow`. None of the 66 demos call the App-level helpers.
@@ -130,5 +133,5 @@ Items #6, #7, #11, #12, #13, #17, #19 are nice-to-haves that can be deferred or 
 
 ## Open questions
 
-- **Typed `Configure` direction.** Three options: per-widget typed options (Canvas-style, drops `option.Option` entirely), adapter function from typed to `option.Option` (keeps type erasure), or leave classic `Configure` alone and document it as future runtime config.
+- **Typed `Configure` direction.** Resolved (2026-09-30): per-widget typed options, `option.Option` dropped.
 - **`config` package fate.** Delete `config/`, adopt it for one widget as a pilot, or leave it dormant for later.

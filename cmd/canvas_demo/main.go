@@ -42,7 +42,7 @@ func main() {
 
 	root := app.Root()
 	bgColor, _ := app.ColorCache().Get("#d9d9d9")
-	root.BackgroundPixel = bgColor.Pixel
+	root.SetBackgroundPixel(bgColor.Pixel)
 
 	// Status label at bottom.
 	statusLabel := label.New(app, "status",
@@ -271,12 +271,10 @@ func main() {
 
 	// --- Item event bindings ---
 	cv.BindItem("shapes", event.EnterMask, func(ev *event.Event) {
-		statusLabel.Text = "Hovering over a shape"
-		statusLabel.Display()
+		statusLabel.Configure(label.Text("Hovering over a shape"))
 	})
 	cv.BindItem("shapes", event.LeaveMask, func(ev *event.Event) {
-		statusLabel.Text = "Phase 10: Canvas Widget. Hover items for events. Esc to quit."
-		statusLabel.Display()
+		statusLabel.Configure(label.Text("Phase 10: Canvas Widget. Hover items for events. Esc to quit."))
 	})
 	cv.BindItem("star", event.ButtonPressMask, func(ev *event.Event) {
 		fmt.Println("Star clicked! Moving it by (5, 5)...")

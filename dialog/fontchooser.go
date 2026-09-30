@@ -163,7 +163,7 @@ func ChooseFont(parent widget.Caregiver, opts ...FontOption) (string, bool) {
 		return desc
 	}
 	// The sample shows the chosen font, as the chooser's preview does.
-	updatePreview = func() { previewLabel.Apply(label.FontOpt(descriptor())) }
+	updatePreview = func() { previewLabel.Configure(label.FontOpt(descriptor())) }
 	familyList.SelectCmd = updatePreview
 	sizeList.SelectCmd = updatePreview
 	updatePreview()

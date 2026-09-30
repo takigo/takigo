@@ -114,11 +114,7 @@ func main() {
 			radiobutton.Anchor(option.AnchorW),
 			radiobutton.TristateValueOpt("multi"),
 			radiobutton.Command(func() {
-				col, err := app.ColorCache().Get(colorName)
-				if err == nil {
-					mid.Foreground = col
-					mid.Display()
-				}
+				mid.Configure(labelframe.Foreground(colorName))
 			}),
 		)
 		pack.Pack(rb, pack.SideOpt(pack.Top), pack.PadY("1.5p"), pack.FillOpt(pack.FillX))
@@ -127,22 +123,21 @@ func main() {
 	l := label.New(right, "l", label.Text("Label"),
 		label.Bitmap("questhead"),
 		label.CompoundOpt(widget.CompoundLeft))
-	l.Apply(label.Width(l.Win.ReqWidth), label.CompoundOpt(widget.CompoundTop))
-	l.Apply(label.Height(l.Win.ReqHeight))
+	l.Configure(label.Width(l.Win.ReqWidth), label.CompoundOpt(widget.CompoundTop))
+	l.Configure(label.Height(l.Win.ReqHeight))
 
 	// Update center label compound when alignment changes.
 	alignVar.OnChange(func(_, v string) {
 		switch v {
 		case "top":
-			l.Compound = widget.CompoundTop
+			l.Configure(label.CompoundOpt(widget.CompoundTop))
 		case "left":
-			l.Compound = widget.CompoundLeft
+			l.Configure(label.CompoundOpt(widget.CompoundLeft))
 		case "right":
-			l.Compound = widget.CompoundRight
+			l.Configure(label.CompoundOpt(widget.CompoundRight))
 		case "bottom":
-			l.Compound = widget.CompoundBottom
+			l.Configure(label.CompoundOpt(widget.CompoundBottom))
 		}
-		l.Display()
 	})
 
 	rightButtons := make(map[string]*radiobutton.Radiobutton)

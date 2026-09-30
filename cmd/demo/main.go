@@ -61,7 +61,7 @@ func main() {
 
 	root := app.Root()
 	bgColor, _ := app.ColorCache().Get("#d9d9d9")
-	root.BackgroundPixel = bgColor.Pixel
+	root.SetBackgroundPixel(bgColor.Pixel)
 
 	// Title.
 	titleLabel := label.New(app, "title",
@@ -168,8 +168,7 @@ func main() {
 		scale.ValueOpt(50),
 		scale.ShowValueOpt(true),
 		scale.CommandOpt(func(v float64) {
-			scaleLabel.Text = fmt.Sprintf("Scale: %.0f", v)
-			scaleLabel.Display()
+			scaleLabel.Configure(label.Text(fmt.Sprintf("Scale: %.0f", v)))
 		}),
 	)
 	pack.Pack(sc, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillX), pack.Expand(true), pack.PadX(5))

@@ -159,12 +159,13 @@ func NewLabel(parent widget.Caregiver, name string, opts ...LabelOption) *Label 
 // re-requests the widget size (TtkResizeWidget) before redrawing.
 func (l *Label) SetText(s string) {
 	l.Text = s
-	w, h := l.Win.ReqWidth, l.Win.ReqHeight
-	l.updateReqSize()
-	if (w != l.Win.ReqWidth || h != l.Win.ReqHeight) && l.Win.GeomManager != nil {
-		l.Win.GeomManager.RequestProc(l.Win)
-	}
+	l.resize(l.updateReqSize)
 	l.Display()
+}
+
+// Configure sets options after creation.
+func (l *Label) Configure(opts ...LabelOption) {
+	configure(&l.TtkWidget, l, opts, nil, l.updateReqSize)
 }
 
 func (l *Label) updateReqSize() {

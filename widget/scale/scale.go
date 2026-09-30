@@ -4,7 +4,6 @@ package scale
 
 import (
 	"fmt"
-	"log"
 	"math"
 
 	"github.com/msorc/takigo/color"
@@ -69,15 +68,7 @@ func LengthOpt(n int) ScaleOption             { return func(s *Scale) { s.Length
 func CommandOpt(fn func(float64)) ScaleOption { return func(s *Scale) { s.Command = fn } }
 
 func Background(name string) ScaleOption {
-	return func(s *Scale) {
-		col, err := s.App.ColorCache().Get(name)
-		if err != nil {
-			log.Printf("scale: failed to get color %q: %v", name, err)
-			return
-		}
-		s.Background = col
-		s.UpdateBorder()
-	}
+	return func(s *Scale) { s.SetBackgroundName(name) }
 }
 
 // --- Ttk-compatible aliases (prefix with Scale) for consistent naming ---
@@ -158,7 +149,7 @@ func New(parent widget.Caregiver, name string, opts ...ScaleOption) *Scale {
 	s.computeGeometry()
 
 	if s.Background != nil {
-		w.BackgroundPixel = s.Background.Pixel
+		w.SetBackgroundPixel(s.Background.Pixel)
 	}
 
 	bindScale(s, app)
@@ -572,14 +563,8 @@ func (s *Scale) activeBg() uint64 {
 }
 
 // Configure applies options.
-func (s *Scale) Configure(opts ...option.Option) {
-	option.Apply(s, opts)
-	s.UpdateBorder()
-	s.computeGeometry()
-	if s.Background != nil {
-		s.Win.BackgroundPixel = s.Background.Pixel
-	}
-	s.Display()
+func (s *Scale) Configure(opts ...ScaleOption) {
+	widget.Configure(s, opts, s.computeGeometry)
 }
 
 // Destroy cleans up the scale.
