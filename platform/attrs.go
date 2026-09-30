@@ -224,6 +224,8 @@ const (
 	Button1Mask = uint(1 << 8)
 	Button2Mask = uint(1 << 9)
 	Button3Mask = uint(1 << 10)
+	Button4Mask = uint(1 << 11)
+	Button5Mask = uint(1 << 12)
 )
 
 // Common key symbols (keysyms).

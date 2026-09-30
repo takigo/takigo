@@ -916,10 +916,10 @@ The pattern language is Tk's.
 
 | Pattern | Matches |
 |---------|---------|
-| `<Button-1>` / `<ButtonPress-1>` | Left-button press (buttons 1–5). `<Button>` matches any button. |
+| `<Button-1>` / `<ButtonPress-1>` / `<1>` | Left-button press (buttons 1–9). `<Button>` matches any button. A lone digit is a button, as in Tk; the digit key is `<Key-1>`. |
 | `<ButtonRelease-1>` | Left-button release. |
 | `<Double-Button-1>`, `<Triple-Button-1>` | Double / triple click. |
-| `<B1-Motion>`-style motion | Use `<Motion>` and check `ev.State` (see below). |
+| `<B1-Motion>` / `<Motion-1>` | Motion while button 1 is held (`B1`…`B5`, also spelled `Button1`…). |
 | `<Motion>` | Pointer motion. |
 | `<Enter>`, `<Leave>` | Pointer crosses into / out of the window. |
 | `<Key-a>`, `<a>`, `a` | The `a` key. `<Key>` matches any key. |
