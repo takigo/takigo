@@ -1880,8 +1880,8 @@ func main() {
 		canvas.ActiveFill("yellow"), canvas.Tags("shape"))
 
 	// Pressing on any item tagged "shape" picks it up (button 1) or
-	// deletes it (button 3). Remember the item's ID rather than relying on
-	// "current" during the drag: the pointer may outrun the item.
+	// deletes it (button 3). The drag itself is handled below on the canvas
+	// window, together with drawing, so remember which item was picked up.
 	dragID := int64(-1)
 	var lastX, lastY float64
 	c.BindItem("shape", event.ButtonPressMask, func(ev *event.Event) {
@@ -1948,7 +1948,11 @@ How it works:
   before ours: by the time our `ButtonPress` handler runs, the item binding
   has already recorded `dragID`, and `CurrentItem()` tells us whether the
   press was on an item (`-1` means empty space).
-- The drag follows the remembered ID, so a fast mouse can't "drop" the item.
+- As in Tk, the item a button was pressed on stays "current" until the button
+  is released, however fast the pointer moves: it keeps getting `<Motion>` and
+  gets the `<ButtonRelease>`, and no other item is entered meanwhile. So a
+  drag could equally be written as an item binding that moves `"current"`;
+  here one window handler does both dragging and drawing.
 - The rubber band is an ordinary item that is resized on every motion and
   replaced by a filled rectangle on release.
 
