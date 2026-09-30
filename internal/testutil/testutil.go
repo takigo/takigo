@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	takigo "github.com/msorc/takigo"
+	"github.com/msorc/takigo/internal/displaylock"
 )
 
 // RequireDisplay skips the test if no X11 display is available or the
@@ -18,6 +19,7 @@ func RequireDisplay(t *testing.T) {
 	if os.Getenv("DISPLAY") == "" && os.Getenv("WAYLAND_DISPLAY") == "" {
 		t.Skip("no display available (set DISPLAY or use xvfb-run)")
 	}
+	displaylock.Acquire(t)
 }
 
 // NewTestApp creates a takigo App for testing and registers cleanup.
