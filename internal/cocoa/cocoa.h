@@ -202,6 +202,13 @@ int CocoaNextEvent(CocoaRawEvent *ev);
 // CocoaPending returns the number of events in the queue.
 int CocoaPending(void);
 
+// CocoaWakeEventReader posts an event of no type, which the event loop
+// ignores, to return a CocoaNextEvent blocked on another thread.
+void CocoaWakeEventReader(void);
+
+// CocoaIsMainThread reports whether the caller is on the main thread.
+int CocoaIsMainThread(void);
+
 // CocoaStartEventPump starts processing NSEvents on the main thread,
 // routing them to the internal event queue. Call from the main goroutine.
 // This does not block — it runs a timer that pumps events.
