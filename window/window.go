@@ -121,6 +121,33 @@ type Window struct {
 	// drawTarget, when set, is returned by Drawable in place of the
 	// window so a widget's display procedure renders off-screen.
 	drawTarget platform.DrawableID
+
+	// values holds other packages' per-window state; see Value.
+	values map[any]any
+}
+
+// Value returns what SetValue stored on w under key, or nil. Packages keep
+// their per-window state here, under a key of their own, instead of in a
+// package-level map, which every App in the process would share: Tk keeps
+// such tables per display (dispPtr->packerHashTable and the like).
+// A nil window has no values.
+func (w *Window) Value(key any) any {
+	if w == nil {
+		return nil
+	}
+	return w.values[key]
+}
+
+// SetValue stores v on w under key; a nil v removes the entry.
+func (w *Window) SetValue(key, v any) {
+	if v == nil {
+		delete(w.values, key)
+		return
+	}
+	if w.values == nil {
+		w.values = map[any]any{}
+	}
+	w.values[key] = v
 }
 
 // OnDestroy registers fn to run when w is destroyed, whether directly or

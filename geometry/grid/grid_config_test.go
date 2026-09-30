@@ -9,7 +9,7 @@ import (
 
 func gridSlot(t *testing.T, parent, w *window.Window) (row, col int, ok bool) {
 	t.Helper()
-	for _, e := range gridders[parent].entries {
+	for _, e := range gridders.Of(parent).entries {
 		if e.window == w {
 			return e.config.row, e.config.column, true
 		}
@@ -54,7 +54,7 @@ func TestGridKeepsContainerConfigWhenEmpty(t *testing.T) {
 	Forget(a)
 	Grid(geometry.Group{a}, Row(0), Column(0))
 	t.Cleanup(func() { Forget(a) })
-	if conf := gridders[parent].colConf[0]; conf == nil || conf.Weight != 1 {
+	if conf := gridders.Of(parent).colConf[0]; conf == nil || conf.Weight != 1 {
 		t.Errorf("column 0 config after regridding = %+v, want weight 1", conf)
 	}
 }

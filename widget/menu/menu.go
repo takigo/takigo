@@ -369,8 +369,9 @@ func (m *Menu) textWidth(s string) int {
 	return w
 }
 
-// postedMenus maps posted menus' windows to them (loop-only).
-var postedMenus = map[*window.Window]*Menu{}
+// postedKey is the Window.Value key under which a posted menu's window
+// holds its *Menu.
+type postedKey struct{}
 
 // Post maps the menu at screen coordinates (x, y).
 func (m *Menu) Post(x, y int) {
@@ -402,13 +403,13 @@ func (m *Menu) Post(x, y int) {
 	// Focus first: the FocusOut it sends can unpost another menu, which
 	// releases the pointer grab this menu then takes.
 	prev := widget.FocusWindow(m.App)
-	if pm := postedMenus[prev]; pm != nil {
+	if pm, _ := prev.Value(postedKey{}).(*Menu); pm != nil {
 		prev = pm.prevFocus
 	}
 	if prev != w {
 		m.prevFocus = prev
 	}
-	postedMenus[w] = m
+	w.SetValue(postedKey{}, m)
 	widget.Focus(m.App, w)
 	m.grab()
 
@@ -457,7 +458,7 @@ func (m *Menu) Unpost() {
 	m.posted = false
 	m.activeIndex = -1
 	m.skipGlobalButtonPress = false
-	delete(postedMenus, w)
+	w.SetValue(postedKey{}, nil)
 	prev := m.prevFocus
 	m.prevFocus = nil
 	// A cascade handed its parent's grab over when it was posted; give it
