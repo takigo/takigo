@@ -53,7 +53,15 @@ type Canvas struct {
 	damageAll bool
 
 	// Item pick / events.
-	currentItem  *itemEntry
+	currentItem *itemEntry
+	// pointerState is the modifier/button state of the last pointer event
+	// (Tk's canvasPtr->state); while it has a button down, the current item
+	// keeps the pointer, as an X grab does for windows.
+	pointerState uint
+	// leftGrabbed is Tk's LEFT_GRABBED_ITEM: the pointer left the current
+	// item with a button down, so it already got its <Leave>.
+	leftGrabbed  bool
+	repicking    bool
 	itemBindings map[string][]itemHandler // by tag
 	idBindings   map[int64][]itemHandler  // by item ID
 	closeEnough  float64                  // hit-test tolerance (default 1.0)

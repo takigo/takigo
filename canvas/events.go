@@ -44,23 +44,10 @@ func bindCanvas(c *Canvas) {
 		}
 	})
 
-	// Motion → pick current item + dispatch Enter/Leave.
-	disp.Bind(w.PlatformID, event.MotionMask, func(ev *event.Event) {
-		c.pickCurrentItem(float64(ev.X), float64(ev.Y))
-		c.dispatchItemEvent(ev)
-	})
-
-	// Enter/Leave window → update current item.
-	disp.Bind(w.PlatformID, event.EnterMask|event.LeaveMask, func(ev *event.Event) {
-		if ev.Type == event.LeaveType {
-			c.setCurrentItem(nil, ev)
-		} else {
-			c.pickCurrentItem(float64(ev.X), float64(ev.Y))
-		}
-	})
-
-	// Button press/release → mouse wheel scroll or dispatch to current item.
-	disp.Bind(w.PlatformID, event.ButtonPressMask|event.ButtonReleaseMask, func(ev *event.Event) {
+	// Pointer motion, crossing and buttons → pick the current item and
+	// dispatch to its bindings; the wheel scrolls.
+	disp.Bind(w.PlatformID, event.MotionMask|event.EnterMask|event.LeaveMask|
+		event.ButtonPressMask|event.ButtonReleaseMask, func(ev *event.Event) {
 		if ev.Type == event.ButtonPressType {
 			switch ev.Button {
 			case 4: // scroll up
@@ -77,8 +64,7 @@ func bindCanvas(c *Canvas) {
 				return
 			}
 		}
-		c.pickCurrentItem(float64(ev.X), float64(ev.Y))
-		c.dispatchItemEvent(ev)
+		c.handlePointer(ev)
 	})
 
 	// Key press → dispatch to focused text item.
@@ -145,39 +131,99 @@ func bindCanvas(c *Canvas) {
 	})
 }
 
-// pickCurrentItem updates c.currentItem based on the mouse position.
-func (c *Canvas) pickCurrentItem(winX, winY float64) {
-	// Convert window coords to canvas coords.
-	canvasX := winX + float64(c.xOrigin) - float64(c.inset)
-	canvasY := winY + float64(c.yOrigin) - float64(c.inset)
+// allButtons is the state of any mouse button being down.
+const allButtons = platform.Button1Mask | platform.Button2Mask | platform.Button3Mask |
+	platform.Button4Mask | platform.Button5Mask
 
-	entry := c.findClosest(canvasX, canvasY, c.closeEnough)
-	if entry != c.currentItem {
-		c.setCurrentItem(entry, nil)
+// buttonMask returns the state bit of a mouse button (Tk_GetButtonMask).
+func buttonMask(button uint) uint {
+	if button < 1 || button > 5 {
+		return 0
+	}
+	return platform.Button1Mask << (button - 1)
+}
+
+// handlePointer is CanvasBindProc: it keeps pointerState, repicks the current
+// item and dispatches ev to it. On a press it repicks with the state before
+// the press; on a release it dispatches first, with the button still down,
+// and repicks after, so a drag's release reaches the item it started on.
+func (c *Canvas) handlePointer(ev *event.Event) {
+	x, y := float64(ev.X), float64(ev.Y)
+	switch ev.Type {
+	case event.ButtonPressType:
+		c.pointerState = ev.State
+		c.pickCurrentItem(x, y)
+		c.pointerState ^= buttonMask(ev.Button)
+		c.dispatchItemEvent(ev)
+	case event.ButtonReleaseType:
+		c.pointerState = ev.State
+		c.dispatchItemEvent(ev)
+		c.pointerState = ev.State &^ buttonMask(ev.Button)
+		c.pickCurrentItem(x, y)
+	case event.EnterType:
+		c.pointerState = ev.State
+		c.pickCurrentItem(x, y)
+	case event.LeaveType:
+		c.pointerState = ev.State
+		c.pick(nil)
+	case event.MotionType:
+		c.pointerState = ev.State
+		c.pickCurrentItem(x, y)
+		c.dispatchItemEvent(ev)
 	}
 }
 
-// setCurrentItem updates the current item, generating Enter/Leave events
-// as needed.
-func (c *Canvas) setCurrentItem(entry *itemEntry, triggerEvent *event.Event) {
-	old := c.currentItem
+// pickCurrentItem makes the item at window position (winX, winY) current.
+func (c *Canvas) pickCurrentItem(winX, winY float64) {
+	canvasX := winX + float64(c.xOrigin) - float64(c.inset)
+	canvasY := winY + float64(c.yOrigin) - float64(c.inset)
+	c.pick(c.findClosest(canvasX, canvasY, c.closeEnough))
+}
 
-	// Dispatch Leave to old item while "current" still points to it.
-	if old != nil {
-		c.dispatchToItem(old, &event.Event{Type: event.LeaveType})
+// pick is Tk's PickCurrentItem: it makes entry the current item, sending
+// <Leave> to the old one and <Enter> to the new one. While a button is down
+// the old item stays current: it gets its <Leave> when the pointer moves off
+// it, but no other item is entered until the buttons are released.
+func (c *Canvas) pick(entry *itemEntry) {
+	// A <Leave> handler below may move the pointer state on; the pending
+	// call finishes the pick.
+	if c.repicking {
+		return
 	}
-
-	// Update current item and dispatch Enter to new item.
+	if entry == c.currentItem && !c.leftGrabbed {
+		return
+	}
+	buttonDown := c.pointerState&allButtons != 0
+	if !buttonDown {
+		c.leftGrabbed = false
+	}
+	if entry != c.currentItem && c.currentItem != nil && !c.leftGrabbed {
+		c.repicking = true
+		c.dispatchToItem(c.currentItem, &event.Event{Type: event.LeaveType})
+		c.repicking = false
+		// The <Leave> handler may have deleted the item being entered.
+		if entry != nil && entry.dead {
+			entry = nil
+		}
+	}
+	if entry != c.currentItem && buttonDown {
+		c.leftGrabbed = true
+		return
+	}
+	old := c.currentItem
+	c.leftGrabbed = false
 	c.currentItem = entry
+	// -activefill and friends depend on which item is current.
+	if old != entry {
+		if hasActive(old) {
+			c.redrawItems(old)
+		}
+		if hasActive(entry) {
+			c.redrawItems(entry)
+		}
+	}
 	if entry != nil {
 		c.dispatchToItem(entry, &event.Event{Type: event.EnterType})
-	}
-	// -activefill and friends depend on which item is current.
-	if hasActive(old) {
-		c.redrawItems(old)
-	}
-	if hasActive(entry) {
-		c.redrawItems(entry)
 	}
 }
 
