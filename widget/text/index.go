@@ -3,8 +3,6 @@
 package text
 
 import (
-	"strconv"
-	"strings"
 	"unicode"
 )
 
@@ -165,58 +163,12 @@ func DownLine(idx Index, doc *Document) Index {
 	return idx
 }
 
-// ParseIndex parses an index spec string. Supports "line.char", "end",
-// "insert", "sel.first", "sel.last", and mark names.
+// ParseIndex resolves an index string in doc, with Tk's grammar (see
+// parseIndex): e.g. "2.5", "end -1c", "insert linestart", "sel.first +3c".
+// Forms that need a widget ("@x,y", embedded window names, display lines)
+// are only understood by the widget's own methods.
 func ParseIndex(doc *Document, spec string) (Index, bool) {
-	spec = strings.TrimSpace(spec)
-
-	switch spec {
-	case "end":
-		return doc.EndIndex(), true
-	case "insert":
-		if m := doc.MarkPos("insert"); m != nil {
-			return *m, true
-		}
-		return Index{1, 0}, true
-	case "sel.first":
-		ranges := doc.TagRangesFor("sel")
-		if len(ranges) > 0 {
-			return ranges[0].Start, true
-		}
-		return Index{}, false
-	case "sel.last":
-		ranges := doc.TagRangesFor("sel")
-		if len(ranges) > 0 {
-			return ranges[len(ranges)-1].End, true
-		}
-		return Index{}, false
-	}
-
-	// Try "line.char" format.
-	if dot := strings.IndexByte(spec, '.'); dot >= 0 {
-		lineStr := spec[:dot]
-		charStr := spec[dot+1:]
-		line, err1 := strconv.Atoi(lineStr)
-		if err1 != nil {
-			return Index{}, false
-		}
-		if charStr == "end" {
-			idx := LineEnd(line, doc)
-			return idx, true
-		}
-		ch, err2 := strconv.Atoi(charStr)
-		if err2 != nil {
-			return Index{}, false
-		}
-		return Clamp(Index{Line: line, Char: ch}, doc), true
-	}
-
-	// Try mark name.
-	if pos := doc.MarkPos(spec); pos != nil {
-		return *pos, true
-	}
-
-	return Index{}, false
+	return parseIndex(doc, nil, spec)
 }
 
 func isWordRune(r rune) bool {

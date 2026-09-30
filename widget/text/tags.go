@@ -8,8 +8,8 @@ import "strings"
 
 // TagAdd adds a tag to the given range.
 func (t *TextWidget) TagAdd(tagName, startIndex, endIndex string) {
-	start, ok1 := ParseIndex(t.doc, startIndex)
-	end, ok2 := ParseIndex(t.doc, endIndex)
+	start, ok1 := t.index(startIndex)
+	end, ok2 := t.index(endIndex)
 	if !ok1 || !ok2 {
 		return
 	}
@@ -18,8 +18,8 @@ func (t *TextWidget) TagAdd(tagName, startIndex, endIndex string) {
 
 // TagRemove removes a tag from the given range.
 func (t *TextWidget) TagRemove(tagName, startIndex, endIndex string) {
-	start, ok1 := ParseIndex(t.doc, startIndex)
-	end, ok2 := ParseIndex(t.doc, endIndex)
+	start, ok1 := t.index(startIndex)
+	end, ok2 := t.index(endIndex)
 	if !ok1 || !ok2 {
 		return
 	}

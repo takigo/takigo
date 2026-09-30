@@ -389,7 +389,7 @@ func (t *TextWidget) scheduleRedraw() {
 
 // Insert inserts text at the given index string.
 func (t *TextWidget) Insert(index, txt string) {
-	idx, ok := ParseIndex(t.doc, index)
+	idx, ok := t.index(index)
 	if !ok {
 		return
 	}
@@ -403,8 +403,8 @@ func (t *TextWidget) Insert(index, txt string) {
 
 // Delete deletes text between two index strings.
 func (t *TextWidget) Delete(startIndex, endIndex string) {
-	start, ok1 := ParseIndex(t.doc, startIndex)
-	end, ok2 := ParseIndex(t.doc, endIndex)
+	start, ok1 := t.index(startIndex)
+	end, ok2 := t.index(endIndex)
 	if !ok1 || !ok2 {
 		return
 	}
@@ -422,8 +422,8 @@ func (t *TextWidget) Delete(startIndex, endIndex string) {
 
 // Get returns the text between two index strings.
 func (t *TextWidget) Get(startIndex, endIndex string) string {
-	start, ok1 := ParseIndex(t.doc, startIndex)
-	end, ok2 := ParseIndex(t.doc, endIndex)
+	start, ok1 := t.index(startIndex)
+	end, ok2 := t.index(endIndex)
 	if !ok1 || !ok2 {
 		return ""
 	}
@@ -432,7 +432,7 @@ func (t *TextWidget) Get(startIndex, endIndex string) string {
 
 // See scrolls the view to make the given index visible.
 func (t *TextWidget) See(index string) {
-	idx, ok := ParseIndex(t.doc, index)
+	idx, ok := t.index(index)
 	if !ok {
 		return
 	}
@@ -443,7 +443,7 @@ func (t *TextWidget) See(index string) {
 
 // SetInsertPos moves the insert cursor to the given index.
 func (t *TextWidget) SetInsertPos(index string) {
-	idx, ok := ParseIndex(t.doc, index)
+	idx, ok := t.index(index)
 	if !ok {
 		return
 	}
@@ -452,7 +452,7 @@ func (t *TextWidget) SetInsertPos(index string) {
 
 // MarkSet sets a mark at the given index.
 func (t *TextWidget) MarkSet(markName, index string) {
-	idx, ok := ParseIndex(t.doc, index)
+	idx, ok := t.index(index)
 	if !ok {
 		return
 	}
@@ -615,26 +615,25 @@ func (t *TextWidget) WindowCreate(indexStr string, w *window.Window) {
 
 // WindowCreatePad is "window create" with -padx and -pady (Tk distances).
 func (t *TextWidget) WindowCreatePad(indexStr string, w *window.Window, padX, padY any) {
-	idx, ok := ParseIndex(t.doc, indexStr)
+	idx, ok := t.index(indexStr)
 	if !ok {
 		return
 	}
 	// Insert placeholder character into the document.
 	t.doc.Insert(idx, string(runeEmbeddedWindow))
-	// Create a left-gravity mark to track the placeholder position.
+	// Track the placeholder with a mark just before it. The mark has right
+	// gravity so that text inserted at the window's position (before the
+	// placeholder) moves the mark along with the placeholder.
 	t.ewSeq++
 	markName := fmt.Sprintf("_ew%d", t.ewSeq)
 	t.doc.MarkSet(markName, idx)
-	if m, mok := t.doc.Marks[markName]; mok {
-		m.Gravity = GravityLeft
-	}
 	t.embeddedWindows = append(t.embeddedWindows, embeddedWin{markName: markName, win: w,
 		padX: screenunit.PxOr(padX, 0), padY: screenunit.PxOr(padY, 0)})
 }
 
 // ImageCreate embeds an image at the given text index, treating it as an inline element.
 func (t *TextWidget) ImageCreate(indexStr string, img widget.WidgetImage) {
-	idx, ok := ParseIndex(t.doc, indexStr)
+	idx, ok := t.index(indexStr)
 	if !ok {
 		return
 	}

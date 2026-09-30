@@ -327,7 +327,7 @@ func main() {
 			tw.Insert("plot", "\n")
 			tw.WindowCreate("plot", plotCanvas.Win)
 			tw.TagAdd("center", "plot", "plot+1c")
-			tw.Insert("plot+1c", "\n")
+			tw.Insert("plot", "\n")
 			tw.Display()
 		}),
 	)
