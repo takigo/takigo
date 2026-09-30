@@ -163,11 +163,11 @@ func (d *Dialog) Run() DialogResult {
 	// Center over parent.
 	centerOverParent(d.Toplevel.WmInfo, d.parent, width, height)
 
-	// Re-arrange all containers with the final sizes.
+	// Re-arrange the dialog's containers with the final sizes.
 	// ArrangeContainer only handles direct children, so we need ArrangeAll
 	// to also re-layout children nested inside Content and BtnFrame.
-	pack.ArrangeAll()
-	grid.ArrangeAll()
+	pack.ArrangeAll(tw)
+	grid.ArrangeAll(tw)
 
 	d.Toplevel.Show()
 	tw.Display.Server.Flush()

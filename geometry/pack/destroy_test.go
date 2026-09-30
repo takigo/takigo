@@ -17,21 +17,21 @@ func TestDestroyDropsPackState(t *testing.T) {
 	Pack(geometry.Group{outside}, In(frame))
 
 	window.DestroyWindow(b1)
-	if n := len(packers[frame].entries); n != 2 {
+	if n := len(packers.Of(frame).entries); n != 2 {
 		t.Fatalf("frame has %d packed entries after destroying b1, want 2", n)
 	}
-	if _, ok := containerOf[b1]; ok {
+	if _, ok := containerOf.Get(b1); ok {
 		t.Error("containerOf still holds destroyed b1")
 	}
 
 	window.DestroyWindow(frame)
-	if _, ok := packers[frame]; ok {
+	if _, ok := packers.Get(frame); ok {
 		t.Error("packers still holds destroyed container")
 	}
-	if _, ok := containerOf[outside]; ok || outside.GeomManager != nil {
+	if _, ok := containerOf.Get(outside); ok || outside.GeomManager != nil {
 		t.Error("content packed -in a destroyed container is still managed")
 	}
-	if _, ok := containerOf[b2]; ok {
+	if _, ok := containerOf.Get(b2); ok {
 		t.Error("containerOf still holds b2")
 	}
 }

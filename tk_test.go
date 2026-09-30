@@ -3,6 +3,8 @@ package takigo
 import (
 	"os"
 	"testing"
+
+	"github.com/msorc/takigo/internal/displaylock"
 )
 
 func requireDisplay(t *testing.T) {
@@ -10,6 +12,7 @@ func requireDisplay(t *testing.T) {
 	if os.Getenv("DISPLAY") == "" && os.Getenv("WAYLAND_DISPLAY") == "" {
 		t.Skip("no display available (set DISPLAY or use xvfb-run)")
 	}
+	displaylock.Acquire(t)
 }
 
 func TestNewApp(t *testing.T) {

@@ -1941,6 +1941,16 @@ int CocoaPending(void) {
     return count;
 }
 
+void CocoaWakeEventReader(void) {
+    CocoaRawEvent ev;
+    memset(&ev, 0, sizeof(ev));
+    postEvent(&ev);
+}
+
+int CocoaIsMainThread(void) {
+    return [NSThread isMainThread] ? 1 : 0;
+}
+
 // ============================================================================
 // Atom emulation
 // ============================================================================

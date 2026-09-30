@@ -3,35 +3,9 @@
 package xlib
 
 /*
-#include <stdio.h>
 #include <stdlib.h>
 #include <X11/Xlib.h>
-
-// takigo_x_error reports an X protocol error and carries on. Xlib's default
-// handler exits the process; Tk's ErrorProc (tkError.c) ignores errors on
-// windows it is destroying, which takigo cannot yet tell apart.
-static unsigned long takigo_x_errors;
-
-static unsigned long takigo_x_error_count(void)
-{
-	return __atomic_load_n(&takigo_x_errors, __ATOMIC_RELAXED);
-}
-
-static int takigo_x_error(Display *dpy, XErrorEvent *ev)
-{
-	__atomic_add_fetch(&takigo_x_errors, 1, __ATOMIC_RELAXED);
-	char text[128];
-	XGetErrorText(dpy, ev->error_code, text, sizeof text);
-	fprintf(stderr, "takigo: X error: %s (request %d.%d, resource 0x%lx)\n",
-		text, ev->request_code, ev->minor_code, ev->resourceid);
-	return 0;
-}
-
-static void takigo_init_xlib(void)
-{
-	XInitThreads();
-	XSetErrorHandler(takigo_x_error);
-}
+#include "xerror.h"
 */
 import "C"
 import (

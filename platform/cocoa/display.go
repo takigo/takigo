@@ -30,6 +30,8 @@
 package cocoa
 
 import (
+	"errors"
+
 	"github.com/msorc/takigo/font"
 	clib "github.com/msorc/takigo/internal/cocoa"
 	"github.com/msorc/takigo/platform"
@@ -54,6 +56,12 @@ type CocoaDisplay struct {
 // NewDisplayServer initializes Cocoa and returns a composed DisplayServer
 // along with a FontOpener for the default screen.
 func NewDisplayServer(displayName string) (platform.DisplayServer, font.FontOpener, error) {
+	// AppKit works on the main thread only, which is the main goroutine's
+	// (internal/cocoa locks it in init). From anywhere else, calls would
+	// touch AppKit off-thread or wait on a main queue nobody services.
+	if !clib.IsMainThread() {
+		return nil, nil, errors.New("cocoa: NewApp must be called from the main goroutine")
+	}
 	clib.Init()
 
 	rootWin := clib.CreateWindow(clib.Window(0), 0, 0, 1, 1, 0, 0x00D9D9D9, 0, false)
@@ -271,10 +279,13 @@ func (d *CocoaDisplay) NextEvent() *platform.RawEvent {
 	}
 }
 
-// WakeEventReader reports false: CocoaNextEvent waits on the C event
-// queue, which nothing but the Cocoa pump posts to; closing the display
-// does not free it, so a reader left blocked there is harmless.
-func (d *CocoaDisplay) WakeEventReader() bool { return false }
+// WakeEventReader posts an event of no type, which the loop ignores, to
+// return a blocked NextEvent. The C event queue is process-wide: a reader
+// left blocked on it would take, and drop, an event of the next App.
+func (d *CocoaDisplay) WakeEventReader() bool {
+	clib.WakeEventReader()
+	return true
+}
 
 func (d *CocoaDisplay) FilterEvent(ev *platform.RawEvent) bool {
 	return false

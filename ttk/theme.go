@@ -4,6 +4,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/screenunit"
@@ -15,20 +16,21 @@ type Style struct {
 	Parent   *Style
 	Defaults map[string]any
 	Maps     map[string]StateMap[any]
-	// Fallback is the same-named style of the parent theme, consulted when
+	// fallback is the same-named style of the parent theme, consulted when
 	// the chain has no value. Tk keeps such values as element defaults; the
-	// port keeps them in the default theme's styles.
-	Fallback *Style
+	// port keeps them in the default theme's styles. ResolveStyle links it
+	// lazily while other Apps' loops may be in Lookup, hence the atomic.
+	fallback atomic.Pointer[Style]
 }
 
 // Lookup returns the value for optionName at the given state. Like
 // Ttk_QueryStyle it consults the state maps along the whole parent chain
 // (the first style that maps the option decides, as in Ttk_StyleMap), then
-// the defaults along the chain, then the Fallback style.
+// the defaults along the chain, then the fallback style.
 // Stops after 20 levels to guard against accidental cycles.
 func (s *Style) Lookup(optionName string, state State) (any, bool) {
 	const maxDepth = 20
-	for style, fallbacks := s, 0; style != nil && fallbacks < maxDepth; style, fallbacks = style.Fallback, fallbacks+1 {
+	for style, fallbacks := s, 0; style != nil && fallbacks < maxDepth; style, fallbacks = style.fallback.Load(), fallbacks+1 {
 		for cur, depth := style, 0; cur != nil && depth < maxDepth; cur, depth = cur.Parent, depth+1 {
 			if m, ok := cur.Maps[optionName]; ok {
 				if v, found := m.Lookup(state); found {
@@ -101,6 +103,11 @@ func LookupPadding(s *Style, name string, state State, fallback Padding) Padding
 }
 
 // Theme holds elements, styles, and layout templates for a visual theme.
+//
+// Themes are process-wide, shared by every App. Use the methods to reach
+// Elements, Styles and Layouts: they hold themesMu, since GetStyle creates
+// styles on demand from any App's loop goroutine. A style's Defaults and
+// Maps are not locked: fill them in before widgets use the style.
 type Theme struct {
 	Name     string
 	Parent   *Theme
@@ -122,11 +129,15 @@ func NewTheme(name string, parent *Theme) *Theme {
 
 // RegisterElement registers an element factory with this theme.
 func (t *Theme) RegisterElement(name string, factory ElementFactory) {
+	themesMu.Lock()
+	defer themesMu.Unlock()
 	t.Elements[name] = factory
 }
 
 // GetElement returns the element factory for name, falling back to parent theme.
 func (t *Theme) GetElement(name string) ElementFactory {
+	themesMu.RLock()
+	defer themesMu.RUnlock()
 	for cur := t; cur != nil; cur = cur.Parent {
 		if f, ok := cur.Elements[name]; ok {
 			return f
@@ -139,6 +150,13 @@ func (t *Theme) GetElement(name string) ElementFactory {
 // Named styles parent to the local root "."; the root "." parents
 // to the parent theme's "." for cross-theme default inheritance.
 func (t *Theme) GetStyle(name string) *Style {
+	themesMu.Lock()
+	defer themesMu.Unlock()
+	return t.getStyle(name)
+}
+
+// getStyle is GetStyle for callers holding themesMu.
+func (t *Theme) getStyle(name string) *Style {
 	if s, ok := t.Styles[name]; ok {
 		return s
 	}
@@ -159,9 +177,9 @@ func (t *Theme) GetStyle(name string) *Style {
 		// Tk's style inheritance (ttkTheme.c Ttk_GetStyle): "a.b.c"
 		// inherits from "b.c", the name minus its leading component.
 		if _, after, ok := strings.Cut(name, "."); ok {
-			s.Parent = t.GetStyle(after)
+			s.Parent = t.getStyle(after)
 		} else {
-			s.Parent = t.GetStyle(".")
+			s.Parent = t.getStyle(".")
 		}
 	}
 	t.Styles[name] = s
@@ -171,13 +189,20 @@ func (t *Theme) GetStyle(name string) *Style {
 // ResolveStyle returns the style for name in this theme, as Ttk_GetStyle
 // does, so its parent chain ends at this theme's root and the theme's
 // colours win. When a parent theme configures the same style, that style
-// becomes its Fallback.
+// becomes its fallback.
 func (t *Theme) ResolveStyle(name string) *Style {
-	s := t.GetStyle(name)
-	if name != "." && s.Fallback == nil {
+	themesMu.Lock()
+	defer themesMu.Unlock()
+	return t.resolveStyle(name)
+}
+
+// resolveStyle is ResolveStyle for callers holding themesMu.
+func (t *Theme) resolveStyle(name string) *Style {
+	s := t.getStyle(name)
+	if name != "." && s.fallback.Load() == nil {
 		for cur := t.Parent; cur != nil; cur = cur.Parent {
 			if _, ok := cur.Styles[name]; ok {
-				s.Fallback = cur.ResolveStyle(name)
+				s.fallback.Store(cur.resolveStyle(name))
 				break
 			}
 		}
@@ -187,12 +212,16 @@ func (t *Theme) ResolveStyle(name string) *Style {
 
 // RegisterLayout registers a layout template for a widget class.
 func (t *Theme) RegisterLayout(name string, tmpl *LayoutTemplate) {
+	themesMu.Lock()
+	defer themesMu.Unlock()
 	t.Layouts[name] = tmpl
 }
 
 // GetLayout returns the layout template for name, falling back to parent.
 // Like Ttk_CreateLayout, "a.b.c" falls back to the layout of "b.c", then "c".
 func (t *Theme) GetLayout(name string) *LayoutTemplate {
+	themesMu.RLock()
+	defer themesMu.RUnlock()
 	for {
 		for cur := t; cur != nil; cur = cur.Parent {
 			if tmpl, ok := cur.Layouts[name]; ok {
@@ -207,7 +236,8 @@ func (t *Theme) GetLayout(name string) *LayoutTemplate {
 	}
 }
 
-// Package-level theme registry.
+// Package-level theme registry. themesMu also guards every Theme's
+// Elements, Styles and Layouts.
 var (
 	themesMu     sync.RWMutex
 	themes       = make(map[string]*Theme)
