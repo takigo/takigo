@@ -7,6 +7,7 @@ import (
 
 	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/font"
+	"github.com/msorc/takigo/widget"
 )
 
 // Line holds one logical line of text as a rune slice.
@@ -37,6 +38,59 @@ type Document struct {
 
 	// subs are the listeners added with Subscribe, called after Listeners.
 	subs []*func(Change)
+
+	// images are the embedded images, by the name of the mark just before
+	// each one's placeholder character. They live in the document, so every
+	// peer shows them, as in Tk.
+	images   map[string]widget.WidgetImage
+	imageSeq int
+}
+
+// isPlaceholder reports whether the character at pos is an embedded
+// window's or image's placeholder.
+func (d *Document) isPlaceholder(pos Index) bool {
+	if pos.Line < 1 || pos.Line > len(d.Lines) {
+		return false
+	}
+	text := d.Lines[pos.Line-1].Text
+	return pos.Char >= 0 && pos.Char < len(text) && text[pos.Char] == runeEmbeddedWindow
+}
+
+// eachImage calls fn for every embedded image still in the text (its
+// placeholder not deleted), with its position.
+func (d *Document) eachImage(fn func(pos Index, img widget.WidgetImage)) {
+	for name, img := range d.images {
+		if m := d.MarkPos(name); m != nil && d.isPlaceholder(*m) {
+			fn(*m, img)
+		}
+	}
+}
+
+// imageAt returns the embedded image at pos, or nil.
+func (d *Document) imageAt(pos Index) widget.WidgetImage {
+	for name, img := range d.images {
+		if m := d.MarkPos(name); m != nil && *m == pos && d.isPlaceholder(pos) {
+			return img
+		}
+	}
+	return nil
+}
+
+// imageIndex returns the position of the embedded image named name, as
+// the image's Name method reports it (Tk's "image name" index).
+func (d *Document) imageIndex(name string) (Index, bool) {
+	var found *Index
+	d.eachImage(func(pos Index, img widget.WidgetImage) {
+		if n, ok := img.(interface{ Name() string }); ok && n.Name() == name {
+			if found == nil || Compare(pos, *found) < 0 {
+				found = &pos
+			}
+		}
+	})
+	if found == nil {
+		return Index{}, false
+	}
+	return *found, true
 }
 
 // notifyListeners calls all registered change listeners.

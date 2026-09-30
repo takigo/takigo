@@ -203,7 +203,7 @@ func TestEmbeddedWindowFollowsInsertBefore(t *testing.T) {
 	if got, ok := tw.index(".t.c"); !ok || got != (Index{2, 0}) {
 		t.Fatalf("window at %v, %v after inserting before it; want 2.0", got, ok)
 	}
-	if got := tw.Get("2.0", "2.1"); got != string(runeEmbeddedWindow) {
+	if got := tw.doc.Get(Index{2, 0}, Index{2, 1}); got != string(runeEmbeddedWindow) {
 		t.Errorf("char at the window's index = %q, want the placeholder", got)
 	}
 	if got, _ := tw.index("plot"); got != (Index{1, 1}) {

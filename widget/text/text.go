@@ -5,6 +5,7 @@ package text
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/cursor"
@@ -21,12 +22,6 @@ import (
 // at each embedded window position.  The display engine measures this rune as
 // the window's width so that text wraps around the window correctly.
 const runeEmbeddedWindow = '\uFFFC' // Unicode Object Replacement Character
-
-// embeddedImage records an image embedded at a text index position.
-type embeddedImage struct {
-	index Index
-	img   widget.WidgetImage
-}
 
 // embeddedWin records a window embedded at a text index position.
 // The window's position is tracked by a mark in the document so it
@@ -90,7 +85,6 @@ type TextWidget struct {
 	hoverTags   map[string]bool
 
 	// Embedded images drawn inline with text.
-	embeddedImages []embeddedImage
 
 	// Embedded windows (inline child windows positioned at placeholder characters).
 	embeddedWindows []embeddedWin
@@ -427,7 +421,13 @@ func (t *TextWidget) Get(startIndex, endIndex string) string {
 	if !ok1 || !ok2 {
 		return ""
 	}
-	return t.doc.Get(start, end)
+	return withoutPlaceholders(t.doc.Get(start, end))
+}
+
+// withoutPlaceholders drops embedded windows' and images' placeholder
+// characters: as in Tk, text retrieval returns only the characters.
+func withoutPlaceholders(s string) string {
+	return strings.ReplaceAll(s, string(runeEmbeddedWindow), "")
 }
 
 // See scrolls the view to make the given index visible.
@@ -631,26 +631,37 @@ func (t *TextWidget) WindowCreatePad(indexStr string, w *window.Window, padX, pa
 		padX: screenunit.PxOr(padX, 0), padY: screenunit.PxOr(padY, 0)})
 }
 
-// ImageCreate embeds an image at the given text index, treating it as an inline element.
+// ImageCreate embeds an image at the given text index. As in Tk it takes
+// one index position: text flows around it, it moves with edits before it,
+// and deleting its position removes it. Every peer shows it.
 func (t *TextWidget) ImageCreate(indexStr string, img widget.WidgetImage) {
 	idx, ok := t.index(indexStr)
-	if !ok {
+	if !ok || img == nil {
 		return
 	}
-	t.embeddedImages = append(t.embeddedImages, embeddedImage{index: idx, img: img})
+	d := t.doc
+	d.Insert(idx, string(runeEmbeddedWindow))
+	// A mark just before the placeholder, with right gravity so that text
+	// inserted at the image's position moves it along.
+	d.imageSeq++
+	name := fmt.Sprintf("_ei%d", d.imageSeq)
+	d.MarkSet(name, idx)
+	if d.images == nil {
+		d.images = map[string]widget.WidgetImage{}
+	}
+	d.images[name] = img
+	t.Display()
 }
 
 // lineHeightFor returns the display line height for the given logical line,
 // taking into account any embedded images and windows on that line.
 func (t *TextWidget) lineHeightFor(lineIdx int) int {
 	h := t.lineHeight()
-	for _, ei := range t.embeddedImages {
-		if ei.index.Line == lineIdx {
-			if imgH := ei.img.Height(); imgH > h {
-				h = imgH
-			}
+	t.doc.eachImage(func(pos Index, img widget.WidgetImage) {
+		if pos.Line == lineIdx {
+			h = max(h, img.Height())
 		}
-	}
+	})
 	for _, ew := range t.embeddedWindows {
 		if m, ok := t.doc.Marks[ew.markName]; ok && m.Pos.Line == lineIdx {
 			if wh := ew.win.ReqHeight; wh > h {

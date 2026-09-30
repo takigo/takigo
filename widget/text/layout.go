@@ -57,13 +57,16 @@ func (c *layoutCache) init(t *TextWidget) {
 
 func (c *layoutCache) currentKey() layoutKey {
 	t := c.t
-	h := uint64(len(t.embeddedWindows))<<32 | uint64(len(t.embeddedImages))
+	h := uint64(len(t.embeddedWindows))<<32 | uint64(len(t.doc.images))
 	for _, ew := range t.embeddedWindows {
 		h = h*1000003 ^ uint64(ew.win.ReqWidth)<<40 ^ uint64(ew.win.ReqHeight)<<20 ^ uint64(ew.padX)<<10 ^ uint64(ew.padY)
 	}
-	for _, ei := range t.embeddedImages {
-		h = h*1000003 ^ uint64(ei.index.Line)<<40 ^ uint64(ei.index.Char)<<20 ^ uint64(ei.img.Height())
+	// Order-independent: the images are kept in a map.
+	var imgs uint64
+	for _, img := range t.doc.images {
+		imgs += uint64(img.Width())<<20 ^ uint64(img.Height())
 	}
+	h = h*1000003 ^ imgs
 	return layoutKey{
 		availWidth: t.Win.Width - 2*t.insetX,
 		font:       t.Font,
