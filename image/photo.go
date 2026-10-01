@@ -5,8 +5,9 @@ import (
 	goimage "image"
 	"image/color"
 	"image/draw"
-	_ "image/gif" // register GIF decoder
-	_ "image/png" // register PNG decoder
+	_ "image/gif"  // register GIF decoder
+	_ "image/jpeg" // register JPEG decoder
+	_ "image/png"  // register PNG decoder
 	"io"
 	"os"
 	"path/filepath"
