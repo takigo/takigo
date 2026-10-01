@@ -3,6 +3,7 @@
 package color
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -129,6 +130,42 @@ func (c *Cache) GetByValue(r, g, b uint16) (*Color, error) {
 	return col, nil
 }
 
+// ErrUnknown is wrapped by the errors Parse and Cache.Get return for a name
+// or hex string that is not a colour.
+var ErrUnknown = errors.New("color: unknown color")
+
+// Value is a colour given by its components, 0-255 each.
+type Value struct {
+	R, G, B, A uint8
+}
+
+// RGB returns an opaque colour.
+func RGB(r, g, b uint8) Value { return Value{r, g, b, 255} }
+
+// Spec is what a colour option accepts: a Tk colour name or "#rrggbb"
+// string, or a Value.
+type Spec interface {
+	string | Value
+}
+
+// IsEmpty reports whether s is the empty string, which several options
+// take to mean "no colour".
+func IsEmpty[S Spec](s S) bool {
+	name, ok := any(s).(string)
+	return ok && name == ""
+}
+
+// Resolve returns the cached colour for a Spec.
+func (c *Cache) Resolve[S Spec](s S) (*Color, error) {
+	switch v := any(s).(type) {
+	case string:
+		return c.Get(v)
+	case Value:
+		return c.GetByValue(uint16(v.R)*257, uint16(v.G)*257, uint16(v.B)*257)
+	}
+	return nil, ErrUnknown
+}
+
 // Parse parses a color string and returns 16-bit RGB components.
 func Parse(name string) (r, g, b uint16, err error) {
 	if len(name) > 0 && name[0] == '#' {
@@ -140,7 +177,7 @@ func Parse(name string) (r, g, b uint16, err error) {
 		return col.R, col.G, col.B, nil
 	}
 
-	return 0, 0, 0, fmt.Errorf("unknown color %q", name)
+	return 0, 0, 0, fmt.Errorf("%w %q", ErrUnknown, name)
 }
 
 // parseHex parses #RGB, #RRGGBB, #RRRGGGBBB and #RRRRGGGGBBBB, widening

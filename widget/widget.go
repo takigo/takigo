@@ -5,6 +5,7 @@ package widget
 
 import (
 	"context"
+	"log/slog"
 	"time"
 
 	"github.com/msorc/takigo/color"
@@ -78,6 +79,8 @@ type Base struct {
 	HighlightWidth      int
 	PadX, PadY          int
 
+	OptionErrors
+
 	// State.
 	NeedRedraw bool
 	Destroyed  bool
@@ -123,6 +126,8 @@ type AppContext interface {
 	Quit()
 	// Clipboard returns the application clipboard manager.
 	Clipboard() ClipboardManager
+	// Logger returns the application's logger.
+	Logger() *slog.Logger
 }
 
 // Window returns the widget's underlying window.
@@ -277,7 +282,7 @@ func InitBase(b *Base, win *window.Window, app AppContext) {
 
 	// Register background hook so ApplyBackgroundRecursive can update this widget.
 	win.BackgroundHook = func(colorName string) {
-		if b.SetBackgroundName(colorName) {
+		if b.SetBackgroundColor(colorName) {
 			b.Win.SetBackgroundPixel(b.Background.Pixel)
 		}
 	}

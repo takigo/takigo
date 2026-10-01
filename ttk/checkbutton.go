@@ -1,8 +1,6 @@
 package ttk
 
 import (
-	"log"
-
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/font"
@@ -56,11 +54,11 @@ func CheckbuttonText(s string) CheckbuttonOption {
 }
 
 // CheckbuttonFont sets the font.
-func CheckbuttonFont(name string) CheckbuttonOption {
+func CheckbuttonFont[F font.Spec](name F) CheckbuttonOption {
 	return func(c *Checkbutton) {
-		f, err := c.App.FontRegistry().Get(name)
+		f, err := c.App.FontRegistry().Resolve(name)
 		if err != nil {
-			log.Printf("ttk.checkbutton: failed to get font %q: %v", name, err)
+			c.OptionFailed(err)
 			return
 		}
 		c.Font = f
@@ -166,9 +164,9 @@ func (c *Checkbutton) useStyleLayout() {
 }
 
 // Configure sets options after creation.
-func (c *Checkbutton) Configure(opts ...CheckbuttonOption) {
+func (c *Checkbutton) Configure(opts ...CheckbuttonOption) error {
 	style := c.StyleName
-	configure(&c.TtkWidget, c, opts, c.linkVariable, func() {
+	return configure(&c.TtkWidget, c, opts, c.linkVariable, func() {
 		if c.StyleName != style {
 			c.useStyleLayout()
 		}

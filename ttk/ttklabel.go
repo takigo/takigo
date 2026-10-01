@@ -1,8 +1,6 @@
 package ttk
 
 import (
-	"log"
-
 	"github.com/msorc/takigo/font"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/screenunit"
@@ -65,11 +63,11 @@ func LabelForeground(pixel uint64) LabelOption {
 }
 
 // LabelFont sets the font.
-func LabelFont(name string) LabelOption {
+func LabelFont[F font.Spec](name F) LabelOption {
 	return func(l *Label) {
-		f, err := l.App.FontRegistry().Get(name)
+		f, err := l.App.FontRegistry().Resolve(name)
 		if err != nil {
-			log.Printf("ttk.label: failed to get font %q: %v", name, err)
+			l.OptionFailed(err)
 			return
 		}
 		l.Font = f
@@ -164,8 +162,8 @@ func (l *Label) SetText(s string) {
 }
 
 // Configure sets options after creation.
-func (l *Label) Configure(opts ...LabelOption) {
-	configure(&l.TtkWidget, l, opts, nil, l.updateReqSize)
+func (l *Label) Configure(opts ...LabelOption) error {
+	return configure(&l.TtkWidget, l, opts, nil, l.updateReqSize)
 }
 
 func (l *Label) updateReqSize() {

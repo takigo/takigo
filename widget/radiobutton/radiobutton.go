@@ -6,6 +6,7 @@ package radiobutton
 import (
 	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/draw"
+	"github.com/msorc/takigo/font"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/screenunit"
@@ -92,18 +93,18 @@ func Var(v *widget.Variable[string]) RadiobuttonOption {
 }
 
 // Background sets the background color.
-func Background(name string) RadiobuttonOption {
-	return func(r *Radiobutton) { r.SetBackgroundName(name) }
+func Background[C color.Spec](name C) RadiobuttonOption {
+	return func(r *Radiobutton) { r.SetBackgroundColor(name) }
 }
 
 // Foreground sets the text color.
-func Foreground(name string) RadiobuttonOption {
-	return func(r *Radiobutton) { r.SetForegroundName(name) }
+func Foreground[C color.Spec](name C) RadiobuttonOption {
+	return func(r *Radiobutton) { r.SetForegroundColor(name) }
 }
 
 // FontOpt sets the font.
-func FontOpt(name string) RadiobuttonOption {
-	return func(r *Radiobutton) { r.SetFontName(name) }
+func FontOpt[F font.Spec](name F) RadiobuttonOption {
+	return func(r *Radiobutton) { r.SetFont(name) }
 }
 
 // Anchor sets the text anchor.
@@ -400,8 +401,8 @@ func (r *Radiobutton) Invoke() {
 }
 
 // Configure applies options.
-func (r *Radiobutton) Configure(opts ...RadiobuttonOption) {
-	widget.Configure(r, opts, r.computeGeometry)
+func (r *Radiobutton) Configure(opts ...RadiobuttonOption) error {
+	return widget.Configure(r, opts, r.computeGeometry)
 }
 
 // Destroy cleans up the radiobutton.

@@ -3,7 +3,8 @@
 package pack
 
 import (
-	"log"
+	"errors"
+	"fmt"
 	"slices"
 
 	"github.com/msorc/takigo/geometry"
@@ -206,6 +207,10 @@ func After(sibling window.Windower) PackOption {
 // containerOf records each content window's container (Tk's containerPtr).
 var containerOf = new(geometry.Table[*window.Window])
 
+// ErrNotPacked is wrapped by the error Pack returns when the Before or
+// After sibling is not packed.
+var ErrNotPacked = errors.New("pack: window is not packed")
+
 // Pack packs children, like Tk's "pack configure .w1 .w2 ... options".
 // It accepts a geometry.Elementer (e.g. geometry.Group) of one or more
 // widgets, which all receive the same options.
@@ -215,7 +220,7 @@ var containerOf = new(geometry.Table[*window.Window])
 // Before or After is given; new content starts from the defaults and goes
 // at the end. With Before or After, the first widget goes next to the
 // sibling and the rest follow it in order.
-func Pack(children geometry.Elementer, opts ...PackOption) {
+func Pack(children geometry.Elementer, opts ...PackOption) error {
 	elements := children.GeometryElements()
 
 	// Arrange each affected container once, after all elements are added,
@@ -265,8 +270,7 @@ func Pack(children geometry.Elementer, opts ...PackOption) {
 				sib, afterAt = cfg.before, false
 			}
 			if containerOf.Of(sib) == nil {
-				log.Printf("pack: window %q isn't packed", sib.PathName)
-				return
+				return fmt.Errorf("%w: %s", ErrNotPacked, sib.PathName)
 			}
 			if sib != w { // next to itself: stay in place (tkPack.c)
 				container, at = containerOf.Of(sib), sib
@@ -322,6 +326,7 @@ func Pack(children geometry.Elementer, opts ...PackOption) {
 	for _, p := range touched {
 		p.scheduleArrange()
 	}
+	return nil
 }
 
 // packerFor returns container's packer, creating it and its hooks.

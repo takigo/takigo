@@ -6,6 +6,7 @@ package checkbutton
 import (
 	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/draw"
+	"github.com/msorc/takigo/font"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/screenunit"
@@ -102,18 +103,18 @@ func TristateValueOpt(v string) CheckbuttonOption {
 }
 
 // Background sets the background color.
-func Background(name string) CheckbuttonOption {
-	return func(c *Checkbutton) { c.SetBackgroundName(name) }
+func Background[C color.Spec](name C) CheckbuttonOption {
+	return func(c *Checkbutton) { c.SetBackgroundColor(name) }
 }
 
 // Foreground sets the text color.
-func Foreground(name string) CheckbuttonOption {
-	return func(c *Checkbutton) { c.SetForegroundName(name) }
+func Foreground[C color.Spec](name C) CheckbuttonOption {
+	return func(c *Checkbutton) { c.SetForegroundColor(name) }
 }
 
 // FontOpt sets the font.
-func FontOpt(name string) CheckbuttonOption {
-	return func(c *Checkbutton) { c.SetFontName(name) }
+func FontOpt[F font.Spec](name F) CheckbuttonOption {
+	return func(c *Checkbutton) { c.SetFont(name) }
 }
 
 // Anchor sets the text anchor.
@@ -149,7 +150,7 @@ func IndicatorOnOpt(on bool) CheckbuttonOption {
 }
 
 // SelectColor sets -selectcolor, the indicator's colour when selected.
-func SelectColor(name string) CheckbuttonOption {
+func SelectColor[C color.Spec](name C) CheckbuttonOption {
 	return func(c *Checkbutton) {
 		if col, ok := c.LookupColor(name); ok {
 			c.SelectColor = col.Ref()
@@ -472,8 +473,8 @@ func (c *Checkbutton) Invoke() {
 }
 
 // Configure applies options.
-func (c *Checkbutton) Configure(opts ...CheckbuttonOption) {
-	widget.Configure(c, opts, c.computeGeometry)
+func (c *Checkbutton) Configure(opts ...CheckbuttonOption) error {
+	return widget.Configure(c, opts, c.computeGeometry)
 }
 
 // Destroy cleans up the checkbutton.

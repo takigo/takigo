@@ -72,12 +72,12 @@ func OptionMenuOpt(on bool) MenubuttonOption  { return func(mb *Menubutton) { mb
 // Relief sets -relief.
 func Relief(r option.Relief) MenubuttonOption { return func(mb *Menubutton) { mb.Relief = r } }
 
-func Background(name string) MenubuttonOption {
-	return func(mb *Menubutton) { mb.SetBackgroundName(name) }
+func Background[C color.Spec](name C) MenubuttonOption {
+	return func(mb *Menubutton) { mb.SetBackgroundColor(name) }
 }
 
-func Foreground(name string) MenubuttonOption {
-	return func(mb *Menubutton) { mb.SetForegroundName(name) }
+func Foreground[C color.Spec](name C) MenubuttonOption {
+	return func(mb *Menubutton) { mb.SetForegroundColor(name) }
 }
 
 // New creates a new Menubutton widget.
@@ -273,8 +273,8 @@ func (mb *Menubutton) SetText(text string) {
 }
 
 // Configure applies options.
-func (mb *Menubutton) Configure(opts ...MenubuttonOption) {
-	widget.Configure(mb, opts, mb.computeGeometry)
+func (mb *Menubutton) Configure(opts ...MenubuttonOption) error {
+	return widget.Configure(mb, opts, mb.computeGeometry)
 }
 
 // Destroy cleans up.

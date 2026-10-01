@@ -69,35 +69,35 @@ type TagRange struct {
 type TagOption func(cache *color.Cache, reg *font.Registry, tag *Tag)
 
 // TagForeground sets the tag's foreground color. Pass "" to clear.
-func TagForeground(name string) TagOption {
+func TagForeground[C color.Spec](name C) TagOption {
 	return func(cache *color.Cache, reg *font.Registry, tag *Tag) {
-		if name == "" {
+		if color.IsEmpty(name) {
 			tag.Foreground = nil
 			return
 		}
-		if col, err := cache.Get(name); err == nil {
+		if col, err := cache.Resolve(name); err == nil {
 			tag.Foreground = col
 		}
 	}
 }
 
 // TagBackground sets the tag's background color. Pass "" to clear.
-func TagBackground(name string) TagOption {
+func TagBackground[C color.Spec](name C) TagOption {
 	return func(cache *color.Cache, reg *font.Registry, tag *Tag) {
-		if name == "" {
+		if color.IsEmpty(name) {
 			tag.Background = nil
 			return
 		}
-		if col, err := cache.Get(name); err == nil {
+		if col, err := cache.Resolve(name); err == nil {
 			tag.Background = col
 		}
 	}
 }
 
 // TagFont sets the tag's font.
-func TagFont(name string) TagOption {
+func TagFont[F font.Spec](name F) TagOption {
 	return func(cache *color.Cache, reg *font.Registry, tag *Tag) {
-		if f, err := reg.Get(name); err == nil {
+		if f, err := reg.Resolve(name); err == nil {
 			tag.Font = f
 		}
 	}

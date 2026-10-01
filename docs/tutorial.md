@@ -222,13 +222,27 @@ through it; don't assign to exported fields and hope for a redraw. Some
 widgets add convenience wrappers such as `button.SetText` or
 `ttk.Label.SetText`, which call `Configure` for you.
 
-**Bad values don't panic.** An option that looks something up — a colour, a
-font, a distance — logs a warning and keeps the previous value if the lookup
-fails:
+**Bad values are errors, not panics.** A distance is checked by the compiler.
+A colour or font is looked up when the option runs; if the lookup fails the
+widget keeps its previous value, the other options still apply, and
+`Configure` returns the error:
+
+```go
+if err := ok.Configure(button.Background("grren")); errors.Is(err, color.ErrUnknown) {
+	// color: unknown color "grren"
+}
+```
+
+A constructor has no error to return, so there the failure goes to the App's
+logger instead — `slog.Default()` unless you pass `takigo.WithLogger`:
 
 ```
-2026/09/30 10:00:00 .ok: unknown color "grren"
+level=WARN msg="option not applied" widget=.ok err="color: unknown color \"grren\""
 ```
+
+Colours and fonts can also be given as values rather than names:
+`button.Background(color.RGB(0, 128, 0))`,
+`label.FontOpt(font.Attributes{Family: "Helvetica", Size: 12})`.
 
 ### 3.3 Colours, fonts and distances
 
@@ -2976,8 +2990,9 @@ Tips:
   or added to a paned window or notebook.
 - **Nothing resizes?** Missing `pack.Expand(true)` / `pack.FillOpt(...)`, or a
   missing `grid.Weight` on the row or column.
-- **Option ignored?** Look at stderr: bad colours, fonts and distances are
-  logged with the widget's path, and the old value is kept.
+- **Option ignored?** Check the error `Configure` returns, and the log for
+  options given to a constructor: a bad colour or font is reported with the
+  widget's path, and the old value is kept.
 - **Data races.** Run with `-race`. A report that mentions a widget or window
   touched from a goroutine you started means a missing `RunOnMain`.
 - **Name your windows.** `TAKIGO_DEBUG_NAME_WIDGETS=1` gives every X window

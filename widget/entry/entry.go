@@ -3,11 +3,10 @@
 package entry
 
 import (
-	"log"
-
 	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/cursor"
 	"github.com/msorc/takigo/draw"
+	"github.com/msorc/takigo/font"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/screenunit"
@@ -83,11 +82,11 @@ func Placeholder(s string) EntryOption {
 }
 
 // PlaceholderForeground sets the placeholder text color.
-func PlaceholderForeground(name string) EntryOption {
+func PlaceholderForeground[C color.Spec](name C) EntryOption {
 	return func(e *Entry) {
-		col, err := e.App.ColorCache().Get(name)
+		col, err := e.App.ColorCache().Resolve(name)
 		if err != nil {
-			log.Printf("entry: failed to get color %q: %v", name, err)
+			e.OptionFailed(err)
 			return
 		}
 		e.PlaceholderFg = col.Ref()
@@ -100,18 +99,18 @@ func Show(ch rune) EntryOption {
 }
 
 // Background sets the background color.
-func Background(name string) EntryOption {
-	return func(e *Entry) { e.SetBackgroundName(name) }
+func Background[C color.Spec](name C) EntryOption {
+	return func(e *Entry) { e.SetBackgroundColor(name) }
 }
 
 // Foreground sets the text color.
-func Foreground(name string) EntryOption {
-	return func(e *Entry) { e.SetForegroundName(name) }
+func Foreground[C color.Spec](name C) EntryOption {
+	return func(e *Entry) { e.SetForegroundColor(name) }
 }
 
 // FontOpt sets the font.
-func FontOpt(name string) EntryOption {
-	return func(e *Entry) { e.SetFontName(name) }
+func FontOpt[F font.Spec](name F) EntryOption {
+	return func(e *Entry) { e.SetFont(name) }
 }
 
 // Width sets the preferred width in characters.
@@ -651,8 +650,8 @@ func (e *Entry) display() {
 }
 
 // Configure applies options.
-func (e *Entry) Configure(opts ...EntryOption) {
-	widget.Configure(e, opts, e.computeGeometry)
+func (e *Entry) Configure(opts ...EntryOption) error {
+	return widget.Configure(e, opts, e.computeGeometry)
 }
 
 // Destroy cleans up the entry.

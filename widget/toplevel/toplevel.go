@@ -3,8 +3,9 @@
 package toplevel
 
 import (
-	"log"
+	"fmt"
 
+	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/widget"
@@ -36,15 +37,15 @@ func IconName(s string) ToplevelOption {
 }
 
 // Background sets the background color.
-func Background(name string) ToplevelOption {
-	return func(t *Toplevel) { t.SetBackgroundName(name) }
+func Background[C color.Spec](name C) ToplevelOption {
+	return func(t *Toplevel) { t.SetBackgroundColor(name) }
 }
 
 // Geometry sets the geometry string (e.g. "400x300+100+100").
 func Geometry(geom string) ToplevelOption {
 	return func(t *Toplevel) {
 		if err := t.WmInfo.SetGeometry(geom); err != nil {
-			log.Printf("toplevel: Geometry: %v", err)
+			t.OptionFailed(fmt.Errorf("toplevel: geometry %q: %w", geom, err))
 		}
 	}
 }
@@ -177,8 +178,8 @@ func (t *Toplevel) display() {
 }
 
 // Configure applies options.
-func (t *Toplevel) Configure(opts ...ToplevelOption) {
-	widget.Configure(t, opts, nil)
+func (t *Toplevel) Configure(opts ...ToplevelOption) error {
+	return widget.Configure(t, opts, nil)
 }
 
 // Show maps the toplevel window.

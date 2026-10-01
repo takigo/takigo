@@ -99,13 +99,13 @@ func TearOffOpt(on bool) MenuOption {
 	return func(m *Menu) { m.TearOff = on }
 }
 
-func Background(name string) MenuOption {
-	return func(m *Menu) { m.SetBackgroundName(name) }
+func Background[C color.Spec](name C) MenuOption {
+	return func(m *Menu) { m.SetBackgroundColor(name) }
 }
 
 // FontOpt sets the font of the menu entries.
-func FontOpt(name string) MenuOption {
-	return func(m *Menu) { m.SetFontName(name) }
+func FontOpt[F font.Spec](name F) MenuOption {
+	return func(m *Menu) { m.SetFont(name) }
 }
 
 // New creates a new Menu. The menu is an override-redirect window,
@@ -1023,8 +1023,8 @@ func (m *Menu) postCascade(index int) {
 }
 
 // Configure applies options.
-func (m *Menu) Configure(opts ...MenuOption) {
-	widget.Configure(m, opts, m.computeGeometry)
+func (m *Menu) Configure(opts ...MenuOption) error {
+	return widget.Configure(m, opts, m.computeGeometry)
 }
 
 // Destroy cleans up.

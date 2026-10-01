@@ -109,8 +109,8 @@ func (s *Scale) linkVariable() {
 }
 
 // Configure sets options after creation.
-func (s *Scale) Configure(opts ...ScaleOption) {
-	configure(&s.TtkWidget, s, opts, func() {
+func (s *Scale) Configure(opts ...ScaleOption) error {
+	return configure(&s.TtkWidget, s, opts, func() {
 		s.StyleName = s.orientStyle()
 		s.linkVariable()
 	}, s.requestSize)

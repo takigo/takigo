@@ -105,8 +105,8 @@ func NewLabelframe(parent widget.Caregiver, name string, opts ...LabelframeOptio
 }
 
 // Configure sets options after creation.
-func (lf *Labelframe) Configure(opts ...LabelframeOption) {
-	configure(&lf.TtkWidget, lf, opts, nil, lf.updateMargins)
+func (lf *Labelframe) Configure(opts ...LabelframeOption) error {
+	return configure(&lf.TtkWidget, lf, opts, nil, lf.updateMargins)
 }
 
 // Tk's DEFAULT_LABELINSET: the label's left/right margin for -labelanchor nw.

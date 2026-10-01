@@ -170,17 +170,23 @@ package maps: several Apps may run at once on different goroutines
   top-level `takigo` package from a widget (use `widget.AppContext`).
 
 - **Functional options.** Define `type XxxOption func(*Xxx)` and one
-  constructor per settable field. Option setters that look up a resource
-  (color, font) `log.Printf` a warning on lookup failure and keep the
-  previous value; the shared `widget.Base` setters do this
-  (`SetBackgroundName`, `SetForegroundName`, `SetFontName`, `LookupColor`,
-  …) — see `Background` in `widget/button/button.go`.
+  constructor per settable field. Colour and font options are generic over
+  `color.Spec` (a name or `color.RGB(...)`) and `font.Spec` (a descriptor
+  or `font.Attributes`) and go through the shared setters
+  (`SetBackgroundColor`, `SetForegroundColor`, `SetFont`, `LookupColor`,
+  …) — see `Background` in `widget/button/button.go`. A setter that cannot
+  resolve its value keeps the previous one and calls `OptionFailed(err)`:
+  inside `Configure` the error is collected and returned, in a constructor
+  (which returns no error) it goes to the App's `slog` logger
+  (`takigo.WithLogger`). Never `log.Printf` from library code.
 
 - **Runtime configuration.** Every widget has a typed
   `Configure(opts ...XxxOption)` taking the same options as its
   constructor (Tk's `configure`). Change options after creation through
   it — never by writing a field and calling `Display()`, or by calling an
-  option func directly. Classic widgets implement it with
+  option func directly. It returns the joined errors of the options that
+  failed (`errors.Is(err, color.ErrUnknown)`, `font.ErrNotFound`); the
+  others still take effect. Classic widgets implement it with
   `widget.Configure(w, opts, w.computeGeometry)`, which does what Tk's
   WorldChanged procs do: rebuilds the border, recomputes the geometry,
   syncs the window background (`Window.SetBackgroundPixel`), re-arranges

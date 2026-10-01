@@ -152,8 +152,8 @@ func NewSpinbox(parent widget.Caregiver, name string, opts ...SpinboxOption) *Sp
 }
 
 // Configure sets options after creation.
-func (s *Spinbox) Configure(opts ...SpinboxOption) {
-	configure(&s.TtkWidget, s, opts, nil, s.computeGeometry)
+func (s *Spinbox) Configure(opts ...SpinboxOption) error {
+	return configure(&s.TtkWidget, s, opts, nil, s.computeGeometry)
 }
 
 // Get returns the current text value.

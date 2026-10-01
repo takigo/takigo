@@ -1,8 +1,6 @@
 package ttk
 
 import (
-	"log"
-
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/font"
 	"github.com/msorc/takigo/platform"
@@ -58,11 +56,11 @@ func ButtonCompound(c widget.Compound) ButtonOption {
 }
 
 // ButtonFont sets the font.
-func ButtonFont(name string) ButtonOption {
+func ButtonFont[F font.Spec](name F) ButtonOption {
 	return func(b *Button) {
-		f, err := b.App.FontRegistry().Get(name)
+		f, err := b.App.FontRegistry().Resolve(name)
 		if err != nil {
-			log.Printf("ttk.button: failed to get font %q: %v", name, err)
+			b.OptionFailed(err)
 			return
 		}
 		b.Font = f
@@ -149,8 +147,8 @@ func NewButton(parent widget.Caregiver, name string, opts ...ButtonOption) *Butt
 }
 
 // Configure sets options after creation.
-func (b *Button) Configure(opts ...ButtonOption) {
-	configure(&b.TtkWidget, b, opts, nil, nil)
+func (b *Button) Configure(opts ...ButtonOption) error {
+	return configure(&b.TtkWidget, b, opts, nil, nil)
 }
 
 // Invoke executes the button's command.

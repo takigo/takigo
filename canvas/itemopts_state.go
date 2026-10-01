@@ -1,9 +1,13 @@
 package canvas
 
+import (
+	"github.com/msorc/takigo/color"
+)
+
 // ActiveFill sets -activefill.
-func ActiveFill(name string) ItemOption {
+func ActiveFill[C color.Spec](name C) ItemOption {
 	return func(c *Canvas, item Item) error {
-		col, err := c.ColorCache().Get(name)
+		col, err := c.ColorCache().Resolve(name)
 		if err != nil {
 			return err
 		}
@@ -15,9 +19,9 @@ func ActiveFill(name string) ItemOption {
 }
 
 // DisabledFill sets -disabledfill.
-func DisabledFill(name string) ItemOption {
+func DisabledFill[C color.Spec](name C) ItemOption {
 	return func(c *Canvas, item Item) error {
-		col, err := c.ColorCache().Get(name)
+		col, err := c.ColorCache().Resolve(name)
 		if err != nil {
 			return err
 		}

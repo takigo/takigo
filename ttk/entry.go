@@ -94,12 +94,15 @@ func EntryShow(ch rune) EntryOption {
 }
 
 // EntryFont sets the font by name.
-func EntryFont(name string) EntryOption {
+func EntryFont[F font.Spec](name F) EntryOption {
 	return func(e *Entry) {
-		if f, err := e.App.FontRegistry().Get(name); err == nil {
-			e.Font = f
-			e.edit.Font = f
+		f, err := e.App.FontRegistry().Resolve(name)
+		if err != nil {
+			e.OptionFailed(err)
+			return
 		}
+		e.Font = f
+		e.edit.Font = f
 	}
 }
 
@@ -421,8 +424,8 @@ func (e *Entry) SetState(s EntryState) {
 }
 
 // Configure sets options after creation.
-func (e *Entry) Configure(opts ...EntryOption) {
-	configure(&e.TtkWidget, e, opts, func() {
+func (e *Entry) Configure(opts ...EntryOption) error {
+	return configure(&e.TtkWidget, e, opts, func() {
 		e.syncState()
 		e.linkTextVar()
 	}, e.requestSize)

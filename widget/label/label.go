@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/msorc/takigo/bitmap"
+	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/font"
@@ -77,18 +78,18 @@ func TextVariable(v *widget.Variable[string]) LabelOption {
 }
 
 // Background sets the background color.
-func Background(name string) LabelOption {
-	return func(l *Label) { l.SetBackgroundName(name) }
+func Background[C color.Spec](name C) LabelOption {
+	return func(l *Label) { l.SetBackgroundColor(name) }
 }
 
 // Foreground sets the text color.
-func Foreground(name string) LabelOption {
-	return func(l *Label) { l.SetForegroundName(name) }
+func Foreground[C color.Spec](name C) LabelOption {
+	return func(l *Label) { l.SetForegroundColor(name) }
 }
 
 // FontOpt sets the font.
-func FontOpt(name string) LabelOption {
-	return func(l *Label) { l.SetFontName(name) }
+func FontOpt[F font.Spec](name F) LabelOption {
+	return func(l *Label) { l.SetFont(name) }
 }
 
 // BorderWidth sets the border width.
@@ -486,8 +487,8 @@ func drawCompound(l *Label, w *window.Window,
 }
 
 // Configure applies options to the label.
-func (l *Label) Configure(opts ...LabelOption) {
-	widget.Configure(l, opts, l.computeGeometry)
+func (l *Label) Configure(opts ...LabelOption) error {
+	return widget.Configure(l, opts, l.computeGeometry)
 }
 
 // SetImage sets or clears the label image at runtime, recomputing geometry

@@ -106,8 +106,8 @@ func (p *Progressbar) requestSize() {
 }
 
 // Configure sets options after creation.
-func (p *Progressbar) Configure(opts ...ProgressbarOption) {
-	configure(&p.TtkWidget, p, opts, func() { p.StyleName = p.orientStyle() }, p.requestSize)
+func (p *Progressbar) Configure(opts ...ProgressbarOption) error {
+	return configure(&p.TtkWidget, p, opts, func() { p.StyleName = p.orientStyle() }, p.requestSize)
 }
 
 // pbTroughBorder is the default theme trough's sunken border width.

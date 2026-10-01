@@ -67,8 +67,8 @@ func TickIntervalOpt(v float64) ScaleOption   { return func(s *Scale) { s.TickIn
 func LengthOpt(n int) ScaleOption             { return func(s *Scale) { s.Length = n } }
 func CommandOpt(fn func(float64)) ScaleOption { return func(s *Scale) { s.Command = fn } }
 
-func Background(name string) ScaleOption {
-	return func(s *Scale) { s.SetBackgroundName(name) }
+func Background[C color.Spec](name C) ScaleOption {
+	return func(s *Scale) { s.SetBackgroundColor(name) }
 }
 
 // New creates a new Scale widget.
@@ -520,8 +520,8 @@ func (s *Scale) activeBg() uint64 {
 }
 
 // Configure applies options.
-func (s *Scale) Configure(opts ...ScaleOption) {
-	widget.Configure(s, opts, s.computeGeometry)
+func (s *Scale) Configure(opts ...ScaleOption) error {
+	return widget.Configure(s, opts, s.computeGeometry)
 }
 
 // Destroy cleans up the scale.

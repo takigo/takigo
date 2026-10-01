@@ -21,6 +21,8 @@ type TtkWidget struct {
 	StyleName string
 	Context   *DrawContext
 
+	widget.OptionErrors
+
 	// LabelFactory is set by widgets that use a bound label element (Button, Label, Menubutton).
 	// Used by RefreshTheme to rebuild the layout with the correct label provider.
 	LabelFactory ElementFactory
@@ -118,14 +120,16 @@ func (w *TtkWidget) resize(compute func()) {
 // the style name changed, size recomputes the request (the layout's when
 // nil), content and parent are re-arranged when margins or request changed,
 // and a redisplay is queued.
-func configure[W any, O ~func(W)](tw *TtkWidget, w W, opts []O, sync, size func()) {
+func configure[W any, O ~func(W)](tw *TtkWidget, w W, opts []O, sync, size func()) error {
 	win := tw.Win
 	style := tw.StyleName
 	reqW, reqH := win.ReqWidth, win.ReqHeight
 	insets := win.ContentInsets()
+	tw.BeginOptions()
 	for _, opt := range opts {
 		opt(w)
 	}
+	err := tw.EndOptions()
 	if sync != nil {
 		sync()
 	}
@@ -143,6 +147,20 @@ func configure[W any, O ~func(W)](tw *TtkWidget, w W, opts []O, sync, size func(
 		win.GeomManager.RequestProc(win)
 	}
 	tw.redisplay()
+	return err
+}
+
+// OptionFailed reports an option that could not be applied; the widget
+// keeps its previous value. See widget.OptionErrors.
+func (w *TtkWidget) OptionFailed(err error) {
+	if w.Record(err) {
+		return
+	}
+	path := ""
+	if w.Win != nil {
+		path = w.Win.PathName
+	}
+	widget.LogOptionError(w.App, path, err)
 }
 
 // Display renders the widget using double-buffered drawing.

@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"os"
 	"strconv"
 	"strings"
@@ -41,6 +41,7 @@ type App struct {
 	focusMgr   *focus.Manager
 	selMgr     *selection.Manager
 	grabMgr    *grab.Manager
+	logger     *slog.Logger
 }
 
 // NewApp creates a new takigo application. It opens the X11 display,
@@ -49,6 +50,7 @@ func NewApp(opts ...AppOption) (*App, error) {
 	cfg := appConfig{
 		displayName: "",
 		title:       "takigo",
+		logger:      slog.Default(),
 		width:       400,
 		height:      300,
 	}
@@ -105,6 +107,7 @@ func NewApp(opts ...AppOption) (*App, error) {
 		bindEng:    bindEng,
 		selMgr:     selMgr,
 		grabMgr:    grab.NewManager(server, dispatcher),
+		logger:     cfg.logger,
 	}
 
 	// Tk never reads a child window's size back from X: the geometry
@@ -174,7 +177,7 @@ func NewApp(opts ...AppOption) (*App, error) {
 	// Apply geometry string if provided (overrides Size).
 	if cfg.geometry != "" {
 		if err := app.wmInfo.SetGeometry(cfg.geometry); err != nil {
-			log.Printf("takigo: Geometry: %v", err)
+			cfg.logger.Warn("bad geometry", "geometry", cfg.geometry, "err", err)
 		}
 	}
 
@@ -301,7 +304,7 @@ func (a *App) startTreeDump(path string) {
 			return
 		}
 		if err := treedump.WriteFileAtomic(path, b); err != nil {
-			log.Printf("takigo: tree dump: %v", err)
+			a.logger.Warn("tree dump failed", "path", path, "err", err)
 			return
 		}
 		last = b
@@ -347,6 +350,11 @@ func (a *App) Destroy() {
 		a.fontReg.Close()
 	}
 	a.display.Close()
+}
+
+// Logger returns the application's logger; see WithLogger.
+func (a *App) Logger() *slog.Logger {
+	return a.logger
 }
 
 // ColorCache returns the application's color cache.
@@ -482,6 +490,17 @@ type appConfig struct {
 	height      int
 	geometry    string
 	iconName    string
+	logger      *slog.Logger
+}
+
+// WithLogger sets the logger for the App's diagnostics, such as an option
+// that could not be applied in a constructor. The default is slog.Default.
+func WithLogger(l *slog.Logger) AppOption {
+	return func(c *appConfig) {
+		if l != nil {
+			c.logger = l
+		}
+	}
 }
 
 // DisplayName sets the X11 display name (e.g., ":0").
