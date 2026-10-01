@@ -366,8 +366,7 @@ func (l *Label) display() {
 		fgR, fgG, fgB = l.Foreground.Red, l.Foreground.Green, l.Foreground.Blue
 	}
 	if l.Disabled {
-		fgPixel = 0xa3a3a3
-		fgR, fgG, fgB = 0xa300, 0xa300, 0xa300
+		fgPixel, fgR, fgG, fgB = widget.DisabledColor(l.App)
 	}
 
 	bgPixel := uint64(0)

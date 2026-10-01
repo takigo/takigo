@@ -50,7 +50,7 @@ func NewMenubar(top widget.Caregiver, name string) *Menubar {
 	if f, err := app.FontRegistry().Get(font.TkMenuFont); err == nil {
 		mb.Font = f
 	}
-	if c, err := app.ColorCache().Get(widget.DefActiveBackground); err == nil {
+	if c, err := app.ColorCache().Get(widget.PaletteFor(app).ActiveBackground); err == nil {
 		mb.ActiveBg = c.Ref()
 	}
 	top.Window().Menubar = w

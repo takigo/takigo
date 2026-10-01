@@ -134,31 +134,31 @@ func New(parent widget.Caregiver, name string, opts ...TextOption) *TextWidget {
 	t.PadX, t.PadY = 1, 1 // DEF_TEXT_PADX, DEF_TEXT_PADY
 
 	// White background.
-	if bg, err := app.ColorCache().Get("#ffffff"); err == nil {
+	if bg, err := app.ColorCache().Get(widget.PaletteFor(app).FieldBackground); err == nil {
 		t.Background = bg
 		t.UpdateBorder()
 	}
 
 	// Selection colors.
-	if sel, err := app.ColorCache().Get("#3399ff"); err == nil {
+	if sel, err := app.ColorCache().Get(widget.PaletteFor(app).SelectBackground); err == nil {
 		t.selBg = sel.Ref()
 	}
-	if selfg, err := app.ColorCache().Get("#ffffff"); err == nil {
+	if selfg, err := app.ColorCache().Get(widget.PaletteFor(app).SelectForeground); err == nil {
 		t.selFg = selfg.Ref()
 	}
-	if ins, err := app.ColorCache().Get("#000000"); err == nil {
+	if ins, err := app.ColorCache().Get(widget.PaletteFor(app).InsertBackground); err == nil {
 		t.insertColor = ins.Ref()
 	}
 
 	// Create the "sel" tag with highest priority.
 	selTag := &Tag{Name: "sel", Priority: selPriority}
 	if t.selFg != nil {
-		if fgCol, err := app.ColorCache().Get("#ffffff"); err == nil {
+		if fgCol, err := app.ColorCache().Get(widget.PaletteFor(app).SelectForeground); err == nil {
 			selTag.Foreground = fgCol
 		}
 	}
 	if t.selBg != nil {
-		if bgCol, err := app.ColorCache().Get("#3399ff"); err == nil {
+		if bgCol, err := app.ColorCache().Get(widget.PaletteFor(app).SelectBackground); err == nil {
 			selTag.Background = bgCol
 		}
 	}
@@ -217,17 +217,17 @@ func NewPeer(doc *Document, parent widget.Caregiver, name string, opts ...TextOp
 	t.HighlightWidth = 1
 	t.PadX, t.PadY = 1, 1 // DEF_TEXT_PADX, DEF_TEXT_PADY
 
-	if bg, err := app.ColorCache().Get("#ffffff"); err == nil {
+	if bg, err := app.ColorCache().Get(widget.PaletteFor(app).FieldBackground); err == nil {
 		t.Background = bg
 		t.UpdateBorder()
 	}
-	if sel, err := app.ColorCache().Get("#3399ff"); err == nil {
+	if sel, err := app.ColorCache().Get(widget.PaletteFor(app).SelectBackground); err == nil {
 		t.selBg = sel.Ref()
 	}
-	if selfg, err := app.ColorCache().Get("#ffffff"); err == nil {
+	if selfg, err := app.ColorCache().Get(widget.PaletteFor(app).SelectForeground); err == nil {
 		t.selFg = selfg.Ref()
 	}
-	if ins, err := app.ColorCache().Get("#000000"); err == nil {
+	if ins, err := app.ColorCache().Get(widget.PaletteFor(app).InsertBackground); err == nil {
 		t.insertColor = ins.Ref()
 	}
 

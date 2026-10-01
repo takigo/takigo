@@ -108,10 +108,10 @@ func New(parent widget.Caregiver, name string, opts ...MenubuttonOption) *Menubu
 	mb.PadY = screenunit.Pt(3).Pixels()
 
 	// Active colors.
-	if ac, err := app.ColorCache().Get(widget.DefActiveBackground); err == nil {
+	if ac, err := app.ColorCache().Get(widget.PaletteFor(app).ActiveBackground); err == nil {
 		mb.ActiveBg = ac.Ref()
 	}
-	if af, err := app.ColorCache().Get(widget.DefActiveForeground); err == nil {
+	if af, err := app.ColorCache().Get(widget.PaletteFor(app).ActiveForeground); err == nil {
 		mb.ActiveFg = af.Ref()
 	}
 

@@ -33,7 +33,7 @@ func newArcItem(x1, y1, x2, y2 float64, c *Canvas) *ArcItem {
 		style:        ArcStylePieslice,
 		outlineWidth: 1,
 	}
-	item.outline = &color.ColorRef{Pixel: 0x000000}
+	item.outline = c.defaultInk()
 	item.ItemBase.canvas = c
 	item.updateBBox()
 	return item

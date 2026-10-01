@@ -166,6 +166,15 @@ func Antialias(on bool) CanvasOption {
 	return func(c *Canvas) { c.antialias = on }
 }
 
+// defaultInk is the colour new items are drawn in until given one: the
+// App's foreground colour, which is Tk's black unless the App is dark.
+func (c *Canvas) defaultInk() *color.ColorRef {
+	if c != nil && c.Foreground != nil {
+		return c.Foreground.Ref()
+	}
+	return &color.ColorRef{}
+}
+
 func CloseEnough(d float64) CanvasOption {
 	return func(c *Canvas) { c.closeEnough = d }
 }

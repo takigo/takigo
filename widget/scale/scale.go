@@ -97,7 +97,7 @@ func New(parent widget.Caregiver, name string, opts ...ScaleOption) *Scale {
 	s.HighlightWidth = 1
 	s.Relief = option.ReliefFlat
 
-	if tc, err := app.ColorCache().Get("#c3c3c3"); err == nil {
+	if tc, err := app.ColorCache().Get(widget.PaletteFor(app).TroughColor); err == nil {
 		s.TroughColor = tc.Ref()
 	}
 
@@ -515,7 +515,7 @@ func (s *Scale) display() {
 type fontMetrics struct{ ascent, descent int }
 
 func (s *Scale) activeBg() uint64 {
-	if c, err := s.App.ColorCache().Get(widget.DefActiveBackground); err == nil {
+	if c, err := s.App.ColorCache().Get(widget.PaletteFor(s.App).ActiveBackground); err == nil {
 		return c.Pixel
 	}
 	return 0xececec

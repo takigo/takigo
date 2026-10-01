@@ -288,6 +288,13 @@ func ThemeFor(app widget.AppContext) *Theme {
 				return t
 			}
 		}
+		// A dark App (takigo.UseAppearance) gets the dark theme without
+		// asking, when one is registered.
+		if widget.PaletteFor(app).Dark {
+			if t := LookupTheme("dark"); t != nil {
+				return t
+			}
+		}
 	}
 	return CurrentTheme()
 }

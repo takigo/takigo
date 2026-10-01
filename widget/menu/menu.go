@@ -147,10 +147,10 @@ func New(parent widget.Caregiver, name string, opts ...MenuOption) *Menu {
 	m.Relief = option.ReliefRaised
 
 	// Default active colors.
-	if abg, err := app.ColorCache().Get("#3399ff"); err == nil {
+	if abg, err := app.ColorCache().Get(widget.PaletteFor(app).SelectBackground); err == nil {
 		m.ActiveBg = abg.Ref()
 	}
-	if afg, err := app.ColorCache().Get("#ffffff"); err == nil {
+	if afg, err := app.ColorCache().Get(widget.PaletteFor(app).SelectForeground); err == nil {
 		m.ActiveFg = afg.Ref()
 	}
 
@@ -803,7 +803,7 @@ func (m *Menu) displaySingleColumn(d platform.DisplayServer, gc platform.GCID, d
 
 		var fgCol *color.ColorRef
 		if e.State == widget.StateDisabled {
-			if dfg, err := m.App.ColorCache().Get(widget.DefDisabledForeground); err == nil {
+			if dfg, err := m.App.ColorCache().Get(widget.PaletteFor(m.App).DisabledForeground); err == nil {
 				fgCol = dfg.Ref()
 			}
 		} else if isActive && m.ActiveFg != nil {

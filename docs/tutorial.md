@@ -2321,6 +2321,12 @@ a running application, and re-theme the widgets it already has, use
 and `ttk.UseSystemTheme(app, "clam", "dark")` picks between the two by the
 desktop's light/dark preference (`app.Appearance()`).
 
+For the whole application, classic widgets included, pass
+`takigo.UseAppearance(appearance.Dark)` or `takigo.FollowSystemAppearance()`
+to `NewApp`: classic widgets then start from dark default colours and themed
+widgets use `dark` on their own. The choice is made once, when the App is
+created.
+
 Changing the theme while widgets exist is possible, but existing widgets have
 to be told: call `w.RefreshTheme()` and then `w.Display()` on each (the
 `ttkbut` demo does this for a theme-switcher row).

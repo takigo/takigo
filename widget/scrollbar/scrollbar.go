@@ -102,7 +102,7 @@ func New(parent widget.Caregiver, name string, opts ...ScrollbarOption) *Scrollb
 	s.Relief = option.ReliefSunken
 
 	// Trough color.
-	if tc, err := app.ColorCache().Get("#c3c3c3"); err == nil {
+	if tc, err := app.ColorCache().Get(widget.PaletteFor(app).TroughColor); err == nil {
 		s.TroughColor = tc.Ref()
 	}
 
@@ -214,7 +214,7 @@ func (s *Scrollbar) display() {
 		uint(max(0, w.Width-2*inset)), uint(max(0, w.Height-2*inset)))
 
 	activeBorder := s.Border
-	if ac, err := s.App.ColorCache().Get(widget.DefActiveBackground); err == nil {
+	if ac, err := s.App.ColorCache().Get(widget.PaletteFor(s.App).ActiveBackground); err == nil {
 		activeBorder = draw.NewBorder(ac.Red, ac.Green, ac.Blue)
 	}
 	borderFor := func(r region) *draw.Border {

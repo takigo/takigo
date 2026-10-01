@@ -132,17 +132,17 @@ func New(parent widget.Caregiver, name string, opts ...SpinboxOption) *Spinbox {
 	s.HighlightWidth = 1
 
 	// Default colors.
-	if bg, err := app.ColorCache().Get("#ffffff"); err == nil {
+	if bg, err := app.ColorCache().Get(widget.PaletteFor(app).FieldBackground); err == nil {
 		s.Background = bg
 		s.UpdateBorder()
 	}
-	if sel, err := app.ColorCache().Get("#3399ff"); err == nil {
+	if sel, err := app.ColorCache().Get(widget.PaletteFor(app).SelectBackground); err == nil {
 		s.SelBg = sel.Ref()
 	}
-	if selfg, err := app.ColorCache().Get("#ffffff"); err == nil {
+	if selfg, err := app.ColorCache().Get(widget.PaletteFor(app).SelectForeground); err == nil {
 		s.SelFg = selfg.Ref()
 	}
-	if ins, err := app.ColorCache().Get("#000000"); err == nil {
+	if ins, err := app.ColorCache().Get(widget.PaletteFor(app).InsertBackground); err == nil {
 		s.InsertBg = ins.Ref()
 	}
 
@@ -605,6 +605,9 @@ func (s *Spinbox) drawButtons(d platform.DisplayServer, gc platform.GCID) {
 	w := s.Win
 	startx, in, height := s.buttonBox()
 	bb := draw.NewBorderFromPixel(0xd9d9d9)
+	if c, err := s.App.ColorCache().Get(widget.PaletteFor(s.App).Background); err == nil {
+		bb = draw.NewBorderFromPixel(c.Pixel)
+	}
 	if s.ButtonBg != nil {
 		bb = draw.NewBorderFromPixel(s.ButtonBg.Pixel)
 	}

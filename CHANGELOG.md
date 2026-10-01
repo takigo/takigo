@@ -77,6 +77,11 @@ below are breaking unless marked otherwise; each lists what to change.
   `ttk/darktheme` adds a dark theme; `appearance.System()` /
   `App.Appearance()` report the desktop's light/dark preference and
   `ttk.UseSystemTheme` follows it.
+- `takigo.UseAppearance(appearance.Dark)` and
+  `takigo.FollowSystemAppearance()` give an App a dark look: classic widgets
+  start from `widget.DarkPalette` and themed widgets use the `dark` theme
+  when it is imported. A widget reads its palette when created, so this is
+  chosen at start-up, not switched at run time.
 - `WmInfo.SetIconPhoto` / `toplevel.IconPhoto` set the window icon.
 - `systray.Notify` shows a desktop notification.
 - `App.RunContext(ctx)`; `dialog.WithContext(ctx, parent)` cancels a modal
