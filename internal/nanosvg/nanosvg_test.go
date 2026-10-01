@@ -30,7 +30,7 @@ func TestRasterizeMatchesTk(t *testing.T) {
 		img, _ := Parse(string(src))
 		w, h := Size(img, tc.scale)
 		px := Rasterize(img, tc.scale, w, h)
-		lines := strings.Split(strings.TrimSpace(string(want)), "\n")
+		lines := strings.Split(strings.TrimSpace(strings.ReplaceAll(string(want), "\r\n", "\n")), "\n")
 		if got := fmt.Sprintf("%d %d", w, h); got != lines[0] {
 			t.Fatalf("%s: size %s, want %s", tc.svg, got, lines[0])
 		}
