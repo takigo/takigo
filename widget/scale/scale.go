@@ -554,32 +554,25 @@ func bindScale(s *Scale, app widget.AppContext) {
 	})
 
 	// Button press.
+	var wheel event.WheelAccumulator
+	app.Dispatcher().Bind(w.PlatformID, event.MouseWheelMask, func(ev *event.Event) {
+		if ev.Type != event.MouseWheelType {
+			return
+		}
+		step := s.Resolution
+		if step <= 0 {
+			step = 1
+		}
+		if s.From > s.To {
+			step = -step
+		}
+		// Wheel up moves towards -to, as buttons 4 and 5 did.
+		if n := wheel.Units(ev.Delta, 1); n != 0 {
+			s.Set(s.Value - float64(n)*step)
+		}
+	})
+
 	app.Dispatcher().Bind(w.PlatformID, event.ButtonPressMask, func(ev *event.Event) {
-		// Mouse wheel: Button 4 (up/left) and Button 5 (down/right).
-		if ev.Button == 4 {
-			step := s.Resolution
-			if step <= 0 {
-				step = 1
-			}
-			inc := step
-			if s.From > s.To {
-				inc = -step
-			}
-			s.Set(s.Value + inc)
-			return
-		}
-		if ev.Button == 5 {
-			step := s.Resolution
-			if step <= 0 {
-				step = 1
-			}
-			inc := step
-			if s.From > s.To {
-				inc = -step
-			}
-			s.Set(s.Value - inc)
-			return
-		}
 		if ev.Button != 1 {
 			return
 		}

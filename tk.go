@@ -134,7 +134,7 @@ func NewApp(opts ...AppOption) (*App, error) {
 				ev.Type = 0
 			}
 		case event.KeyPressType, event.KeyReleaseType, event.ButtonPressType, event.ButtonReleaseType,
-			event.MotionType, event.EnterType, event.LeaveType:
+			event.MotionType, event.EnterType, event.LeaveType, event.MouseWheelType:
 			// Keys go to the focus window (TkFocusKeyEvent), and leaving
 			// a toplevel can end an implicit focus.
 			if app.focusMgr != nil && (ev.Type == event.KeyPressType || ev.Type == event.KeyReleaseType || ev.Type == event.LeaveType) {

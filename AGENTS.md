@@ -229,7 +229,12 @@ package maps: several Apps may run at once on different goroutines
   for other events (Expose, Configure, Destroy, Focus…) run before any
   binding, like Tk's C event handlers. A widget that needs events for
   every window uses `Dispatcher().BindGlobalFor(w.PlatformID, …)`, which
-  goes away with the widget (`BindGlobal` handlers live forever). Test
+  goes away with the widget (`BindGlobal` handlers live forever). The
+  wheel arrives as `event.MouseWheelType` (bind with `MouseWheelMask`,
+  pattern `<MouseWheel>`) with `ev.Delta` at 120 per notch, positive up, and
+  `ShiftMask` for a horizontal wheel, as in Tk 9; buttons 4-7 never arrive
+  as button events. Turn deltas into scroll units with an
+  `event.WheelAccumulator` so high-resolution wheels add up. Test
   "accelerator" modifiers as `ControlMask|platform.CommandMask`: Mod2 is
   Command on macOS but NumLock on X11 and Windows.
 

@@ -33,6 +33,10 @@ type ButtonEvent struct {
 	State        uint
 	Button       uint
 	Time         Timestamp
+	// WheelDelta is set by backends that report wheel motion with its real
+	// size (Windows): positive is up or left, 120 per notch. When it is 0,
+	// a press of button 4-7 is one notch.
+	WheelDelta int
 }
 
 // MotionEvent holds parsed motion event data.
