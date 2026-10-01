@@ -4,6 +4,7 @@
 package x11
 
 import (
+	"encoding/binary"
 	"sync"
 
 	"github.com/msorc/takigo/cursor"
@@ -429,6 +430,31 @@ var shapeToX11Cursor = [...]uint{
 	12: 150, // Watch → XC_watch
 	13: 152, // XTerm → XC_xterm
 	14: 14,  // BottomRightCorner → XC_bottom_right_corner
+}
+
+// SetWindowIcons sets _NET_WM_ICON: for each image its width, its height
+// and its pixels as ARGB CARDINALs (EWMH), the form tkUnixWm.c's
+// WmIconphotoCmd builds.
+func (s *X11Display) SetWindowIcons(w platform.WindowID, icons []platform.IconImage) {
+	prop := s.dpy.InternAtom("_NET_WM_ICON", false)
+	if len(icons) == 0 {
+		s.dpy.DeleteProperty(xlib.Window(w), prop)
+		return
+	}
+	var data []byte
+	for _, ic := range icons {
+		if ic.Width <= 0 || ic.Height <= 0 || len(ic.Pix) < 4*ic.Width*ic.Height {
+			continue
+		}
+		data = binary.NativeEndian.AppendUint32(data, uint32(ic.Width))
+		data = binary.NativeEndian.AppendUint32(data, uint32(ic.Height))
+		for i := 0; i < 4*ic.Width*ic.Height; i += 4 {
+			r, g, b, a := uint32(ic.Pix[i]), uint32(ic.Pix[i+1]), uint32(ic.Pix[i+2]), uint32(ic.Pix[i+3])
+			data = binary.NativeEndian.AppendUint32(data, a<<24|r<<16|g<<8|b)
+		}
+	}
+	cardinal := s.dpy.InternAtom("CARDINAL", false)
+	s.dpy.ChangeProperty(xlib.Window(w), prop, cardinal, 32, platform.PropModeReplace, data, len(data)/4)
 }
 
 func (s *X11Display) SetCursorShape(w platform.WindowID, shape cursor.Shape) {

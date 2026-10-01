@@ -34,6 +34,8 @@ var (
 	procDispatchMessageW   = user32.NewProc("DispatchMessageW")
 	procPostMessageW       = user32.NewProc("PostMessageW")
 	procSendMessageW       = user32.NewProc("SendMessageW")
+	procCreateIcon         = user32.NewProc("CreateIcon")
+	procDestroyIcon        = user32.NewProc("DestroyIcon")
 	procPostQuitMessage    = user32.NewProc("PostQuitMessage")
 	procSetCapture         = user32.NewProc("SetCapture")
 	procReleaseCapture     = user32.NewProc("ReleaseCapture")
@@ -205,6 +207,20 @@ func PostMessage(hwnd HWND, msg uint32, wParam WPARAM, lParam LPARAM) bool {
 func SendMessage(hwnd HWND, msg uint32, wParam WPARAM, lParam LPARAM) LRESULT {
 	r, _, _ := procSendMessageW.Call(uintptr(hwnd), uintptr(msg), uintptr(wParam), uintptr(lParam))
 	return LRESULT(r)
+}
+
+// CreateIcon creates an icon from an AND mask (1 bit per pixel) and XOR
+// colour bits; both have rows padded to 16 bits and run top to bottom.
+func CreateIcon(inst HINSTANCE, width, height int32, planes, bitsPixel uint8, andBits, xorBits *byte) HICON {
+	r, _, _ := procCreateIcon.Call(uintptr(inst), uintptr(width), uintptr(height),
+		uintptr(planes), uintptr(bitsPixel),
+		uintptr(unsafe.Pointer(andBits)), uintptr(unsafe.Pointer(xorBits)))
+	return HICON(r)
+}
+
+func DestroyIcon(icon HICON) bool {
+	r, _, _ := procDestroyIcon.Call(uintptr(icon))
+	return r != 0
 }
 
 func PostQuitMessage(exitCode int32) {

@@ -4,6 +4,7 @@ package toplevel
 
 import (
 	"fmt"
+	"image"
 
 	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/event"
@@ -39,6 +40,12 @@ func IconName(s string) ToplevelOption {
 // Background sets the background color.
 func Background[C color.Spec](name C) ToplevelOption {
 	return func(t *Toplevel) { t.SetBackgroundColor(name) }
+}
+
+// IconPhoto sets the window's icon from one or more sizes of the same
+// picture (Tk's "wm iconphoto").
+func IconPhoto(imgs ...image.Image) ToplevelOption {
+	return func(t *Toplevel) { t.WmInfo.SetIconPhoto(imgs...) }
 }
 
 // Geometry sets the geometry string (e.g. "400x300+100+100").
