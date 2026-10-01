@@ -2,6 +2,7 @@ package canvas
 
 import (
 	"fmt"
+	"iter"
 	"slices"
 
 	"github.com/msorc/takigo/color"
@@ -802,8 +803,20 @@ func (c *Canvas) SetItemCoords[S Selector](sel S, coords []float64) error {
 	return err
 }
 
-// FindWithTag returns item IDs matching a tag-or-ID string.
-// Supports: numeric IDs, "all", "current", and tag name strings.
+// Items iterates over the IDs of the items sel selects, in display order.
+// It works on a snapshot, so items may be deleted during the iteration.
+func (c *Canvas) Items[S Selector](sel S) iter.Seq[ItemID] {
+	entries := c.resolve(selectorString(sel))
+	return func(yield func(ItemID) bool) {
+		for _, e := range entries {
+			if !yield(e.id) {
+				return
+			}
+		}
+	}
+}
+
+// FindWithTag returns the IDs of the items sel selects, in display order.
 func (c *Canvas) FindWithTag[S Selector](sel S) []ItemID {
 	tagOrID := selectorString(sel)
 	entries := c.resolve(tagOrID)

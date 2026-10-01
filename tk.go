@@ -283,6 +283,18 @@ func (a *App) Run() {
 	a.Destroy()
 }
 
+// RunContext is Run that also quits when ctx is done. It returns nil when
+// the application quit by itself and the context's cause otherwise.
+func (a *App) RunContext(ctx context.Context) error {
+	stop := context.AfterFunc(ctx, a.Quit)
+	defer stop()
+	a.Run()
+	if ctx.Err() != nil {
+		return context.Cause(ctx)
+	}
+	return nil
+}
+
 // MainLoop maps the root window and runs the event loop.
 // It blocks until Quit is called.
 func (a *App) MainLoop() {
