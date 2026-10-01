@@ -312,6 +312,14 @@ package maps: several Apps may run at once on different goroutines
   `DISPLAY` nor `WAYLAND_DISPLAY` is set. It also holds
   `internal/displaylock` for the test: `go test ./...` runs the packages'
   binaries in parallel on one screen, where their windows overlap.
+- On a real desktop (not xvfb-run) a window manager places windows where it
+  likes and may map them behind the user's own. Display tests that count X
+  errors, open several generations of Apps, or aim at window positions call
+  `testutil.Settle()` between generations (a real server hands the next
+  connection the same resource IDs while the window manager still acts on
+  the old windows) and measure positions instead of assuming them
+  (`rootOrigin`/`uncoveredPoint` in `dnd_test.go`); a test that would have to
+  send events over foreign windows skips instead.
 - Prefer table-driven tests for pure logic (`geometry/grid/grid_test.go`,
   `geometry/pack/pack_test.go`, `canvas/geometry_test.go`, `screenunit/screenunit_test.go`,
   `wm/wm_test.go`, `bind/{table,pattern}_test.go`).
