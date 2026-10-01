@@ -269,7 +269,7 @@ func (tw *TearoffWindow) display() {
 
 		var fgCol *color.ColorRef
 		if e.State == widget.StateDisabled {
-			if dfg, err := tw.app.ColorCache().Get(widget.DefDisabledForeground); err == nil {
+			if dfg, err := tw.app.ColorCache().Get(widget.PaletteFor(tw.app).DisabledForeground); err == nil {
 				fgCol = dfg.Ref()
 			}
 		} else if isActive && tw.activeFg != nil {
@@ -277,7 +277,7 @@ func (tw *TearoffWindow) display() {
 		} else if tw.fg != nil {
 			fgCol = tw.fg
 		} else {
-			if col, err := tw.app.ColorCache().Get("#000000"); err == nil {
+			if col, err := tw.app.ColorCache().Get(widget.PaletteFor(tw.app).Foreground); err == nil {
 				fgCol = col.Ref()
 			}
 		}

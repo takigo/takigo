@@ -129,7 +129,7 @@ func newTextItem(x, y float64, c *Canvas) *TextItem {
 		y:      y,
 		anchor: option.AnchorCenter,
 	}
-	item.color = &color.ColorRef{Pixel: 0x000000}
+	item.color = c.defaultInk()
 	item.ItemBase.canvas = c
 
 	// Use default font.

@@ -132,16 +132,16 @@ func New(parent widget.Caregiver, name string, opts ...ListboxOption) *Listbox {
 	lb.HighlightWidth = 1
 
 	// White background for listbox.
-	if bg, err := app.ColorCache().Get("#ffffff"); err == nil {
+	if bg, err := app.ColorCache().Get(widget.PaletteFor(app).FieldBackground); err == nil {
 		lb.Background = bg
 		lb.UpdateBorder()
 	}
 
 	// Selection colors.
-	if sel, err := app.ColorCache().Get("#3399ff"); err == nil {
+	if sel, err := app.ColorCache().Get(widget.PaletteFor(app).SelectBackground); err == nil {
 		lb.SelBg = sel.Ref()
 	}
-	if selfg, err := app.ColorCache().Get("#ffffff"); err == nil {
+	if selfg, err := app.ColorCache().Get(widget.PaletteFor(app).SelectForeground); err == nil {
 		lb.SelFg = selfg.Ref()
 	}
 

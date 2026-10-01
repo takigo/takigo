@@ -91,6 +91,15 @@ func NewApp(opts ...AppOption) (*App, error) {
 	d.DoWhenIdle = loop.DoWhenIdle
 
 	colors := color.NewCache(d.Screen)
+	if cfg.followSystem {
+		cfg.appearance = appearance.System()
+	}
+	if cfg.appearance == appearance.Dark {
+		widget.SetPalette(root, widget.DarkPalette)
+		if bg, err := colors.Get(widget.DarkPalette.Background); err == nil {
+			root.SetBackgroundPixel(bg.Pixel)
+		}
+	}
 	fontReg := font.NewRegistry(fontOpener)
 
 	bindEng := bind.NewEngine(d)
@@ -518,6 +527,23 @@ type appConfig struct {
 	iconName    string
 	logger      *slog.Logger
 	classic     bool
+
+	appearance   appearance.Mode
+	followSystem bool
+}
+
+// UseAppearance gives the App a light or a dark look: the classic widgets
+// start with the matching default colours (widget.DarkPalette) and themed
+// widgets use the "dark" theme when it is registered (import
+// ttk/darktheme). The default is light, which is Tk's look.
+func UseAppearance(mode appearance.Mode) AppOption {
+	return func(c *appConfig) { c.appearance, c.followSystem = mode, false }
+}
+
+// FollowSystemAppearance is UseAppearance with the desktop's current
+// preference (appearance.System), read once when the App is created.
+func FollowSystemAppearance() AppOption {
+	return func(c *appConfig) { c.followSystem = true }
 }
 
 // Classic makes the App draw and behave exactly as Tk does, giving up the

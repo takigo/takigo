@@ -24,8 +24,8 @@ func newRectOvalItem(typeName string, x1, y1, x2, y2 float64, c *Canvas) *RectOv
 		coords:       [4]float64{x1, y1, x2, y2},
 		outlineWidth: 1,
 	}
-	// Default outline is black.
-	item.outline = &color.ColorRef{Pixel: 0x000000}
+	// Default outline is the foreground colour (black in Tk).
+	item.outline = c.defaultInk()
 	item.ItemBase.canvas = c
 	item.updateBBox()
 	return item

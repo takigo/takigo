@@ -27,7 +27,7 @@ func newPolygonItem(coords []float64, c *Canvas) *PolygonItem {
 	}
 	// Tk 9 defaults (tkCanvPoly.c): no -fill, -outline DEF_CANVITEM_OUTLINE
 	// (black on unix).
-	item.outline = &color.ColorRef{Pixel: 0x000000}
+	item.outline = c.defaultInk()
 	item.ItemBase.canvas = c
 	item.updateBBox()
 	return item

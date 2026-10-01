@@ -36,7 +36,7 @@ func newLineItem(coords []float64, c *Canvas) *LineItem {
 		splineSteps: 12,
 	}
 	// Default color is black.
-	item.color = &color.ColorRef{Pixel: 0x000000}
+	item.color = c.defaultInk()
 	item.ItemBase.canvas = c
 	item.updateBBox()
 	return item

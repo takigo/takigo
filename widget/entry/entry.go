@@ -164,21 +164,21 @@ func New(parent widget.Caregiver, name string, opts ...EntryOption) *Entry {
 	e.HighlightWidth = 1
 
 	// Default colors.
-	if bg, err := app.ColorCache().Get("#ffffff"); err == nil {
+	if bg, err := app.ColorCache().Get(widget.PaletteFor(app).FieldBackground); err == nil {
 		e.Background = bg
 		e.UpdateBorder()
 	}
 
-	if sel, err := app.ColorCache().Get("#3399ff"); err == nil {
+	if sel, err := app.ColorCache().Get(widget.PaletteFor(app).SelectBackground); err == nil {
 		e.SelBg = sel.Ref()
 	}
-	if selfg, err := app.ColorCache().Get("#ffffff"); err == nil {
+	if selfg, err := app.ColorCache().Get(widget.PaletteFor(app).SelectForeground); err == nil {
 		e.SelFg = selfg.Ref()
 	}
-	if ins, err := app.ColorCache().Get("#000000"); err == nil {
+	if ins, err := app.ColorCache().Get(widget.PaletteFor(app).InsertBackground); err == nil {
 		e.InsertBg = ins.Ref()
 	}
-	if phfg, err := app.ColorCache().Get("#a3a3a3"); err == nil {
+	if phfg, err := app.ColorCache().Get(widget.PaletteFor(app).DisabledForeground); err == nil {
 		e.PlaceholderFg = phfg.Ref()
 	}
 

@@ -220,20 +220,20 @@ func New(parent widget.Caregiver, name string, opts ...CheckbuttonOption) *Check
 	c.HighlightWidth = 1
 
 	// Active colors.
-	if ac, err := app.ColorCache().Get(widget.DefActiveBackground); err == nil {
+	if ac, err := app.ColorCache().Get(widget.PaletteFor(app).ActiveBackground); err == nil {
 		c.ActiveBackground = ac.Ref()
 	}
-	if af, err := app.ColorCache().Get(widget.DefActiveForeground); err == nil {
+	if af, err := app.ColorCache().Get(widget.PaletteFor(app).ActiveForeground); err == nil {
 		c.ActiveForeground = af.Ref()
 	}
 
 	// Disabled foreground.
-	if df, err := app.ColorCache().Get(widget.DefDisabledForeground); err == nil {
+	if df, err := app.ColorCache().Get(widget.PaletteFor(app).DisabledForeground); err == nil {
 		c.DisabledFg = df.Ref()
 	}
 
 	// Select color (indicator fill when checked).
-	if sc, err := app.ColorCache().Get(widget.DefSelectColor); err == nil {
+	if sc, err := app.ColorCache().Get(widget.PaletteFor(app).SelectColor); err == nil {
 		c.SelectColor = sc.Ref()
 	}
 

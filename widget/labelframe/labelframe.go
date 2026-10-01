@@ -351,8 +351,7 @@ func (lf *Labelframe) display() {
 				fgPixel := lf.Foreground.Pixel
 				fgR, fgG, fgB := lf.Foreground.Red, lf.Foreground.Green, lf.Foreground.Blue
 				if lf.Disabled {
-					fgPixel = 0xa3a3a3
-					fgR, fgG, fgB = 0xa300, 0xa300, 0xa300
+					fgPixel, fgR, fgG, fgB = widget.DisabledColor(lf.App)
 				}
 				df.DrawString(w.Drawable(), textX+labelSpacing, baseline, lf.Text,
 					fgPixel, fgR, fgG, fgB)

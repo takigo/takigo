@@ -278,10 +278,11 @@ func InitBase(b *Base, win *window.Window, app AppContext) {
 
 	// Get default colors.
 	cache := app.ColorCache()
-	b.Background, _ = cache.Get(DefBackground)
-	b.Foreground, _ = cache.Get(DefForeground)
-	b.HighlightBackground, _ = cache.Get(DefHighlightBg)
-	b.HighlightColor, _ = cache.Get(DefHighlightColor)
+	p := PaletteFor(app)
+	b.Background, _ = cache.Get(p.Background)
+	b.Foreground, _ = cache.Get(p.Foreground)
+	b.HighlightBackground, _ = cache.Get(p.HighlightBackground)
+	b.HighlightColor, _ = cache.Get(p.HighlightColor)
 	b.UpdateBorder()
 
 	// Get default font.

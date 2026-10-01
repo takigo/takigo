@@ -421,7 +421,7 @@ lookup.
 | Add a unit test for pure logic | table-driven `*_test.go` next to the source, no display required |
 | Add an integration test needing X | import `internal/testutil` and call `testutil.NewTestApp(t)` (registers `t.Cleanup`) |
 | Understand a Tk semantic | grep `tk/library/<file>.tcl` and the relevant `tk/generic/<file>.c` (vendored, gitignored) |
-| Adjust default widget colour/font | `widget/defaults.go` (mirrors `tk/unix/tkUnixDefault.h`) |
+| Adjust default widget colour/font | `widget/palette.go` (`LightPalette` mirrors `tk/unix/tkUnixDefault.h`; read defaults with `widget.PaletteFor(app)`, never a literal) |
 | Add a binding tag | `bind/table.go` (`BindingTable`) + `bind/pattern.go` (Tk pattern syntax) |
 | Adjust DPI / unit conversion | `screenunit/screenunit.go` (Tk's `tkCmds.c:1316` ScalingCmd) |
 
