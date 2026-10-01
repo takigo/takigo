@@ -721,12 +721,36 @@ func Rasterize(img *Image, scale float32, w, h int) []uint8 {
 // pixels Rasterize gives for that window, which a repaint of part of a
 // picture relies on.
 func RasterizeRegion(img *Image, scale float32, w, h, x, y, rw, rh int) []uint8 {
+	return new(Rasterizer).Region(img, scale, w, h, x, y, rw, rh)
+}
+
+// Rasterizer is RasterizeRegion with its buffers kept between calls, for
+// rasterizing many images in a row.
+type Rasterizer struct {
+	r     rasterizer
+	cache cachedPaint
+}
+
+// Region is RasterizeRegion. The pixels it returns are only valid until
+// the next call.
+func (z *Rasterizer) Region(img *Image, scale float32, w, h, x, y, rw, rh int) []uint8 {
 	x, y = max(x, 0), max(y, 0)
 	rw, rh = max(min(rw, w-x), 0), max(min(rh, h-y), 0)
-	r := &rasterizer{width: w, height: h, stride: rw * 4,
-		bitmap: make([]uint8, rw*rh*4), scanline: make([]uint8, w),
-		ox: x, oy: y, bw: rw, bh: rh}
-	var cache cachedPaint
+	r := &z.r
+	r.width, r.height, r.stride = w, h, rw*4
+	r.ox, r.oy, r.bw, r.bh = x, y, rw, rh
+	if n := rw * rh * 4; cap(r.bitmap) < n {
+		r.bitmap = make([]uint8, n)
+	} else {
+		r.bitmap = r.bitmap[:n]
+		clear(r.bitmap)
+	}
+	if cap(r.scanline) < w {
+		r.scanline = make([]uint8, w)
+	} else {
+		r.scanline = r.scanline[:w]
+	}
+	cache := &z.cache
 	run := func(evenOdd bool, p *paint, opacity float32) {
 		for i := range r.edges {
 			e := &r.edges[i]
@@ -734,8 +758,8 @@ func RasterizeRegion(img *Image, scale float32, w, h, x, y, rw, rh int) []uint8 
 			e.y1 *= subsamples
 		}
 		sort.SliceStable(r.edges, func(i, j int) bool { return r.edges[i].y0 < r.edges[j].y0 })
-		initPaint(&cache, p, opacity)
-		r.rasterizeSortedEdges(0, 0, scale, &cache, evenOdd)
+		initPaint(cache, p, opacity)
+		r.rasterizeSortedEdges(0, 0, scale, cache, evenOdd)
 	}
 	for _, s := range img.shapes {
 		if s.fill.typ != paintNone {

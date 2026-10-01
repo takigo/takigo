@@ -193,6 +193,58 @@ func destroyWindowDepth(w *Window, depth int) {
 	}
 }
 
+// TopLevelSpec describes a window created directly under the root X window:
+// a toplevel, a menu or a torn-off menu.
+type TopLevelSpec struct {
+	X, Y, Width, Height int
+	BorderWidth         uint
+	OverrideRedirect    bool // bypass the window manager (menus)
+	EventMask           int64
+	Flags               int
+}
+
+// NewTopLevelWindow creates a window under the root X window, with its GC,
+// and adds it to parent's children under name. As in Tk, the widget
+// hierarchy is not the X hierarchy for these windows.
+func NewTopLevelWindow(parent *Window, name string, spec TopLevelSpec) *Window {
+	d := parent.Display
+	w := &Window{
+		Display:         d,
+		Parent:          parent,
+		Name:            name,
+		PathName:        BuildPathName(parent, name),
+		X:               spec.X,
+		Y:               spec.Y,
+		Width:           spec.Width,
+		Height:          spec.Height,
+		ReqWidth:        spec.Width,
+		ReqHeight:       spec.Height,
+		Depth:           d.Depth,
+		BackgroundPixel: d.WhitePixel,
+		Flags:           spec.Flags,
+	}
+	mask := uint64(platform.CWBackPixel | platform.CWBorderPixel | platform.CWEventMask)
+	if spec.OverrideRedirect {
+		mask |= platform.CWOverrideRedirect
+	}
+	w.PlatformID = d.Server.CreateWindow(d.RootWindow,
+		spec.X, spec.Y, uint(spec.Width), uint(spec.Height), spec.BorderWidth,
+		d.Depth, platform.InputOutput, mask,
+		&platform.WindowAttrs{
+			BackgroundPixel:  w.BackgroundPixel,
+			BorderPixel:      d.BlackPixel,
+			OverrideRedirect: spec.OverrideRedirect,
+			EventMask:        spec.EventMask,
+		})
+	d.RegisterWindow(w.PlatformID, w)
+	w.GC = d.Server.CreateGC(w.Drawable(), platform.GCForeground|platform.GCBackground, &platform.GCValues{
+		Foreground: d.BlackPixel,
+		Background: d.WhitePixel,
+	})
+	parent.AddChild(w)
+	return w
+}
+
 func uniqueChildName(parent *Window, name string) string {
 	taken := func(n string) bool {
 		for _, c := range parent.Children {

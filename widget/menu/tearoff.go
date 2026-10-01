@@ -71,9 +71,13 @@ func (m *Menu) Detach() {
 	posX := max(m.Win.X, 0)
 	posY := max(m.Win.Y, 0)
 
-	attrs := &platform.WindowAttrs{
-		BackgroundPixel: d.WhitePixel,
-		BorderPixel:     d.BlackPixel,
+	w := window.NewTopLevelWindow(m.Win.Parent, m.Win.Name+"_tearoff", window.TopLevelSpec{
+		X:           posX,
+		Y:           posY,
+		Width:       menuW,
+		Height:      totalH,
+		BorderWidth: 1,
+		Flags:       window.FlagTopLevel,
 		EventMask: int64(
 			platform.ButtonPressMask |
 				platform.ButtonReleaseMask |
@@ -82,36 +86,8 @@ func (m *Menu) Detach() {
 				platform.LeaveWindowMask |
 				platform.ExposureMask |
 				platform.StructureNotifyMask),
-	}
-
-	xwin := d.Server.CreateWindow(
-		d.RootWindow,
-		posX, posY, uint(menuW), uint(totalH), 1,
-		d.Depth, platform.InputOutput,
-		platform.CWBackPixel|platform.CWBorderPixel|platform.CWEventMask,
-		attrs,
-	)
-
-	w := &window.Window{
-		PlatformID:      xwin,
-		Display:         d,
-		Parent:          m.Win.Parent,
-		Name:            m.Win.Name + "_tearoff",
-		PathName:        m.Win.PathName + "_tearoff",
-		Width:           menuW,
-		Height:          totalH,
-		ReqWidth:        menuW,
-		ReqHeight:       totalH,
-		Depth:           d.Depth,
-		BackgroundPixel: d.WhitePixel,
-		Flags:           window.FlagTopLevel,
-	}
-	w.GC = d.Server.CreateGC(w.Drawable(), platform.GCForeground|platform.GCBackground, &platform.GCValues{
-		Foreground: d.BlackPixel,
-		Background: d.WhitePixel,
 	})
-	d.RegisterWindow(xwin, w)
-	m.Win.Parent.AddChild(w)
+	xwin := w.PlatformID
 
 	// Set window title.
 	d.Server.StoreName(xwin, "Menu")
