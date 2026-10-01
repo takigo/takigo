@@ -121,6 +121,7 @@ func NewLabel(parent widget.Caregiver, name string, opts ...LabelOption) *Label 
 	// 1. Create the widget and init TTK base with a temporary layout.
 	// 2. Register the label element factory with this widget, re-create layout.
 	InitTtkWidget(&l.TtkWidget, win, app, "TLabel")
+	l.reconfigure = func() { _ = l.Configure() }
 
 	// Register a label element factory bound to this specific widget.
 	if l.Theme != nil {

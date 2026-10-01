@@ -96,6 +96,7 @@ func NewLabelframe(parent widget.Caregiver, name string, opts ...LabelframeOptio
 	lf.Font, _ = app.FontRegistry().Get(font.TkDefaultFont)
 	lf.DisplayFunc = lf.Display
 	InitTtkWidget(&lf.TtkWidget, win, app, "TLabelframe")
+	lf.reconfigure = func() { _ = lf.Configure() }
 	for _, opt := range opts {
 		opt(lf)
 	}

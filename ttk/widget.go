@@ -41,6 +41,11 @@ type TtkWidget struct {
 	// before its style, so this is a child style layered over the real one.
 	widgetOpts *Style
 
+	// reconfigure re-runs the concrete widget's Configure with no options,
+	// which recomputes its size and redisplays it; set by widgets that
+	// have one.
+	reconfigure func()
+
 	// DisplayFunc is the concrete widget's Display method.
 	// Set by widgets with custom Display (notebook, scrollbar, etc.)
 	// so ChangeState calls the right method.
@@ -66,7 +71,8 @@ func initTtkBase(w *TtkWidget, win *window.Window, app widget.AppContext, styleN
 	w.Win = win
 	w.App = app
 	w.StyleName = styleName
-	w.Theme = CurrentTheme()
+	w.Theme = ThemeFor(app)
+	win.SetValue(ttkWidgetKey, w)
 	if win.Class == "" {
 		win.Class = classForStyle(styleName)
 	}
@@ -225,7 +231,7 @@ func (w *TtkWidget) ChangeState(set, clear State) {
 // It re-resolves the style, rebuilds the layout, and updates the window background.
 // Callers should call Display() afterwards (the concrete widget's Display, not TtkWidget's).
 func (w *TtkWidget) RefreshTheme() {
-	theme := CurrentTheme()
+	theme := ThemeFor(w.App)
 	if theme == nil {
 		return
 	}

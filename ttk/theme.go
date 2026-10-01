@@ -1,6 +1,8 @@
 package ttk
 
 import (
+	"errors"
+	"fmt"
 	"sort"
 	"strings"
 	"sync"
@@ -8,6 +10,8 @@ import (
 
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/screenunit"
+	"github.com/msorc/takigo/widget"
+	"github.com/msorc/takigo/window"
 )
 
 // Style holds defaults and state maps for a named widget style.
@@ -265,7 +269,62 @@ func SetCurrentTheme(name string) {
 	}
 }
 
-// CurrentTheme returns the active theme.
+var (
+	appThemeKey  = new(window.ValueKey)
+	ttkWidgetKey = new(window.ValueKey)
+)
+
+// ErrUnknownTheme is returned by UseTheme for a name no theme is registered
+// under.
+var ErrUnknownTheme = errors.New("ttk: unknown theme")
+
+// ThemeFor returns the theme app's widgets use: the one chosen with
+// UseTheme, or the process default (CurrentTheme) when none was.
+func ThemeFor(app widget.AppContext) *Theme {
+	if app != nil {
+		if root := app.Window(); root != nil {
+			if t, ok := root.Value(appThemeKey).(*Theme); ok {
+				return t
+			}
+		}
+	}
+	return CurrentTheme()
+}
+
+// UseTheme makes the named theme the one app's themed widgets use and
+// re-themes the existing ones, like Tk's "ttk::style theme use". Other
+// Apps in the process are not affected.
+func UseTheme(app widget.AppContext, name string) error {
+	themesMu.RLock()
+	t, ok := themes[name]
+	themesMu.RUnlock()
+	if !ok {
+		return fmt.Errorf("%w %q", ErrUnknownTheme, name)
+	}
+	root := app.Window()
+	root.SetValue(appThemeKey, t)
+	for win := range root.Descendants() {
+		w, ok := win.Value(ttkWidgetKey).(*TtkWidget)
+		if !ok || w.Destroyed {
+			continue
+		}
+		w.RefreshTheme()
+		if w.reconfigure != nil {
+			w.reconfigure()
+			continue
+		}
+		reqW, reqH := win.ReqWidth, win.ReqHeight
+		w.updateReqFromLayout()
+		if (win.ReqWidth != reqW || win.ReqHeight != reqH) && win.GeomManager != nil {
+			win.GeomManager.RequestProc(win)
+		}
+		w.redisplay()
+	}
+	return nil
+}
+
+// CurrentTheme returns the process-wide default theme, which an App uses
+// until UseTheme gives it its own.
 func CurrentTheme() *Theme {
 	themesMu.RLock()
 	defer themesMu.RUnlock()

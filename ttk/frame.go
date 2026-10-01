@@ -73,6 +73,7 @@ func NewFrame(parent widget.Caregiver, name string, opts ...FrameOption) *Frame 
 
 	f := &Frame{}
 	InitTtkWidget(&f.TtkWidget, win, app, "TFrame")
+	f.reconfigure = func() { _ = f.Configure() }
 
 	for _, opt := range opts {
 		opt(f)

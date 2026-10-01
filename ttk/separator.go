@@ -32,6 +32,7 @@ func NewSeparator(parent widget.Caregiver, name string, opts ...SeparatorOption)
 	}
 
 	InitTtkWidget(&s.TtkWidget, win, app, s.orientStyle())
+	s.reconfigure = func() { _ = s.Configure() }
 	s.requestSize()
 
 	return s

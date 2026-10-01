@@ -151,7 +151,7 @@ Some state is process-wide and shared by all Apps:
 | State | Rule |
 |-------|------|
 | ttk themes (`ttk.RegisterTheme`, `Theme` elements, styles, layouts) | The `Theme` methods are goroutine-safe. A style's `Defaults` and `Maps` are plain maps: fill them in before widgets use the style, or while no other App is running. |
-| Current theme (`ttk.SetCurrentTheme`) | One for the process; other Apps' widgets are not told about a change. |
+| Default theme (`ttk.SetCurrentTheme`) | The process default, used by an App until `ttk.UseTheme(app, name)` gives it its own. `UseTheme` is per App and re-themes that App's widgets; call it on the App's loop goroutine. |
 | `screenunit` DPI | Set by every `NewApp`; the last one wins. Reads and writes are atomic. |
 | libXft | Serialized by `xlib.XftMu`; nothing to do. |
 | X error handler | One for the process; `GetImageRGBA`'s error trap is serialized. |

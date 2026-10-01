@@ -188,6 +188,7 @@ func NewEntry(parent widget.Caregiver, name string, opts ...EntryOption) *Entry 
 	}
 
 	InitTtkWidget(&e.TtkWidget, win, app, "TEntry")
+	e.reconfigure = func() { _ = e.Configure() }
 	win.OnDestroy(e.Destroy)
 	e.DisplayFunc = e.Display
 

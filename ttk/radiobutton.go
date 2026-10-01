@@ -80,6 +80,7 @@ func NewRadiobutton(parent widget.Caregiver, name string, opts ...RadiobuttonOpt
 	r.Variable = widget.NewVariable("")
 
 	InitTtkWidget(&r.TtkWidget, win, app, "TRadiobutton")
+	r.reconfigure = func() { _ = r.Configure() }
 	win.OnDestroy(r.Destroy)
 	r.DisplayFunc = r.Display
 
