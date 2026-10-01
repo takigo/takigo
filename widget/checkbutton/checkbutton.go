@@ -459,12 +459,7 @@ func (c *Checkbutton) display() {
 		imgW := img.Width()
 		imgH := img.Height()
 		imgX, imgY := contentX, contentY
-		if photo, ok := img.(interface {
-			Draw(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID,
-				depth int, imgX, imgY, w, h, dstX, dstY int, bgPixel uint64)
-		}); ok {
-			photo.Draw(d, w.Drawable(), gc, w.Depth, 0, 0, imgW, imgH, imgX, imgY, bgPixel)
-		}
+		img.Draw(d, w.Drawable(), gc, w.Depth, 0, 0, imgW, imgH, imgX, imgY, bgPixel)
 	} else if c.Font != nil && c.Text != "" && fgCol != nil {
 		textX, textY := contentX, contentY
 		m := c.Font.Metrics()
