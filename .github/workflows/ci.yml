@@ -59,7 +59,7 @@ jobs:
           go-version-file: go.mod
       - name: Install X11 development packages
         run: sudo apt-get update && sudo apt-get install -y libx11-dev libxft-dev libfontconfig1-dev
-      - uses: golangci/golangci-lint-action@v8
+      - uses: golangci/golangci-lint-action@v9
         with:
           version: latest
           only-new-issues: true
