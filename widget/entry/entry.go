@@ -140,46 +140,6 @@ func ScrollCommand(fn func(first, last float64)) EntryOption {
 	return func(e *Entry) { e.ScrollCmd = fn }
 }
 
-// --- Ttk-compatible aliases (prefix with Entry) for consistent naming ---
-// These aliases match the naming convention used by ttk widgets (ttk.EntryText, etc.)
-// allowing consistent option naming when both classic and ttk widgets are used.
-
-// EntryText is an alias for Text.
-var EntryText = Text
-
-// EntryPlaceholder is an alias for Placeholder.
-var EntryPlaceholder = Placeholder
-
-// EntryPlaceholderForeground is an alias for PlaceholderForeground.
-var EntryPlaceholderForeground = PlaceholderForeground
-
-// EntryShow is an alias for Show.
-var EntryShow = Show
-
-// EntryBackground is an alias for Background.
-var EntryBackground = Background
-
-// EntryForeground is an alias for Foreground.
-var EntryForeground = Foreground
-
-// EntryFontOpt is an alias for FontOpt.
-var EntryFontOpt = FontOpt
-
-// EntryWidth is an alias for Width.
-var EntryWidth = Width
-
-// EntryValidateOpt is an alias for ValidateOpt.
-var EntryValidateOpt = ValidateOpt
-
-// EntryValidateCmdOpt is an alias for ValidateCmdOpt.
-var EntryValidateCmdOpt = ValidateCmdOpt
-
-// EntryBorderWidth is an alias for BorderWidth.
-var EntryBorderWidth = BorderWidth
-
-// EntryScrollCommand is an alias for ScrollCommand.
-var EntryScrollCommand = ScrollCommand
-
 // New creates a new Entry widget.
 func New(parent widget.Caregiver, name string, opts ...EntryOption) *Entry {
 	app := parent.AppContext()

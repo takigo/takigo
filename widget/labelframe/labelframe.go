@@ -96,46 +96,6 @@ func PadY(p any) LabelframeOption {
 	return func(lf *Labelframe) { lf.PadY = screenunit.PxOr(p, lf.PadY) }
 }
 
-// --- Ttk-compatible aliases (prefix with Labelframe) for consistent naming ---
-// These aliases match the naming convention used by ttk widgets
-// allowing consistent option naming when both classic and ttk widgets are used.
-
-// LabelframeText is an alias for Text.
-var LabelframeText = Text
-
-// LabelframeBackground is an alias for Background.
-var LabelframeBackground = Background
-
-// LabelframeBorderWidth is an alias for BorderWidth.
-var LabelframeBorderWidth = BorderWidth
-
-// LabelframeRelief is an alias for Relief.
-var LabelframeRelief = Relief
-
-// LabelframeWidth is an alias for Width.
-var LabelframeWidth = Width
-
-// LabelframeHeight is an alias for Height.
-var LabelframeHeight = Height
-
-// LabelframeFontOpt is an alias for FontOpt.
-var LabelframeFontOpt = FontOpt
-
-// LabelframeLabelAnchor is an alias for LabelAnchor.
-var LabelframeLabelAnchor = LabelAnchor
-
-// LabelframeLabelWidgetOpt is an alias for LabelWidgetOpt.
-var LabelframeLabelWidgetOpt = LabelWidgetOpt
-
-// LabelframePadX is an alias for PadX.
-var LabelframePadX = PadX
-
-// LabelframePadY is an alias for PadY.
-var LabelframePadY = PadY
-
-// LabelframeForeground is an alias for Foreground.
-var LabelframeForeground = Foreground
-
 // New creates a new Labelframe widget.
 func New(parent widget.Caregiver, name string, opts ...LabelframeOption) *Labelframe {
 	app := parent.AppContext()

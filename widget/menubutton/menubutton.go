@@ -80,43 +80,6 @@ func Foreground(name string) MenubuttonOption {
 	return func(mb *Menubutton) { mb.SetForegroundName(name) }
 }
 
-// --- Ttk-compatible aliases (prefix with Menubutton) for consistent naming ---
-// These aliases match the naming convention used by ttk widgets (ttk.MenubuttonText, etc.)
-// allowing consistent option naming when both classic and ttk widgets are used.
-
-// MenubuttonText is an alias for Text.
-var MenubuttonText = Text
-
-// MenubuttonMenuOpt is an alias for MenuOpt.
-var MenubuttonMenuOpt = MenuOpt
-
-// MenubuttonDirectionOpt is an alias for DirectionOpt.
-var MenubuttonDirectionOpt = DirectionOpt
-
-// MenubuttonPadX is an alias for PadX.
-var MenubuttonPadX = PadX
-
-// MenubuttonPadY is an alias for PadY.
-var MenubuttonPadY = PadY
-
-// MenubuttonUnderlineOpt is an alias for UnderlineOpt.
-var MenubuttonUnderlineOpt = UnderlineOpt
-
-// MenubuttonRelief is an alias for Relief.
-var MenubuttonRelief = Relief
-
-// MenubuttonIndicatorOnOpt is an alias for IndicatorOnOpt.
-var MenubuttonIndicatorOnOpt = IndicatorOnOpt
-
-// MenubuttonOptionMenuOpt is an alias for OptionMenuOpt.
-var MenubuttonOptionMenuOpt = OptionMenuOpt
-
-// MenubuttonBackground is an alias for Background.
-var MenubuttonBackground = Background
-
-// MenubuttonForeground is an alias for Foreground.
-var MenubuttonForeground = Foreground
-
 // New creates a new Menubutton widget.
 func New(parent widget.Caregiver, name string, opts ...MenubuttonOption) *Menubutton {
 	app := parent.AppContext()

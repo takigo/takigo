@@ -80,19 +80,6 @@ func CommandOpt(fn func(args ...any)) ScrollbarOption {
 	return func(s *Scrollbar) { s.Command = fn }
 }
 
-// --- Ttk-compatible aliases (prefix with Scrollbar) for consistent naming ---
-// These aliases match the naming convention used by ttk widgets
-// allowing consistent option naming when both classic and ttk widgets are used.
-
-// ScrollbarOrientOpt is an alias for OrientOpt.
-var ScrollbarOrientOpt = OrientOpt
-
-// ScrollbarWidthOpt is an alias for WidthOpt.
-var ScrollbarWidthOpt = WidthOpt
-
-// ScrollbarCommandOpt is an alias for CommandOpt.
-var ScrollbarCommandOpt = CommandOpt
-
 // New creates a new Scrollbar widget.
 func New(parent widget.Caregiver, name string, opts ...ScrollbarOption) *Scrollbar {
 	app := parent.AppContext()

@@ -107,43 +107,6 @@ func Background(name string) SpinboxOption {
 	return func(s *Spinbox) { s.SetBackgroundName(name) }
 }
 
-// --- Ttk-compatible aliases (prefix with Spinbox) for consistent naming ---
-// These aliases match the naming convention used by ttk widgets
-// allowing consistent option naming when both classic and ttk widgets are used.
-
-// SpinboxFromOpt is an alias for FromOpt.
-var SpinboxFromOpt = FromOpt
-
-// SpinboxToOpt is an alias for ToOpt.
-var SpinboxToOpt = ToOpt
-
-// SpinboxIncrementOpt is an alias for IncrementOpt.
-var SpinboxIncrementOpt = IncrementOpt
-
-// SpinboxFormatOpt is an alias for FormatOpt.
-var SpinboxFormatOpt = FormatOpt
-
-// SpinboxWrapOpt is an alias for WrapOpt.
-var SpinboxWrapOpt = WrapOpt
-
-// SpinboxValuesOpt is an alias for ValuesOpt.
-var SpinboxValuesOpt = ValuesOpt
-
-// SpinboxCommandOpt is an alias for CommandOpt.
-var SpinboxCommandOpt = CommandOpt
-
-// SpinboxWidthOpt is an alias for WidthOpt.
-var SpinboxWidthOpt = WidthOpt
-
-// SpinboxValidateOpt is an alias for ValidateOpt.
-var SpinboxValidateOpt = ValidateOpt
-
-// SpinboxValidateCmdOpt is an alias for ValidateCmdOpt.
-var SpinboxValidateCmdOpt = ValidateCmdOpt
-
-// SpinboxBackground is an alias for Background.
-var SpinboxBackground = Background
-
 // New creates a new Spinbox widget.
 func New(parent widget.Caregiver, name string, opts ...SpinboxOption) *Spinbox {
 	app := parent.AppContext()

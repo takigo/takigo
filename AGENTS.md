@@ -195,10 +195,7 @@ package maps: several Apps may run at once on different goroutines
   `label.Relief`). An `Opt` suffix is used when the bare name is unavailable
   or ambiguous in that package (`label.FontOpt`, `label.ImageOpt`,
   `label.JustifyOpt`, `scale.FromOpt`, `menu.TearOffOpt`, …) — check the
-  package's existing setters before adding one. Every classic package also
-  exports ttk-style prefixed aliases as package-level vars
-  (`var ButtonText = Text`, `label.LabelText`, `entry.EntryText`, …) so
-  classic and ttk code read the same; add the alias when adding a setter.
+  package's existing setters before adding one.
   The `ttk` package, which hosts every themed widget, always prefixes with
   the widget name (`ttk.ButtonText`, `ttk.ButtonCommand`,
   `ttk.ButtonStyleOpt`).
@@ -393,7 +390,7 @@ lookup.
 
 | Task | Location |
 |---|---|
-| Add a Tk widget option | mirror `tk/generic/<file>.c` + `library/<widget>.tcl`; add the option setter (and alias) in `widget/<name>/<name>.go` and read the field in `computeGeometry`/`display` — `Configure` then handles it at runtime |
+| Add a Tk widget option | mirror `tk/generic/<file>.c` + `library/<widget>.tcl`; add the option setter in `widget/<name>/<name>.go` and read the field in `computeGeometry`/`display` — `Configure` then handles it at runtime |
 | Add a new platform capability | extend `platform.DisplayServer` (`platform/display.go`) and implement in all three `platform/<x11|cocoa|windows>/` |
 | Add a new ttk theme | drop a `ttk/<name>theme/theme.go` that registers with `ttk.RegisterTheme(...)` at init; require it from demos with `_ "github.com/msorc/takigo/ttk/<name>theme"` |
 | Fix a wrong-looking demo | use the `tk-demo-compare` skill — it drives the comparison and edit loop end-to-end |

@@ -105,37 +105,6 @@ func XScrollCommand(fn func(float64, float64)) ListboxOption {
 	return func(lb *Listbox) { lb.XScrollCmd = fn }
 }
 
-// --- Ttk-compatible aliases (prefix with Listbox) for consistent naming ---
-// These aliases match the naming convention used by ttk widgets
-// allowing consistent option naming when both classic and ttk widgets are used.
-
-// ListboxItems is an alias for Items.
-var ListboxItems = Items
-
-// ListboxSelectModeOpt is an alias for SelectModeOpt.
-var ListboxSelectModeOpt = SelectModeOpt
-
-// ListboxWidth is an alias for Width.
-var ListboxWidth = Width
-
-// ListboxHeight is an alias for Height.
-var ListboxHeight = Height
-
-// ListboxJustifyOpt is an alias for JustifyOpt.
-var ListboxJustifyOpt = JustifyOpt
-
-// ListboxBackground is an alias for Background.
-var ListboxBackground = Background
-
-// ListboxForeground is an alias for Foreground.
-var ListboxForeground = Foreground
-
-// ListboxYScrollCommand is an alias for YScrollCommand.
-var ListboxYScrollCommand = YScrollCommand
-
-// ListboxXScrollCommand is an alias for XScrollCommand.
-var ListboxXScrollCommand = XScrollCommand
-
 // New creates a new Listbox widget.
 func New(parent widget.Caregiver, name string, opts ...ListboxOption) *Listbox {
 	app := parent.AppContext()
