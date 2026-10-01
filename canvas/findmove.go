@@ -7,7 +7,7 @@ import "math"
 // of the display list) and a later item wins ties, so with start it yields
 // the topmost closest item below start. Hidden items are skipped; 0 means
 // none.
-func (c *Canvas) FindClosest(x, y, halo float64, start string) int64 {
+func (c *Canvas) FindClosest(x, y, halo float64, start string) ItemID {
 	c.compact()
 	if len(c.items) == 0 {
 		return 0
@@ -55,7 +55,8 @@ func (c *Canvas) FindClosest(x, y, halo float64, start string) int64 {
 
 // MoveTo ports "moveto tagOrId x y": translate every matching item so the
 // bounding box origin of the first one lands on (x, y).
-func (c *Canvas) MoveTo(tagOrID string, x, y float64) {
+func (c *Canvas) MoveTo[S Selector](sel S, x, y float64) {
+	tagOrID := selectorString(sel)
 	es := c.resolve(tagOrID)
 	if len(es) == 0 {
 		return

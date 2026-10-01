@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/msorc/takigo/screenunit"
 	"os"
-	"strconv"
 
 	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/canvas"
@@ -62,7 +61,7 @@ func main() {
 	pack.Pack(c, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
 
 	// mkTab creates a downward-pointing triangle polygon at (x, y) apex.
-	mkTab := func(x, y float64, tags ...string) int64 {
+	mkTab := func(x, y float64, tags ...string) canvas.ItemID {
 		return c.CreatePolygon(
 			[]float64{x, y, x + tabSize, y + tabSize, x - tabSize, y + tabSize},
 			canvas.FillColor("black"), canvas.OutlineNone(),
@@ -91,9 +90,9 @@ func main() {
 	mkTab(float64(screenunit.Cm(13.5).Pixels()), float64(screenunit.Cm(0.65).Pixels()), "well", "welltab")
 
 	// Drag state.
-	activeID := int64(0) // 0 = nothing being dragged
-	ax := 0.0            // active tab apex x
-	ay := 0.0            // active tab apex y
+	activeID := canvas.ItemID(0) // 0 = nothing being dragged
+	ax := 0.0                    // active tab apex x
+	ay := 0.0                    // active tab apex y
 	markedDelete := false
 
 	// snapGrid snaps x to the nearest grid position within [left, right].
@@ -115,7 +114,7 @@ func main() {
 		}
 		cx = snapGrid(cx)
 		var cy float64
-		idStr := strconv.FormatInt(activeID, 10)
+		idStr := activeID
 		if my >= rulerTop && my <= rulerBottom {
 			cy = rulerTop + 2
 			c.ItemConfigure(idStr, canvas.FillColor("red"))
@@ -163,8 +162,8 @@ func main() {
 		ay = rulerTop + 2
 		ax = cx
 		markedDelete = false
-		c.ItemConfigure(strconv.FormatInt(activeID, 10), canvas.FillColor("red"))
-		c.Raise(strconv.FormatInt(activeID, 10))
+		c.ItemConfigure(activeID, canvas.FillColor("red"))
+		c.Raise(activeID)
 	})
 
 	// Window-level motion: drag the active tab.
@@ -180,7 +179,7 @@ func main() {
 		if ev.Button != 1 || activeID == 0 {
 			return
 		}
-		idStr := strconv.FormatInt(activeID, 10)
+		idStr := activeID
 		if markedDelete {
 			c.Delete(idStr)
 		} else {

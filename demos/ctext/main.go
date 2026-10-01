@@ -62,17 +62,17 @@ func main() {
 		canvas.JustifyOpt(option.JustifyLeft),
 		canvas.Tags("text"),
 	)
-	textIDStr := fmt.Sprintf("%d", textID)
+	textIDStr := textID
 
 	// Track box fill colors for hover restore.
-	origFill := map[string]string{}
+	origFill := map[canvas.ItemID]string{}
 
 	// mkTextConfigBox creates a clickable config box at pixel position (px, py).
 	mkTextConfigBox := func(px, py float64, fill string, opts ...canvas.ItemOption) {
 		id := c.CreateRectangle(px, py, px+30, py+30,
 			canvas.OutlineColor("black"), canvas.FillColor(fill),
 			canvas.OutlineWidth(1), canvas.Tags("config"))
-		idStr := fmt.Sprintf("%d", id)
+		idStr := id
 		origFill[idStr] = fill
 		c.BindItem(idStr, event.ButtonPressMask, func(ev *event.Event) {
 			if ev.Button == 1 {
@@ -87,7 +87,7 @@ func main() {
 			canvas.StartAngle(a-15), canvas.Extent(30),
 			canvas.OutlineColor("black"), canvas.FillColor(fill),
 			canvas.OutlineWidth(1), canvas.Tags("config"))
-		idStr := fmt.Sprintf("%d", id)
+		idStr := id
 		origFill[idStr] = fill
 		c.BindItem(idStr, event.ButtonPressMask, func(ev *event.Event) {
 			if ev.Button == 1 {
@@ -116,7 +116,7 @@ func main() {
 	// Small red center box in anchor grid.
 	centerID := c.CreateRectangle(bx+40, by+40, bx+50, by+50,
 		canvas.OutlineColor("black"), canvas.FillColor("red"))
-	centerIDStr := fmt.Sprintf("%d", centerID)
+	centerIDStr := centerID
 	c.BindItem(centerIDStr, event.ButtonPressMask, func(ev *event.Event) {
 		if ev.Button == 1 {
 			c.ItemConfigure(textIDStr, canvas.AnchorOpt(option.AnchorCenter))
@@ -170,7 +170,7 @@ func main() {
 		if len(ids) == 0 {
 			return
 		}
-		idStr := fmt.Sprintf("%d", ids[0])
+		idStr := ids[0]
 		if _, ok := origFill[idStr]; ok {
 			c.ItemConfigure(idStr, canvas.FillColor("black"))
 		}
@@ -180,7 +180,7 @@ func main() {
 		if len(ids) == 0 {
 			return
 		}
-		idStr := fmt.Sprintf("%d", ids[0])
+		idStr := ids[0]
 		if orig, ok := origFill[idStr]; ok {
 			c.ItemConfigure(idStr, canvas.FillColor(orig))
 		}

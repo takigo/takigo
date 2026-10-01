@@ -108,7 +108,7 @@ func main() {
 	move = func() {
 		basicMotion()
 		reverser()
-		c.SetItemCoords(fmt.Sprintf("%d", waveID), scaledCoords(waveCoords))
+		c.SetItemCoords(waveID, scaledCoords(waveCoords))
 		app.After(10*time.Millisecond, move)
 	}
 	move() // aniwave.tcl starts with one step, then reschedules

@@ -5,12 +5,29 @@ import (
 	"strconv"
 )
 
+// ItemID identifies a canvas item; the Create methods return one.
+type ItemID int64
+
+// Selector is what the item methods take to pick their items: one ItemID,
+// or a string holding a tag, "all" or "current" (or an ID in decimal).
+type Selector interface {
+	ItemID | string
+}
+
+func selectorString[S Selector](sel S) string {
+	if id, ok := any(sel).(ItemID); ok {
+		return strconv.FormatInt(int64(id), 10)
+	}
+	return any(sel).(string)
+}
+
 // resolve converts a tag-or-ID string to a list of matching item entries.
 // Supports: integer IDs, "all", "current", and tag name strings.
-func (c *Canvas) resolve(tagOrID string) []*itemEntry {
+func (c *Canvas) resolve[S Selector](sel S) []*itemEntry {
+	tagOrID := selectorString(sel)
 	// Try numeric ID first.
 	if id, err := strconv.ParseInt(tagOrID, 10, 64); err == nil {
-		if entry, ok := c.idMap[id]; ok {
+		if entry, ok := c.idMap[ItemID(id)]; ok {
 			return []*itemEntry{entry}
 		}
 		return nil

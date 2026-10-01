@@ -28,9 +28,9 @@ func TestDamageRedrawMatchesFullRedraw(t *testing.T) {
 	colors := []string{"red", "blue", "green", "black", "orange", "purple"}
 	pick := func() string { return colors[rng.IntN(len(colors))] }
 	coord := func() float64 { return float64(rng.IntN(320) - 10) }
-	var ids []int64
+	var ids []canvas.ItemID
 	create := func() {
-		var id int64
+		var id canvas.ItemID
 		switch rng.IntN(6) {
 		case 0:
 			id = c.CreateRectangle(coord(), coord(), coord(), coord(),
@@ -57,7 +57,7 @@ func TestDamageRedrawMatchesFullRedraw(t *testing.T) {
 	for range 25 {
 		create()
 	}
-	randomID := func() string { return strconv.FormatInt(ids[rng.IntN(len(ids))], 10) }
+	randomID := func() canvas.ItemID { return ids[rng.IntN(len(ids))] }
 
 	mutations := []struct {
 		name string
@@ -83,7 +83,7 @@ func TestDamageRedrawMatchesFullRedraw(t *testing.T) {
 		}},
 		{"delete", func() {
 			i := rng.IntN(len(ids))
-			c.Delete(strconv.FormatInt(ids[i], 10))
+			c.Delete(ids[i])
 			ids = append(ids[:i], ids[i+1:]...)
 		}},
 		{"create", create},

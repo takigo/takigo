@@ -69,7 +69,7 @@ type Item interface {
 
 // ItemBase holds fields common to all item types.
 type ItemBase struct {
-	ID             int64
+	ID             ItemID
 	Tags           []string
 	X1, Y1, X2, Y2 int // integer bounding box in canvas coords
 	state          ItemState
@@ -126,7 +126,7 @@ func (b *ItemBase) RemoveTag(tag string) {
 
 // itemEntry wraps an Item with its ID for the display list.
 type itemEntry struct {
-	id   int64
+	id   ItemID
 	item Item
 	mark uint64 // last markEntries stamp (membership during list passes)
 	dead bool   // deleted, still in c.items until compact

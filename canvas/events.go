@@ -270,10 +270,11 @@ func runItemHandlers(handlers []itemHandler, evMask event.Mask, ev *event.Event)
 }
 
 // BindItem binds an event handler to items matching tagOrID.
-func (c *Canvas) BindItem(tagOrID string, mask event.Mask, handler func(*event.Event)) {
+func (c *Canvas) BindItem[S Selector](sel S, mask event.Mask, handler func(*event.Event)) {
+	tagOrID := selectorString(sel)
 	h := itemHandler{mask: mask, handler: handler}
 	if id, err := strconv.ParseInt(tagOrID, 10, 64); err == nil {
-		c.idBindings[id] = append(c.idBindings[id], h)
+		c.idBindings[ItemID(id)] = append(c.idBindings[ItemID(id)], h)
 		return
 	}
 	c.itemBindings[tagOrID] = append(c.itemBindings[tagOrID], h)
