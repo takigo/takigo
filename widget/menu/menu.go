@@ -108,9 +108,6 @@ func FontOpt(name string) MenuOption {
 	return func(m *Menu) { m.SetFontName(name) }
 }
 
-// MenuFontOpt is an alias for FontOpt.
-var MenuFontOpt = FontOpt
-
 // New creates a new Menu. The menu is an override-redirect window,
 // initially unmapped, created as a child of the root X window.
 func New(parent widget.Caregiver, name string, opts ...MenuOption) *Menu {

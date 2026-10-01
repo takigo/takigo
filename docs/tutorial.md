@@ -203,8 +203,8 @@ Conventions that apply across the classic widget packages:
   `scale.FromOpt`, `menu.TearOffOpt`. When in doubt, check the package with
   `go doc github.com/msorc/takigo/widget/label`.
 - Every classic package also exports **prefixed aliases**, so code reads the
-  same whether you use classic or themed widgets: `button.ButtonText`,
-  `label.LabelText`, `entry.EntryText`, …
+  same whether you use classic or themed widgets: `button.Text`,
+  `label.Text`, `entry.Text`, …
 - In the `ttk` package, where all themed widgets live together, options are
   always prefixed: `ttk.ButtonText`, `ttk.EntryWidth`, `ttk.LabelFont`.
 

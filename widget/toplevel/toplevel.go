@@ -70,31 +70,6 @@ func TransientFor(parent window.Windower) ToplevelOption {
 	}
 }
 
-// --- Ttk-compatible aliases (prefix with Toplevel) for consistent naming ---
-// These aliases match the naming convention used by ttk widgets
-// allowing consistent option naming when both classic and ttk widgets are used.
-
-// ToplevelTitle is an alias for Title.
-var ToplevelTitle = Title
-
-// ToplevelIconName is an alias for IconName.
-var ToplevelIconName = IconName
-
-// ToplevelBackground is an alias for Background.
-var ToplevelBackground = Background
-
-// ToplevelGeometry is an alias for Geometry.
-var ToplevelGeometry = Geometry
-
-// ToplevelResizable is an alias for Resizable.
-var ToplevelResizable = Resizable
-
-// ToplevelMinSize is an alias for MinSize.
-var ToplevelMinSize = MinSize
-
-// ToplevelTransientFor is an alias for TransientFor.
-var ToplevelTransientFor = TransientFor
-
 // New creates a new Toplevel window.
 func New(parent widget.Caregiver, name string, opts ...ToplevelOption) *Toplevel {
 	app := parent.AppContext()
