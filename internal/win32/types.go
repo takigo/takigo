@@ -254,6 +254,7 @@ const (
 	WM_MBUTTONUP            = 0x0208
 	WM_MBUTTONDBLCLK        = 0x0209
 	WM_MOUSEWHEEL           = 0x020A
+	WM_SETICON              = 0x0080
 	WM_MOUSEHWHEEL          = 0x020E
 	WM_ENTERSIZEMOVE        = 0x0231
 	WM_EXITSIZEMOVE         = 0x0232

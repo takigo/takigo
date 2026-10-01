@@ -5,6 +5,8 @@ package wm
 
 import (
 	"fmt"
+	"image"
+	"image/draw"
 	"slices"
 	"strconv"
 	"strings"
@@ -185,6 +187,24 @@ func (info *WmInfo) SetIconName(name string) {
 	data := []byte(name)
 	d.ChangeProperty(w, info.atoms.NetWMIconName, info.atoms.UTF8String,
 		8, platform.PropModeReplace, data, len(data))
+}
+
+// SetIconPhoto sets the window's icon from one or more sizes of the same
+// picture, like Tk's "wm iconphoto"; the window system picks the size it
+// needs. With no images the icon is removed. macOS ignores it: a window
+// there has no icon of its own.
+func (info *WmInfo) SetIconPhoto(imgs ...image.Image) {
+	icons := make([]platform.IconImage, 0, len(imgs))
+	for _, img := range imgs {
+		if img == nil {
+			continue
+		}
+		b := img.Bounds()
+		n := image.NewNRGBA(image.Rect(0, 0, b.Dx(), b.Dy()))
+		draw.Draw(n, n.Rect, img, b.Min, draw.Src)
+		icons = append(icons, platform.IconImage{Width: b.Dx(), Height: b.Dy(), Pix: n.Pix})
+	}
+	info.Win.Display.Server.SetWindowIcons(info.Win.PlatformID, icons)
 }
 
 // Geometry returns the current geometry as "WxH+X+Y".

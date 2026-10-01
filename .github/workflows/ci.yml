@@ -116,7 +116,7 @@ jobs:
         with:
           go-version-file: go.mod
       - run: go build ./...
-      - run: go test -short ./font/ ./bind/ ./event/ ./geometry/... ./screenunit/ ./color/ ./wm/ ./image/ ./bitmap/ ./window/ ./internal/nanosvg/
+      - run: go test -short ./font/ ./bind/ ./event/ ./geometry/... ./screenunit/ ./color/ ./wm/ ./image/ ./bitmap/ ./window/ ./internal/nanosvg/ ./platform/windows/
 
   macos:
     runs-on: macos-latest
