@@ -2109,6 +2109,34 @@ widget's `Compound` option.
 
 ---
 
+### Clipboard images and drag and drop
+
+Besides text, the clipboard carries images:
+
+```go
+app.SetClipboardImage(img)                       // an image.Image
+app.ClipboardImage(func(img image.Image) { ... }) // nil if there is none
+```
+
+A window takes files and text dragged from other applications with
+`OnDrop`, and starts a drag of its own, from a handler while a mouse button
+is held, with `StartDrag`:
+
+```go
+app.OnDrop(list, func(d takigo.Drop) {
+	for _, path := range d.Files {
+		addFile(path)
+	}
+})
+app.StartDrag(list, takigo.DragData{Files: selected}, func(dropped bool) {})
+```
+
+Both use the X11 protocols (selections and XDND), so between applications
+they work on Linux and BSD desktops; on Windows and macOS an image stays
+within the process and no drags arrive.
+
+---
+
 ## 15. Timers, idle work and goroutines
 
 ### One loop, one goroutine

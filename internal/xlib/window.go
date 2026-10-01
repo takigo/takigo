@@ -162,6 +162,18 @@ func (d *Display) SetWMProtocols(w Window, protocols []Atom) int {
 	return int(C.XSetWMProtocols(d.ptr, C.Window(w), (*C.Atom)(&protocols[0]), C.int(len(protocols))))
 }
 
+// ChildAt returns the child of parent containing the root-window point
+// (x, y), or 0 (XTranslateCoordinates' child_return).
+func (d *Display) ChildAt(parent Window, x, y int) Window {
+	var dx, dy C.int
+	var child C.Window
+	root := C.XDefaultRootWindow(d.ptr)
+	if C.XTranslateCoordinates(d.ptr, root, C.Window(parent), C.int(x), C.int(y), &dx, &dy, &child) == 0 {
+		return 0
+	}
+	return Window(child)
+}
+
 // TranslateCoordinates translates coordinates from src to dst window.
 func (d *Display) TranslateCoordinates(src, dst Window, srcX, srcY int) (dstX, dstY int) {
 	var dx, dy C.int
