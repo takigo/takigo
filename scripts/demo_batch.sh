@@ -50,6 +50,8 @@ done
 
 set_skip_if_exists $(( 1 - RETAKE ))
 export TAKIGO_FREEZE_TIMERS="${TAKIGO_FREEZE_TIMERS:-1}"
+# The comparison is against Tk, so the Go side draws exactly as Tk does.
+export TAKIGO_CLASSIC="${TAKIGO_CLASSIC:-1}"
 
 SCORES_TSV="$SS_DIR/scores.tsv"
 SORTED_TXT="$SS_DIR/scores_sorted.txt"

@@ -12,6 +12,7 @@
 #   TIMEOUT_SECS  : max wait for window to appear (default 15)
 #   PIN_FONTS     : 1 (default) = private DejaVu-only fontconfig, see pin_fonts
 #   TAKIGO_FREEZE_TIMERS : 1 (default) = drop positive-delay timers on both sides
+#   TAKIGO_CLASSIC       : 1 (default) = Tk-exact drawing on the Go side (no anti-aliasing)
 #   DEMO_BIN_DIR  : use prebuilt demo binaries from this directory
 #                   (<dir>/<demo>) instead of building (demo_batch.sh sets it)
 #   DUMP_TREE     : 1 (default) = also write <output>.tree.json (widget tree,
@@ -36,6 +37,7 @@ export DISPLAY="${DISPLAY:-:0}"
 SETTLE_SECS="${SETTLE_SECS:-5}"
 TIMEOUT_SECS="${TIMEOUT_SECS:-15}"
 export TAKIGO_FREEZE_TIMERS="${TAKIGO_FREEZE_TIMERS:-1}"
+export TAKIGO_CLASSIC="${TAKIGO_CLASSIC:-1}"
 pin_fonts
 
 # Use the project's Tk 9.1 wish (system wish is 8.6 and incompatible).

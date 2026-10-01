@@ -1,6 +1,7 @@
 package takigo_test
 
 import (
+	"image"
 	"image/color"
 	"testing"
 
@@ -96,4 +97,98 @@ func TestCanvasPaintsItems(t *testing.T) {
 		t.Errorf("outside the rectangle = %v, want white", got)
 	}
 	_ = id
+}
+
+// partial counts pixels that are neither the background nor the ink: the
+// soft edge of an anti-aliased shape.
+func partial(img interface {
+	Bounds() image.Rectangle
+	NRGBAAt(x, y int) color.NRGBA
+}) int {
+	n := 0
+	b := img.Bounds()
+	for y := b.Min.Y; y < b.Max.Y; y++ {
+		for x := b.Min.X; x < b.Max.X; x++ {
+			if l := luma(img.NRGBAAt(x, y)); l > 16 && l < 239 {
+				n++
+			}
+		}
+	}
+	return n
+}
+
+func diagonalCanvas(t *testing.T, opts ...canvas.CanvasOption) (*canvas.Canvas, func() int) {
+	t.Helper()
+	app := testutil.NewTestApp(t)
+	base := []canvas.CanvasOption{canvas.Width(100), canvas.Height(80), canvas.Background("white"),
+		canvas.BorderWidthOpt(0), canvas.HighlightWidthOpt(0)}
+	c := canvas.New(app, "c", append(base, opts...)...)
+	pack.Pack(c)
+	c.CreateLine([]float64{5, 7, 93, 61}, canvas.OutlineColor("black"), canvas.OutlineWidth(2))
+	c.CreateOval(20, 20, 70, 60, canvas.OutlineColor("black"))
+	return c, func() int { return partial(testutil.Grab(t, app, c.Win)) }
+}
+
+func TestCanvasIsAntialiasedByDefault(t *testing.T) {
+	_, soft := diagonalCanvas(t)
+	if n := soft(); n < 40 {
+		t.Errorf("%d soft-edge pixels on a diagonal and an oval: they are not anti-aliased", n)
+	}
+}
+
+func TestCanvasAntialiasOff(t *testing.T) {
+	_, soft := diagonalCanvas(t, canvas.Antialias(false))
+	if n := soft(); n != 0 {
+		t.Errorf("%d soft-edge pixels with Antialias(false), want the display server's hard edges", n)
+	}
+}
+
+func TestClassicAppDrawsAsTk(t *testing.T) {
+	t.Setenv("TAKIGO_CLASSIC", "1")
+	_, soft := diagonalCanvas(t)
+	if n := soft(); n != 0 {
+		t.Errorf("%d soft-edge pixels in a Classic App, want none", n)
+	}
+}
+
+// Axis-aligned shapes must stay sharp and where Tk puts them.
+func TestAntialiasedRectangleIsCrisp(t *testing.T) {
+	app := testutil.NewTestApp(t)
+	c := canvas.New(app, "c", canvas.Width(100), canvas.Height(80), canvas.Background("white"),
+		canvas.BorderWidthOpt(0), canvas.HighlightWidthOpt(0))
+	pack.Pack(c)
+	c.CreateRectangle(20, 20, 60, 50, canvas.FillColor("blue"), canvas.OutlineColor("black"))
+	c.CreateRectangle(70, 20, 90, 50, canvas.OutlineColor("red"), canvas.OutlineWidth(2))
+	img := testutil.Grab(t, app, c.Win)
+
+	black, blue, white := color.NRGBA{0, 0, 0, 255}, color.NRGBA{0, 0, 255, 255}, color.NRGBA{255, 255, 255, 255}
+	checks := []struct {
+		x, y int
+		want color.NRGBA
+	}{
+		{19, 35, white}, {20, 35, black}, {21, 35, blue}, {59, 35, blue}, {60, 35, black}, {61, 35, white},
+		{40, 19, white}, {40, 20, black}, {40, 21, blue}, {40, 50, black}, {40, 51, white},
+	}
+	for _, ck := range checks {
+		if got := img.NRGBAAt(ck.x, ck.y); got != ck.want {
+			t.Errorf("pixel (%d,%d) = %v, want %v", ck.x, ck.y, got, ck.want)
+		}
+	}
+	if n := partial(img); n != 0 {
+		// The red outline is pure red (luma 76), counted as "partial" by
+		// luma alone, so count real blends instead.
+		blends := 0
+		b := img.Bounds()
+		for y := b.Min.Y; y < b.Max.Y; y++ {
+			for x := b.Min.X; x < b.Max.X; x++ {
+				p := img.NRGBAAt(x, y)
+				if p != black && p != blue && p != white && p != (color.NRGBA{255, 0, 0, 255}) {
+					blends++
+				}
+			}
+		}
+		if blends != 0 {
+			t.Errorf("%d blended pixels around axis-aligned rectangles, want sharp edges", blends)
+		}
+	}
 }

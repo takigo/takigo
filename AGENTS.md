@@ -253,6 +253,13 @@ package maps: several Apps may run at once on different goroutines
   through `w.Drawable()`, never `platform.WindowDrawable(w.PlatformID)`,
   so the redirection applies.
 
+- **Departures from Tk.** Where takigo deliberately does better than Tk
+  (anti-aliased canvas items, `canvas/smooth.go`), the Tk-exact behaviour
+  stays available: `widget.Classic(app)` is true in an App created with
+  `takigo.Classic()` or run with `TAKIGO_CLASSIC=1`, which the demo
+  comparison scripts set. Gate a new departure on it, and keep axis-aligned
+  geometry pixel-identical to Tk's so only the edges differ.
+
 - **Document the source port.** Top-of-file comment should reference the
   Tk source(s) it ports, e.g.:
   ```go
@@ -451,6 +458,8 @@ lookup.
 | `SETTLE_SECS` / `TIMEOUT_SECS` | Demo screenshot wait tuning (see `scripts/README.md`) |
 | `PIN_FONTS` | `1` (default in screenshot scripts) = private DejaVu-only fontconfig for both sides |
 | `TAKIGO_DUMP_TREE=<file>` | Go apps (and `demo_wrapper.tcl`) rewrite the widget tree as JSON every 250ms when it changes (`internal/treedump`); compared by `cmd/demodiff` |
+| `TAKIGO_CLASSIC=1` | Tk-exact drawing (no anti-aliased canvas), like `takigo.Classic()`; set by the screenshot scripts |
+| `TAKIGO_APPEARANCE` | `light` or `dark`: overrides the desktop's appearance for `appearance.System` |
 | `TAKIGO_FREEZE_TIMERS=1` | `event.Loop.After` drops positive-delay timers (and `demo_wrapper.tcl` does the same to `after`); set by the screenshot scripts |
 | `HEADLESS=1` | Run screenshot/interact scripts under `xvfb-run` |
 | `LLM_TOOL` | LLM CLI used by `fix_demo.sh` / `fix_all.sh` (default `claude`) |

@@ -66,6 +66,7 @@ type Canvas struct {
 	itemBindings map[string][]itemHandler // by tag
 	idBindings   map[ItemID][]itemHandler // by item ID
 	closeEnough  float64                  // hit-test tolerance (default 1.0)
+	antialias    bool                     // draw shapes with coverage (see smooth.go)
 
 	// Keyboard focus for text items.
 	focusItemID ItemID // 0 = none
@@ -156,6 +157,14 @@ func HighlightWidthOpt(w int) CanvasOption {
 	}
 }
 
+// Antialias turns anti-aliased drawing of the canvas's shapes on or off.
+// It is on by default, and off in an App created with takigo.Classic,
+// where items are drawn with the display server's jagged-edged primitives
+// exactly as Tk draws them.
+func Antialias(on bool) CanvasOption {
+	return func(c *Canvas) { c.antialias = on }
+}
+
 func CloseEnough(d float64) CanvasOption {
 	return func(c *Canvas) { c.closeEnough = d }
 }
@@ -191,6 +200,7 @@ func New(parent widget.Caregiver, name string, opts ...CanvasOption) *Canvas {
 	c.HighlightWidth = 1
 	c.reqW = screenunit.Cm(10).Pixels()
 	c.reqH = screenunit.Cm(7).Pixels()
+	c.antialias = !widget.Classic(app)
 
 	// Apply options.
 	for _, opt := range opts {
@@ -334,6 +344,16 @@ func (c *Canvas) paint(x1, y1, x2, y2 int) {
 	clipW := pixW
 	clipH := pixH
 
+	// With anti-aliasing, shapes are rasterized here and blended into a
+	// copy of the repainted area, which goes to the pixmap when an item the
+	// display server must draw comes up, and at the end (see smooth.go).
+	var smooth *layer
+	if c.antialias {
+		smooth = newLayer(pixOriginX, pixOriginY, pixW, pixH, x1-pixOriginX, y1-pixOriginY, x2-x1, y2-y1)
+		smooth.plain = true
+		smooth.bg = bgPixel
+	}
+
 	// Draw items bottom to top.
 	for _, entry := range c.items {
 		item := entry.item
@@ -347,7 +367,17 @@ func (c *Canvas) paint(x1, y1, x2, y2 int) {
 			continue
 		}
 
+		if smooth != nil {
+			if si, ok := item.(smoothItem); ok && smooth.paint(d, pxDrawable, si, ix1, iy1, ix2, iy2) {
+				continue
+			}
+			smooth.flush(d, pxDrawable, gc, w.Depth)
+			smooth.invalidate()
+		}
 		item.Display(d, pxDrawable, gc, clipX, clipY, clipW, clipH, pixOriginX, pixOriginY)
+	}
+	if smooth != nil {
+		smooth.flush(d, pxDrawable, gc, w.Depth)
 	}
 
 	// Copy the repainted area to the window (accounting for overdraw

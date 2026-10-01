@@ -116,6 +116,34 @@ func (l *LineItem) Display(d platform.DisplayServer, drawable platform.DrawableI
 	}
 	d.SetLineAttributes(gc, uint(l.width), lineStyle, l.capStyle, l.joinStyle)
 
+	displayCoords := l.shaftCoords()
+
+	points := c.scratchPoints(len(displayCoords) / 2)
+	for i := range points {
+		points[i] = drawablePoint(displayCoords[2*i], displayCoords[2*i+1], originX, originY)
+	}
+
+	if len(points) >= 2 {
+		d.DrawLines(drawable, gc, points, platform.CoordModeOrigin)
+	}
+
+	// Draw arrows.
+	if l.arrow == ArrowFirst || l.arrow == ArrowBoth {
+		l.drawArrow(d, drawable, gc, originX, originY, true)
+	}
+	if l.arrow == ArrowLast || l.arrow == ArrowBoth {
+		l.drawArrow(d, drawable, gc, originX, originY, false)
+	}
+
+	// Reset line attributes.
+	d.SetLineAttributes(gc, 1, platform.LineSolid, platform.CapButt, platform.JoinMiter)
+}
+
+// shaftCoords returns the points of the line itself in canvas coordinates:
+// the spline when smoothed, with the ends pulled back under the arrowheads.
+// The result lives in the canvas scratch buffer.
+func (l *LineItem) shaftCoords() []float64 {
+	c := l.canvas
 	// Display coords go through the canvas scratch buffer so the endpoints
 	// can be shortened for arrowheads without touching l.coords.
 	var displayCoords []float64
@@ -150,26 +178,7 @@ func (l *LineItem) Display(d platform.DisplayServer, drawable platform.DrawableI
 			displayCoords[n-1] -= (dy0 / seg) * backup
 		}
 	}
-
-	points := c.scratchPoints(len(displayCoords) / 2)
-	for i := range points {
-		points[i] = drawablePoint(displayCoords[2*i], displayCoords[2*i+1], originX, originY)
-	}
-
-	if len(points) >= 2 {
-		d.DrawLines(drawable, gc, points, platform.CoordModeOrigin)
-	}
-
-	// Draw arrows.
-	if l.arrow == ArrowFirst || l.arrow == ArrowBoth {
-		l.drawArrow(d, drawable, gc, originX, originY, true)
-	}
-	if l.arrow == ArrowLast || l.arrow == ArrowBoth {
-		l.drawArrow(d, drawable, gc, originX, originY, false)
-	}
-
-	// Reset line attributes.
-	d.SetLineAttributes(gc, 1, platform.LineSolid, platform.CapButt, platform.JoinMiter)
+	return displayCoords
 }
 
 // arrowBackup ports ConfigureArrows' backup: how far the line end moves
@@ -189,12 +198,12 @@ func (l *LineItem) arrowShapes() (a, b, c, width float64) {
 
 // drawArrow ports ConfigureArrows' arrowhead polygon (tip, wing, shaft
 // joins, wing, tip), each point rounded like TkFillPolygon does.
-func (l *LineItem) drawArrow(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID,
-	originX, originY int, first bool) {
-
+// arrowPolygon returns the six points of an arrowhead in canvas
+// coordinates (ConfigureArrows in tkCanvLine.c).
+func (l *LineItem) arrowPolygon(first bool) (p [12]float64, ok bool) {
 	n := len(l.coords)
 	if n < 4 {
-		return
+		return p, false
 	}
 	var tipX, tipY, prevX, prevY float64
 	if first {
@@ -212,7 +221,6 @@ func (l *LineItem) drawArrow(d platform.DisplayServer, drawable platform.Drawabl
 	shapeA, shapeB, shapeC, width := l.arrowShapes()
 	frac := (width / 2) / shapeC
 	vertX, vertY := tipX-shapeA*cosT, tipY-shapeA*sinT
-	var p [12]float64
 	p[0], p[1], p[10], p[11] = tipX, tipY, tipX, tipY
 	temp := shapeC * sinT
 	p[2] = tipX - shapeB*cosT + temp
@@ -224,6 +232,15 @@ func (l *LineItem) drawArrow(d platform.DisplayServer, drawable platform.Drawabl
 	p[5] = p[3]*frac + vertY*(1-frac)
 	p[6] = p[8]*frac + vertX*(1-frac)
 	p[7] = p[9]*frac + vertY*(1-frac)
+	return p, true
+}
+
+func (l *LineItem) drawArrow(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID,
+	originX, originY int, first bool) {
+	p, ok := l.arrowPolygon(first)
+	if !ok {
+		return
+	}
 	// The shaft has been drawn, so the scratch points are free again.
 	pts := l.canvas.scratchPoints(6)
 	for k := range pts {
