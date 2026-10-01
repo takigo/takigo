@@ -22,6 +22,25 @@ func bindText(t *TextWidget, app widget.AppContext) {
 	app.Dispatcher().Bind(w.PlatformID, event.FocusChangeMask, t.handleFocus)
 
 	// Mouse: click to position cursor.
+	var wheel event.WheelAccumulator
+	app.Dispatcher().Bind(w.PlatformID, event.MouseWheelMask, func(ev *event.Event) {
+		if ev.Type != event.MouseWheelType {
+			return
+		}
+		n := wheel.Units(ev.Delta, 3)
+		if n == 0 {
+			return
+		}
+		if ev.State&platform.ShiftMask != 0 {
+			t.XViewScroll(n, false)
+			return
+		}
+		t.scrollByDisplayLines(n)
+		t.clampScrollPosition()
+		t.notifyYScrollbar()
+		t.Display()
+	})
+
 	app.Dispatcher().Bind(w.PlatformID, event.ButtonPressMask, t.handleButtonPress)
 
 	// Mouse: drag to select.
@@ -108,16 +127,6 @@ func (t *TextWidget) handleButtonPress(ev *event.Event) {
 		t.doc.MarkSet("insert", idx)
 		t.selAnchor = idx
 		t.lastDragIdx = idx
-		t.Display()
-	case 4: // mouse wheel up
-		t.scrollByDisplayLines(-3)
-		t.clampScrollPosition()
-		t.notifyYScrollbar()
-		t.Display()
-	case 5: // mouse wheel down
-		t.scrollByDisplayLines(3)
-		t.clampScrollPosition()
-		t.notifyYScrollbar()
 		t.Display()
 	}
 }

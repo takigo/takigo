@@ -41,6 +41,22 @@ func bindListbox(lb *Listbox, app widget.AppContext) {
 	})
 
 	// Button press.
+	var wheel event.WheelAccumulator
+	app.Dispatcher().Bind(w.PlatformID, event.MouseWheelMask, func(ev *event.Event) {
+		if ev.Type != event.MouseWheelType {
+			return
+		}
+		n := wheel.Units(ev.Delta, 3)
+		if n == 0 {
+			return
+		}
+		if ev.State&platform.ShiftMask != 0 {
+			lb.XViewScroll(n, false)
+		} else {
+			lb.YView(lb.topIndex + n)
+		}
+	})
+
 	app.Dispatcher().Bind(w.PlatformID, event.ButtonPressMask, func(ev *event.Event) {
 		// Take focus.
 		widget.Focus(app, w)
@@ -54,12 +70,6 @@ func bindListbox(lb *Listbox, app widget.AppContext) {
 			lb.activeIndex = idx
 			lb.Display()
 			notifySelect(lb)
-		} else if ev.Button == 4 {
-			// Scroll up.
-			lb.YView(lb.topIndex - 3)
-		} else if ev.Button == 5 {
-			// Scroll down.
-			lb.YView(lb.topIndex + 3)
 		}
 	})
 

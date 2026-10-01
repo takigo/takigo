@@ -296,21 +296,18 @@ func (s *Scrollbar) hitTest(x, y int) sbRegion {
 func bindTtkScrollbar(s *Scrollbar, app widget.AppContext) {
 	w := s.Win
 
+	var wheel event.WheelAccumulator
+	app.Dispatcher().Bind(w.PlatformID, event.MouseWheelMask, func(ev *event.Event) {
+		if ev.Type != event.MouseWheelType {
+			return
+		}
+		if n := wheel.Units(ev.Delta, 3); n != 0 && s.Command != nil {
+			s.Command(widget.ScrollUnits(n))
+		}
+	})
+
 	// Button press.
 	app.Dispatcher().Bind(w.PlatformID, event.ButtonPressMask, func(ev *event.Event) {
-		// Mouse wheel.
-		if ev.Button == 4 {
-			if s.Command != nil {
-				s.Command(widget.ScrollUnits(-3))
-			}
-			return
-		}
-		if ev.Button == 5 {
-			if s.Command != nil {
-				s.Command(widget.ScrollUnits(3))
-			}
-			return
-		}
 		if ev.Button != 1 {
 			return
 		}

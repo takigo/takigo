@@ -18,6 +18,10 @@ type Event struct {
 	RootX, RootY int // position relative to root window
 	Button       uint
 	State        uint // modifier mask
+	// Delta is a MouseWheel event's distance: 120 per notch, positive up
+	// (or left, with ShiftMask in State). High-resolution wheels send
+	// smaller steps; see WheelAccumulator.
+	Delta int
 
 	// Expose
 	ExposeX, ExposeY          int
@@ -101,6 +105,25 @@ func FromRawEventIM(raw *platform.RawEvent, parser platform.EventParser, hasIM b
 		ev.Button = b.Button
 		ev.State = b.State
 		ev.Time = b.Time
+		// TkQueueWindowEvent (tkEvent.c): buttons 4-7 are the wheels.
+		if b.Button >= 4 && b.Button <= 7 {
+			if ev.Type == ButtonReleaseType {
+				ev.Type = 0
+				break
+			}
+			ev.Type = MouseWheelType
+			ev.Delta = b.WheelDelta
+			if ev.Delta == 0 {
+				ev.Delta = 120
+				if b.Button&1 != 0 {
+					ev.Delta = -120
+				}
+			}
+			if b.Button > 5 {
+				ev.State |= platform.ShiftMask
+			}
+			ev.Button = 0
+		}
 
 	case platform.MotionNotifyEvent:
 		m := parser.ParseMotionEvent(raw)
@@ -190,4 +213,20 @@ func FromRawEventIM(raw *platform.RawEvent, parser platform.EventParser, hasIM b
 	}
 
 	return ev
+}
+
+// WheelAccumulator turns MouseWheel deltas into whole scroll units, carrying
+// the remainder so that the small steps of a high-resolution wheel add up
+// instead of rounding to nothing (tk::MouseWheel in tk.tcl).
+type WheelAccumulator struct {
+	rem int
+}
+
+// Units returns how many units to scroll for a delta at unitsPerNotch per
+// 120. The sign is that of a view command: positive scrolls down or right.
+func (a *WheelAccumulator) Units(delta, unitsPerNotch int) int {
+	total := a.rem - delta*unitsPerNotch
+	n := total / 120
+	a.rem = total - n*120
+	return n
 }

@@ -141,6 +141,8 @@ func eventTypeName(t event.Type) string {
 		return "Key"
 	case event.KeyReleaseType:
 		return "KeyRelease"
+	case event.MouseWheelType:
+		return "MouseWheel"
 	case event.ButtonPressType:
 		return "Button"
 	case event.ButtonReleaseType:
@@ -352,6 +354,8 @@ func parseEventType(lower string) (event.Type, bool) {
 		return event.ButtonPressType, true
 	case "buttonrelease":
 		return event.ButtonReleaseType, true
+	case "mousewheel":
+		return event.MouseWheelType, true
 	case "motion":
 		return event.MotionType, true
 	case "enter":

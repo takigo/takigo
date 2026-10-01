@@ -44,26 +44,26 @@ func bindCanvas(c *Canvas) {
 		}
 	})
 
+	var wheel event.WheelAccumulator
+	disp.Bind(w.PlatformID, event.MouseWheelMask, func(ev *event.Event) {
+		if ev.Type != event.MouseWheelType {
+			return
+		}
+		n := wheel.Units(ev.Delta, 5)
+		if n == 0 {
+			return
+		}
+		if ev.State&platform.ShiftMask != 0 {
+			c.XViewScroll(n, false)
+		} else {
+			c.YViewScroll(n, false)
+		}
+	})
+
 	// Pointer motion, crossing and buttons → pick the current item and
-	// dispatch to its bindings; the wheel scrolls.
+	// dispatch to its bindings.
 	disp.Bind(w.PlatformID, event.MotionMask|event.EnterMask|event.LeaveMask|
 		event.ButtonPressMask|event.ButtonReleaseMask, func(ev *event.Event) {
-		if ev.Type == event.ButtonPressType {
-			switch ev.Button {
-			case 4: // scroll up
-				c.YViewScroll(-5, false)
-				return
-			case 5: // scroll down
-				c.YViewScroll(5, false)
-				return
-			case 6: // scroll left (horizontal wheel)
-				c.XViewScroll(-5, false)
-				return
-			case 7: // scroll right (horizontal wheel)
-				c.XViewScroll(5, false)
-				return
-			}
-		}
 		c.handlePointer(ev)
 	})
 
@@ -132,8 +132,7 @@ func bindCanvas(c *Canvas) {
 }
 
 // allButtons is the state of any mouse button being down.
-const allButtons = platform.Button1Mask | platform.Button2Mask | platform.Button3Mask |
-	platform.Button4Mask | platform.Button5Mask
+const allButtons = platform.Button1Mask | platform.Button2Mask | platform.Button3Mask
 
 // buttonMask returns the state bit of a mouse button (Tk_GetButtonMask).
 func buttonMask(button uint) uint {

@@ -108,6 +108,16 @@ func bindTreeview(tv *Treeview, app widget.AppContext) {
 	app.Dispatcher().Bind(win.PlatformID, event.FocusChangeMask, tv.handleFocus)
 
 	// Button press.
+	var wheel event.WheelAccumulator
+	app.Dispatcher().Bind(win.PlatformID, event.MouseWheelMask, func(ev *event.Event) {
+		if ev.Type != event.MouseWheelType {
+			return
+		}
+		if n := wheel.Units(ev.Delta, 3); n != 0 {
+			tv.YView(tv.topIndex + n)
+		}
+	})
+
 	app.Dispatcher().Bind(win.PlatformID, event.ButtonPressMask, tv.handleButtonPress)
 
 	// Motion (column resize drag).
@@ -200,10 +210,6 @@ func (tv *Treeview) handleButtonPress(ev *event.Event) {
 				}
 			}
 		}
-	} else if ev.Button == 4 {
-		tv.YView(tv.topIndex - 3)
-	} else if ev.Button == 5 {
-		tv.YView(tv.topIndex + 3)
 	}
 }
 

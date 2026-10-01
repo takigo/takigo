@@ -23,6 +23,11 @@ const (
 	ClientMessageType
 	PropertyType
 	VirtualType
+	// MouseWheelType is a wheel movement, as in Tk 9 on every platform: the
+	// X buttons 4-7 never arrive as button events. Event.Delta is the
+	// distance, 120 per notch, positive away from the user (up); a
+	// horizontal wheel sets ShiftMask in State and is positive to the left.
+	MouseWheelType
 )
 
 // Virtual events a backend sends while an input method composes text, as
@@ -54,6 +59,7 @@ const (
 	PropertyChangeMask
 	ClientMessageMask
 	VirtualMask
+	MouseWheelMask
 
 	AllEventsMask Mask = (1 << iota) - 1
 )
@@ -87,6 +93,8 @@ func TypeToMask(t Type) Mask {
 		return ClientMessageMask
 	case VirtualType:
 		return VirtualMask
+	case MouseWheelType:
+		return MouseWheelMask
 	default:
 		return 0
 	}

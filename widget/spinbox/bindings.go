@@ -21,6 +21,22 @@ func bindSpinbox(s *Spinbox, app widget.AppContext) {
 	app.Dispatcher().Bind(w.PlatformID, event.FocusChangeMask, s.handleFocus)
 
 	// Mouse: click to position cursor or press buttons.
+	var wheel event.WheelAccumulator
+	app.Dispatcher().Bind(w.PlatformID, event.MouseWheelMask, func(ev *event.Event) {
+		if ev.Type != event.MouseWheelType {
+			return
+		}
+		for n := wheel.Units(ev.Delta, 1); n != 0; {
+			if n < 0 {
+				s.SpinUp()
+				n++
+			} else {
+				s.SpinDown()
+				n--
+			}
+		}
+	})
+
 	app.Dispatcher().Bind(w.PlatformID, event.ButtonPressMask, s.handleButtonPress)
 
 	// Mouse release.
@@ -131,12 +147,6 @@ func (s *Spinbox) handleButtonPress(ev *event.Event) {
 			s.SelAnchor = s.InsertPos
 			s.Display()
 		}
-	} else if ev.Button == 4 {
-		// Mouse wheel up.
-		s.SpinUp()
-	} else if ev.Button == 5 {
-		// Mouse wheel down.
-		s.SpinDown()
 	}
 }
 

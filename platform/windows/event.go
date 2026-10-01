@@ -22,6 +22,7 @@ type WinRawEvent struct {
 	KeySym       uint64 // translated keysym
 	Str          string // character string from WM_CHAR
 	Button       uint
+	WheelDelta   int
 	Width        int
 	Height       int
 	Time         uint64
@@ -73,6 +74,7 @@ func (p *EventParser) ParseButtonEvent(ev *platform.RawEvent) platform.ButtonEve
 		State:       raw.State,
 		Button:      raw.Button,
 		Time:        platform.Timestamp(raw.Time),
+		WheelDelta:  raw.WheelDelta,
 	}
 }
 
@@ -397,13 +399,19 @@ func (d *WindowsDisplay) wndProc(hwnd w32.HWND, msg uint32, wParam w32.WPARAM, l
 		d.handleMouseButton(hwnd, wid, lParam, wParam, now, 3, platform.ButtonReleaseEvent)
 		return 0
 
-	case w32.WM_MOUSEWHEEL:
-		delta := w32.GET_WHEEL_DELTA_WPARAM(wParam)
-		var button uint
-		if delta > 0 {
-			button = 4 // scroll up
-		} else {
-			button = 5 // scroll down
+	case w32.WM_MOUSEWHEEL, w32.WM_MOUSEHWHEEL:
+		delta := int(w32.GET_WHEEL_DELTA_WPARAM(wParam))
+		// Buttons 4/5 are the vertical wheel and 6/7 the horizontal one,
+		// which event.FromRawEvent turns into MouseWheel events; the real
+		// delta travels along. A horizontal wheel is positive to the right
+		// on Windows and to the left in Tk.
+		button := uint(4)
+		if msg == w32.WM_MOUSEHWHEEL {
+			button = 6
+			delta = -delta
+		}
+		if delta < 0 {
+			button++
 		}
 		// WM_MOUSEWHEEL coords are screen-relative.
 		sx := int(w32.GET_X_LPARAM(lParam))
@@ -413,14 +421,15 @@ func (d *WindowsDisplay) wndProc(hwnd w32.HWND, msg uint32, wParam w32.WPARAM, l
 
 		state := d.mouseModifierState(wParam)
 		raw := &WinRawEvent{
-			Window: wid,
-			X:      int(pt.X),
-			Y:      int(pt.Y),
-			RootX:  sx,
-			RootY:  sy,
-			Button: button,
-			State:  state,
-			Time:   now,
+			Window:     wid,
+			X:          int(pt.X),
+			Y:          int(pt.Y),
+			RootX:      sx,
+			RootY:      sy,
+			Button:     button,
+			State:      state,
+			Time:       now,
+			WheelDelta: delta,
 		}
 		d.postEvent(&platform.RawEvent{
 			Data:        raw,

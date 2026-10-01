@@ -499,6 +499,22 @@ func bindSpinbox(s *Spinbox, app widget.AppContext) {
 	})
 
 	// Button press.
+	var wheel event.WheelAccumulator
+	app.Dispatcher().Bind(win.PlatformID, event.MouseWheelMask, func(ev *event.Event) {
+		if ev.Type != event.MouseWheelType {
+			return
+		}
+		for n := wheel.Units(ev.Delta, 1); n != 0; {
+			if n < 0 {
+				s.SpinUp()
+				n++
+			} else {
+				s.SpinDown()
+				n--
+			}
+		}
+	})
+
 	app.Dispatcher().Bind(win.PlatformID, event.ButtonPressMask, func(ev *event.Event) {
 		if s.State&StateDisabled != 0 {
 			return
@@ -520,10 +536,6 @@ func bindSpinbox(s *Spinbox, app widget.AppContext) {
 				s.edit.ClearSelection()
 				s.Display()
 			}
-		} else if ev.Button == 4 {
-			s.SpinUp()
-		} else if ev.Button == 5 {
-			s.SpinDown()
 		}
 	})
 
