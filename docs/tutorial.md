@@ -1706,12 +1706,14 @@ As in Tk, `"end"` sits after an implicit final newline, so `"end -1c"` is the
 end of the content. Here, `Get("1.0", "end")` and `Get("1.0", "end -1c")`
 return the same text: a Go document has no trailing newline to include.
 
-The same arithmetic is available on `text.Index{Line, Char}` values through
-the document (`tw.Doc()`): `text.ParseIndex(doc, spec)` resolves an index
-string, and `text.Forward`, `text.Backward`, `text.LineStart` and
-`text.LineEnd` move positions directly. `tw.EndIndex()` returns the end
-position as an index string, which is convenient for "remember where this
-insert started":
+Every method that takes a position accepts either such a string or a
+`text.Index{Line, Char}` value, and the editing methods return
+`text.ErrBadIndex` for an expression that does not parse or names a mark
+that does not exist. `tw.Index(spec)` resolves an expression to an `Index`
+(Tk's `index` subcommand), and `text.Forward`, `text.Backward`,
+`text.LineStart` and `text.LineEnd` move an `Index` through the document
+(`tw.Doc()`). `tw.EndIndex()` returns the end position as an `Index`, which
+is convenient for "remember where this insert started":
 
 ```go
 start := tw.EndIndex()

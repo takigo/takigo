@@ -3,6 +3,7 @@
 package text
 
 import (
+	"strconv"
 	"unicode"
 )
 
@@ -173,4 +174,9 @@ func ParseIndex(doc *Document, spec string) (Index, bool) {
 
 func isWordRune(r rune) bool {
 	return unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_'
+}
+
+// String returns the index in Tk's "line.char" form.
+func (i Index) String() string {
+	return strconv.Itoa(i.Line) + "." + strconv.Itoa(i.Char)
 }
