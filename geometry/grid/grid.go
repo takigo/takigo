@@ -3,12 +3,13 @@
 package grid
 
 import (
+	"errors"
+	"fmt"
 	"github.com/msorc/takigo/geometry"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/window"
-	"log"
 )
 
 // Sticky flags for positioning within a cell.
@@ -296,6 +297,10 @@ func isRelative(w *window.Window) (RelativePlacement, bool) {
 	return 0, false
 }
 
+// ErrBadIndex is wrapped by the error Grid returns for a row or column
+// outside the grid.
+var ErrBadIndex = errors.New("grid: bad row or column")
+
 // Grid adds children to their parent's grid layout.
 // Accepts a geometry.Elementer (e.g. geometry.Group) containing real widgets
 // and/or relative placement markers created by Relative().
@@ -305,8 +310,9 @@ func isRelative(w *window.Window) (RelativePlacement, bool) {
 //   - Relative(RelLeft):  extend previous widget's columnSpan (Tk's "-")
 //   - Relative(RelUp):    extend widget above's rowSpan (Tk's "^")
 //
-// See tk/generic/tkGrid.c ConfigureContent.
-func Grid(children geometry.Elementer, opts ...GridOption) {
+// See tk/generic/tkGrid.c ConfigureContent. It returns an error, and grids
+// nothing, for a row or column outside the grid.
+func Grid(children geometry.Elementer, opts ...GridOption) error {
 	cfg := gridConfig{
 		rowSpan:    1,
 		columnSpan: 1,
@@ -323,11 +329,10 @@ func Grid(children geometry.Elementer, opts ...GridOption) {
 
 	// Bounds check; tkGrid.c rejects negative indices ("bad row value").
 	if cfg.row < 0 || cfg.column < 0 {
-		log.Printf("grid: bad row/column value %d/%d: must be a non-negative integer", cfg.row, cfg.column)
-		return
+		return fmt.Errorf("%w: row %d, column %d: must be non-negative", ErrBadIndex, cfg.row, cfg.column)
 	}
 	if cfg.row+cfg.rowSpan > maxElement || cfg.column+cfg.columnSpan > maxElement {
-		return
+		return fmt.Errorf("%w: row %d, column %d: beyond %d", ErrBadIndex, cfg.row+cfg.rowSpan, cfg.column+cfg.columnSpan, maxElement)
 	}
 
 	elements := children.GeometryElements()
@@ -346,7 +351,7 @@ func Grid(children geometry.Elementer, opts ...GridOption) {
 		parent = cfg.in
 	}
 	if parent == nil {
-		return
+		return nil
 	}
 
 	// Content without a row goes in the container's next free row, the
@@ -493,6 +498,7 @@ func Grid(children geometry.Elementer, opts ...GridOption) {
 	}
 
 	g.scheduleArrange()
+	return nil
 }
 
 // Forget removes a child from grid management.

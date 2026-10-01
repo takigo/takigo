@@ -3,6 +3,7 @@
 package square
 
 import (
+	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/option"
@@ -31,14 +32,14 @@ type Square struct {
 type SquareOption func(*Square)
 
 // Background sets the background color.
-func Background(name string) SquareOption {
-	return func(s *Square) { s.SetBackgroundName(name) }
+func Background[C color.Spec](name C) SquareOption {
+	return func(s *Square) { s.SetBackgroundColor(name) }
 }
 
 // Foreground sets the square's color.
-func Foreground(name string) SquareOption {
+func Foreground[C color.Spec](name C) SquareOption {
 	return func(s *Square) {
-		if s.SetForegroundName(name) {
+		if s.SetForegroundColor(name) {
 			col := s.Foreground
 			s.FgBorder = draw.NewBorder(col.Red, col.Green, col.Blue)
 		}
@@ -220,8 +221,8 @@ func (s *Square) Display() {
 }
 
 // Configure applies options to the square.
-func (s *Square) Configure(opts ...SquareOption) {
-	widget.Configure(s, opts, s.keepInWindow)
+func (s *Square) Configure(opts ...SquareOption) error {
+	return widget.Configure(s, opts, s.keepInWindow)
 }
 
 // Destroy cleans up the square widget.

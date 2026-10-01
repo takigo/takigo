@@ -3,6 +3,7 @@
 package frame
 
 import (
+	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/draw"
 
 	"github.com/msorc/takigo/event"
@@ -24,8 +25,8 @@ type Frame struct {
 type FrameOption func(*Frame)
 
 // Background sets the background color by name.
-func Background(name string) FrameOption {
-	return func(f *Frame) { f.SetBackgroundName(name) }
+func Background[C color.Spec](name C) FrameOption {
+	return func(f *Frame) { f.SetBackgroundColor(name) }
 }
 
 // BorderWidth sets the border width in pixels.
@@ -116,8 +117,8 @@ func (f *Frame) display() {
 }
 
 // Configure applies options to the frame.
-func (f *Frame) Configure(opts ...FrameOption) {
-	widget.Configure(f, opts, f.updateInternalBorder)
+func (f *Frame) Configure(opts ...FrameOption) error {
+	return widget.Configure(f, opts, f.updateInternalBorder)
 }
 
 // Destroy cleans up the frame.

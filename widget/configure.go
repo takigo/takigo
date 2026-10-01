@@ -11,15 +11,19 @@ type Configurable interface {
 // after any configure: rebuild the border, recompute the geometry, keep the
 // window background in step, re-arrange the content when the margins
 // changed, re-request the size from the geometry manager when it changed,
-// and schedule a redraw. computeGeometry may be nil.
-func Configure[W Configurable, O ~func(W)](w W, opts []O, computeGeometry func()) {
+// and schedule a redraw. computeGeometry may be nil. It returns the joined
+// errors of the options that could not be applied; those keep their
+// previous value and the rest take effect.
+func Configure[W Configurable, O ~func(W)](w W, opts []O, computeGeometry func()) error {
 	b := w.WidgetBase()
 	win := b.Win
 	reqW, reqH := win.ReqWidth, win.ReqHeight
 	insets := win.ContentInsets()
+	b.BeginOptions()
 	for _, opt := range opts {
 		opt(w)
 	}
+	err := b.EndOptions()
 	b.UpdateBorder()
 	if computeGeometry != nil {
 		computeGeometry()
@@ -34,4 +38,5 @@ func Configure[W Configurable, O ~func(W)](w W, opts []O, computeGeometry func()
 		win.GeomManager.RequestProc(win)
 	}
 	w.Display()
+	return err
 }

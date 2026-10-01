@@ -89,12 +89,12 @@ func JustifyOpt(j option.Justify) ListboxOption {
 	return func(lb *Listbox) { lb.Justify = j }
 }
 
-func Background(name string) ListboxOption {
-	return func(lb *Listbox) { lb.SetBackgroundName(name) }
+func Background[C color.Spec](name C) ListboxOption {
+	return func(lb *Listbox) { lb.SetBackgroundColor(name) }
 }
 
-func Foreground(name string) ListboxOption {
-	return func(lb *Listbox) { lb.SetForegroundName(name) }
+func Foreground[C color.Spec](name C) ListboxOption {
+	return func(lb *Listbox) { lb.SetForegroundColor(name) }
 }
 
 func YScrollCommand(fn func(float64, float64)) ListboxOption {
@@ -652,8 +652,8 @@ func (lb *Listbox) display() {
 }
 
 // Configure applies options.
-func (lb *Listbox) Configure(opts ...ListboxOption) {
-	widget.Configure(lb, opts, lb.computeGeometry)
+func (lb *Listbox) Configure(opts ...ListboxOption) error {
+	return widget.Configure(lb, opts, lb.computeGeometry)
 }
 
 // Destroy cleans up the listbox.

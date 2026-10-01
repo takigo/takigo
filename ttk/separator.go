@@ -51,6 +51,6 @@ func (s *Separator) requestSize() {
 }
 
 // Configure sets options after creation.
-func (s *Separator) Configure(opts ...SeparatorOption) {
-	configure(&s.TtkWidget, s, opts, func() { s.StyleName = s.orientStyle() }, s.requestSize)
+func (s *Separator) Configure(opts ...SeparatorOption) error {
+	return configure(&s.TtkWidget, s, opts, func() { s.StyleName = s.orientStyle() }, s.requestSize)
 }

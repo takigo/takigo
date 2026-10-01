@@ -3,6 +3,8 @@ package canvas
 import (
 	imgcolor "image/color"
 
+	"github.com/msorc/takigo/color"
+	"github.com/msorc/takigo/font"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/widget"
 )
@@ -11,9 +13,9 @@ import (
 type ItemOption func(canvas *Canvas, item Item) error
 
 // FillColor sets the fill color of an item.
-func FillColor(name string) ItemOption {
+func FillColor[C color.Spec](name C) ItemOption {
 	return func(c *Canvas, item Item) error {
-		col, err := c.ColorCache().Get(name)
+		col, err := c.ColorCache().Resolve(name)
 		if err != nil {
 			return err
 		}
@@ -35,9 +37,9 @@ func FillColor(name string) ItemOption {
 }
 
 // OutlineColor sets the outline color of an item.
-func OutlineColor(name string) ItemOption {
+func OutlineColor[C color.Spec](name C) ItemOption {
 	return func(c *Canvas, item Item) error {
-		col, err := c.ColorCache().Get(name)
+		col, err := c.ColorCache().Resolve(name)
 		if err != nil {
 			return err
 		}
@@ -153,9 +155,9 @@ func BitmapBackground(r, g, b, a uint8) ItemOption {
 }
 
 // FontOpt sets the font for text items.
-func FontOpt(name string) ItemOption {
+func FontOpt[F font.Spec](name F) ItemOption {
 	return func(c *Canvas, item Item) error {
-		f, err := c.FontRegistry().Get(name)
+		f, err := c.FontRegistry().Resolve(name)
 		if err != nil {
 			return err
 		}
@@ -189,9 +191,9 @@ func TextAngle(deg float64) ItemOption {
 }
 
 // TextColor sets the color for text items.
-func TextColor(name string) ItemOption {
+func TextColor[C color.Spec](name C) ItemOption {
 	return func(c *Canvas, item Item) error {
-		col, err := c.ColorCache().Get(name)
+		col, err := c.ColorCache().Resolve(name)
 		if err != nil {
 			return err
 		}

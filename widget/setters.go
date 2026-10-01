@@ -1,38 +1,85 @@
 package widget
 
 import (
-	"log"
-	"strings"
+	"errors"
+	"log/slog"
 
 	"github.com/msorc/takigo/color"
+	"github.com/msorc/takigo/font"
 )
 
 // WidgetBase returns the embedded Base; Configure reaches the common
 // fields of any widget through it.
 func (b *Base) WidgetBase() *Base { return b }
 
-func (b *Base) logPrefix() string {
-	if b.Win != nil && b.Win.Class != "" {
-		return strings.ToLower(b.Win.Class)
-	}
-	return "widget"
+// OptionErrors collects the errors of options that could not be applied.
+// Inside a Configure call they are gathered and returned by it; an option
+// that fails in a constructor, which returns no error, is logged instead.
+type OptionErrors struct {
+	collecting bool
+	errs       []error
 }
 
-// LookupColor resolves a colour name; on failure it logs and reports false
-// so the caller keeps its previous value, as every option setter does.
-func (b *Base) LookupColor(name string) (*color.Color, bool) {
-	col, err := b.App.ColorCache().Get(name)
+// BeginOptions starts gathering option errors for a Configure call.
+func (e *OptionErrors) BeginOptions() {
+	e.collecting = true
+	e.errs = nil
+}
+
+// EndOptions returns the errors gathered since BeginOptions, joined.
+func (e *OptionErrors) EndOptions() error {
+	err := errors.Join(e.errs...)
+	e.collecting = false
+	e.errs = nil
+	return err
+}
+
+// Record keeps err for EndOptions and reports true, or reports false when
+// no Configure call is gathering errors.
+func (e *OptionErrors) Record(err error) bool {
+	if e.collecting {
+		e.errs = append(e.errs, err)
+	}
+	return e.collecting
+}
+
+// LogOptionError logs an option error that no Configure call will return.
+func LogOptionError(app AppContext, path string, err error) {
+	logger := slog.Default()
+	if app != nil {
+		logger = app.Logger()
+	}
+	logger.Warn("option not applied", "widget", path, "err", err)
+}
+
+// OptionFailed reports an option that could not be applied; the widget
+// keeps its previous value. See OptionErrors.
+func (b *Base) OptionFailed(err error) {
+	if b.Record(err) {
+		return
+	}
+	path := ""
+	if b.Win != nil {
+		path = b.Win.PathName
+	}
+	LogOptionError(b.App, path, err)
+}
+
+// LookupColor resolves a colour; on failure it calls OptionFailed and
+// reports false so the caller keeps its previous value.
+func (b *Base) LookupColor[C color.Spec](c C) (*color.Color, bool) {
+	col, err := b.App.ColorCache().Resolve(c)
 	if err != nil {
-		log.Printf("%s: failed to get color %q: %v", b.logPrefix(), name, err)
+		b.OptionFailed(err)
 		return nil, false
 	}
 	return col, true
 }
 
-// SetBackgroundName sets -background from a colour name and rebuilds the
-// 3D border. It reports whether the colour was found.
-func (b *Base) SetBackgroundName(name string) bool {
-	col, ok := b.LookupColor(name)
+// SetBackgroundColor sets -background and rebuilds the 3D border. It
+// reports whether the colour was found.
+func (b *Base) SetBackgroundColor[C color.Spec](c C) bool {
+	col, ok := b.LookupColor(c)
 	if !ok {
 		return false
 	}
@@ -41,41 +88,41 @@ func (b *Base) SetBackgroundName(name string) bool {
 	return true
 }
 
-// SetForegroundName sets -foreground from a colour name.
-func (b *Base) SetForegroundName(name string) bool {
-	col, ok := b.LookupColor(name)
+// SetForegroundColor sets -foreground.
+func (b *Base) SetForegroundColor[C color.Spec](c C) bool {
+	col, ok := b.LookupColor(c)
 	if ok {
 		b.Foreground = col
 	}
 	return ok
 }
 
-// SetHighlightBackgroundName sets -highlightbackground from a colour name.
-func (b *Base) SetHighlightBackgroundName(name string) bool {
-	col, ok := b.LookupColor(name)
+// SetHighlightBackgroundColor sets -highlightbackground.
+func (b *Base) SetHighlightBackgroundColor[C color.Spec](c C) bool {
+	col, ok := b.LookupColor(c)
 	if ok {
 		b.HighlightBackground = col
 	}
 	return ok
 }
 
-// SetHighlightColorName sets -highlightcolor from a colour name.
-func (b *Base) SetHighlightColorName(name string) bool {
-	col, ok := b.LookupColor(name)
+// SetHighlightColor sets -highlightcolor.
+func (b *Base) SetHighlightColor[C color.Spec](c C) bool {
+	col, ok := b.LookupColor(c)
 	if ok {
 		b.HighlightColor = col
 	}
 	return ok
 }
 
-// SetFontName sets -font from a font name or descriptor. It reports
-// whether the font was found.
-func (b *Base) SetFontName(name string) bool {
-	f, err := b.App.FontRegistry().Get(name)
+// SetFont sets -font from a font name, descriptor or attributes. It
+// reports whether the font was found.
+func (b *Base) SetFont[F font.Spec](f F) bool {
+	fnt, err := b.App.FontRegistry().Resolve(f)
 	if err != nil {
-		log.Printf("%s: failed to get font %q: %v", b.logPrefix(), name, err)
+		b.OptionFailed(err)
 		return false
 	}
-	b.Font = f
+	b.Font = fnt
 	return true
 }

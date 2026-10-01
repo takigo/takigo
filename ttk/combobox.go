@@ -138,8 +138,8 @@ func (c *Combobox) syncState() {
 }
 
 // Configure sets options after creation.
-func (c *Combobox) Configure(opts ...ComboboxOption) {
-	configure(&c.TtkWidget, c, opts, c.syncState, c.requestSize)
+func (c *Combobox) Configure(opts ...ComboboxOption) error {
+	return configure(&c.TtkWidget, c, opts, c.syncState, c.requestSize)
 }
 
 // fieldPad ports FieldElementSize: -borderwidth widened to -focuswidth.

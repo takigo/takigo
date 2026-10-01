@@ -570,8 +570,8 @@ func (tv *Treeview) fitColumns() {
 }
 
 // Configure sets options after creation.
-func (tv *Treeview) Configure(opts ...TreeviewOption) {
-	configure(&tv.TtkWidget, tv, opts, tv.fitColumns, func() {
+func (tv *Treeview) Configure(opts ...TreeviewOption) error {
+	return configure(&tv.TtkWidget, tv, opts, tv.fitColumns, func() {
 		if !tv.Win.IsViewable() {
 			tv.computeSize()
 		}

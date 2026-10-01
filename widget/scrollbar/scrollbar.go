@@ -271,8 +271,8 @@ func (s *Scrollbar) hitTest(x, y int) region {
 }
 
 // Configure applies options.
-func (s *Scrollbar) Configure(opts ...ScrollbarOption) {
-	widget.Configure(s, opts, s.computeGeometry)
+func (s *Scrollbar) Configure(opts ...ScrollbarOption) error {
+	return widget.Configure(s, opts, s.computeGeometry)
 }
 
 // Destroy cleans up the scrollbar.

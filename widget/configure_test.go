@@ -59,7 +59,7 @@ func TestConfigureDirectRequestWrite(t *testing.T) {
 
 func TestConfigureSyncsBackground(t *testing.T) {
 	w, _ := newTestWidget()
-	bg := func(name string) testOption { return func(w *testWidget) { w.SetBackgroundName(name) } }
+	bg := func(name string) testOption { return func(w *testWidget) { w.SetBackgroundColor(name) } }
 	Configure(w, []testOption{bg("#123456")}, nil)
 	if w.Win.BackgroundPixel != w.Background.Pixel || w.Win.BackgroundPixel == 0 {
 		t.Fatalf("BackgroundPixel = %x, want %x", w.Win.BackgroundPixel, w.Background.Pixel)

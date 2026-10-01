@@ -6,6 +6,7 @@ package panedwindow
 import (
 	"slices"
 
+	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/geometry"
@@ -191,8 +192,8 @@ func HandleSizeOpt(s int) PanedWindowOption {
 	return func(pw *PanedWindow) { pw.HandleSize = s }
 }
 
-func Background(name string) PanedWindowOption {
-	return func(pw *PanedWindow) { pw.SetBackgroundName(name) }
+func Background[C color.Spec](name C) PanedWindowOption {
+	return func(pw *PanedWindow) { pw.SetBackgroundColor(name) }
 }
 
 // New creates a new PanedWindow widget.
@@ -657,8 +658,8 @@ func (pw *PanedWindow) display() {
 }
 
 // Configure applies options.
-func (pw *PanedWindow) Configure(opts ...PanedWindowOption) {
-	widget.Configure(pw, opts, pw.scheduleArrange)
+func (pw *PanedWindow) Configure(opts ...PanedWindowOption) error {
+	return widget.Configure(pw, opts, pw.scheduleArrange)
 }
 
 // Destroy cleans up.

@@ -147,8 +147,8 @@ func NewMenubutton(parent widget.Caregiver, name string, opts ...MenubuttonOptio
 }
 
 // Configure sets options after creation.
-func (mb *Menubutton) Configure(opts ...MenubuttonOption) {
-	configure(&mb.TtkWidget, mb, opts, nil, nil)
+func (mb *Menubutton) Configure(opts ...MenubuttonOption) error {
+	return configure(&mb.TtkWidget, mb, opts, nil, nil)
 }
 
 // Display renders the menubutton with an indicator arrow.

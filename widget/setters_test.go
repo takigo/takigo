@@ -3,8 +3,7 @@ package widget
 import (
 	"bytes"
 	"errors"
-	"log"
-	"os"
+	"log/slog"
 	"strings"
 	"testing"
 
@@ -40,63 +39,86 @@ type fakeApp struct {
 	appContext
 	colors *color.Cache
 	fonts  *font.Registry
+	log    *bytes.Buffer
 }
 
 func newFakeApp() fakeApp {
-	return fakeApp{colors: color.NewCache(0), fonts: font.NewRegistry(stubOpener{})}
+	return fakeApp{colors: color.NewCache(0), fonts: font.NewRegistry(stubOpener{}), log: &bytes.Buffer{}}
 }
 
 func (a fakeApp) ColorCache() *color.Cache     { return a.colors }
 func (a fakeApp) FontRegistry() *font.Registry { return a.fonts }
 func (fakeApp) DoWhenIdle(func())              {}
+func (a fakeApp) Logger() *slog.Logger {
+	return slog.New(slog.NewTextHandler(a.log, nil))
+}
 
 func newTestBase(class string) *Base {
 	return &Base{Win: &window.Window{Class: class}, App: newFakeApp()}
 }
 
-func TestSetBackgroundName(t *testing.T) {
+func TestSetBackgroundColor(t *testing.T) {
 	b := newTestBase("Button")
-	if !b.SetBackgroundName("red") {
-		t.Fatal("SetBackgroundName(red) = false")
+	if !b.SetBackgroundColor("red") {
+		t.Fatal("SetBackgroundColor(red) = false")
 	}
 	if b.Background == nil || b.Background.Red != 0xffff || b.Border == nil {
 		t.Fatalf("Background = %+v, Border = %v", b.Background, b.Border)
 	}
 	old := b.Background
 
-	var buf bytes.Buffer
-	log.SetOutput(&buf)
-	defer log.SetOutput(os.Stderr)
-	if b.SetBackgroundName("no-such-colour") {
-		t.Fatal("SetBackgroundName(bad) = true")
+	// Outside Configure (a constructor) the failure is logged.
+	buf := b.App.(fakeApp).log
+	if b.SetBackgroundColor("no-such-colour") {
+		t.Fatal("SetBackgroundColor(bad) = true")
 	}
 	if b.Background != old {
 		t.Fatal("bad name replaced the background")
 	}
-	if !strings.Contains(buf.String(), `button: failed to get color "no-such-colour"`) {
+	if !strings.Contains(buf.String(), "option not applied") || !strings.Contains(buf.String(), "no-such-colour") {
 		t.Fatalf("log = %q", buf.String())
+	}
+
+	// Inside Configure it is returned instead.
+	buf.Reset()
+	b.BeginOptions()
+	b.SetBackgroundColor("no-such-colour")
+	b.SetForegroundColor(color.RGB(0, 0, 255))
+	err := b.EndOptions()
+	if !errors.Is(err, color.ErrUnknown) {
+		t.Fatalf("EndOptions() = %v, want color.ErrUnknown", err)
+	}
+	if buf.Len() != 0 {
+		t.Fatalf("collected error was also logged: %q", buf.String())
+	}
+	if b.Foreground == nil || b.Foreground.Blue != 0xffff || b.Foreground.Red != 0 {
+		t.Fatalf("Foreground = %+v, want blue", b.Foreground)
+	}
+	if b.EndOptions() != nil {
+		t.Fatal("EndOptions did not reset the collected errors")
 	}
 }
 
-func TestSetFontName(t *testing.T) {
+func TestSetFont(t *testing.T) {
 	b := newTestBase("")
-	if !b.SetFontName("Helvetica 12") {
+	if !b.SetFont("Helvetica 12") {
 		t.Fatal("SetFontName = false")
 	}
 	if b.Font.Attrs().Family != "Helvetica" {
 		t.Fatalf("Font = %+v", b.Font.Attrs())
 	}
-	var buf bytes.Buffer
-	log.SetOutput(&buf)
-	defer log.SetOutput(os.Stderr)
 	old := b.Font
-	if b.SetFontName("nofont 12") {
-		t.Fatal("SetFontName(nofont) = true")
+	b.BeginOptions()
+	if b.SetFont("nofont 12") {
+		t.Fatal("SetFont(nofont) = true")
+	}
+	if err := b.EndOptions(); !errors.Is(err, font.ErrNotFound) {
+		t.Fatalf("EndOptions() = %v, want font.ErrNotFound", err)
 	}
 	if b.Font != old {
 		t.Fatal("bad name replaced the font")
 	}
-	if !strings.Contains(buf.String(), `widget: failed to get font "nofont 12"`) {
-		t.Fatalf("log = %q", buf.String())
+	if !b.SetFont(font.Attributes{Family: "Courier", Size: 10}) || b.Font.Attrs().Family != "Courier" {
+		t.Fatalf("SetFont(Attributes): Font = %+v", b.Font.Attrs())
 	}
 }

@@ -102,9 +102,9 @@ func (f *Frame) updateMargins() {
 // Configure sets options after creation. Only a changed -width/-height
 // resets the request: otherwise it belongs to the content's geometry
 // manager, which the changed margins make recompute it.
-func (f *Frame) Configure(opts ...FrameOption) {
+func (f *Frame) Configure(opts ...FrameOption) error {
 	width, height := f.width, f.height
-	configure(&f.TtkWidget, f, opts, nil, func() {
+	return configure(&f.TtkWidget, f, opts, nil, func() {
 		f.updateMargins()
 		if f.width != width || f.height != height {
 			f.Win.ReqWidth, f.Win.ReqHeight = max(f.width, 1), max(f.height, 1)

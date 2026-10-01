@@ -1,7 +1,7 @@
 package window
 
 import (
-	"log"
+	"log/slog"
 	"os"
 	"slices"
 
@@ -139,7 +139,7 @@ func destroyWindowDepth(w *Window, depth int) {
 		return
 	}
 	if depth > 1000 {
-		log.Printf("window: destroy of %s exceeds depth 1000; subtree leaked", w.PathName)
+		slog.Warn("window: destroy exceeds depth 1000; subtree leaked", "window", w.PathName)
 		return
 	}
 	w.Flags |= FlagAlreadyDead

@@ -101,8 +101,8 @@ func (ts *Toggleswitch) linkVariable() {
 }
 
 // Configure sets options after creation.
-func (ts *Toggleswitch) Configure(opts ...ToggleswitchOption) {
-	configure(&ts.TtkWidget, ts, opts, ts.linkVariable, ts.computeSize)
+func (ts *Toggleswitch) Configure(opts ...ToggleswitchOption) error {
+	return configure(&ts.TtkWidget, ts, opts, ts.linkVariable, ts.computeSize)
 }
 
 // Toggleswitch2 geometry (tk/library/ttk/elements.tcl, troughData(2) and

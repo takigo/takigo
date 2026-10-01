@@ -9,6 +9,7 @@ import (
 	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/event"
+	"github.com/msorc/takigo/font"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/screenunit"
@@ -75,19 +76,19 @@ func Command(fn func()) ButtonOption {
 }
 
 // Background sets the background color.
-func Background(name string) ButtonOption {
-	return func(b *Button) { b.SetBackgroundName(name) }
+func Background[C color.Spec](name C) ButtonOption {
+	return func(b *Button) { b.SetBackgroundColor(name) }
 }
 
 // Foreground sets the text color.
-func Foreground(name string) ButtonOption {
-	return func(b *Button) { b.SetForegroundName(name) }
+func Foreground[C color.Spec](name C) ButtonOption {
+	return func(b *Button) { b.SetForegroundColor(name) }
 }
 
 // FontOpt sets the font.
-func FontOpt(name string) ButtonOption {
+func FontOpt[F font.Spec](name F) ButtonOption {
 	return func(b *Button) {
-		if b.SetFontName(name) {
+		if b.SetFont(name) {
 			b.zeroCharWidth = b.Font.MeasureString("0")
 		}
 	}
@@ -489,8 +490,8 @@ func (b *Button) SetText(s string) {
 }
 
 // Configure applies options to the button.
-func (b *Button) Configure(opts ...ButtonOption) {
-	widget.Configure(b, opts, b.computeGeometry)
+func (b *Button) Configure(opts ...ButtonOption) error {
+	return widget.Configure(b, opts, b.computeGeometry)
 }
 
 // Destroy cleans up the button.

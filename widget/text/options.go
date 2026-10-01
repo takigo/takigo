@@ -1,6 +1,11 @@
 package text
 
-import "github.com/msorc/takigo/screenunit"
+import (
+	"github.com/msorc/takigo/font"
+	"github.com/msorc/takigo/screenunit"
+
+	"github.com/msorc/takigo/color"
+)
 
 // WrapMode specifies how lines are wrapped at widget boundaries.
 type WrapMode int
@@ -30,18 +35,18 @@ func WrapModeOpt(mode WrapMode) TextOption {
 }
 
 // Background sets the background color.
-func Background(name string) TextOption {
-	return func(t *TextWidget) { t.SetBackgroundName(name) }
+func Background[C color.Spec](name C) TextOption {
+	return func(t *TextWidget) { t.SetBackgroundColor(name) }
 }
 
 // Foreground sets the text foreground color.
-func Foreground(name string) TextOption {
-	return func(t *TextWidget) { t.SetForegroundName(name) }
+func Foreground[C color.Spec](name C) TextOption {
+	return func(t *TextWidget) { t.SetForegroundColor(name) }
 }
 
 // FontOpt sets the font.
-func FontOpt(name string) TextOption {
-	return func(t *TextWidget) { t.SetFontName(name) }
+func FontOpt[F font.Spec](name F) TextOption {
+	return func(t *TextWidget) { t.SetFont(name) }
 }
 
 // BorderWidthOpt sets the border width.

@@ -571,8 +571,8 @@ func (t *TextWidget) XViewScroll(count int, pages bool) {
 }
 
 // Configure applies options.
-func (t *TextWidget) Configure(opts ...TextOption) {
-	widget.Configure(t, opts, t.computeGeometry)
+func (t *TextWidget) Configure(opts ...TextOption) error {
+	return widget.Configure(t, opts, t.computeGeometry)
 }
 
 // Destroy cleans up the text widget.

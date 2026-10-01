@@ -1,7 +1,7 @@
 package canvas
 
 import (
-	"log"
+	"fmt"
 	"slices"
 
 	"github.com/msorc/takigo/color"
@@ -133,8 +133,8 @@ func Height[L screenunit.Length](h L) CanvasOption {
 	return func(c *Canvas) { c.reqH = screenunit.ToPixels(h) }
 }
 
-func Background(name string) CanvasOption {
-	return func(c *Canvas) { c.SetBackgroundName(name) }
+func Background[C color.Spec](name C) CanvasOption {
+	return func(c *Canvas) { c.SetBackgroundColor(name) }
 }
 
 func BorderWidthOpt(w int) CanvasOption {
@@ -485,10 +485,12 @@ func (c *Canvas) Destroy() {
 }
 
 // Configure sets canvas options.
-func (c *Canvas) Configure(opts ...CanvasOption) {
+func (c *Canvas) Configure(opts ...CanvasOption) error {
+	c.BeginOptions()
 	for _, opt := range opts {
 		opt(c)
 	}
+	err := c.EndOptions()
 	if inset := c.BorderWidth + c.HighlightWidth; inset != c.inset {
 		c.xOrigin += inset - c.inset
 		c.yOrigin += inset - c.inset
@@ -504,6 +506,7 @@ func (c *Canvas) Configure(opts ...CanvasOption) {
 		geometry.GeometryRequest(c.Win, rw, rh)
 	}
 	c.scheduleRedraw()
+	return err
 }
 
 // --- Item creation ---
@@ -517,7 +520,7 @@ func (c *Canvas) createItem(item Item, opts []ItemOption) int64 {
 
 func (c *Canvas) configureNew(item Item, opts []ItemOption) bool {
 	if err := item.Configure(opts); err != nil {
-		log.Printf("canvas: create %s: %v", item.Type(), err)
+		c.OptionFailed(fmt.Errorf("canvas: create %s: %w", item.Type(), err))
 		return false
 	}
 	return true

@@ -6,8 +6,10 @@ package message
 import (
 	"strings"
 
+	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/event"
+	"github.com/msorc/takigo/font"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/screenunit"
@@ -42,18 +44,18 @@ func Text(s string) MessageOption {
 }
 
 // Background sets the background color.
-func Background(name string) MessageOption {
-	return func(m *Message) { m.SetBackgroundName(name) }
+func Background[C color.Spec](name C) MessageOption {
+	return func(m *Message) { m.SetBackgroundColor(name) }
 }
 
 // Foreground sets the text color.
-func Foreground(name string) MessageOption {
-	return func(m *Message) { m.SetForegroundName(name) }
+func Foreground[C color.Spec](name C) MessageOption {
+	return func(m *Message) { m.SetForegroundColor(name) }
 }
 
 // FontOpt sets the font.
-func FontOpt(name string) MessageOption {
-	return func(m *Message) { m.SetFontName(name) }
+func FontOpt[F font.Spec](name F) MessageOption {
+	return func(m *Message) { m.SetFont(name) }
 }
 
 // BorderWidth sets the border width.
@@ -332,8 +334,8 @@ func (m *Message) display() {
 }
 
 // Configure applies options to the message.
-func (m *Message) Configure(opts ...MessageOption) {
-	widget.Configure(m, opts, m.computeGeometry)
+func (m *Message) Configure(opts ...MessageOption) error {
+	return widget.Configure(m, opts, m.computeGeometry)
 }
 
 // Destroy cleans up the message widget.

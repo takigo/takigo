@@ -4,7 +4,6 @@ package spinbox
 
 import (
 	"fmt"
-	"log"
 	"math"
 	"slices"
 	"strconv"
@@ -93,18 +92,18 @@ func ValidateCmdOpt(fn func(string) bool) SpinboxOption {
 }
 
 // ButtonBackground sets -buttonbackground.
-func ButtonBackground(name string) SpinboxOption {
+func ButtonBackground[C color.Spec](name C) SpinboxOption {
 	return func(s *Spinbox) {
-		if c, err := s.App.ColorCache().Get(name); err == nil {
+		if c, err := s.App.ColorCache().Resolve(name); err == nil {
 			s.ButtonBg = c.Ref()
 		} else {
-			log.Printf("spinbox: failed to get color %q: %v", name, err)
+			s.OptionFailed(err)
 		}
 	}
 }
 
-func Background(name string) SpinboxOption {
-	return func(s *Spinbox) { s.SetBackgroundName(name) }
+func Background[C color.Spec](name C) SpinboxOption {
+	return func(s *Spinbox) { s.SetBackgroundColor(name) }
 }
 
 // New creates a new Spinbox widget.
@@ -658,8 +657,8 @@ func (s *Spinbox) drawButtons(d platform.DisplayServer, gc platform.GCID) {
 }
 
 // Configure applies options.
-func (s *Spinbox) Configure(opts ...SpinboxOption) {
-	widget.Configure(s, opts, s.computeGeometry)
+func (s *Spinbox) Configure(opts ...SpinboxOption) error {
+	return widget.Configure(s, opts, s.computeGeometry)
 }
 
 // Destroy cleans up the spinbox.

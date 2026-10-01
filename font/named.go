@@ -1,6 +1,8 @@
 package font
 
 import (
+	"errors"
+	"fmt"
 	"maps"
 	"sync"
 )
@@ -20,6 +22,10 @@ const (
 
 // namedFontDefs maps named font names to their default attributes.
 // Defined in platform-specific files (named_darwin.go, named_unix.go, etc.).
+
+// ErrNotFound is wrapped by the errors Registry.Get returns for a font
+// that cannot be parsed or opened.
+var ErrNotFound = errors.New("font: not found")
 
 // FontOpener is the interface for platform-specific font creation,
 // implemented by each backend (font/xft, font/gdi, platform/cocoa), so this
@@ -86,7 +92,7 @@ func (r *Registry) Get(name string) (Font, error) {
 		var err error
 		attrs, err = ParseDescriptor(name)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("%w: %q: %w", ErrNotFound, name, err)
 		}
 	}
 
@@ -98,7 +104,7 @@ func (r *Registry) Get(name string) (Font, error) {
 		var err error
 		f, err = r.opener.OpenFont(attrs)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("%w: %q: %w", ErrNotFound, name, err)
 		}
 		r.opened[attrs] = f
 	}
@@ -107,6 +113,23 @@ func (r *Registry) Get(name string) (Font, error) {
 	}
 	r.cache[name] = f
 	return f, nil
+}
+
+// Spec is what a font option accepts: a named font or Tk font descriptor
+// ("Helvetica 12 bold"), or the Attributes themselves.
+type Spec interface {
+	string | Attributes
+}
+
+// Resolve returns the font for a Spec.
+func (r *Registry) Resolve[S Spec](s S) (Font, error) {
+	switch v := any(s).(type) {
+	case string:
+		return r.Get(v)
+	case Attributes:
+		return r.Get(v.Descriptor())
+	}
+	return nil, ErrNotFound
 }
 
 // maxCachedNames bounds the name → font shortcut index of a Registry.

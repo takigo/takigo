@@ -105,8 +105,8 @@ func (r *Radiobutton) syncSelected() {
 }
 
 // Configure sets options after creation.
-func (r *Radiobutton) Configure(opts ...RadiobuttonOption) {
-	configure(&r.TtkWidget, r, opts, r.syncSelected, r.computeSize)
+func (r *Radiobutton) Configure(opts ...RadiobuttonOption) error {
+	return configure(&r.TtkWidget, r, opts, r.syncSelected, r.computeSize)
 }
 
 func (r *Radiobutton) computeSize() {

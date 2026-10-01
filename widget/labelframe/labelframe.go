@@ -3,8 +3,10 @@
 package labelframe
 
 import (
+	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/event"
+	"github.com/msorc/takigo/font"
 	"github.com/msorc/takigo/geometry"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
@@ -38,13 +40,13 @@ func Text(s string) LabelframeOption {
 }
 
 // Background sets the background color.
-func Background(name string) LabelframeOption {
-	return func(lf *Labelframe) { lf.SetBackgroundName(name) }
+func Background[C color.Spec](name C) LabelframeOption {
+	return func(lf *Labelframe) { lf.SetBackgroundColor(name) }
 }
 
 // Foreground sets the label text color.
-func Foreground(name string) LabelframeOption {
-	return func(lf *Labelframe) { lf.SetForegroundName(name) }
+func Foreground[C color.Spec](name C) LabelframeOption {
+	return func(lf *Labelframe) { lf.SetForegroundColor(name) }
 }
 
 // BorderWidth sets the border width.
@@ -68,8 +70,8 @@ func Height(h int) LabelframeOption {
 }
 
 // FontOpt sets the font.
-func FontOpt(name string) LabelframeOption {
-	return func(lf *Labelframe) { lf.SetFontName(name) }
+func FontOpt[F font.Spec](name F) LabelframeOption {
+	return func(lf *Labelframe) { lf.SetFont(name) }
 }
 
 // LabelAnchor sets where the label sits on the border.
@@ -392,8 +394,8 @@ func (lf *Labelframe) Window() *window.Window {
 }
 
 // Configure applies options.
-func (lf *Labelframe) Configure(opts ...LabelframeOption) {
-	widget.Configure(lf, opts, func() {
+func (lf *Labelframe) Configure(opts ...LabelframeOption) error {
+	return widget.Configure(lf, opts, func() {
 		lf.computeTextSize()
 		lf.updateInternalBorder()
 	})

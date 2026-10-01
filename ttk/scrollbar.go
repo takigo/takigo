@@ -103,8 +103,8 @@ func (s *Scrollbar) requestSize() {
 }
 
 // Configure sets options after creation.
-func (s *Scrollbar) Configure(opts ...ScrollbarOption) {
-	configure(&s.TtkWidget, s, opts, func() { s.StyleName = s.orientStyle() }, s.requestSize)
+func (s *Scrollbar) Configure(opts ...ScrollbarOption) error {
+	return configure(&s.TtkWidget, s, opts, func() { s.StyleName = s.orientStyle() }, s.requestSize)
 }
 
 // Set updates the thumb position. Called by the scrolled widget.
