@@ -127,7 +127,7 @@ Scope: package layout, platform abstraction, widget API, geometry/event subsyste
 
 ### 20. No widget-by-name lookup
 - `PathName` and `Name` are stored on `Window` but no `Display.LookupByName(path string) *Window` helper exists. `bind.BindingTable` works on string tags but cannot tell you which widget resolved.
-- **Status**: open.
+- **Status**: done (2026-10-01). `Window.Lookup(path)` and `App.Lookup(path)`; sibling names are now unique.
 
 ### 21. Direct-draw vs pixmap-draw inconsistency
 - Button / Label / Frame draw straight to the window. Canvas / TtkWidget / TextWidget use offscreen pixmaps. Different behaviour during resize / expose. Document or unify.

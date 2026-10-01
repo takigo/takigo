@@ -249,6 +249,12 @@ func (a *App) Root() *window.Window {
 	return a.root
 }
 
+// Lookup returns the window with the given Tk path name (".frame.ok"), or
+// nil if there is none.
+func (a *App) Lookup(path string) *window.Window {
+	return a.root.Lookup(path)
+}
+
 // Window returns the root window, satisfying the widget.Caregiver interface.
 func (a *App) Window() *window.Window {
 	return a.root

@@ -55,11 +55,12 @@ type Window struct {
 	Display    *Display
 
 	// Hierarchy.
-	Parent   *Window
-	Children []*Window
-	PathName string // full path like ".frame1.button1"
-	Name     string // local name within parent
-	Class    string // widget class like "Button" or "TButton" (TkWindow.classUid)
+	Parent    *Window
+	Children  []*Window
+	PathName  string // full path like ".frame1.button1"
+	autoNames int    // last number used for a generated child name
+	Name      string // local name within parent
+	Class     string // widget class like "Button" or "TButton" (TkWindow.classUid)
 
 	// Geometry.
 	X, Y          int

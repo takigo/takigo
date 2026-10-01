@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"os"
 	"slices"
+	"strconv"
 
 	"github.com/msorc/takigo/platform"
 )
@@ -192,8 +193,41 @@ func destroyWindowDepth(w *Window, depth int) {
 	}
 }
 
-// NewChildWindow creates a new child window.
+func uniqueChildName(parent *Window, name string) string {
+	taken := func(n string) bool {
+		for _, c := range parent.Children {
+			if c.Name == n {
+				return true
+			}
+		}
+		return false
+	}
+	if name == "" {
+		for {
+			parent.autoNames++
+			if n := "w" + strconv.Itoa(parent.autoNames); !taken(n) {
+				return n
+			}
+		}
+	}
+	if !taken(name) {
+		return name
+	}
+	for i := 2; ; i++ {
+		if n := name + "#" + strconv.Itoa(i); !taken(n) {
+			slog.Warn("window name already exists in parent; renamed",
+				"parent", parent.PathName, "name", name, "renamed", n)
+			return n
+		}
+	}
+}
+
+// NewChildWindow creates a new child window. An empty name gets a generated
+// one ("w1", "w2", ...). Tk rejects a name a sibling already has; here the
+// newcomer is renamed ("name#2") and a warning logged, so that the two do
+// not share a path, and with it their bindings.
 func NewChildWindow(parent *Window, name string, x, y, width, height int) *Window {
+	name = uniqueChildName(parent, name)
 	w := &Window{
 		Display:         parent.Display,
 		Parent:          parent,
