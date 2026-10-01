@@ -81,7 +81,7 @@ func main() {
 		for _, themeName := range themes {
 			name := themeName // capture for closure
 			m.AddCommand(name, func() {
-				ttk.SetCurrentTheme(name)
+				_ = ttk.UseTheme(app, name)
 			})
 		}
 		mb.Menu = m

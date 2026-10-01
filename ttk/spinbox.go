@@ -126,6 +126,7 @@ func NewSpinbox(parent widget.Caregiver, name string, opts ...SpinboxOption) *Sp
 	}
 
 	InitTtkWidget(&s.TtkWidget, win, app, "TSpinbox")
+	s.reconfigure = func() { _ = s.Configure() }
 	s.DisplayFunc = s.Display
 
 	for _, opt := range opts {

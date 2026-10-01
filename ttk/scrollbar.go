@@ -76,6 +76,7 @@ func NewScrollbar(parent widget.Caregiver, name string, opts ...ScrollbarOption)
 	}
 
 	InitTtkWidget(&s.TtkWidget, win, app, s.orientStyle())
+	s.reconfigure = func() { _ = s.Configure() }
 	s.DisplayFunc = s.Display
 	s.requestSize()
 

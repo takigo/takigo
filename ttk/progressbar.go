@@ -80,6 +80,7 @@ func NewProgressbar(parent widget.Caregiver, name string, opts ...ProgressbarOpt
 	}
 
 	InitTtkWidget(&p.TtkWidget, win, app, p.orientStyle())
+	p.reconfigure = func() { _ = p.Configure() }
 	win.OnDestroy(p.Destroy)
 	p.DisplayFunc = p.Display
 	p.requestSize()

@@ -73,6 +73,7 @@ func NewScale(parent widget.Caregiver, name string, opts ...ScaleOption) *Scale 
 		opt(s)
 	}
 	InitTtkWidget(&s.TtkWidget, win, app, s.orientStyle())
+	s.reconfigure = func() { _ = s.Configure() }
 	win.OnDestroy(s.Destroy)
 	win.Class = "TScale"
 	s.linkVariable()

@@ -219,6 +219,7 @@ func NewTreeview(parent widget.Caregiver, name string, opts ...TreeviewOption) *
 	tv.items[""] = tv.root
 
 	InitTtkWidget(&tv.TtkWidget, win, app, "TTreeview")
+	tv.reconfigure = func() { _ = tv.Configure() }
 	tv.DisplayFunc = tv.Display
 
 	for _, opt := range opts {

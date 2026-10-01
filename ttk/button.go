@@ -100,6 +100,7 @@ func NewButton(parent widget.Caregiver, name string, opts ...ButtonOption) *Butt
 	win.Flags |= window.FlagFocusable
 
 	initTtkBase(&b.TtkWidget, win, app, "TButton")
+	b.reconfigure = func() { _ = b.Configure() }
 
 	for _, opt := range opts {
 		opt(b)
