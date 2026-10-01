@@ -45,6 +45,7 @@ type App struct {
 	selMgr     *selection.Manager
 	grabMgr    *grab.Manager
 	logger     *slog.Logger
+	dnd        *dnd
 }
 
 // NewApp creates a new takigo application. It opens the X11 display,
@@ -242,6 +243,9 @@ func NewApp(opts ...AppOption) (*App, error) {
 	// This mirrors TkWmProtocolEventProc in tk/unix/tkUnixWm.c.
 	dispatcher.BindGlobal(event.ClientMessageMask, func(ev *event.Event) {
 		if ev.Type != event.ClientMessageType {
+			return
+		}
+		if app.dnd != nil && app.dnd.handle(ev) {
 			return
 		}
 		// Look up the window and dispatch via its WmInfo.
