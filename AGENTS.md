@@ -18,7 +18,9 @@ go build ./...
 
 # Run all unit tests. Most tests don't need an X display; GUI tests
 # (tests/, platform/x11/x11_test.go, anything using internal/testutil)
-# call t.Skip when DISPLAY is unset.
+# start a private Xvfb for their test binary when Xvfb is installed, so they
+# never open windows on your screen (TAKIGO_TEST_DISPLAY=real uses your
+# DISPLAY instead; without Xvfb they use it, or skip when it is unset).
 go test -short ./...
 
 # Run only a package.
@@ -312,7 +314,11 @@ package maps: several Apps may run at once on different goroutines
   `DISPLAY` nor `WAYLAND_DISPLAY` is set. It also holds
   `internal/displaylock` for the test: `go test ./...` runs the packages'
   binaries in parallel on one screen, where their windows overlap.
-- On a real desktop (not xvfb-run) a window manager places windows where it
+- Display tests get their own Xvfb from `displaylock.UseVirtualDisplay()`,
+  called by `testutil.RequireDisplay` and the other `requireDisplay`
+  helpers; any new check of `DISPLAY` in a test must call it first.
+  The rest of this item applies to `TAKIGO_TEST_DISPLAY=real`: on a real
+  desktop a window manager places windows where it
   likes and may map them behind the user's own. Display tests that count X
   errors, open several generations of Apps, or aim at window positions call
   `testutil.Settle()` between generations (a real server hands the next

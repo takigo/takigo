@@ -14,6 +14,7 @@ import (
 
 func requireDisplay(t *testing.T) {
 	t.Helper()
+	displaylock.UseVirtualDisplay()
 	if os.Getenv("DISPLAY") == "" && os.Getenv("WAYLAND_DISPLAY") == "" {
 		t.Skip("no display available (set DISPLAY or use xvfb-run)")
 	}

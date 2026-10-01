@@ -9,3 +9,6 @@ import "testing"
 
 // Acquire does nothing on this platform.
 func Acquire(testing.TB) {}
+
+// UseVirtualDisplay does nothing on this platform.
+func UseVirtualDisplay() {}

@@ -27,6 +27,10 @@ var (
 // flock on a second descriptor would wait for the first.
 func Acquire(t testing.TB) {
 	t.Helper()
+	UseVirtualDisplay()
+	if virtual {
+		return // this binary has a display of its own: nothing to share
+	}
 	mu.Lock()
 	defer mu.Unlock()
 	if holders == 0 {

@@ -8,11 +8,13 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/msorc/takigo/internal/displaylock"
 	"github.com/msorc/takigo/internal/xlib"
 )
 
 func openTestXft(t testing.TB) *XftFont {
 	t.Helper()
+	displaylock.UseVirtualDisplay()
 	if os.Getenv("DISPLAY") == "" {
 		t.Skip("no display available (set DISPLAY or use xvfb-run)")
 	}
