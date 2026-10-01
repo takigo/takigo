@@ -40,7 +40,7 @@ Scope: package layout, platform abstraction, widget API, geometry/event subsyste
   ```
 - `widget.WidgetImage` (`widget/widget.go:21`) already declares that exact `Draw` signature, and `*image.Photo` implements it.
 - **Fix**: call `img.Draw(d, w.Drawable(), gc, w.Depth, 0, 0, imgW, imgH, ix, iy, bgPixel)` directly. The whole `if photo, ok := ...` block disappears.
-- **Status**: open (`checkbutton.go:486`, `radiobutton.go:411`).
+- **Status**: done (2026-10-01).
 
 ### 4. Duplicate WM atom cache
 - `window.Display` interns `WMDeleteWindow` / `WMProtocols` (`window/display.go:47-48`) and stores them on the struct. They are used once in `window/create.go:64` and never read again.
@@ -65,7 +65,7 @@ Scope: package layout, platform abstraction, widget API, geometry/event subsyste
 ### 7. `widget.AppContext` is doing too much (16 methods)
 - Bundles dispatcher + idle + timer + clipboard + quit + nested loop + close handlers + color / font / image registries + self-reference.
 - **Fix**: split into `widget.Resources` (registries), `widget.EventHost` (dispatcher / idle / after), `widget.Clipboard`. Pass only what each widget needs.
-- **Status**: open; `AppContext` has grown to about 16 methods.
+- **Status**: partly done (2026-10-01). `AppContext` is composed of `widget.Resources` and `widget.Scheduler`, which narrower code can take; widgets still receive the whole `AppContext`.
 
 ### 8. Rendering duplication across interactive widgets
 - `widget/button/button.go:222-317`, `widget/checkbutton/checkbutton.go:285-468`, and `widget/radiobutton/radiobutton.go` all reimplement: background fill, 3D border draw, active / disabled / pressed / focus color switching, anchor placement, text-draw-with-font, highlight ring.
@@ -140,7 +140,7 @@ Scope: package layout, platform abstraction, widget API, geometry/event subsyste
 ## Suggested implementation order
 
 1. ~~**#1** typed Configure~~ — done
-2. **#3** drop inline type assertions — trivial
+2. ~~**#3** drop inline type assertions~~ — done
 3. **#4** dedupe WM atom cache — trivial
 4. ~~**#2** pick a side for BindEngine~~ — done
 5. ~~**#10** typed `cursor.Shape`~~ — done

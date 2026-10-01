@@ -99,35 +99,47 @@ type ClipboardManager interface {
 	Get(requestor platform.WindowID, time platform.Timestamp, callback func(string))
 }
 
-// AppContext provides the application services widgets need.
-// This avoids importing the top-level takigo package.
-type AppContext interface {
-	AppContext() AppContext
-	Window() *window.Window
-	Dispatcher() *event.Dispatcher
-	DoWhenIdle(fn func())
+// Resources are the App's shared lookups: colours, fonts, images and the
+// logger. Code that only resolves resources can take this instead of the
+// whole AppContext.
+type Resources interface {
 	ColorCache() *color.Cache
 	FontRegistry() *font.Registry
-	Server() platform.DisplayServer
 	ImageRegistry() *image.Registry
+	// Logger returns the application's logger.
+	Logger() *slog.Logger
+}
+
+// Scheduler runs work on the App's event loop.
+type Scheduler interface {
+	DoWhenIdle(fn func())
+	// After schedules a function to run after a delay and returns a
+	// function that cancels it (Tcl's "after cancel").
+	After(d time.Duration, fn func()) (cancel func() bool)
 	// RunNestedLoop processes events until done is closed.
 	// Used by modal dialogs to keep the event loop alive while blocking.
 	RunNestedLoop(done <-chan struct{})
-	// RunNestedLoopContext processes events until the context is cancelled or done is closed.
-	// Context-aware version for cancellation support.
+	// RunNestedLoopContext is RunNestedLoop that also returns when the
+	// context is cancelled.
 	RunNestedLoopContext(ctx context.Context, done <-chan struct{})
+	Quit()
+}
+
+// AppContext provides the application services widgets need.
+// This avoids importing the top-level takigo package.
+type AppContext interface {
+	Resources
+	Scheduler
+	AppContext() AppContext
+	Window() *window.Window
+	Dispatcher() *event.Dispatcher
+	Server() platform.DisplayServer
 	// RegisterCloseHandler registers a WM_DELETE_WINDOW handler for a toplevel window.
 	RegisterCloseHandler(w platform.WindowID, fn func())
 	// UnregisterCloseHandler removes a WM_DELETE_WINDOW handler.
 	UnregisterCloseHandler(w platform.WindowID)
-	// After schedules a function to run after a delay and returns a
-	// function that cancels it (Tcl's "after cancel").
-	After(d time.Duration, fn func()) (cancel func() bool)
-	Quit()
 	// Clipboard returns the application clipboard manager.
 	Clipboard() ClipboardManager
-	// Logger returns the application's logger.
-	Logger() *slog.Logger
 }
 
 // Window returns the widget's underlying window.
