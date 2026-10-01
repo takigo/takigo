@@ -1939,7 +1939,7 @@ func main() {
 
 	// BaseDimensions (CanX 675, CanY 540, ScrX/ScrY 750) times
 	// overallFactor 0.75, in points.
-	dim := func(base float64) int { return screenunit.Px(fmt.Sprintf("%gp", base*0.75)) }
+	dim := func(base float64) int { return screenunit.Pt(base * 0.75).Pixels() }
 
 	g := &goldberg{
 		app:     app,
@@ -1953,7 +1953,7 @@ func main() {
 
 	// DoDisplay.
 	ctrl := ttk.NewFrame(app, "ctrl", ttk.FrameRelief(option.ReliefRidge),
-		ttk.FrameBorderWidth(1), ttk.FramePadding(ttk.UniformPadding(screenunit.Px("3p"))))
+		ttk.FrameBorderWidth(1), ttk.FramePadding(ttk.UniformPadding(screenunit.Pt(3).Pixels())))
 	screen := frame.New(app, "screen", frame.BorderWidth(1), frame.Relief(option.ReliefRaised))
 	pack.Pack(screen, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 	c := canvas.New(app, "c",
@@ -1990,35 +1990,35 @@ func main() {
 		row++
 	}
 	gridRow(start)
-	grid.RowConfigure(ctrl, 1, grid.MinSize(screenunit.Px("3p")))
+	grid.RowConfigure(ctrl, 1, grid.MinSize(screenunit.Pt(3).Pixels()))
 	row = 2
 	gridRow(pauseCb)
-	gridRow(step, grid.PadY("1.5p"))
+	gridRow(step, grid.PadY(screenunit.Pt(1.5)))
 	gridRow(bstep)
-	gridRow(reset, grid.PadY("1.5p"))
-	grid.RowConfigure(ctrl, 10, grid.MinSize(screenunit.Px("3p")))
+	gridRow(reset, grid.PadY(screenunit.Pt(1.5)))
+	grid.RowConfigure(ctrl, 10, grid.MinSize(screenunit.Pt(3).Pixels()))
 	row = 11
 	gridRow(details)
 	details.SetLabelWidget(detailsCb)
 	grid.Grid(ttk.NewFrame(details, "b", ttk.FrameHeight(1))) // "Work around minor bug"
-	grid.RowConfigure(ctrl, 11, grid.MinSize(screenunit.Px("3p")))
+	grid.RowConfigure(ctrl, 11, grid.MinSize(screenunit.Pt(3).Pixels()))
 	grid.RowConfigure(ctrl, 50, grid.Weight(1))
 	row = 98
-	gridRow(message, grid.PadYPair(0, "3p"))
+	gridRow(message, grid.PadYPair(0, screenunit.Pt(3)))
 	grid.Grid(msgEntry, grid.Sticky(grid.NSEW))
-	gridRow(speedLf, grid.PadYPair(0, "3p"))
+	gridRow(speedLf, grid.PadYPair(0, screenunit.Pt(3)))
 	pack.Pack(speedScale, pack.FillOpt(pack.FillBoth), pack.Expand(true))
 	gridRow(about)
-	gridRow(ttk.NewSeparator(ctrl, "sep"), grid.PadYPair("3p", "1.5p"))
+	gridRow(ttk.NewSeparator(ctrl, "sep"), grid.PadYPair(screenunit.Pt(3), screenunit.Pt(1.5)))
 	// "See Code / Dismiss buttons hack!": the standard button bar is made
 	// (and left unmanaged), and copies of its two buttons are stacked.
 	demohelper.AddSeeDismiss(ctrl)
 	gridRow(ttk.NewButton(ctrl, "b1", ttk.ButtonText("See Code"), ttk.ButtonImage(demohelper.Image("view")),
 		ttk.ButtonCompound(widget.CompoundLeft), ttk.ButtonCommand(func() { demohelper.ShowCode(app) })),
-		grid.PadYPair("1.5p", 0))
+		grid.PadYPair(screenunit.Pt(1.5), 0))
 	gridRow(ttk.NewButton(ctrl, "b2", ttk.ButtonText("Dismiss"), ttk.ButtonImage(demohelper.Image("delete")),
 		ttk.ButtonCompound(widget.CompoundLeft), ttk.ButtonCommand(app.Quit)),
-		grid.PadYPair("1.5p", 0))
+		grid.PadYPair(screenunit.Pt(1.5), 0))
 
 	show := ttk.NewButton(app, "show", ttk.ButtonText("▶"), ttk.ButtonWidth(2))
 	show.Command = func() {
@@ -2038,13 +2038,13 @@ func main() {
 
 	// StartMessage / PlacedDialog.
 	placedDialog := func(msg, fnt string) {
-		mf := frame.New(c, "messframe", frame.Relief(option.ReliefRaised), frame.BorderWidth(screenunit.Px("3p")))
-		lab := label.New(mf, "lab", label.FontOpt(fnt), label.WrapLength("3i"),
+		mf := frame.New(c, "messframe", frame.Relief(option.ReliefRaised), frame.BorderWidth(screenunit.Pt(3).Pixels()))
+		lab := label.New(mf, "lab", label.FontOpt(fnt), label.WrapLength(screenunit.In(3)),
 			label.JustifyOpt(option.JustifyLeft), label.Text(msg))
 		but := ttk.NewButton(mf, "but", ttk.ButtonText("OK"), ttk.ButtonUnderline(0))
 		but.Command = func() { mf.Destroy() }
-		pack.Pack(lab, pack.PadX("10p"), pack.PadYPair("10p", "5p"))
-		pack.Pack(but, pack.PadX("10p"), pack.PadYPair(0, "10p"))
+		pack.Pack(lab, pack.PadX(screenunit.Pt(10)), pack.PadYPair(screenunit.Pt(10), screenunit.Pt(5)))
+		pack.Pack(but, pack.PadX(screenunit.Pt(10)), pack.PadYPair(0, screenunit.Pt(10)))
 		place.Place(mf, place.Anchor(option.AnchorCenter), place.RelX(0.5), place.RelY(0.5))
 		app.After(0, func() { app.FocusManager().SetFocus(but.Window()) }) // focus $w.but
 	}

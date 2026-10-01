@@ -45,7 +45,7 @@ func main() {
 	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	msg := label.New(f, "msg",
-		label.WrapLength("4i"),
+		label.WrapLength(screenunit.In(4)),
 		label.JustifyOpt(option.JustifyLeft),
 		label.Text("Four animated labels are displayed below; each of the labels on the left is animated by making the text message inside it appear to scroll, and the label on the right is animated by animating the image that it displays."),
 	)
@@ -58,14 +58,14 @@ func main() {
 	leftFrame := labelframe.New(f, "left",
 		labelframe.Text("Scrolling Texts"),
 	)
-	pack.Pack(leftFrame, pack.SideOpt(pack.Left), pack.PadX("7.5p"), pack.PadY("7.5p"),
+	pack.Pack(leftFrame, pack.SideOpt(pack.Left), pack.PadX(screenunit.Pt(7.5)), pack.PadY(screenunit.Pt(7.5)),
 		pack.Expand(true))
 
 	// Right labelframe: GIF placeholder.
 	rightFrame := labelframe.New(f, "right",
 		labelframe.Text("GIF Image"),
 	)
-	pack.Pack(rightFrame, pack.SideOpt(pack.Left), pack.PadX("7.5p"), pack.PadY("7.5p"),
+	pack.Pack(rightFrame, pack.SideOpt(pack.Left), pack.PadX(screenunit.Pt(7.5)), pack.PadY(screenunit.Pt(7.5)),
 		pack.Expand(true))
 
 	// Three scrolling labels with different messages and speeds,
@@ -87,7 +87,7 @@ func main() {
 		opts := []label.LabelOption{
 			label.Text(spec.text),
 			label.FontOpt(font.TkFixedFont),
-			label.BorderWidth(screenunit.Px("3p")),
+			label.BorderWidth(screenunit.Pt(3).Pixels()),
 			label.Relief(spec.relief),
 		}
 		if spec.width > 0 {
@@ -95,7 +95,7 @@ func main() {
 		}
 		l := label.New(leftFrame, spec.name, opts...)
 		pack.Pack(l, pack.SideOpt(pack.Top), pack.Expand(true),
-			pack.PadX("7.5p"), pack.PadY("7.5p"), pack.Anchor(option.AnchorW))
+			pack.PadX(screenunit.Pt(7.5)), pack.PadY(screenunit.Pt(7.5)), pack.Anchor(option.AnchorW))
 
 		sl := &scrollLabel{
 			label:  l,
@@ -135,7 +135,7 @@ func main() {
 		label.ImageOpt(photo),
 	)
 	pack.Pack(gifLabel, pack.SideOpt(pack.Top), pack.Expand(true),
-		pack.PadX("7.5p"), pack.PadY("7.5p"))
+		pack.PadX(screenunit.Pt(7.5)), pack.PadY(screenunit.Pt(7.5)))
 	var nextFrame func()
 	nextFrame = func() {
 		frameIdx = (frameIdx + 1) % len(anim.Image)

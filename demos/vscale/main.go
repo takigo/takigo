@@ -52,11 +52,11 @@ func main() {
 	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	msg := label.New(f, "msg",
-		label.WrapLength("3.5i"),
+		label.WrapLength(screenunit.In(3.5)),
 		label.JustifyOpt(option.JustifyLeft),
 		label.Text("An arrow and a vertical scale are displayed below.  If you click or drag mouse button 1 in the scale, you can change the size of the arrow."),
 	)
-	pack.Pack(msg, pack.SideOpt(pack.Top), pack.PadX(".5c"))
+	pack.Pack(msg, pack.SideOpt(pack.Top), pack.PadX(screenunit.Cm(0.5)))
 
 	btns := demohelper.AddSeeDismiss(f)
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))

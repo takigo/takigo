@@ -43,7 +43,7 @@ func NewSizegrip(parent widget.Caregiver, name string, opts ...SizegripOption) *
 	sg.DisplayFunc = sg.Display
 
 	// Set size to match grip element — Tk default is "11.25p" (11.25 points).
-	gripSize := screenunit.Px("11.25p")
+	gripSize := screenunit.Pt(11.25).Pixels()
 	win.ReqWidth = gripSize
 	win.ReqHeight = gripSize
 

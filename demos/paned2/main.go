@@ -11,6 +11,7 @@ import (
 	"github.com/msorc/takigo/geometry/grid"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/ttk"
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
@@ -33,7 +34,7 @@ func main() {
 	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	msg := label.New(f, "msg",
-		label.WrapLength("4i"),
+		label.WrapLength(screenunit.In(4)),
 		label.JustifyOpt(option.JustifyLeft),
 		label.Text("The sash between the two scrolled windows below can be used to divide the area between them.  Use the left mouse button to resize without redrawing by just moving the sash, and use the middle mouse button to resize opaquely (always redrawing the windows in each position.)"),
 	)
@@ -47,7 +48,7 @@ func main() {
 		panedwindow.OrientOpt(panedwindow.Vertical),
 	)
 	pack.Pack(pw, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
-		pack.Expand(true), pack.PadX("2m"), pack.PadY("1.5p"))
+		pack.Expand(true), pack.PadX(screenunit.Mm(2)), pack.PadY(screenunit.Pt(1.5)))
 
 	// Top pane: listbox with vertical scrollbar.
 	topFrame := frame.New(pw, "top")

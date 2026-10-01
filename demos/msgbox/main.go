@@ -11,6 +11,7 @@ import (
 	"github.com/msorc/takigo/dialog"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/ttk"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/frame"
@@ -32,7 +33,7 @@ func main() {
 	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	msg := label.New(f, "msg",
-		label.WrapLength("4i"),
+		label.WrapLength(screenunit.In(4)),
 		label.JustifyOpt(option.JustifyLeft),
 		label.Text("Choose the icon and type option of the message box. Then press the "+
 			"\"Message Box\" button to see the message box."),
@@ -54,7 +55,7 @@ func main() {
 	// Left: Icon radios.
 	leftFrame := frame.New(f, "left")
 	pack.Pack(leftFrame, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillY),
-		pack.Expand(true), pack.PadX(".5c"), pack.PadY(".5c"))
+		pack.Expand(true), pack.PadX(screenunit.Cm(0.5)), pack.PadY(screenunit.Cm(0.5)))
 
 	iconLabel := label.New(leftFrame, "label",
 		label.Text("Icon"),
@@ -76,14 +77,14 @@ func main() {
 			radiobutton.Width(16),
 		)
 		pack.Pack(rb, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
-			pack.PadY("1.5p"), pack.Anchor(option.AnchorW))
+			pack.PadY(screenunit.Pt(1.5)), pack.Anchor(option.AnchorW))
 		_ = rb
 	}
 
 	// Right: Type radios.
 	rightFrame := frame.New(f, "right")
 	pack.Pack(rightFrame, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillY),
-		pack.Expand(true), pack.PadX(".5c"), pack.PadY(".5c"))
+		pack.Expand(true), pack.PadX(screenunit.Cm(0.5)), pack.PadY(screenunit.Cm(0.5)))
 
 	typeLabel := label.New(rightFrame, "label",
 		label.Text("Type"),
@@ -105,7 +106,7 @@ func main() {
 			radiobutton.Width(16),
 		)
 		pack.Pack(rb, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
-			pack.PadY("1.5p"), pack.Anchor(option.AnchorW))
+			pack.PadY(screenunit.Pt(1.5)), pack.Anchor(option.AnchorW))
 		_ = rb
 	}
 

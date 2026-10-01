@@ -35,7 +35,7 @@ func main() {
 	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	msg := label.New(f, "msg",
-		label.WrapLength("4i"),
+		label.WrapLength(screenunit.In(4)),
 		label.JustifyOpt(option.JustifyLeft),
 		label.Text("This window displays a canvas widget that can be scrolled by using the scrollbars, by dragging with button 2 in the canvas, by using a mouse wheel, or with the two-finger gesture on a touchpad.  If you click button 1 on one of the rectangles, its indices will be printed on stdout."),
 	)
@@ -54,7 +54,7 @@ func main() {
 	c := canvas.New(gf, "c",
 		canvas.ReliefOpt(option.ReliefSunken),
 		canvas.BorderWidthOpt(2),
-		canvas.ScrollRegion(screenunit.Px("-11c"), screenunit.Px("-11c"), screenunit.Px("50c"), screenunit.Px("20c")),
+		canvas.ScrollRegion(screenunit.Cm(-11).Pixels(), screenunit.Cm(-11).Pixels(), screenunit.Cm(50).Pixels(), screenunit.Cm(20).Pixels()),
 	)
 
 	vscroll := scrollbar.New(gf, "vscroll",
@@ -121,7 +121,7 @@ func main() {
 
 	// 20x10 grid of 2c rectangles every 3c, filled with the canvas background
 	// ([$c config -bg]); coordinates in cm, converted like Tk canvas coords.
-	cm := func(v int) float64 { return screenunit.Float(fmt.Sprintf("%dc", v)) }
+	cm := func(v int) float64 { return screenunit.Cm(float64(v)).Float() }
 	bg := widget.DefBackground
 
 	// Track old fill for enter/leave highlighting.

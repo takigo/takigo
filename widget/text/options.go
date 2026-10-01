@@ -45,13 +45,13 @@ func FontOpt(name string) TextOption {
 }
 
 // BorderWidthOpt sets the border width.
-func BorderWidthOpt(w any) TextOption {
-	return func(t *TextWidget) { t.BorderWidth = screenunit.PxOr(w, t.BorderWidth) }
+func BorderWidthOpt[L screenunit.Length](w L) TextOption {
+	return func(t *TextWidget) { t.BorderWidth = screenunit.ToPixels(w) }
 }
 
 // HighlightThickness sets -highlightthickness.
-func HighlightThickness(n any) TextOption {
-	return func(t *TextWidget) { t.HighlightWidth = screenunit.PxOr(n, t.HighlightWidth) }
+func HighlightThickness[L screenunit.Length](n L) TextOption {
+	return func(t *TextWidget) { t.HighlightWidth = screenunit.ToPixels(n) }
 }
 
 // TabWidth sets the tab width in characters.
@@ -93,11 +93,11 @@ func SetGridOpt(on bool) TextOption {
 }
 
 // PadXOpt sets horizontal padding between the border and the text content.
-func PadXOpt(n any) TextOption {
-	return func(t *TextWidget) { t.PadX = screenunit.PxOr(n, t.PadX) }
+func PadXOpt[L screenunit.Length](n L) TextOption {
+	return func(t *TextWidget) { t.PadX = screenunit.ToPixels(n) }
 }
 
 // PadYOpt sets vertical padding between the border and the text content.
-func PadYOpt(n any) TextOption {
-	return func(t *TextWidget) { t.PadY = screenunit.PxOr(n, t.PadY) }
+func PadYOpt[L screenunit.Length](n L) TextOption {
+	return func(t *TextWidget) { t.PadY = screenunit.ToPixels(n) }
 }

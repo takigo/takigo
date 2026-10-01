@@ -54,10 +54,10 @@ func main() {
 	pack.Pack(c, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true))
 
-	pt := screenunit.Float
-	c.CreateRectangle(pt("15p"), pt("15p"), pt("165p"), pt("60p"),
+	pt := screenunit.Distance.Float
+	c.CreateRectangle(pt(screenunit.Pt(15)), pt(screenunit.Pt(15)), pt(screenunit.Pt(165)), pt(screenunit.Pt(60)),
 		canvas.FillColor("blue"), canvas.OutlineColor("black"))
-	c.CreateOval(pt("15p"), pt("75p"), pt("165p"), pt("120p"), canvas.FillColor("green"))
+	c.CreateOval(pt(screenunit.Pt(15)), pt(screenunit.Pt(75)), pt(screenunit.Pt(165)), pt(screenunit.Pt(120)), canvas.FillColor("green"))
 	logo, err := gif.Decode(base64.NewDecoder(base64.StdEncoding, strings.NewReader(logoData)))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "print: %v\n", err)
@@ -66,10 +66,10 @@ func main() {
 	// logo2 is logo zoomed by the integer scalingPct/100.
 	zoom := max(1, screenunit.ScalingPct()/100)
 	logo2 := tkimage.NewPhotoFromPhoto(tkimage.NewPhoto("logo", toRGBA(logo)), "logo2", tkimage.Zoom(float64(zoom)))
-	imgID := c.CreateImage(pt("90p"), pt("135p"), canvas.ImageOpt(logo2), canvas.AnchorOpt(option.AnchorN))
+	imgID := c.CreateImage(pt(screenunit.Pt(90)), pt(screenunit.Pt(135)), canvas.ImageOpt(logo2), canvas.AnchorOpt(option.AnchorN))
 	_, _, _, y2 := c.BBox(fmt.Sprint(imgID))
 	y2 += int(math.Round(15 * screenunit.DPI() / 72)) // "15 pt to pixels" via [tk scaling]
-	c.CreateText(pt("15p"), float64(y2), canvas.AnchorOpt(option.AnchorNW),
+	c.CreateText(pt(screenunit.Pt(15)), float64(y2), canvas.AnchorOpt(option.AnchorNW),
 		canvas.FontOpt("Helvetica 12"), canvas.TextColor("black"),
 		canvas.TextOpt("A short demo of simple canvas elements."))
 
@@ -106,7 +106,7 @@ func main() {
 		}),
 	)
 	pack.Pack(printCanvasBtn, pack.SideOpt(pack.Left), pack.Anchor(option.AnchorW),
-		pack.PadX("3p"))
+		pack.PadX(screenunit.Pt(3)))
 
 	printTextBtn := button.New(btnFrame, "t",
 		button.Text("Print Text"),
@@ -123,7 +123,7 @@ func main() {
 		}),
 	)
 	pack.Pack(printTextBtn, pack.SideOpt(pack.Right), pack.Anchor(option.AnchorE),
-		pack.PadX("3p"))
+		pack.PadX(screenunit.Pt(3)))
 
 	app.Run()
 }

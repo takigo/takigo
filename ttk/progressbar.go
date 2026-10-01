@@ -72,7 +72,7 @@ func NewProgressbar(parent widget.Caregiver, name string, opts ...ProgressbarOpt
 	p := &Progressbar{
 		Maximum: 100,
 		Orient:  Horizontal,
-		Length:  screenunit.Px("75p"), // ttkProgress.c -length default
+		Length:  screenunit.Pt(75).Pixels(), // ttkProgress.c -length default
 	}
 
 	for _, opt := range opts {
@@ -97,7 +97,7 @@ func (p *Progressbar) orientStyle() string {
 // requestSize requests -length along the bar; across it the pbar
 // -thickness inside the trough's 1px sunken border.
 func (p *Progressbar) requestSize() {
-	thick := LookupInt(p.Context.Style, "-thickness", p.State, screenunit.Px("3p")) + 2*pbTroughBorder
+	thick := LookupInt(p.Context.Style, "-thickness", p.State, screenunit.Pt(3).Pixels()) + 2*pbTroughBorder
 	if p.Orient == Horizontal {
 		p.Win.ReqWidth, p.Win.ReqHeight = p.Length, thick
 	} else {
@@ -174,7 +174,7 @@ func (p *Progressbar) Display() {
 			size = int(min(p.Value/p.Maximum, 1) * float64(length))
 		}
 	} else {
-		size = min(LookupInt(p.Context.Style, "-barsize", p.State, screenunit.Px("22.5p")), length)
+		size = min(LookupInt(p.Context.Style, "-barsize", p.State, screenunit.Pt(22.5).Pixels()), length)
 		// ProgressbarIndeterminateLayout: value/maximum bounces over 0..2.
 		f := 0.0
 		if p.Maximum != 0 {

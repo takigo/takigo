@@ -122,15 +122,15 @@ func Anchor(a option.Anchor) CheckbuttonOption {
 }
 
 // PadX sets horizontal padding.
-// Accepts int (pixels), float64 (rounded pixels), or string with unit suffix ("3p", "2m", "1c", "0.5i").
-func PadX(p any) CheckbuttonOption {
-	return func(c *Checkbutton) { c.PadX = screenunit.PxOr(p, c.PadX) }
+// Accepts a number of pixels or a screenunit.Distance such as screenunit.Pt(3).
+func PadX[L screenunit.Length](p L) CheckbuttonOption {
+	return func(c *Checkbutton) { c.PadX = screenunit.ToPixels(p) }
 }
 
 // PadY sets vertical padding.
-// Accepts int (pixels), float64 (rounded pixels), or string with unit suffix ("3p", "2m", "1c", "0.5i").
-func PadY(p any) CheckbuttonOption {
-	return func(c *Checkbutton) { c.PadY = screenunit.PxOr(p, c.PadY) }
+// Accepts a number of pixels or a screenunit.Distance such as screenunit.Pt(3).
+func PadY[L screenunit.Length](p L) CheckbuttonOption {
+	return func(c *Checkbutton) { c.PadY = screenunit.ToPixels(p) }
 }
 
 // ImageOpt sets the image shown in the normal (unselected) state.

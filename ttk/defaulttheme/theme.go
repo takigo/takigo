@@ -4,6 +4,7 @@ package defaulttheme
 
 import (
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/ttk"
 )
 
@@ -54,7 +55,7 @@ func init() {
 	// turns dark navy when selected/alternate, lighter blue when pressed,
 	// gray when disabled.
 	tcheckbutton := theme.GetStyle("TCheckbutton")
-	tcheckbutton.Defaults["-padding"] = "0.75p"
+	tcheckbutton.Defaults["-padding"] = screenunit.Pt(0.75)
 	tcheckbutton.Defaults["-indicatormargin"] = "0 1.5p 3p 1.5p"
 	tcheckbutton.Defaults["-indicatorbackground"] = uint64(0xffffff)
 	tcheckbutton.Defaults["-indicatorforeground"] = uint64(0xffffff)
@@ -71,7 +72,7 @@ func init() {
 
 	// TRadiobutton style.
 	tradiobutton := theme.GetStyle("TRadiobutton")
-	tradiobutton.Defaults["-padding"] = "0.75p"
+	tradiobutton.Defaults["-padding"] = screenunit.Pt(0.75)
 	tradiobutton.Defaults["-indicatormargin"] = "0 1.5p 3p 1.5p"
 	tradiobutton.Defaults["-indicatorbackground"] = uint64(0xffffff)
 	tradiobutton.Defaults["-indicatorforeground"] = uint64(0xffffff)
@@ -93,7 +94,7 @@ func init() {
 	// TButton style.
 	tbutton := theme.GetStyle("TButton")
 	tbutton.Defaults["-anchor"] = option.AnchorCenter
-	tbutton.Defaults["-padding"] = "2.25p"
+	tbutton.Defaults["-padding"] = screenunit.Pt(2.25)
 	tbutton.Defaults["-width"] = -9
 	tbutton.Defaults["-relief"] = option.ReliefRaised
 	tbutton.Defaults["-shiftrelief"] = 1
@@ -107,7 +108,7 @@ func init() {
 	// Used by toolbar buttons and styled menubuttons.
 	// Matches Tcl: disabled flat, selected sunken, pressed sunken, active raised.
 	toolbutton := theme.GetStyle("Toolbutton")
-	toolbutton.Defaults["-padding"] = "1.5p"
+	toolbutton.Defaults["-padding"] = screenunit.Pt(1.5)
 	toolbutton.Defaults["-relief"] = option.ReliefFlat
 	toolbutton.Maps["-relief"] = ttk.StateMap[any]{
 		{Spec: ttk.StateSpec{OnBits: ttk.StateDisabled}, Value: option.ReliefFlat},
@@ -122,7 +123,7 @@ func init() {
 
 	// TMenubutton.Toolbutton: same visual behavior as Toolbutton but for menubuttons.
 	tmbToolbutton := theme.GetStyle("TMenubutton.Toolbutton")
-	tmbToolbutton.Defaults["-padding"] = "1.5p"
+	tmbToolbutton.Defaults["-padding"] = screenunit.Pt(1.5)
 	tmbToolbutton.Defaults["-relief"] = option.ReliefFlat
 	tmbToolbutton.Maps["-relief"] = ttk.StateMap[any]{
 		{Spec: ttk.StateSpec{OnBits: ttk.StateDisabled}, Value: option.ReliefFlat},
@@ -202,8 +203,8 @@ func init() {
 	tmenubutton := theme.GetStyle("TMenubutton")
 	tmenubutton.Defaults["-padding"] = "7.5p 2.25p"
 	tmenubutton.Defaults["-relief"] = option.ReliefRaised
-	tmenubutton.Defaults["-arrowsize"] = "3.75p"
-	tmenubutton.Defaults["-arrowpadding"] = "2.25p"
+	tmenubutton.Defaults["-arrowsize"] = screenunit.Pt(3.75)
+	tmenubutton.Defaults["-arrowpadding"] = screenunit.Pt(2.25)
 	tmenubutton.Defaults["-arrowcolor"] = uint64(0x000000)
 	tmenubutton.Maps["-arrowcolor"] = ttk.StateMap[any]{
 		{Spec: ttk.StateSpec{OnBits: ttk.StateDisabled}, Value: uint64(0xa3a3a3)},
@@ -263,7 +264,7 @@ func init() {
 	tspinbox.Defaults["-background"] = uint64(0xd9d9d9)
 	tspinbox.Defaults["-foreground"] = uint64(0x000000)
 	tspinbox.Defaults["-fieldbackground"] = uint64(0xffffff)
-	tspinbox.Defaults["-arrowsize"] = "7.5p"
+	tspinbox.Defaults["-arrowsize"] = screenunit.Pt(7.5)
 	tspinbox.Defaults["-arrowcolor"] = uint64(0x000000)
 	tspinbox.Defaults["-padding"] = "1.5p 0 7.5p 0"
 	tspinbox.Defaults["-focuswidth"] = 1
@@ -302,7 +303,7 @@ func init() {
 
 	// TCombobox (defaults.tcl).
 	tcombo := theme.GetStyle("TCombobox")
-	tcombo.Defaults["-arrowsize"] = "9p"
+	tcombo.Defaults["-arrowsize"] = screenunit.Pt(9)
 	tcombo.Defaults["-arrowcolor"] = uint64(0x000000)
 	tcombo.Defaults["-fieldbackground"] = uint64(0xffffff)
 	tcombo.Defaults["-padding"] = ttk.UniformPadding(1)
@@ -322,7 +323,7 @@ func init() {
 	tscale.Defaults["-outercolor"] = uint64(0xffffff)
 	tscale.Defaults["-bordercolor"] = uint64(0xc3c3c3)
 	tscale.Defaults["-troughcolor"] = uint64(0xc3c3c3)
-	tscale.Defaults["-groovewidth"] = "3p"
+	tscale.Defaults["-groovewidth"] = screenunit.Pt(3)
 	tscale.Maps["-outercolor"] = ttk.StateMap[any]{
 		{Spec: ttk.StateSpec{OnBits: ttk.StateHover}, Value: uint64(0xececec)},
 	}

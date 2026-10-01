@@ -13,6 +13,7 @@ import (
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/ttk"
 	_ "github.com/msorc/takigo/ttk/clamtheme"
 	_ "github.com/msorc/takigo/ttk/defaulttheme"
@@ -34,7 +35,7 @@ func main() {
 	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	msg := ttk.NewLabel(f, "msg",
-		ttk.LabelWrapLength("5i"),
+		ttk.LabelWrapLength(screenunit.In(5)),
 		ttk.LabelJustify(option.JustifyLeft),
 		ttk.LabelText("Three different combo-boxes are displayed below. You can add characters to the first one by pointing, clicking and typing, just as with an entry; pressing Return will cause the current value to be added to the list that is selectable from the drop-down list, and you can choose other values by pressing the Down key, using the arrow keys to pick another one, and pressing Return again. The second combo-box is fixed to a particular value, and cannot be modified at all. The third one only allows you to select values from its drop-down list of Australian cities."),
 	)
@@ -60,31 +61,31 @@ func main() {
 	}
 
 	editFrame := ttk.NewLabelframe(body, "c1", ttk.LabelframeText("Fully Editable"))
-	pack.Pack(editFrame, pack.SideOpt(pack.Top), pack.PadY("3p"), pack.PadX("7.5p"))
+	pack.Pack(editFrame, pack.SideOpt(pack.Top), pack.PadY(screenunit.Pt(3)), pack.PadX(screenunit.Pt(7.5)))
 
 	editCombo := ttk.NewCombobox(editFrame, "c",
 		ttk.ComboboxPlaceholder("Enter text here"),
 	)
-	pack.Pack(editCombo, pack.PadY("3p"), pack.PadX("7.5p"))
+	pack.Pack(editCombo, pack.PadY(screenunit.Pt(3)), pack.PadX(screenunit.Pt(7.5)))
 
 	disFrame := ttk.NewLabelframe(body, "c2", ttk.LabelframeText("Disabled"))
-	pack.Pack(disFrame, pack.SideOpt(pack.Top), pack.PadY("3p"), pack.PadX("7.5p"))
+	pack.Pack(disFrame, pack.SideOpt(pack.Top), pack.PadY(screenunit.Pt(3)), pack.PadX(screenunit.Pt(7.5)))
 
 	disCombo := ttk.NewCombobox(disFrame, "c",
 		ttk.ComboboxText(secondValue.Get()),
 		ttk.ComboboxCbState(ttk.ComboDisabled),
 	)
-	pack.Pack(disCombo, pack.PadY("3p"), pack.PadX("7.5p"))
+	pack.Pack(disCombo, pack.PadY(screenunit.Pt(3)), pack.PadX(screenunit.Pt(7.5)))
 
 	roFrame := ttk.NewLabelframe(body, "c3", ttk.LabelframeText("Defined List Only"))
-	pack.Pack(roFrame, pack.SideOpt(pack.Top), pack.PadY("3p"), pack.PadX("7.5p"))
+	pack.Pack(roFrame, pack.SideOpt(pack.Top), pack.PadY(screenunit.Pt(3)), pack.PadX(screenunit.Pt(7.5)))
 
 	roCombo := ttk.NewCombobox(roFrame, "c",
 		ttk.ComboboxValues(cities),
 		ttk.ComboboxText(ozCity.Get()),
 		ttk.ComboboxCbState(ttk.ComboReadonly),
 	)
-	pack.Pack(roCombo, pack.PadY("3p"), pack.PadX("7.5p"))
+	pack.Pack(roCombo, pack.PadY(screenunit.Pt(3)), pack.PadX(screenunit.Pt(7.5)))
 
 	app.Dispatcher().Bind(editCombo.Win.PlatformID, event.KeyPressMask, func(ev *event.Event) {
 		if ev.KeySym == platform.XK_Return {

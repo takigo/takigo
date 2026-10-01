@@ -73,8 +73,8 @@ func LookupInt(s *Style, name string, state State, fallback int) int {
 	switch n := v.(type) {
 	case int:
 		return n
-	case string:
-		return screenunit.PxOr(n, fallback)
+	case screenunit.Distance:
+		return n.Pixels()
 	}
 	return fallback
 }
@@ -96,6 +96,8 @@ func LookupPadding(s *Style, name string, state State, fallback Padding) Padding
 	switch p := v.(type) {
 	case Padding:
 		return p
+	case screenunit.Distance:
+		return UniformPadding(p.Pixels())
 	case string:
 		return ParsePadding(p)
 	}

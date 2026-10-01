@@ -23,7 +23,7 @@ func NewPanedwindow(parent widget.Caregiver, name string, opts ...PanedwindowOpt
 	pw.FlatSash = true
 	pw.Weighted = true
 	pw.BorderWidth = 0 // ttk::panedwindow has no border
-	pw.SashWidth = screenunit.Px("3.75p")
-	pw.GripSize = screenunit.Px("15p")
+	pw.SashWidth = screenunit.Pt(3.75).Pixels()
+	pw.GripSize = screenunit.Pt(15).Pixels()
 	return &Panedwindow{PanedWindow: pw}
 }

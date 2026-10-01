@@ -116,7 +116,7 @@ const (
 func tglScale() float64 { return float64(screenunit.ScalingPct()) / 100 }
 
 // tglInset is the Tglswitch.focus ring plus the style's -padding 0.75p.
-func tglInset() int { return 1 + screenunit.Px("0.75p") }
+func tglInset() int { return 1 + screenunit.Pt(0.75).Pixels() }
 
 func (ts *Toggleswitch) computeSize() {
 	sc := tglScale()

@@ -12,6 +12,7 @@ import (
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/grid"
 	"github.com/msorc/takigo/geometry/pack"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/ttk"
 	_ "github.com/msorc/takigo/ttk/clamtheme"
 	_ "github.com/msorc/takigo/ttk/defaulttheme"
@@ -41,7 +42,7 @@ func main() {
 	tearoff.Win.SetCursor(uint(cursor.Fleur))
 	to := ttk.NewSeparator(tearoff, "to", ttk.SeparatorOrient(ttk.Vertical))
 	to2 := ttk.NewSeparator(tearoff, "to2", ttk.SeparatorOrient(ttk.Vertical))
-	pack.Pack(to, pack.FillOpt(pack.FillY), pack.Expand(true), pack.PadX("3p"), pack.SideOpt(pack.Left))
+	pack.Pack(to, pack.FillOpt(pack.FillY), pack.Expand(true), pack.PadX(screenunit.Pt(3)), pack.SideOpt(pack.Left))
 	pack.Pack(to2, pack.FillOpt(pack.FillY), pack.Expand(true), pack.SideOpt(pack.Left))
 	// The toolbar items are gridded "-in" contents in Tk; takigo's grid has
 	// no -in, so they are its children.
@@ -57,7 +58,7 @@ func main() {
 
 	// Description label.
 	msg := ttk.NewLabel(f, "msg",
-		ttk.LabelWrapLength("4i"),
+		ttk.LabelWrapLength(screenunit.In(4)),
 		ttk.LabelText("This is a demonstration of how to do a toolbar that is styled correctly and which can be torn off. The buttons are configured to be “toolbar style” buttons by telling them that they are to use the Toolbutton style. At the left end of the toolbar is a simple marker that the cursor changes to a movement icon over; drag that away from the toolbar to tear off the whole toolbar into a separate toplevel widget. When the dragged-off toolbar is no longer needed, just close it like any normal toplevel and it will reattach to the window it was torn off from."),
 	)
 	grid.Grid(msg, grid.Sticky(grid.EW))
@@ -124,13 +125,13 @@ func main() {
 
 	// Grid toolbar items (matching Tcl's single grid line).
 	grid.Grid(btnNew, grid.Row(0), grid.Column(0),
-		grid.PadX("1.5p"), grid.PadY("3p"), grid.Sticky(grid.NS))
+		grid.PadX(screenunit.Pt(1.5)), grid.PadY(screenunit.Pt(3)), grid.Sticky(grid.NS))
 	grid.Grid(checkBtn, grid.Row(0), grid.Column(1),
-		grid.PadX("1.5p"), grid.PadY("3p"), grid.Sticky(grid.NS))
+		grid.PadX(screenunit.Pt(1.5)), grid.PadY(screenunit.Pt(3)), grid.Sticky(grid.NS))
 	grid.Grid(menuBtn, grid.Row(0), grid.Column(2),
-		grid.PadX("1.5p"), grid.PadY("3p"), grid.Sticky(grid.NS))
+		grid.PadX(screenunit.Pt(1.5)), grid.PadY(screenunit.Pt(3)), grid.Sticky(grid.NS))
 	grid.Grid(combo, grid.Row(0), grid.Column(3),
-		grid.PadX("1.5p"), grid.PadY("3p"), grid.Sticky(grid.NS))
+		grid.PadX(screenunit.Pt(1.5)), grid.PadY(screenunit.Pt(3)), grid.Sticky(grid.NS))
 
 	_ = sep
 	app.Run()

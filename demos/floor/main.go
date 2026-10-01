@@ -90,7 +90,7 @@ func main() {
 	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	msg := label.New(f, "msg",
-		label.WrapLength("8i"),
+		label.WrapLength(screenunit.In(8)),
 		label.JustifyOpt(option.JustifyLeft),
 		label.Text("This window contains a canvas widget showing the floorplan of Digital Equipment Corporation's Western Research Laboratory.  It has three levels.  At any given time one of the levels is active, meaning that you can see its room structure.  To activate a level, click the left mouse button anywhere on it.  As the mouse moves over the active level, the room under the mouse lights up and its room number appears in the \"Room:\" entry.  You can also type a room number in the entry and the room will light up."),
 	)
@@ -207,12 +207,12 @@ func main() {
 		c.Raise("room")
 
 		// Offset floors diagonally from each other.
-		c.Move("floor1", screenunit.Float("2c"), screenunit.Float("2c"))
-		c.Move("floor2", screenunit.Float("1c"), screenunit.Float("1c"))
+		c.Move("floor1", screenunit.Cm(2).Float(), screenunit.Cm(2).Float())
+		c.Move("floor2", screenunit.Cm(1).Float(), screenunit.Cm(1).Float())
 
 		// Room entry and label embedded in canvas.
-		c.CreateWindow(screenunit.Float("450p"), screenunit.Float("75p"), ent.Win, canvas.AnchorOpt(option.AnchorW))
-		c.CreateText(screenunit.Float("450p"), screenunit.Float("75p"),
+		c.CreateWindow(screenunit.Pt(450).Float(), screenunit.Pt(75).Float(), ent.Win, canvas.AnchorOpt(option.AnchorW))
+		c.CreateText(screenunit.Pt(450).Float(), screenunit.Pt(75).Float(),
 			canvas.TextOpt("Room: "),
 			canvas.AnchorOpt(option.AnchorE))
 

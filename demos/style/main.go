@@ -10,6 +10,7 @@ import (
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/ttk"
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/text"
@@ -82,19 +83,19 @@ func main() {
 	tw.TagConfigure("overstrike", text.TagOverstrike(true))
 	tw.TagConfigure("right", text.TagJustify(option.JustifyRight))
 	tw.TagConfigure("center", text.TagJustify(option.JustifyCenter))
-	tw.TagConfigure("super", text.TagOffsetStr("4p"), text.TagFont("Courier 10"))
-	tw.TagConfigure("sub", text.TagOffsetStr("-2p"), text.TagFont("Courier 10"))
+	tw.TagConfigure("super", text.TagOffset(screenunit.Pt(4)), text.TagFont("Courier 10"))
+	tw.TagConfigure("sub", text.TagOffset(screenunit.Pt(-2)), text.TagFont("Courier 10"))
 	tw.TagConfigure("margins",
-		text.TagLMargin1Str("12m"),
-		text.TagLMargin2Str("6m"),
-		text.TagRMarginStr("10m"),
+		text.TagLMargin1(screenunit.Mm(12)),
+		text.TagLMargin2(screenunit.Mm(6)),
+		text.TagRMargin(screenunit.Mm(10)),
 	)
 	tw.TagConfigure("spacing",
-		text.TagSpacing1Str("10p"),
-		text.TagSpacing2Str("2p"),
-		text.TagLMargin1Str("12m"),
-		text.TagLMargin2Str("6m"),
-		text.TagRMarginStr("10m"),
+		text.TagSpacing1(screenunit.Pt(10)),
+		text.TagSpacing2(screenunit.Pt(2)),
+		text.TagLMargin1(screenunit.Mm(12)),
+		text.TagLMargin2(screenunit.Mm(6)),
+		text.TagRMargin(screenunit.Mm(10)),
 	)
 	tw.TagConfigure("bgstipple", text.TagBackground("black"), text.TagBgStipple("gray12"))
 	tw.TagConfigure("fgstipple", text.TagFgStipple("gray50"))

@@ -13,6 +13,7 @@ import (
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/ttk"
 	"github.com/msorc/takigo/widget/button"
 	"github.com/msorc/takigo/widget/entry"
@@ -158,12 +159,12 @@ func main() {
 	// Pack file row.
 	pack.Pack(fileLabel, pack.SideOpt(pack.Left))
 	pack.Pack(fileEntry, pack.SideOpt(pack.Left))
-	pack.Pack(loadBtn, pack.SideOpt(pack.Left), pack.PadY("3p"), pack.PadX("7.5p"))
+	pack.Pack(loadBtn, pack.SideOpt(pack.Left), pack.PadY(screenunit.Pt(3)), pack.PadX(screenunit.Pt(7.5)))
 
 	// Pack search row.
 	pack.Pack(searchLabel, pack.SideOpt(pack.Left))
 	pack.Pack(searchEntry, pack.SideOpt(pack.Left))
-	pack.Pack(highlightBtn, pack.SideOpt(pack.Left), pack.PadY("3p"), pack.PadX("7.5p"))
+	pack.Pack(highlightBtn, pack.SideOpt(pack.Left), pack.PadY(screenunit.Pt(3)), pack.PadX(screenunit.Pt(7.5)))
 
 	// Pack scrollbar then text.
 	pack.Pack(scroll, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))

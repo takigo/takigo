@@ -104,8 +104,8 @@ func CompoundOpt(c widget.Compound) ButtonOption {
 }
 
 // BorderWidth sets the border width.
-func BorderWidth(w any) ButtonOption {
-	return func(b *Button) { b.BorderWidth = screenunit.PxOr(w, b.BorderWidth) }
+func BorderWidth[L screenunit.Length](w L) ButtonOption {
+	return func(b *Button) { b.BorderWidth = screenunit.ToPixels(w) }
 }
 
 // Default sets -default: DefaultNormal leaves 5px for a default ring,
@@ -115,8 +115,8 @@ func Default(state DefaultState) ButtonOption {
 }
 
 // HighlightThickness sets -highlightthickness (width of the focus ring).
-func HighlightThickness(w any) ButtonOption {
-	return func(b *Button) { b.HighlightWidth = screenunit.PxOr(w, b.HighlightWidth) }
+func HighlightThickness[L screenunit.Length](w L) ButtonOption {
+	return func(b *Button) { b.HighlightWidth = screenunit.ToPixels(w) }
 }
 
 // ReliefOpt sets the border relief.
@@ -130,15 +130,15 @@ func Anchor(a option.Anchor) ButtonOption {
 }
 
 // PadX sets horizontal padding.
-// Accepts int (pixels), float64 (rounded pixels), or string with unit suffix ("3p", "2m", "1c", "0.5i").
-func PadX(p any) ButtonOption {
-	return func(b *Button) { b.PadX = screenunit.PxOr(p, b.PadX) }
+// Accepts a number of pixels or a screenunit.Distance such as screenunit.Pt(3).
+func PadX[L screenunit.Length](p L) ButtonOption {
+	return func(b *Button) { b.PadX = screenunit.ToPixels(p) }
 }
 
 // PadY sets vertical padding.
-// Accepts int (pixels), float64 (rounded pixels), or string with unit suffix ("3p", "2m", "1c", "0.5i").
-func PadY(p any) ButtonOption {
-	return func(b *Button) { b.PadY = screenunit.PxOr(p, b.PadY) }
+// Accepts a number of pixels or a screenunit.Distance such as screenunit.Pt(3).
+func PadY[L screenunit.Length](p L) ButtonOption {
+	return func(b *Button) { b.PadY = screenunit.ToPixels(p) }
 }
 
 // Width sets the requested button width in characters (like Tk's -width option).
@@ -167,8 +167,8 @@ func New(parent widget.Caregiver, name string, opts ...ButtonOption) *Button {
 	// Button-specific defaults (Tk: padx=3m, pady=1m, borderwidth=1, highlightthickness=1).
 	b.BorderWidth = widget.DefBorderWidth
 	b.Relief = option.ReliefRaised
-	b.PadX = screenunit.Px("3m")
-	b.PadY = screenunit.Px("1m")
+	b.PadX = screenunit.Mm(3).Pixels()
+	b.PadY = screenunit.Mm(1).Pixels()
 	b.HighlightWidth = 1
 
 	// Active colors.

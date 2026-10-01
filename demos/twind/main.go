@@ -157,14 +157,14 @@ func main() {
 	// Configure tags matching twind.tcl.
 	tw.TagConfigure("center",
 		text.TagJustify(option.JustifyCenter),
-		text.TagSpacing1Str("5m"),
-		text.TagSpacing3Str("5m"),
+		text.TagSpacing1(screenunit.Mm(5)),
+		text.TagSpacing3(screenunit.Mm(5)),
 	)
 	tw.TagConfigure("buttons",
-		text.TagLMargin1Str("1c"),
-		text.TagLMargin2Str("1c"),
-		text.TagRMarginStr("1c"),
-		text.TagSpacing1Str("3m"),
+		text.TagLMargin1(screenunit.Cm(1)),
+		text.TagLMargin2(screenunit.Cm(1)),
+		text.TagRMargin(screenunit.Cm(1)),
+		text.TagSpacing1(screenunit.Mm(3)),
 		text.TagSpacing2(0),
 		text.TagSpacing3(0),
 	)
@@ -381,7 +381,7 @@ func main() {
 
 	tw.Insert("end", "You can also create multiple text widgets each of which ")
 	tw.Insert("end", "display the same underlying text. Click this button to ")
-	tw.WindowCreatePad(tw.EndIndex(), makePeerBtn.Window(), "3p", 0)
+	tw.WindowCreatePad(tw.EndIndex(), makePeerBtn.Window(), screenunit.Pt(3), 0)
 	tw.Insert("end", " widget.  Notice how peer widgets can have different ")
 	tw.Insert("end", "font settings, and by default contain all the images ")
 	tw.Insert("end", "of the 'parent', but that the embedded windows, ")
@@ -391,7 +391,7 @@ func main() {
 	tw.Insert("end", "(The plot above and the 'Make A Peer' button are ")
 	tw.Insert("end", "designed to show up in all peers.)  A good use of ")
 	tw.Insert("end", "peers is for ")
-	tw.WindowCreatePad(tw.EndIndex(), splitBtn.Window(), "3p", 0)
+	tw.WindowCreatePad(tw.EndIndex(), splitBtn.Window(), screenunit.Pt(3), 0)
 	tw.Insert("end", " \n\n")
 
 	tw.Insert("end", "Users of previous versions of Tk will also be interested ")
@@ -420,7 +420,7 @@ func main() {
 			tw.Configure(text.Background("#ffffff"))
 		}),
 	)
-	tw.WindowCreatePad(defaultBtnLine, defaultBtn.Window(), "3p", 0)
+	tw.WindowCreatePad(defaultBtnLine, defaultBtn.Window(), screenunit.Pt(3), 0)
 
 	// Toggle button "Short" / "A much longer string".
 	var toggleLong bool
@@ -438,7 +438,7 @@ func main() {
 			tw.Display()
 		}),
 	)
-	tw.WindowCreatePad(toggleBtnLine, toggleBtn.Window(), "3p", "1.5p")
+	tw.WindowCreatePad(toggleBtnLine, toggleBtn.Window(), screenunit.Pt(3), screenunit.Pt(1.5))
 
 	// Color buttons.
 	colors := []string{
@@ -457,7 +457,7 @@ func main() {
 				tw.Configure(text.Background(colorName))
 			}),
 		)
-		tw.WindowCreatePad(btnLine, clrBtn.Window(), "3p", "1.5p")
+		tw.WindowCreatePad(btnLine, clrBtn.Window(), screenunit.Pt(3), screenunit.Pt(1.5))
 	}
 
 	// Tag the buttons section.
@@ -506,8 +506,8 @@ func main() {
 	bigPBtn := button.New(tw, "bigP",
 		button.Text("Big pad"),
 		button.Command(func() {
-			tw.SetPadX(screenunit.Px("12p"))
-			tw.SetPadY(screenunit.Px("12p"))
+			tw.SetPadX(screenunit.Pt(12).Pixels())
+			tw.SetPadY(screenunit.Pt(12).Pixels())
 		}),
 	)
 	tw.WindowCreate(tw.EndIndex(), bigPBtn.Window())

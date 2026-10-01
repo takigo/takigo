@@ -12,6 +12,7 @@ import (
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/ttk"
 	_ "github.com/msorc/takigo/ttk/clamtheme"
 	_ "github.com/msorc/takigo/ttk/defaulttheme"
@@ -42,7 +43,7 @@ func main() {
 			"and updates a label as you type. The fifth accepts only integers; "+
 			"non-digit input is rejected."),
 		label.JustifyOpt(option.JustifyLeft),
-		label.WrapLength("5i"),
+		label.WrapLength(screenunit.In(5)),
 	)
 	pack.Pack(msg, pack.SideOpt(pack.Top))
 
@@ -54,21 +55,21 @@ func main() {
 		ttk.EntryText("Initial value"),
 		ttk.EntryWidth(40),
 	)
-	pack.Pack(e1, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadX("5p"), pack.PadY("3p"))
+	pack.Pack(e1, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadX(screenunit.Pt(5)), pack.PadY(screenunit.Pt(3)))
 
 	// 2. Placeholder entry (no initial text).
 	e2 := ttk.NewEntry(f, "e2",
 		ttk.EntryPlaceholder("Type here..."),
 		ttk.EntryWidth(40),
 	)
-	pack.Pack(e2, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadX("5p"), pack.PadY("3p"))
+	pack.Pack(e2, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadX(screenunit.Pt(5)), pack.PadY(screenunit.Pt(3)))
 
 	// 3. Password entry.
 	e3 := ttk.NewEntry(f, "e3",
 		ttk.EntryShow('*'),
 		ttk.EntryWidth(40),
 	)
-	pack.Pack(e3, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadX("5p"), pack.PadY("3p"))
+	pack.Pack(e3, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadX(screenunit.Pt(5)), pack.PadY(screenunit.Pt(3)))
 
 	// 4. Textvariable-bound entry that updates a label as the user types.
 	statusVar := widget.NewVariable[string]("")
@@ -76,10 +77,10 @@ func main() {
 		ttk.EntryTextVariable(statusVar),
 		ttk.EntryWidth(40),
 	)
-	pack.Pack(e4, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadX("5p"), pack.PadY("3p"))
+	pack.Pack(e4, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadX(screenunit.Pt(5)), pack.PadY(screenunit.Pt(3)))
 
 	liveLabel := label.New(f, "live", label.Text("(live)"))
-	pack.Pack(liveLabel, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadX("5p"))
+	pack.Pack(liveLabel, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadX(screenunit.Pt(5)))
 	statusVar.OnChange(func(_, val string) {
 		liveLabel.Configure(label.Text("(live) " + val))
 	})
@@ -97,7 +98,7 @@ func main() {
 			return err == nil
 		}),
 	)
-	pack.Pack(e5, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadX("5p"), pack.PadY("3p"))
+	pack.Pack(e5, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadX(screenunit.Pt(5)), pack.PadY(screenunit.Pt(3)))
 
 	app.Run()
 }

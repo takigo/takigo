@@ -37,7 +37,7 @@ func main() {
 	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	msg := label.New(f, "msg",
-		label.WrapLength("5i"),
+		label.WrapLength(screenunit.In(5)),
 		label.JustifyOpt(option.JustifyLeft),
 		label.Text("This window shows three ways of using bitmaps or images in radiobuttons and checkbuttons.  On the left are two radiobuttons, each of which displays a bitmap and an indicator.  In the middle is a checkbutton that displays a different image depending on whether it is selected or not.  On the right is a checkbutton that displays a single bitmap but changes its background color to indicate whether or not it is selected."),
 	)
@@ -60,7 +60,7 @@ func main() {
 
 	// frame $w.frame -borderwidth 7.5p
 	fr := frame.New(f, "frame",
-		frame.BorderWidth(screenunit.Px("7.5p")),
+		frame.BorderWidth(screenunit.Pt(7.5).Pixels()),
 	)
 	pack.Pack(fr, pack.SideOpt(pack.Top))
 
@@ -85,7 +85,7 @@ func main() {
 	left := frame.New(fr, "left")
 
 	// pack $w.frame.left $w.frame.b1 $w.frame.b2 -side left -expand yes -padx 5m
-	pack.Pack(geometry.Group{left, b1, b2}, pack.SideOpt(pack.Left), pack.Expand(true), pack.PadX("5m"))
+	pack.Pack(geometry.Group{left, b1, b2}, pack.SideOpt(pack.Left), pack.Expand(true), pack.PadX(screenunit.Mm(5)))
 
 	// radiobutton $w.frame.left.b3 -bitmap letters -variable letters -value full
 	lettersVar := widget.NewUnsetVariable[string]()

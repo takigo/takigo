@@ -29,8 +29,8 @@ func Background(name string) FrameOption {
 }
 
 // BorderWidth sets the border width in pixels.
-func BorderWidth(w any) FrameOption {
-	return func(f *Frame) { f.BorderWidth = screenunit.PxOr(w, f.BorderWidth) }
+func BorderWidth[L screenunit.Length](w L) FrameOption {
+	return func(f *Frame) { f.BorderWidth = screenunit.ToPixels(w) }
 }
 
 // Relief sets the border relief.
@@ -40,8 +40,8 @@ func Relief(r option.Relief) FrameOption {
 
 // Width sets the requested width.
 // HighlightThickness sets -highlightthickness.
-func HighlightThickness(n any) FrameOption {
-	return func(f *Frame) { f.HighlightWidth = screenunit.PxOr(n, f.HighlightWidth) }
+func HighlightThickness[L screenunit.Length](n L) FrameOption {
+	return func(f *Frame) { f.HighlightWidth = screenunit.ToPixels(n) }
 }
 
 func Width(w int) FrameOption {

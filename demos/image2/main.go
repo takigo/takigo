@@ -18,6 +18,7 @@ import (
 	"github.com/msorc/takigo/geometry/pack"
 	tkimage "github.com/msorc/takigo/image"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/ttk"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/button"
@@ -42,7 +43,7 @@ func main() {
 	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	msg := label.New(f, "msg",
-		label.WrapLength("4i"),
+		label.WrapLength(screenunit.In(4)),
 		label.JustifyOpt(option.JustifyLeft),
 		label.Text("This demonstration allows you to view images using a Tk \"photo\" image.  First type a directory name in the listbox, then type Return to load the directory into the listbox.  Then double-click on a file name in the listbox to see that image."),
 	)
@@ -112,17 +113,17 @@ func main() {
 
 	selectDirBtn := button.New(dirLF, "b",
 		button.Text("Select Dir."),
-		button.PadX("2m"), button.PadY(0),
+		button.PadX(screenunit.Mm(2)), button.PadY(0),
 		button.Command(selectAndLoadDir),
 	)
 	pack.Pack(dirEntry, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth),
-		pack.PadX("2m"), pack.PadY("2m"), pack.Expand(true))
+		pack.PadX(screenunit.Mm(2)), pack.PadY(screenunit.Mm(2)), pack.Expand(true))
 	pack.Pack(selectDirBtn, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillY),
-		pack.PadXPair(0, "2m"), pack.PadY("2m"))
+		pack.PadXPair(0, screenunit.Mm(2)), pack.PadY(screenunit.Mm(2)))
 
 	// --- "File:" labelframe ---
 	fileLF := labelframe.New(mid, "f", labelframe.Text("File:"),
-		labelframe.PadX("2m"), labelframe.PadY("2m"))
+		labelframe.PadX(screenunit.Mm(2)), labelframe.PadY(screenunit.Mm(2)))
 	lb = listbox.New(fileLF, "list",
 		listbox.Width(20),
 		listbox.Height(10),
@@ -175,7 +176,7 @@ func main() {
 	// "image create photo image2a": an empty photo until a file is loaded.
 	imgLabel := label.New(imageLF, "image",
 		label.ImageOpt(tkimage.NewPhoto("image2a", goimage.NewRGBA(goimage.Rect(0, 0, 0, 0)))))
-	pack.Pack(imgLabel, pack.PadX("2m"), pack.PadY("2m"))
+	pack.Pack(imgLabel, pack.PadX(screenunit.Mm(2)), pack.PadY(screenunit.Mm(2)))
 
 	// Double-click on listbox loads the image.
 	var currentPhotoName string
@@ -220,11 +221,11 @@ func main() {
 
 	// Grid: dir spans 2 cols row 0; f and image on row 1 (matches Tcl's grid layout).
 	grid.Grid(dirLF, grid.Row(0), grid.Column(0), grid.ColumnSpan(2),
-		grid.Sticky(grid.EW), grid.PadX("1m"), grid.PadY("1m"))
+		grid.Sticky(grid.EW), grid.PadX(screenunit.Mm(1)), grid.PadY(screenunit.Mm(1)))
 	grid.Grid(fileLF, grid.Row(1), grid.Column(0),
-		grid.Sticky(grid.StickN|grid.StickW), grid.PadX("1m"), grid.PadY("1m"))
+		grid.Sticky(grid.StickN|grid.StickW), grid.PadX(screenunit.Mm(1)), grid.PadY(screenunit.Mm(1)))
 	grid.Grid(imageLF, grid.Row(1), grid.Column(1),
-		grid.Sticky(grid.StickN|grid.StickW), grid.PadX("1m"), grid.PadY("1m"))
+		grid.Sticky(grid.StickN|grid.StickW), grid.PadX(screenunit.Mm(1)), grid.PadY(screenunit.Mm(1)))
 	grid.ColumnConfigure(mid, 1, grid.Weight(1))
 
 	app.Run()

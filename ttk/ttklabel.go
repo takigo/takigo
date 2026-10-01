@@ -82,8 +82,8 @@ func LabelImage(img widget.WidgetImage) LabelOption {
 }
 
 // LabelWrapLength sets -wraplength (a Tk distance such as "4i").
-func LabelWrapLength(v any) LabelOption {
-	return func(l *Label) { l.SetWidgetOption("-wraplength", screenunit.PxOr(v, 0)) }
+func LabelWrapLength[L screenunit.Length](v L) LabelOption {
+	return func(l *Label) { l.SetWidgetOption("-wraplength", screenunit.ToPixels(v)) }
 }
 
 // LabelJustify sets -justify for multi-line text.

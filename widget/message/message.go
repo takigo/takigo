@@ -57,8 +57,8 @@ func FontOpt(name string) MessageOption {
 }
 
 // BorderWidth sets the border width.
-func BorderWidth(w any) MessageOption {
-	return func(m *Message) { m.BorderWidth = screenunit.PxOr(w, m.BorderWidth) }
+func BorderWidth[L screenunit.Length](w L) MessageOption {
+	return func(m *Message) { m.BorderWidth = screenunit.ToPixels(w) }
 }
 
 // Relief sets the border relief.
@@ -85,18 +85,18 @@ func Aspect(a int) MessageOption {
 // WidthOpt sets the explicit width in pixels (overrides aspect ratio).
 // Accepts int (pixels), float64, or string with unit suffix.
 // Set to 0 (default) to use aspect-ratio-based auto-width.
-func WidthOpt(w any) MessageOption {
-	return func(m *Message) { m.Width = screenunit.PxOr(w, m.Width) }
+func WidthOpt[L screenunit.Length](w L) MessageOption {
+	return func(m *Message) { m.Width = screenunit.ToPixels(w) }
 }
 
 // PadX sets horizontal padding.
-func PadX(p any) MessageOption {
-	return func(m *Message) { m.PadX = screenunit.PxOr(p, m.PadX) }
+func PadX[L screenunit.Length](p L) MessageOption {
+	return func(m *Message) { m.PadX = screenunit.ToPixels(p) }
 }
 
 // PadY sets vertical padding.
-func PadY(p any) MessageOption {
-	return func(m *Message) { m.PadY = screenunit.PxOr(p, m.PadY) }
+func PadY[L screenunit.Length](p L) MessageOption {
+	return func(m *Message) { m.PadY = screenunit.ToPixels(p) }
 }
 
 // HighlightWidth sets the focus highlight border width.

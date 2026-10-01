@@ -618,7 +618,7 @@ func (t *TextWidget) WindowCreate(indexStr string, w *window.Window) {
 }
 
 // WindowCreatePad is "window create" with -padx and -pady (Tk distances).
-func (t *TextWidget) WindowCreatePad(indexStr string, w *window.Window, padX, padY any) {
+func (t *TextWidget) WindowCreatePad[X, Y screenunit.Length](indexStr string, w *window.Window, padX X, padY Y) {
 	idx, ok := t.index(indexStr)
 	if !ok {
 		return
@@ -633,7 +633,7 @@ func (t *TextWidget) WindowCreatePad(indexStr string, w *window.Window, padX, pa
 	t.doc.MarkSet(markName, idx)
 	t.doc.addObject(markName)
 	t.embeddedWindows = append(t.embeddedWindows, embeddedWin{markName: markName, win: w,
-		padX: screenunit.PxOr(padX, 0), padY: screenunit.PxOr(padY, 0)})
+		padX: screenunit.ToPixels(padX), padY: screenunit.ToPixels(padY)})
 }
 
 // ImageCreate embeds an image at the given text index. As in Tk it takes

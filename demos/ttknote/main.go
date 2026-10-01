@@ -12,6 +12,7 @@ import (
 	"github.com/msorc/takigo/geometry/grid"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/ttk"
 	_ "github.com/msorc/takigo/ttk/clamtheme"
 	_ "github.com/msorc/takigo/ttk/defaulttheme"
@@ -39,7 +40,7 @@ func main() {
 	// ttk::notebook $w.note; pack ... -padx 1.5p -pady 3p
 	nb := ttk.NewNotebook(f, "note")
 	pack.Pack(nb, pack.FillOpt(pack.FillBoth),
-		pack.Expand(true), pack.PadX("1.5p"), pack.PadY("3p"))
+		pack.Expand(true), pack.PadX(screenunit.Pt(1.5)), pack.PadY(screenunit.Pt(3)))
 
 	// --- Tab 1: Description ---
 	// ttk::frame $w.note.msg
@@ -48,13 +49,13 @@ func main() {
 	// ttk::label ... -wraplength 4i -justify left -anchor n
 	descLabel := ttk.NewLabel(page1, "m",
 		ttk.LabelText("Ttk is the new Tk themed widget set. One of the widgets it includes is the notebook widget, which provides a set of tabs that allow the selection of a group of panels, each with distinct content. They are a feature of many modern user interfaces. Not only can the tabs be selected with the mouse, but they can also be switched between using Ctrl+Tab when the notebook page heading itself is selected. Note that the second tab is disabled, and cannot be selected."),
-		ttk.LabelWrapLength("4i"),
+		ttk.LabelWrapLength(screenunit.In(4)),
 		ttk.LabelJustify(option.JustifyLeft),
 		ttk.LabelAnchor(option.AnchorN),
 	)
 	// grid $w.note.msg.m - -sticky new -pady 1.5p
 	grid.Grid(descLabel, grid.Row(0), grid.Column(0), grid.ColumnSpan(2),
-		grid.Sticky(grid.StickN+grid.EW), grid.PadY("1.5p"))
+		grid.Sticky(grid.StickN+grid.EW), grid.PadY(screenunit.Pt(1.5)))
 
 	neatLabel := ttk.NewLabel(page1, "l",
 		ttk.LabelText(""),
@@ -72,8 +73,8 @@ func main() {
 		}),
 	)
 	// grid $w.note.msg.b $w.note.msg.l -pady {1.5p 3p}
-	grid.Grid(neatBtn, grid.Row(1), grid.Column(0), grid.PadYPair("1.5p", "3p"))
-	grid.Grid(neatLabel, grid.Row(1), grid.Column(1), grid.PadYPair("1.5p", "3p"))
+	grid.Grid(neatBtn, grid.Row(1), grid.Column(0), grid.PadYPair(screenunit.Pt(1.5), screenunit.Pt(3)))
+	grid.Grid(neatLabel, grid.Row(1), grid.Column(1), grid.PadYPair(screenunit.Pt(1.5), screenunit.Pt(3)))
 	grid.RowConfigure(page1, 1, grid.Weight(1))
 	grid.ColumnConfigure(page1, 0, grid.Weight(1), grid.Uniform("1"))
 	grid.ColumnConfigure(page1, 1, grid.Weight(1), grid.Uniform("1"))
@@ -130,10 +131,10 @@ func main() {
 
 	// pack $w.note.editor.s -side right -fill y -padx {0 1.5p} -pady 1.5p
 	pack.Pack(yscroll, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY),
-		pack.PadXPair(0, "1.5p"), pack.PadY("1.5p"))
+		pack.PadXPair(0, screenunit.Pt(1.5)), pack.PadY(screenunit.Pt(1.5)))
 	// pack $w.note.editor.t -fill both -expand 1 -pady 1.5p -padx {1.5p 0}
 	pack.Pack(tw, pack.FillOpt(pack.FillBoth), pack.Expand(true),
-		pack.PadY("1.5p"), pack.PadXPair("1.5p", 0))
+		pack.PadY(screenunit.Pt(1.5)), pack.PadXPair(screenunit.Pt(1.5), 0))
 
 	// $w.note add $w.note.editor -text "Text Editor" -underline 0
 	nb.Add(page3.Window(), "Text Editor")

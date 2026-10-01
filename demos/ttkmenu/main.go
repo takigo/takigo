@@ -11,6 +11,7 @@ import (
 	"github.com/msorc/takigo/geometry/grid"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/ttk"
 	_ "github.com/msorc/takigo/ttk/clamtheme"
 	_ "github.com/msorc/takigo/ttk/defaulttheme"
@@ -32,7 +33,7 @@ func main() {
 	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	msg := ttk.NewLabel(f, "msg",
-		ttk.LabelWrapLength("4i"),
+		ttk.LabelWrapLength(screenunit.In(4)),
 		ttk.LabelJustify(option.JustifyLeft),
 		ttk.LabelText("Ttk is the new Tk themed widget set, and one widget that is available in themed form is the menubutton. Below are some themed menu buttons that allow you to pick the current theme in use. Notice how picking a theme changes the way that the menu buttons themselves look, and that the central menu button is styled differently (in a way that is normally suitable for toolbars). However, there are no themed menus; the standard Tk menus were judged to have a sufficiently good look-and-feel on all platforms, especially as they are implemented as native controls in many places."),
 	)
@@ -91,11 +92,11 @@ func main() {
 	//    m2  m4  m3
 	//     .  m5  .
 	grid.SetAnchor(cf, option.AnchorCenter)
-	grid.Grid(m1, grid.Row(0), grid.Column(1), grid.PadX("2.25p"), grid.PadY("1.5p"))
-	grid.Grid(m2, grid.Row(1), grid.Column(0), grid.PadX("2.25p"), grid.PadY("1.5p"))
-	grid.Grid(m4, grid.Row(1), grid.Column(1), grid.PadX("2.25p"), grid.PadY("1.5p"))
-	grid.Grid(m3, grid.Row(1), grid.Column(2), grid.PadX("2.25p"), grid.PadY("1.5p"))
-	grid.Grid(m5, grid.Row(2), grid.Column(1), grid.PadX("2.25p"), grid.PadY("1.5p"))
+	grid.Grid(m1, grid.Row(0), grid.Column(1), grid.PadX(screenunit.Pt(2.25)), grid.PadY(screenunit.Pt(1.5)))
+	grid.Grid(m2, grid.Row(1), grid.Column(0), grid.PadX(screenunit.Pt(2.25)), grid.PadY(screenunit.Pt(1.5)))
+	grid.Grid(m4, grid.Row(1), grid.Column(1), grid.PadX(screenunit.Pt(2.25)), grid.PadY(screenunit.Pt(1.5)))
+	grid.Grid(m3, grid.Row(1), grid.Column(2), grid.PadX(screenunit.Pt(2.25)), grid.PadY(screenunit.Pt(1.5)))
+	grid.Grid(m5, grid.Row(2), grid.Column(1), grid.PadX(screenunit.Pt(2.25)), grid.PadY(screenunit.Pt(1.5)))
 
 	app.Run()
 }

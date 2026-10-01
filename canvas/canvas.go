@@ -124,13 +124,13 @@ func (c *Canvas) scratchPoints(n int) []platform.Point {
 type CanvasOption func(*Canvas)
 
 // Width sets -width (a Tk distance: pixels or "10c", "3i", ...).
-func Width(w any) CanvasOption {
-	return func(c *Canvas) { c.reqW = screenunit.PxOr(w, c.reqW) }
+func Width[L screenunit.Length](w L) CanvasOption {
+	return func(c *Canvas) { c.reqW = screenunit.ToPixels(w) }
 }
 
 // Height sets -height (a Tk distance).
-func Height(h any) CanvasOption {
-	return func(c *Canvas) { c.reqH = screenunit.PxOr(h, c.reqH) }
+func Height[L screenunit.Length](h L) CanvasOption {
+	return func(c *Canvas) { c.reqH = screenunit.ToPixels(h) }
 }
 
 func Background(name string) CanvasOption {
@@ -188,8 +188,8 @@ func New(parent widget.Caregiver, name string, opts ...CanvasOption) *Canvas {
 	// Canvas defaults (tkUnixDefault.h: -width 10c -height 7c,
 	// -highlightthickness 1, normal background).
 	c.HighlightWidth = 1
-	c.reqW = screenunit.Px("10c")
-	c.reqH = screenunit.Px("7c")
+	c.reqW = screenunit.Cm(10).Pixels()
+	c.reqH = screenunit.Cm(7).Pixels()
 
 	// Apply options.
 	for _, opt := range opts {

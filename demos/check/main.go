@@ -11,6 +11,7 @@ import (
 	"github.com/msorc/takigo/geometry"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/checkbutton"
 	"github.com/msorc/takigo/widget/frame"
@@ -37,7 +38,7 @@ func main() {
 	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	msg := label.New(f, "msg",
-		label.WrapLength("4i"),
+		label.WrapLength(screenunit.In(4)),
 		label.JustifyOpt(option.JustifyLeft),
 		label.Text("Four checkbuttons are displayed below.  If you click on a "+
 			"button, it will toggle the button's selection state and set a "+
@@ -114,7 +115,7 @@ func main() {
 		checkbutton.TristateValueOpt(safetyPartial),
 		checkbutton.Command(updateSubs),
 	)
-	pack.Pack(cb0, pack.SideOpt(pack.Top), pack.PadY("1.5p"), pack.Anchor(option.AnchorW))
+	pack.Pack(cb0, pack.SideOpt(pack.Top), pack.PadY(screenunit.Pt(1.5)), pack.Anchor(option.AnchorW))
 
 	cb1 := checkbutton.New(f, "wipers",
 		checkbutton.Text("Wipers OK"),
@@ -131,7 +132,7 @@ func main() {
 		checkbutton.Var(sober),
 		checkbutton.Command(updateMaster),
 	)
-	pack.Pack(geometry.Group{cb1, cb2, cb3}, pack.SideOpt(pack.Top), pack.PadY("1.5p"), pack.Anchor(option.AnchorW), pack.PadX("12p"))
+	pack.Pack(geometry.Group{cb1, cb2, cb3}, pack.SideOpt(pack.Top), pack.PadY(screenunit.Pt(1.5)), pack.Anchor(option.AnchorW), pack.PadX(screenunit.Pt(12)))
 
 	app.Run()
 }

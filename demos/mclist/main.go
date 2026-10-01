@@ -60,7 +60,7 @@ func main() {
 	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	msg := ttk.NewLabel(f, "msg",
-		ttk.LabelWrapLength("4i"),
+		ttk.LabelWrapLength(screenunit.In(4)),
 		ttk.LabelJustify(option.JustifyLeft),
 		ttk.LabelAnchor(option.AnchorN),
 		ttk.LabelPadding("10 2 10 6"),

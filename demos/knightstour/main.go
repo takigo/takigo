@@ -90,10 +90,10 @@ func main() {
 	pack.Pack(dlg, pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	f := ttk.NewFrame(dlg, "f")
-	pt := screenunit.Float
-	c := canvas.New(f, "c", canvas.Width("192p"), canvas.Height("192p"))
+	pt := screenunit.Distance.Float
+	c := canvas.New(f, "c", canvas.Width(screenunit.Pt(192)), canvas.Height(screenunit.Pt(192)))
 	txt := text.New(f, "txt", text.Width(12), text.Height(1),
-		text.PadXOpt(screenunit.Px("3p")), text.FontOpt(font.TkFixedFont))
+		text.PadXOpt(screenunit.Pt(3).Pixels()), text.FontOpt(font.TkFixedFont))
 	vs := ttk.NewScrollbar(f, "vs", ttk.ScrollbarOrientOpt(ttk.Vertical),
 		ttk.ScrollbarCommandOpt(func(args ...any) {
 			if len(args) >= 2 && args[0] == "moveto" {
@@ -135,10 +135,10 @@ func main() {
 				fill, dfill = "tan3", "tan4"
 			}
 			squares[sq] = c.CreateRectangle(
-				pt(fmt.Sprintf("%dp", col*24+3)), pt(fmt.Sprintf("%dp", row*24+3)),
-				pt(fmt.Sprintf("%dp", col*24+24)), pt(fmt.Sprintf("%dp", row*24+24)),
+				pt(screenunit.Pt(float64(col*24+3))), pt(screenunit.Pt(float64(row*24+3))),
+				pt(screenunit.Pt(float64(col*24+24))), pt(screenunit.Pt(float64(row*24+24))),
 				canvas.FillColor(fill), canvas.DisabledFill(dfill),
-				canvas.OutlineWidth(screenunit.Px("1.5p")),
+				canvas.OutlineWidth(screenunit.Pt(1.5).Pixels()),
 				canvas.StateOpt(canvas.ItemStateDisabled), canvas.OutlineColor("black"))
 			sq++
 		}
@@ -273,7 +273,7 @@ func main() {
 	grid.ColumnConfigure(f, 1, grid.Weight(1))
 	grid.Grid(f, grid.Row(0), grid.Column(0), grid.ColumnSpan(6), grid.Sticky(grid.NSEW))
 
-	right := []pack.PackOption{pack.SideOpt(pack.Right), pack.PadX("1.5p"), pack.PadY("1.5p")}
+	right := []pack.PackOption{pack.SideOpt(pack.Right), pack.PadX(screenunit.Pt(1.5)), pack.PadY(screenunit.Pt(1.5))}
 	pack.Pack(b1, right...)
 	pack.Pack(cc, right...)
 	pack.Pack(sc, right...)

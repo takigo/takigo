@@ -10,6 +10,7 @@ import (
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/widget/entry"
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
@@ -29,7 +30,7 @@ func main() {
 	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	msg := label.New(f, "msg",
-		label.WrapLength("5i"),
+		label.WrapLength(screenunit.In(5)),
 		label.JustifyOpt(option.JustifyLeft),
 		label.Text("Three different entries are displayed below.  You can add characters by pointing, clicking and typing.  The normal Motif editing characters are supported, along with many Emacs bindings.  For example, Backspace and Control-h delete the character to the left of the insertion cursor and Delete and Control-d delete the chararacter to the right of the insertion cursor.  For entries that are too large to fit in the window all at once, you can scan through the entries by dragging with mouse the middle mouse button pressed."),
 	)
@@ -43,7 +44,7 @@ func main() {
 		entry.Text("Initial value"),
 	)
 	pack.Pack(e1, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
-		pack.PadX("7.5p"), pack.PadY("3p"))
+		pack.PadX(screenunit.Pt(7.5)), pack.PadY(screenunit.Pt(3)))
 
 	// Entry 2: long text that requires scrolling.
 	e2 := entry.New(f, "e2",
@@ -52,7 +53,7 @@ func main() {
 			"that you'll have to scan or scroll to see the end."),
 	)
 	pack.Pack(e2, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
-		pack.PadX("7.5p"), pack.PadY("3p"))
+		pack.PadX(screenunit.Pt(7.5)), pack.PadY(screenunit.Pt(3)))
 
 	// Entry 3: placeholder text.
 	e3 := entry.New(f, "e3",
@@ -60,7 +61,7 @@ func main() {
 		entry.PlaceholderForeground("gray75"),
 	)
 	pack.Pack(e3, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
-		pack.PadX("7.5p"), pack.PadY("3p"))
+		pack.PadX(screenunit.Pt(7.5)), pack.PadY(screenunit.Pt(3)))
 
 	_ = e1
 	_ = e2

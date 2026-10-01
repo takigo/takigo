@@ -15,6 +15,7 @@ import (
 	"github.com/msorc/takigo/geometry/grid"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/ttk"
 	_ "github.com/msorc/takigo/ttk/clamtheme"
 	_ "github.com/msorc/takigo/ttk/defaulttheme"
@@ -35,7 +36,7 @@ func main() {
 	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	msg := ttk.NewLabel(f, "msg",
-		ttk.LabelWrapLength("4i"),
+		ttk.LabelWrapLength(screenunit.In(4)),
 		ttk.LabelJustify(option.JustifyLeft),
 		ttk.LabelAnchor(option.AnchorN),
 		ttk.LabelPadding("10 2 10 6"),

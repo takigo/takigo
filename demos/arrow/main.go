@@ -33,7 +33,7 @@ func main() {
 	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	msg := label.New(f, "msg",
-		label.WrapLength("5i"),
+		label.WrapLength(screenunit.In(5)),
 		label.JustifyOpt(option.JustifyLeft),
 		label.Text("This widget allows you to experiment with different widths and arrowhead shapes for lines in canvases.  To change the line width or the shape of the arrowhead, drag any of the three boxes attached to the oversized arrow.  The arrows on the right give examples at normal scale.  The text at the bottom shows the configuration options as you'd enter them for a canvas line item."),
 	)
@@ -43,8 +43,8 @@ func main() {
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	c := canvas.New(f, "c",
-		canvas.Width("375p"),
-		canvas.Height("262.5p"),
+		canvas.Width(screenunit.Pt(375)),
+		canvas.Height(screenunit.Pt(262.5)),
 		canvas.ReliefOpt(option.ReliefSunken),
 		canvas.BorderWidthOpt(2),
 	)
@@ -54,12 +54,12 @@ func main() {
 	scl := func(n int) float64 {
 		return float64(int(math.Round(float64(n) * float64(screenunit.ScalingPct()) / 100)))
 	}
-	pt := func(v string) float64 { return float64(screenunit.Px(v)) }
+	pt := func(d screenunit.Distance) float64 { return float64(d.Pixels()) }
 
 	a, b, cc, w := scl(8), scl(10), scl(3), scl(2)
 	x1, x2, y := scl(40), scl(350), scl(150)
-	smallA, smallB, smallC := pt("3.75p"), pt("3.75p"), pt("1.5p")
-	boxW := screenunit.Px("0.75p")
+	smallA, smallB, smallC := pt(screenunit.Pt(3.75)), pt(screenunit.Pt(3.75)), pt(screenunit.Pt(1.5))
+	boxW := screenunit.Pt(0.75).Pixels()
 
 	activeDragger := 0 // 0=none, 1=box1, 2=box2, 3=box3
 
@@ -75,7 +75,7 @@ func main() {
 		xtip := x2 - 10*b
 		deltaY := 10*cc + 5*w
 		c.CreateLine([]float64{x2, y, xtip, y + deltaY, x2 - 10*a, y, xtip, y - deltaY, x2, y},
-			canvas.OutlineWidth(screenunit.Px("1.5p")),
+			canvas.OutlineWidth(screenunit.Pt(1.5).Pixels()),
 			canvas.CapStyleOpt(platform.CapRound), canvas.JoinStyleOpt(platform.JoinRound))
 
 		s5 := scl(5)
@@ -87,7 +87,7 @@ func main() {
 		box(x1-s5, y-5*w-s5, x1+s5, y-5*w+s5, "box3")
 
 		s10, s15, s25, s50, s75, s125 := scl(10), scl(15), scl(25), scl(50), scl(75), scl(125)
-		c.CreateLine([]float64{x2 + s50, 0, x2 + s50, pt("750p")}, canvas.OutlineWidth(screenunit.Px("1.5p")))
+		c.CreateLine([]float64{x2 + s50, 0, x2 + s50, pt(screenunit.Pt(750))}, canvas.OutlineWidth(screenunit.Pt(1.5).Pixels()))
 		tmp := x2 + scl(100)
 		example := func(pts []float64) {
 			c.CreateLine(pts, canvas.OutlineWidth(int(w)), canvas.Arrow(canvas.ArrowBoth), canvas.ArrowShape(a, b, cc))
@@ -113,9 +113,9 @@ func main() {
 		dim([]float64{x2 - 10*b, tmp, x2, tmp})
 		c.CreateText(x2-5*b, tmp+s5, canvas.TextOpt(num(b)), canvas.AnchorOpt(option.AnchorN))
 
-		c.CreateText(x1, pt("232.5p"), canvas.TextOpt("-width  "+num(w)),
+		c.CreateText(x1, pt(screenunit.Pt(232.5)), canvas.TextOpt("-width  "+num(w)),
 			canvas.AnchorOpt(option.AnchorW), canvas.FontOpt("Helvetica 18"))
-		c.CreateText(x1, pt("247.5p"),
+		c.CreateText(x1, pt(screenunit.Pt(247.5)),
 			canvas.TextOpt(fmt.Sprintf("-arrowshape  {%s  %s  %s}", num(a), num(b), num(cc))),
 			canvas.AnchorOpt(option.AnchorW), canvas.FontOpt("Helvetica 18"))
 	}

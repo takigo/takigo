@@ -11,6 +11,7 @@ import (
 	"github.com/msorc/takigo/geometry/grid"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
 )
@@ -29,7 +30,7 @@ func main() {
 	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	msg := label.New(f, "msg",
-		label.WrapLength("4i"),
+		label.WrapLength(screenunit.In(4)),
 		label.JustifyOpt(option.JustifyLeft),
 		label.Text("This is a sample of Tk's support for languages that use non-Western character sets.  However, what you will actually see below depends largely on what character sets you have installed, and what you see for characters that are not present varies greatly between platforms as well."),
 	)
@@ -41,7 +42,7 @@ func main() {
 	// Frame to hold the two-column grid of language samples.
 	samples_f := frame.New(f, "samples")
 	pack.Pack(samples_f, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillBoth),
-		pack.Expand(true), pack.PadX("2m"), pack.PadY("1m"))
+		pack.Expand(true), pack.PadX(screenunit.Mm(2)), pack.PadY(screenunit.Mm(1)))
 
 	// Unicode samples matching Tk's unicodeout.tcl.
 	samples := []struct {
@@ -77,7 +78,7 @@ func main() {
 		)
 		// padx "1m" only on language label (column 0), not on sample label.
 		grid.Grid(langLabel, grid.Row(i), grid.Column(0),
-			grid.Sticky(grid.EW), grid.PadX("1m"), grid.PadY(0))
+			grid.Sticky(grid.EW), grid.PadX(screenunit.Mm(1)), grid.PadY(0))
 		grid.Grid(sampleLabel, grid.Row(i), grid.Column(1),
 			grid.Sticky(grid.EW), grid.PadY(0))
 	}

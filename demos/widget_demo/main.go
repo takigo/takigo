@@ -19,6 +19,7 @@ import (
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/ttk"
 	_ "github.com/msorc/takigo/ttk/clamtheme"
 	_ "github.com/msorc/takigo/ttk/defaulttheme"
@@ -93,17 +94,17 @@ func main() {
 		label.Anchor(option.AnchorW),
 	)
 	// pack .statusBar.lab -side left -padx 1.5p -expand yes -fill both
-	pack.Pack(statusLabel, pack.SideOpt(pack.Left), pack.PadX("1.5p"),
+	pack.Pack(statusLabel, pack.SideOpt(pack.Left), pack.PadX(screenunit.Pt(1.5)),
 		pack.Expand(true), pack.FillOpt(pack.FillBoth))
 
 	// ttk::sizegrip .statusBar.foo
 	grip := ttk.NewSizegrip(statusBar, "foo")
 	// pack .statusBar.foo -side right -padx 1.5p
-	pack.Pack(grip, pack.SideOpt(pack.Right), pack.PadX("1.5p"))
+	pack.Pack(grip, pack.SideOpt(pack.Right), pack.PadX(screenunit.Pt(1.5)))
 
 	// pack .statusBar -side bottom -fill x -pady 1.5p
 	pack.Pack(statusBar, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX),
-		pack.PadY("1.5p"))
+		pack.PadY(screenunit.Pt(1.5)))
 
 	// ── Text widget with scrollbar ──
 	// ttk::frame .textFrame
@@ -187,21 +188,21 @@ func main() {
 
 	// .t tag configure demospace -lmargin1 1c -lmargin2 1c
 	t.TagConfigure("demospace",
-		text.TagLMargin1Str("1c"),
-		text.TagLMargin2Str("1c"),
+		text.TagLMargin1(screenunit.Cm(1)),
+		text.TagLMargin2(screenunit.Cm(1)),
 	)
 
 	// .t tag configure demo -lmargin1 1c -lmargin2 1c -foreground blue -underline 1
 	t.TagConfigure("demo",
-		text.TagLMargin1Str("1c"),
-		text.TagLMargin2Str("1c"),
+		text.TagLMargin1(screenunit.Cm(1)),
+		text.TagLMargin2(screenunit.Cm(1)),
 		text.TagForeground("blue"),
 		text.TagUnderline(true),
 	)
 	// .t tag configure visited -lmargin1 1c -lmargin2 1c -foreground #303080 -underline 1
 	t.TagConfigure("visited",
-		text.TagLMargin1Str("1c"),
-		text.TagLMargin2Str("1c"),
+		text.TagLMargin1(screenunit.Cm(1)),
+		text.TagLMargin2(screenunit.Cm(1)),
 		text.TagForeground("#303080"),
 		text.TagUnderline(true),
 	)

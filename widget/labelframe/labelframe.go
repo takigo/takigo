@@ -48,8 +48,8 @@ func Foreground(name string) LabelframeOption {
 }
 
 // BorderWidth sets the border width.
-func BorderWidth(w any) LabelframeOption {
-	return func(lf *Labelframe) { lf.BorderWidth = screenunit.PxOr(w, lf.BorderWidth) }
+func BorderWidth[L screenunit.Length](w L) LabelframeOption {
+	return func(lf *Labelframe) { lf.BorderWidth = screenunit.ToPixels(w) }
 }
 
 // Relief sets the border relief.
@@ -85,15 +85,15 @@ func LabelWidgetOpt(w widget.Widget) LabelframeOption {
 }
 
 // PadX sets internal horizontal padding.
-// Accepts int (pixels), float64 (rounded pixels), or string with unit suffix ("1.5p", "2m", etc.).
-func PadX(p any) LabelframeOption {
-	return func(lf *Labelframe) { lf.PadX = screenunit.PxOr(p, lf.PadX) }
+// Accepts a number of pixels or a screenunit.Distance such as screenunit.Pt(3).
+func PadX[L screenunit.Length](p L) LabelframeOption {
+	return func(lf *Labelframe) { lf.PadX = screenunit.ToPixels(p) }
 }
 
 // PadY sets internal vertical padding.
-// Accepts int (pixels), float64 (rounded pixels), or string with unit suffix ("1.5p", "2m", etc.).
-func PadY(p any) LabelframeOption {
-	return func(lf *Labelframe) { lf.PadY = screenunit.PxOr(p, lf.PadY) }
+// Accepts a number of pixels or a screenunit.Distance such as screenunit.Pt(3).
+func PadY[L screenunit.Length](p L) LabelframeOption {
+	return func(lf *Labelframe) { lf.PadY = screenunit.ToPixels(p) }
 }
 
 // New creates a new Labelframe widget.

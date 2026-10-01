@@ -72,55 +72,55 @@ func ColumnSpan(n int) GridOption { return func(c *gridConfig) { c.columnSpan = 
 func Sticky(s int) GridOption { return func(c *gridConfig) { c.sticky = s } }
 
 // PadX sets the exterior horizontal padding (symmetric).
-// Accepts int (pixels), float64 (rounded pixels), or string with unit suffix ("3p", "2m", "1c", "0.5i").
-func PadX(p any) GridOption {
+// Accepts a number of pixels or a screenunit.Distance such as screenunit.Pt(3).
+func PadX[L screenunit.Length](p L) GridOption {
 	return func(c *gridConfig) {
-		v := screenunit.PxOr(p, c.padLeft)
+		v := screenunit.ToPixels(p)
 		c.padX = v * 2
 		c.padLeft = v
 	}
 }
 
 // PadY sets the exterior vertical padding (symmetric).
-// Accepts int (pixels), float64 (rounded pixels), or string with unit suffix ("3p", "2m", "1c", "0.5i").
-func PadY(p any) GridOption {
+// Accepts a number of pixels or a screenunit.Distance such as screenunit.Pt(3).
+func PadY[L screenunit.Length](p L) GridOption {
 	return func(c *gridConfig) {
-		v := screenunit.PxOr(p, c.padTop)
+		v := screenunit.ToPixels(p)
 		c.padY = v * 2
 		c.padTop = v
 	}
 }
 
 // PadXPair sets asymmetric exterior horizontal padding.
-func PadXPair(left, right any) GridOption {
+func PadXPair[A, B screenunit.Length](left A, right B) GridOption {
 	return func(c *gridConfig) {
-		l := screenunit.PxOr(left, c.padLeft)
-		r := screenunit.PxOr(right, c.padX-c.padLeft)
+		l := screenunit.ToPixels(left)
+		r := screenunit.ToPixels(right)
 		c.padLeft = l
 		c.padX = l + r
 	}
 }
 
 // PadYPair sets asymmetric exterior vertical padding.
-func PadYPair(top, bottom any) GridOption {
+func PadYPair[A, B screenunit.Length](top A, bottom B) GridOption {
 	return func(c *gridConfig) {
-		t := screenunit.PxOr(top, c.padTop)
-		b := screenunit.PxOr(bottom, c.padY-c.padTop)
+		t := screenunit.ToPixels(top)
+		b := screenunit.ToPixels(bottom)
 		c.padTop = t
 		c.padY = t + b
 	}
 }
 
 // IPadX sets the interior horizontal padding.
-// Accepts int (pixels), float64 (rounded pixels), or string with unit suffix ("3p", "2m", "1c", "0.5i").
-func IPadX(p any) GridOption {
-	return func(c *gridConfig) { c.iPadX = screenunit.PxOr(p, c.iPadX) * 2 }
+// Accepts a number of pixels or a screenunit.Distance such as screenunit.Pt(3).
+func IPadX[L screenunit.Length](p L) GridOption {
+	return func(c *gridConfig) { c.iPadX = screenunit.ToPixels(p) * 2 }
 }
 
 // IPadY sets the interior vertical padding.
-// Accepts int (pixels), float64 (rounded pixels), or string with unit suffix ("3p", "2m", "1c", "0.5i").
-func IPadY(p any) GridOption {
-	return func(c *gridConfig) { c.iPadY = screenunit.PxOr(p, c.iPadY) * 2 }
+// Accepts a number of pixels or a screenunit.Distance such as screenunit.Pt(3).
+func IPadY[L screenunit.Length](p L) GridOption {
+	return func(c *gridConfig) { c.iPadY = screenunit.ToPixels(p) * 2 }
 }
 
 // SlotConfig holds configuration for a row or column.
@@ -143,7 +143,7 @@ func MinSize(n int) SlotOption { return func(c *SlotConfig) { c.MinSize = n } }
 func Weight(n int) SlotOption { return func(c *SlotConfig) { c.Weight = n } }
 
 // Pad sets the padding for a row or column.
-func Pad(n int) SlotOption { return func(c *SlotConfig) { c.Pad = screenunit.PxOr(n, c.Pad) } }
+func Pad(n int) SlotOption { return func(c *SlotConfig) { c.Pad = screenunit.ToPixels(n) } }
 
 // Uniform sets the uniform group name.
 func Uniform(name string) SlotOption { return func(c *SlotConfig) { c.Uniform = name } }

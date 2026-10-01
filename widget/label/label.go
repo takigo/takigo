@@ -92,8 +92,8 @@ func FontOpt(name string) LabelOption {
 }
 
 // BorderWidth sets the border width.
-func BorderWidth(w any) LabelOption {
-	return func(l *Label) { l.BorderWidth = screenunit.PxOr(w, l.BorderWidth) }
+func BorderWidth[L screenunit.Length](w L) LabelOption {
+	return func(l *Label) { l.BorderWidth = screenunit.ToPixels(w) }
 }
 
 // Relief sets the border relief.
@@ -112,15 +112,15 @@ func JustifyOpt(j option.Justify) LabelOption {
 }
 
 // PadX sets horizontal padding.
-// Accepts int (pixels), float64 (rounded pixels), or string with unit suffix ("3p", "2m", "1c", "0.5i").
-func PadX(p any) LabelOption {
-	return func(l *Label) { l.PadX = screenunit.PxOr(p, l.PadX) }
+// Accepts a number of pixels or a screenunit.Distance such as screenunit.Pt(3).
+func PadX[L screenunit.Length](p L) LabelOption {
+	return func(l *Label) { l.PadX = screenunit.ToPixels(p) }
 }
 
 // PadY sets vertical padding.
-// Accepts int (pixels), float64 (rounded pixels), or string with unit suffix ("3p", "2m", "1c", "0.5i").
-func PadY(p any) LabelOption {
-	return func(l *Label) { l.PadY = screenunit.PxOr(p, l.PadY) }
+// Accepts a number of pixels or a screenunit.Distance such as screenunit.Pt(3).
+func PadY[L screenunit.Length](p L) LabelOption {
+	return func(l *Label) { l.PadY = screenunit.ToPixels(p) }
 }
 
 // ImageOpt sets the image to display.
@@ -165,10 +165,10 @@ func Height(h int) LabelOption {
 }
 
 // WrapLength sets the maximum line width for text wrapping.
-// Accepts int (pixels), float64 (rounded pixels), or string with unit suffix ("4i", "3p", etc.).
+// Accepts a number of pixels or a screenunit.Distance such as screenunit.Pt(3).
 // Set to 0 (default) to disable wrapping.
-func WrapLength(w any) LabelOption {
-	return func(l *Label) { l.WrapLen = screenunit.PxOr(w, l.WrapLen) }
+func WrapLength[L screenunit.Length](w L) LabelOption {
+	return func(l *Label) { l.WrapLen = screenunit.ToPixels(w) }
 }
 
 // New creates a new Label widget as a child of parent.

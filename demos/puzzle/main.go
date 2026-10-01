@@ -34,7 +34,7 @@ func main() {
 	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	msg := label.New(f, "msg",
-		label.WrapLength("4i"),
+		label.WrapLength(screenunit.In(4)),
 		label.JustifyOpt(option.JustifyLeft),
 		label.Text("A 15-puzzle appears below as a collection of buttons.  Click on any of the pieces next to the space, and that piece will slide over the space.  Continue this until the pieces are arranged in numerical order from upper-left to lower-right."),
 	)
@@ -50,13 +50,13 @@ func main() {
 
 	// Puzzle frame (matches Tcl: -width 90p -height 90p, pady 1c padx 1c).
 	puzzleFrame := frame.New(f, "frame",
-		frame.Width(screenunit.Px("90p")),
-		frame.Height(screenunit.Px("90p")),
+		frame.Width(screenunit.Pt(90).Pixels()),
+		frame.Height(screenunit.Pt(90).Pixels()),
 		frame.BorderWidth(2),
 		frame.Relief(option.ReliefSunken),
 		frame.Background(fmt.Sprintf("#%04x%04x%04x", troughCol.Red, troughCol.Green, troughCol.Blue)),
 	)
-	pack.Pack(puzzleFrame, pack.SideOpt(pack.Top), pack.PadX("1c"), pack.PadY("1c"))
+	pack.Pack(puzzleFrame, pack.SideOpt(pack.Top), pack.PadX(screenunit.Cm(1)), pack.PadY(screenunit.Cm(1)))
 	// Inset children by the border width so place tiles don't overlap the
 	// sunken bevel (matches Tcl, where the place manager respects the frame's
 	// border).

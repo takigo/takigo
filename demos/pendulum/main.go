@@ -36,7 +36,7 @@ func main() {
 	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	msg := label.New(f, "msg",
-		label.WrapLength("4i"),
+		label.WrapLength(screenunit.In(4)),
 		label.JustifyOpt(option.JustifyLeft),
 		label.Text("This demonstration shows how Tcl/Tk can be used to carry out animations that are linked to simulations of physical systems. In the left canvas is a graphical representation of the physical system itself, a simple pendulum, and in the right canvas is a graph of the phase space of the system, which is a plot of the angle (relative to the vertical) against the angular velocity. The pendulum bob may be repositioned by clicking and dragging anywhere on the left canvas."),
 	)
@@ -56,7 +56,7 @@ func main() {
 	pw.SetStretch(l1.Window(), panedwindow.StretchAlways)
 	pw.SetStretch(l2.Window(), panedwindow.StretchAlways)
 
-	pt := screenunit.Float
+	pt := screenunit.Distance.Float
 	// tkScl is [tk scaling]: pixels per point.
 	tkScl := screenunit.DPI() / 72
 	rnd := func(v float64) float64 { return math.Round(v * tkScl) }
@@ -64,25 +64,25 @@ func main() {
 	xHome, yHome := rnd(120), rnd(18)
 	rBob, rPivot := rnd(12), rnd(3)
 
-	c := canvas.New(l1, "c", canvas.Width("240p"), canvas.Height("150p"),
-		canvas.Background("white"), canvas.BorderWidthOpt(screenunit.Px("1.5p")),
+	c := canvas.New(l1, "c", canvas.Width(screenunit.Pt(240)), canvas.Height(screenunit.Pt(150)),
+		canvas.Background("white"), canvas.BorderWidthOpt(screenunit.Pt(1.5).Pixels()),
 		canvas.ReliefOpt(option.ReliefSunken))
-	c.CreateText(pt("3p"), pt("3p"), canvas.AnchorOpt(option.AnchorNW),
+	c.CreateText(pt(screenunit.Pt(3)), pt(screenunit.Pt(3)), canvas.AnchorOpt(option.AnchorNW),
 		canvas.TextOpt("Click to Adjust Bob Start Position"))
 	c.CreateLine([]float64{0, 25, 320, 25}, canvas.Tags("plate"),
-		canvas.OutlineColor("grey50"), canvas.OutlineWidth(screenunit.Px("1.5p")))
+		canvas.OutlineColor("grey50"), canvas.OutlineWidth(screenunit.Pt(1.5).Pixels()))
 	c.CreateOval(155, 20, 165, 30, canvas.Tags("pivot"), canvas.FillColor("grey50"), canvas.OutlineNone())
 	c.CreateLine([]float64{1, 1, 1, 1}, canvas.Tags("rod"),
-		canvas.OutlineColor("black"), canvas.OutlineWidth(screenunit.Px("2.25p")))
+		canvas.OutlineColor("black"), canvas.OutlineWidth(screenunit.Pt(2.25).Pixels()))
 	c.CreateOval(1, 1, 2, 2, canvas.Tags("bob"), canvas.FillColor("yellow"), canvas.OutlineColor("black"))
 	pack.Pack(c, pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
-	k := canvas.New(l2, "k", canvas.Width("240p"), canvas.Height("150p"),
-		canvas.Background("white"), canvas.BorderWidthOpt(screenunit.Px("1.5p")),
+	k := canvas.New(l2, "k", canvas.Width(screenunit.Pt(240)), canvas.Height(screenunit.Pt(150)),
+		canvas.Background("white"), canvas.BorderWidthOpt(screenunit.Pt(1.5).Pixels()),
 		canvas.ReliefOpt(option.ReliefSunken))
-	k.CreateLine([]float64{pt("120p"), pt("150p"), pt("120p"), 0}, canvas.OutlineColor("grey75"),
+	k.CreateLine([]float64{pt(screenunit.Pt(120)), pt(screenunit.Pt(150)), pt(screenunit.Pt(120)), 0}, canvas.OutlineColor("grey75"),
 		canvas.Arrow(canvas.ArrowLast), canvas.Tags("y_axis"))
-	k.CreateLine([]float64{0, pt("75p"), pt("240p"), pt("75p")}, canvas.OutlineColor("grey75"),
+	k.CreateLine([]float64{0, pt(screenunit.Pt(75)), pt(screenunit.Pt(240)), pt(screenunit.Pt(75))}, canvas.OutlineColor("grey75"),
 		canvas.Arrow(canvas.ArrowLast), canvas.Tags("x_axis"))
 	for i := 90; i >= 0; i -= 10 {
 		k.CreateLine([]float64{0, 0, 1, 1}, canvas.Smooth(true),
@@ -134,16 +134,16 @@ func main() {
 	// <Configure> bindings: both canvases lay themselves out from their size.
 	c.Win.OnConfigure(func() {
 		w := float64(c.Win.Width)
-		c.SetItemCoords("plate", []float64{0, pt("18p"), w, pt("18p")})
+		c.SetItemCoords("plate", []float64{0, pt(screenunit.Pt(18)), w, pt(screenunit.Pt(18))})
 		xHome = float64(c.Win.Width / 2)
-		c.SetItemCoords("pivot", []float64{xHome - rPivot, pt("15p"), xHome + rPivot, pt("21p")})
+		c.SetItemCoords("pivot", []float64{xHome - rPivot, pt(screenunit.Pt(15)), xHome + rPivot, pt(screenunit.Pt(21))})
 	})
 	k.Win.OnConfigure(func() {
 		w, h := float64(k.Win.Width), float64(k.Win.Height)
 		psh, psw = float64(k.Win.Height/2), float64(k.Win.Width/2)
-		k.SetItemCoords("x_axis", []float64{pt("1.5p"), psh, w - math.Round(1.5*tkScl), psh})
-		k.SetItemCoords("y_axis", []float64{psw, h - math.Round(1.5*tkScl), psw, pt("1.5p")})
-		k.SetItemCoords("label_dtheta", []float64{psw - math.Round(3*tkScl), pt("4.5p")})
+		k.SetItemCoords("x_axis", []float64{pt(screenunit.Pt(1.5)), psh, w - math.Round(1.5*tkScl), psh})
+		k.SetItemCoords("y_axis", []float64{psw, h - math.Round(1.5*tkScl), psw, pt(screenunit.Pt(1.5))})
+		k.SetItemCoords("label_dtheta", []float64{psw - math.Round(3*tkScl), pt(screenunit.Pt(4.5))})
 		k.SetItemCoords("label_theta", []float64{w - math.Round(4.5*tkScl), psh + math.Round(3*tkScl)})
 	})
 
