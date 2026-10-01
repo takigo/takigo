@@ -22,6 +22,61 @@ func TestURIListFiles(t *testing.T) {
 	}
 }
 
+// settle waits for the display server and window manager to finish with
+// Apps destroyed just before (see testutil.Settle, which this package
+// cannot import).
+func settle() { time.Sleep(200 * time.Millisecond) }
+
+// rootOrigin returns where app's root window sits on the screen once the
+// window manager has stopped moving it: a window manager, unlike the
+// virtual server of xvfb-run, places a window after mapping it.
+func rootOrigin(app *App) (x, y int) {
+	d := app.display
+	read := func() (int, int) {
+		return d.Server.TranslateCoordinates(app.root.PlatformID, d.RootWindow, 0, 0)
+	}
+	x, y = read()
+	for range 40 {
+		time.Sleep(50 * time.Millisecond)
+		nx, ny := read()
+		if nx == x && ny == y {
+			time.Sleep(50 * time.Millisecond)
+			if nx, ny = read(); nx == x && ny == y {
+				return x, y
+			}
+		}
+		x, y = nx, ny
+	}
+	return x, y
+}
+
+// raise puts app's window on top, as far as the window manager allows: a
+// desktop may map a new window behind the one the user is working in.
+func raise(app *App) {
+	app.display.Server.RaiseWindow(app.root.PlatformID)
+	app.display.Server.Flush()
+}
+
+// uncoveredPoint returns a point inside app's root window, in its own
+// coordinates, where it is the window a drag would find under the pointer:
+// a window manager stacks the test's windows as it likes, and one App's
+// window may cover part of another's.
+func uncoveredPoint(t *testing.T, probe, app *App) (x, y int) {
+	t.Helper()
+	raise(app)
+	time.Sleep(100 * time.Millisecond)
+	ox, oy := rootOrigin(app)
+	for y := 10; y < app.root.Height-10; y += 10 {
+		for x := 10; x < app.root.Width-10; x += 10 {
+			if w, _ := probe.dnd.awareWindowAt(ox+x, oy+y); w == app.root.PlatformID {
+				return x, y
+			}
+		}
+	}
+	t.Skip("the window manager left no part of the window uncovered")
+	return 0, 0
+}
+
 // One App plays the drag source of the XDND protocol by hand and drops a
 // file list and then text on another App, a separate X client.
 func TestDropFromAnotherClient(t *testing.T) {
@@ -29,6 +84,7 @@ func TestDropFromAnotherClient(t *testing.T) {
 		t.Skip("needs an X display")
 	}
 	displaylock.Acquire(t)
+	settle()
 
 	target, err := NewApp(Title("target"), Size(200, 150), Geometry("+0+0"))
 	if err != nil {
@@ -65,13 +121,14 @@ func TestDropFromAnotherClient(t *testing.T) {
 		<-sourceDone
 	}()
 
+	var ox, oy int // where the target sits on the screen, set once it is mapped
 	src, dst := int64(source.root.PlatformID), target.root.PlatformID
 	drag := func(typ string, data string, x, y int) {
 		source.RunOnMain(func() {
 			source.selMgr.OwnFormats(atom("XdndSelection"), source.root.PlatformID,
 				map[platform.AtomID][]byte{atom(typ): []byte(data)}, platform.CurrentTime)
 			srv.SendClientMessage(dst, dst, atom("XdndEnter"), src, xdndVersion<<24, int64(atom(typ)), 0, 0)
-			srv.SendClientMessage(dst, dst, atom("XdndPosition"), src, 0, int64(x<<16|y), 0, int64(atom("XdndActionCopy")))
+			srv.SendClientMessage(dst, dst, atom("XdndPosition"), src, 0, int64((ox+x)<<16|(oy+y)), 0, int64(atom("XdndActionCopy")))
 			srv.SendClientMessage(dst, dst, atom("XdndDrop"), src, 0, 0, 0, 0)
 			srv.Flush()
 		})
@@ -98,6 +155,7 @@ func TestDropFromAnotherClient(t *testing.T) {
 	}
 
 	time.Sleep(300 * time.Millisecond) // both windows mapped
+	ox, oy = rootOrigin(target)
 
 	drag("text/uri-list", "file:///tmp/a%20b.txt\r\nfile:///etc/hosts\r\n", 30, 40)
 	if r := wait("XdndStatus"); r.typ != atom("XdndStatus") || r.accept != 1 {
@@ -143,6 +201,7 @@ func TestStartDragOntoAnotherClient(t *testing.T) {
 		t.Skip("needs an X display")
 	}
 	displaylock.Acquire(t)
+	settle()
 
 	target, err := NewApp(Title("target"), Size(200, 150), Geometry("+0+0"))
 	if err != nil {
@@ -168,6 +227,10 @@ func TestStartDragOntoAnotherClient(t *testing.T) {
 		<-sourceDone
 	}()
 	time.Sleep(300 * time.Millisecond)
+	tx, ty := rootOrigin(target)
+	sx, sy := rootOrigin(source)
+	px, py := uncoveredPoint(t, source, target)
+	qx, qy := uncoveredPoint(t, source, source)
 
 	results := make(chan bool, 4)
 	pointer := func(typ event.Type, x, y int) {
@@ -195,21 +258,21 @@ func TestStartDragOntoAnotherClient(t *testing.T) {
 	}
 
 	// Across to the other client, entering it on the way.
-	drag(DragData{Files: []string{"/tmp/report 1.pdf", "/etc/hosts"}}, [][2]int{{410, 410}, {300, 300}, {150, 100}, {60, 70}})
+	drag(DragData{Files: []string{"/tmp/report 1.pdf", "/etc/hosts"}}, [][2]int{{sx + qx, sy + qy}, {tx + px, ty + py}})
 	if !result() {
 		t.Error("a drop on an accepting window was reported as not dropped")
 	}
 	select {
 	case d := <-drops:
-		if !slices.Equal(d.Files, []string{"/tmp/report 1.pdf", "/etc/hosts"}) || d.X != 60 || d.Y != 70 {
-			t.Errorf("drop = %+v, want the two files at 60,70", d)
+		if !slices.Equal(d.Files, []string{"/tmp/report 1.pdf", "/etc/hosts"}) || d.X != px || d.Y != py {
+			t.Errorf("drop = %+v, want the two files at %d,%d", d, px, py)
 		}
 	case <-time.After(5 * time.Second):
 		t.Fatal("the target did not get the drop")
 	}
 
 	// Text.
-	drag(DragData{Text: "some dragged text"}, [][2]int{{20, 20}})
+	drag(DragData{Text: "some dragged text"}, [][2]int{{tx + px, ty + py}})
 	if !result() {
 		t.Error("the text drag was not dropped")
 	}
@@ -217,14 +280,15 @@ func TestStartDragOntoAnotherClient(t *testing.T) {
 		t.Errorf("text drop = %+v", d)
 	}
 
-	// Released over the bare root window: nobody takes it.
-	drag(DragData{Text: "nowhere"}, [][2]int{{20, 20}, {300, 300}})
+	// Released off the screen, where no window can be: nobody takes it.
+	// (A point on the screen could be over a real application's window.)
+	drag(DragData{Text: "nowhere"}, [][2]int{{tx + px, ty + py}, {-10, -10}})
 	if result() {
 		t.Error("a drag released over nothing was reported as dropped")
 	}
 
 	// Onto the App's own window.
-	drag(DragData{Text: "to myself"}, [][2]int{{420, 420}})
+	drag(DragData{Text: "to myself"}, [][2]int{{sx + qx, sy + qy}})
 	if !result() {
 		t.Error("a drag onto the App's own window was not dropped")
 	}

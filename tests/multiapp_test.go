@@ -36,8 +36,10 @@ func TestAppsRunConcurrently(t *testing.T) {
 	theme := ttk.CurrentTheme().Name
 	ttk.SetCurrentTheme("clam")
 	defer ttk.SetCurrentTheme(theme)
+	testutil.Settle()
 	before := xlib.ErrorCount()
 	for range 3 {
+		testutil.Settle()
 		var wg sync.WaitGroup
 		for i := range 3 {
 			wg.Go(func() { runBusyApp(t, i) })
@@ -116,6 +118,7 @@ func runBusyApp(t *testing.T, n int) {
 // handler reporting errors afterwards.
 func TestErrorTrapAcrossDisplays(t *testing.T) {
 	testutil.RequireDisplay(t)
+	testutil.Settle()
 	var apps [2]*takigo.App
 	for i := range apps {
 		a, err := takigo.NewApp(takigo.Size(20, 20))

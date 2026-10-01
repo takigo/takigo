@@ -63,3 +63,12 @@ func Grab(t *testing.T, app *takigo.App, w *window.Window) *image.NRGBA {
 	}
 	return img
 }
+
+// Settle waits for the display server and window manager to finish with
+// Apps that were just destroyed. A real X server hands the same resource
+// ID range to the next connection, and the window manager may still be
+// acting on the old windows, which shows up as BadWindow errors in the new
+// App. A virtual server without a window manager (xvfb-run) never needs it;
+// call it between generations of Apps in one test, and before a test that
+// counts X errors.
+func Settle() { time.Sleep(200 * time.Millisecond) }
