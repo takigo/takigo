@@ -2107,8 +2107,6 @@ zoomed copy.
 `canvas.ImageOpt`, and `text.ImageCreate`. Combine text and image with the
 widget's `Compound` option.
 
----
-
 ### Clipboard images and drag and drop
 
 Besides text, the clipboard carries images:
