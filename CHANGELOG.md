@@ -84,6 +84,8 @@ below are breaking unless marked otherwise; each lists what to change.
   chosen at start-up, not switched at run time.
 - `WmInfo.SetIconPhoto` / `toplevel.IconPhoto` set the window icon.
 - `systray.Notify` shows a desktop notification.
+- `App.SetClipboardImage` / `App.ClipboardImage` copy and paste images
+  (between applications on X11).
 - `App.RunContext(ctx)`; `dialog.WithContext(ctx, parent)` cancels a modal
   dialog.
 - `App.Lookup(path)`, `Window.Lookup`, `Window.Descendants`,
