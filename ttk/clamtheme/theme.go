@@ -11,46 +11,70 @@ import (
 	_ "github.com/msorc/takigo/ttk/defaulttheme" // ensure default theme init runs first
 )
 
-// Clam theme colors (from clamTheme.tcl).
-const (
-	frameColor           uint64 = 0xdcdad5
-	darkColor            uint64 = 0xcfcdc8
-	darkerColor          uint64 = 0xbab5ab
-	darkestColor         uint64 = 0x9e9a91
-	lighterColor         uint64 = 0xeeebe7
-	lightColor           uint64 = 0xffffff
-	disabledFg           uint64 = 0x999999
-	altIndicator         uint64 = 0x5895bc
-	disabledAltIndicator uint64 = 0xa0a0a0
-)
+// Palette is the set of colours a clam-style theme is drawn with, as
+// 0xRRGGBB values. Light is clam's own (clamTheme.tcl).
+type Palette struct {
+	Frame, Dark, Darker, Darkest uint64 // window background and its shades
+	Lighter, Light               uint64 // highlights
+	Foreground, DisabledFg       uint64
+	Field                        uint64 // entry, spinbox and tree background
+	Select, SelectForeground     uint64 // selection and progress bars
+	HeadingHover                 uint64
+	AltIndicator                 uint64
+	DisabledAltIndicator         uint64
+}
+
+// Light is the palette of the "clam" theme.
+var Light = Palette{
+	Frame:                0xdcdad5,
+	Dark:                 0xcfcdc8,
+	Darker:               0xbab5ab,
+	Darkest:              0x9e9a91,
+	Lighter:              0xeeebe7,
+	Light:                0xffffff,
+	Foreground:           0x000000,
+	DisabledFg:           0x999999,
+	Field:                0xffffff,
+	Select:               0x4a6984,
+	SelectForeground:     0xffffff,
+	HeadingHover:         0xececec,
+	AltIndicator:         0x5895bc,
+	DisabledAltIndicator: 0xa0a0a0,
+}
 
 func init() {
-	// Ensure default theme is loaded first (it's our parent).
-	// The blank import of defaulttheme in the demo does this.
-	defaultTheme := ttk.CurrentTheme()
+	ttk.RegisterTheme(New("clam", Light))
+}
 
-	theme := ttk.NewTheme("clam", defaultTheme)
+// New builds a theme with clam's layouts and elements in the given
+// palette. Register the result with ttk.RegisterTheme.
+func New(name string, p Palette) *ttk.Theme {
+	// The default theme is the parent; this package's blank import of
+	// defaulttheme registers it first.
+	defaultTheme := ttk.LookupTheme("default")
+
+	theme := ttk.NewTheme(name, defaultTheme)
 
 	// Override root style.
 	root := theme.GetStyle(".")
-	root.Defaults["-background"] = frameColor
-	root.Defaults["-foreground"] = uint64(0x000000)
+	root.Defaults["-background"] = p.Frame
+	root.Defaults["-foreground"] = p.Foreground
 	root.Defaults["-borderwidth"] = 2
-	root.Defaults["-bordercolor"] = darkestColor
-	root.Defaults["-darkcolor"] = darkColor
-	root.Defaults["-lightcolor"] = lighterColor
-	root.Defaults["-troughcolor"] = darkerColor
+	root.Defaults["-bordercolor"] = p.Darkest
+	root.Defaults["-darkcolor"] = p.Dark
+	root.Defaults["-lightcolor"] = p.Lighter
+	root.Defaults["-troughcolor"] = p.Darker
 
 	root.Maps["-background"] = ttk.StateMap[any]{
-		{Spec: ttk.StateSpec{OnBits: ttk.StateDisabled}, Value: frameColor},
-		{Spec: ttk.StateSpec{OnBits: ttk.StateActive}, Value: lighterColor},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateDisabled}, Value: p.Frame},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateActive}, Value: p.Lighter},
 	}
 	root.Maps["-foreground"] = ttk.StateMap[any]{
-		{Spec: ttk.StateSpec{OnBits: ttk.StateDisabled}, Value: disabledFg},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateDisabled}, Value: p.DisabledFg},
 	}
 
 	// Clam border element.
-	theme.RegisterElement("border", newClamBorderFactory)
+	theme.RegisterElement("border", borderFactory(p))
 
 	// TLabel style — set padding explicitly (each theme is self-contained).
 	tlabel := theme.GetStyle("TLabel")
@@ -71,9 +95,9 @@ func init() {
 	tbutton.Defaults["-relief"] = option.ReliefRaised
 	tbutton.Defaults["-borderwidth"] = 2
 	tbutton.Maps["-background"] = ttk.StateMap[any]{
-		{Spec: ttk.StateSpec{OnBits: ttk.StateDisabled}, Value: frameColor},
-		{Spec: ttk.StateSpec{OnBits: ttk.StatePressed}, Value: darkerColor},
-		{Spec: ttk.StateSpec{OnBits: ttk.StateActive}, Value: lighterColor},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateDisabled}, Value: p.Frame},
+		{Spec: ttk.StateSpec{OnBits: ttk.StatePressed}, Value: p.Darker},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateActive}, Value: p.Lighter},
 	}
 
 	// Toolbutton style for clam (matches clamTheme.tcl).
@@ -89,9 +113,9 @@ func init() {
 		{Spec: ttk.StateSpec{OnBits: ttk.StateActive}, Value: option.ReliefRaised},
 	}
 	toolbutton.Maps["-background"] = ttk.StateMap[any]{
-		{Spec: ttk.StateSpec{OnBits: ttk.StateDisabled}, Value: frameColor},
-		{Spec: ttk.StateSpec{OnBits: ttk.StatePressed}, Value: darkerColor},
-		{Spec: ttk.StateSpec{OnBits: ttk.StateActive}, Value: lighterColor},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateDisabled}, Value: p.Frame},
+		{Spec: ttk.StateSpec{OnBits: ttk.StatePressed}, Value: p.Darker},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateActive}, Value: p.Lighter},
 	}
 
 	// TMenubutton.Toolbutton for clam.
@@ -106,9 +130,9 @@ func init() {
 		{Spec: ttk.StateSpec{OnBits: ttk.StateActive}, Value: option.ReliefRaised},
 	}
 	tmbToolbutton.Maps["-background"] = ttk.StateMap[any]{
-		{Spec: ttk.StateSpec{OnBits: ttk.StateDisabled}, Value: frameColor},
-		{Spec: ttk.StateSpec{OnBits: ttk.StatePressed}, Value: darkerColor},
-		{Spec: ttk.StateSpec{OnBits: ttk.StateActive}, Value: lighterColor},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateDisabled}, Value: p.Frame},
+		{Spec: ttk.StateSpec{OnBits: ttk.StatePressed}, Value: p.Darker},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateActive}, Value: p.Lighter},
 	}
 
 	// TSeparator styles.
@@ -121,43 +145,43 @@ func init() {
 
 	// TTreeview style.
 	ttreeview := theme.GetStyle("TTreeview")
-	ttreeview.Defaults["-fieldbackground"] = uint64(0xffffff)
-	ttreeview.Defaults["-selectbackground"] = uint64(0x4a6984)
-	ttreeview.Defaults["-selectforeground"] = uint64(0xffffff)
-	ttreeview.Defaults["-bordercolor"] = darkestColor
+	ttreeview.Defaults["-fieldbackground"] = p.Field
+	ttreeview.Defaults["-selectbackground"] = p.Select
+	ttreeview.Defaults["-selectforeground"] = p.SelectForeground
+	ttreeview.Defaults["-bordercolor"] = p.Darkest
 
 	// Treeview.Heading style.
 	tvHeading := theme.GetStyle("Treeview.Heading")
-	tvHeading.Defaults["-background"] = frameColor
-	tvHeading.Defaults["-foreground"] = uint64(0x000000)
+	tvHeading.Defaults["-background"] = p.Frame
+	tvHeading.Defaults["-foreground"] = p.Foreground
 	tvHeading.Maps["-background"] = ttk.StateMap[any]{
-		{Spec: ttk.StateSpec{OnBits: ttk.StatePressed}, Value: darkerColor},
-		{Spec: ttk.StateSpec{OnBits: ttk.StateHover}, Value: uint64(0xececec)},
+		{Spec: ttk.StateSpec{OnBits: ttk.StatePressed}, Value: p.Darker},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateHover}, Value: p.HeadingHover},
 	}
 
 	// TScrollbar styles — troughcolor matches Tcl clam's $colors(-darker).
 	vScrollbar := theme.GetStyle("Vertical.TScrollbar")
-	vScrollbar.Defaults["-troughcolor"] = darkerColor
+	vScrollbar.Defaults["-troughcolor"] = p.Darker
 
 	hScrollbar := theme.GetStyle("Horizontal.TScrollbar")
-	hScrollbar.Defaults["-troughcolor"] = darkerColor
+	hScrollbar.Defaults["-troughcolor"] = p.Darker
 
 	// TSpinbox style.
 	tspinbox := theme.GetStyle("TSpinbox")
-	tspinbox.Defaults["-background"] = frameColor
-	tspinbox.Defaults["-foreground"] = uint64(0x000000)
-	tspinbox.Defaults["-fieldbackground"] = uint64(0xffffff)
+	tspinbox.Defaults["-background"] = p.Frame
+	tspinbox.Defaults["-foreground"] = p.Foreground
+	tspinbox.Defaults["-fieldbackground"] = p.Field
 
 	// TEntry style.
 	tentry := theme.GetStyle("TEntry")
-	tentry.Defaults["-background"] = frameColor
-	tentry.Defaults["-foreground"] = uint64(0x000000)
-	tentry.Defaults["-fieldbackground"] = uint64(0xffffff)
-	tentry.Defaults["-selectbackground"] = uint64(0x4a6984)
-	tentry.Defaults["-selectforeground"] = uint64(0xffffff)
+	tentry.Defaults["-background"] = p.Frame
+	tentry.Defaults["-foreground"] = p.Foreground
+	tentry.Defaults["-fieldbackground"] = p.Field
+	tentry.Defaults["-selectbackground"] = p.Select
+	tentry.Defaults["-selectforeground"] = p.SelectForeground
 	tentry.Defaults["-insertwidth"] = 1
 	tentry.Defaults["-padding"] = ttk.Padding{Left: 1, Top: 1, Right: 1, Bottom: 1}
-	tentry.Defaults["-insertcolor"] = uint64(0x000000)
+	tentry.Defaults["-insertcolor"] = p.Foreground
 
 	// TEntry layout: background → highlight → border → padding
 	theme.RegisterLayout("TEntry",
@@ -168,64 +192,67 @@ func init() {
 
 	// TSizegrip style.
 	tsizegrip := theme.GetStyle("TSizegrip")
-	tsizegrip.Defaults["-background"] = frameColor
+	tsizegrip.Defaults["-background"] = p.Frame
 
 	// Progressbar styles — troughcolor matches Tcl clam's $colors(-darker).
 	hProgress := theme.GetStyle("Horizontal.TProgressbar")
-	hProgress.Defaults["-troughcolor"] = darkerColor
-	hProgress.Defaults["-barcolor"] = uint64(0x4a6984)
+	hProgress.Defaults["-troughcolor"] = p.Darker
+	hProgress.Defaults["-barcolor"] = p.Select
 
 	vProgress := theme.GetStyle("Vertical.TProgressbar")
-	vProgress.Defaults["-troughcolor"] = darkerColor
-	vProgress.Defaults["-barcolor"] = uint64(0x4a6984)
+	vProgress.Defaults["-troughcolor"] = p.Darker
+	vProgress.Defaults["-barcolor"] = p.Select
 
 	// TCheckbutton style — clam-style flat indicators.
 	// Matches Tcl clam: white fill with light blue (#5895bc) alternate.
 	tcheckbutton := theme.GetStyle("TCheckbutton")
 	tcheckbutton.Defaults["-padding"] = screenunit.Pt(1.5)
 	tcheckbutton.Defaults["-indicatormargin"] = "0.75p 0.75p 3p 0.75p"
-	tcheckbutton.Defaults["-upperbordercolor"] = darkestColor
-	tcheckbutton.Defaults["-lowerbordercolor"] = darkColor
-	tcheckbutton.Defaults["-indicatorbackground"] = lightColor
-	tcheckbutton.Defaults["-indicatorforeground"] = uint64(0x000000)
+	tcheckbutton.Defaults["-upperbordercolor"] = p.Darkest
+	tcheckbutton.Defaults["-lowerbordercolor"] = p.Dark
+	tcheckbutton.Defaults["-indicatorbackground"] = p.Light
+	tcheckbutton.Defaults["-indicatorforeground"] = p.Foreground
 	tcheckbutton.Maps["-indicatorbackground"] = ttk.StateMap[any]{
-		{Spec: ttk.StateSpec{OnBits: ttk.StatePressed}, Value: frameColor},
-		{Spec: ttk.StateSpec{OnBits: ttk.StateAlternate | ttk.StateDisabled}, Value: disabledAltIndicator},
-		{Spec: ttk.StateSpec{OnBits: ttk.StateAlternate}, Value: altIndicator},
-		{Spec: ttk.StateSpec{OnBits: ttk.StateDisabled}, Value: frameColor},
+		{Spec: ttk.StateSpec{OnBits: ttk.StatePressed}, Value: p.Frame},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateAlternate | ttk.StateDisabled}, Value: p.DisabledAltIndicator},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateAlternate}, Value: p.AltIndicator},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateDisabled}, Value: p.Frame},
 	}
 	tcheckbutton.Maps["-indicatorforeground"] = ttk.StateMap[any]{
-		{Spec: ttk.StateSpec{OnBits: ttk.StateDisabled}, Value: disabledFg},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateDisabled}, Value: p.DisabledFg},
 	}
 
 	// TRadiobutton style — clam-style flat indicators.
 	tradiobutton := theme.GetStyle("TRadiobutton")
 	tradiobutton.Defaults["-padding"] = screenunit.Pt(1.5)
 	tradiobutton.Defaults["-indicatormargin"] = "0.75p 0.75p 3p 0.75p"
-	tradiobutton.Defaults["-upperbordercolor"] = darkestColor
-	tradiobutton.Defaults["-lowerbordercolor"] = darkColor
-	tradiobutton.Defaults["-indicatorbackground"] = lightColor
-	tradiobutton.Defaults["-indicatorforeground"] = uint64(0x000000)
+	tradiobutton.Defaults["-upperbordercolor"] = p.Darkest
+	tradiobutton.Defaults["-lowerbordercolor"] = p.Dark
+	tradiobutton.Defaults["-indicatorbackground"] = p.Light
+	tradiobutton.Defaults["-indicatorforeground"] = p.Foreground
 	tradiobutton.Maps["-indicatorbackground"] = ttk.StateMap[any]{
-		{Spec: ttk.StateSpec{OnBits: ttk.StatePressed}, Value: frameColor},
-		{Spec: ttk.StateSpec{OnBits: ttk.StateAlternate | ttk.StateDisabled}, Value: disabledAltIndicator},
-		{Spec: ttk.StateSpec{OnBits: ttk.StateAlternate}, Value: altIndicator},
-		{Spec: ttk.StateSpec{OnBits: ttk.StateDisabled}, Value: frameColor},
+		{Spec: ttk.StateSpec{OnBits: ttk.StatePressed}, Value: p.Frame},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateAlternate | ttk.StateDisabled}, Value: p.DisabledAltIndicator},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateAlternate}, Value: p.AltIndicator},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateDisabled}, Value: p.Frame},
 	}
 	tradiobutton.Maps["-indicatorforeground"] = ttk.StateMap[any]{
-		{Spec: ttk.StateSpec{OnBits: ttk.StateDisabled}, Value: disabledFg},
+		{Spec: ttk.StateSpec{OnBits: ttk.StateDisabled}, Value: p.DisabledFg},
 	}
 
-	ttk.RegisterTheme(theme)
+	return theme
 }
 
 // ClamBorderElement draws a custom 2px border in the clam style.
 type ClamBorderElement struct {
 	ctx *ttk.DrawContext
+	p   Palette
 }
 
-func newClamBorderFactory(ctx *ttk.DrawContext) ttk.Element {
-	return &ClamBorderElement{ctx: ctx}
+func borderFactory(p Palette) ttk.ElementFactory {
+	return func(ctx *ttk.DrawContext) ttk.Element {
+		return &ClamBorderElement{ctx: ctx, p: p}
+	}
 }
 
 func (e *ClamBorderElement) Size(state ttk.State) (int, int, ttk.Padding) {
@@ -245,21 +272,21 @@ func (e *ClamBorderElement) Draw(d platform.DisplayServer, drawable platform.Dra
 
 	if bw >= 2 {
 		// Outer border: darkest color.
-		d.SetForeground(gc, darkestColor)
+		d.SetForeground(gc, e.p.Darkest)
 		drawRectOutline(d, drawable, gc, x, y, w, h)
 
 		// Inner border: different for each edge.
 		var topLeft, bottomRight uint64
 		switch relief {
 		case option.ReliefRaised:
-			topLeft = lightColor
-			bottomRight = darkColor
+			topLeft = e.p.Light
+			bottomRight = e.p.Dark
 		case option.ReliefSunken:
-			topLeft = darkColor
-			bottomRight = lightColor
+			topLeft = e.p.Dark
+			bottomRight = e.p.Light
 		default:
 			// For groove/ridge, use standard draw.
-			bg := ttk.LookupColor(e.ctx.Style, "-background", state, frameColor)
+			bg := ttk.LookupColor(e.ctx.Style, "-background", state, e.p.Frame)
 			border := draw.NewBorderFromPixel(bg)
 			draw.Draw3DRectangle(d, drawable, gc, border, x, y, w, h, bw, relief)
 			return
@@ -278,7 +305,7 @@ func (e *ClamBorderElement) Draw(d platform.DisplayServer, drawable platform.Dra
 		d.DrawLine(drawable, gc, x+w-2, y+1, x+w-2, y+h-2)
 	} else {
 		// Single pixel border.
-		d.SetForeground(gc, darkestColor)
+		d.SetForeground(gc, e.p.Darkest)
 		drawRectOutline(d, drawable, gc, x, y, w, h)
 	}
 }
