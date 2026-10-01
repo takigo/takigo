@@ -17,16 +17,20 @@ type Color struct {
 	Green uint16
 	Blue  uint16
 	Name  string // original name used to allocate
+	// Transparency is 255 minus the colour's alpha, so that the zero value
+	// is opaque. Only anti-aliased canvas items honour it; everything the
+	// display server draws is opaque.
+	Transparency uint8
 }
 
 // RGBA returns the color as 8-bit RGBA values.
 func (c *Color) RGBA() (r, g, b, a uint8) {
-	return uint8(c.Red >> 8), uint8(c.Green >> 8), uint8(c.Blue >> 8), 255
+	return uint8(c.Red >> 8), uint8(c.Green >> 8), uint8(c.Blue >> 8), 255 - c.Transparency
 }
 
 // Ref returns a lightweight copy of the color's pixel and RGB data.
 func (c *Color) Ref() *ColorRef {
-	return &ColorRef{Pixel: c.Pixel, Red: c.Red, Green: c.Green, Blue: c.Blue}
+	return &ColorRef{Pixel: c.Pixel, Red: c.Red, Green: c.Green, Blue: c.Blue, Transparency: c.Transparency}
 }
 
 // ColorRef is a lightweight color reference storing pixel value and RGB components.
@@ -36,7 +40,12 @@ type ColorRef struct {
 	Red   uint16
 	Green uint16
 	Blue  uint16
+	// Transparency is 255 minus the alpha; see Color.Transparency.
+	Transparency uint8
 }
+
+// Alpha returns the colour's opacity, 255 for an opaque colour.
+func (c *ColorRef) Alpha() uint8 { return 255 - c.Transparency }
 
 // Cache manages color allocations per display, caching by name and by value.
 type Cache struct {
@@ -48,6 +57,7 @@ type Cache struct {
 
 type colorKey struct {
 	r, g, b uint16
+	t       uint8 // transparency
 }
 
 // NewCache creates a new color cache.
@@ -81,7 +91,7 @@ func (c *Cache) Get(name string) (*Color, error) {
 	// "Red", "#f00", a colour chooser's every #rrggbb), so they share one
 	// Color per value; the name index is only a shortcut and is reset
 	// when it grows large. Colors stay valid for their holders.
-	col := c.byValue[colorKey{r, g, b}]
+	col := c.byValue[colorKey{r, g, b, 0}]
 	if col == nil {
 		col = &Color{
 			Pixel: trueColorPixel(r, g, b),
@@ -90,7 +100,7 @@ func (c *Cache) Get(name string) (*Color, error) {
 			Blue:  b,
 			Name:  name,
 		}
-		c.byValue[colorKey{r, g, b}] = col
+		c.byValue[colorKey{r, g, b, 0}] = col
 	}
 	if len(c.byName) >= maxNamedColors {
 		clear(c.byName)
@@ -104,7 +114,11 @@ const maxNamedColors = 4096
 
 // GetByValue allocates or retrieves a cached color by RGB values (16-bit).
 func (c *Cache) GetByValue(r, g, b uint16) (*Color, error) {
-	key := colorKey{r, g, b}
+	return c.getByValue(r, g, b, 0)
+}
+
+func (c *Cache) getByValue(r, g, b uint16, transparency uint8) (*Color, error) {
+	key := colorKey{r, g, b, transparency}
 
 	c.mu.RLock()
 	if col, ok := c.byValue[key]; ok {
@@ -125,6 +139,8 @@ func (c *Cache) GetByValue(r, g, b uint16) (*Color, error) {
 		Green: g,
 		Blue:  b,
 		Name:  fmt.Sprintf("#%04x%04x%04x", r, g, b),
+
+		Transparency: transparency,
 	}
 	c.byValue[key] = col
 	return col, nil
@@ -141,6 +157,11 @@ type Value struct {
 
 // RGB returns an opaque colour.
 func RGB(r, g, b uint8) Value { return Value{r, g, b, 255} }
+
+// RGBA returns a colour with an alpha, 0 (transparent) to 255 (opaque).
+// Anti-aliased canvas items are blended with it; anything the display
+// server draws, and a Classic App, treats the colour as opaque.
+func RGBA(r, g, b, a uint8) Value { return Value{r, g, b, a} }
 
 // Spec is what a colour option accepts: a Tk colour name or "#rrggbb"
 // string, or a Value.
@@ -161,7 +182,7 @@ func (c *Cache) Resolve[S Spec](s S) (*Color, error) {
 	case string:
 		return c.Get(v)
 	case Value:
-		return c.GetByValue(uint16(v.R)*257, uint16(v.G)*257, uint16(v.B)*257)
+		return c.getByValue(uint16(v.R)*257, uint16(v.G)*257, uint16(v.B)*257, 255-v.A)
 	}
 	return nil, ErrUnknown
 }
