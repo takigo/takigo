@@ -333,9 +333,7 @@ func (ln *LineItem) paintSmooth(l *layer) bool {
 }
 
 func (a *ArcItem) paintSmooth(l *layer) bool {
-	if a.stipple != "" || a.outlineStipple != "" || len(a.dash) > 0 {
-		// A dashed arc is left to the display server: its dashes run along
-		// the curve and the straight sides as separate lines there.
+	if a.stipple != "" || a.outlineStipple != "" {
 		return false
 	}
 	x1, y1 := l.x(a.coords[0]), l.y(a.coords[1])
@@ -349,38 +347,41 @@ func (a *ArcItem) paintSmooth(l *layer) bool {
 	if x2-x1 <= 0 || y2-y1 <= 0 || a.extent == 0 {
 		return true
 	}
-	cx, cy := (x1+x2)/2, (y1+y2)/2
-	path := nanosvg.Arc(cx, cy, (x2-x1)/2, (y2-y1)/2, float32(a.start), float32(a.extent))
+	cx, cy, rx, ry := (x1+x2)/2, (y1+y2)/2, (x2-x1)/2, (y2-y1)/2
+	path := nanosvg.Arc(cx, cy, rx, ry, float32(a.start), float32(a.extent))
 	if len(path) == 0 {
 		return true
 	}
-	outlined := a.outline != nil && a.outlineWidth > 0
+	n := len(path)
+	sx, sy, ex, ey := path[0], path[1], path[n-2], path[n-1]
+	// The straight sides that close the shape, as X draws them: separate
+	// lines, each starting the dash pattern afresh.
+	var sides [][]float32
 	switch a.style {
 	case ArcStylePieslice:
 		// The wedge: the arc, a line to the centre, and back to the start.
-		n := len(path)
-		path = append(path, path[n-2], path[n-1], cx, cy, cx, cy)
-		path = append(path, cx, cy, path[0], path[1], path[0], path[1])
-		if a.fill != nil {
-			l.fill(path, a.fill, false)
-		}
-		if outlined {
-			l.stroke(path, true, a.outline, a.outlineWidth, nanosvg.CapButt, nanosvg.JoinMiter)
-		}
+		path = append(path, ex, ey, cx, cy, cx, cy)
+		path = append(path, cx, cy, sx, sy, sx, sy)
+		sides = [][]float32{{cx, cy, sx, sy}, {cx, cy, ex, ey}}
 	case ArcStyleChord:
-		n := len(path)
-		path = append(path, path[n-2], path[n-1], path[0], path[1], path[0], path[1])
-		if a.fill != nil {
-			l.fill(path, a.fill, false)
-		}
-		if outlined {
-			l.stroke(path, true, a.outline, a.outlineWidth, nanosvg.CapButt, nanosvg.JoinMiter)
-		}
-	case ArcStyleArc:
-		if outlined {
-			l.stroke(path, false, a.outline, a.outlineWidth, nanosvg.CapButt, nanosvg.JoinMiter)
-		}
+		path = append(path, ex, ey, sx, sy, sx, sy)
+		sides = [][]float32{{sx, sy, ex, ey}}
 	}
+	if a.fill != nil && a.style != ArcStyleArc {
+		l.fill(path, a.fill, false)
+	}
+	if a.outline == nil || a.outlineWidth <= 0 {
+		return true
+	}
+	if len(a.dash) > 0 {
+		curve := ellipsePoints(cx, cy, rx, ry, float32(a.start), float32(a.extent))
+		l.strokeDashed(curve, a.dash, a.outline, a.outlineWidth, nanosvg.CapButt, nanosvg.JoinMiter)
+		for _, side := range sides {
+			l.strokeDashed(side, a.dash, a.outline, a.outlineWidth, nanosvg.CapButt, nanosvg.JoinMiter)
+		}
+		return true
+	}
+	l.stroke(path, a.style != ArcStyleArc, a.outline, a.outlineWidth, nanosvg.CapButt, nanosvg.JoinMiter)
 	return true
 }
 

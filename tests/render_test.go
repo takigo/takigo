@@ -3,6 +3,7 @@ package takigo_test
 import (
 	"image"
 	"image/color"
+	"math"
 	"testing"
 
 	"github.com/msorc/takigo/canvas"
@@ -236,5 +237,37 @@ func TestCanvasDashedLineHasGaps(t *testing.T) {
 		if got := img.NRGBAAt(x, 20); got != want {
 			t.Errorf("pixel (%d,20) = %v, want %v", x, got, want)
 		}
+	}
+}
+
+func TestCanvasDashedArcIsAntialiased(t *testing.T) {
+	app := testutil.NewTestApp(t)
+	c := canvas.New(app, "c", canvas.Width(120), canvas.Height(100), canvas.Background("white"),
+		canvas.BorderWidthOpt(0), canvas.HighlightWidthOpt(0))
+	pack.Pack(c)
+	c.CreateArc(10, 10, 110, 90, canvas.StartAngle(20), canvas.Extent(300),
+		canvas.FillColor("gold"), canvas.OutlineColor("black"), canvas.OutlineWidth(2), canvas.Dash(8, 6))
+	img := testutil.Grab(t, app, c.Win)
+
+	// Walk the ellipse: a dashed outline alternates between ink and the
+	// fill, and its slanted dashes have soft edges.
+	ink, gaps := 0, 0
+	for deg := 30; deg < 310; deg++ {
+		a := float64(deg) * math.Pi / 180
+		x, y := 60+50*math.Cos(a), 50-40*math.Sin(a)
+		if luma(img.NRGBAAt(int(x), int(y))) < 100 {
+			ink++
+		} else {
+			gaps++
+		}
+	}
+	if ink < 60 || gaps < 40 {
+		t.Errorf("%d inked and %d open samples along the arc: it is not dashed", ink, gaps)
+	}
+	if got := img.NRGBAAt(35, 50); got != (color.NRGBA{255, 215, 0, 255}) {
+		t.Errorf("inside the wedge = %v, want gold", got)
+	}
+	if n := partial(img); n < 30 {
+		t.Errorf("%d soft-edge pixels on a dashed arc: it was drawn by the display server", n)
 	}
 }
