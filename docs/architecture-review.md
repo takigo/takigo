@@ -1,6 +1,6 @@
 # takigo architecture review
 
-Date: 2026-08-31 (status re-checked 2026-10-01)
+Date: 2026-08-31 (status re-checked 2026-10-01, after the modernization work on branch `modernize`; see `CHANGELOG.md`)
 Scope: package layout, platform abstraction, widget API, geometry/event subsystems, observability of dead/duplicate code.
 
 ## Strengths
