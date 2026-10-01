@@ -45,6 +45,9 @@ type rasterizer struct {
 	width    int
 	height   int
 	stride   int
+	// The bitmap holds the window ox, oy, bw x bh of the width x height
+	// frame the edges are in (the whole frame for Rasterize).
+	ox, oy, bw, bh int
 }
 
 func absf(x float32) float32 {
@@ -530,8 +533,18 @@ func (r *rasterizer) scanlineSolid(dst []uint8, count int, cover []uint8, x, y i
 	}
 	switch cache.typ {
 	case paintColor:
+		c := cache.colors[0]
+		opaque := c>>24 == 0xff
 		for i := range count {
-			blend(i, cache.colors[0])
+			switch {
+			case cover[i] == 0:
+				// blend would leave the pixel as it is.
+			case opaque && cover[i] == 255:
+				// What blend computes for full coverage of an opaque colour.
+				dst[i*4+0], dst[i*4+1], dst[i*4+2], dst[i*4+3] = uint8(c), uint8(c>>8), uint8(c>>16), 255
+			default:
+				blend(i, c)
+			}
 		}
 	case paintLinearGradient:
 		t := cache.xform
@@ -550,8 +563,13 @@ func (r *rasterizer) rasterizeSortedEdges(tx, ty, scale float32, cache *cachedPa
 	var active *activeEdge
 	e := 0
 	maxWeight := 255 / subsamples
-	for y := 0; y < r.height; y++ {
-		clear(r.scanline)
+	for y := 0; y < min(r.height, r.oy+r.bh); y++ {
+		// Rows above the window are still stepped through, so that an edge
+		// reaches the window with exactly the x it has in a full frame.
+		inWindow := y >= r.oy
+		if inWindow {
+			clear(r.scanline)
+		}
 		xmin, xmax := r.width, 0
 		for s := range subsamples {
 			scany := float32(y*subsamples+s) + 0.5
@@ -603,14 +621,14 @@ func (r *rasterizer) rasterizeSortedEdges(tx, ty, scale float32, cache *cachedPa
 				}
 				e++
 			}
-			if active != nil {
+			if active != nil && inWindow {
 				fillActiveEdges(r.scanline, active, maxWeight, &xmin, &xmax, evenOdd)
 			}
 		}
-		xmin = max(xmin, 0)
-		xmax = min(xmax, r.width-1)
-		if xmin <= xmax {
-			off := y*r.stride + xmin*4
+		xmin = max(xmin, r.ox)
+		xmax = min(xmax, r.ox+r.bw-1)
+		if inWindow && xmin <= xmax {
+			off := (y-r.oy)*r.stride + (xmin-r.ox)*4
 			r.scanlineSolid(r.bitmap[off:], xmax-xmin+1, r.scanline[xmin:], xmin, y, tx, ty, scale, cache)
 		}
 	}
@@ -621,7 +639,7 @@ func unpremultiplyAlpha(img []uint8, w, h, stride int) {
 		row := img[y*stride:]
 		for x := range w {
 			p := row[x*4:]
-			if a := int(p[3]); a != 0 {
+			if a := int(p[3]); a != 0 && a != 255 {
 				p[0] = uint8(int(p[0]) * 255 / a)
 				p[1] = uint8(int(p[1]) * 255 / a)
 				p[2] = uint8(int(p[2]) * 255 / a)
@@ -695,8 +713,19 @@ func initPaint(cache *cachedPaint, p *paint, opacity float32) {
 // Rasterize ports nsvgRasterize with tx = ty = 0: it renders img scaled by
 // scale into a w x h straight-alpha RGBA buffer.
 func Rasterize(img *Image, scale float32, w, h int) []uint8 {
-	r := &rasterizer{width: w, height: h, stride: w * 4,
-		bitmap: make([]uint8, w*h*4), scanline: make([]uint8, w)}
+	return RasterizeRegion(img, scale, w, h, 0, 0, w, h)
+}
+
+// RasterizeRegion rasterizes the window x, y, rw x rh of the w x h image
+// and returns its rw x rh straight-alpha RGBA pixels. They are exactly the
+// pixels Rasterize gives for that window, which a repaint of part of a
+// picture relies on.
+func RasterizeRegion(img *Image, scale float32, w, h, x, y, rw, rh int) []uint8 {
+	x, y = max(x, 0), max(y, 0)
+	rw, rh = max(min(rw, w-x), 0), max(min(rh, h-y), 0)
+	r := &rasterizer{width: w, height: h, stride: rw * 4,
+		bitmap: make([]uint8, rw*rh*4), scanline: make([]uint8, w),
+		ox: x, oy: y, bw: rw, bh: rh}
 	var cache cachedPaint
 	run := func(evenOdd bool, p *paint, opacity float32) {
 		for i := range r.edges {
@@ -720,7 +749,7 @@ func Rasterize(img *Image, scale float32, w, h int) []uint8 {
 			run(false, &s.stroke, s.opacity)
 		}
 	}
-	unpremultiplyAlpha(r.bitmap, w, h, r.stride)
+	unpremultiplyAlpha(r.bitmap, rw, rh, r.stride)
 	return r.bitmap
 }
 

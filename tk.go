@@ -81,6 +81,7 @@ func NewApp(opts ...AppOption) (*App, error) {
 	}
 
 	root := window.CreateMainWindow(d, 0, 0, cfg.width, cfg.height)
+	widget.SetClassic(root, cfg.classic || os.Getenv("TAKIGO_CLASSIC") == "1")
 
 	// Initialize input method for proper non-Latin keyboard handling.
 	d.Server.InitIM(root.PlatformID)
@@ -516,6 +517,15 @@ type appConfig struct {
 	geometry    string
 	iconName    string
 	logger      *slog.Logger
+	classic     bool
+}
+
+// Classic makes the App draw and behave exactly as Tk does, giving up the
+// departures takigo makes for a better result, such as anti-aliased canvas
+// items. The environment variable TAKIGO_CLASSIC=1 does the same for a
+// program that does not ask for it.
+func Classic() AppOption {
+	return func(c *appConfig) { c.classic = true }
 }
 
 // WithLogger sets the logger for the App's diagnostics, such as an option

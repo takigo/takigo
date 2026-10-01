@@ -341,6 +341,7 @@ func (d *CocoaDisplay) CreateFontCursor(shape uint) platform.CursorID {
 func (d *CocoaDisplay) DefineCursor(w platform.WindowID, cursor platform.CursorID) {
 	clib.DefineCursor(toWin(w), toCursor(cursor))
 }
+
 // SetWindowIcons is not implemented on macOS, where a window has no icon
 // of its own: the application's icon comes from its bundle.
 func (d *CocoaDisplay) SetWindowIcons(platform.WindowID, []platform.IconImage) {}
