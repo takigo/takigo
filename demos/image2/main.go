@@ -160,7 +160,7 @@ func main() {
 	eng.RegisterWindow(lb.Window(), "Listbox")
 
 	// Bind Return on entry to load directory.
-	eng.Bind(dirEntry.Window().PathName, "<Return>", func(_ *bind.EventData) bool {
+	eng.BindWindow(dirEntry, "<Return>", func(_ *bind.EventData) bool {
 		loadDir()
 		return false
 	})
@@ -180,7 +180,7 @@ func main() {
 
 	// Double-click on listbox loads the image.
 	var currentPhotoName string
-	eng.Bind(lb.Window().PathName, "<Double-Button-1>", func(_ *bind.EventData) bool {
+	eng.BindWindow(lb, "<Double-Button-1>", func(_ *bind.EventData) bool {
 		app.DoWhenIdle(func() {
 			sel := lb.Selection()
 			if len(sel) == 0 {

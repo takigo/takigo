@@ -31,10 +31,23 @@ func (e *Engine) Install(dispatcher *event.Dispatcher) {
 	dispatcher.SetChain(e.dispatch)
 }
 
+// SequenceSpec is what Bind takes as the event to bind: a Tk pattern string
+// ("<Control-s>", "<Double-Button-1>", "<<Copy>>") or a Sequence built
+// with Key, Button, Virtual and friends.
+type SequenceSpec interface {
+	string | Sequence
+}
+
+func sequenceOf[S SequenceSpec](spec S) (Sequence, error) {
+	if seq, ok := any(spec).(Sequence); ok {
+		return seq, nil
+	}
+	return Parse(any(spec).(string))
+}
+
 // Bind adds a binding for a tag (widget path, class name, or "all").
-// The pattern is a Tk-style event pattern string.
-func (e *Engine) Bind(tag, pattern string, handler HandlerFunc) error {
-	seq, err := Parse(pattern)
+func (e *Engine) Bind[S SequenceSpec](tag string, spec S, handler HandlerFunc) error {
+	seq, err := sequenceOf(spec)
 	if err != nil {
 		return err
 	}
@@ -42,14 +55,26 @@ func (e *Engine) Bind(tag, pattern string, handler HandlerFunc) error {
 	return nil
 }
 
-// Unbind removes all bindings for a tag that match the given pattern.
-func (e *Engine) Unbind(tag, pattern string) error {
-	seq, err := Parse(pattern)
+// BindWindow adds a binding for one widget: it binds the widget's path
+// tag, the first in its tag chain, so the handler runs before the class
+// bindings and can stop them by returning true.
+func (e *Engine) BindWindow[S SequenceSpec](w window.Windower, spec S, handler HandlerFunc) error {
+	return e.Bind(w.Window().PathName, spec, handler)
+}
+
+// Unbind removes all bindings for a tag that match the given sequence.
+func (e *Engine) Unbind[S SequenceSpec](tag string, spec S) error {
+	seq, err := sequenceOf(spec)
 	if err != nil {
 		return err
 	}
 	e.table.Remove(tag, seq)
 	return nil
+}
+
+// UnbindWindow removes a widget's bindings for the given sequence.
+func (e *Engine) UnbindWindow[S SequenceSpec](w window.Windower, spec S) error {
+	return e.Unbind(w.Window().PathName, spec)
 }
 
 // RegisterWindow registers a window with the binding engine, establishing
@@ -139,7 +164,10 @@ func (e *Engine) GenerateEvent(w *window.Window, virtual string) {
 		for i := range bindings {
 			b := &bindings[i]
 			if len(b.seq.Patterns) == 1 && b.seq.Patterns[0].Virtual == virtual {
-				ed := &EventData{}
+				ed := &EventData{
+					Event:  &event.Event{Type: event.VirtualType, Window: w.PlatformID},
+					Window: w,
+				}
 				if b.handler(ed) {
 					return // break
 				}

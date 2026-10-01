@@ -29,7 +29,7 @@ func TestPathBindingBreakSuppressesButtonClass(t *testing.T) {
 			pack.Pack(geometry.Group{b})
 			app.UpdateIdleTasks()
 			ranPath := false
-			if err := app.Bind().Bind(b.Window().PathName, "<ButtonPress-1>", func(*bind.EventData) bool {
+			if err := app.Bind().BindWindow(b, "<ButtonPress-1>", func(*bind.EventData) bool {
 				ranPath = true
 				return tt.brk
 			}); err != nil {

@@ -100,7 +100,7 @@ func TestIMEMarkedTextSelected(t *testing.T) {
 	id := e.Window().PlatformID
 	disp := app.Dispatcher()
 	started := false
-	if err := app.Bind().Bind(e.Window().PathName, "<<TkStartIMEMarkedText>>", func(*bind.EventData) bool {
+	if err := app.Bind().BindWindow(e, "<<TkStartIMEMarkedText>>", func(*bind.EventData) bool {
 		started = true
 		return false
 	}); err != nil {
