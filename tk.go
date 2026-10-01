@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/msorc/takigo/appearance"
 	"github.com/msorc/takigo/bind"
 	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/event"
@@ -247,6 +248,12 @@ func NewApp(opts ...AppOption) (*App, error) {
 // Root returns the root window of the application.
 func (a *App) Root() *window.Window {
 	return a.root
+}
+
+// Appearance reports whether the desktop currently asks for a light or a
+// dark look; see package appearance.
+func (a *App) Appearance() appearance.Mode {
+	return appearance.System()
 }
 
 // Lookup returns the window with the given Tk path name (".frame.ok"), or

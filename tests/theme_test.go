@@ -8,6 +8,7 @@ import (
 	"github.com/msorc/takigo/internal/testutil"
 	"github.com/msorc/takigo/ttk"
 	_ "github.com/msorc/takigo/ttk/clamtheme"
+	_ "github.com/msorc/takigo/ttk/darktheme"
 	_ "github.com/msorc/takigo/ttk/defaulttheme"
 )
 
@@ -46,5 +47,29 @@ func TestUseThemeRethemesOneApp(t *testing.T) {
 	// The process default, which other Apps use, is untouched.
 	if got := ttk.CurrentTheme().Name; got != before {
 		t.Errorf("process default theme changed to %q", got)
+	}
+}
+
+func TestUseSystemThemeAndDarkPalette(t *testing.T) {
+	app := testutil.NewTestApp(t)
+	f := ttk.NewFrame(app, "f", ttk.FrameWidth(60), ttk.FrameHeight(40))
+	pack.Pack(f)
+
+	t.Setenv("TAKIGO_APPEARANCE", "dark")
+	name, err := ttk.UseSystemTheme(app, "clam", "dark")
+	if err != nil || name != "dark" || f.Theme.Name != "dark" {
+		t.Fatalf("UseSystemTheme = %q, %v; frame theme %q", name, err, f.Theme.Name)
+	}
+	if app.Appearance().String() != "dark" {
+		t.Errorf("App.Appearance() = %v", app.Appearance())
+	}
+	img := testutil.Grab(t, app, f.Win)
+	if c := img.NRGBAAt(30, 20); luma(c) > 80 {
+		t.Errorf("a dark-themed frame painted %v, which is not dark", c)
+	}
+
+	t.Setenv("TAKIGO_APPEARANCE", "light")
+	if name, err := ttk.UseSystemTheme(app, "clam", "dark"); err != nil || name != "clam" || f.Theme.Name != "clam" {
+		t.Errorf("light: UseSystemTheme = %q, %v; frame theme %q", name, err, f.Theme.Name)
 	}
 }

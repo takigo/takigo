@@ -8,6 +8,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/msorc/takigo/appearance"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/widget"
@@ -323,12 +324,32 @@ func UseTheme(app widget.AppContext, name string) error {
 	return nil
 }
 
+// UseSystemTheme gives app the light or the dark theme according to the
+// desktop's appearance (see package appearance), and returns the name it
+// chose. Both themes must be registered, e.g. "clam" and "dark" by
+// importing ttk/clamtheme and ttk/darktheme. It samples the appearance
+// once; call it again to follow a change.
+func UseSystemTheme(app widget.AppContext, light, dark string) (string, error) {
+	name := light
+	if appearance.System() == appearance.Dark {
+		name = dark
+	}
+	return name, UseTheme(app, name)
+}
+
 // CurrentTheme returns the process-wide default theme, which an App uses
 // until UseTheme gives it its own.
 func CurrentTheme() *Theme {
 	themesMu.RLock()
 	defer themesMu.RUnlock()
 	return currentTheme
+}
+
+// LookupTheme returns the registered theme with the given name, or nil.
+func LookupTheme(name string) *Theme {
+	themesMu.RLock()
+	defer themesMu.RUnlock()
+	return themes[name]
 }
 
 // ThemeNames returns the sorted names of all registered themes.
