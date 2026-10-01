@@ -1797,6 +1797,13 @@ The editor example in chapter 9 puts most of this together.
 other widgets — that you can move, restyle and bind events to after creating
 them.
 
+Shapes are **anti-aliased**: slanted and curved edges are smooth, where Tk's
+are stair-stepped, while horizontal and vertical edges land on exactly the
+pixels Tk gives them. Colours may be translucent
+(`canvas.FillColor(color.RGBA(255, 0, 0, 128))`). `canvas.Antialias(false)`
+turns this off for one canvas, and `takigo.Classic()` (or `TAKIGO_CLASSIC=1`)
+for the whole application, giving Tk's drawing to the pixel.
+
 ### Items
 
 ```go
@@ -2307,6 +2314,12 @@ func main() {
 `ttk.ThemeNames()` lists the registered themes, `ttk.CurrentTheme()` returns
 the active one. The first theme registered becomes current, so call
 `SetCurrentTheme` explicitly when you import more than one.
+
+`SetCurrentTheme` sets the default for the process. To change the theme of
+a running application, and re-theme the widgets it already has, use
+`ttk.UseTheme(app, "clam")`. Importing `ttk/darktheme` adds a `dark` theme,
+and `ttk.UseSystemTheme(app, "clam", "dark")` picks between the two by the
+desktop's light/dark preference (`app.Appearance()`).
 
 Changing the theme while widgets exist is possible, but existing widgets have
 to be told: call `w.RefreshTheme()` and then `w.Display()` on each (the
@@ -3019,7 +3032,7 @@ Tips:
 | `.c create rectangle 0 0 10 10 -fill red -tags box` | `c.CreateRectangle(0, 0, 10, 10, canvas.FillColor("red"), canvas.Tags("box"))` |
 | `.c bind box <1> cb` | `c.BindItem("box", event.ButtonPressMask, cb)` (check `ev.Button`) |
 | `ttk::style configure Accent.TButton -background X` | `ttk.CurrentTheme().GetStyle("Accent.TButton").Defaults["-background"] = pixel` |
-| `ttk::style theme use clam` | `ttk.SetCurrentTheme("clam")` (import `ttk/clamtheme`) |
+| `ttk::style theme use clam` | `ttk.UseTheme(app, "clam")` (import `ttk/clamtheme`) |
 | `vwait done` | `app.RunNestedLoop(doneCh)` |
 
 ---
