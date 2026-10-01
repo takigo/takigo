@@ -26,7 +26,7 @@ func main() {
 	}
 
 	root := app.Root()
-	eng := app.BindEng()
+	eng := app.Bind()
 
 	// Status label to show binding events.
 	statusFrame := frame.New(app, "statusframe")

@@ -26,7 +26,6 @@ type Display struct {
 
 	// WM atoms.
 	WMDeleteWindow platform.AtomID
-	WMProtocols    platform.AtomID
 
 	// WMAtoms caches package wm's interned atoms for this display, so
 	// they live and die with it (wm cannot be imported here).
@@ -66,7 +65,6 @@ func NewDisplay(server platform.DisplayServer) (*Display, error) {
 
 	// Intern WM atoms.
 	d.WMDeleteWindow = server.InternAtom("WM_DELETE_WINDOW", false)
-	d.WMProtocols = server.InternAtom("WM_PROTOCOLS", false)
 
 	return d, nil
 }
