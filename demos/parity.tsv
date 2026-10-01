@@ -1,67 +1,67 @@
 # Demo parity baseline -- written by: bash scripts/demo_batch.sh --retake --update-baseline (or demo_gate.sh --accept)
 # Headless Xvfb 96dpi, pinned DejaVu fonts, frozen timers. pixel_pct = odiff % (lower is better);
 # tree_diffs = cmd/demodiff structural differences; exact = both 0.
-# summary: exact 35 / close 27 / failed 0
+# summary: exact 55 / close 7 / failed 0
 # demo	tcl	pixel_pct	tree_diffs	go_size	tcl_size	status	note
 anilabel	anilabel	0	0	386x296	386x296	exact	
 aniwave	aniwave	0	0	371x353	371x353	exact	
 arrow	arrow	0	0	506x504	506x504	exact	
-bind	bind	0.00	1	501x456	501x456	close	
+bind	bind	0	0	501x456	501x456	exact	
 bitmap	bitmap	0	0	470x206	470x206	exact	
 button	button	0	0	388x254	388x254	exact	
 check	check	0	0	382x290	382x290	exact	
 clrpick	clrpick	0	0	355x174	355x174	exact	
-colors	colors	0.01	1	379x460	379x460	close	
-combo	combo	0.02	3	481x354	481x354	close	
+colors	colors	0	0	379x460	379x460	exact	
+combo	combo	0	0	481x354	481x354	exact	
 cscroll	cscroll	0	0	403x421	403x421	exact	
 ctext	ctext	0.02	1	502x602	502x602	close	
 dialog1	dialog1	0	0	438x307	438x307	exact	
 dialog2	dialog2	0	0	441x288	441x288	exact	
 entry1	entry1	0	0	477x275	477x275	exact	
-entry2	entry2	0.02	3	475x353	475x353	close	
+entry2	entry2	0	0	475x353	475x353	exact	
 entry3	entry3	0	0	477x353	477x353	exact	
 filebox	filebox	0	0	469x189	469x189	exact	
-floor	floor	0.00	2	927x572	927x572	close	
-fontchoose	fontchoose	0.01	1	343x180	343x180	close	
+floor	floor	0.00	0	927x572	927x572	close	
+fontchoose	fontchoose	0	0	343x180	343x180	exact	
 form	form	0	0	390x232	390x232	exact	
-goldberg	goldberg	0.01	1	677x542	677x542	close	
+goldberg	goldberg	0.00	1	677x542	677x542	close	
 hscale	hscale	0	0	361x230	361x230	exact	
 icon	icon	0	0	481x272	481x272	exact	
 image1	image1	0	0	335x492	335x492	exact	
-image2	image2	0.24	2	380x449	380x449	close	directory entry shows each side's own images path
-items	items	0.01	3	588x564	588x564	close	
-knightstour	knightstour	0.01	1	381x332	381x332	close	
+image2	image2	0.11	1	380x449	380x449	close	directory entry shows each side's own images path
+items	items	0.00	1	588x564	588x564	close	
+knightstour	knightstour	0	0	381x332	381x332	exact	
 label	label	0	0	382x340	382x340	exact	
 labelframe	labelframe	0	0	371x229	371x229	exact	
-mclist	mclist	11.58	8	404x414	404x422	close	
+mclist	mclist	0	0	404x414	404x414	exact	
 menu	menu	0	0	386x273	386x273	exact	
 menubu	menubu	0	0	413x480	413x480	exact	
 msgbox	msgbox	0	0	394x303	394x303	exact	
 paned1	paned1	0	0	388x175	388x175	exact	
-paned2	paned2	0.02	3	388x481	388x481	close	
+paned2	paned2	0	0	388x481	388x481	exact	
 pendulum	pendulum	0	0	665x428	665x428	exact	
 plot	plot	0	0	452x399	452x399	exact	
 print	print	0	0	1026x559	1026x559	exact	
 puzzle	puzzle	0	0	376x327	376x327	exact	
 radio	radio	0	0	519x407	519x407	exact	
 ruler	ruler	0	0	562x211	562x211	exact	
-sayings	sayings	0.03	2	386x333	386x333	close	
-search	search	0.00	1	661x534	661x534	close	
+sayings	sayings	0	0	386x333	386x333	exact	
+search	search	0	0	661x534	661x534	exact	
 spin	spin	0	0	478x292	478x292	exact	
-states	states	0.01	1	388x420	388x420	close	
-style	style	0.00	1	721x656	721x656	close	
-text	text	0.01	1	661x558	661x558	close	
-textpeer	textpeer	0.01	2	765x394	765x394	close	
-toolbar	toolbar	0.02	2	385x427	385x427	close	
-tree	tree	8.83	6	404x414	404x422	close	Tcl lists its //zipfs:/ volume, which has no Go counterpart
-ttkbut	ttkbut	1.47	16	383x422	383x422	close	
-ttkmenu	ttkmenu	0.07	4	435x327	435x327	close	
+states	states	0	0	388x420	388x420	exact	
+style	style	0	0	721x656	721x656	exact	
+text	text	0	0	661x558	661x558	exact	
+textpeer	textpeer	0	0	765x394	765x394	exact	
+toolbar	toolbar	0	0	385x427	385x427	exact	
+tree	tree	0.14	1	404x414	404x414	close	Tcl lists its //zipfs:/ volume, which has no Go counterpart
+ttkbut	ttkbut	0	0	383x422	383x422	exact	
+ttkmenu	ttkmenu	0	0	435x327	435x327	exact	
 ttknote	ttknote	0.00	0	394x273	394x273	close	
-ttkpane	ttkpane	0.00	1	369x595	369x595	close	
+ttkpane	ttkpane	0	0	369x595	369x595	exact	
 ttkprogress	ttkprogress	0	0	376x244	376x244	exact	
 ttkscale	ttkscale	0	0	363x186	363x186	exact	
-ttkspin	ttkspin	0.03	3	477x287	477x287	close	
-twind	twind	0.01	1	583x645	583x645	close	
+ttkspin	ttkspin	0	0	477x287	477x287	exact	
+twind	twind	0	0	583x645	583x645	exact	
 unicodeout	unicodeout	0	0	386x367	386x367	exact	
 vscale	vscale	0	0	370x405	370x405	exact	
 windowicons	windowicons	0	0	222x202	222x202	exact	was mis-mapped to icon.tcl before; now compared with windowicons.tcl
