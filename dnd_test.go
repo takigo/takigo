@@ -135,3 +135,116 @@ func TestDropFromAnotherClient(t *testing.T) {
 	default:
 	}
 }
+
+// A real drag: StartDrag in one App, the pointer simulated by motion and
+// release events carrying root coordinates, dropped on another App.
+func TestStartDragOntoAnotherClient(t *testing.T) {
+	if os.Getenv("DISPLAY") == "" || !haveDisplayBackend {
+		t.Skip("needs an X display")
+	}
+	displaylock.Acquire(t)
+
+	target, err := NewApp(Title("target"), Size(200, 150), Geometry("+0+0"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	source, err := NewApp(Title("source"), Size(60, 60), Geometry("+400+400"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	drops := make(chan Drop, 4)
+	target.OnDrop(target, func(d Drop) { drops <- d })
+	// The source takes drops too, for a drag that ends on itself.
+	own := make(chan Drop, 1)
+	source.OnDrop(source, func(d Drop) { own <- d })
+
+	targetDone, sourceDone := make(chan struct{}), make(chan struct{})
+	go func() { target.Run(); close(targetDone) }()
+	go func() { source.Run(); close(sourceDone) }()
+	defer func() {
+		target.Quit()
+		source.Quit()
+		<-targetDone
+		<-sourceDone
+	}()
+	time.Sleep(300 * time.Millisecond)
+
+	results := make(chan bool, 4)
+	pointer := func(typ event.Type, x, y int) {
+		source.dispatcher.Dispatch(&event.Event{Type: typ, Window: source.root.PlatformID, RootX: x, RootY: y})
+	}
+	drag := func(data DragData, path [][2]int) {
+		source.RunOnMain(func() {
+			source.StartDrag(source, data, func(dropped bool) { results <- dropped })
+			for _, p := range path {
+				pointer(event.MotionType, p[0], p[1])
+			}
+			last := path[len(path)-1]
+			pointer(event.ButtonReleaseType, last[0], last[1])
+		})
+	}
+	result := func() bool {
+		t.Helper()
+		select {
+		case r := <-results:
+			return r
+		case <-time.After(10 * time.Second):
+			t.Fatal("the drag never ended")
+			return false
+		}
+	}
+
+	// Across to the other client, entering it on the way.
+	drag(DragData{Files: []string{"/tmp/report 1.pdf", "/etc/hosts"}}, [][2]int{{410, 410}, {300, 300}, {150, 100}, {60, 70}})
+	if !result() {
+		t.Error("a drop on an accepting window was reported as not dropped")
+	}
+	select {
+	case d := <-drops:
+		if !slices.Equal(d.Files, []string{"/tmp/report 1.pdf", "/etc/hosts"}) || d.X != 60 || d.Y != 70 {
+			t.Errorf("drop = %+v, want the two files at 60,70", d)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("the target did not get the drop")
+	}
+
+	// Text.
+	drag(DragData{Text: "some dragged text"}, [][2]int{{20, 20}})
+	if !result() {
+		t.Error("the text drag was not dropped")
+	}
+	if d := <-drops; d.Text != "some dragged text" {
+		t.Errorf("text drop = %+v", d)
+	}
+
+	// Released over the bare root window: nobody takes it.
+	drag(DragData{Text: "nowhere"}, [][2]int{{20, 20}, {300, 300}})
+	if result() {
+		t.Error("a drag released over nothing was reported as dropped")
+	}
+
+	// Onto the App's own window.
+	drag(DragData{Text: "to myself"}, [][2]int{{420, 420}})
+	if !result() {
+		t.Error("a drag onto the App's own window was not dropped")
+	}
+	select {
+	case d := <-own:
+		if d.Text != "to myself" {
+			t.Errorf("own drop = %+v", d)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("the App did not get its own drop")
+	}
+	select {
+	case d := <-drops:
+		t.Errorf("the other client got a stray drop: %+v", d)
+	default:
+	}
+
+	// Nothing to drag ends at once.
+	source.RunOnMain(func() { source.StartDrag(source, DragData{}, func(dropped bool) { results <- dropped }) })
+	if result() {
+		t.Error("an empty drag was reported as dropped")
+	}
+}

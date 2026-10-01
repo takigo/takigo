@@ -184,6 +184,12 @@ func (s *X11Display) SelectInput(w platform.WindowID, eventMask int64) {
 func (s *X11Display) StoreName(w platform.WindowID, name string) {
 	s.dpy.StoreName(xlib.Window(w), name)
 }
+
+// ChildAt returns the child of parent under the root position (x, y).
+func (s *X11Display) ChildAt(parent platform.WindowID, x, y int) platform.WindowID {
+	return platform.WindowID(s.dpy.ChildAt(xlib.Window(parent), x, y))
+}
+
 func (s *X11Display) TranslateCoordinates(src, dst platform.WindowID, srcX, srcY int) (int, int) {
 	return s.dpy.TranslateCoordinates(xlib.Window(src), xlib.Window(dst), srcX, srcY)
 }

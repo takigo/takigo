@@ -212,6 +212,9 @@ func (d *WindowsDisplay) StoreName(w platform.WindowID, name string) {
 	w32.SetWindowText(toHWND(w), syscall.StringToUTF16Ptr(name))
 }
 
+// ChildAt is not implemented: nothing on Windows walks the window tree.
+func (d *WindowsDisplay) ChildAt(platform.WindowID, int, int) platform.WindowID { return 0 }
+
 func (d *WindowsDisplay) TranslateCoordinates(src, dst platform.WindowID, srcX, srcY int) (int, int) {
 	pt := w32.POINT{X: int32(srcX), Y: int32(srcY)}
 	w32.MapWindowPoints(toHWND(src), toHWND(dst), &pt, 1)

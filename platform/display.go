@@ -60,6 +60,11 @@ type WindowManager interface {
 
 	// TranslateCoordinates translates coordinates from src to dst window.
 	TranslateCoordinates(src, dst WindowID, srcX, srcY int) (dstX, dstY int)
+
+	// ChildAt returns the child of parent that contains the point (x, y),
+	// given in root window coordinates, or 0 when no child does. Backends
+	// without a window tree to walk return 0.
+	ChildAt(parent WindowID, x, y int) WindowID
 }
 
 // Drawer provides drawing primitives.

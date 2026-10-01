@@ -84,8 +84,9 @@ below are breaking unless marked otherwise; each lists what to change.
   chosen at start-up, not switched at run time.
 - `WmInfo.SetIconPhoto` / `toplevel.IconPhoto` set the window icon.
 - `systray.Notify` shows a desktop notification.
-- `App.OnDrop(w, handler)` receives files and text dragged onto a window
-  from other applications (XDND, on X11 desktops).
+- Drag and drop with other applications (XDND, on X11 desktops):
+  `App.OnDrop(w, handler)` receives dropped files and text, and
+  `App.StartDrag(w, data, done)` drags them out.
 - `App.SetClipboardImage` / `App.ClipboardImage` copy and paste images
   (between applications on X11).
 - `App.RunContext(ctx)`; `dialog.WithContext(ctx, parent)` cancels a modal

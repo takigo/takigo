@@ -164,6 +164,10 @@ func (d *CocoaDisplay) SelectInput(w platform.WindowID, eventMask int64) {
 func (d *CocoaDisplay) StoreName(w platform.WindowID, name string) {
 	clib.StoreName(toWin(w), name)
 }
+
+// ChildAt is not implemented: nothing on macOS walks the window tree.
+func (d *CocoaDisplay) ChildAt(platform.WindowID, int, int) platform.WindowID { return 0 }
+
 func (d *CocoaDisplay) TranslateCoordinates(src, dst platform.WindowID, srcX, srcY int) (int, int) {
 	return clib.TranslateCoordinates(toWin(src), toWin(dst), srcX, srcY)
 }
