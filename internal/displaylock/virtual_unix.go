@@ -66,8 +66,8 @@ func UseVirtualDisplay() {
 		select {
 		case s := <-line:
 			if n := strings.TrimSpace(s); n != "" {
-				os.Setenv("DISPLAY", ":"+n)
-				os.Unsetenv("WAYLAND_DISPLAY")
+				_ = os.Setenv("DISPLAY", ":"+n)
+				_ = os.Unsetenv("WAYLAND_DISPLAY")
 				virtual = true
 			}
 		case <-time.After(10 * time.Second):
