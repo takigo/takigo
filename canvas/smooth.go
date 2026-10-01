@@ -366,6 +366,8 @@ func (a *ArcItem) paintSmooth(l *layer) bool {
 	case ArcStyleChord:
 		path = append(path, ex, ey, sx, sy, sx, sy)
 		sides = [][]float32{{sx, sy, ex, ey}}
+	case ArcStyleArc:
+		// Just the curve.
 	}
 	if a.fill != nil && a.style != ArcStyleArc {
 		l.fill(path, a.fill, false)
