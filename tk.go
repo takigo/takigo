@@ -1,6 +1,3 @@
-// Package takigo is a pure Go port of the Tk GUI toolkit.
-// It provides a functional-options API for building cross-platform
-// graphical applications, initially targeting X11/Linux.
 package takigo
 
 import (
@@ -384,13 +381,9 @@ func (a *App) GrabManager() *grab.Manager {
 	return a.grabMgr
 }
 
-// BindEngine returns the application's binding engine.
-func (a *App) BindEngine() widget.BindEngine {
-	return a.bindEng
-}
-
-// BindEng returns the full bind.Engine for direct access.
-func (a *App) BindEng() *bind.Engine {
+// Bind returns the application's binding engine (Tk's "bind" and
+// "bindtags").
+func (a *App) Bind() *bind.Engine {
 	return a.bindEng
 }
 

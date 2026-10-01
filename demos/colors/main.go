@@ -168,7 +168,7 @@ func main() {
 	yscroll.Set(first, last)
 
 	// Double-click to change background via bind engine (mirrors tk_setPalette).
-	eng := app.BindEng()
+	eng := app.Bind()
 	eng.RegisterWindow(lb.Window(), "Listbox")
 	eng.Bind(lb.Window().PathName, "<Double-Button-1>", func(_ *bind.EventData) bool {
 		sel := lb.Selection()

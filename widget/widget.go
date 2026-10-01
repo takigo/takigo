@@ -86,13 +86,6 @@ type Base struct {
 	redrawPending bool
 }
 
-// BindEngine is the interface for the binding engine, defined here to
-// avoid circular imports between widget and bind packages.
-type BindEngine interface {
-	RegisterWindow(w *window.Window, className string)
-	UnregisterWindow(w *window.Window)
-}
-
 // ClipboardManager provides clipboard read/write for widgets.
 type ClipboardManager interface {
 	// Set stores text as the CLIPBOARD owner.
@@ -114,7 +107,6 @@ type AppContext interface {
 	FontRegistry() *font.Registry
 	Server() platform.DisplayServer
 	ImageRegistry() *image.Registry
-	BindEngine() BindEngine
 	// RunNestedLoop processes events until done is closed.
 	// Used by modal dialogs to keep the event loop alive while blocking.
 	RunNestedLoop(done <-chan struct{})

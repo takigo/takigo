@@ -144,7 +144,7 @@ func main() {
 	)
 
 	// Bind Return key on entries.
-	eng := app.BindEng()
+	eng := app.Bind()
 	eng.Bind(fileEntry.Window().PathName, "<Return>", func(ev *bind.EventData) bool {
 		textLoadFile(fileEntry.GetText())
 		app.FocusManager().SetFocus(searchEntry.Window())

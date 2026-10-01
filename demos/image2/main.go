@@ -154,7 +154,7 @@ func main() {
 	pack.Pack(yscroll, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillY), pack.Expand(true))
 
 	// Register widgets with the bind engine so bindings work.
-	eng := app.BindEng()
+	eng := app.Bind()
 	eng.RegisterWindow(dirEntry.Window(), "Entry")
 	eng.RegisterWindow(lb.Window(), "Listbox")
 
