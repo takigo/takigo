@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/msorc/takigo/canvas"
+	tkcolor "github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/internal/testutil"
 	"github.com/msorc/takigo/option"
@@ -189,6 +190,51 @@ func TestAntialiasedRectangleIsCrisp(t *testing.T) {
 		}
 		if blends != 0 {
 			t.Errorf("%d blended pixels around axis-aligned rectangles, want sharp edges", blends)
+		}
+	}
+}
+
+func TestCanvasTranslucentFill(t *testing.T) {
+	app := testutil.NewTestApp(t)
+	c := canvas.New(app, "c", canvas.Width(100), canvas.Height(80), canvas.Background("white"),
+		canvas.BorderWidthOpt(0), canvas.HighlightWidthOpt(0))
+	pack.Pack(c)
+	c.CreateRectangle(10, 10, 60, 60, canvas.FillColor("blue"), canvas.OutlineNone())
+	// Half-transparent red over white and over the blue square.
+	c.CreateRectangle(40, 20, 90, 50, canvas.FillColor(tkcolor.RGBA(255, 0, 0, 128)), canvas.OutlineNone())
+	img := testutil.Grab(t, app, c.Win)
+
+	near := func(got color.NRGBA, r, g, b int) bool {
+		d := func(a uint8, b int) bool { return int(a)-b <= 2 && b-int(a) <= 2 }
+		return d(got.R, r) && d(got.G, g) && d(got.B, b)
+	}
+	if got := img.NRGBAAt(75, 35); !near(got, 255, 127, 127) {
+		t.Errorf("translucent red over white = %v, want about (255,127,127)", got)
+	}
+	if got := img.NRGBAAt(50, 35); !near(got, 128, 0, 127) {
+		t.Errorf("translucent red over blue = %v, want about (128,0,127)", got)
+	}
+	if got := img.NRGBAAt(20, 35); got != (color.NRGBA{0, 0, 255, 255}) {
+		t.Errorf("blue outside the overlap = %v", got)
+	}
+}
+
+func TestCanvasDashedLineHasGaps(t *testing.T) {
+	app := testutil.NewTestApp(t)
+	c := canvas.New(app, "c", canvas.Width(100), canvas.Height(40), canvas.Background("white"),
+		canvas.BorderWidthOpt(0), canvas.HighlightWidthOpt(0))
+	pack.Pack(c)
+	c.CreateLine([]float64{10, 20, 90, 20}, canvas.OutlineColor("black"), canvas.Dash(6, 4))
+	img := testutil.Grab(t, app, c.Win)
+
+	black, white := color.NRGBA{0, 0, 0, 255}, color.NRGBA{255, 255, 255, 255}
+	for x := 10; x < 90; x++ {
+		want := white
+		if (x-10)%10 < 6 {
+			want = black
+		}
+		if got := img.NRGBAAt(x, 20); got != want {
+			t.Errorf("pixel (%d,20) = %v, want %v", x, got, want)
 		}
 	}
 }

@@ -1,6 +1,8 @@
 package canvas
 
 import (
+	"math"
+
 	"github.com/msorc/takigo/color"
 	"github.com/msorc/takigo/internal/nanosvg"
 	"github.com/msorc/takigo/platform"
@@ -109,7 +111,7 @@ func (l *layer) x(v float64) float32 { return float32(drawableCoord(v, l.x0)) }
 func (l *layer) y(v float64) float32 { return float32(drawableCoord(v, l.y0)) }
 
 func paintColor(c *color.ColorRef) uint32 {
-	return nanosvg.RGBA(uint8(c.Pixel>>16), uint8(c.Pixel>>8), uint8(c.Pixel), 255)
+	return nanosvg.RGBA(uint8(c.Pixel>>16), uint8(c.Pixel>>8), uint8(c.Pixel), c.Alpha())
 }
 
 // fill adds a filled path. X fills the pixels whose centres lie inside a
@@ -136,7 +138,7 @@ func (l *layer) stroke(pts []float32, closed bool, c *color.ColorRef, width int,
 }
 
 func (r *RectOvalItem) paintSmooth(l *layer) bool {
-	if r.stipple != "" || r.outlineStipple != "" || len(r.dash) > 0 {
+	if r.stipple != "" || r.outlineStipple != "" {
 		return false
 	}
 	x1, y1 := l.x(r.coords[0]), l.y(r.coords[1])
@@ -150,19 +152,28 @@ func (r *RectOvalItem) paintSmooth(l *layer) bool {
 	if x2-x1 <= 0 || y2-y1 <= 0 {
 		return true
 	}
-	var path []float32
+	var path, outline []float32
 	join := nanosvg.JoinMiter
 	if r.typeName == "rectangle" {
-		path = nanosvg.Polyline([]float32{x1, y1, x2, y1, x2, y2, x1, y2, x1, y1})
+		outline = []float32{x1, y1, x2, y1, x2, y2, x1, y2, x1, y1}
+		path = nanosvg.Polyline(outline)
 	} else {
-		path = nanosvg.Ellipse((x1+x2)/2, (y1+y2)/2, (x2-x1)/2, (y2-y1)/2)
+		cx, cy, rx, ry := (x1+x2)/2, (y1+y2)/2, (x2-x1)/2, (y2-y1)/2
+		path = nanosvg.Ellipse(cx, cy, rx, ry)
 		join = nanosvg.JoinRound
+		if len(r.dash) > 0 {
+			outline = ellipsePoints(cx, cy, rx, ry, 0, 360)
+		}
 	}
 	if fill := r.fillFor(r.fill); fill != nil {
 		l.fill(path, fill, false)
 	}
 	if r.outline != nil && r.outlineWidth > 0 {
-		l.stroke(path, true, r.outline, r.outlineWidth, nanosvg.CapButt, join)
+		if len(r.dash) > 0 {
+			l.strokeDashed(outline, r.dash, r.outline, r.outlineWidth, nanosvg.CapButt, join)
+		} else {
+			l.stroke(path, true, r.outline, r.outlineWidth, nanosvg.CapButt, join)
+		}
 	}
 	return true
 }
@@ -212,7 +223,7 @@ func smoothJoin(joinStyle int) int {
 }
 
 func (p *PolygonItem) paintSmooth(l *layer) bool {
-	if p.stipple != "" || p.outlineStipple != "" || len(p.dash) > 0 {
+	if p.stipple != "" || p.outlineStipple != "" {
 		return false
 	}
 	if len(p.coords) < 6 {
@@ -225,28 +236,37 @@ func (p *PolygonItem) paintSmooth(l *layer) bool {
 		c.coordBuf = coords
 	}
 	xy := l.points(coords, p.smooth)
-	path := nanosvg.Polyline(append(xy, xy[0], xy[1]))
+	xy = append(xy, xy[0], xy[1])
+	path := nanosvg.Polyline(xy)
 	if fill := p.fillFor(p.fill); fill != nil {
 		// X's default fill rule is EvenOdd.
 		l.fill(path, fill, true)
 	}
 	if p.outline != nil && p.outlineWidth > 0 {
-		l.stroke(path, true, p.outline, p.outlineWidth, nanosvg.CapRound, nanosvg.JoinRound)
+		if len(p.dash) > 0 {
+			l.strokeDashed(xy, p.dash, p.outline, p.outlineWidth, nanosvg.CapRound, nanosvg.JoinRound)
+		} else {
+			l.stroke(path, true, p.outline, p.outlineWidth, nanosvg.CapRound, nanosvg.JoinRound)
+		}
 	}
 	return true
 }
 
 func (ln *LineItem) paintSmooth(l *layer) bool {
-	if ln.stipple != "" || len(ln.dash) > 0 {
+	if ln.stipple != "" {
 		return false
 	}
 	if len(ln.coords) < 4 || ln.color == nil {
 		return true
 	}
 	xy := l.points(ln.shaftCoords(), ln.smooth && len(ln.coords) >= 6)
-	l.stroke(nanosvg.Polyline(xy), false, ln.color, int(ln.width), smoothCap(ln.capStyle), smoothJoin(ln.joinStyle))
+	if len(ln.dash) > 0 {
+		l.strokeDashed(xy, ln.dash, ln.color, ln.width, smoothCap(ln.capStyle), smoothJoin(ln.joinStyle))
+	} else {
+		l.strokeLine(xy, ln.color, ln.width, smoothCap(ln.capStyle), smoothJoin(ln.joinStyle))
+	}
 
-	off := strokeOffset(int(ln.width))
+	off := strokeOffset(ln.width)
 	arrow := func(first bool) {
 		p, ok := ln.arrowPolygon(first)
 		if !ok {
@@ -269,6 +289,8 @@ func (ln *LineItem) paintSmooth(l *layer) bool {
 
 func (a *ArcItem) paintSmooth(l *layer) bool {
 	if a.stipple != "" || a.outlineStipple != "" || len(a.dash) > 0 {
+		// A dashed arc is left to the display server: its dashes run along
+		// the curve and the straight sides as separate lines there.
 		return false
 	}
 	x1, y1 := l.x(a.coords[0]), l.y(a.coords[1])
@@ -315,4 +337,115 @@ func (a *ArcItem) paintSmooth(l *layer) bool {
 		}
 	}
 	return true
+}
+
+// strokeLine strokes the open polyline xy. With butt caps, X draws a line
+// from pixel centre a to pixel centre b over the pixels [a, b): after the
+// half-pixel move of an odd width, both ends are therefore pulled back half
+// a pixel along the line, which keeps the ends of horizontal and vertical
+// lines, and of their dashes, on pixel edges.
+func (l *layer) strokeLine(xy []float32, c *color.ColorRef, width int, lineCap, lineJoin int) {
+	if len(xy) < 4 {
+		return
+	}
+	if lineCap == nanosvg.CapButt && strokeOffset(width) != 0 {
+		xy = append([]float32{}, xy...)
+		back := func(i, j int) { // move point i half a pixel away from where j lies ahead of it
+			dx, dy := xy[j]-xy[i], xy[j+1]-xy[i+1]
+			if n := float32(math.Hypot(float64(dx), float64(dy))); n > 0 {
+				xy[i] -= dx / n / 2
+				xy[i+1] -= dy / n / 2
+			}
+		}
+		n := len(xy)
+		ex, ey := xy[n-2]-xy[n-4], xy[n-1]-xy[n-3]
+		back(0, 2)
+		if d := float32(math.Hypot(float64(ex), float64(ey))); d > 0 {
+			xy[n-2] -= ex / d / 2
+			xy[n-1] -= ey / d / 2
+		}
+	}
+	l.stroke(nanosvg.Polyline(xy), false, c, width, lineCap, lineJoin)
+}
+
+// strokeDashed strokes the "on" pieces of an X dash pattern along the
+// polyline xy; see dashPieces.
+func (l *layer) strokeDashed(xy []float32, pattern []byte, c *color.ColorRef, width int, lineCap, lineJoin int) {
+	for _, piece := range dashPieces(xy, pattern) {
+		l.strokeLine(piece, c, width, lineCap, lineJoin)
+	}
+}
+
+// dashPieces cuts the polyline xy (x0, y0, x1, y1, ...) into the pieces an
+// X LineOnOffDash line draws: pattern holds alternating on and off lengths
+// in pixels, starting on, and repeats along the line. A pattern of odd
+// length is used twice over, as XSetDashes does.
+func dashPieces(xy []float32, pattern []byte) [][]float32 {
+	total := 0
+	for _, n := range pattern {
+		total += int(n)
+	}
+	if len(xy) < 4 || total == 0 {
+		return [][]float32{xy}
+	}
+	if len(pattern)%2 == 1 {
+		pattern = append(append([]byte{}, pattern...), pattern...)
+	}
+	var pieces [][]float32
+	var cur []float32
+	on := true
+	i := 0
+	left := float32(pattern[0])
+	advance := func() {
+		i = (i + 1) % len(pattern)
+		left = float32(pattern[i])
+		on = i%2 == 0
+	}
+	for left == 0 {
+		advance()
+	}
+	x, y := xy[0], xy[1]
+	cur = append(cur, x, y)
+	for k := 2; k+1 < len(xy); k += 2 {
+		x2, y2 := xy[k], xy[k+1]
+		seg := float32(math.Hypot(float64(x2-x), float64(y2-y)))
+		for seg > left {
+			// The pattern element ends inside this segment.
+			t := left / seg
+			x, y = x+(x2-x)*t, y+(y2-y)*t
+			seg -= left
+			if on {
+				pieces = append(pieces, append(cur, x, y))
+			}
+			advance()
+			for left == 0 {
+				advance()
+			}
+			cur = nil
+			if on {
+				cur = []float32{x, y}
+			}
+		}
+		left -= seg
+		x, y = x2, y2
+		if on {
+			cur = append(cur, x, y)
+		}
+	}
+	if on && len(cur) >= 4 {
+		pieces = append(pieces, cur)
+	}
+	return pieces
+}
+
+// ellipsePoints returns a polyline along an elliptical arc, close enough to
+// it for cutting into dashes (X's angle convention: 90 degrees is up).
+func ellipsePoints(cx, cy, rx, ry, start, extent float32) []float32 {
+	n := max(int(math.Abs(float64(extent))/360*float64(max(rx, ry))*math.Pi), 16)
+	xy := make([]float32, 0, 2*(n+1))
+	for i := range n + 1 {
+		a := (float64(start) + float64(extent)*float64(i)/float64(n)) * math.Pi / 180
+		xy = append(xy, cx+rx*float32(math.Cos(a)), cy-ry*float32(math.Sin(a)))
+	}
+	return xy
 }
