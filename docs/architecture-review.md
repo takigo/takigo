@@ -1,6 +1,6 @@
 # takigo architecture review
 
-Date: 2026-08-31 (status re-checked 2026-09-30)
+Date: 2026-08-31 (status re-checked 2026-10-01)
 Scope: package layout, platform abstraction, widget API, geometry/event subsystems, observability of dead/duplicate code.
 
 ## Strengths
@@ -28,7 +28,7 @@ Scope: package layout, platform abstraction, widget API, geometry/event subsyste
 - `App.BindEngine()` returns that narrow interface; `App.BindEng()` returns the concrete `*bind.Engine`.
 - Only `App.BindEng()` is actually called (in `cmd/bind_demo`, `demos/colors`, `form`, `image2`, `search`).
 - **Fix**: delete `widget.BindEngine` interface and the `App.BindEngine()` method; keep `App.BindEng()`.
-- **Status**: open. `widget.BindEngine` (`widget/widget.go:91`) and `AppContext.BindEngine()` still exist and have no callers.
+- **Status**: done (2026-10-01). The interface and `BindEngine()` are gone; `App.BindEng()` is now `App.Bind()`.
 
 ### 3. Image draw calls use unnecessary inline type assertions
 - `widget/checkbutton/checkbutton.go:441-446` and `widget/radiobutton/radiobutton.go:387`:
@@ -46,7 +46,7 @@ Scope: package layout, platform abstraction, widget API, geometry/event subsyste
 - `window.Display` interns `WMDeleteWindow` / `WMProtocols` (`window/display.go:47-48`) and stores them on the struct. They are used once in `window/create.go:64` and never read again.
 - Meanwhile `wm.WmInfo` has its own `wmAtoms` cache (`wm/wm.go:77`) that re-interns the same atoms (plus more) per `DisplayServer`.
 - **Fix**: remove `Display.WMDeleteWindow` / `Display.WMProtocols` fields and their `InternAtom` calls; keep `wmAtoms` as the single source of truth.
-- **Status**: open. `Display.WMProtocols` is never read; `WMDeleteWindow` is still used by `window/create.go:68`, so it needs to move to the `wm` cache first.
+- **Status**: partly done (2026-10-01). `Display.WMProtocols` is removed; `WMDeleteWindow` is still used by `window/create.go:68`, so it needs to move to the `wm` cache first.
 
 ### 5. Widget test coverage is essentially zero
 - 288 source files, 30 test files (4,579 LOC of tests). Tests concentrate in `bind`, `geometry/grid`, `geometry/pack`, `canvas/postscript`, `widget/text` (pure data only).
@@ -111,11 +111,11 @@ Scope: package layout, platform abstraction, widget API, geometry/event subsyste
 ### 16. `config.Table` is dead infrastructure
 - `config/table.go` and `config/types.go` provide a typed cget / configure mechanism, have tests, and no production caller. Tk's cget / configure introspection is unimplemented.
 - **Fix**: delete, or pilot with Button to validate the pattern.
-- **Status**: open. `config` still has no importers.
+- **Status**: done (2026-10-01). `config/` is deleted, with the equally unused `gc/` and `widget/editutil/`.
 
 ### 17. Package doc on `takigo` is one line
 - `pkg.go.dev` will show "Package takigo is a pure Go port of the Tk GUI toolkit." The first paragraph of `AGENTS.md` would make a much better godoc.
-- **Status**: open (`tk.go:1` is still one line).
+- **Status**: done (2026-10-01). The package doc is in `doc.go`, with examples in `example_test.go`.
 
 ### 18. `option` package mixes value types and the generic option mechanism
 - `option.Option`, `option.Apply`, `option.Relief`, `option.Anchor`, `option.Justify`. The value types belong with widgets; `Option` / `Apply` exist only because of issue #1.
@@ -142,9 +142,9 @@ Scope: package layout, platform abstraction, widget API, geometry/event subsyste
 1. ~~**#1** typed Configure~~ — done
 2. **#3** drop inline type assertions — trivial
 3. **#4** dedupe WM atom cache — trivial
-4. **#2** pick a side for BindEngine — small
+4. ~~**#2** pick a side for BindEngine~~ — done
 5. **#10** typed `cursor.Shape` — small
-6. **#16** decide `config` package fate
+6. ~~**#16** decide `config` package fate~~ — deleted
 7. **#5** remaining widget unit tests — biggest coverage gap
 8. **#8 / #9** extract `RenderState` / `MeasureRequest` — biggest LOC reduction
 
@@ -153,4 +153,4 @@ Items #6, #7, #11, #12, #13, #17 are nice-to-haves that can be deferred or skipp
 ## Open questions
 
 - **Typed `Configure` direction.** Resolved (2026-09-30): per-widget typed options, `option.Option` dropped.
-- **`config` package fate.** Delete `config/`, adopt it for one widget as a pilot, or leave it dormant for later.
+- **`config` package fate.** Resolved (2026-10-01): deleted.

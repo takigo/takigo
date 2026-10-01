@@ -1,4 +1,5 @@
 // Checkbutton event bindings, porting library/button.tcl behavior.
+
 package checkbutton
 
 import (

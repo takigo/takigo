@@ -1,5 +1,3 @@
-// Package ttk implements the Themed Tk widget infrastructure.
-// It ports the core of tk/generic/ttk/ simplified for Go.
 package ttk
 
 // State is a bitmask of widget states, ported from ttkTheme.h.

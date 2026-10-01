@@ -1,4 +1,5 @@
 // Menu event bindings, porting tk/library/menu.tcl.
+
 package menu
 
 import (

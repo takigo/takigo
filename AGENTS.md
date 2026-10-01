@@ -49,8 +49,9 @@ Xvfb resets when its last client disconnects and refuses connections
 meanwhile, so tests that open an App right after destroying one fail
 with "cannot open display".
 `.golangci.yml` enables a broad linter set plus `gofmt`/`goimports` with
-`local-prefixes: github.com/msorc/takigo`; it is not a CI gate, so existing
-code is not lint-clean — don't mass-fix unrelated warnings.
+`local-prefixes: github.com/msorc/takigo`; CI gates only the lines a change
+touches (`only-new-issues`), so existing code is not lint-clean — don't
+mass-fix unrelated warnings.
 
 ---
 
@@ -93,8 +94,7 @@ font/  color/  image/  bitmap/                     — resource subsystems; font
                                                     the backends are font/xft (X11), font/gdi
                                                     (Windows), font/coretext + platform/cocoa (macOS)
 wm/  focus/  grab/  selection/                     — window manager + input subsystems
-config/  cursor/  busy/  systray/  screenunit/  option/  gc/
-                                                    — supporting subsystems
+cursor/  busy/  systray/  screenunit/  option/     — supporting subsystems
 
 demos/<name>/main.go                               — one Go demo per directory, mirrors tk/library/demos/*.tcl
 demos/demohelper/                                  — shared demo boilerplate (AddSeeDismiss, images, vars)
@@ -304,7 +304,10 @@ package maps: several Apps may run at once on different goroutines
   `canvas/bench_test.go` (pick, find, tag resolution, display-list edits and
   item redraw on a display-free canvas: `go test ./canvas/ -run '^$' -bench .`).
 - CI (`.github/workflows/ci.yml`) runs vet, gofmt and `go test -race`
-  on Linux under Xvfb, vets Windows and builds/tests macOS.
+  (with a coverage profile) on Linux under Xvfb, vets Windows from Linux,
+  runs the display-free tests on a Windows runner and builds/tests macOS
+  with `-race`. The `lint` job runs golangci-lint on changed lines only and
+  `vulncheck` runs govulncheck.
 
 ---
 
