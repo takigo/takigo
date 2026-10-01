@@ -8,7 +8,6 @@ import (
 
 	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/bind"
-	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/widget/button"
 	"github.com/msorc/takigo/widget/frame"
@@ -63,11 +62,11 @@ func main() {
 	eng.RegisterWindow(btn2.Window(), "Button")
 
 	// --- Per-widget binding ---
-	eng.Bind(btn1.Window().PathName, "<Enter>", func(ed *bind.EventData) bool {
+	eng.BindWindow(btn1, "<Enter>", func(ed *bind.EventData) bool {
 		setStatus("Mouse entered Button 1")
 		return false
 	})
-	eng.Bind(btn1.Window().PathName, "<Leave>", func(ed *bind.EventData) bool {
+	eng.BindWindow(btn1, "<Leave>", func(ed *bind.EventData) bool {
 		setStatus("Mouse left Button 1")
 		return false
 	})
@@ -80,9 +79,7 @@ func main() {
 
 	// --- "all" binding ---
 	eng.Bind("all", "<Motion>", func(ed *bind.EventData) bool {
-		if ev, ok := ed.RawEvent.(*event.Event); ok {
-			setStatus(fmt.Sprintf("Motion at (%d, %d)", ev.X, ev.Y))
-		}
+		setStatus(fmt.Sprintf("Motion at (%d, %d)", ed.Event.X, ed.Event.Y))
 		return false
 	})
 

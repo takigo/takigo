@@ -2,6 +2,7 @@ package bind
 
 import (
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -52,6 +53,35 @@ type Pattern struct {
 // Sequence is one or more patterns forming a complete binding specification.
 type Sequence struct {
 	Patterns []Pattern
+}
+
+// Key returns the sequence for a press of the key with the given keysym
+// while mods are held, e.g. Key(ModControl, platform.KeySym('s')).
+func Key(mods Modifier, sym platform.KeySym) Sequence {
+	return Sequence{Patterns: []Pattern{{EventType: event.KeyPressType, Modifiers: mods, KeySym: sym}}}
+}
+
+// Button returns the sequence for a press of mouse button n while mods are
+// held; ModDouble and ModTriple select double and triple clicks.
+func Button(mods Modifier, n uint) Sequence {
+	return Sequence{Patterns: []Pattern{{EventType: event.ButtonPressType, Modifiers: mods, Button: n}}}
+}
+
+// On returns the sequence for any event of the given type, e.g.
+// On(event.EnterType).
+func On(t event.Type) Sequence {
+	return Sequence{Patterns: []Pattern{{EventType: t}}}
+}
+
+// Virtual returns the sequence for the virtual event <<name>>.
+func Virtual(name string) Sequence {
+	return Sequence{Patterns: []Pattern{{Virtual: name}}}
+}
+
+// Then returns s followed by next, for multi-event sequences such as
+// <Control-x><Control-s>.
+func (s Sequence) Then(next Sequence) Sequence {
+	return Sequence{Patterns: append(slices.Clone(s.Patterns), next.Patterns...)}
 }
 
 // String returns the original pattern string representation.

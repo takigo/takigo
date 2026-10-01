@@ -146,7 +146,7 @@ func (e *Engine) dispatch(ev *event.Event, runClass bool) bool {
 		}
 
 		if bestBinding != nil {
-			ed := &EventData{RawEvent: ev}
+			ed := &EventData{Event: ev, Window: w}
 			if bestBinding.handler(ed) || w.IsDestroyed() {
 				return true // break chain
 			}

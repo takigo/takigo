@@ -63,7 +63,7 @@ func main() {
 
 	// Bind Return to dismiss the window (matching Tcl: bind $w <Return> "destroy $w").
 	eng := app.Bind()
-	eng.Bind(app.Window().PathName, "<Return>", func(_ *bind.EventData) bool {
+	eng.BindWindow(app, "<Return>", func(_ *bind.EventData) bool {
 		app.Quit()
 		return true
 	})

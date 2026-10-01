@@ -529,7 +529,7 @@ func main() {
 	grid.Grid(ok, grid.Column(1), grid.Sticky(grid.StickE), grid.PadY(6))
 	grid.ColumnConfigure(form, 1, grid.Weight(1))
 
-	app.Bind().Bind(app.Window().PathName, "<Return>", func(*bind.EventData) bool {
+	app.Bind().BindWindow(app, "<Return>", func(*bind.EventData) bool {
 		submit()
 		return true
 	})
@@ -912,7 +912,7 @@ there is Tk's `bind`. Get the engine from the app and bind a pattern to a
 ```go
 eng := app.Bind()
 
-eng.Bind(entry.Window().PathName, "<Return>", func(ed *bind.EventData) bool {
+eng.BindWindow(entry, "<Return>", func(ed *bind.EventData) bool {
 	search(entry.GetText())
 	return true // "break": stop processing this event
 })
@@ -977,14 +977,25 @@ The pattern language is Tk's.
 
 ### 7.4 Event details
 
-The handler receives a `*bind.EventData`; the actual event is in `RawEvent`:
+The handler receives a `*bind.EventData`: the event is in `Event` and the
+window the binding fired for in `Window`:
 
 ```go
 eng.Bind("all", "<Motion>", func(ed *bind.EventData) bool {
-	ev := ed.RawEvent.(*event.Event)
+	ev := ed.Event
 	status.Configure(label.Text(fmt.Sprintf("%d, %d", ev.X, ev.Y)))
 	return false
 })
+```
+
+`BindWindow(w, ...)` binds one widget without spelling out its path. The
+event can also be given as a typed `bind.Sequence` instead of a pattern
+string, which the compiler checks:
+
+```go
+eng.BindWindow(editor, bind.Key(bind.ModControl, platform.KeySym('s')), save)
+eng.BindWindow(list, bind.Button(bind.ModDouble, 1), open)
+eng.Bind("all", bind.Virtual("Copy"), copySelection)
 ```
 
 Useful fields of `event.Event`:
@@ -1187,7 +1198,7 @@ func main() {
 		swatch.Configure(label.Text(name), label.Background(name))
 	}
 
-	app.Bind().Bind(filter.Window().PathName, "<KeyRelease>", func(*bind.EventData) bool {
+	app.Bind().BindWindow(filter, "<KeyRelease>", func(*bind.EventData) bool {
 		q := strings.ToLower(filter.GetText())
 		lb.Delete(0, lb.ItemCount()-1)
 		for _, n := range all {
@@ -1255,8 +1266,8 @@ ctx := menu.New(app, "ctx")
 ctx.AddCommand("Copy", doCopy)
 ctx.AddCommand("Paste", doPaste)
 
-app.Bind().Bind(target.Window().PathName, "<Button-3>", func(ed *bind.EventData) bool {
-	ev := ed.RawEvent.(*event.Event)
+app.Bind().BindWindow(target, "<Button-3>", func(ed *bind.EventData) bool {
+	ev := ed.Event
 	ctx.Post(ev.RootX, ev.RootY)
 	return true
 })
@@ -1454,10 +1465,9 @@ func main() {
 	// class bindings; returning true (break) stops Text's own <Control-o>
 	// (open line) from also running.
 	eng := app.Bind()
-	path := e.tw.Window().PathName
-	eng.Bind(path, "<Control-o>", func(*bind.EventData) bool { e.open(); return true })
-	eng.Bind(path, "<Control-s>", func(*bind.EventData) bool { e.save(); return true })
-	eng.Bind(path, "<Control-q>", func(*bind.EventData) bool { e.quit(); return true })
+	eng.BindWindow(e.tw, "<Control-o>", func(*bind.EventData) bool { e.open(); return true })
+	eng.BindWindow(e.tw, "<Control-s>", func(*bind.EventData) bool { e.save(); return true })
+	eng.BindWindow(e.tw, "<Control-q>", func(*bind.EventData) bool { e.quit(); return true })
 
 	// The window manager's close button.
 	app.WmInfo().OnDeleteWindow(e.quit)
@@ -3028,7 +3038,7 @@ Tips:
 | `place .b -relx 0.5 -rely 0.5 -anchor center` | `place.Place(b, place.RelX(.5), place.RelY(.5), place.Anchor(option.AnchorCenter))` |
 | `set v 1; checkbutton .c -variable v` | `v := widget.NewVariable("1"); checkbutton.New(app, "c", checkbutton.Var(v))` |
 | `trace add variable v write cb` | `v.OnChange(func(old, new string) {...})` |
-| `bind .e <Return> {cb; break}` | `app.Bind().Bind(e.Window().PathName, "<Return>", func(*bind.EventData) bool { cb(); return true })` |
+| `bind .e <Return> {cb; break}` | `app.Bind().BindWindow(e, "<Return>", func(*bind.EventData) bool { cb(); return true })` |
 | `bind all <Control-q> exit` | `app.Bind().Bind("all", "<Control-q>", ...)` |
 | `bindtags .e` | `app.Bind().BindTags(e.Window())` |
 | `event add <<Save>> <Control-s>` | `app.Bind().AddVirtualEvent("Save", "<Control-s>")` |

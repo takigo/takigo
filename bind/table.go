@@ -3,16 +3,23 @@ package bind
 import (
 	"slices"
 	"sync"
+
+	"github.com/msorc/takigo/event"
+	"github.com/msorc/takigo/window"
 )
 
 // HandlerFunc is a binding callback. It receives the event and returns true
 // to stop further dispatch along the tag chain (break).
 type HandlerFunc func(ev *EventData) bool
 
-// EventData wraps the raw event with additional binding-specific context.
+// EventData is what a binding handler receives.
 type EventData struct {
-	Type     int // reserved for future use
-	RawEvent any // *event.Event
+	// Event is the event that triggered the binding. For a virtual event
+	// sent with GenerateEvent it is a VirtualType event carrying only the
+	// window.
+	Event *event.Event
+	// Window is the window the binding fired for.
+	Window *window.Window
 }
 
 // binding associates a parsed pattern sequence with its handler.

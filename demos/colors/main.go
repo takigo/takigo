@@ -171,7 +171,7 @@ func main() {
 	// Double-click to change background via bind engine (mirrors tk_setPalette).
 	eng := app.Bind()
 	eng.RegisterWindow(lb.Window(), "Listbox")
-	eng.Bind(lb.Window().PathName, "<Double-Button-1>", func(_ *bind.EventData) bool {
+	eng.BindWindow(lb, "<Double-Button-1>", func(_ *bind.EventData) bool {
 		sel := lb.Selection()
 		if len(sel) > 0 {
 			colorName := colors[sel[0]]
