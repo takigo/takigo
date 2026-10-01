@@ -81,7 +81,7 @@ Scope: package layout, platform abstraction, widget API, geometry/event subsyste
 ### 10. `cursor.Shape` is not enforced as the parameter type
 - `Window.SetCursor(shape uint)` (`window/window.go:132`) takes a raw `uint`. Typos like `w.SetCursor(uint(cursor.XTerm + 1))` compile silently.
 - **Fix**: change to `SetCursor(shape cursor.Shape)` with a typed enum.
-- **Status**: open. `cursor.Shape` exists but `Window.SetCursor` (`window/window.go:402`) still takes `uint`.
+- **Status**: done (2026-10-01). `Window.SetCursor` and `platform.CursorManager.SetCursorShape` take `cursor.Shape`.
 
 ### 11. `AppContext.Window()` and `Caregiver.Window()` overlap
 - `Base.Win` is the widget's own window; `AppContext.Window()` returns the root window. Two ways to get a window from the same object.
@@ -143,7 +143,7 @@ Scope: package layout, platform abstraction, widget API, geometry/event subsyste
 2. **#3** drop inline type assertions — trivial
 3. **#4** dedupe WM atom cache — trivial
 4. ~~**#2** pick a side for BindEngine~~ — done
-5. **#10** typed `cursor.Shape` — small
+5. ~~**#10** typed `cursor.Shape`~~ — done
 6. ~~**#16** decide `config` package fate~~ — deleted
 7. **#5** remaining widget unit tests — biggest coverage gap
 8. **#8 / #9** extract `RenderState` / `MeasureRequest` — biggest LOC reduction

@@ -16,11 +16,11 @@ import (
 )
 
 // Orient specifies the scale orientation.
-type Orient int
+type Orient = option.Orient
 
 const (
-	Horizontal Orient = iota
-	Vertical
+	Horizontal = option.Horizontal
+	Vertical   = option.Vertical
 )
 
 // Scale is a slider widget that lets the user select a numeric value.

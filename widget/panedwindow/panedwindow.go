@@ -96,11 +96,11 @@ func (pw *PanedWindow) propagateReqSize() {
 }
 
 // Orient specifies the paned window orientation.
-type Orient int
+type Orient = option.Orient
 
 const (
-	Horizontal Orient = iota // panes side by side
-	Vertical                 // panes stacked
+	Horizontal = option.Horizontal // panes side by side
+	Vertical   = option.Vertical   // panes stacked
 )
 
 // pane holds information about a managed child pane.

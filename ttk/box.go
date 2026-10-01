@@ -98,23 +98,23 @@ func RelievePadding(p Padding, relief option.Relief, n int) Padding {
 }
 
 // Side specifies which side to pack from.
-type Side int
+type Side = option.Side
 
 const (
-	SideTop Side = iota
-	SideBottom
-	SideLeft
-	SideRight
+	SideTop    = option.SideTop
+	SideBottom = option.SideBottom
+	SideLeft   = option.SideLeft
+	SideRight  = option.SideRight
 )
 
 // Sticky flags control how content fills its parcel.
-type Sticky uint
+type Sticky = option.Sticky
 
 const (
-	StickW Sticky = 1 << iota
-	StickE
-	StickN
-	StickS
+	StickW   = option.StickW
+	StickE   = option.StickE
+	StickN   = option.StickN
+	StickS   = option.StickS
 	FillX    = StickW | StickE
 	FillY    = StickN | StickS
 	FillBoth = FillX | FillY

@@ -145,7 +145,7 @@ func NewSpinbox(parent widget.Caregiver, name string, opts ...SpinboxOption) *Sp
 	s.computeGeometry()
 
 	win.Flags |= window.FlagFocusable
-	win.SetCursor(uint(cursor.XTerm))
+	win.SetCursor(cursor.XTerm)
 	bindSpinbox(s, app)
 
 	return s

@@ -47,7 +47,7 @@ func NewSizegrip(parent widget.Caregiver, name string, opts ...SizegripOption) *
 	win.ReqWidth = gripSize
 	win.ReqHeight = gripSize
 
-	win.SetCursor(uint(cursor.BottomRightCorner))
+	win.SetCursor(cursor.BottomRightCorner)
 	bindSizegrip(sg, app)
 
 	return sg

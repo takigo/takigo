@@ -19,13 +19,13 @@ import (
 )
 
 // Direction specifies where the menu is posted relative to the button.
-type Direction int
+type Direction = option.Direction
 
 const (
-	Below Direction = iota
-	Above
-	Left
-	Right
+	Below = option.DirBelow
+	Above = option.DirAbove
+	Left  = option.DirLeft
+	Right = option.DirRight
 )
 
 // Menubutton is a button that posts an associated menu when clicked.

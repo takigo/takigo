@@ -131,9 +131,9 @@ func (c *Combobox) syncState() {
 		c.ChangeState(0, StateDisabled|StateReadonly)
 	}
 	if c.CbState == ComboNormal {
-		c.Win.SetCursor(uint(cursor.XTerm))
+		c.Win.SetCursor(cursor.XTerm)
 	} else {
-		c.Win.SetCursor(uint(cursor.LeftPtr))
+		c.Win.SetCursor(cursor.LeftPtr)
 	}
 }
 
@@ -575,9 +575,9 @@ func (c *Combobox) displayDropdown() {
 func (c *Combobox) updateCursor(x int) {
 	arrowX := c.Win.Width - c.arrowWidth
 	if x >= arrowX || c.CbState != ComboNormal {
-		c.Win.SetCursor(uint(cursor.LeftPtr))
+		c.Win.SetCursor(cursor.LeftPtr)
 	} else {
-		c.Win.SetCursor(uint(cursor.XTerm))
+		c.Win.SetCursor(cursor.XTerm)
 	}
 }
 

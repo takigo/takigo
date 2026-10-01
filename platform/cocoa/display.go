@@ -32,6 +32,7 @@ package cocoa
 import (
 	"errors"
 
+	"github.com/msorc/takigo/cursor"
 	"github.com/msorc/takigo/font"
 	clib "github.com/msorc/takigo/internal/cocoa"
 	"github.com/msorc/takigo/platform"
@@ -340,8 +341,8 @@ func (d *CocoaDisplay) CreateFontCursor(shape uint) platform.CursorID {
 func (d *CocoaDisplay) DefineCursor(w platform.WindowID, cursor platform.CursorID) {
 	clib.DefineCursor(toWin(w), toCursor(cursor))
 }
-func (d *CocoaDisplay) SetCursorShape(w platform.WindowID, shape uint) {
-	clib.SetCursorShape(toWin(w), shape)
+func (d *CocoaDisplay) SetCursorShape(w platform.WindowID, shape cursor.Shape) {
+	clib.SetCursorShape(toWin(w), uint(shape))
 }
 func (d *CocoaDisplay) UndefineCursor(w platform.WindowID)  { clib.UndefineCursor(toWin(w)) }
 func (d *CocoaDisplay) FreeCursor(cursor platform.CursorID) { clib.FreeCursor(toCursor(cursor)) }

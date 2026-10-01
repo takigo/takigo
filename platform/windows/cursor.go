@@ -72,7 +72,7 @@ func (d *WindowsDisplay) cursorFor(hwnd w32.HWND) w32.HCURSOR {
 	return w32.LoadCursor(0, w32.MAKEINTRESOURCE(w32.IDC_ARROW))
 }
 
-func (d *WindowsDisplay) SetCursorShape(w platform.WindowID, shape uint) {
+func (d *WindowsDisplay) SetCursorShape(w platform.WindowID, shape cursor.Shape) {
 	d.cursorMu.Lock()
 	hcursor, ok := d.cursorCache[shape]
 	d.cursorMu.Unlock()
@@ -80,7 +80,7 @@ func (d *WindowsDisplay) SetCursorShape(w platform.WindowID, shape uint) {
 	if !ok {
 		// Look up the Windows cursor for this abstract shape.
 		idcID := uint16(w32.IDC_ARROW)
-		if id, found := shapeToWinCursor[cursor.Shape(shape)]; found {
+		if id, found := shapeToWinCursor[shape]; found {
 			idcID = id
 		}
 		hcursor = w32.LoadCursor(0, w32.MAKEINTRESOURCE(idcID))

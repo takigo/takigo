@@ -1,5 +1,9 @@
 package platform
 
+import (
+	"github.com/msorc/takigo/cursor"
+)
+
 // WindowManager manages window creation, destruction, and manipulation.
 type WindowManager interface {
 	// CreateWindow creates a new window.
@@ -203,7 +207,7 @@ type CursorManager interface {
 
 	// SetCursorShape creates and sets a cursor from an abstract shape ID
 	// (cursor.Shape values). Each backend maps these to native cursors.
-	SetCursorShape(w WindowID, shape uint)
+	SetCursorShape(w WindowID, shape cursor.Shape)
 
 	// UndefineCursor reverts a window to its parent's cursor.
 	UndefineCursor(w WindowID)

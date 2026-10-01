@@ -57,7 +57,7 @@ func Hold(app widget.AppContext, target *window.Window) *BusyWin {
 	d.Flush()
 
 	// Set the busy cursor (watch cursor).
-	d.SetCursorShape(overlay, uint(cursor.Watch))
+	d.SetCursorShape(overlay, cursor.Watch)
 
 	return &BusyWin{
 		overlay: overlay,

@@ -16,7 +16,7 @@ func FuzzGridOption(f *testing.F) {
 		Column(col)(&cfg)
 		RowSpan(rowSpan)(&cfg)
 		ColumnSpan(colSpan)(&cfg)
-		Sticky(sticky)(&cfg)
+		Sticky(option.Sticky(sticky))(&cfg)
 		PadX(padX)(&cfg)
 		PadY(padY)(&cfg)
 		IPadX(iPadX)(&cfg)
@@ -125,7 +125,7 @@ func FuzzApplySticky(f *testing.F) {
 		if cavW < 0 || cavH < 0 || childW < 0 || childH < 0 {
 			return
 		}
-		_, _, _, _ = applySticky(sticky, cavX, cavY, cavW, cavH, childW, childH)
+		_, _, _, _ = applySticky(option.Sticky(sticky), cavX, cavY, cavW, cavH, childW, childH)
 	})
 }
 

@@ -588,11 +588,11 @@ type SeparatorElement struct {
 }
 
 // Orientation for separator.
-type Orientation int
+type Orientation = option.Orient
 
 const (
-	Horizontal Orientation = iota
-	Vertical
+	Horizontal = option.Horizontal
+	Vertical   = option.Vertical
 )
 
 // NewSeparatorElementFactory returns a factory for separator elements.
