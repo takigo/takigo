@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	goimage "image"
+	"image/png"
 	"log/slog"
 	"os"
 	"strconv"
@@ -447,6 +449,34 @@ func (c appClipboard) Set(owner platform.WindowID, text string, time platform.Ti
 
 func (c appClipboard) Get(requestor platform.WindowID, time platform.Timestamp, callback func(string)) {
 	c.mgr.RequestWithCallback(requestor, time, callback)
+}
+
+// SetClipboardImage puts img on the clipboard, as PNG. Other applications
+// can paste it on X11; on Windows and macOS only this process sees it,
+// since their native clipboards are used for text alone.
+func (a *App) SetClipboardImage(img goimage.Image) error {
+	var buf bytes.Buffer
+	if err := png.Encode(&buf, img); err != nil {
+		return fmt.Errorf("takigo: clipboard image: %w", err)
+	}
+	a.selMgr.OwnFormats(a.selMgr.ClipboardAtom(), a.root.PlatformID, map[platform.AtomID][]byte{
+		a.display.Server.InternAtom("image/png", false): buf.Bytes(),
+	}, platform.CurrentTime)
+	return nil
+}
+
+// ClipboardImage asks for the image on the clipboard and calls callback
+// with it, or with nil when the clipboard holds no PNG image. The callback
+// runs on the event loop, at once if this App owns the clipboard.
+func (a *App) ClipboardImage(callback func(goimage.Image)) {
+	target := a.display.Server.InternAtom("image/png", false)
+	a.selMgr.RequestTarget(a.selMgr.ClipboardAtom(), target, a.root.PlatformID, platform.CurrentTime, func(data []byte) {
+		if img, err := png.Decode(bytes.NewReader(data)); err == nil {
+			callback(img)
+			return
+		}
+		callback(nil)
+	})
 }
 
 // FocusManager returns the application's focus manager.

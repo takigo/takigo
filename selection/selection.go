@@ -4,6 +4,7 @@ package selection
 
 import (
 	"encoding/binary"
+	"slices"
 	"sync"
 	"time"
 	"unicode/utf8"
@@ -31,6 +32,10 @@ type Manager struct {
 	// by requestor window and property; incoming ones by our requestor.
 	outgoing map[incrKey]*outgoingIncr
 	incoming map[platform.WindowID]*incomingIncr
+
+	// formats holds what OwnFormats offers besides text, by selection and
+	// target.
+	formats map[platform.AtomID]map[platform.AtomID][]byte
 
 	// Atoms.
 	clipboard platform.AtomID
@@ -72,8 +77,9 @@ const requestTimeout = 5 * time.Second
 // pendingRequest is an outstanding clipboard request and everyone waiting
 // for its answer.
 type pendingRequest struct {
-	gen       uint64
-	callbacks []func(string)
+	gen               uint64
+	selection, target platform.AtomID
+	callbacks         []func(string)
 }
 
 // NewManager creates a new selection manager.
@@ -82,6 +88,7 @@ func NewManager(server platform.DisplayServer, dispatcher *event.Dispatcher) *Ma
 		server:     server,
 		dispatcher: dispatcher,
 		data:       make(map[platform.AtomID]string),
+		formats:    make(map[platform.AtomID]map[platform.AtomID][]byte),
 		owners:     make(map[platform.AtomID]platform.WindowID),
 		pendingGet: make(map[platform.WindowID]*pendingRequest),
 		clipboard:  server.InternAtom("CLIPBOARD", false),
@@ -100,12 +107,25 @@ func (m *Manager) Own(selection platform.AtomID, owner platform.WindowID, conten
 	m.mu.Lock()
 	m.data[selection] = content
 	m.owners[selection] = owner
+	delete(m.formats, selection)
 	m.mu.Unlock()
 
 	m.server.SetSelectionOwner(selection, owner, time)
 	if selection == m.clipboard {
 		m.server.SetClipboardText(content)
 	}
+}
+
+// OwnFormats claims a selection and offers data in the given targets
+// (atoms such as "image/png" or "text/uri-list") instead of text. It is an
+// X11 mechanism: the native clipboards of Windows and macOS only get text.
+func (m *Manager) OwnFormats(selection platform.AtomID, owner platform.WindowID, formats map[platform.AtomID][]byte, time platform.Timestamp) {
+	m.mu.Lock()
+	m.data[selection] = ""
+	m.owners[selection] = owner
+	m.formats[selection] = formats
+	m.mu.Unlock()
+	m.server.SetSelectionOwner(selection, owner, time)
 }
 
 // OwnPrimary claims PRIMARY selection.
@@ -130,6 +150,7 @@ func (m *Manager) GetContent(selection platform.AtomID) string {
 func (m *Manager) HandleSelectionRequest(requestor platform.WindowID, selection, target, property platform.AtomID, time platform.Timestamp) {
 	m.mu.Lock()
 	content, ok := m.data[selection]
+	formats := m.formats[selection]
 	m.mu.Unlock()
 
 	if !ok {
@@ -140,6 +161,29 @@ func (m *Manager) HandleSelectionRequest(requestor platform.WindowID, selection,
 
 	if property == 0 {
 		property = target
+	}
+
+	if formats != nil {
+		// Offered with OwnFormats: exactly those targets.
+		data, have := formats[target]
+		switch {
+		case target == m.targets:
+			atoms := []platform.AtomID{m.targets}
+			for t := range formats {
+				atoms = append(atoms, t)
+			}
+			slices.Sort(atoms)
+			m.server.ChangePropertyAtoms(requestor, property, atoms)
+		case !have:
+			m.server.SendSelectionNotify(requestor, selection, target, 0, time)
+			return
+		case len(data) > selBytesAtOnce:
+			m.startIncr(requestor, property, target, data)
+		default:
+			m.server.ChangeProperty(requestor, property, target, 8, platform.PropModeReplace, data, len(data))
+		}
+		m.server.SendSelectionNotify(requestor, selection, target, property, time)
+		return
 	}
 
 	if target == m.targets {
@@ -173,14 +217,62 @@ func (m *Manager) HandleSelectionClear(selection platform.AtomID) {
 	m.mu.Lock()
 	delete(m.data, selection)
 	delete(m.owners, selection)
+	delete(m.formats, selection)
 	m.mu.Unlock()
 }
 
 // Request requests the content of a selection from its current owner.
 // The result comes back as a SelectionNotify event with the data in a property.
 func (m *Manager) Request(selection platform.AtomID, requestor platform.WindowID, time platform.Timestamp) {
+	m.convert(selection, m.utf8str, requestor, time)
+}
+
+func (m *Manager) convert(selection, target platform.AtomID, requestor platform.WindowID, time platform.Timestamp) {
 	property := m.server.InternAtom("TAKIGO_SEL", false)
-	m.server.ConvertSelection(selection, m.utf8str, property, requestor, time)
+	m.server.ConvertSelection(selection, target, property, requestor, time)
+}
+
+// RequestTarget asks the owner of selection for its data in the given
+// target and calls callback with the bytes, or with nil if the owner
+// refuses, does not answer within requestTimeout, or another request from
+// the same window for something else is still outstanding. The caller
+// must route SelectionNotify to HandleSelectionNotify, as for
+// RequestWithCallback.
+func (m *Manager) RequestTarget(selection, target platform.AtomID, requestor platform.WindowID, ts platform.Timestamp, callback func([]byte)) {
+	deliver := func(s string) {
+		if s == "" {
+			callback(nil)
+			return
+		}
+		callback([]byte(s))
+	}
+	m.mu.Lock()
+	if formats, own := m.formats[selection]; own {
+		data := formats[target]
+		m.mu.Unlock()
+		callback(data)
+		return
+	}
+	if p := m.pendingGet[requestor]; p != nil {
+		if p.selection != selection || p.target != target {
+			m.mu.Unlock()
+			callback(nil)
+			return
+		}
+		p.callbacks = append(p.callbacks, deliver)
+		m.mu.Unlock()
+		return
+	}
+	m.nextGen++
+	gen := m.nextGen
+	m.pendingGet[requestor] = &pendingRequest{gen: gen, selection: selection, target: target, callbacks: []func(string){deliver}}
+	after := m.after
+	m.mu.Unlock()
+
+	m.convert(selection, target, requestor, ts)
+	if after != nil {
+		after(requestTimeout, func() { m.expire(requestor, gen) })
+	}
 }
 
 // maxPropWords bounds a single property read, in 32-bit units (4 MiB).
@@ -367,13 +459,19 @@ func (m *Manager) RequestWithCallback(requestor platform.WindowID, ts platform.T
 		return
 	}
 	if p := m.pendingGet[requestor]; p != nil {
+		if p.selection != m.clipboard || p.target != m.utf8str {
+			// A request for something else is outstanding on this window.
+			m.mu.Unlock()
+			callback("")
+			return
+		}
 		p.callbacks = append(p.callbacks, callback)
 		m.mu.Unlock()
 		return
 	}
 	m.nextGen++
 	gen := m.nextGen
-	m.pendingGet[requestor] = &pendingRequest{gen: gen, callbacks: []func(string){callback}}
+	m.pendingGet[requestor] = &pendingRequest{gen: gen, selection: m.clipboard, target: m.utf8str, callbacks: []func(string){callback}}
 	after := m.after
 	m.mu.Unlock()
 
