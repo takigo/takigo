@@ -80,6 +80,7 @@ func uncoveredPoint(t *testing.T, probe, app *App) (x, y int) {
 // One App plays the drag source of the XDND protocol by hand and drops a
 // file list and then text on another App, a separate X client.
 func TestDropFromAnotherClient(t *testing.T) {
+	displaylock.UseVirtualDisplay()
 	if os.Getenv("DISPLAY") == "" || !haveDisplayBackend {
 		t.Skip("needs an X display")
 	}
@@ -197,6 +198,7 @@ func TestDropFromAnotherClient(t *testing.T) {
 // A real drag: StartDrag in one App, the pointer simulated by motion and
 // release events carrying root coordinates, dropped on another App.
 func TestStartDragOntoAnotherClient(t *testing.T) {
+	displaylock.UseVirtualDisplay()
 	if os.Getenv("DISPLAY") == "" || !haveDisplayBackend {
 		t.Skip("needs an X display")
 	}
