@@ -11,7 +11,9 @@ import (
 	"github.com/msorc/takigo/internal/testutil"
 	"github.com/msorc/takigo/ttk"
 	_ "github.com/msorc/takigo/ttk/defaulttheme"
+	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/button"
+	"github.com/msorc/takigo/widget/checkbutton"
 	"github.com/msorc/takigo/widget/label"
 )
 
@@ -56,4 +58,23 @@ func TestGeometryManagersReturnErrors(t *testing.T) {
 	if err := pack.Pack(b); err != nil {
 		t.Errorf("Pack = %v", err)
 	}
+}
+
+func TestCheckbuttonBoolVar(t *testing.T) {
+	app := testutil.NewTestApp(t)
+	on := widget.NewVariable(true)
+	c := checkbutton.New(app, "c", checkbutton.Text("x"), checkbutton.BoolVar(on))
+	if !c.Selected() {
+		t.Fatal("checkbutton not selected for a true variable")
+	}
+	c.Toggle()
+	if on.Get() || c.Selected() {
+		t.Errorf("after Toggle: variable = %v, selected = %v; want false, false", on.Get(), c.Selected())
+	}
+	on.Set(true)
+	if !c.Selected() {
+		t.Error("setting the variable did not select the checkbutton")
+	}
+	c.Destroy()
+	on.Set(false) // must not reach the destroyed widget
 }
