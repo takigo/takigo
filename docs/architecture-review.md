@@ -53,7 +53,7 @@ Scope: package layout, platform abstraction, widget API, geometry/event subsyste
 - No tests for Button, Label, Frame, Entry, Checkbutton, Radiobutton, Scrollbar, Scale, Spinbox, Listbox, PanedWindow, Menu, Menubutton, Message, Toplevel, Labelframe, Square, or Canvas widget construction. No tests for `color.Parse` / `Cache`, `screenunit.Px`, `wm.ParseGeometry`, or `geometry.UsableWidth`.
 - Most of these are pure Go and need no X server. The screenshot pipeline catches rendering regressions but not algorithmic ones.
 - **Fix**: table-driven tests for `color.Parse`, `screenunit.Px`, `wm.ParseGeometry`, `geometry.{UsableWidth, GeometryRequest}`, plus per-widget `computeGeometry` math via a stub font registry.
-- **Status**: partly done. `frame`, `label`, `listbox`, `scale`, `spinbox` and `text` have tests, and `screenunit`, `wm`, `bind` and the geometry managers are covered. Still untested: button, checkbutton, radiobutton, menu, menubutton, message, panedwindow, scrollbar, square, toplevel, labelframe. The repository now has 105 test files.
+- **Status**: done (2026-10-01). Every classic widget package has tests (black-box, through the public API, under a display), and `tests/render_test.go` reads back what frames, labels, buttons and the canvas paint.
 
 ## Medium-impact
 
@@ -145,7 +145,7 @@ Scope: package layout, platform abstraction, widget API, geometry/event subsyste
 4. ~~**#2** pick a side for BindEngine~~ — done
 5. ~~**#10** typed `cursor.Shape`~~ — done
 6. ~~**#16** decide `config` package fate~~ — deleted
-7. **#5** remaining widget unit tests — biggest coverage gap
+7. ~~**#5** remaining widget unit tests~~ — done
 8. **#8 / #9** extract `RenderState` / `MeasureRequest` — biggest LOC reduction
 
 Items #6, #7, #11, #12, #13, #17 are nice-to-haves that can be deferred or skipped.
