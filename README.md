@@ -64,6 +64,7 @@ go run ./demos/button          # a single demo
 - [THREADING.md](THREADING.md): which types are safe to use from which goroutine.
 - [AGENTS.md](AGENTS.md): repository layout, conventions, build and test commands.
 - [docs/architecture-review.md](docs/architecture-review.md): known design debt.
+- [CHANGELOG.md](CHANGELOG.md): what changed since v0.1.0 and how to migrate.
 
 ## Development
 

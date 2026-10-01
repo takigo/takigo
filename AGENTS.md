@@ -69,7 +69,7 @@ widget/<name>/                                     — classic widgets: button, 
                                                     — each widget has a `<name>.go` and usually a
                                                       `bindings.go` for event handlers
 ttk/                                               — themed widget package; widgets embed TtkWidget
-ttk/<name>theme/                                   — theme registrations (default, clam, alt, classic)
+ttk/<name>theme/                                   — theme registrations (default, clam, alt, classic, dark)
 ttk/entrytext/                                     — shared editing logic for ttk entry/combobox/spinbox
 
 window/                                            — Window struct, display, hierarchy, creation
@@ -95,6 +95,9 @@ font/  color/  image/  bitmap/                     — resource subsystems; font
                                                     (Windows), font/coretext + platform/cocoa (macOS)
 wm/  focus/  grab/  selection/                     — window manager + input subsystems
 cursor/  busy/  systray/  screenunit/  option/     — supporting subsystems
+appearance/                                        — desktop light/dark preference (not in Tk)
+internal/dbus/                                     — minimal D-Bus client (settings portal, notifications)
+internal/nanosvg/                                  — SVG rasterizer port; also anti-aliases canvas shapes
 
 demos/<name>/main.go                               — one Go demo per directory, mirrors tk/library/demos/*.tcl
 demos/demohelper/                                  — shared demo boilerplate (AddSeeDismiss, images, vars)
