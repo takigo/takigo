@@ -108,13 +108,13 @@ func fillPixel(p uint64) ItemOption {
 // area, so a 800x600 view sees roughly an eighth of them, each tagged
 // "tag<i%10>". Every tenth item is a smooth polygon, every seventh a line
 // with arrowheads, every fifth a text.
-func benchScene(c *Canvas, n int) []int64 {
-	ids := make([]int64, 0, n)
+func benchScene(c *Canvas, n int) []ItemID {
+	ids := make([]ItemID, 0, n)
 	for i := range n {
 		x := float64((i * 97) % 2000)
 		y := float64((i * 61) % 2000)
 		tag := Tags("tag" + strconv.Itoa(i%10))
-		var id int64
+		var id ItemID
 		switch i % 5 {
 		case 0:
 			id = c.createItem(newRectOvalItem("rectangle", x, y, x+40, y+30, c),
@@ -135,7 +135,7 @@ func benchScene(c *Canvas, n int) []int64 {
 			id = c.createItem(newPolygonItem([]float64{x, y, x + 30, y - 10, x + 50, y + 20, x + 30, y + 50, x, y + 40}, c), opts)
 		case 4:
 			id = c.addItem(benchText(c, x, y, "item "+strconv.Itoa(i)))
-			c.AddTag("tag"+strconv.Itoa(i%10), strconv.FormatInt(id, 10))
+			c.AddTag("tag"+strconv.Itoa(i%10), id)
 		}
 		ids = append(ids, id)
 	}
@@ -185,7 +185,7 @@ func BenchmarkFindOverlapping(b *testing.B) {
 func BenchmarkResolve(b *testing.B) {
 	c := newBenchCanvas()
 	ids := benchScene(c, 1000)
-	id := strconv.FormatInt(ids[500], 10)
+	id := ids[500]
 	b.Run("id", func(b *testing.B) {
 		b.ReportAllocs()
 		for range b.N {
@@ -213,7 +213,7 @@ func BenchmarkCreateDelete(b *testing.B) {
 	b.ResetTimer()
 	for range b.N {
 		id := c.CreateRectangle(10, 10, 50, 50, Tags("new"))
-		c.Delete(strconv.FormatInt(id, 10))
+		c.Delete(id)
 	}
 }
 
@@ -227,7 +227,7 @@ func BenchmarkDeleteAll(b *testing.B) {
 		ids := benchScene(c, 1000)
 		b.StartTimer()
 		for _, id := range ids {
-			c.Delete(strconv.FormatInt(id, 10))
+			c.Delete(id)
 		}
 	}
 }
@@ -235,7 +235,7 @@ func BenchmarkDeleteAll(b *testing.B) {
 func BenchmarkRaiseLower(b *testing.B) {
 	c := newBenchCanvas()
 	ids := benchScene(c, 1000)
-	id := strconv.FormatInt(ids[500], 10)
+	id := ids[500]
 	b.Run("raise-id", func(b *testing.B) {
 		b.ReportAllocs()
 		for range b.N {
@@ -270,7 +270,7 @@ func BenchmarkMove(b *testing.B) {
 func BenchmarkSetItemCoords(b *testing.B) {
 	c := newBenchCanvas()
 	benchScene(c, 100)
-	id := strconv.FormatInt(c.CreateLine(make([]float64, 400)), 10)
+	id := c.CreateLine(make([]float64, 400))
 	coords := make([]float64, 400)
 	for i := range coords {
 		coords[i] = float64(i)
@@ -383,7 +383,7 @@ func BenchmarkDispatchItemEvent(b *testing.B) {
 	ids := benchScene(c, 100)
 	n := 0
 	c.BindItem("tag3", event.ButtonPressMask, func(*event.Event) { n++ })
-	c.BindItem(strconv.FormatInt(ids[3], 10), event.ButtonPressMask, func(*event.Event) { n++ })
+	c.BindItem(ids[3], event.ButtonPressMask, func(*event.Event) { n++ })
 	c.currentItem = c.idMap[ids[3]]
 	ev := &event.Event{Type: event.ButtonPressType}
 	b.ReportAllocs()

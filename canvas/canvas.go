@@ -20,9 +20,9 @@ type Canvas struct {
 	widget.Base
 
 	items    []*itemEntry
-	idMap    map[int64]*itemEntry
-	tagIndex map[string]map[int64]*itemEntry // tag name → item IDs for O(1) tag lookup
-	nextID   int64
+	idMap    map[ItemID]*itemEntry
+	tagIndex map[string]map[ItemID]*itemEntry // tag name → item IDs for O(1) tag lookup
+	nextID   ItemID
 	markSeq  uint64 // last stamp handed out by markEntries
 	dead     int    // deleted entries still in items (see compact)
 
@@ -63,11 +63,11 @@ type Canvas struct {
 	leftGrabbed  bool
 	repicking    bool
 	itemBindings map[string][]itemHandler // by tag
-	idBindings   map[int64][]itemHandler  // by item ID
+	idBindings   map[ItemID][]itemHandler // by item ID
 	closeEnough  float64                  // hit-test tolerance (default 1.0)
 
 	// Keyboard focus for text items.
-	focusItemID int64 // 0 = none
+	focusItemID ItemID // 0 = none
 
 	// Scrollbar callbacks.
 	XScrollCmd func(first, last float64)
@@ -84,11 +84,11 @@ type Canvas struct {
 // window; New attaches the window and applies the options.
 func newCanvas() *Canvas {
 	return &Canvas{
-		idMap:        make(map[int64]*itemEntry),
-		tagIndex:     make(map[string]map[int64]*itemEntry),
+		idMap:        make(map[ItemID]*itemEntry),
+		tagIndex:     make(map[string]map[ItemID]*itemEntry),
 		nextID:       1,
 		itemBindings: make(map[string][]itemHandler),
-		idBindings:   make(map[int64][]itemHandler),
+		idBindings:   make(map[ItemID][]itemHandler),
 		closeEnough:  1.0,
 	}
 }
@@ -513,7 +513,7 @@ func (c *Canvas) Configure(opts ...CanvasOption) error {
 
 // createItem configures a new item and adds it. Like the option setters,
 // a bad option is logged and the options after it are not applied.
-func (c *Canvas) createItem(item Item, opts []ItemOption) int64 {
+func (c *Canvas) createItem(item Item, opts []ItemOption) ItemID {
 	c.configureNew(item, opts)
 	return c.addItem(item)
 }
@@ -526,7 +526,7 @@ func (c *Canvas) configureNew(item Item, opts []ItemOption) bool {
 	return true
 }
 
-func (c *Canvas) addItem(item Item) int64 {
+func (c *Canvas) addItem(item Item) ItemID {
 	base := itemBase(item)
 	id := c.nextID
 	c.nextID++
@@ -550,17 +550,17 @@ func (c *Canvas) addItem(item Item) int64 {
 }
 
 // tagIndexAdd registers item id under tag in the tag index.
-func (c *Canvas) tagIndexAdd(tag string, id int64) {
+func (c *Canvas) tagIndexAdd(tag string, id ItemID) {
 	m := c.tagIndex[tag]
 	if m == nil {
-		m = make(map[int64]*itemEntry)
+		m = make(map[ItemID]*itemEntry)
 		c.tagIndex[tag] = m
 	}
 	m[id] = c.idMap[id]
 }
 
 // tagIndexRemove unregisters item id from tag in the tag index.
-func (c *Canvas) tagIndexRemove(tag string, id int64) {
+func (c *Canvas) tagIndexRemove(tag string, id ItemID) {
 	if m := c.tagIndex[tag]; m != nil {
 		delete(m, id)
 		if len(m) == 0 {
@@ -570,37 +570,37 @@ func (c *Canvas) tagIndexRemove(tag string, id int64) {
 }
 
 // CreateRectangle creates a rectangle item.
-func (c *Canvas) CreateRectangle(x1, y1, x2, y2 float64, opts ...ItemOption) int64 {
+func (c *Canvas) CreateRectangle(x1, y1, x2, y2 float64, opts ...ItemOption) ItemID {
 	item := newRectOvalItem("rectangle", x1, y1, x2, y2, c)
 	return c.createItem(item, opts)
 }
 
 // CreateOval creates an oval item.
-func (c *Canvas) CreateOval(x1, y1, x2, y2 float64, opts ...ItemOption) int64 {
+func (c *Canvas) CreateOval(x1, y1, x2, y2 float64, opts ...ItemOption) ItemID {
 	item := newRectOvalItem("oval", x1, y1, x2, y2, c)
 	return c.createItem(item, opts)
 }
 
 // CreateLine creates a line item.
-func (c *Canvas) CreateLine(coords []float64, opts ...ItemOption) int64 {
+func (c *Canvas) CreateLine(coords []float64, opts ...ItemOption) ItemID {
 	item := newLineItem(coords, c)
 	return c.createItem(item, opts)
 }
 
 // CreatePolygon creates a polygon item.
-func (c *Canvas) CreatePolygon(coords []float64, opts ...ItemOption) int64 {
+func (c *Canvas) CreatePolygon(coords []float64, opts ...ItemOption) ItemID {
 	item := newPolygonItem(coords, c)
 	return c.createItem(item, opts)
 }
 
 // CreateArc creates an arc item.
-func (c *Canvas) CreateArc(x1, y1, x2, y2 float64, opts ...ItemOption) int64 {
+func (c *Canvas) CreateArc(x1, y1, x2, y2 float64, opts ...ItemOption) ItemID {
 	item := newArcItem(x1, y1, x2, y2, c)
 	return c.createItem(item, opts)
 }
 
 // CreateText creates a text item.
-func (c *Canvas) CreateText(x, y float64, opts ...ItemOption) int64 {
+func (c *Canvas) CreateText(x, y float64, opts ...ItemOption) ItemID {
 	item := newTextItem(x, y, c)
 	return c.createItem(item, opts)
 }
@@ -608,7 +608,7 @@ func (c *Canvas) CreateText(x, y float64, opts ...ItemOption) int64 {
 // CreateImage creates an image item.
 // CreateWindow embeds a child window at canvas position (x, y).
 // The window must be a child of the canvas window (created with canvas as parent).
-func (c *Canvas) CreateWindow(x, y float64, w *window.Window, opts ...ItemOption) int64 {
+func (c *Canvas) CreateWindow(x, y float64, w *window.Window, opts ...ItemOption) ItemID {
 	item := newWindowItem(x, y, w, c)
 	if c.configureNew(item, opts) {
 		item.updateBBox()
@@ -617,12 +617,12 @@ func (c *Canvas) CreateWindow(x, y float64, w *window.Window, opts ...ItemOption
 }
 
 // CreateBitmap creates a 1-bit XBM bitmap item at (x, y).
-func (c *Canvas) CreateBitmap(x, y float64, xbm *XBMData, opts ...ItemOption) int64 {
+func (c *Canvas) CreateBitmap(x, y float64, xbm *XBMData, opts ...ItemOption) ItemID {
 	item := newBitmapItem(x, y, xbm, c)
 	return c.createItem(item, opts)
 }
 
-func (c *Canvas) CreateImage(x, y float64, opts ...ItemOption) int64 {
+func (c *Canvas) CreateImage(x, y float64, opts ...ItemOption) ItemID {
 	item := newImageItem(x, y, c)
 	return c.createItem(item, opts)
 }
@@ -630,7 +630,8 @@ func (c *Canvas) CreateImage(x, y float64, opts ...ItemOption) int64 {
 // --- Item manipulation ---
 
 // Delete removes all items matching tagOrID.
-func (c *Canvas) Delete(tagOrID string) {
+func (c *Canvas) Delete[S Selector](sel S) {
+	tagOrID := selectorString(sel)
 	entries := c.resolve(tagOrID)
 	if len(entries) == 0 {
 		return
@@ -673,7 +674,7 @@ func (c *Canvas) Delete(tagOrID string) {
 }
 
 // CurrentItem returns the ID of the item under the mouse cursor, or -1 if none.
-func (c *Canvas) CurrentItem() int64 {
+func (c *Canvas) CurrentItem() ItemID {
 	if c.currentItem == nil {
 		return -1
 	}
@@ -681,7 +682,8 @@ func (c *Canvas) CurrentItem() int64 {
 }
 
 // Move translates all items matching tagOrID by (dx, dy).
-func (c *Canvas) Move(tagOrID string, dx, dy float64) {
+func (c *Canvas) Move[S Selector](sel S, dx, dy float64) {
+	tagOrID := selectorString(sel)
 	for _, entry := range c.resolve(tagOrID) {
 		c.redrawItems(entry)
 		entry.item.Translate(dx, dy)
@@ -690,7 +692,8 @@ func (c *Canvas) Move(tagOrID string, dx, dy float64) {
 }
 
 // Scale scales all items matching tagOrID about (ox, oy).
-func (c *Canvas) Scale(tagOrID string, ox, oy, sx, sy float64) {
+func (c *Canvas) Scale[S Selector](sel S, ox, oy, sx, sy float64) {
+	tagOrID := selectorString(sel)
 	for _, entry := range c.resolve(tagOrID) {
 		c.redrawItems(entry)
 		entry.item.Scale(ox, oy, sx, sy)
@@ -699,7 +702,8 @@ func (c *Canvas) Scale(tagOrID string, ox, oy, sx, sy float64) {
 }
 
 // Raise moves items matching tagOrID to the top of the display list.
-func (c *Canvas) Raise(tagOrID string) {
+func (c *Canvas) Raise[S Selector](sel S) {
+	tagOrID := selectorString(sel)
 	c.compact()
 	entries := c.resolve(tagOrID)
 	if len(entries) == 0 {
@@ -720,7 +724,8 @@ func (c *Canvas) Raise(tagOrID string) {
 }
 
 // Lower moves items matching tagOrID to the bottom of the display list.
-func (c *Canvas) Lower(tagOrID string) {
+func (c *Canvas) Lower[S Selector](sel S) {
+	tagOrID := selectorString(sel)
 	c.compact()
 	entries := c.resolve(tagOrID)
 	if len(entries) == 0 {
@@ -741,7 +746,8 @@ func (c *Canvas) Lower(tagOrID string) {
 }
 
 // AddTag adds a tag to all items matching tagOrID.
-func (c *Canvas) AddTag(newTag, tagOrID string) {
+func (c *Canvas) AddTag[S Selector](newTag string, sel S) {
+	tagOrID := selectorString(sel)
 	for _, entry := range c.resolve(tagOrID) {
 		if base := itemBase(entry.item); base != nil {
 			base.AddTag(newTag)
@@ -750,7 +756,8 @@ func (c *Canvas) AddTag(newTag, tagOrID string) {
 }
 
 // DeleteTag removes a tag from all items matching tagOrID.
-func (c *Canvas) DeleteTag(tag, tagOrID string) {
+func (c *Canvas) DeleteTag[S Selector](tag string, sel S) {
+	tagOrID := selectorString(sel)
 	for _, entry := range c.resolve(tagOrID) {
 		if base := itemBase(entry.item); base != nil {
 			base.RemoveTag(tag)
@@ -759,7 +766,8 @@ func (c *Canvas) DeleteTag(tag, tagOrID string) {
 }
 
 // ItemConfigure configures items matching tagOrID.
-func (c *Canvas) ItemConfigure(tagOrID string, opts ...ItemOption) error {
+func (c *Canvas) ItemConfigure[S Selector](sel S, opts ...ItemOption) error {
+	tagOrID := selectorString(sel)
 	for _, entry := range c.resolve(tagOrID) {
 		c.redrawItems(entry)
 		err := entry.item.Configure(opts)
@@ -772,7 +780,8 @@ func (c *Canvas) ItemConfigure(tagOrID string, opts ...ItemOption) error {
 }
 
 // ItemCoords returns coordinates of the first item matching tagOrID.
-func (c *Canvas) ItemCoords(tagOrID string) []float64 {
+func (c *Canvas) ItemCoords[S Selector](sel S) []float64 {
+	tagOrID := selectorString(sel)
 	entries := c.resolve(tagOrID)
 	if len(entries) == 0 {
 		return nil
@@ -781,7 +790,8 @@ func (c *Canvas) ItemCoords(tagOrID string) []float64 {
 }
 
 // SetItemCoords sets coordinates on the first item matching tagOrID.
-func (c *Canvas) SetItemCoords(tagOrID string, coords []float64) error {
+func (c *Canvas) SetItemCoords[S Selector](sel S, coords []float64) error {
+	tagOrID := selectorString(sel)
 	entries := c.resolve(tagOrID)
 	if len(entries) == 0 {
 		return nil
@@ -794,9 +804,10 @@ func (c *Canvas) SetItemCoords(tagOrID string, coords []float64) error {
 
 // FindWithTag returns item IDs matching a tag-or-ID string.
 // Supports: numeric IDs, "all", "current", and tag name strings.
-func (c *Canvas) FindWithTag(tagOrID string) []int64 {
+func (c *Canvas) FindWithTag[S Selector](sel S) []ItemID {
+	tagOrID := selectorString(sel)
 	entries := c.resolve(tagOrID)
-	ids := make([]int64, len(entries))
+	ids := make([]ItemID, len(entries))
 	for i, e := range entries {
 		ids[i] = e.id
 	}
@@ -806,11 +817,11 @@ func (c *Canvas) FindWithTag(tagOrID string) []int64 {
 // Find returns item IDs that satisfy the given search mode.
 // Supported modes: "all", "closest" (args: x, y), "enclosed" (args: x1,y1,x2,y2),
 // "overlapping" (args: x1,y1,x2,y2).
-func (c *Canvas) Find(mode string, args ...float64) []int64 {
+func (c *Canvas) Find(mode string, args ...float64) []ItemID {
 	c.compact()
 	switch mode {
 	case "all":
-		ids := make([]int64, len(c.items))
+		ids := make([]ItemID, len(c.items))
 		for i, e := range c.items {
 			ids[i] = e.id
 		}
@@ -825,14 +836,14 @@ func (c *Canvas) Find(mode string, args ...float64) []int64 {
 		}
 		entry := c.findClosest(args[0], args[1], halo)
 		if entry != nil {
-			return []int64{entry.id}
+			return []ItemID{entry.id}
 		}
 		return nil
 	case "enclosed":
 		if len(args) < 4 {
 			return nil
 		}
-		var ids []int64
+		var ids []ItemID
 		for _, e := range c.items {
 			if e.item.AreaOverlap(args[0], args[1], args[2], args[3]) == 1 {
 				ids = append(ids, e.id)
@@ -843,7 +854,7 @@ func (c *Canvas) Find(mode string, args ...float64) []int64 {
 		if len(args) < 4 {
 			return nil
 		}
-		var ids []int64
+		var ids []ItemID
 		for _, e := range c.items {
 			if e.item.AreaOverlap(args[0], args[1], args[2], args[3]) >= 0 {
 				ids = append(ids, e.id)
@@ -855,7 +866,8 @@ func (c *Canvas) Find(mode string, args ...float64) []int64 {
 }
 
 // BBox returns the bounding box of the first item matching tagOrID.
-func (c *Canvas) BBox(tagOrID string) (x1, y1, x2, y2 int) {
+func (c *Canvas) BBox[S Selector](sel S) (x1, y1, x2, y2 int) {
+	tagOrID := selectorString(sel)
 	// Tk's "bbox" is the union over all matching items.
 	found := false
 	for _, e := range c.resolve(tagOrID) {
@@ -875,7 +887,8 @@ func (c *Canvas) BBox(tagOrID string) (x1, y1, x2, y2 int) {
 }
 
 // GetTags returns the tags of the first item matching tagOrID.
-func (c *Canvas) GetTags(tagOrID string) []string {
+func (c *Canvas) GetTags[S Selector](sel S) []string {
+	tagOrID := selectorString(sel)
 	entries := c.resolve(tagOrID)
 	if len(entries) == 0 {
 		return nil
@@ -904,7 +917,8 @@ func (c *Canvas) DisplayServer() platform.DisplayServer {
 }
 
 // Focus sets keyboard focus to the given text item. Pass "" to clear focus.
-func (c *Canvas) Focus(tagOrID string) {
+func (c *Canvas) Focus[S Selector](sel S) {
+	tagOrID := selectorString(sel)
 	// Clear previous focus.
 	if c.focusItemID != 0 {
 		if prev, ok := c.idMap[c.focusItemID]; ok {
@@ -934,7 +948,8 @@ func (c *Canvas) Focus(tagOrID string) {
 
 // ICursor sets the insertion cursor position in a text item.
 // index can be a number or "end".
-func (c *Canvas) ICursor(tagOrID string, index string) {
+func (c *Canvas) ICursor[S Selector](sel S, index string) {
+	tagOrID := selectorString(sel)
 	entries := c.resolve(tagOrID)
 	for _, e := range entries {
 		if ti, ok := e.item.(*TextItem); ok {
@@ -958,7 +973,8 @@ func (c *Canvas) ICursor(tagOrID string, index string) {
 
 // Insert inserts text into a text item at the given index.
 // index can be a number or "end".
-func (c *Canvas) Insert(tagOrID string, index string, text string) {
+func (c *Canvas) Insert[S Selector](sel S, index string, text string) {
+	tagOrID := selectorString(sel)
 	entries := c.resolve(tagOrID)
 	for _, e := range entries {
 		if ti, ok := e.item.(*TextItem); ok {
@@ -982,7 +998,8 @@ func (c *Canvas) Insert(tagOrID string, index string, text string) {
 
 // Dchars deletes characters from a text item between first and last indices.
 // Supports numeric indices and "insert"/"end" keywords; "insert-1" subtracts 1.
-func (c *Canvas) Dchars(tagOrID string, first string, last string) {
+func (c *Canvas) Dchars[S Selector](sel S, first string, last string) {
+	tagOrID := selectorString(sel)
 	entries := c.resolve(tagOrID)
 	for _, e := range entries {
 		if ti, ok := e.item.(*TextItem); ok {

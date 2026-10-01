@@ -2,7 +2,6 @@ package canvas
 
 import (
 	"slices"
-	"strconv"
 	"testing"
 
 	"github.com/msorc/takigo/event"
@@ -11,14 +10,14 @@ import (
 func TestItemConfigureTagsUpdatesIndex(t *testing.T) {
 	c := newBenchCanvas()
 	id := c.createItem(newRectOvalItem("rectangle", 0, 0, 10, 10, c), []ItemOption{Tags("old")})
-	sid := strconv.FormatInt(id, 10)
+	sid := id
 	if err := c.ItemConfigure(sid, Tags("new")); err != nil {
 		t.Fatal(err)
 	}
 	if got := c.FindWithTag("old"); len(got) != 0 {
 		t.Errorf("FindWithTag(old) = %v after retagging, want none", got)
 	}
-	if got := c.FindWithTag("new"); !slices.Equal(got, []int64{id}) {
+	if got := c.FindWithTag("new"); !slices.Equal(got, []ItemID{id}) {
 		t.Errorf("FindWithTag(new) = %v, want [%d]", got, id)
 	}
 }
@@ -26,7 +25,7 @@ func TestItemConfigureTagsUpdatesIndex(t *testing.T) {
 func TestDeleteDropsItemBindingsAndFocus(t *testing.T) {
 	c := newBenchCanvas()
 	id := benchScene(c, 1)[0]
-	sid := strconv.FormatInt(id, 10)
+	sid := id
 	c.BindItem(sid, event.ButtonPressMask, func(*event.Event) {})
 	c.focusItemID = id
 	c.Delete(sid)
@@ -97,10 +96,10 @@ func TestDeleteKeepsDisplayOrder(t *testing.T) {
 	c := newBenchCanvas()
 	ids := benchScene(c, 10)
 	for _, i := range []int{1, 4, 5, 9} {
-		c.Delete(strconv.FormatInt(ids[i], 10))
+		c.Delete(ids[i])
 	}
-	c.Raise(strconv.FormatInt(ids[0], 10))
-	want := []int64{ids[2], ids[3], ids[6], ids[7], ids[8], ids[0]}
+	c.Raise(ids[0])
+	want := []ItemID{ids[2], ids[3], ids[6], ids[7], ids[8], ids[0]}
 	if got := c.FindWithTag("all"); !slices.Equal(got, want) {
 		t.Errorf("display list after deletes and a raise = %v, want %v", got, want)
 	}

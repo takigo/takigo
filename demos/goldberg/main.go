@@ -224,7 +224,7 @@ func (g *goldberg) anchor(tag, where string) (float64, float64) {
 
 // sine creates a sine-wave line from (x0,y0) to (x1,y1) with given amplitude
 // and frequency (wavelength). Returns the canvas item ID.
-func (g *goldberg) sine(x0, y0, x1, y1, amp, freq float64, opts ...canvas.ItemOption) int64 {
+func (g *goldberg) sine(x0, y0, x1, y1, amp, freq float64, opts ...canvas.ItemOption) canvas.ItemID {
 	step := 2.0
 	var xy []float64
 	if y0 == y1 { // Horizontal
@@ -304,7 +304,7 @@ func roundPoly2(x0, y0, x1, y1, x2, y2, radius float64) []float64 {
 
 // roundPoly creates a polygon with rounded corners. xy is a flat coordinate
 // list, radii has one radius per vertex. Returns the canvas polygon item ID.
-func (g *goldberg) roundPoly(xy []float64, radii []float64, opts ...canvas.ItemOption) int64 {
+func (g *goldberg) roundPoly(xy []float64, radii []float64, opts ...canvas.ItemOption) canvas.ItemID {
 	n := len(xy) / 2 // number of vertices
 	if n < 3 || len(radii) != n {
 		return 0

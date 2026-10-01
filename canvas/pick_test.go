@@ -10,7 +10,7 @@ import (
 
 // pickScene returns a canvas with filled rectangles "a" at (0,0)-(40,30) and
 // "b" at (100,0)-(140,30), and a log of the item events each receives.
-func pickScene(t *testing.T) (*Canvas, int64, int64, *[]string) {
+func pickScene(t *testing.T) (*Canvas, ItemID, ItemID, *[]string) {
 	t.Helper()
 	c := newBenchCanvas()
 	a := c.createItem(newRectOvalItem("rectangle", 0, 0, 40, 30, c), []ItemOption{Tags("a"), fillPixel(1)})
@@ -45,7 +45,7 @@ func TestPickHoldsCurrentItemWhileButtonDown(t *testing.T) {
 
 	steps := []struct {
 		ev      *event.Event
-		current int64
+		current ItemID
 		log     []string
 	}{
 		{motion(20, 15, 0), a, []string{"enter a", "motion a"}},

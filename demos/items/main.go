@@ -129,13 +129,13 @@ func main() {
 		outline string
 		isText  bool
 	}
-	origColors := map[string]itemColors{}
+	origColors := map[canvas.ItemID]itemColors{}
 
-	record := func(id int64, fill, outline string) {
-		origColors[fmt.Sprintf("%d", id)] = itemColors{fill: fill, outline: outline}
+	record := func(id canvas.ItemID, fill, outline string) {
+		origColors[id] = itemColors{fill: fill, outline: outline}
 	}
-	recordText := func(id int64, textColor string) {
-		origColors[fmt.Sprintf("%d", id)] = itemColors{fill: textColor, isText: true}
+	recordText := func(id canvas.ItemID, textColor string) {
+		origColors[id] = itemColors{fill: textColor, isText: true}
 	}
 
 	// ---- Section 1: Lines (col 0, row 0) ----
@@ -372,19 +372,19 @@ func main() {
 	c.CreateText(p(21), p(17.9), canvas.TextOpt("Button:"), canvas.AnchorOpt(option.AnchorSW))
 
 	// Embedded button.
-	var btnPressTextID int64
+	var btnPressTextID canvas.ItemID
 	btn := button.New(c, "win_button",
 		button.Text("Press Me"),
 		button.Command(func() {
 			if btnPressTextID != 0 {
-				c.Delete(fmt.Sprintf("%d", btnPressTextID))
+				c.Delete(btnPressTextID)
 			}
 			btnPressTextID = c.CreateText(p(25), p(18.1),
 				canvas.TextOpt("Oooohhh!!"),
 				canvas.TextColor(red),
 				canvas.AnchorOpt(option.AnchorN))
 			app.After(500, func() {
-				c.Delete(fmt.Sprintf("%d", btnPressTextID))
+				c.Delete(btnPressTextID)
 				btnPressTextID = 0
 			})
 		}),
@@ -414,20 +414,20 @@ func main() {
 
 	// ---- Event bindings ----
 
-	var highlightedID string
+	var highlightedID canvas.ItemID
 
 	c.BindItem("item", event.EnterMask, func(ev *event.Event) {
-		highlightedID = ""
+		highlightedID = 0
 		ids := c.FindWithTag("current")
 		if len(ids) == 0 {
 			return
 		}
-		idStr := fmt.Sprintf("%d", ids[0])
-		colors, ok := origColors[idStr]
+		id := ids[0]
+		colors, ok := origColors[id]
 		if !ok {
 			return
 		}
-		highlightedID = idStr
+		highlightedID = id
 		if colors.isText {
 			c.ItemConfigure("current", canvas.TextColor("#5CACE5")) // SteelBlue2
 		} else if colors.fill != "" {
@@ -438,7 +438,7 @@ func main() {
 	})
 
 	c.BindItem("item", event.LeaveMask, func(ev *event.Event) {
-		if highlightedID == "" {
+		if highlightedID == 0 {
 			return
 		}
 		colors, ok := origColors[highlightedID]
@@ -455,7 +455,7 @@ func main() {
 				c.ItemConfigure(highlightedID, canvas.OutlineColor(colors.outline))
 			}
 		}
-		highlightedID = ""
+		highlightedID = 0
 	})
 
 	var lastX, lastY int

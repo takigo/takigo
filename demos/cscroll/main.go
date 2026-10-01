@@ -5,7 +5,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"strconv"
 
 	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/canvas"
@@ -143,7 +142,7 @@ func main() {
 				canvas.Tags("text"))
 
 			// Bind Enter: highlight rectangle with LightSeaGreen.
-			rectIDStr := strconv.FormatInt(rectID, 10)
+			rectIDStr := rectID
 			c.BindItem(rectIDStr, event.EnterMask, func(ev *event.Event) {
 				oldFill = bg
 				c.ItemConfigure(rectIDStr, canvas.FillColor("LightSeaGreen"))
@@ -160,7 +159,7 @@ func main() {
 			})
 
 			// Also bind the text item so clicking on text works too.
-			textIDStr := strconv.FormatInt(rectID+1, 10)
+			textIDStr := rectID + 1
 			c.BindItem(textIDStr, event.ButtonPressMask, func(ev *event.Event) {
 				fmt.Printf("You buttoned at %s\n", label)
 			})

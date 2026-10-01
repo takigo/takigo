@@ -284,7 +284,7 @@ func main() {
 			plotCanvas.BindItem("point", event.EnterMask, func(ev *event.Event) {
 				id := plotCanvas.CurrentItem()
 				if id >= 0 {
-					plotCanvas.ItemConfigure(fmt.Sprintf("%d", id),
+					plotCanvas.ItemConfigure(id,
 						canvas.FillColor("red"))
 					plotCanvas.Display()
 				}
@@ -292,14 +292,14 @@ func main() {
 			plotCanvas.BindItem("point", event.LeaveMask, func(ev *event.Event) {
 				id := plotCanvas.CurrentItem()
 				if id >= 0 {
-					plotCanvas.ItemConfigure(fmt.Sprintf("%d", id),
+					plotCanvas.ItemConfigure(id,
 						canvas.FillColor("SkyBlue2"))
 					plotCanvas.Display()
 				}
 			})
 
 			// Drag support.
-			var dragID int64 = -1
+			var dragID canvas.ItemID = -1
 			var dragLastX, dragLastY int
 			plotCanvas.BindItem("point", event.ButtonPressMask, func(ev *event.Event) {
 				if ev.Button == 1 {
@@ -317,7 +317,7 @@ func main() {
 				}
 				dx := ev.X - dragLastX
 				dy := ev.Y - dragLastY
-				plotCanvas.Move(fmt.Sprintf("%d", dragID), float64(dx), float64(dy))
+				plotCanvas.Move(dragID, float64(dx), float64(dy))
 				dragLastX = ev.X
 				dragLastY = ev.Y
 				plotCanvas.Display()

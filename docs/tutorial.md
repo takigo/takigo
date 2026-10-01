@@ -1845,7 +1845,7 @@ btn := button.New(c, "b", button.Text("I'm a widget"))
 c.CreateWindow(450, 200, btn.Window())
 ```
 
-Every `Create…` returns an `int64` item ID. Common item options:
+Every `Create…` returns a `canvas.ItemID`. Methods that act on items take either an ID or a string: a tag, `"all"` or `"current"`. Common item options:
 
 | Option | Applies to |
 |--------|-----------|
@@ -1960,7 +1960,7 @@ func main() {
 	// Pressing on any item tagged "shape" picks it up (button 1) or
 	// deletes it (button 3). The drag itself is handled below on the canvas
 	// window, together with drawing, so remember which item was picked up.
-	dragID := int64(-1)
+	dragID := canvas.ItemID(-1)
 	var lastX, lastY float64
 	c.BindItem("shape", event.ButtonPressMask, func(ev *event.Event) {
 		switch ev.Button {
@@ -1975,7 +1975,7 @@ func main() {
 	// Everything else is handled on the canvas window itself: dragging,
 	// and drawing a new box when the press was on empty space.
 	var startX, startY float64
-	rubber := int64(-1)
+	rubber := canvas.ItemID(-1)
 	n := 0
 	app.Dispatcher().Bind(c.Window().PlatformID,
 		event.ButtonPressMask|event.MotionMask|event.ButtonReleaseMask,

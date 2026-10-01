@@ -120,7 +120,7 @@ func main() {
 	cc := ttk.NewCheckbutton(tf, "cc", ttk.CheckbuttonText("Repeat"),
 		ttk.CheckbuttonVar(continuous))
 
-	var squares [64]int64
+	var squares [64]canvas.ItemID
 	var visited []int
 	var initial int
 	var b1 *ttk.Button

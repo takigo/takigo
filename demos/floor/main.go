@@ -6,7 +6,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"strconv"
 
 	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/canvas"
@@ -24,8 +23,8 @@ import (
 
 // Global state.
 var (
-	floorLabels map[int64]string
-	floorItems  map[string]int64
+	floorLabels map[canvas.ItemID]string
+	floorItems  map[string]canvas.ItemID
 	activeFloor int
 )
 
@@ -45,7 +44,7 @@ var clr = struct {
 }
 
 // Helper functions to reduce verbosity.
-func poly(c *canvas.Canvas, coords []float64, fill, outline string, tags ...string) int64 {
+func poly(c *canvas.Canvas, coords []float64, fill, outline string, tags ...string) canvas.ItemID {
 	opts := []canvas.ItemOption{canvas.Tags(tags...)}
 	if fill == "" {
 		opts = append(opts, canvas.FillNone())
@@ -150,20 +149,20 @@ func main() {
 	pack.Pack(contentFrame, pack.Expand(true), pack.FillOpt(pack.FillBoth), pack.PadX(1), pack.PadY(1))
 
 	// Entry widget for room display/input.
-	var highlightedID int64
+	var highlightedID canvas.ItemID
 
 	// setHighlight changes which room is highlighted. Pass "" to clear.
 	setHighlight := func(roomName string) {
 		// Unhighlight previous room.
 		if highlightedID != 0 {
-			c.ItemConfigure(strconv.FormatInt(highlightedID, 10), canvas.FillNone())
+			c.ItemConfigure(highlightedID, canvas.FillNone())
 			highlightedID = 0
 		}
 		// Highlight new room.
 		if roomName != "" {
 			if itemID, ok := floorItems[roomName]; ok {
 				highlightedID = itemID
-				c.ItemConfigure(strconv.FormatInt(itemID, 10), canvas.FillColor(clr.active))
+				c.ItemConfigure(itemID, canvas.FillColor(clr.active))
 			}
 		}
 	}
@@ -194,8 +193,8 @@ func main() {
 		c.CreateRectangle(0, 100, 1, 101,
 			canvas.FillNone(), canvas.OutlineColor(""), canvas.Tags("marker"))
 
-		floorLabels = map[int64]string{}
-		floorItems = map[string]int64{}
+		floorLabels = map[canvas.ItemID]string{}
+		floorItems = map[string]canvas.ItemID{}
 		switch active {
 		case 1:
 			fg1(c, clr.offices)
