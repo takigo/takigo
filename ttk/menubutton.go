@@ -12,6 +12,7 @@ import (
 // Direction specifies where the menu pops up relative to the menubutton.
 type Direction = option.Direction
 
+// The values of -direction.
 const (
 	DirBelow = option.DirBelow
 	DirAbove = option.DirAbove

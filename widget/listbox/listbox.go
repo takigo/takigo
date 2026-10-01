@@ -89,10 +89,12 @@ func JustifyOpt(j option.Justify) ListboxOption {
 	return func(lb *Listbox) { lb.Justify = j }
 }
 
+// Background sets the background colour.
 func Background[C color.Spec](name C) ListboxOption {
 	return func(lb *Listbox) { lb.SetBackgroundColor(name) }
 }
 
+// Foreground sets the text colour.
 func Foreground[C color.Spec](name C) ListboxOption {
 	return func(lb *Listbox) { lb.SetForegroundColor(name) }
 }

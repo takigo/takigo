@@ -21,6 +21,7 @@ import (
 // Direction specifies where the menu is posted relative to the button.
 type Direction = option.Direction
 
+// The values of -direction.
 const (
 	Below = option.DirBelow
 	Above = option.DirAbove
@@ -59,9 +60,13 @@ type MenubuttonOption func(*Menubutton)
 func Text(s string) MenubuttonOption            { return func(mb *Menubutton) { mb.Text = s } }
 func MenuOpt(m *menu.Menu) MenubuttonOption     { return func(mb *Menubutton) { mb.Menu = m } }
 func DirectionOpt(d Direction) MenubuttonOption { return func(mb *Menubutton) { mb.Direction = d } }
+
+// PadX sets the horizontal padding around the text.
 func PadX[L screenunit.Length](p L) MenubuttonOption {
 	return func(mb *Menubutton) { mb.PadX = screenunit.ToPixels(p) }
 }
+
+// PadY sets the vertical padding around the text.
 func PadY[L screenunit.Length](p L) MenubuttonOption {
 	return func(mb *Menubutton) { mb.PadY = screenunit.ToPixels(p) }
 }
@@ -72,10 +77,12 @@ func OptionMenuOpt(on bool) MenubuttonOption  { return func(mb *Menubutton) { mb
 // Relief sets -relief.
 func Relief(r option.Relief) MenubuttonOption { return func(mb *Menubutton) { mb.Relief = r } }
 
+// Background sets the background colour.
 func Background[C color.Spec](name C) MenubuttonOption {
 	return func(mb *Menubutton) { mb.SetBackgroundColor(name) }
 }
 
+// Foreground sets the text colour.
 func Foreground[C color.Spec](name C) MenubuttonOption {
 	return func(mb *Menubutton) { mb.SetForegroundColor(name) }
 }

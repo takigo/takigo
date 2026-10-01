@@ -102,6 +102,7 @@ func ButtonBackground[C color.Spec](name C) SpinboxOption {
 	}
 }
 
+// Background sets the background colour.
 func Background[C color.Spec](name C) SpinboxOption {
 	return func(s *Spinbox) { s.SetBackgroundColor(name) }
 }

@@ -98,6 +98,7 @@ func (pw *PanedWindow) propagateReqSize() {
 // Orient specifies the paned window orientation.
 type Orient = option.Orient
 
+// The values of -orient.
 const (
 	Horizontal = option.Horizontal // panes side by side
 	Vertical   = option.Vertical   // panes stacked
@@ -192,6 +193,7 @@ func HandleSizeOpt(s int) PanedWindowOption {
 	return func(pw *PanedWindow) { pw.HandleSize = s }
 }
 
+// Background sets the background colour.
 func Background[C color.Spec](name C) PanedWindowOption {
 	return func(pw *PanedWindow) { pw.SetBackgroundColor(name) }
 }

@@ -100,6 +100,7 @@ func RelievePadding(p Padding, relief option.Relief, n int) Padding {
 // Side specifies which side to pack from.
 type Side = option.Side
 
+// The sides a layout packs an element against.
 const (
 	SideTop    = option.SideTop
 	SideBottom = option.SideBottom
@@ -110,6 +111,7 @@ const (
 // Sticky flags control how content fills its parcel.
 type Sticky = option.Sticky
 
+// The edges an element sticks to within its parcel.
 const (
 	StickW   = option.StickW
 	StickE   = option.StickE

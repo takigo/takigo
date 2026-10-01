@@ -216,7 +216,9 @@ func (c *Conn) read() (*message, error) {
 
 	// The header fields array starts at offset 12 of the message, which
 	// keeps the alignment of its structs: decode it in place.
-	d := decoder{buf: append(head, rest[:fieldsLen]...), pos: 12, order: order}
+	headAndFields := make([]byte, 0, len(head)+int(fieldsLen))
+	headAndFields = append(append(headAndFields, head...), rest[:fieldsLen]...)
+	d := decoder{buf: headAndFields, pos: 12, order: order}
 	fields, err := d.value("a(yv)")
 	if err != nil {
 		return nil, err

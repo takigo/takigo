@@ -25,6 +25,31 @@ linters:
     - unparam
     - unused
 
+  settings:
+    # The Tk procedures this code ports are long; the limits flag the
+    # outliers, not every faithful port.
+    funlen:
+      lines: 200
+      statements: 120
+    gocyclo:
+      min-complexity: 50
+    goconst:
+      min-occurrences: 5
+    gosec:
+      excludes:
+        - G115 # integer conversions: pixel, colour and wire-format arithmetic
+        - G104 # unhandled errors: errcheck's job, with its exclusions below
+  exclusions:
+    rules:
+      # Layout and configuration calls return an error for the caller who
+      # wants it; like fmt.Println, most callers have nothing to do with it.
+      - linters: [errcheck]
+        text: 'Error return value of `[^`]*\.(Close|Configure|Pack|Grid|Bind|BindWindow|Unbind|UnbindWindow|UseTheme|Insert|Delete|See|MarkSet|TagAdd|TagRemove|WindowCreate|WindowCreatePad|ImageCreate|ItemConfigure|SetItemCoords)` is not checked'
+      - path: _test\.go
+        linters: [goconst, funlen, unparam, prealloc, dupl, gosec]
+      - path: ^(demos|cmd)/
+        linters: [goconst, funlen, gocyclo, unparam, dupl, gosec]
+
 formatters:
   enable:
     - gofmt

@@ -18,6 +18,7 @@ import (
 // Orient specifies the scale orientation.
 type Orient = option.Orient
 
+// The values of -orient.
 const (
 	Horizontal = option.Horizontal
 	Vertical   = option.Vertical
@@ -67,6 +68,7 @@ func TickIntervalOpt(v float64) ScaleOption   { return func(s *Scale) { s.TickIn
 func LengthOpt(n int) ScaleOption             { return func(s *Scale) { s.Length = n } }
 func CommandOpt(fn func(float64)) ScaleOption { return func(s *Scale) { s.Command = fn } }
 
+// Background sets the background colour.
 func Background[C color.Spec](name C) ScaleOption {
 	return func(s *Scale) { s.SetBackgroundColor(name) }
 }

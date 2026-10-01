@@ -15,6 +15,7 @@ import (
 // Orient specifies the scrollbar orientation.
 type Orient = option.Orient
 
+// The values of -orient.
 const (
 	Vertical   = option.Vertical
 	Horizontal = option.Horizontal

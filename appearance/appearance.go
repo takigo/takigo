@@ -11,6 +11,7 @@ import (
 // Mode is the look the desktop asks for.
 type Mode int
 
+// The appearances.
 const (
 	Light Mode = iota
 	Dark

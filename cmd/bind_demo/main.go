@@ -62,17 +62,17 @@ func main() {
 	eng.RegisterWindow(btn2.Window(), "Button")
 
 	// --- Per-widget binding ---
-	eng.BindWindow(btn1, "<Enter>", func(ed *bind.EventData) bool {
+	eng.BindWindow(btn1, "<Enter>", func(*bind.EventData) bool {
 		setStatus("Mouse entered Button 1")
 		return false
 	})
-	eng.BindWindow(btn1, "<Leave>", func(ed *bind.EventData) bool {
+	eng.BindWindow(btn1, "<Leave>", func(*bind.EventData) bool {
 		setStatus("Mouse left Button 1")
 		return false
 	})
 
 	// --- Class binding ---
-	eng.Bind("Button", "<Button-3>", func(ed *bind.EventData) bool {
+	eng.Bind("Button", "<Button-3>", func(*bind.EventData) bool {
 		setStatus("Right-click on any Button (class binding)")
 		return false
 	})
@@ -84,32 +84,32 @@ func main() {
 	})
 
 	// --- Double-click binding ---
-	eng.Bind("Button", "<Double-Button-1>", func(ed *bind.EventData) bool {
+	eng.Bind("Button", "<Double-Button-1>", func(*bind.EventData) bool {
 		setStatus("Double-click on a Button!")
 		return true // break: don't also fire single-click class binding
 	})
 
 	// --- Virtual event binding ---
-	eng.Bind("all", "<<Copy>>", func(ed *bind.EventData) bool {
+	eng.Bind("all", "<<Copy>>", func(*bind.EventData) bool {
 		setStatus("Virtual event: <<Copy>> (Ctrl+C)")
 		return false
 	})
-	eng.Bind("all", "<<Paste>>", func(ed *bind.EventData) bool {
+	eng.Bind("all", "<<Paste>>", func(*bind.EventData) bool {
 		setStatus("Virtual event: <<Paste>> (Ctrl+V)")
 		return false
 	})
-	eng.Bind("all", "<<SelectAll>>", func(ed *bind.EventData) bool {
+	eng.Bind("all", "<<SelectAll>>", func(*bind.EventData) bool {
 		setStatus("Virtual event: <<SelectAll>> (Ctrl+A)")
 		return false
 	})
 
 	// --- Key binding with break ---
-	eng.Bind(root.PathName, "<Key-q>", func(ed *bind.EventData) bool {
+	eng.Bind(root.PathName, "<Key-q>", func(*bind.EventData) bool {
 		setStatus("'q' pressed on root — quitting...")
 		app.Quit()
 		return true
 	})
-	eng.Bind("all", "<Key-Escape>", func(ed *bind.EventData) bool {
+	eng.Bind("all", "<Key-Escape>", func(*bind.EventData) bool {
 		setStatus("Escape pressed — quitting...")
 		app.Quit()
 		return true
