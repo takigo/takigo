@@ -7,6 +7,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   linux:
     runs-on: ubuntu-latest
@@ -32,7 +36,42 @@ jobs:
         # -noreset: Xvfb otherwise resets when its last client disconnects and
         # refuses connections meanwhile, failing tests that open a new App
         # right after destroying one.
-        run: xvfb-run -a -s "-screen 0 1280x1024x24 -noreset" go test -race -short ./...
+        run: xvfb-run -a -s "-screen 0 1280x1024x24 -noreset" go test -race -short -coverprofile=coverage.out ./...
+      - name: Coverage
+        run: go tool cover -func=coverage.out | tail -n 1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage.out
+
+  lint:
+    # Reports only on lines the change touches: existing code is not
+    # lint-clean and is not to be mass-fixed.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Install X11 development packages
+        run: sudo apt-get update && sudo apt-get install -y libx11-dev libxft-dev libfontconfig1-dev
+      - uses: golangci/golangci-lint-action@v8
+        with:
+          version: latest
+          only-new-issues: true
+
+  vulncheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Install X11 development packages
+        run: sudo apt-get update && sudo apt-get install -y libx11-dev libxft-dev libfontconfig1-dev
+      - run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
 
   no-cgo:
     # Widgets, ttk and the pure-logic packages must build, and their
@@ -65,6 +104,18 @@ jobs:
       - run: go vet ./...
       - run: go fix -diff ./...
 
+  windows:
+    # Display tests skip here (no DISPLAY); this runs the display-free ones
+    # natively and proves the backend links.
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - run: go build ./...
+      - run: go test -short ./font/ ./bind/ ./event/ ./geometry/... ./screenunit/ ./color/ ./wm/ ./image/ ./bitmap/ ./window/ ./internal/nanosvg/
+
   macos:
     runs-on: macos-latest
     steps:
@@ -74,4 +125,4 @@ jobs:
           go-version-file: go.mod
       - run: go build ./...
       - run: go vet ./...
-      - run: go test -short ./...
+      - run: go test -race -short ./...

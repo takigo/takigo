@@ -1,4 +1,5 @@
 // Button event bindings, porting library/button.tcl behavior.
+
 package button
 
 import (

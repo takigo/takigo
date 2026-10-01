@@ -1,4 +1,5 @@
 // Radiobutton event bindings, porting library/button.tcl behavior.
+
 package radiobutton
 
 import (
