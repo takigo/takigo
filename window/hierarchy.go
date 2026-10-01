@@ -1,6 +1,10 @@
 package window
 
-import "strings"
+import (
+	"iter"
+	"slices"
+	"strings"
+)
 
 // AddChild adds a child window to this window's children list.
 func (w *Window) AddChild(child *Window) {
@@ -17,6 +21,24 @@ func (w *Window) RemoveChild(child *Window) {
 		}
 	}
 	child.Parent = nil
+}
+
+// Descendants iterates over every window below w, depth first, each
+// parent before its children. Windows created or destroyed during the
+// iteration may or may not be visited.
+func (w *Window) Descendants() iter.Seq[*Window] {
+	return func(yield func(*Window) bool) {
+		var walk func(*Window) bool
+		walk = func(p *Window) bool {
+			for _, c := range slices.Clone(p.Children) {
+				if !yield(c) || !walk(c) {
+					return false
+				}
+			}
+			return true
+		}
+		walk(w)
+	}
 }
 
 // Lookup returns the descendant of w with the given Tk path name

@@ -3,6 +3,7 @@
 package dialog
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/msorc/takigo/event"
@@ -48,10 +49,34 @@ type Dialog struct {
 	minHeight   int
 	result      DialogResult
 	done        chan struct{}
+	ctx         context.Context // nil unless the parent came from WithContext
 	closed      bool
 	returnBound bool
 	// defaultButton gets the focus while the dialog runs.
 	defaultButton *window.Window
+}
+
+type contextParent struct {
+	widget.Caregiver
+	ctx context.Context
+}
+
+// WithContext returns parent as a dialog parent that carries ctx: a dialog
+// opened over it closes with ResultNone (the chooser functions then report
+// "cancelled") when ctx is done.
+//
+//	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+//	defer cancel()
+//	path, ok := dialog.OpenFile(dialog.WithContext(ctx, app))
+func WithContext(ctx context.Context, parent widget.Caregiver) widget.Caregiver {
+	return contextParent{Caregiver: parent, ctx: ctx}
+}
+
+func contextOf(parent widget.Caregiver) context.Context {
+	if p, ok := parent.(contextParent); ok {
+		return p.ctx
+	}
+	return nil
 }
 
 // New creates a new dialog as a transient window over parent.
@@ -61,6 +86,7 @@ func New(parent widget.Caregiver, title string, minWidth, minHeight int) *Dialog
 	app := parent.AppContext()
 	d := &Dialog{
 		App:       app,
+		ctx:       contextOf(parent),
 		done:      make(chan struct{}),
 		parent:    parent.Window(),
 		minWidth:  minWidth,
@@ -201,7 +227,14 @@ func (d *Dialog) Run() DialogResult {
 	}()
 
 	// Run a nested event loop until the dialog is closed.
-	d.App.RunNestedLoop(d.done)
+	if d.ctx == nil {
+		d.App.RunNestedLoop(d.done)
+		return d.result
+	}
+	d.App.RunNestedLoopContext(d.ctx, d.done)
+	if d.ctx.Err() != nil {
+		d.Close(ResultNone)
+	}
 
 	return d.result
 }

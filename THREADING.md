@@ -97,7 +97,13 @@ app.RunNestedLoop(done <-chan struct{})
 
 // Closed once Quit has been called.
 app.Done() <-chan struct{}
+
+// Run that also quits when ctx is done (safe to cancel from any goroutine).
+app.RunContext(ctx) error
 ```
+
+A modal dialog opened over `dialog.WithContext(ctx, parent)` closes, reporting
+"cancelled", when `ctx` is done.
 
 A nested loop runs everything the outer loop would: events, timers, and the
 idle and `RunOnMain` callbacks that were queued behind the callback that

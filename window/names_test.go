@@ -1,6 +1,9 @@
 package window
 
-import "testing"
+import (
+	"slices"
+	"testing"
+)
 
 func TestChildNamesAreUnique(t *testing.T) {
 	d := &Display{}
@@ -56,5 +59,33 @@ func TestLookup(t *testing.T) {
 		if got := tt.from.Lookup(tt.path); got != tt.want {
 			t.Errorf("%s.Lookup(%q) = %v, want %v", tt.from.PathName, tt.path, got, tt.want)
 		}
+	}
+}
+
+func TestDescendants(t *testing.T) {
+	root := &Window{Display: &Display{}, PathName: "."}
+	a := NewChildWindow(root, "a", 0, 0, 1, 1)
+	NewChildWindow(a, "x", 0, 0, 1, 1)
+	NewChildWindow(a, "y", 0, 0, 1, 1)
+	NewChildWindow(root, "b", 0, 0, 1, 1)
+
+	var got []string
+	for w := range root.Descendants() {
+		got = append(got, w.PathName)
+	}
+	want := []string{".a", ".a.x", ".a.y", ".b"}
+	if !slices.Equal(got, want) {
+		t.Errorf("Descendants = %v, want %v", got, want)
+	}
+
+	got = got[:0]
+	for w := range root.Descendants() {
+		got = append(got, w.PathName)
+		if w.PathName == ".a.x" {
+			break
+		}
+	}
+	if !slices.Equal(got, []string{".a", ".a.x"}) {
+		t.Errorf("after break: %v", got)
 	}
 }
