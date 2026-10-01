@@ -1083,37 +1083,12 @@ through Tk's two-way protocol:
 
 - The widget reports its visible fraction to a **scroll command**:
   `func(first, last float64)`. Point it at the scrollbar's `Set`.
-- The scrollbar reports user actions to its **command** as Tk-style
-  arguments: `("moveto", fraction float64)` or
-  `("scroll", n int, "units"|"pages")`. Translate those into the widget's
-  `YViewMoveTo` / `YViewScroll` (or the `X` versions).
-
-A small adapter makes this a one-liner for any vertically scrollable widget:
-
-```go
-type yScroller interface {
-	YViewMoveTo(fraction float64)
-	YViewScroll(count int, pages bool)
-}
-
-func yScrollCommand(w yScroller) func(args ...any) {
-	return func(args ...any) {
-		if len(args) == 0 {
-			return
-		}
-		switch args[0] {
-		case "moveto":
-			if f, ok := args[1].(float64); ok {
-				w.YViewMoveTo(f)
-			}
-		case "scroll":
-			n, _ := args[1].(int)
-			unit, _ := args[2].(string)
-			w.YViewScroll(n, unit == "pages")
-		}
-	}
-}
-```
+- The scrollbar reports user actions to its **command** as a
+  `widget.ScrollRequest`: Tk's `moveto fraction` (`ScrollTo`) or
+  `scroll n units|pages` (`ScrollUnits`, `ScrollPages`).
+  `widget.ScrollY(w)` and `widget.ScrollX(w)` build a command that applies
+  the request to a scrollable widget, through its `YViewMoveTo` /
+  `YViewScroll` (or the `X` versions).
 
 Because each side needs the other, create the scrollbar first, then the
 widget, then connect the scrollbar with `Configure`:
@@ -1121,7 +1096,7 @@ widget, then connect the scrollbar with `Configure`:
 ```go
 sb := scrollbar.New(body, "sb", scrollbar.OrientOpt(scrollbar.Vertical))
 lb := listbox.New(body, "lb", listbox.YScrollCommand(sb.Set))
-sb.Configure(scrollbar.CommandOpt(yScrollCommand(lb)))
+sb.Configure(scrollbar.CommandOpt(widget.ScrollY(lb)))
 
 pack.Pack(sb, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
 pack.Pack(lb, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.Expand(true))
@@ -1143,14 +1118,13 @@ import (
 	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/bind"
 	"github.com/msorc/takigo/geometry/pack"
+	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/entry"
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
 	"github.com/msorc/takigo/widget/listbox"
 	"github.com/msorc/takigo/widget/scrollbar"
 )
-
-// yScroller and yScrollCommand as above.
 
 func main() {
 	app, err := takigo.NewApp(takigo.Title("Color browser"))
@@ -1185,7 +1159,7 @@ func main() {
 		listbox.SelectModeOpt(listbox.SelectBrowse),
 		listbox.YScrollCommand(sb.Set),
 	)
-	sb.Configure(scrollbar.CommandOpt(yScrollCommand(lb)))
+	sb.Configure(scrollbar.CommandOpt(widget.ScrollY(lb)))
 	pack.Pack(sb, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
 	pack.Pack(lb, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
@@ -1450,14 +1424,7 @@ func main() {
 		text.FontOpt("TkFixedFont"),
 		text.YScrollCommand(sb.Set),
 	)
-	sb.Configure(scrollbar.CommandOpt(func(args ...any) {
-		switch args[0] {
-		case "moveto":
-			e.tw.YViewMoveTo(args[1].(float64))
-		case "scroll":
-			e.tw.YViewScroll(args[1].(int), args[2] == "pages")
-		}
-	}))
+	sb.Configure(scrollbar.CommandOpt(widget.ScrollY(e.tw)))
 	pack.Pack(sb, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
 	pack.Pack(e.tw, pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
@@ -2534,14 +2501,7 @@ func main() {
 		ttk.TreeviewHeight(8),
 		ttk.TreeviewYScrollCommand(vsb.Set),
 	)
-	vsb.Configure(ttk.ScrollbarCommandOpt(func(args ...any) {
-		switch args[0] {
-		case "moveto":
-			tv.YViewMoveTo(args[1].(float64))
-		case "scroll":
-			tv.YViewScroll(args[1].(int), args[2] == "pages")
-		}
-	}))
+	vsb.Configure(ttk.ScrollbarCommandOpt(widget.ScrollY(tv)))
 	tv.HeadingConfigure("#0", ttk.HeadText("Body"))
 	tv.HeadingConfigure("moons", ttk.HeadText("Moons"))
 	tv.HeadingConfigure("radius", ttk.HeadText("Radius (km)"))
@@ -2843,14 +2803,7 @@ func (u *UI) build() {
 		listbox.SelectModeOpt(listbox.SelectBrowse),
 		listbox.YScrollCommand(vsb.Set),
 	)
-	vsb.Configure(ttk.ScrollbarCommandOpt(func(args ...any) {
-		switch args[0] {
-		case "moveto":
-			u.list.YViewMoveTo(args[1].(float64))
-		case "scroll":
-			u.list.YViewScroll(args[1].(int), args[2] == "pages")
-		}
-	}))
+	vsb.Configure(ttk.ScrollbarCommandOpt(widget.ScrollY(u.list)))
 	u.count = ttk.NewLabel(f, "count")
 
 	grid.Grid(u.input, grid.Row(0), grid.Column(0), grid.Sticky(grid.EW), grid.PadY(4))

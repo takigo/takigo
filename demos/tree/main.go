@@ -19,6 +19,7 @@ import (
 	"github.com/msorc/takigo/ttk"
 	_ "github.com/msorc/takigo/ttk/clamtheme"
 	_ "github.com/msorc/takigo/ttk/defaulttheme"
+	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/frame"
 )
 
@@ -111,25 +112,7 @@ func main() {
 	// Vertical scrollbar.
 	yscroll := ttk.NewScrollbar(tvFrame, "vsb",
 		ttk.ScrollbarOrientOpt(ttk.Vertical),
-		ttk.ScrollbarCommandOpt(func(args ...any) {
-			if len(args) < 1 {
-				return
-			}
-			switch args[0] {
-			case "moveto":
-				if len(args) >= 2 {
-					if f, ok := args[1].(float64); ok {
-						tv.YViewMoveTo(f)
-					}
-				}
-			case "scroll":
-				if len(args) >= 3 {
-					n, _ := args[1].(int)
-					unit, _ := args[2].(string)
-					tv.YViewScroll(n, unit == "pages")
-				}
-			}
-		}),
+		ttk.ScrollbarCommandOpt(widget.ScrollY(tv)),
 	)
 	tv.YScrollCmd = func(first, last float64) {
 		yscroll.Set(first, last)

@@ -103,25 +103,7 @@ func main() {
 
 	yscroll := ttk.NewScrollbar(lbFrame, "scroll",
 		ttk.ScrollbarOrientOpt(ttk.Vertical),
-		ttk.ScrollbarCommandOpt(func(args ...any) {
-			if len(args) < 1 {
-				return
-			}
-			switch args[0] {
-			case "moveto":
-				if len(args) >= 2 {
-					if f, ok := args[1].(float64); ok {
-						lb.YViewMoveTo(f)
-					}
-				}
-			case "scroll":
-				if len(args) >= 3 {
-					n, _ := args[1].(int)
-					unit, _ := args[2].(string)
-					lb.YViewScroll(n, unit == "pages")
-				}
-			}
-		}),
+		ttk.ScrollbarCommandOpt(widget.ScrollY(lb)),
 	)
 	lb.YScrollCmd = func(first, last float64) {
 		yscroll.Set(first, last)

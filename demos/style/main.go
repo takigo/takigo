@@ -12,6 +12,7 @@ import (
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/ttk"
+	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/text"
 )
@@ -35,7 +36,7 @@ func main() {
 	// Scrollbar packed right, text fills rest (matches Tcl: pack $w.scroll -side right; pack $w.text).
 	yscroll := ttk.NewScrollbar(f, "scroll",
 		ttk.ScrollbarOrientOpt(ttk.Vertical),
-		ttk.ScrollbarCommandOpt(func(args ...any) {}),
+		ttk.ScrollbarCommandOpt(func(widget.ScrollRequest) {}),
 	)
 
 	tw := text.New(f, "text",
@@ -49,25 +50,7 @@ func main() {
 	tw.YScrollCmd = func(first, last float64) {
 		yscroll.Set(first, last)
 	}
-	yscroll.Command = func(args ...any) {
-		if len(args) < 1 {
-			return
-		}
-		switch args[0] {
-		case "moveto":
-			if len(args) >= 2 {
-				if f, ok := args[1].(float64); ok {
-					tw.YViewMoveTo(f)
-				}
-			}
-		case "scroll":
-			if len(args) >= 3 {
-				n, _ := args[1].(int)
-				unit, _ := args[2].(string)
-				tw.YViewScroll(n, unit == "pages")
-			}
-		}
-	}
+	yscroll.Command = widget.ScrollY(tw)
 
 	pack.Pack(yscroll, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
 	pack.Pack(tw, pack.Expand(true), pack.FillOpt(pack.FillBoth))

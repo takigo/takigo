@@ -23,6 +23,7 @@ import (
 	"github.com/msorc/takigo/ttk"
 	_ "github.com/msorc/takigo/ttk/clamtheme"
 	_ "github.com/msorc/takigo/ttk/defaulttheme"
+	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
 	"github.com/msorc/takigo/widget/menu"
@@ -146,27 +147,7 @@ func main() {
 
 	// Wire scrollbar ↔ text.
 	t.YScrollCmd = func(first, last float64) { s.Set(first, last) }
-	s.Command = func(args ...any) {
-		if len(args) < 2 {
-			return
-		}
-		action, _ := args[0].(string)
-		switch action {
-		case "moveto":
-			if f, ok := args[1].(float64); ok {
-				t.YViewMoveTo(f)
-			}
-		case "scroll":
-			n, _ := args[1].(int)
-			unit := "units"
-			if len(args) >= 3 {
-				if u, ok := args[2].(string); ok {
-					unit = u
-				}
-			}
-			t.YViewScroll(n, unit == "pages")
-		}
-	}
+	s.Command = widget.ScrollY(t)
 
 	// pack .t -in .textFrame -expand y -fill both -padx 1
 	pack.Pack(t, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth),

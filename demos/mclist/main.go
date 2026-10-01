@@ -168,25 +168,7 @@ func main() {
 	// Scrollbars — grid layout: tree(0,0), yscroll(0,1), xscroll(1,0).
 	yscroll := ttk.NewScrollbar(tvFrame, "vsb",
 		ttk.ScrollbarOrientOpt(ttk.Vertical),
-		ttk.ScrollbarCommandOpt(func(args ...any) {
-			if len(args) < 1 {
-				return
-			}
-			switch args[0] {
-			case "moveto":
-				if len(args) >= 2 {
-					if f, ok := args[1].(float64); ok {
-						tv.YViewMoveTo(f)
-					}
-				}
-			case "scroll":
-				if len(args) >= 3 {
-					n, _ := args[1].(int)
-					unit, _ := args[2].(string)
-					tv.YViewScroll(n, unit == "pages")
-				}
-			}
-		}),
+		ttk.ScrollbarCommandOpt(widget.ScrollY(tv)),
 	)
 	xscroll := ttk.NewScrollbar(tvFrame, "hsb",
 		ttk.ScrollbarOrientOpt(ttk.Horizontal),

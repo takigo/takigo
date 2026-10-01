@@ -19,6 +19,7 @@ import (
 	"github.com/msorc/takigo/platform"
 	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/ttk"
+	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/button"
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/panedwindow"
@@ -49,24 +50,7 @@ func makePeer(app *takigo.App, doc *text.Document) {
 
 	ps := ttk.NewScrollbar(w, "scroll")
 	pt.YScrollCmd = func(first, last float64) { ps.Set(first, last) }
-	ps.Command = func(args ...any) {
-		if len(args) >= 2 {
-			action, _ := args[0].(string)
-			number, _ := args[1].(float64)
-			switch action {
-			case "moveto":
-				pt.YViewMoveTo(number)
-			case "scroll":
-				unit := "units"
-				if len(args) >= 3 {
-					if u, ok := args[2].(string); ok {
-						unit = u
-					}
-				}
-				pt.YViewScroll(int(number), unit == "pages")
-			}
-		}
-	}
+	ps.Command = widget.ScrollY(pt)
 	pack.Pack(ps, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
 	pack.Pack(pf, pack.Expand(true), pack.FillOpt(pack.FillBoth))
 	w.Show()
@@ -124,24 +108,7 @@ func main() {
 
 	scroll := ttk.NewScrollbar(f, "scroll")
 	tw.YScrollCmd = func(first, last float64) { scroll.Set(first, last) }
-	scroll.Command = func(args ...any) {
-		if len(args) >= 2 {
-			action, _ := args[0].(string)
-			number, _ := args[1].(float64)
-			switch action {
-			case "moveto":
-				tw.YViewMoveTo(number)
-			case "scroll":
-				unit := "units"
-				if len(args) >= 3 {
-					if u, ok := args[2].(string); ok {
-						unit = u
-					}
-				}
-				tw.YViewScroll(int(number), unit == "pages")
-			}
-		}
-	}
+	scroll.Command = widget.ScrollY(tw)
 	pack.Pack(scroll, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
 
 	// Horizontal scrollbar (added/removed by Turn On/Off buttons).
@@ -178,24 +145,7 @@ func main() {
 					ttk.ScrollbarOrientOpt(ttk.Horizontal),
 				)
 				tw.XScrollCmd = func(first, last float64) { hscroll.Set(first, last) }
-				hscroll.Command = func(args ...any) {
-					if len(args) >= 2 {
-						action, _ := args[0].(string)
-						number, _ := args[1].(float64)
-						switch action {
-						case "moveto":
-							tw.XViewMoveTo(number)
-						case "scroll":
-							unit := "units"
-							if len(args) >= 3 {
-								if u, ok := args[2].(string); ok {
-									unit = u
-								}
-							}
-							tw.XViewScroll(int(number), unit == "pages")
-						}
-					}
-				}
+				hscroll.Command = widget.ScrollX(tw)
 				pack.Pack(hscroll, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 			}
 			tw.SetWrapMode(text.WrapNone)
