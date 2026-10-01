@@ -252,12 +252,12 @@ func main() {
 
 			// .t tag bind demo <Enter> { ... .t config -cursor hand2 ... showStatus }
 			t.TagBind(tagName, "<Enter>", func() {
-				t.Window().SetCursor(uint(cursor.Hand2))
+				t.Window().SetCursor(cursor.Hand2)
 				statusLabel.Configure(label.Text(fmt.Sprintf("Run the \"%s\" sample program", demoDir)))
 			})
 			// .t tag bind demo <Leave> { ... .t config -cursor xterm ... }
 			t.TagBind(tagName, "<Leave>", func() {
-				t.Window().SetCursor(uint(cursor.XTerm))
+				t.Window().SetCursor(cursor.XTerm)
 				statusLabel.Configure(label.Text("   "))
 			})
 		}

@@ -163,7 +163,7 @@ func New(parent widget.Caregiver, name string, opts ...SpinboxOption) *Spinbox {
 	}
 
 	w.Flags |= window.FlagFocusable
-	w.SetCursor(uint(cursor.XTerm))
+	w.SetCursor(cursor.XTerm)
 	bindSpinbox(s, app)
 
 	return s

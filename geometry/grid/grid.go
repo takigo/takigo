@@ -14,14 +14,14 @@ import (
 
 // Sticky flags for positioning within a cell.
 const (
-	StickN = 1 << iota
-	StickE
-	StickS
-	StickW
+	StickN = option.StickN
+	StickE = option.StickE
+	StickS = option.StickS
+	StickW = option.StickW
 
-	NSEW = StickN | StickS | StickE | StickW
-	NS   = StickN | StickS
-	EW   = StickE | StickW
+	NSEW = option.StickNSEW
+	NS   = option.StickNS
+	EW   = option.StickEW
 )
 
 // maxElement limits grid dimensions to prevent denial of service.
@@ -38,7 +38,7 @@ type gridConfig struct {
 	columnSet  bool // -column was given
 	rowSpan    int
 	columnSpan int
-	sticky     int
+	sticky     option.Sticky
 	padX       int            // total horizontal padding (left + right)
 	padY       int            // total vertical padding (top + bottom)
 	padLeft    int            // left portion of padX
@@ -70,7 +70,7 @@ func RowSpan(n int) GridOption { return func(c *gridConfig) { c.rowSpan = n } }
 func ColumnSpan(n int) GridOption { return func(c *gridConfig) { c.columnSpan = n } }
 
 // Sticky sets the sticky flags.
-func Sticky(s int) GridOption { return func(c *gridConfig) { c.sticky = s } }
+func Sticky(s option.Sticky) GridOption { return func(c *gridConfig) { c.sticky = s } }
 
 // PadX sets the exterior horizontal padding (symmetric).
 // Accepts a number of pixels or a screenunit.Distance such as screenunit.Pt(3).
@@ -1188,7 +1188,7 @@ func (g *gridder) arrange() {
 }
 
 // applySticky positions a child within its cavity based on sticky flags.
-func applySticky(sticky, cavX, cavY, cavW, cavH, childW, childH int) (x, y, w, h int) {
+func applySticky(sticky option.Sticky, cavX, cavY, cavW, cavH, childW, childH int) (x, y, w, h int) {
 	w = childW
 	h = childH
 

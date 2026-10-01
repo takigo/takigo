@@ -193,7 +193,7 @@ func New(parent widget.Caregiver, name string, opts ...EntryOption) *Entry {
 	}
 
 	w.Flags |= window.FlagFocusable
-	w.SetCursor(uint(cursor.XTerm))
+	w.SetCursor(cursor.XTerm)
 	bindEntry(e, app)
 
 	return e

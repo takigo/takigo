@@ -3,19 +3,20 @@ package ttk
 import (
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/font"
+	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/menu"
 	"github.com/msorc/takigo/window"
 )
 
 // Direction specifies where the menu pops up relative to the menubutton.
-type Direction int
+type Direction = option.Direction
 
 const (
-	DirBelow Direction = iota
-	DirAbove
-	DirLeft
-	DirRight
+	DirBelow = option.DirBelow
+	DirAbove = option.DirAbove
+	DirLeft  = option.DirLeft
+	DirRight = option.DirRight
 )
 
 // Menubutton is a themed button that posts a menu when clicked.

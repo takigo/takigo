@@ -199,7 +199,7 @@ func NewEntry(parent widget.Caregiver, name string, opts ...EntryOption) *Entry 
 	}
 	e.requestSize()
 	e.syncState()
-	win.SetCursor(uint(cursor.XTerm))
+	win.SetCursor(cursor.XTerm)
 	e.linkTextVar()
 
 	bindEntry(e, app)

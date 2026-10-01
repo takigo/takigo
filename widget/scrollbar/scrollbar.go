@@ -13,11 +13,11 @@ import (
 )
 
 // Orient specifies the scrollbar orientation.
-type Orient int
+type Orient = option.Orient
 
 const (
-	Vertical Orient = iota
-	Horizontal
+	Vertical   = option.Vertical
+	Horizontal = option.Horizontal
 )
 
 // Scrollbar is a scrollbar widget.

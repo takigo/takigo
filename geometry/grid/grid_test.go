@@ -3,13 +3,14 @@ package grid
 import (
 	"testing"
 
+	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/window"
 )
 
 func TestApplySticky(t *testing.T) {
 	tests := []struct {
 		name                   string
-		sticky                 int
+		sticky                 option.Sticky
 		cavX, cavY, cavW, cavH int
 		childW, childH         int
 		wantX, wantY           int

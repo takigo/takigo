@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"unsafe"
 
+	"github.com/msorc/takigo/cursor"
 	"github.com/msorc/takigo/font"
 	w32 "github.com/msorc/takigo/internal/win32"
 	"github.com/msorc/takigo/platform"
@@ -79,7 +80,7 @@ type WindowsDisplay struct {
 
 	// Cursor cache.
 	cursorMu    sync.Mutex
-	cursorCache map[uint]w32.HCURSOR
+	cursorCache map[cursor.Shape]w32.HCURSOR
 }
 
 // Compile-time interface checks.
@@ -142,7 +143,7 @@ func NewDisplayServer(displayName string) (platform.DisplayServer, font.FontOpen
 		pixmapNext:  1,
 		clipOwner:   make(map[platform.AtomID]platform.WindowID),
 		clipData:    make(map[platform.AtomID]string),
-		cursorCache: make(map[uint]w32.HCURSOR),
+		cursorCache: make(map[cursor.Shape]w32.HCURSOR),
 		atoms: &platform.Atoms{
 			// Windows has no X11 atoms; the Windows backend emulates
 			// them with fixed IDs that match the X11 predefined values

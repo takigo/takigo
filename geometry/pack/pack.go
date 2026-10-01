@@ -15,13 +15,13 @@ import (
 )
 
 // Side specifies which edge of the cavity to pack against.
-type Side int
+type Side = option.Side
 
 const (
-	Top Side = iota
-	Bottom
-	Left
-	Right
+	Top    = option.SideTop
+	Bottom = option.SideBottom
+	Left   = option.SideLeft
+	Right  = option.SideRight
 )
 
 // Fill specifies how to fill the allocated frame.

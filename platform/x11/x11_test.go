@@ -436,7 +436,7 @@ func TestX11DisplayCursorManager(t *testing.T) {
 	cursorMgr.DefineCursor(win, cursor)
 
 	// Test SetCursorShape (using shape enum)
-	cursorMgr.SetCursorShape(win, 0) // Arrow
+	cursorMgr.SetCursorShape(win, 0) // cursor.Arrow
 
 	// Test UndefineCursor
 	cursorMgr.UndefineCursor(win)

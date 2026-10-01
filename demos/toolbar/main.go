@@ -39,7 +39,7 @@ func main() {
 	toolbar := frame.New(f, "toolbar")
 	grid.Grid(toolbar, grid.Sticky(grid.EW))
 	tearoff := ttk.NewFrame(toolbar, "tearoff")
-	tearoff.Win.SetCursor(uint(cursor.Fleur))
+	tearoff.Win.SetCursor(cursor.Fleur)
 	to := ttk.NewSeparator(tearoff, "to", ttk.SeparatorOrient(ttk.Vertical))
 	to2 := ttk.NewSeparator(tearoff, "to2", ttk.SeparatorOrient(ttk.Vertical))
 	pack.Pack(to, pack.FillOpt(pack.FillY), pack.Expand(true), pack.PadX(screenunit.Pt(3)), pack.SideOpt(pack.Left))

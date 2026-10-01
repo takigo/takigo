@@ -180,7 +180,7 @@ func New(parent widget.Caregiver, name string, opts ...TextOption) *TextWidget {
 	}
 
 	w.Flags |= window.FlagFocusable
-	w.SetCursor(uint(cursor.XTerm)) // XC_xterm — I-beam cursor for text
+	w.SetCursor(cursor.XTerm) // XC_xterm — I-beam cursor for text
 	bindText(t, app)
 
 	return t
@@ -246,7 +246,7 @@ func NewPeer(doc *Document, parent widget.Caregiver, name string, opts ...TextOp
 	}
 
 	w.Flags |= window.FlagFocusable
-	w.SetCursor(uint(cursor.XTerm))
+	w.SetCursor(cursor.XTerm)
 	bindText(t, app)
 
 	// Register as a document listener so edits from other peers trigger a

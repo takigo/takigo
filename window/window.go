@@ -1,6 +1,7 @@
 package window
 
 import (
+	"github.com/msorc/takigo/cursor"
 	"github.com/msorc/takigo/platform"
 )
 
@@ -396,10 +397,8 @@ func (w *Window) IsViewable() bool {
 	return false
 }
 
-// SetCursor sets the cursor for this window to the given font cursor shape.
 // SetCursor sets the cursor shape for this window.
-// Use cursor.Shape constants from the cursor package.
-func (w *Window) SetCursor(shape uint) {
+func (w *Window) SetCursor(shape cursor.Shape) {
 	if w.PlatformID == 0 {
 		return
 	}

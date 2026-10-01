@@ -6,6 +6,7 @@ package x11
 import (
 	"sync"
 
+	"github.com/msorc/takigo/cursor"
 	"github.com/msorc/takigo/font"
 	"github.com/msorc/takigo/font/xft"
 	"github.com/msorc/takigo/internal/xlib"
@@ -430,9 +431,9 @@ var shapeToX11Cursor = [...]uint{
 	14: 14,  // BottomRightCorner → XC_bottom_right_corner
 }
 
-func (s *X11Display) SetCursorShape(w platform.WindowID, shape uint) {
-	x11Shape := shape
-	if shape < uint(len(shapeToX11Cursor)) {
+func (s *X11Display) SetCursorShape(w platform.WindowID, shape cursor.Shape) {
+	x11Shape := uint(shape)
+	if int(shape) < len(shapeToX11Cursor) {
 		x11Shape = shapeToX11Cursor[shape]
 	}
 	s.dpy.DefineCursorFromFont(xlib.Window(w), x11Shape)
