@@ -112,12 +112,12 @@ func FontOpt[F font.Spec](name F) MenuOption {
 // initially unmapped, created as a child of the root X window.
 func New(parent widget.Caregiver, name string, opts ...MenuOption) *Menu {
 	app := parent.AppContext()
-	d := parent.Window().Display
 
-	// Create override-redirect toplevel window.
-	attrs := &platform.WindowAttrs{
-		BackgroundPixel:  d.WhitePixel,
-		BorderPixel:      d.BlackPixel,
+	// An override-redirect window under the root.
+	w := window.NewTopLevelWindow(parent.Window(), name, window.TopLevelSpec{
+		Width:            1,
+		Height:           1,
+		BorderWidth:      1,
 		OverrideRedirect: true,
 		EventMask: int64(
 			platform.KeyPressMask |
@@ -130,37 +130,7 @@ func New(parent widget.Caregiver, name string, opts ...MenuOption) *Menu {
 				platform.ExposureMask |
 				platform.StructureNotifyMask |
 				platform.FocusChangeMask),
-	}
-
-	xwin := d.Server.CreateWindow(
-		d.RootWindow,
-		0, 0, 1, 1, 1,
-		d.Depth, platform.InputOutput,
-		platform.CWBackPixel|platform.CWBorderPixel|platform.CWOverrideRedirect|platform.CWEventMask,
-		attrs,
-	)
-
-	w := &window.Window{
-		PlatformID:      xwin,
-		Display:         d,
-		Parent:          parent.Window(),
-		Name:            name,
-		PathName:        window.BuildPathName(parent.Window(), name),
-		Width:           1,
-		Height:          1,
-		ReqWidth:        1,
-		ReqHeight:       1,
-		Depth:           d.Depth,
-		BackgroundPixel: d.WhitePixel,
-	}
-
-	w.GC = d.Server.CreateGC(w.Drawable(), platform.GCForeground|platform.GCBackground, &platform.GCValues{
-		Foreground: d.BlackPixel,
-		Background: d.WhitePixel,
 	})
-
-	d.RegisterWindow(xwin, w)
-	parent.Window().AddChild(w)
 
 	m := &Menu{
 		activeIndex: -1,

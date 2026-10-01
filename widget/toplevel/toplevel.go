@@ -81,29 +81,11 @@ func TransientFor(parent window.Windower) ToplevelOption {
 // New creates a new Toplevel window.
 func New(parent widget.Caregiver, name string, opts ...ToplevelOption) *Toplevel {
 	app := parent.AppContext()
-	d := parent.Window().Display
 
-	// Create a new top-level window.
-	w := &window.Window{
-		Display:         d,
-		Parent:          parent.Window(),
-		Name:            name,
-		PathName:        window.BuildPathName(parent.Window(), name),
-		Width:           200,
-		Height:          200,
-		ReqWidth:        200,
-		ReqHeight:       200,
-		Depth:           d.Depth,
-		BackgroundPixel: d.WhitePixel,
-		Flags:           window.FlagTopLevel,
-	}
-
-	parent.Window().AddChild(w)
-
-	// Create window as a child of the root (not the parent widget).
-	attrs := &platform.WindowAttrs{
-		BackgroundPixel: w.BackgroundPixel,
-		BorderPixel:     d.BlackPixel,
+	w := window.NewTopLevelWindow(parent.Window(), name, window.TopLevelSpec{
+		Width:  200,
+		Height: 200,
+		Flags:  window.FlagTopLevel,
 		EventMask: int64(
 			platform.KeyPressMask |
 				platform.KeyReleaseMask |
@@ -116,21 +98,6 @@ func New(parent widget.Caregiver, name string, opts ...ToplevelOption) *Toplevel
 				platform.StructureNotifyMask |
 				platform.PropertyChangeMask |
 				platform.FocusChangeMask),
-	}
-
-	w.PlatformID = d.Server.CreateWindow(
-		d.RootWindow,
-		0, 0, uint(w.Width), uint(w.Height), 0,
-		d.Depth, platform.InputOutput,
-		platform.CWBackPixel|platform.CWBorderPixel|platform.CWEventMask,
-		attrs,
-	)
-
-	d.RegisterWindow(w.PlatformID, w)
-
-	w.GC = d.Server.CreateGC(w.Drawable(), platform.GCForeground|platform.GCBackground, &platform.GCValues{
-		Foreground: d.BlackPixel,
-		Background: d.WhitePixel,
 	})
 
 	t := &Toplevel{}

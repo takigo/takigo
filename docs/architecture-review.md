@@ -93,7 +93,7 @@ Scope: package layout, platform abstraction, widget API, geometry/event subsyste
 ### 12. Toplevel construction duplicates Window creation logic
 - `widget/toplevel/toplevel.go:82-128` manually constructs a `Window` and calls `d.Server.CreateWindow` / `CreateGC` / `RegisterWindow` / `AddChild` directly, duplicating `window/create.go:CreateMainWindow`.
 - **Fix**: add `window.NewToplevelWindow(d, name, transientFor)`.
-- **Status**: open. The pattern is now repeated in `toplevel.go`, `menu.go` and `tearoff.go`.
+- **Status**: done (2026-10-01). `window.NewTopLevelWindow` creates all three.
 
 ### 13. `WindowID` and friends are `uintptr` aliases
 - Works on every supported platform (all 64-bit). Worth a one-line comment in `platform/types.go` documenting that assumption, since `uintptr` size is technically platform-dependent.

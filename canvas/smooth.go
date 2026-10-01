@@ -28,22 +28,42 @@ type smoothItem interface {
 // coordinate (x0, y0), whatever part is repainted: an item then has the
 // same coordinates, and so exactly the same pixels, in every repaint.
 //
-// Each item is rasterized by itself and blended into under, a copy of the
-// repainted window of the pixmap. Blending item by item, rather than
-// collecting shapes and blending them together, makes the result
-// independent of which other items take part in a repaint, so a repaint of
-// a damaged area gives the pixels a full repaint would.
+// Each item is rasterized by itself and blended over what is below it.
+// Blending item by item, rather than collecting shapes and blending them
+// together, makes the result independent of which other items take part
+// in a repaint, so a repaint of a damaged area gives the pixels a full
+// repaint would.
+//
+// While the repainted window holds only the background, items are blended
+// into under, a copy of it that needs no read-back. Once the display server
+// has drawn there (text, an image), the items of a run are held back and
+// blended, when the run ends, into the part of the pixmap they cover, read
+// back once.
 type layer struct {
 	img    *nanosvg.Image
+	raster nanosvg.Rasterizer
 	x0, y0 int
 	w, h   int
 
 	rx, ry, rw, rh int // the repainted window, in frame pixels
 
-	under []uint8 // the window's pixels, opaque RGBA; nil until needed
 	plain bool    // the window holds only the background colour
+	under []uint8 // the window's pixels while plain, opaque RGBA
 	dirty bool    // under has changes the pixmap does not
 	bg    uint64
+
+	run            []coverage // items waiting to be blended (not plain)
+	bx1, by1       int        // the box the run covers, in frame pixels
+	bx2, by2       int
+	readBack       bool // GetImageRGBA works on the pixmap
+	readBackTested bool
+}
+
+// coverage is one rasterized item: straight-alpha pixels and their place
+// in the frame.
+type coverage struct {
+	px         []uint8
+	x, y, w, h int
 }
 
 func newLayer(x0, y0, w, h, rx, ry, rw, rh int) *layer {
@@ -54,23 +74,21 @@ func newLayer(x0, y0, w, h, rx, ry, rw, rh int) *layer {
 // canvas coordinates. It reports false when the item must be drawn by the
 // display server instead.
 func (l *layer) paint(d platform.DisplayServer, drawable platform.DrawableID, item smoothItem, ix1, iy1, ix2, iy2 int) bool {
+	if !l.plain {
+		if !l.readBackTested {
+			l.readBack = d.GetImageRGBA(drawable, l.rx, l.ry, 1, 1) != nil
+			l.readBackTested = true
+		}
+		if !l.readBack {
+			return false // nothing to blend with
+		}
+	}
 	l.img.Reset()
 	if !item.paintSmooth(l) {
 		return false
 	}
 	if l.img.Empty() {
 		return true
-	}
-	if l.under == nil {
-		if l.plain {
-			l.under = make([]uint8, l.rw*l.rh*4)
-			r, g, b := uint8(l.bg>>16), uint8(l.bg>>8), uint8(l.bg)
-			for i := 0; i < len(l.under); i += 4 {
-				l.under[i], l.under[i+1], l.under[i+2], l.under[i+3] = r, g, b, 255
-			}
-		} else if l.under = d.GetImageRGBA(drawable, l.rx, l.ry, l.rw, l.rh); l.under == nil {
-			return false // cannot read the pixmap back to blend with it
-		}
 	}
 	// Rasterize the item's box only, with room for the soft edge.
 	const pad = 2
@@ -81,23 +99,50 @@ func (l *layer) paint(d platform.DisplayServer, drawable platform.DrawableID, it
 	if ww <= 0 || wh <= 0 {
 		return true
 	}
-	px := nanosvg.RasterizeRegion(l.img, 1, l.w, l.h, wx, wy, ww, wh)
-	nanosvg.Blend(l.under, l.rw, wx-l.rx, wy-l.ry, px, ww, wh)
-	l.dirty = true
+	px := l.raster.Region(l.img, 1, l.w, l.h, wx, wy, ww, wh)
+	if l.plain {
+		if l.under == nil {
+			l.under = make([]uint8, l.rw*l.rh*4)
+			r, g, b := uint8(l.bg>>16), uint8(l.bg>>8), uint8(l.bg)
+			for i := 0; i < len(l.under); i += 4 {
+				l.under[i], l.under[i+1], l.under[i+2], l.under[i+3] = r, g, b, 255
+			}
+		}
+		nanosvg.Blend(l.under, l.rw, wx-l.rx, wy-l.ry, px, ww, wh)
+		l.dirty = true
+		return true
+	}
+	if len(l.run) == 0 {
+		l.bx1, l.by1, l.bx2, l.by2 = wx, wy, wx+ww, wy+wh
+	} else {
+		l.bx1, l.by1 = min(l.bx1, wx), min(l.by1, wy)
+		l.bx2, l.by2 = max(l.bx2, wx+ww), max(l.by2, wy+wh)
+	}
+	l.run = append(l.run, coverage{px: append([]uint8(nil), px...), x: wx, y: wy, w: ww, h: wh})
 	return true
 }
 
-// flush puts the blended pixels into the pixmap.
+// flush puts what has been blended into the pixmap.
 func (l *layer) flush(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID, depth int) {
-	if !l.dirty {
+	if l.dirty {
+		d.PutImageRGBA(drawable, gc, depth, l.under, l.rw*4, l.rw, l.rh, 0, 0, l.rx, l.ry, l.rw, l.rh, l.bg)
+		l.dirty = false
+	}
+	if len(l.run) == 0 {
 		return
 	}
-	d.PutImageRGBA(drawable, gc, depth, l.under, l.rw*4, l.rw, l.rh, 0, 0, l.rx, l.ry, l.rw, l.rh, l.bg)
-	l.dirty = false
+	bw, bh := l.bx2-l.bx1, l.by2-l.by1
+	if under := d.GetImageRGBA(drawable, l.bx1, l.by1, bw, bh); under != nil {
+		for _, c := range l.run {
+			nanosvg.Blend(under, bw, c.x-l.bx1, c.y-l.by1, c.px, c.w, c.h)
+		}
+		d.PutImageRGBA(drawable, gc, depth, under, bw*4, bw, bh, 0, 0, l.bx1, l.by1, bw, bh, l.bg)
+	}
+	l.run = l.run[:0]
 }
 
 // invalidate records that the display server is about to draw into the
-// window, after which under no longer mirrors it.
+// window: from then on blending needs the pixmap's own pixels.
 func (l *layer) invalidate() {
 	l.under = nil
 	l.plain = false

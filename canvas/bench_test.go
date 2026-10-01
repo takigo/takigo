@@ -22,6 +22,11 @@ func (benchServer) MapWindow(platform.WindowID)                                 
 func (benchServer) UnmapWindow(platform.WindowID)                                          {}
 func (benchServer) MoveResizeWindow(platform.WindowID, int, int, uint, uint)               {}
 func (benchServer) FillRectangle(platform.DrawableID, platform.GCID, int, int, uint, uint) {}
+func (benchServer) PutImageRGBA(platform.DrawableID, platform.GCID, int, []byte, int, int, int, int, int, int, int, int, int, uint64) {
+}
+func (benchServer) GetImageRGBA(_ platform.DrawableID, _, _, w, h int) []byte {
+	return make([]byte, 4*w*h)
+}
 func (benchServer) DrawRectangle(platform.DrawableID, platform.GCID, int, int, uint, uint) {}
 func (benchServer) DrawLine(platform.DrawableID, platform.GCID, int, int, int, int)        {}
 func (benchServer) DrawLines(platform.DrawableID, platform.GCID, []platform.Point, int)    {}
@@ -393,5 +398,29 @@ func BenchmarkDispatchItemEvent(b *testing.B) {
 	}
 	if n != 2*b.N {
 		b.Fatalf("handlers ran %d times, want %d", n, 2*b.N)
+	}
+}
+
+// BenchmarkPaintAntialiased is BenchmarkPaint with anti-aliased shapes: the
+// cost of rasterizing and blending every item of the scene.
+func BenchmarkPaintAntialiased(b *testing.B) {
+	c := newBenchCanvas()
+	c.antialias = true
+	benchScene(c, 500)
+	b.ReportAllocs()
+	for b.Loop() {
+		c.paint(c.xOrigin, c.yOrigin, c.xOrigin+benchW, c.yOrigin+benchH)
+	}
+}
+
+// BenchmarkPaintAntialiasedDamage repaints one item's area, as moving or
+// reconfiguring an item does.
+func BenchmarkPaintAntialiasedDamage(b *testing.B) {
+	c := newBenchCanvas()
+	c.antialias = true
+	benchScene(c, 500)
+	b.ReportAllocs()
+	for b.Loop() {
+		c.paint(100, 100, 160, 150)
 	}
 }
