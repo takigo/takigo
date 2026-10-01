@@ -9,6 +9,7 @@ import (
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/message"
 )
@@ -37,7 +38,7 @@ func main() {
 		message.BorderWidth(2),
 		message.Relief(option.ReliefGroove),
 	)
-	pack.Pack(m1, pack.SideOpt(pack.Top), pack.PadY("7p"))
+	pack.Pack(m1, pack.SideOpt(pack.Top), pack.PadY(screenunit.Pt(7)))
 
 	// Wide aspect ratio (300).
 	m2 := message.New(f, "m2",
@@ -49,7 +50,7 @@ func main() {
 		message.BorderWidth(2),
 		message.Relief(option.ReliefSunken),
 	)
-	pack.Pack(m2, pack.SideOpt(pack.Top), pack.PadY("7p"))
+	pack.Pack(m2, pack.SideOpt(pack.Top), pack.PadY(screenunit.Pt(7)))
 
 	// Narrow aspect ratio (75).
 	m3 := message.New(f, "m3",
@@ -62,7 +63,7 @@ func main() {
 		message.BorderWidth(2),
 		message.Relief(option.ReliefRaised),
 	)
-	pack.Pack(m3, pack.SideOpt(pack.Top), pack.PadY("7p"))
+	pack.Pack(m3, pack.SideOpt(pack.Top), pack.PadY(screenunit.Pt(7)))
 
 	// Explicit width.
 	m4 := message.New(f, "m4",
@@ -72,7 +73,7 @@ func main() {
 		message.JustifyOpt(option.JustifyRight),
 		message.Anchor(option.AnchorE),
 	)
-	pack.Pack(m4, pack.SideOpt(pack.Top), pack.PadY("7p"))
+	pack.Pack(m4, pack.SideOpt(pack.Top), pack.PadY(screenunit.Pt(7)))
 
 	app.Run()
 }

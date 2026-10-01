@@ -17,6 +17,7 @@ import (
 	"github.com/msorc/takigo/geometry/grid"
 	"github.com/msorc/takigo/geometry/pack"
 	tkimage "github.com/msorc/takigo/image"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/ttk"
 	_ "github.com/msorc/takigo/ttk/clamtheme"
 	_ "github.com/msorc/takigo/ttk/defaulttheme"
@@ -167,7 +168,7 @@ func showVarsAny(app widget.AppContext, vars map[string]any) {
 			varsUnsubs = append(varsUnsubs, unsub)
 		}
 		grid.Grid(geometry.Group{nameLabel, valLabel}, grid.Column(0), grid.Row(row),
-			grid.PadX("1.5p"), grid.PadY("1.5p"), grid.Sticky(grid.StickW))
+			grid.PadX(screenunit.Pt(1.5)), grid.PadY(screenunit.Pt(1.5)), grid.Sticky(grid.StickW))
 	}
 
 	okBtn := ttk.NewButton(b, "ok",
@@ -178,8 +179,8 @@ func showVarsAny(app widget.AppContext, vars map[string]any) {
 		}),
 	)
 
-	grid.Grid(f, grid.Sticky(grid.NSEW), grid.PadX("3p"))
-	grid.Grid(okBtn, grid.Row(1), grid.Sticky(grid.StickE), grid.PadX("3p"), grid.PadY("3p"))
+	grid.Grid(f, grid.Sticky(grid.NSEW), grid.PadX(screenunit.Pt(3)))
+	grid.Grid(okBtn, grid.Row(1), grid.Sticky(grid.StickE), grid.PadX(screenunit.Pt(3)), grid.PadY(screenunit.Pt(3)))
 
 	grid.ColumnConfigure(f, 1, grid.Weight(1))
 	grid.RowConfigure(f, 100, grid.Weight(1))
@@ -269,7 +270,7 @@ func bottomButtons(parent widget.Caregiver, callerFile string, extra func(*ttk.F
 	btnFrame := ttk.NewFrame(parent, "bottom_buttons")
 
 	sep := ttk.NewSeparator(btnFrame, "sep")
-	grid.Grid(sep, grid.ColumnSpan(4), grid.Row(0), grid.Sticky(grid.EW), grid.PadY("1.5p"))
+	grid.Grid(sep, grid.ColumnSpan(4), grid.Row(0), grid.Sticky(grid.EW), grid.PadY(screenunit.Pt(1.5)))
 
 	dismissBtn := ttk.NewButton(btnFrame, "dismiss",
 		ttk.ButtonText("Dismiss"),
@@ -295,7 +296,7 @@ func bottomButtons(parent widget.Caregiver, callerFile string, extra func(*ttk.F
 		}
 	}
 
-	grid.Grid(geometry.Group(buttons), grid.PadX("3p"), grid.PadY("3p"))
+	grid.Grid(geometry.Group(buttons), grid.PadX(screenunit.Pt(3)), grid.PadY(screenunit.Pt(3)))
 	grid.ColumnConfigure(btnFrame, 0, grid.Weight(1))
 
 	return btnFrame

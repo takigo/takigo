@@ -13,6 +13,7 @@ import (
 	"github.com/msorc/takigo/geometry/grid"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/button"
 	"github.com/msorc/takigo/widget/frame"
@@ -35,7 +36,7 @@ func main() {
 	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	msg := label.New(f, "msg",
-		label.WrapLength("5i"),
+		label.WrapLength(screenunit.In(5)),
 		label.JustifyOpt(option.JustifyLeft),
 		label.Text("Three groups of radiobuttons are displayed below.  If you click on a button then the button will become selected exclusively among all the buttons in its group.  A Tcl variable is associated with each group to indicate which of the group's buttons is selected.  When the 'Tristate' button is pressed, the radio buttons will display the tri-state mode. Selecting any radio button will return the buttons to their respective on/off state. Click the \"See Variables\" button to see the current values of the variables."),
 	)
@@ -57,41 +58,41 @@ func main() {
 
 	left := labelframe.New(f, "left",
 		labelframe.Text("Point Size"),
-		labelframe.PadX("1.5p"),
-		labelframe.PadY("1.5p"),
+		labelframe.PadX(screenunit.Pt(1.5)),
+		labelframe.PadY(screenunit.Pt(1.5)),
 	)
 	mid := labelframe.New(f, "mid",
 		labelframe.Text("Color"),
-		labelframe.PadX("1.5p"),
-		labelframe.PadY("1.5p"),
+		labelframe.PadX(screenunit.Pt(1.5)),
+		labelframe.PadY(screenunit.Pt(1.5)),
 	)
 	right := labelframe.New(f, "right",
 		labelframe.Text("Alignment"),
-		labelframe.PadX("1.5p"),
-		labelframe.PadY("1.5p"),
+		labelframe.PadX(screenunit.Pt(1.5)),
+		labelframe.PadY(screenunit.Pt(1.5)),
 	)
 	tristate := button.New(f, "tristate",
 		button.Text("Tristate"),
-		button.PadX("1.5p"),
-		button.PadY("1.5p"),
+		button.PadX(screenunit.Pt(1.5)),
+		button.PadY(screenunit.Pt(1.5)),
 		button.Command(func() {
 			sizeVar.Set("multi")
 			colorVar.Set("multi")
 		}),
 	)
 	grid.Grid(left, grid.Column(0), grid.Row(1),
-		grid.PadX(".5c"), grid.PadY(".5c"),
+		grid.PadX(screenunit.Cm(0.5)), grid.PadY(screenunit.Cm(0.5)),
 		grid.RowSpan(2),
 	)
 	grid.Grid(mid, grid.Column(1), grid.Row(1),
-		grid.PadX(".5c"), grid.PadY(".5c"),
+		grid.PadX(screenunit.Cm(0.5)), grid.PadY(screenunit.Cm(0.5)),
 		grid.RowSpan(2),
 	)
 	grid.Grid(right, grid.Column(2), grid.Row(1),
-		grid.PadX(".5c"), grid.PadY(".5c"),
+		grid.PadX(screenunit.Cm(0.5)), grid.PadY(screenunit.Cm(0.5)),
 	)
 	grid.Grid(tristate, grid.Column(2), grid.Row(2),
-		grid.PadX(".5c"), grid.PadY(".5c"),
+		grid.PadX(screenunit.Cm(0.5)), grid.PadY(screenunit.Cm(0.5)),
 	)
 
 	for _, s := range []string{"10", "12", "14", "18", "24"} {
@@ -101,7 +102,7 @@ func main() {
 			radiobutton.Var(sizeVar),
 			radiobutton.TristateValueOpt("multi"),
 		)
-		pack.Pack(rb, pack.SideOpt(pack.Top), pack.PadY("1.5p"),
+		pack.Pack(rb, pack.SideOpt(pack.Top), pack.PadY(screenunit.Pt(1.5)),
 			pack.Anchor(option.AnchorW), pack.FillOpt(pack.FillX))
 	}
 
@@ -117,7 +118,7 @@ func main() {
 				mid.Configure(labelframe.Foreground(colorName))
 			}),
 		)
-		pack.Pack(rb, pack.SideOpt(pack.Top), pack.PadY("1.5p"), pack.FillOpt(pack.FillX))
+		pack.Pack(rb, pack.SideOpt(pack.Top), pack.PadY(screenunit.Pt(1.5)), pack.FillOpt(pack.FillX))
 	}
 
 	l := label.New(right, "l", label.Text("Label"),

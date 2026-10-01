@@ -10,6 +10,7 @@ import (
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/ttk"
 )
 
@@ -27,18 +28,18 @@ func main() {
 	pack.Pack(f, pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	msg := ttk.NewLabel(f, "msg",
-		ttk.LabelWrapLength("3.5i"),
+		ttk.LabelWrapLength(screenunit.In(3.5)),
 		ttk.LabelJustify(option.JustifyLeft),
 		ttk.LabelText("A label tied to a horizontal scale is displayed below.  If you click or drag mouse button 1 in the scale, you can change the contents of the label; a callback command is used to couple the slider to both the text and the coloring of the label."),
 	)
-	pack.Pack(msg, pack.SideOpt(pack.Top), pack.PadX(".5c"))
+	pack.Pack(msg, pack.SideOpt(pack.Top), pack.PadX(screenunit.Cm(0.5)))
 
 	btns := demohelper.AddSeeDismiss(f)
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	colorList := []string{"Red", "Orange", "Yellow", "Green", "Blue", "Violet"}
 
-	fr := ttk.NewFrame(f, "frame", ttk.FrameBorderWidth("7.5p"))
+	fr := ttk.NewFrame(f, "frame", ttk.FrameBorderWidth(screenunit.Pt(7.5)))
 	pack.Pack(fr, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
 
 	valueLabel := ttk.NewLabel(fr, "label")

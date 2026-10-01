@@ -13,6 +13,7 @@ import (
 	"github.com/msorc/takigo/geometry/grid"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/widget/entry"
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
@@ -35,7 +36,7 @@ func main() {
 	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	msg := label.New(f, "msg",
-		label.WrapLength("5i"),
+		label.WrapLength(screenunit.In(5)),
 		label.JustifyOpt(option.JustifyLeft),
 		label.Text("Four different entries are displayed below.  You can add characters by pointing, clicking and typing, though each is constrained in what it will accept.  The first only accepts 32-bit integers or the empty string (checking when focus leaves it) and will flash to indicate any problem.  The second only accepts strings with fewer than ten characters and sounds the bell when an attempt to go over the limit is made.  The third accepts US phone numbers, mapping letters to their digit equivalent and sounding the bell on encountering an illegal character or if trying to type over a character that is not a digit.  The fourth is a password field that accepts up to eight characters (silently ignoring further ones), and displaying them as asterisk characters."),
 	)
@@ -63,7 +64,7 @@ func main() {
 		}),
 	)
 	pack.Pack(e1, pack.FillOpt(pack.FillX), pack.Expand(true),
-		pack.PadX("1m"), pack.PadY("1m"))
+		pack.PadX(screenunit.Mm(1)), pack.PadY(screenunit.Mm(1)))
 
 	// Top-right: Length-Constrained Entry (fewer than 10 characters).
 	lf2 := labelframe.New(mid, "l2", labelframe.Text("Length-Constrained Entry"))
@@ -74,7 +75,7 @@ func main() {
 		}),
 	)
 	pack.Pack(e2, pack.FillOpt(pack.FillX), pack.Expand(true),
-		pack.PadX("1m"), pack.PadY("1m"))
+		pack.PadX(screenunit.Mm(1)), pack.PadY(screenunit.Mm(1)))
 
 	// Bottom-left: US Phone-Number Entry.
 	lf3 := labelframe.New(mid, "l3", labelframe.Text("US Phone-Number Entry"))
@@ -86,7 +87,7 @@ func main() {
 		}),
 	)
 	pack.Pack(e3, pack.FillOpt(pack.FillX), pack.Expand(true),
-		pack.PadX("1m"), pack.PadY("1m"))
+		pack.PadX(screenunit.Mm(1)), pack.PadY(screenunit.Mm(1)))
 
 	// Bottom-right: Password Entry (up to 8 characters, displayed as asterisks).
 	lf4 := labelframe.New(mid, "l4", labelframe.Text("Password Entry"))
@@ -98,13 +99,13 @@ func main() {
 		}),
 	)
 	pack.Pack(e4, pack.FillOpt(pack.FillX), pack.Expand(true),
-		pack.PadX("1m"), pack.PadY("1m"))
+		pack.PadX(screenunit.Mm(1)), pack.PadY(screenunit.Mm(1)))
 
 	// Arrange labelframes in a 2x2 grid (matches Tcl: padx 3m pady 1m).
-	grid.Grid(lf1, grid.Row(0), grid.Column(0), grid.Sticky(grid.EW), grid.PadX("3m"), grid.PadY("1m"))
-	grid.Grid(lf2, grid.Row(0), grid.Column(1), grid.Sticky(grid.EW), grid.PadX("3m"), grid.PadY("1m"))
-	grid.Grid(lf3, grid.Row(1), grid.Column(0), grid.Sticky(grid.EW), grid.PadX("3m"), grid.PadY("1m"))
-	grid.Grid(lf4, grid.Row(1), grid.Column(1), grid.Sticky(grid.EW), grid.PadX("3m"), grid.PadY("1m"))
+	grid.Grid(lf1, grid.Row(0), grid.Column(0), grid.Sticky(grid.EW), grid.PadX(screenunit.Mm(3)), grid.PadY(screenunit.Mm(1)))
+	grid.Grid(lf2, grid.Row(0), grid.Column(1), grid.Sticky(grid.EW), grid.PadX(screenunit.Mm(3)), grid.PadY(screenunit.Mm(1)))
+	grid.Grid(lf3, grid.Row(1), grid.Column(0), grid.Sticky(grid.EW), grid.PadX(screenunit.Mm(3)), grid.PadY(screenunit.Mm(1)))
+	grid.Grid(lf4, grid.Row(1), grid.Column(1), grid.Sticky(grid.EW), grid.PadX(screenunit.Mm(3)), grid.PadY(screenunit.Mm(1)))
 
 	// Make both columns equal width.
 	grid.ColumnConfigure(mid, 0, grid.Uniform("1"))

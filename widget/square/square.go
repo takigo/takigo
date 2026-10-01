@@ -46,8 +46,8 @@ func Foreground(name string) SquareOption {
 }
 
 // BorderWidthOpt sets the 3D border width.
-func BorderWidthOpt(w any) SquareOption {
-	return func(s *Square) { s.BorderWidth = screenunit.PxOr(w, s.BorderWidth) }
+func BorderWidthOpt[L screenunit.Length](w L) SquareOption {
+	return func(s *Square) { s.BorderWidth = screenunit.ToPixels(w) }
 }
 
 // Relief sets the border relief.

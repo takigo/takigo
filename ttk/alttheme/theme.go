@@ -4,6 +4,7 @@ package alttheme
 
 import (
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/ttk"
 	_ "github.com/msorc/takigo/ttk/defaulttheme" // ensure default theme init runs first
 )
@@ -92,7 +93,7 @@ func init() {
 	// In alt theme, indicators are white by default, with state maps
 	// changing alternate/disabled/pressed to grays.
 	tcheckbutton := theme.GetStyle("TCheckbutton")
-	tcheckbutton.Defaults["-padding"] = "1.5p"
+	tcheckbutton.Defaults["-padding"] = screenunit.Pt(1.5)
 	tcheckbutton.Defaults["-indicatormargin"] = "0 1.5p 3p 1.5p"
 	tcheckbutton.Defaults["-indicatorbackground"] = windowColor
 	tcheckbutton.Defaults["-indicatorforeground"] = windowColor
@@ -105,7 +106,7 @@ func init() {
 
 	// TRadiobutton style (overrides default theme).
 	tradiobutton := theme.GetStyle("TRadiobutton")
-	tradiobutton.Defaults["-padding"] = "1.5p"
+	tradiobutton.Defaults["-padding"] = screenunit.Pt(1.5)
 	tradiobutton.Defaults["-indicatormargin"] = "0 1.5p 3p 1.5p"
 	tradiobutton.Defaults["-indicatorbackground"] = windowColor
 	tradiobutton.Defaults["-indicatorforeground"] = windowColor

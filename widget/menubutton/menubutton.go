@@ -59,11 +59,11 @@ type MenubuttonOption func(*Menubutton)
 func Text(s string) MenubuttonOption            { return func(mb *Menubutton) { mb.Text = s } }
 func MenuOpt(m *menu.Menu) MenubuttonOption     { return func(mb *Menubutton) { mb.Menu = m } }
 func DirectionOpt(d Direction) MenubuttonOption { return func(mb *Menubutton) { mb.Direction = d } }
-func PadX(p any) MenubuttonOption {
-	return func(mb *Menubutton) { mb.PadX = screenunit.PxOr(p, mb.PadX) }
+func PadX[L screenunit.Length](p L) MenubuttonOption {
+	return func(mb *Menubutton) { mb.PadX = screenunit.ToPixels(p) }
 }
-func PadY(p any) MenubuttonOption {
-	return func(mb *Menubutton) { mb.PadY = screenunit.PxOr(p, mb.PadY) }
+func PadY[L screenunit.Length](p L) MenubuttonOption {
+	return func(mb *Menubutton) { mb.PadY = screenunit.ToPixels(p) }
 }
 func UnderlineOpt(i int) MenubuttonOption     { return func(mb *Menubutton) { mb.Underline = i } }
 func IndicatorOnOpt(on bool) MenubuttonOption { return func(mb *Menubutton) { mb.IndicatorOn = on } }
@@ -97,8 +97,8 @@ func New(parent widget.Caregiver, name string, opts ...MenubuttonOption) *Menubu
 	// tkUnixDefault.h DEF_MENUBUTTON_*.
 	mb.BorderWidth = 1
 	mb.Relief = option.ReliefFlat
-	mb.PadX = screenunit.Px("4p")
-	mb.PadY = screenunit.Px("3p")
+	mb.PadX = screenunit.Pt(4).Pixels()
+	mb.PadY = screenunit.Pt(3).Pixels()
 
 	// Active colors.
 	if ac, err := app.ColorCache().Get(widget.DefActiveBackground); err == nil {

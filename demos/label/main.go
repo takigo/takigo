@@ -32,7 +32,7 @@ func main() {
 	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	msg := label.New(f, "msg",
-		label.WrapLength("4i"),
+		label.WrapLength(screenunit.In(4)),
 		label.JustifyOpt(option.JustifyLeft),
 		label.Text("Five labels are displayed below: three textual ones on the left, and an image label and a text label on the right.  Labels are pretty boring because you can't do anything with them."),
 	)
@@ -44,9 +44,9 @@ func main() {
 	left := frame.New(f, "left")
 	right := frame.New(f, "right")
 	pack.Pack(left, pack.SideOpt(pack.Left), pack.Expand(true),
-		pack.PadX("7.5p"), pack.PadY("7.5p"), pack.FillOpt(pack.FillBoth))
+		pack.PadX(screenunit.Pt(7.5)), pack.PadY(screenunit.Pt(7.5)), pack.FillOpt(pack.FillBoth))
 	pack.Pack(right, pack.SideOpt(pack.Left), pack.Expand(true),
-		pack.PadX("7.5p"), pack.PadY("7.5p"), pack.FillOpt(pack.FillBoth))
+		pack.PadX(screenunit.Pt(7.5)), pack.PadY(screenunit.Pt(7.5)), pack.FillOpt(pack.FillBoth))
 
 	l1 := label.New(left, "l1", label.Text("First label"))
 	l2 := label.New(left, "l2", label.Text("Second label, raised"),
@@ -55,11 +55,11 @@ func main() {
 		label.Relief(option.ReliefSunken))
 	// pack $w.left.l1 $w.left.l2 $w.left.l3 -side top -expand yes -pady 1.5p -anchor w
 	pack.Pack(l1, pack.SideOpt(pack.Top), pack.Expand(true),
-		pack.PadY("1.5p"), pack.Anchor(option.AnchorW))
+		pack.PadY(screenunit.Pt(1.5)), pack.Anchor(option.AnchorW))
 	pack.Pack(l2, pack.SideOpt(pack.Top), pack.Expand(true),
-		pack.PadY("1.5p"), pack.Anchor(option.AnchorW))
+		pack.PadY(screenunit.Pt(1.5)), pack.Anchor(option.AnchorW))
 	pack.Pack(l3, pack.SideOpt(pack.Top), pack.Expand(true),
-		pack.PadY("1.5p"), pack.Anchor(option.AnchorW))
+		pack.PadY(screenunit.Pt(1.5)), pack.Anchor(option.AnchorW))
 
 	ousterhout, err := image.NewPhotoFromFile("ousterhout", findImage("ouster.png"))
 	if err == nil {

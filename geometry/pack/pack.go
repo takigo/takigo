@@ -71,42 +71,44 @@ func Expand(b bool) PackOption { return func(c *packConfig) { c.expand = b } }
 func Anchor(a option.Anchor) PackOption { return func(c *packConfig) { c.anchor = a } }
 
 // PadX sets the exterior horizontal padding.
-// Accepts int (pixels), float64 (rounded pixels), or string with unit suffix ("3p", "2m", "1c", "0.5i").
-func PadX(p any) PackOption {
-	return func(c *packConfig) { c.padLeft = screenunit.PxOr(p, c.padLeft); c.padX = 2 * c.padLeft }
+// Accepts a number of pixels or a screenunit.Distance such as screenunit.Pt(3).
+func PadX[L screenunit.Length](p L) PackOption {
+	return func(c *packConfig) { c.padLeft = screenunit.ToPixels(p); c.padX = 2 * c.padLeft }
 }
 
 // PadXPair sets asymmetric exterior horizontal padding (-padx {left right}).
-func PadXPair(left, right any) PackOption {
+func PadXPair[A, B screenunit.Length](left A, right B) PackOption {
 	return func(c *packConfig) {
-		right0 := c.padX - c.padLeft
-		c.padLeft = screenunit.PxOr(left, c.padLeft)
-		c.padX = c.padLeft + screenunit.PxOr(right, right0)
+		c.padLeft = screenunit.ToPixels(left)
+		c.padX = c.padLeft + screenunit.ToPixels(right)
 	}
 }
 
 // PadY sets the exterior vertical padding.
-// Accepts int (pixels), float64 (rounded pixels), or string with unit suffix ("3p", "2m", "1c", "0.5i").
-func PadY(p any) PackOption {
-	return func(c *packConfig) { c.padTop = screenunit.PxOr(p, c.padTop); c.padY = 2 * c.padTop }
+// Accepts a number of pixels or a screenunit.Distance such as screenunit.Pt(3).
+func PadY[L screenunit.Length](p L) PackOption {
+	return func(c *packConfig) { c.padTop = screenunit.ToPixels(p); c.padY = 2 * c.padTop }
 }
 
 // PadYPair sets asymmetric exterior vertical padding (-pady {top bottom}).
-func PadYPair(top, bottom any) PackOption {
+func PadYPair[A, B screenunit.Length](top A, bottom B) PackOption {
 	return func(c *packConfig) {
-		bottom0 := c.padY - c.padTop
-		c.padTop = screenunit.PxOr(top, c.padTop)
-		c.padY = c.padTop + screenunit.PxOr(bottom, bottom0)
+		c.padTop = screenunit.ToPixels(top)
+		c.padY = c.padTop + screenunit.ToPixels(bottom)
 	}
 }
 
 // IPadX sets the interior horizontal padding.
-// Accepts int (pixels), float64 (rounded pixels), or string with unit suffix ("3p", "2m", "1c", "0.5i").
-func IPadX(p any) PackOption { return func(c *packConfig) { c.iPadX = screenunit.PxOr(p, c.iPadX) } }
+// Accepts a number of pixels or a screenunit.Distance such as screenunit.Pt(3).
+func IPadX[L screenunit.Length](p L) PackOption {
+	return func(c *packConfig) { c.iPadX = screenunit.ToPixels(p) }
+}
 
 // IPadY sets the interior vertical padding.
-// Accepts int (pixels), float64 (rounded pixels), or string with unit suffix ("3p", "2m", "1c", "0.5i").
-func IPadY(p any) PackOption { return func(c *packConfig) { c.iPadY = screenunit.PxOr(p, c.iPadY) } }
+// Accepts a number of pixels or a screenunit.Distance such as screenunit.Pt(3).
+func IPadY[L screenunit.Length](p L) PackOption {
+	return func(c *packConfig) { c.iPadY = screenunit.ToPixels(p) }
+}
 
 // packEntry holds packing configuration for a single child.
 type packEntry struct {

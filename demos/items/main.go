@@ -40,7 +40,7 @@ func main() {
 	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	msg := label.New(f, "msg",
-		label.WrapLength("5i"),
+		label.WrapLength(screenunit.In(5)),
 		label.JustifyOpt(option.JustifyLeft),
 		label.Text("This window contains a canvas widget with examples of the various kinds of items supported by canvases.  The following operations are supported:\n  Left-Button drag:\tmoves item under pointer.\n  Middle-Button drag:\trepositions view.\n  Right-Button drag:\tstrokes out area.\n  Ctrl+f:\t\tprints items under area."),
 	)
@@ -55,9 +55,9 @@ func main() {
 
 	// Canvas with scroll region covering all nine sections.
 	c := canvas.New(gf, "c",
-		canvas.Width(screenunit.Px("15c")),
-		canvas.Height(screenunit.Px("10c")),
-		canvas.ScrollRegion(0, 0, screenunit.Px("30c"), screenunit.Px("24c")),
+		canvas.Width(screenunit.Cm(15).Pixels()),
+		canvas.Height(screenunit.Cm(10).Pixels()),
+		canvas.ScrollRegion(0, 0, screenunit.Cm(30).Pixels(), screenunit.Cm(24).Pixels()),
 		canvas.ReliefOpt(option.ReliefSunken),
 		canvas.BorderWidthOpt(2),
 	)
@@ -105,11 +105,11 @@ func main() {
 	grid.ColumnConfigure(gf, 0, grid.Weight(1), grid.MinSize(0))
 
 	// Helper: convert centimeters to canvas pixel coordinate.
-	pxPerCm := screenunit.Float("1c")
+	pxPerCm := screenunit.Cm(1).Float()
 	p := func(cm float64) float64 { return cm * pxPerCm }
 
-	// Helper: convert a size string (e.g. "2m", "3p") to int pixels.
-	px := screenunit.Px
+	// Helper: convert a distance to int pixels.
+	px := screenunit.Distance.Pixels
 
 	// Colors matching Tk's color depth >1 defaults.
 	const blue = "#009ACD" // DeepSkyBlue3
@@ -117,11 +117,11 @@ func main() {
 	const green = "SeaGreen3"
 
 	// ---- Structural 3×3 grid ----
-	c.CreateRectangle(0, 0, p(30), p(24), canvas.OutlineColor("black"), canvas.OutlineWidth(px("1.5p")))
-	c.CreateLine([]float64{0, p(8), p(30), p(8)}, canvas.OutlineColor("black"), canvas.OutlineWidth(px("1.5p")))
-	c.CreateLine([]float64{0, p(16), p(30), p(16)}, canvas.OutlineColor("black"), canvas.OutlineWidth(px("1.5p")))
-	c.CreateLine([]float64{p(10), 0, p(10), p(24)}, canvas.OutlineColor("black"), canvas.OutlineWidth(px("1.5p")))
-	c.CreateLine([]float64{p(20), 0, p(20), p(24)}, canvas.OutlineColor("black"), canvas.OutlineWidth(px("1.5p")))
+	c.CreateRectangle(0, 0, p(30), p(24), canvas.OutlineColor("black"), canvas.OutlineWidth(px(screenunit.Pt(1.5))))
+	c.CreateLine([]float64{0, p(8), p(30), p(8)}, canvas.OutlineColor("black"), canvas.OutlineWidth(px(screenunit.Pt(1.5))))
+	c.CreateLine([]float64{0, p(16), p(30), p(16)}, canvas.OutlineColor("black"), canvas.OutlineWidth(px(screenunit.Pt(1.5))))
+	c.CreateLine([]float64{p(10), 0, p(10), p(24)}, canvas.OutlineColor("black"), canvas.OutlineWidth(px(screenunit.Pt(1.5))))
+	c.CreateLine([]float64{p(20), 0, p(20), p(24)}, canvas.OutlineColor("black"), canvas.OutlineWidth(px(screenunit.Pt(1.5))))
 
 	// Track original colors per item ID for hover restore.
 	type itemColors struct {
@@ -143,7 +143,7 @@ func main() {
 
 	// Bold "Z" shape in blue.
 	record(c.CreateLine([]float64{p(1), p(1), p(3), p(1), p(1), p(4), p(3), p(4)},
-		canvas.OutlineColor(blue), canvas.OutlineWidth(px("2m")),
+		canvas.OutlineColor(blue), canvas.OutlineWidth(px(screenunit.Mm(2))),
 		canvas.CapStyleOpt(platform.CapButt), canvas.JoinStyleOpt(platform.JoinMiter),
 		canvas.Tags("item")), "", blue)
 
@@ -162,13 +162,13 @@ func main() {
 		p(5), p(6), p(9), p(6), p(9), p(1), p(8), p(1), p(8), p(4.8),
 		p(8.8), p(4.8), p(8.8), p(1.2), p(8.2), p(1.2), p(8.2), p(4.6),
 		p(8.6), p(4.6), p(8.6), p(1.4), p(8.4), p(1.4), p(8.4), p(4.4),
-	}, canvas.OutlineColor(red), canvas.OutlineWidth(px("2.25p")),
+	}, canvas.OutlineColor(red), canvas.OutlineWidth(px(screenunit.Pt(2.25))),
 		canvas.Tags("item")), "", red)
 
 	gray25 := "@" + findImage("gray25.xbm")
 
 	record(c.CreateLine([]float64{p(1), p(5), p(7), p(5), p(7), p(7), p(9), p(7)},
-		canvas.OutlineWidth(px("0.5c")),
+		canvas.OutlineWidth(px(screenunit.Cm(0.5))),
 		canvas.Stipple(gray25),
 		canvas.Arrow(canvas.ArrowBoth),
 		canvas.ArrowShape(15, 15, 7),
@@ -176,7 +176,7 @@ func main() {
 
 	// Wavy line with round caps/joins.
 	record(c.CreateLine([]float64{p(1), p(7), p(1.75), p(5.8), p(2.5), p(7), p(3.25), p(5.8), p(4), p(7)},
-		canvas.OutlineWidth(px("0.5c")),
+		canvas.OutlineWidth(px(screenunit.Cm(0.5))),
 		canvas.CapStyleOpt(platform.CapRound),
 		canvas.JoinStyleOpt(platform.JoinRound),
 		canvas.Tags("item")), "", "black")
@@ -193,14 +193,14 @@ func main() {
 	record(c.CreateLine([]float64{p(15.5), p(1), p(19.5), p(1.5), p(15.5), p(4.5), p(19.5), p(4)},
 		canvas.Smooth(true),
 		canvas.Arrow(canvas.ArrowBoth),
-		canvas.OutlineWidth(px("2.25p")),
+		canvas.OutlineWidth(px(screenunit.Pt(2.25))),
 		canvas.Tags("item")), "", "black")
 
 	record(c.CreateLine([]float64{
 		p(12), p(6), p(13.5), p(4.5), p(16.5), p(7.5), p(18), p(6),
 		p(16.5), p(4.5), p(13.5), p(7.5), p(12), p(6),
 	}, canvas.OutlineColor(red), canvas.Smooth(true),
-		canvas.OutlineWidth(px("3m")),
+		canvas.OutlineWidth(px(screenunit.Mm(3))),
 		canvas.CapStyleOpt(platform.CapRound),
 		canvas.Stipple(gray25),
 		canvas.Tags("item")), "", red)
@@ -212,7 +212,7 @@ func main() {
 	record(c.CreatePolygon([]float64{
 		p(21), p(1.0), p(22.5), p(1.75), p(24), p(1.0), p(23.25), p(2.5),
 		p(24), p(4.0), p(22.5), p(3.25), p(21), p(4.0), p(21.75), p(2.5),
-	}, canvas.FillColor(green), canvas.OutlineNone(), canvas.OutlineWidth(px("3p")),
+	}, canvas.FillColor(green), canvas.OutlineNone(), canvas.OutlineWidth(px(screenunit.Pt(3))),
 		canvas.Tags("item")), green, "")
 
 	// Smooth M-wave polygon in red, no outline.
@@ -233,7 +233,7 @@ func main() {
 
 	// Red outline only rectangle.
 	record(c.CreateRectangle(p(1), p(9.5), p(4), p(12.5),
-		canvas.FillNone(), canvas.OutlineColor(red), canvas.OutlineWidth(px("3m")),
+		canvas.FillNone(), canvas.OutlineColor(red), canvas.OutlineWidth(px(screenunit.Mm(3))),
 		canvas.Tags("item")), "", red)
 
 	// Green filled rectangle (default black outline).
@@ -250,7 +250,7 @@ func main() {
 
 	// Red outline only oval.
 	record(c.CreateOval(p(11), p(9.5), p(14), p(12.5),
-		canvas.FillNone(), canvas.OutlineColor(red), canvas.OutlineWidth(px("3m")),
+		canvas.FillNone(), canvas.OutlineColor(red), canvas.OutlineWidth(px(screenunit.Mm(3))),
 		canvas.Tags("item")), "", red)
 
 	// Green filled oval (default black outline).
@@ -272,7 +272,7 @@ func main() {
 	recordText(c.CreateText(p(22.5), p(9),
 		canvas.TextOpt("A short string of text, word-wrapped, justified left, and anchored north (at the top).  The rectangles show the anchor points for each piece of text."),
 		canvas.FontOpt("Helvetica 12"),
-		canvas.WidthOpt(px("4c")),
+		canvas.WidthOpt(px(screenunit.Cm(4))),
 		canvas.AnchorOpt(option.AnchorN),
 		canvas.JustifyOpt(option.JustifyLeft),
 		canvas.Tags("item")), "black")
@@ -312,21 +312,21 @@ func main() {
 		canvas.Tags("item")), green, "black")
 
 	record(c.CreateArc(p(6.5), p(17), p(9.5), p(20),
-		canvas.OutlineColor(blue), canvas.OutlineWidth(px("4m")), canvas.OutlineStipple(gray25),
+		canvas.OutlineColor(blue), canvas.OutlineWidth(px(screenunit.Mm(4))), canvas.OutlineStipple(gray25),
 		canvas.StartAngle(-135), canvas.Extent(270),
 		canvas.ArcStyleOpt(canvas.ArcStyleArc),
 		canvas.Tags("item")), "", blue)
 
 	// Red pieslice, no fill.
 	record(c.CreateArc(p(0.5), p(20), p(9.5), p(24),
-		canvas.FillNone(), canvas.OutlineColor(red), canvas.OutlineWidth(px("4m")),
+		canvas.FillNone(), canvas.OutlineColor(red), canvas.OutlineWidth(px(screenunit.Mm(4))),
 		canvas.StartAngle(225), canvas.Extent(-90),
 		canvas.ArcStyleOpt(canvas.ArcStylePieslice),
 		canvas.Tags("item")), "", red)
 
 	// Blue chord, no outline.
 	record(c.CreateArc(p(5.5), p(20.5), p(9.5), p(23.5),
-		canvas.FillColor(blue), canvas.OutlineNone(), canvas.OutlineWidth(px("4m")),
+		canvas.FillColor(blue), canvas.OutlineNone(), canvas.OutlineWidth(px(screenunit.Mm(4))),
 		canvas.StartAngle(45), canvas.Extent(270),
 		canvas.ArcStyleOpt(canvas.ArcStyleChord),
 		canvas.Tags("item")), blue, "")
@@ -405,9 +405,9 @@ func main() {
 	// Embedded scale.
 	sc := scale.New(c, "win_scale",
 		scale.FromOpt(0), scale.ToOpt(100),
-		scale.LengthOpt(screenunit.Px("6c")),
-		scale.SliderLengthOpt(screenunit.Px(".4c")),
-		scale.WidthOpt(screenunit.Px(".5c")),
+		scale.LengthOpt(screenunit.Cm(6).Pixels()),
+		scale.SliderLengthOpt(screenunit.Cm(0.4).Pixels()),
+		scale.WidthOpt(screenunit.Cm(0.5).Pixels()),
 		scale.TickIntervalOpt(0),
 	)
 	c.CreateWindow(p(28.5), p(17.5), sc.Win, canvas.AnchorOpt(option.AnchorN), canvas.Tags("item"))

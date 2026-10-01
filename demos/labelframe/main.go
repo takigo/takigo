@@ -11,6 +11,7 @@ import (
 	"github.com/msorc/takigo/geometry/grid"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/checkbutton"
 	"github.com/msorc/takigo/widget/frame"
@@ -33,7 +34,7 @@ func main() {
 	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	msg := label.New(f, "msg",
-		label.WrapLength("4i"),
+		label.WrapLength(screenunit.In(4)),
 		label.JustifyOpt(option.JustifyLeft),
 		label.Text("Labelframes are used to group related widgets together.  The label may be either  plain text or another widget."),
 	)
@@ -49,10 +50,10 @@ func main() {
 	// Left labelframe: "Value" with radiobuttons 1-4.
 	lfValue := labelframe.New(body, "f",
 		labelframe.Text("Value"),
-		labelframe.PadX("1.5p"),
-		labelframe.PadY("1.5p"),
+		labelframe.PadX(screenunit.Pt(1.5)),
+		labelframe.PadY(screenunit.Pt(1.5)),
 	)
-	grid.Grid(lfValue, grid.Row(0), grid.Column(0), grid.PadX("2m"), grid.PadY("2m"))
+	grid.Grid(lfValue, grid.Row(0), grid.Column(0), grid.PadX(screenunit.Mm(2)), grid.PadY(screenunit.Mm(2)))
 
 	valueVar := widget.NewUnsetVariable[string]() // lfdummy starts unset
 	for _, v := range []string{"1", "2", "3", "4"} {
@@ -61,16 +62,16 @@ func main() {
 			radiobutton.Value(v),
 			radiobutton.Var(valueVar),
 		)
-		pack.Pack(rb, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY("1.5p"))
+		pack.Pack(rb, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(screenunit.Pt(1.5)))
 		_ = rb
 	}
 
 	// Right labelframe: checkbutton as labelwidget controls enable/disable of options.
 	lfOpts := labelframe.New(body, "f2",
-		labelframe.PadX("1.5p"),
-		labelframe.PadY("1.5p"),
+		labelframe.PadX(screenunit.Pt(1.5)),
+		labelframe.PadY(screenunit.Pt(1.5)),
 	)
-	grid.Grid(lfOpts, grid.Row(0), grid.Column(1), grid.PadX("2m"), grid.PadY("2m"))
+	grid.Grid(lfOpts, grid.Row(0), grid.Column(1), grid.PadX(screenunit.Mm(2)), grid.PadY(screenunit.Mm(2)))
 
 	// Option checkbuttons.
 	var optionCbs []*checkbutton.Checkbutton
@@ -90,7 +91,7 @@ func main() {
 			checkbutton.Text(s),
 			checkbutton.Var(v),
 		)
-		pack.Pack(cb, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY("1.5p"))
+		pack.Pack(cb, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(screenunit.Pt(1.5)))
 		optionCbs = append(optionCbs, cb)
 	}
 

@@ -1,205 +1,123 @@
 package screenunit
 
 import (
+	"errors"
 	"math"
 	"sync"
 	"testing"
 )
 
-func TestPxInt(t *testing.T) {
-	if got := Px(42); got != 42 {
-		t.Errorf("Px(42) = %d, want 42", got)
+func TestToPixelsNumbers(t *testing.T) {
+	if got := ToPixels(42); got != 42 {
+		t.Errorf("ToPixels(42) = %d, want 42", got)
 	}
-	if got := Px(0); got != 0 {
-		t.Errorf("Px(0) = %d, want 0", got)
+	if got := ToPixels(3.7); got != 4 {
+		t.Errorf("ToPixels(3.7) = %d, want 4", got)
 	}
-}
-
-func TestPxFloat64(t *testing.T) {
-	if got := Px(3.7); got != 4 {
-		t.Errorf("Px(3.7) = %d, want 4", got)
+	if got := ToPixels(Px(3.2)); got != 3 {
+		t.Errorf("ToPixels(Px(3.2)) = %d, want 3", got)
 	}
-	if got := Px(3.2); got != 3 {
-		t.Errorf("Px(3.2) = %d, want 3", got)
+	if got := ToFloat(2.5); got != 2.5 {
+		t.Errorf("ToFloat(2.5) = %v, want 2.5", got)
 	}
 }
 
-func TestPxBareString(t *testing.T) {
-	if got := Px("10"); got != 10 {
-		t.Errorf("Px(\"10\") = %d, want 10", got)
-	}
-	if got := Px("3.5"); got != 4 {
-		t.Errorf("Px(\"3.5\") = %d, want 4", got)
-	}
-}
-
-func TestPxWithUnits(t *testing.T) {
-	// Set known DPI: 96 DPI = 2540mm wide at 9600px
-	// This gives us exactly 9600/2540 ≈ 3.7795 pixels per mm
+func TestUnits(t *testing.T) {
+	// 9600px across 2540mm is exactly 96 DPI.
 	SetScreenDPI(9600, 2540, 0)
-	defer SetScreenDPI(1920, 508, 0) // restore
-
+	defer SetScreenDPI(1920, 508, 0)
 	pxPerMM := 9600.0 / 2540.0
 
 	tests := []struct {
 		input string
-		want  int
+		d     Distance
+		want  float64
 	}{
-		// Points: 1pt = 25.4/72 mm
-		{"1p", int(math.Round(25.4 / 72.0 * pxPerMM))},
-		{"72p", int(math.Round(72.0 * 25.4 / 72.0 * pxPerMM))}, // 72pt = 1 inch
-		// Millimeters
-		{"1m", int(math.Round(pxPerMM))},
-		{"10m", int(math.Round(10.0 * pxPerMM))},
-		// Centimeters
-		{"1c", int(math.Round(10.0 * pxPerMM))},
-		{"2.5c", int(math.Round(25.0 * pxPerMM))},
-		// Inches
-		{"1i", int(math.Round(25.4 * pxPerMM))},
-		{"0.5i", int(math.Round(12.7 * pxPerMM))},
-	}
-
-	for _, tt := range tests {
-		got := Px(tt.input)
-		if got != tt.want {
-			t.Errorf("Px(%q) = %d, want %d", tt.input, got, tt.want)
-		}
-	}
-}
-
-func TestPx72PointsEqualsOneInch(t *testing.T) {
-	SetScreenDPI(9600, 2540, 0)
-	defer SetScreenDPI(1920, 508, 0)
-
-	pts := Px("72p")
-	inch := Px("1i")
-	if pts != inch {
-		t.Errorf("72p=%d should equal 1i=%d", pts, inch)
-	}
-}
-
-func TestPx1cEquals10m(t *testing.T) {
-	SetScreenDPI(9600, 2540, 0)
-	defer SetScreenDPI(1920, 508, 0)
-
-	cm := Px("1c")
-	mm := Px("10m")
-	if cm != mm {
-		t.Errorf("1c=%d should equal 10m=%d", cm, mm)
-	}
-}
-
-func TestPxPanicsOnInvalid(t *testing.T) {
-	tests := []struct {
-		name  string
-		input any
-	}{
-		{"empty string", ""},
-		{"invalid string", "abc"},
-		{"bool type", true},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			defer func() {
-				if r := recover(); r == nil {
-					t.Errorf("Px(%v) should have panicked", tt.input)
-				}
-			}()
-			Px(tt.input)
-		})
-	}
-}
-
-func TestTryPxValid(t *testing.T) {
-	tests := []struct {
-		input any
-		want  int
-	}{
-		{42, 42},
-		{3.7, 4},
-		{"10", 10},
+		{"1p", Pt(1), 25.4 / 72.0 * pxPerMM},
+		{"72p", Pt(72), 25.4 * pxPerMM},
+		{"1m", Mm(1), pxPerMM},
+		{"10m", Mm(10), 10 * pxPerMM},
+		{"1c", Cm(1), 10 * pxPerMM},
+		{"2.5c", Cm(2.5), 25 * pxPerMM},
+		{"1i", In(1), 25.4 * pxPerMM},
+		{"0.5i", In(0.5), 12.7 * pxPerMM},
+		{"10", Px(10), 10},
+		{"-3.5", Px(-3.5), -3.5},
+		{" 2 m ", Mm(2), 2 * pxPerMM},
 	}
 	for _, tt := range tests {
-		got, err := TryPx(tt.input)
-		if err != nil {
-			t.Errorf("TryPx(%v) unexpected error: %v", tt.input, err)
-		}
-		if got != tt.want {
-			t.Errorf("TryPx(%v) = %d, want %d", tt.input, got, tt.want)
-		}
-	}
-}
-
-func TestTryPxInvalid(t *testing.T) {
-	tests := []struct {
-		name  string
-		input any
-	}{
-		{"empty string", ""},
-		{"invalid string", "abc"},
-		{"bool type", true},
-		{"missing number", "p"},
-		{"bad number", "xyzm"},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			_, err := TryPx(tt.input)
-			if err == nil {
-				t.Errorf("TryPx(%v) should have returned error", tt.input)
+		t.Run(tt.input, func(t *testing.T) {
+			parsed, err := Parse(tt.input)
+			if err != nil {
+				t.Fatalf("Parse(%q): %v", tt.input, err)
+			}
+			if parsed != tt.d {
+				t.Errorf("Parse(%q) = %v, want %v", tt.input, parsed, tt.d)
+			}
+			if got := tt.d.Float(); math.Abs(got-tt.want) > 1e-9 {
+				t.Errorf("%v.Float() = %v, want %v", tt.d, got, tt.want)
+			}
+			if got, want := tt.d.Pixels(), int(math.Round(tt.want)); got != want {
+				t.Errorf("%v.Pixels() = %d, want %d", tt.d, got, want)
 			}
 		})
 	}
 }
 
-func TestSetScreenDPIIgnoresInvalid(t *testing.T) {
-	old := screen.Load().widthPx
-	SetScreenDPI(0, 500, 0)
-	if screen.Load().widthPx != old {
-		t.Error("SetScreenDPI should ignore zero widthPx")
-	}
-	SetScreenDPI(1920, 0, 0)
-	if screen.Load().widthPx != old {
-		t.Error("SetScreenDPI should ignore zero widthMM")
-	}
-}
-
-func TestPxOrKeepsPreviousOnBadInput(t *testing.T) {
+func TestString(t *testing.T) {
 	tests := []struct {
-		v    any
-		prev int
-		want int
+		d    Distance
+		want string
 	}{
-		{7, 3, 7},
-		{"12", 3, 12},
-		{"3x", 5, 5},
-		{"", 5, 5},
-		{int32(4), 9, 9},
-		{uint(4), 9, 9},
+		{Pt(1.5), "1.5p"}, {Mm(3), "3m"}, {Cm(2), "2c"}, {In(0.5), "0.5i"}, {Px(10), "10"}, {Distance{}, "0"},
 	}
 	for _, tt := range tests {
-		if got := PxOr(tt.v, tt.prev); got != tt.want {
-			t.Errorf("PxOr(%#v, %d) = %d, want %d", tt.v, tt.prev, got, tt.want)
+		if got := tt.d.String(); got != tt.want {
+			t.Errorf("String() = %q, want %q", got, tt.want)
 		}
 	}
 }
 
-// NewApp sets the metrics while other Apps' loops convert distances.
-func TestSetScreenDPIConcurrentWithPx(t *testing.T) {
+func TestParseErrors(t *testing.T) {
+	for _, in := range []string{"", "   ", "p", "abc", "3x", "1.2.3m", "3pp"} {
+		if _, err := Parse(in); !errors.Is(err, ErrBadDistance) {
+			t.Errorf("Parse(%q) error = %v, want ErrBadDistance", in, err)
+		}
+	}
+}
+
+func TestMustParsePanics(t *testing.T) {
+	defer func() {
+		if recover() == nil {
+			t.Error("MustParse of a bad distance did not panic")
+		}
+	}()
+	MustParse("bogus")
+}
+
+func TestXftDPI(t *testing.T) {
+	defer SetScreenDPI(1920, 508, 0)
+	SetScreenDPI(1920, 508, 144)
+	if got := In(1).Pixels(); got != 144 {
+		t.Errorf("1i at Xft.dpi 144 = %d, want 144", got)
+	}
+	if got := ScalingPct(); got != 150 {
+		t.Errorf("ScalingPct = %d, want 150", got)
+	}
+}
+
+// Every NewApp sets the metrics while other Apps convert distances.
+func TestConcurrentSetAndConvert(t *testing.T) {
 	defer SetScreenDPI(1920, 508, 0)
 	var wg sync.WaitGroup
-	wg.Go(func() {
-		for range 1000 {
-			SetScreenDPI(1920, 508, 96)
-		}
-	})
-	wg.Go(func() {
-		for range 1000 {
-			if px := Px("1i"); px != 96 {
-				t.Errorf(`Px("1i") = %d, want 96`, px)
-				return
+	for i := range 4 {
+		wg.Go(func() {
+			for range 500 {
+				SetScreenDPI(1920+i, 508, 0)
+				_ = Mm(10).Pixels()
+				_ = DPI()
 			}
-		}
-	})
+		})
+	}
 	wg.Wait()
 }

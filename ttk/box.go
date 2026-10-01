@@ -43,21 +43,14 @@ func (p Padding) Add(other Padding) Padding {
 	}
 }
 
-// PaddingFromAny creates a Padding by converting each value via screenunit.Px().
-// Each argument accepts int (pixels), float64, or string with unit suffix ("3p", "2m", "1c", "0.5i").
-func PaddingFromAny(left, top, right, bottom any) Padding {
-	return Padding{
-		Left:   screenunit.PxOr(left, 0),
-		Top:    screenunit.PxOr(top, 0),
-		Right:  screenunit.PxOr(right, 0),
-		Bottom: screenunit.PxOr(bottom, 0),
-	}
+// DistancePadding creates a Padding from four screen distances.
+func DistancePadding(left, top, right, bottom screenunit.Distance) Padding {
+	return Padding{Left: left.Pixels(), Top: top.Pixels(), Right: right.Pixels(), Bottom: bottom.Pixels()}
 }
 
-// UniformPaddingFromAny creates a uniform Padding by converting v via screenunit.Px().
-func UniformPaddingFromAny(v any) Padding {
-	n := screenunit.PxOr(v, 0)
-	return Padding{n, n, n, n}
+// UniformDistancePadding creates a Padding of d on every side.
+func UniformDistancePadding(d screenunit.Distance) Padding {
+	return UniformPadding(d.Pixels())
 }
 
 // ParsePadding parses a Tk padding spec of 1-4 distances ("2.25p",
@@ -65,7 +58,10 @@ func UniformPaddingFromAny(v any) Padding {
 // right/bottom values default to left/top.
 func ParsePadding(spec string) Padding {
 	f := strings.Fields(spec)
-	px := func(i int) int { return screenunit.PxOr(f[i], 0) }
+	px := func(i int) int {
+		d, _ := screenunit.Parse(f[i])
+		return d.Pixels()
+	}
 	switch len(f) {
 	case 0:
 		return Padding{}

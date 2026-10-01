@@ -9,6 +9,7 @@ import (
 	"github.com/msorc/takigo"
 	"github.com/msorc/takigo/demos/demohelper"
 	"github.com/msorc/takigo/dialog"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/widget/label"
 )
 
@@ -36,7 +37,7 @@ func main() {
 			app.Quit()
 		})
 	// after idle {.dialog2.msg configure -wraplength 4i}
-	app.DoWhenIdle(func() { d.Msg.Configure(label.WrapLength("4i")) })
+	app.DoWhenIdle(func() { d.Msg.Configure(label.WrapLength(screenunit.In(4))) })
 	// tk_dialog gives the default button the focus (tk::SetFocusGrab).
 	app.After(0, func() { app.FocusManager().SetFocus(d.Buttons[0].Window()) })
 

@@ -12,6 +12,7 @@ import (
 	"github.com/msorc/takigo/dialog"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/ttk"
 	_ "github.com/msorc/takigo/ttk/clamtheme"
 	_ "github.com/msorc/takigo/ttk/defaulttheme"
@@ -34,7 +35,7 @@ func main() {
 	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	msg := ttk.NewLabel(f, "msg",
-		ttk.LabelWrapLength("4i"),
+		ttk.LabelWrapLength(screenunit.In(4)),
 		ttk.LabelJustify(option.JustifyLeft),
 		ttk.LabelText("This demonstration shows off a nested set of themed paned windows. Their sizes can be changed by grabbing the area between each contained pane and dragging the divider."),
 	)
@@ -82,7 +83,7 @@ func main() {
 			)
 		}),
 	)
-	pack.Pack(pressBtn, pack.PadX("1.5p"), pack.PadY("3p"))
+	pack.Pack(pressBtn, pack.PadX(screenunit.Pt(1.5)), pack.PadY(screenunit.Pt(3)))
 
 	// --- Left bottom pane: Clocks ---
 	botLF := ttk.NewLabelframe(inLeft, "bot",
@@ -207,7 +208,7 @@ func main() {
 	// Pack scrollbar right, then text fills rest (matches Tcl structure).
 	pack.Pack(sb, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
 	pack.Pack(txt, pack.FillOpt(pack.FillBoth), pack.Expand(true),
-		pack.PadX("1.5p"), pack.PadY("1.5p"))
+		pack.PadX(screenunit.Pt(1.5)), pack.PadY(screenunit.Pt(1.5)))
 	pack.Pack(entryFrame, pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	pack.Pack(outer, pack.FillOpt(pack.FillBoth), pack.Expand(true))

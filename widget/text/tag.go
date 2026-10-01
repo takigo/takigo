@@ -127,102 +127,52 @@ func TagJustify(j option.Justify) TagOption {
 
 // TagOffset sets the vertical pixel displacement for text in this tag.
 // Positive values move text up (superscript); negative values move down (subscript).
-func TagOffset(pixels int) TagOption {
+func TagOffset[L screenunit.Length](pixels L) TagOption {
 	return func(cache *color.Cache, reg *font.Registry, tag *Tag) {
-		tag.Offset = pixels
-		tag.OffsetSet = true
-	}
-}
-
-// TagOffsetStr sets TagOffset from a Tk-style distance string (e.g. "4p").
-func TagOffsetStr(dist string) TagOption {
-	return func(cache *color.Cache, reg *font.Registry, tag *Tag) {
-		tag.Offset = screenunit.PxOr(dist, tag.Offset)
+		tag.Offset = screenunit.ToPixels(pixels)
 		tag.OffsetSet = true
 	}
 }
 
 // TagLMargin1 sets the left margin (pixels) for the first display line of a logical line.
-func TagLMargin1(pixels int) TagOption {
+func TagLMargin1[L screenunit.Length](pixels L) TagOption {
 	return func(cache *color.Cache, reg *font.Registry, tag *Tag) {
-		tag.LMargin1 = pixels
-	}
-}
-
-// TagLMargin1Str sets TagLMargin1 from a Tk-style distance string.
-func TagLMargin1Str(dist string) TagOption {
-	return func(cache *color.Cache, reg *font.Registry, tag *Tag) {
-		tag.LMargin1 = screenunit.PxOr(dist, tag.LMargin1)
+		tag.LMargin1 = screenunit.ToPixels(pixels)
 	}
 }
 
 // TagLMargin2 sets the left margin (pixels) for wrapped continuation display lines.
-func TagLMargin2(pixels int) TagOption {
+func TagLMargin2[L screenunit.Length](pixels L) TagOption {
 	return func(cache *color.Cache, reg *font.Registry, tag *Tag) {
-		tag.LMargin2 = pixels
-	}
-}
-
-// TagLMargin2Str sets TagLMargin2 from a Tk-style distance string.
-func TagLMargin2Str(dist string) TagOption {
-	return func(cache *color.Cache, reg *font.Registry, tag *Tag) {
-		tag.LMargin2 = screenunit.PxOr(dist, tag.LMargin2)
+		tag.LMargin2 = screenunit.ToPixels(pixels)
 	}
 }
 
 // TagRMargin sets the right margin (pixels).
-func TagRMargin(pixels int) TagOption {
+func TagRMargin[L screenunit.Length](pixels L) TagOption {
 	return func(cache *color.Cache, reg *font.Registry, tag *Tag) {
-		tag.RMargin = pixels
-	}
-}
-
-// TagRMarginStr sets TagRMargin from a Tk-style distance string.
-func TagRMarginStr(dist string) TagOption {
-	return func(cache *color.Cache, reg *font.Registry, tag *Tag) {
-		tag.RMargin = screenunit.PxOr(dist, tag.RMargin)
+		tag.RMargin = screenunit.ToPixels(pixels)
 	}
 }
 
 // TagSpacing1 sets extra space (pixels) above the first display line of a logical line.
-func TagSpacing1(pixels int) TagOption {
+func TagSpacing1[L screenunit.Length](pixels L) TagOption {
 	return func(cache *color.Cache, reg *font.Registry, tag *Tag) {
-		tag.Spacing1 = pixels
-	}
-}
-
-// TagSpacing1Str sets TagSpacing1 from a Tk-style distance string.
-func TagSpacing1Str(dist string) TagOption {
-	return func(cache *color.Cache, reg *font.Registry, tag *Tag) {
-		tag.Spacing1 = screenunit.PxOr(dist, tag.Spacing1)
+		tag.Spacing1 = screenunit.ToPixels(pixels)
 	}
 }
 
 // TagSpacing2 sets extra space (pixels) between wrapped display lines of the same logical line.
-func TagSpacing2(pixels int) TagOption {
+func TagSpacing2[L screenunit.Length](pixels L) TagOption {
 	return func(cache *color.Cache, reg *font.Registry, tag *Tag) {
-		tag.Spacing2 = pixels
-	}
-}
-
-// TagSpacing2Str sets TagSpacing2 from a Tk-style distance string.
-func TagSpacing2Str(dist string) TagOption {
-	return func(cache *color.Cache, reg *font.Registry, tag *Tag) {
-		tag.Spacing2 = screenunit.PxOr(dist, tag.Spacing2)
+		tag.Spacing2 = screenunit.ToPixels(pixels)
 	}
 }
 
 // TagSpacing3 sets extra space (pixels) below the last display line of a logical line.
-func TagSpacing3(pixels int) TagOption {
+func TagSpacing3[L screenunit.Length](pixels L) TagOption {
 	return func(cache *color.Cache, reg *font.Registry, tag *Tag) {
-		tag.Spacing3 = pixels
-	}
-}
-
-// TagSpacing3Str sets TagSpacing3 from a Tk-style distance string.
-func TagSpacing3Str(s string) TagOption {
-	return func(cache *color.Cache, reg *font.Registry, tag *Tag) {
-		tag.Spacing3 = screenunit.PxOr(s, tag.Spacing3)
+		tag.Spacing3 = screenunit.ToPixels(pixels)
 	}
 }
 

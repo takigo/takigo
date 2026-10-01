@@ -263,20 +263,23 @@ pack.Pack(label.New(app, "d", label.Text("Derived"), label.FontOpt(bigger)))
 Redefining a named font with `Define` affects widgets that look it up
 afterwards.
 
-**Distances** (padding, border widths, lengths) accept an `int` (pixels), a
-`float64`, or a Tk distance string: `"3p"` (points), `"2m"` (millimetres),
-`"1c"` (centimetres), `"0.5i"` (inches). The conversion uses the screen's real
-DPI, so `"1c"` really is about a centimetre. Options whose Go parameter type is
-`any` accept all of these; options typed `int` take pixels.
+**Distances** (padding, border widths, lengths) take a number of pixels (an
+`int` or `float64`) or a `screenunit.Distance` in Tk's other units:
+`screenunit.Pt(3)` (points, Tk's `3p`), `screenunit.Mm(2)` (millimetres),
+`screenunit.Cm(1)` (centimetres), `screenunit.In(0.5)` (inches). The
+conversion uses the screen's real DPI, so `Cm(1)` really is about a
+centimetre. Anything else, a string included, does not compile.
 
 ```go
-pack.Pack(w, pack.PadX("2m"), pack.PadY(4))
-label.WrapLength("4i")
+pack.Pack(w, pack.PadX(screenunit.Mm(2)), pack.PadY(4))
+label.WrapLength(screenunit.In(4))
 ```
 
-The `screenunit` package converts by hand when you need to:
-`screenunit.Px("1c")` (panics on a bad literal — use it for constants) and
-`screenunit.PxOr(value, fallback)` (logs and returns the fallback).
+Options typed `int` take pixels; convert a distance for them with
+`screenunit.Cm(1).Pixels()` (or `.Float()` for canvas coordinates). A distance
+that arrives as text, from a settings file say, goes through
+`screenunit.Parse("1.5p")`, which returns an error wrapping
+`screenunit.ErrBadDistance` when it is malformed.
 
 ### 3.4 Enumerated option values
 
@@ -611,7 +614,7 @@ that is larger than its content.
 ```go
 l := label.New(app, "l",
 	label.Text("A long explanation that wraps at four inches."),
-	label.WrapLength("4i"),
+	label.WrapLength(screenunit.In(4)),
 	label.JustifyOpt(option.JustifyLeft),
 	label.Relief(option.ReliefSunken),
 )
@@ -1641,7 +1644,7 @@ tw := text.New(app, "t",
 	text.FontOpt("TkFixedFont"),
 	text.UndoOpt(true),
 	text.TabWidth(4),
-	text.PadXOpt("2m"),
+	text.PadXOpt(screenunit.Mm(2)),
 )
 tw.Insert("end", "Hello\nworld\n")
 tw.Insert("1.0", ">> ")
@@ -1711,12 +1714,12 @@ tw.TagConfigure("bold", text.TagFont("TkFixedFont 12 bold"))
 tw.TagConfigure("warn", text.TagForeground("red3"), text.TagBackground("#fff0f0"))
 tw.TagConfigure("link", text.TagForeground("blue"), text.TagUnderline(true))
 tw.TagConfigure("quote",
-	text.TagLMargin1Str("12m"), text.TagLMargin2Str("12m"),
-	text.TagRMarginStr("10m"),
-	text.TagSpacing1Str("4p"),
+	text.TagLMargin1(screenunit.Mm(12)), text.TagLMargin2(screenunit.Mm(12)),
+	text.TagRMargin(screenunit.Mm(10)),
+	text.TagSpacing1(screenunit.Pt(4)),
 )
 tw.TagConfigure("center", text.TagJustify(option.JustifyCenter))
-tw.TagConfigure("super", text.TagOffsetStr("4p"))
+tw.TagConfigure("super", text.TagOffset(screenunit.Pt(4)))
 
 tw.TagAdd("bold", "1.0", "1.5")
 tw.TagRemove("bold", "1.0", "1.5")
@@ -1805,7 +1808,7 @@ them.
 
 ```go
 c := canvas.New(app, "c",
-	canvas.Width("12c"), canvas.Height("8c"),
+	canvas.Width(screenunit.Cm(12)), canvas.Height(screenunit.Cm(8)),
 	canvas.Background("white"),
 )
 pack.Pack(c, pack.FillOpt(pack.FillBoth), pack.Expand(true))
@@ -1907,6 +1910,7 @@ import (
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/widget/label"
 )
 
@@ -1921,7 +1925,7 @@ func main() {
 	pack.Pack(hint, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	c := canvas.New(app, "c",
-		canvas.Width("12c"), canvas.Height("8c"),
+		canvas.Width(screenunit.Cm(12)), canvas.Height(screenunit.Cm(8)),
 		canvas.Background("white"),
 	)
 	pack.Pack(c, pack.FillOpt(pack.FillBoth), pack.Expand(true))
@@ -2451,6 +2455,7 @@ import (
 	"github.com/msorc/takigo/geometry/grid"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/ttk"
 	_ "github.com/msorc/takigo/ttk/clamtheme"
 	_ "github.com/msorc/takigo/ttk/defaulttheme"
@@ -2570,7 +2575,7 @@ func main() {
 
 	volume := widget.NewVariable(50.0)
 	pack.Pack(ttk.NewScale(page2, "volume",
-		ttk.ScaleFrom(0), ttk.ScaleTo(100), ttk.ScaleVariable(volume), ttk.ScaleLength("5c")),
+		ttk.ScaleFrom(0), ttk.ScaleTo(100), ttk.ScaleVariable(volume), ttk.ScaleLength(screenunit.Cm(5))),
 		pack.Anchor(option.AnchorW), pack.PadY(6))
 
 	pack.Pack(ttk.NewSeparator(page2, "sep", ttk.SeparatorOrient(ttk.Horizontal)),

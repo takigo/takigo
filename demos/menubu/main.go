@@ -14,6 +14,7 @@ import (
 	"github.com/msorc/takigo/geometry/pack"
 	tkimage "github.com/msorc/takigo/image"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
@@ -83,16 +84,16 @@ func main() {
 
 	// Center label.
 	centerLabel := label.New(center, "label",
-		label.WrapLength("225p"),
+		label.WrapLength(screenunit.Pt(225)),
 		label.FontOpt("Helvetica 14"),
 		label.JustifyOpt(option.JustifyLeft),
 		label.Text("This is a demonstration of menubuttons. The \"Below\" menubutton pops its menu below the button; the \"Right\" button pops to the right, etc. There are two option menus directly below this text; one is just a standard menu and the other is a 16-color palette."),
 	)
-	pack.Pack(centerLabel, pack.SideOpt(pack.Top), pack.PadX("18p"), pack.PadY("18p"))
+	pack.Pack(centerLabel, pack.SideOpt(pack.Top), pack.PadX(screenunit.Pt(18)), pack.PadY(screenunit.Pt(18)))
 
 	// Option menu buttons frame.
 	buttons := frame.New(center, "buttons")
-	pack.Pack(buttons, pack.PadX("18p"), pack.PadY("18p"))
+	pack.Pack(buttons, pack.PadX(screenunit.Pt(18)), pack.PadY(screenunit.Pt(18)))
 
 	// Simple option menu: one / two / three.
 	optVar := widget.NewVariable("one")
@@ -109,7 +110,7 @@ func main() {
 		})
 	}
 	optMB.Menu = optMenu
-	pack.Pack(optMB, pack.SideOpt(pack.Left), pack.PadX("18p"), pack.PadY("18p"))
+	pack.Pack(optMB, pack.SideOpt(pack.Left), pack.PadX(screenunit.Pt(18)), pack.PadY(screenunit.Pt(18)))
 
 	// makeColorSwatch creates normal and selected 16x16 color swatch images.
 	makeColorSwatch := func(colorName, topBorder, bottomBorder string) (*tkimage.Photo, *tkimage.Photo) {
@@ -203,7 +204,7 @@ func main() {
 		})
 	}
 	paletteMB.Menu = paletteMenu
-	pack.Pack(paletteMB, pack.SideOpt(pack.Left), pack.PadX("18p"), pack.PadY("18p"))
+	pack.Pack(paletteMB, pack.SideOpt(pack.Left), pack.PadX(screenunit.Pt(18)), pack.PadY(screenunit.Pt(18)))
 
 	grid.ColumnConfigure(body, 1, grid.Weight(1))
 	grid.RowConfigure(body, 1, grid.Weight(1))

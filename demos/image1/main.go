@@ -13,6 +13,7 @@ import (
 	"github.com/msorc/takigo/geometry/pack"
 	tkimage "github.com/msorc/takigo/image"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
 )
@@ -31,7 +32,7 @@ func main() {
 	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	msg := label.New(f, "msg",
-		label.WrapLength("4i"),
+		label.WrapLength(screenunit.In(4)),
 		label.JustifyOpt(option.JustifyLeft),
 		label.Text("This demonstration displays two images, each in a separate label widget."),
 	)
@@ -64,7 +65,7 @@ func main() {
 			label.BorderWidth(1),
 			label.Relief(option.ReliefSunken),
 		)
-		pack.Pack(l, pack.SideOpt(pack.Top), pack.PadX(".5m"), pack.PadY(".5m"))
+		pack.Pack(l, pack.SideOpt(pack.Top), pack.PadX(screenunit.Mm(0.5)), pack.PadY(screenunit.Mm(0.5)))
 	}
 
 	app.Run()

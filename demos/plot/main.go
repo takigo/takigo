@@ -32,7 +32,7 @@ func main() {
 	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	msg := label.New(f, "msg",
-		label.WrapLength("4i"),
+		label.WrapLength(screenunit.In(4)),
 		label.JustifyOpt(option.JustifyLeft),
 		label.Text("This window displays a canvas widget containing a simple 2-dimensional plot.  You can doctor the data by dragging any of the points with mouse button 1."),
 	)
@@ -43,15 +43,15 @@ func main() {
 
 	// Canvas.
 	c := canvas.New(f, "c",
-		canvas.Width("337.5p"),
-		canvas.Height("225p"),
+		canvas.Width(screenunit.Pt(337.5)),
+		canvas.Height(screenunit.Pt(225)),
 		canvas.ReliefOpt(option.ReliefRaised),
 	)
 	pack.Pack(c, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
 
 	// Coordinates are in points, as in plot.tcl.
-	pt := func(v float64) float64 { return screenunit.Float(fmt.Sprintf("%gp", v)) }
-	lineW := screenunit.Px("1.5p")
+	pt := func(v float64) float64 { return screenunit.Pt(v).Float() }
+	lineW := screenunit.Pt(1.5).Pixels()
 	const plotFont = "Helvetica 16"
 
 	c.CreateLine([]float64{pt(75), pt(187.5), pt(300), pt(187.5)}, canvas.OutlineWidth(lineW))
@@ -83,7 +83,7 @@ func main() {
 		}
 		y := 187.5 - dy
 		c.CreateOval(pt(x-4.5), pt(y-4.5), pt(x+4.5), pt(y+4.5),
-			canvas.OutlineWidth(screenunit.Px("0.75p")), canvas.OutlineColor("black"),
+			canvas.OutlineWidth(screenunit.Pt(0.75).Pixels()), canvas.OutlineColor("black"),
 			canvas.FillColor("SkyBlue2"), canvas.Tags("point"))
 	}
 

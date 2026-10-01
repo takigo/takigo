@@ -7,6 +7,7 @@ import (
 	"github.com/msorc/takigo/geometry/grid"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/button"
 	"github.com/msorc/takigo/widget/frame"
@@ -41,14 +42,14 @@ func BuildTkDialog(w widget.Caregiver, text, bitmap string, def int,
 	d.Msg = label.New(d.Top, "msg",
 		label.JustifyOpt(option.JustifyLeft),
 		label.Text(text),
-		label.WrapLength("3i"),
+		label.WrapLength(screenunit.In(3)),
 		label.FontOpt(font.TkCaptionFont),
 	)
 	pack.Pack(d.Msg, pack.SideOpt(pack.Right), pack.Expand(true), pack.FillOpt(pack.FillBoth),
-		pack.PadX("3m"), pack.PadY("3m"))
+		pack.PadX(screenunit.Mm(3)), pack.PadY(screenunit.Mm(3)))
 	if bitmap != "" {
 		d.Bitmap = label.New(d.Top, "bitmap", label.Bitmap(bitmap))
-		pack.Pack(d.Bitmap, pack.SideOpt(pack.Left), pack.PadX("3m"), pack.PadY("3m"))
+		pack.Pack(d.Bitmap, pack.SideOpt(pack.Left), pack.PadX(screenunit.Mm(3)), pack.PadY(screenunit.Mm(3)))
 	}
 
 	for i, text := range buttons {
@@ -66,7 +67,7 @@ func BuildTkDialog(w widget.Caregiver, text, bitmap string, def int,
 			}),
 		)
 		grid.Grid(b, grid.Column(i), grid.Row(0), grid.Sticky(grid.EW),
-			grid.PadX("7.5p"), grid.PadY("3p"))
+			grid.PadX(screenunit.Pt(7.5)), grid.PadY(screenunit.Pt(3)))
 		d.Buttons = append(d.Buttons, b)
 	}
 	return d

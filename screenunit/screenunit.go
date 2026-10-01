@@ -1,18 +1,19 @@
-// Package screenunit converts Tk-style screen distances to pixels.
+// Package screenunit holds Tk's screen distances and converts them to
+// pixels.
 //
-// Tk supports distance values with unit suffixes:
-//   - bare number or no suffix → pixels (passthrough)
-//   - "p" suffix → points (1/72 inch)
-//   - "m" suffix → millimeters
-//   - "c" suffix → centimeters
-//   - "i" suffix → inches
+// A distance option takes a [Length]: a plain number of pixels, or a
+// [Distance] built with [Pt], [Mm], [Cm] or [In]:
 //
-// Examples: 10, "10", "3p", "2.5m", "1c", "0.5i"
+//	pack.PadX(4)                    // pixels
+//	pack.PadX(screenunit.Pt(1.5))   // Tk's "1.5p"
+//
+// [Parse] reads Tk's string form ("3p", "2.5m", "1c", "0.5i", "10") for
+// distances that come from a file or the user.
 package screenunit
 
 import (
+	"errors"
 	"fmt"
-	"log"
 	"math"
 	"strconv"
 	"strings"
@@ -82,120 +83,113 @@ func ScalingPct() int {
 	return scalingPct
 }
 
-// Px converts a Tk-style screen distance to pixels.
-// Accepts: int (passthrough), float64 (rounded), string ("3p", "2.5m", "1c", "4i", "10").
-// Panics on invalid input for fail-fast behavior during development.
-// Use TryPx for untrusted input that may be invalid.
-func Px(v any) int {
-	px, err := TryPx(v)
+// Distance is a screen distance in pixels, points, millimetres,
+// centimetres or inches. The zero value is zero pixels.
+type Distance struct {
+	n float64
+	// mm is the size of one unit in millimetres; 0 means n is in pixels.
+	mm   float64
+	unit byte
+}
+
+// Length is what a distance option accepts: a number of pixels or a Distance.
+type Length interface {
+	int | float64 | Distance
+}
+
+// ErrBadDistance is wrapped by the errors Parse returns.
+var ErrBadDistance = errors.New("screenunit: bad distance")
+
+// Px returns a distance of n pixels.
+func Px(n float64) Distance { return Distance{n: n} }
+
+// Pt returns a distance of n points (1/72 inch), Tk's "p" suffix.
+func Pt(n float64) Distance { return Distance{n: n, mm: 25.4 / 72.0, unit: 'p'} }
+
+// Mm returns a distance of n millimetres, Tk's "m" suffix.
+func Mm(n float64) Distance { return Distance{n: n, mm: 1, unit: 'm'} }
+
+// Cm returns a distance of n centimetres, Tk's "c" suffix.
+func Cm(n float64) Distance { return Distance{n: n, mm: 10, unit: 'c'} }
+
+// In returns a distance of n inches, Tk's "i" suffix.
+func In(n float64) Distance { return Distance{n: n, mm: 25.4, unit: 'i'} }
+
+// Float returns the distance in unrounded pixels on the current screen, as
+// Tk_GetDoublePixelsFromObj does for canvas coordinates.
+func (d Distance) Float() float64 {
+	if d.mm == 0 {
+		return d.n
+	}
+	m := screen.Load()
+	return d.n * d.mm * float64(m.widthPx) / float64(m.widthMM)
+}
+
+// Pixels returns the distance rounded to whole pixels on the current screen.
+func (d Distance) Pixels() int { return int(math.Round(d.Float())) }
+
+// String returns Tk's form of the distance, e.g. "1.5p" or "10".
+func (d Distance) String() string {
+	s := strconv.FormatFloat(d.n, 'g', -1, 64)
+	if d.mm == 0 {
+		return s
+	}
+	return s + string(d.unit)
+}
+
+// ToFloat converts a Length to unrounded pixels.
+func ToFloat[L Length](l L) float64 {
+	switch v := any(l).(type) {
+	case Distance:
+		return v.Float()
+	case int:
+		return float64(v)
+	case float64:
+		return v
+	}
+	return 0
+}
+
+// ToPixels converts a Length to whole pixels.
+func ToPixels[L Length](l L) int {
+	if n, ok := any(l).(int); ok {
+		return n
+	}
+	return int(math.Round(ToFloat(l)))
+}
+
+// MustParse is Parse for constant strings; it panics on a bad distance.
+func MustParse(s string) Distance {
+	d, err := Parse(s)
 	if err != nil {
 		panic(err)
 	}
-	return px
+	return d
 }
 
-// PxOr converts v like Px, but on invalid input logs a warning and returns
-// prev, so an option setter keeps its previous value instead of panicking.
-func PxOr(v any, prev int) int {
-	px, err := TryPx(v)
-	if err != nil {
-		log.Printf("%v; keeping %d", err, prev)
-		return prev
-	}
-	return px
-}
-
-// TryPx converts a Tk-style screen distance to pixels, returning an error
-// on invalid input instead of panicking. Use this for user-provided or
-// untrusted input (config files, command-line arguments, etc.).
-func TryPx(v any) (int, error) {
-	switch val := v.(type) {
-	case int:
-		return val, nil
-	case float64:
-		return int(math.Round(val)), nil
-	case string:
-		return tryParseDistance(val)
-	default:
-		return 0, fmt.Errorf("screenunit: unsupported type %T", v)
-	}
-}
-
-// Float converts a Tk-style screen distance to unrounded pixels, as
-// Tk_GetDoublePixelsFromObj does for canvas coordinates. Panics on invalid
-// input like Px.
-func Float(v any) float64 {
-	switch val := v.(type) {
-	case int:
-		return float64(val)
-	case float64:
-		return val
-	case string:
-		f, err := parseDistance(val)
-		if err != nil {
-			panic(err)
-		}
-		return f
-	default:
-		panic(fmt.Errorf("screenunit: unsupported type %T", v))
-	}
-}
-
-// tryParseDistance parses a Tk-style distance string into rounded pixels.
-func tryParseDistance(s string) (int, error) {
-	f, err := parseDistance(s)
-	if err != nil {
-		return 0, err
-	}
-	return int(math.Round(f)), nil
-}
-
-// parseDistance parses a Tk-style distance string into unrounded pixels.
-func parseDistance(s string) (float64, error) {
+// Parse reads a Tk distance: a number, optionally followed by p (points),
+// m (millimetres), c (centimetres) or i (inches). A bare number is pixels.
+// Its errors wrap ErrBadDistance.
+func Parse(s string) (Distance, error) {
 	s = strings.TrimSpace(s)
 	if s == "" {
-		return 0, fmt.Errorf("screenunit: empty string")
+		return Distance{}, fmt.Errorf("%w: empty string", ErrBadDistance)
 	}
-
-	// Check for unit suffix.
-	last := s[len(s)-1]
-	var numStr string
-	var multiplier float64
-
-	switch last {
-	case 'p': // points (1/72 inch)
-		numStr = s[:len(s)-1]
-		multiplier = 25.4 / 72.0
-	case 'm': // millimeters
-		numStr = s[:len(s)-1]
-		multiplier = 1.0
-	case 'c': // centimeters
-		numStr = s[:len(s)-1]
-		multiplier = 10.0
-	case 'i': // inches
-		numStr = s[:len(s)-1]
-		multiplier = 25.4
-	default:
-		// Bare number — pixels.
-		val, err := strconv.ParseFloat(s, 64)
-		if err != nil {
-			return 0, fmt.Errorf("screenunit: invalid distance %q: %v", s, err)
-		}
-		return val, nil
+	unit := Px
+	num := s
+	switch s[len(s)-1] {
+	case 'p':
+		unit, num = Pt, s[:len(s)-1]
+	case 'm':
+		unit, num = Mm, s[:len(s)-1]
+	case 'c':
+		unit, num = Cm, s[:len(s)-1]
+	case 'i':
+		unit, num = In, s[:len(s)-1]
 	}
-
-	numStr = strings.TrimSpace(numStr)
-	if numStr == "" {
-		return 0, fmt.Errorf("screenunit: missing number in %q", s)
-	}
-
-	val, err := strconv.ParseFloat(numStr, 64)
+	n, err := strconv.ParseFloat(strings.TrimSpace(num), 64)
 	if err != nil {
-		return 0, fmt.Errorf("screenunit: invalid number in %q: %v", s, err)
+		return Distance{}, fmt.Errorf("%w: %q", ErrBadDistance, s)
 	}
-
-	// Convert: value_in_mm * pixels_per_mm
-	// pixels_per_mm = widthPx / widthMM
-	m := screen.Load()
-	return val * multiplier * float64(m.widthPx) / float64(m.widthMM), nil
+	return unit(n), nil
 }

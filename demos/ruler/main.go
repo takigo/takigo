@@ -26,7 +26,7 @@ var (
 	tabSize, gridPx                              float64
 )
 
-func cm(v float64) float64 { return screenunit.Float(fmt.Sprintf("%gc", v)) }
+func cm(v float64) float64 { return screenunit.Cm(v).Float() }
 
 func main() {
 	app, err := takigo.NewApp(takigo.Title("Ruler Demonstration"),
@@ -42,7 +42,7 @@ func main() {
 	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	msg := label.New(f, "msg",
-		label.WrapLength("5i"),
+		label.WrapLength(screenunit.In(5)),
 		label.JustifyOpt(option.JustifyLeft),
 		label.Text("This canvas widget shows a mock-up of a ruler.  You can create tab stops by dragging them out of the well to the right of the ruler.  You can also drag existing tab stops.  If you drag a tab stop far enough up or down so that it turns dim, it will be deleted when you release the mouse button."),
 	)
@@ -56,8 +56,8 @@ func main() {
 	tabSize, gridPx = cm(.2), cm(.25)
 
 	c := canvas.New(f, "c",
-		canvas.Width("14.8c"),
-		canvas.Height("2.5c"),
+		canvas.Width(screenunit.Cm(14.8)),
+		canvas.Height(screenunit.Cm(2.5)),
 	)
 	pack.Pack(c, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
 
@@ -88,7 +88,7 @@ func main() {
 	// at [winfo pixels 13.5c], [winfo pixels .65c].
 	c.CreateRectangle(cm(13.2), cm(1), cm(13.8), cm(.5),
 		canvas.FillColor(widget.DefBackground), canvas.Tags("well"))
-	mkTab(float64(screenunit.Px("13.5c")), float64(screenunit.Px(".65c")), "well", "welltab")
+	mkTab(float64(screenunit.Cm(13.5).Pixels()), float64(screenunit.Cm(0.65).Pixels()), "well", "welltab")
 
 	// Drag state.
 	activeID := int64(0) // 0 = nothing being dragged

@@ -131,8 +131,8 @@ func ValidateCmdOpt(fn func(string) bool) EntryOption {
 }
 
 // BorderWidth sets the border width.
-func BorderWidth(w any) EntryOption {
-	return func(e *Entry) { e.BorderWidth = screenunit.PxOr(w, e.BorderWidth) }
+func BorderWidth[L screenunit.Length](w L) EntryOption {
+	return func(e *Entry) { e.BorderWidth = screenunit.ToPixels(w) }
 }
 
 // ScrollCommand sets the callback for scrollbar notification.

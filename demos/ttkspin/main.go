@@ -12,6 +12,7 @@ import (
 	"github.com/msorc/takigo/geometry"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/ttk"
 	_ "github.com/msorc/takigo/ttk/clamtheme"
 	_ "github.com/msorc/takigo/ttk/defaulttheme"
@@ -32,7 +33,7 @@ func main() {
 	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	msg := ttk.NewLabel(f, "msg",
-		ttk.LabelWrapLength("5i"),
+		ttk.LabelWrapLength(screenunit.In(5)),
 		ttk.LabelJustify(option.JustifyLeft),
 		ttk.LabelText("Three different themed spin-boxes are displayed below.  You can add characters by pointing, clicking and typing.  The normal Motif editing characters are supported, along with many Emacs bindings.  For example, Backspace and Control-h delete the character to the left of the insertion cursor and Delete and Control-d delete the chararacter to the right of the insertion cursor.  For values that are too large to fit in the window all at once, you can scan through the value by dragging with mouse button2 pressed.  Note that the first spin-box will only permit you to type in integers, and the third selects from a list of Australian cities."),
 	)
@@ -81,7 +82,7 @@ func main() {
 	s3.Set("Canberra")
 
 	pack.Pack(geometry.Group{s1, s2, s3}, pack.SideOpt(pack.Top),
-		pack.PadY("3p"), pack.PadX("7.5p"))
+		pack.PadY(screenunit.Pt(3)), pack.PadX(screenunit.Pt(7.5)))
 
 	app.Run()
 }

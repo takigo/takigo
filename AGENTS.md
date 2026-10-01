@@ -200,11 +200,14 @@ package maps: several Apps may run at once on different goroutines
   the widget name (`ttk.ButtonText`, `ttk.ButtonCommand`,
   `ttk.ButtonStyleOpt`).
 
-- **Distances.** Tk accepts `"3p"`, `"2m"`, `"1c"`, `"0.5i"`, or a bare
-  number. In option setters use `screenunit.PxOr(value, field)` (accepts
-  `int`, `float64`, `string`): on a bad distance it logs and keeps the
-  previous value. `screenunit.Px` panics and is for constant literals such
-  as `Px("3p")`. `screenunit.SetScreenDPI`
+- **Distances.** A distance option is generic over `screenunit.Length`
+  (`int | float64 | screenunit.Distance`):
+  `func PadX[L screenunit.Length](p L) ButtonOption`, storing
+  `screenunit.ToPixels(p)`. Callers pass pixels or `screenunit.Pt(3)`,
+  `Mm(2)`, `Cm(1)`, `In(0.5)` (Tk's `3p`, `2m`, `1c`, `0.5i`); a string
+  does not compile. In library code write constants as
+  `screenunit.Pt(3).Pixels()`. `screenunit.Parse` reads Tk's string form
+  and returns an error wrapping `ErrBadDistance`. `screenunit.SetScreenDPI`
   is called once in `NewApp` from X11 screen metrics + `Xft.dpi`.
 
 - **Event handling.** In a widget's `bindings.go` write `bindXxx(w, app)`

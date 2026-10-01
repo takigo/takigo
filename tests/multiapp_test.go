@@ -15,6 +15,7 @@ import (
 	"github.com/msorc/takigo/internal/testutil"
 	"github.com/msorc/takigo/internal/xlib"
 	"github.com/msorc/takigo/platform"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/ttk"
 	_ "github.com/msorc/takigo/ttk/clamtheme"
 	_ "github.com/msorc/takigo/ttk/defaulttheme"
@@ -58,7 +59,7 @@ func runBusyApp(t *testing.T, n int) {
 	pack.Pack(geometry.Group{outer}, pack.Expand(true))
 	gridded := frame.New(outer, "gridded")
 	placed := frame.New(outer, "placed", frame.Width(120), frame.Height(60))
-	pack.Pack(geometry.Group{gridded, placed}, pack.PadX("1m"))
+	pack.Pack(geometry.Group{gridded, placed}, pack.PadX(screenunit.Mm(1)))
 
 	lbl := label.New(gridded, "l", label.Text("classic"))
 	btn := button.New(gridded, "b", button.Text("button"))
@@ -83,7 +84,7 @@ func runBusyApp(t *testing.T, n int) {
 		tbtn.Configure(ttk.ButtonText(text), ttk.ButtonStyleOpt("App"+strconv.Itoa(n)+"Round"+text+".TButton"))
 		place.Place(inner, place.X(4+rounds), place.Y(4))
 		pack.Forget(placed)
-		pack.Pack(geometry.Group{placed}, pack.PadX("1m"))
+		pack.Pack(geometry.Group{placed}, pack.PadX(screenunit.Mm(1)))
 		a.UpdateIdleTasks()
 
 		m.Post(10, 10)

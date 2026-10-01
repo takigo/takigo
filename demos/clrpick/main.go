@@ -12,6 +12,7 @@ import (
 	"github.com/msorc/takigo/geometry"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/widget/button"
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
@@ -32,7 +33,7 @@ func main() {
 	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	msg := label.New(f, "msg",
-		label.WrapLength("4i"),
+		label.WrapLength(screenunit.In(4)),
 		label.JustifyOpt(option.JustifyLeft),
 		label.Text("Press the buttons below to choose the foreground and background colors for the widgets in this window."),
 	)
@@ -80,7 +81,7 @@ func main() {
 		}
 	}
 
-	pack.Pack(geometry.Group{backBtn, foreBtn}, pack.SideOpt(pack.Top), pack.Anchor(option.AnchorCenter), pack.PadY("2m"))
+	pack.Pack(geometry.Group{backBtn, foreBtn}, pack.SideOpt(pack.Top), pack.Anchor(option.AnchorCenter), pack.PadY(screenunit.Mm(2)))
 
 	app.Run()
 }

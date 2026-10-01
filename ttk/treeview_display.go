@@ -183,11 +183,11 @@ func (tv *Treeview) Display() {
 				rowBg = stripeBg
 			}
 			parcelX := colX + depth*tv.indent
-			indSize := screenunit.Px("9p")
+			indSize := screenunit.Pt(9).Pixels()
 			if indSize%2 == 0 {
 				indSize--
 			}
-			ml, mt, mr, mb := screenunit.Px("1.5p"), screenunit.Px("1.5p"), screenunit.Px("3p"), screenunit.Px("1.5p")
+			ml, mt, mr, mb := screenunit.Pt(1.5).Pixels(), screenunit.Pt(1.5).Pixels(), screenunit.Pt(3).Pixels(), screenunit.Pt(1.5).Pixels()
 			if len(item.Children) > 0 {
 				// Unfilled node: its requested size, centred in the row.
 				boxY := rowY + (tv.rowHeight-(indSize+mt+mb))/2

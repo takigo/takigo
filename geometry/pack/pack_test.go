@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/window"
 )
 
@@ -261,18 +262,18 @@ func TestYExpansion(t *testing.T) {
 	}
 }
 
-func TestPadOptionsKeepPreviousOnBadDistance(t *testing.T) {
-	c := packConfig{padLeft: 4, padX: 8, padTop: 1, padY: 3}
-	PadX("3x")(&c)
+func TestPadOptionsTakeLengths(t *testing.T) {
+	var c packConfig
+	PadX(4)(&c)
 	if c.padLeft != 4 || c.padX != 8 {
-		t.Errorf("PadX(bad) changed padding to %d/%d", c.padLeft, c.padX)
+		t.Errorf("PadX(4) = left %d total %d, want 4 and 8", c.padLeft, c.padX)
 	}
-	PadXPair(2, "bogus")(&c)
-	if c.padLeft != 2 || c.padX != 6 {
-		t.Errorf("PadXPair(2, bad) = left %d total %d, want 2 and 6 (right kept at 4)", c.padLeft, c.padX)
+	PadXPair(2, screenunit.Px(5))(&c)
+	if c.padLeft != 2 || c.padX != 7 {
+		t.Errorf("PadXPair(2, 5px) = left %d total %d, want 2 and 7", c.padLeft, c.padX)
 	}
-	PadYPair("bogus", 5)(&c)
+	PadYPair(screenunit.Px(1.4), 5)(&c)
 	if c.padTop != 1 || c.padY != 6 {
-		t.Errorf("PadYPair(bad, 5) = top %d total %d, want 1 and 6", c.padTop, c.padY)
+		t.Errorf("PadYPair(1.4px, 5) = top %d total %d, want 1 and 6", c.padTop, c.padY)
 	}
 }

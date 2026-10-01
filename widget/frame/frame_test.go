@@ -128,7 +128,7 @@ func TestFrameConfigureOptions(t *testing.T) {
 	arranged := 0
 	f.Win.OnConfigure(func() { arranged++ })
 
-	f.Configure(BorderWidth(2), HighlightThickness("3"))
+	f.Configure(BorderWidth(2), HighlightThickness(3))
 	if f.Win.InternalBorderLeft != 5 || arranged != 1 {
 		t.Errorf("InternalBorderLeft = %d, arranged = %d, want 5, 1", f.Win.InternalBorderLeft, arranged)
 	}

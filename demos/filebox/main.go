@@ -13,6 +13,7 @@ import (
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/geometry/place"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/ttk"
 	_ "github.com/msorc/takigo/ttk/clamtheme"
 	_ "github.com/msorc/takigo/ttk/defaulttheme"
@@ -38,7 +39,7 @@ func main() {
 	place.Place(bg, place.X(0), place.Y(0), place.RelWidth(1), place.RelHeight(1))
 
 	msg := ttk.NewLabel(f, "msg",
-		ttk.LabelWrapLength("4i"),
+		ttk.LabelWrapLength(screenunit.In(4)),
 		ttk.LabelJustify(option.JustifyLeft),
 		ttk.LabelText("Enter a file name in the entry box or click on the \"Browse\" buttons to select a file name using the file selection dialog."),
 	)
@@ -58,7 +59,7 @@ func main() {
 
 	// Grid frame for label + entry + browse button rows.
 	form := ttk.NewFrame(f, "f")
-	pack.Pack(form, pack.FillOpt(pack.FillX), pack.PadX("1c"))
+	pack.Pack(form, pack.FillOpt(pack.FillX), pack.PadX(screenunit.Cm(1)))
 
 	rows := []struct {
 		label string
@@ -104,9 +105,9 @@ func main() {
 			}
 		}
 
-		grid.Grid(l, grid.Row(row), grid.Column(0), grid.Sticky(grid.StickW), grid.PadY("3p"))
-		grid.Grid(e, grid.Row(row), grid.Column(1), grid.Sticky(grid.EW), grid.PadX("3p"), grid.PadY("3p"))
-		grid.Grid(b, grid.Row(row), grid.Column(2), grid.Sticky(grid.StickW), grid.PadY("3p"))
+		grid.Grid(l, grid.Row(row), grid.Column(0), grid.Sticky(grid.StickW), grid.PadY(screenunit.Pt(3)))
+		grid.Grid(e, grid.Row(row), grid.Column(1), grid.Sticky(grid.EW), grid.PadX(screenunit.Pt(3)), grid.PadY(screenunit.Pt(3)))
+		grid.Grid(b, grid.Row(row), grid.Column(2), grid.Sticky(grid.StickW), grid.PadY(screenunit.Pt(3)))
 	}
 
 	grid.ColumnConfigure(form, 1, grid.Weight(1))

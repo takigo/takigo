@@ -16,6 +16,7 @@ import (
 	"github.com/msorc/takigo/geometry/pack"
 	tkimage "github.com/msorc/takigo/image"
 	"github.com/msorc/takigo/platform"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/button"
 	"github.com/msorc/takigo/widget/frame"
@@ -65,25 +66,25 @@ func main() {
 		)
 	}
 	iconBtn := button.New(f, "i", iconBtnOpts...)
-	pack.Pack(iconBtn, pack.FillOpt(pack.FillX), pack.PadX("3p"))
+	pack.Pack(iconBtn, pack.FillOpt(pack.FillX), pack.PadX(screenunit.Pt(3)))
 
 	badge3Btn := button.New(f, "b",
 		button.Text("Set Badge to 3"),
 		button.Command(badgeMsg),
 	)
-	pack.Pack(badge3Btn, pack.FillOpt(pack.FillX), pack.PadX("3p"))
+	pack.Pack(badge3Btn, pack.FillOpt(pack.FillX), pack.PadX(screenunit.Pt(3)))
 
 	badge11Btn := button.New(f, "e",
 		button.Text("Set Badge to 11"),
 		button.Command(badgeMsg),
 	)
-	pack.Pack(badge11Btn, pack.FillOpt(pack.FillX), pack.PadX("3p"))
+	pack.Pack(badge11Btn, pack.FillOpt(pack.FillX), pack.PadX(screenunit.Pt(3)))
 
 	resetBadgeBtn := button.New(f, "f",
 		button.Text("Reset Badge"),
 		button.Command(badgeMsg),
 	)
-	pack.Pack(resetBadgeBtn, pack.FillOpt(pack.FillX), pack.PadX("3p"))
+	pack.Pack(resetBadgeBtn, pack.FillOpt(pack.FillX), pack.PadX(screenunit.Pt(3)))
 
 	app.Run()
 }

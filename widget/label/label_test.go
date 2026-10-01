@@ -186,7 +186,7 @@ func TestLabelConfigure(t *testing.T) {
 	l.Base.Font = &mockFont{metrics: font.Metrics{MaxWidth: 10, Ascent: 8, Descent: 2}}
 	l.Configure(Text("abc"))
 	short := l.Win.ReqWidth
-	l.Configure(Text("abcdef"), BorderWidth("2"))
+	l.Configure(Text("abcdef"), BorderWidth(2))
 	if l.Win.ReqWidth != short+30+4 {
 		t.Errorf("ReqWidth = %d, want %d", l.Win.ReqWidth, short+30+4)
 	}

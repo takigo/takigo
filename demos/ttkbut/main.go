@@ -13,6 +13,7 @@ import (
 	"github.com/msorc/takigo/geometry/grid"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/ttk"
 	_ "github.com/msorc/takigo/ttk/alttheme"
 	_ "github.com/msorc/takigo/ttk/clamtheme"
@@ -42,7 +43,7 @@ func main() {
 	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	msg := ttk.NewLabel(f, "msg",
-		ttk.LabelWrapLength("4i"),
+		ttk.LabelWrapLength(screenunit.In(4)),
 		ttk.LabelJustify(option.JustifyLeft),
 		ttk.LabelText("Ttk is the new Tk themed widget set. This is a Ttk themed label, "+
 			"and below are four groups of Ttk widgets in Ttk labelframes. "+
@@ -108,7 +109,7 @@ func main() {
 				}
 			}),
 		)
-		pack.Pack(btn, pack.PadY("1.5p"))
+		pack.Pack(btn, pack.PadY(screenunit.Pt(1.5)))
 		ttkWidgets = append(ttkWidgets, ttkRef{&btn.TtkWidget, btn.Display})
 	}
 
@@ -127,15 +128,15 @@ func main() {
 		ttk.CheckbuttonVar(tomato),
 		ttk.CheckbuttonAlternate(),
 	)
-	pack.Pack(c1, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY("1.5p"))
-	pack.Pack(c2, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY("1.5p"))
+	pack.Pack(c1, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(screenunit.Pt(1.5)))
+	pack.Pack(c2, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(screenunit.Pt(1.5)))
 	ttkWidgets = append(ttkWidgets,
 		ttkRef{&c1.TtkWidget, c1.Display},
 		ttkRef{&c2.TtkWidget, c2.Display},
 	)
 
 	sep := ttk.NewSeparator(chkFrame, "sep")
-	pack.Pack(sep, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY("1.5p"))
+	pack.Pack(sep, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(screenunit.Pt(1.5)))
 	ttkWidgets = append(ttkWidgets, ttkRef{&sep.TtkWidget, sep.TtkWidget.Display})
 
 	c3 := ttk.NewCheckbutton(chkFrame, "c3",
@@ -148,8 +149,8 @@ func main() {
 		ttk.CheckbuttonVar(oregano),
 		ttk.CheckbuttonAlternate(),
 	)
-	pack.Pack(c3, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY("1.5p"))
-	pack.Pack(c4, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY("1.5p"))
+	pack.Pack(c3, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(screenunit.Pt(1.5)))
+	pack.Pack(c4, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(screenunit.Pt(1.5)))
 	ttkWidgets = append(ttkWidgets,
 		ttkRef{&c3.TtkWidget, c3.Display},
 		ttkRef{&c4.TtkWidget, c4.Display},
@@ -174,7 +175,7 @@ func main() {
 			ttk.RadiobuttonAlternate(),
 		)
 		pack.Pack(r, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX),
-			pack.PadX("3p"), pack.PadY("1.5p"))
+			pack.PadX(screenunit.Pt(3)), pack.PadY(screenunit.Pt(1.5)))
 		ttkWidgets = append(ttkWidgets, ttkRef{&r.TtkWidget, r.Display})
 	}
 
@@ -218,19 +219,19 @@ func main() {
 			}
 		}),
 	)
-	pack.Pack(togSwitch, pack.SideOpt(pack.Right), pack.PadX("3p"), pack.PadY("1.5p"))
-	pack.Pack(togLabel, pack.SideOpt(pack.Left), pack.PadX("3p"), pack.PadY("1.5p"))
+	pack.Pack(togSwitch, pack.SideOpt(pack.Right), pack.PadX(screenunit.Pt(3)), pack.PadY(screenunit.Pt(1.5)))
+	pack.Pack(togLabel, pack.SideOpt(pack.Left), pack.PadX(screenunit.Pt(3)), pack.PadY(screenunit.Pt(1.5)))
 
 	// -- Grid layout: buttons span 2 rows; toggle in row 1 cols 1-2 --
 	nwe := grid.StickN | grid.StickW | grid.StickE
 	grid.Grid(btnFrame, grid.Row(0), grid.Column(0), grid.RowSpan(2),
-		grid.Sticky(nwe), grid.PadX("3p"), grid.PadY("1.5p"))
+		grid.Sticky(nwe), grid.PadX(screenunit.Pt(3)), grid.PadY(screenunit.Pt(1.5)))
 	grid.Grid(chkFrame, grid.Row(0), grid.Column(1),
-		grid.Sticky(nwe), grid.PadX("3p"), grid.PadY("1.5p"))
+		grid.Sticky(nwe), grid.PadX(screenunit.Pt(3)), grid.PadY(screenunit.Pt(1.5)))
 	grid.Grid(radFrame, grid.Row(0), grid.Column(2),
-		grid.Sticky(nwe), grid.PadX("3p"), grid.PadY("1.5p"))
+		grid.Sticky(nwe), grid.PadX(screenunit.Pt(3)), grid.PadY(screenunit.Pt(1.5)))
 	grid.Grid(togFrame, grid.Row(1), grid.Column(1), grid.ColumnSpan(2),
-		grid.Sticky(nwe), grid.PadX("3p"), grid.PadY("1.5p"))
+		grid.Sticky(nwe), grid.PadX(screenunit.Pt(3)), grid.PadY(screenunit.Pt(1.5)))
 
 	// Equal column weights with uniform sizing.
 	grid.ColumnConfigure(container, 0, grid.Weight(1), grid.Uniform("yes"))

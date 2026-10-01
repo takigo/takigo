@@ -14,6 +14,7 @@ import (
 	"github.com/msorc/takigo/geometry/pack"
 	tkimage "github.com/msorc/takigo/image"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
 )
@@ -45,7 +46,7 @@ func main() {
 	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	msg := label.New(f, "msg",
-		label.WrapLength("4i"),
+		label.WrapLength(screenunit.In(4)),
 		label.JustifyOpt(option.JustifyLeft),
 		label.Text("This window displays all of Tk's built-in bitmaps, along with the names you can use for them in Tcl scripts."),
 	)
@@ -82,7 +83,7 @@ func main() {
 
 	for i := range 5 {
 		col := frame.New(row0, fmt.Sprintf("%d", i))
-		pack.Pack(col, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.PadY(".25c"), pack.PadX(".25c"))
+		pack.Pack(col, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.PadY(screenunit.Cm(0.25)), pack.PadX(screenunit.Cm(0.25)))
 		nl := label.New(col, "label", label.Text(bitmapNames[i]), label.Width(9))
 		var il *label.Label
 		if photos[i] != nil {
@@ -101,7 +102,7 @@ func main() {
 	for i := range 5 {
 		idx := i + 5
 		col := frame.New(row1, fmt.Sprintf("%d", i))
-		pack.Pack(col, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.PadY(".25c"), pack.PadX(".25c"))
+		pack.Pack(col, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.PadY(screenunit.Cm(0.25)), pack.PadX(screenunit.Cm(0.25)))
 		nl := label.New(col, "label", label.Text(bitmapNames[idx]), label.Width(9))
 		var il *label.Label
 		if photos[idx] != nil {

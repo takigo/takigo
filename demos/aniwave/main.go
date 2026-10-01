@@ -42,7 +42,7 @@ func main() {
 	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	msg := label.New(f, "msg",
-		label.WrapLength("4i"),
+		label.WrapLength(screenunit.In(4)),
 		label.JustifyOpt(option.JustifyLeft),
 		label.Text("This demonstration contains a canvas widget with a line item inside it. The animation routines work by adjusting the coordinates list of the line; a trace on a variable is used so updates to the variable result in a change of position of the line."),
 	)
@@ -53,10 +53,10 @@ func main() {
 
 	c := canvas.New(f, "c",
 		canvas.Background("black"),
-		canvas.Width(screenunit.Px("225p")),
-		canvas.Height(screenunit.Px("150p")),
+		canvas.Width(screenunit.Pt(225).Pixels()),
+		canvas.Height(screenunit.Pt(150).Pixels()),
 	)
-	pack.Pack(c, pack.PadX("7.5p"), pack.PadY("7.5p"), pack.Expand(true))
+	pack.Pack(c, pack.PadX(screenunit.Pt(7.5)), pack.PadY(screenunit.Pt(7.5)), pack.Expand(true))
 
 	// Build initial wave coordinates matching Tcl:
 	// x from -10 to 300 step 5, each y=100, then spike at end (305,0) (310,200).
@@ -67,7 +67,7 @@ func main() {
 	waveCoords = append(waveCoords, 305, 0, 310, 200)
 
 	waveID := c.CreateLine(scaledCoords(waveCoords),
-		canvas.OutlineColor("green"), canvas.OutlineWidth(screenunit.Px("0.75p")), canvas.Smooth(true),
+		canvas.OutlineColor("green"), canvas.OutlineWidth(screenunit.Pt(0.75).Pixels()), canvas.Smooth(true),
 		canvas.Tags("wave"))
 
 	direction := "left"

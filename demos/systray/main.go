@@ -13,6 +13,7 @@ import (
 	"github.com/msorc/takigo/dialog"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/systray"
 	"github.com/msorc/takigo/widget/button"
 	"github.com/msorc/takigo/widget/frame"
@@ -35,7 +36,7 @@ func main() {
 	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	msg := label.New(f, "msg",
-		label.WrapLength("4i"),
+		label.WrapLength(screenunit.In(4)),
 		label.JustifyOpt(option.JustifyLeft),
 		label.Text("This demonstration showcases the tk systray and tk sysnotify commands. Running this demo creates the systray icon. Clicking the buttons below modifies and destroys the icon and displays the notification."),
 	)
@@ -104,9 +105,9 @@ func main() {
 		}),
 	)
 
-	pack.Pack(createBtn, pack.SideOpt(pack.Left), pack.Expand(true), pack.FillOpt(pack.FillX), pack.PadX("3p"), pack.PadY("3p"))
-	pack.Pack(modifyBtn, pack.SideOpt(pack.Left), pack.Expand(true), pack.FillOpt(pack.FillX), pack.PadX("3p"), pack.PadY("3p"))
-	pack.Pack(destroyBtn, pack.SideOpt(pack.Left), pack.Expand(true), pack.FillOpt(pack.FillX), pack.PadX("3p"), pack.PadY("3p"))
+	pack.Pack(createBtn, pack.SideOpt(pack.Left), pack.Expand(true), pack.FillOpt(pack.FillX), pack.PadX(screenunit.Pt(3)), pack.PadY(screenunit.Pt(3)))
+	pack.Pack(modifyBtn, pack.SideOpt(pack.Left), pack.Expand(true), pack.FillOpt(pack.FillX), pack.PadX(screenunit.Pt(3)), pack.PadY(screenunit.Pt(3)))
+	pack.Pack(destroyBtn, pack.SideOpt(pack.Left), pack.Expand(true), pack.FillOpt(pack.FillX), pack.PadX(screenunit.Pt(3)), pack.PadY(screenunit.Pt(3)))
 
 	notifyBtn := button.New(f, "b3",
 		button.Text("Display Notification"),
@@ -119,8 +120,8 @@ func main() {
 		}),
 	)
 
-	pack.Pack(lf, pack.FillOpt(pack.FillX), pack.PadX("3p"), pack.PadY("3p"))
-	pack.Pack(notifyBtn, pack.FillOpt(pack.FillX), pack.PadX("3p"), pack.PadY("3p"))
+	pack.Pack(lf, pack.FillOpt(pack.FillX), pack.PadX(screenunit.Pt(3)), pack.PadY(screenunit.Pt(3)))
+	pack.Pack(notifyBtn, pack.FillOpt(pack.FillX), pack.PadX(screenunit.Pt(3)), pack.PadY(screenunit.Pt(3)))
 
 	// Auto-create systray icon at startup (matching Tcl's `create` call at end of script).
 	app.After(0, func() { create() })

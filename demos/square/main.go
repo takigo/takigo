@@ -11,6 +11,7 @@ import (
 	"github.com/msorc/takigo/event"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/option"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
 	"github.com/msorc/takigo/widget/square"
@@ -30,7 +31,7 @@ func main() {
 	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	msg := label.New(f, "msg",
-		label.WrapLength("4i"),
+		label.WrapLength(screenunit.In(4)),
 		label.JustifyOpt(option.JustifyLeft),
 		label.Text("This window contains a square widget. You can drag the "+
 			"colored square around with the mouse (button 1). "+
@@ -50,7 +51,7 @@ func main() {
 		square.Relief(option.ReliefRaised),
 	)
 	pack.Pack(s1, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
-		pack.Expand(true), pack.PadX("7p"), pack.PadY("7p"))
+		pack.Expand(true), pack.PadX(screenunit.Pt(7)), pack.PadY(screenunit.Pt(7)))
 
 	// Second square with different colors.
 	s2 := square.New(f, "s2",
@@ -63,7 +64,7 @@ func main() {
 		square.Relief(option.ReliefSunken),
 	)
 	pack.Pack(s2, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth),
-		pack.Expand(true), pack.PadX("7p"), pack.PadY("7p"))
+		pack.Expand(true), pack.PadX(screenunit.Pt(7)), pack.PadY(screenunit.Pt(7)))
 
 	// Bind drag interaction for both squares.
 	for _, sq := range []*square.Square{s1, s2} {

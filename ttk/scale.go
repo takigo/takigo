@@ -48,8 +48,8 @@ func ScaleTo(v float64) ScaleOption { return func(s *Scale) { s.To = v } }
 func ScaleValue(v float64) ScaleOption { return func(s *Scale) { s.Value = v } }
 
 // ScaleLength sets -length (a Tk distance).
-func ScaleLength(v any) ScaleOption {
-	return func(s *Scale) { s.Length = screenunit.PxOr(v, s.Length) }
+func ScaleLength[L screenunit.Length](v L) ScaleOption {
+	return func(s *Scale) { s.Length = screenunit.ToPixels(v) }
 }
 
 // ScaleCommand sets -command; it receives the new value.
@@ -247,7 +247,7 @@ func (s *Scale) Display() {
 	d.FillRectangle(pix, gc, 0, 0, uint(width), uint(height))
 
 	t := s.troughBox()
-	groove := LookupInt(st, "-groovewidth", s.State, screenunit.Px("3p"))
+	groove := LookupInt(st, "-groovewidth", s.State, screenunit.Pt(3).Pixels())
 	bw := LookupInt(st, "-troughborderwidth", s.State, 1)
 	g := t
 	if groove > 0 && groove < t.Height && groove < t.Width {

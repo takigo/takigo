@@ -6,6 +6,7 @@ import (
 	"github.com/msorc/takigo/draw"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"
+	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/ttk"
 	_ "github.com/msorc/takigo/ttk/defaulttheme" // ensure default theme init runs first
 )
@@ -181,7 +182,7 @@ func init() {
 	// TCheckbutton style — clam-style flat indicators.
 	// Matches Tcl clam: white fill with light blue (#5895bc) alternate.
 	tcheckbutton := theme.GetStyle("TCheckbutton")
-	tcheckbutton.Defaults["-padding"] = "1.5p"
+	tcheckbutton.Defaults["-padding"] = screenunit.Pt(1.5)
 	tcheckbutton.Defaults["-indicatormargin"] = "0.75p 0.75p 3p 0.75p"
 	tcheckbutton.Defaults["-upperbordercolor"] = darkestColor
 	tcheckbutton.Defaults["-lowerbordercolor"] = darkColor
@@ -199,7 +200,7 @@ func init() {
 
 	// TRadiobutton style — clam-style flat indicators.
 	tradiobutton := theme.GetStyle("TRadiobutton")
-	tradiobutton.Defaults["-padding"] = "1.5p"
+	tradiobutton.Defaults["-padding"] = screenunit.Pt(1.5)
 	tradiobutton.Defaults["-indicatormargin"] = "0.75p 0.75p 3p 0.75p"
 	tradiobutton.Defaults["-upperbordercolor"] = darkestColor
 	tradiobutton.Defaults["-lowerbordercolor"] = darkColor

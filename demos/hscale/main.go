@@ -31,17 +31,17 @@ func main() {
 	pack.Pack(f, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 
 	msg := label.New(f, "msg",
-		label.WrapLength("3.5i"),
+		label.WrapLength(screenunit.In(3.5)),
 		label.JustifyOpt(option.JustifyLeft),
 		label.Text("An arrow and a horizontal scale are displayed below.  If you click or drag mouse button 1 in the scale, you can change the length of the arrow."),
 	)
-	pack.Pack(msg, pack.SideOpt(pack.Top), pack.PadX(".5c"))
+	pack.Pack(msg, pack.SideOpt(pack.Top), pack.PadX(screenunit.Cm(0.5)))
 
 	btns := demohelper.AddSeeDismiss(f)
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
 	// Inner frame with border (matches Tcl's `frame -borderwidth 7.5p`).
-	bw := screenunit.Px("7.5p")
+	bw := screenunit.Pt(7.5).Pixels()
 	fr := frame.New(f, "frame",
 		frame.BorderWidth(bw),
 	)
@@ -50,8 +50,8 @@ func main() {
 
 	// Canvas for arrow display.
 	c := canvas.New(fr, "canvas",
-		canvas.Width(screenunit.Px("37.5p")),
-		canvas.Height(screenunit.Px("37.5p")),
+		canvas.Width(screenunit.Pt(37.5).Pixels()),
+		canvas.Height(screenunit.Pt(37.5).Pixels()),
 		canvas.BorderWidthOpt(0),
 		canvas.HighlightWidthOpt(0),
 		canvas.Background("#d9d9d9"),
@@ -89,13 +89,13 @@ func main() {
 		scale.ToOpt(250),
 		scale.ValueOpt(75),
 		scale.TickIntervalOpt(50),
-		scale.LengthOpt(screenunit.Px("213p")),
+		scale.LengthOpt(screenunit.Pt(213).Pixels()),
 		scale.CommandOpt(func(v float64) {
 			setWidth(v)
 		}),
 	)
 
-	pack.Pack(c, pack.SideOpt(pack.Top), pack.Expand(true), pack.Anchor(option.AnchorS), pack.FillOpt(pack.FillX), pack.PadX("12p"))
+	pack.Pack(c, pack.SideOpt(pack.Top), pack.Expand(true), pack.Anchor(option.AnchorS), pack.FillOpt(pack.FillX), pack.PadX(screenunit.Pt(12)))
 	pack.Pack(sc, pack.SideOpt(pack.Bottom), pack.Expand(true), pack.Anchor(option.AnchorN))
 
 	// Set initial arrow.
