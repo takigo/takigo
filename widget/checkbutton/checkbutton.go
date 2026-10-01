@@ -83,6 +83,36 @@ func Var(v *widget.Variable[string]) CheckbuttonOption {
 	}
 }
 
+// BoolVar links the checkbutton to a bool variable: true is checked. It is
+// the typed alternative to Var, whose string variable Tk compares with
+// -onvalue and -offvalue.
+func BoolVar(v *widget.Variable[bool]) CheckbuttonOption {
+	return func(c *Checkbutton) {
+		if c.unsub != nil {
+			c.unsub()
+		}
+		str := widget.NewVariable(c.OffValue)
+		c.Variable = str
+		toString := func() {
+			if v.Get() {
+				str.Set(c.OnValue)
+			} else {
+				str.Set(c.OffValue)
+			}
+		}
+		toString()
+		fromBool := v.OnChange(func(_, _ bool) { toString() })
+		fromString := str.OnChange(func(_, now string) {
+			v.Set(now == c.OnValue)
+			c.Display()
+		})
+		c.unsub = func() {
+			fromBool()
+			fromString()
+		}
+	}
+}
+
 // OnValueOpt sets the value of the linked variable that renders the checkbutton
 // as selected (checkmark). Default "1" — matches Tk's -onvalue default.
 func OnValueOpt(v string) CheckbuttonOption {
