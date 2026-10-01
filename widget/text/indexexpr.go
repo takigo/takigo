@@ -1,6 +1,8 @@
 package text
 
 import (
+	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 	"unicode"
@@ -22,6 +24,44 @@ import (
 // same content in Tk.
 
 // index resolves an index string for this widget.
+// IndexSpec is what the text methods take as a position: an Index, or a
+// string holding a Tk index expression ("1.0", "end-1c", "insert linestart",
+// "sel.first", a mark name, ...).
+type IndexSpec interface {
+	Index | string
+}
+
+// ErrBadIndex is returned for an index expression that does not parse or
+// names a mark or tag that does not exist.
+var ErrBadIndex = errors.New("text: bad index")
+
+func indexOf[I IndexSpec](t *TextWidget, spec I) (Index, bool) {
+	switch v := any(spec).(type) {
+	case Index:
+		return Clamp(v, t.doc), true
+	case string:
+		return t.index(v)
+	}
+	return Index{}, false
+}
+
+// isEnd reports whether spec is the "end" expression, which reaches past
+// the last character where an Index cannot.
+func isEnd[I IndexSpec](spec I) bool {
+	s, ok := any(spec).(string)
+	return ok && strings.TrimSpace(s) == "end"
+}
+
+// Index resolves an index expression against the current content, like
+// Tk's "index" subcommand.
+func (t *TextWidget) Index[I IndexSpec](spec I) (Index, error) {
+	idx, ok := indexOf(t, spec)
+	if !ok {
+		return Index{}, fmt.Errorf("%w: %v", ErrBadIndex, spec)
+	}
+	return idx, nil
+}
+
 func (t *TextWidget) index(spec string) (Index, bool) {
 	return parseIndex(t.doc, t, spec)
 }

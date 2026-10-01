@@ -386,10 +386,10 @@ func (t *TextWidget) scheduleRedraw() {
 // --- Public API ---
 
 // Insert inserts text at the given index string.
-func (t *TextWidget) Insert(index, txt string) {
-	idx, ok := t.index(index)
+func (t *TextWidget) Insert[I IndexSpec](index I, txt string) error {
+	idx, ok := indexOf(t, index)
 	if !ok {
-		return
+		return ErrBadIndex
 	}
 	endIdx := t.doc.Insert(idx, txt)
 	if t.undoEnabled {
@@ -397,17 +397,18 @@ func (t *TextWidget) Insert(index, txt string) {
 	}
 	t.notifyYScrollbar()
 	t.Display()
+	return nil
 }
 
 // Delete deletes text between two index strings.
-func (t *TextWidget) Delete(startIndex, endIndex string) {
-	start, ok1 := t.index(startIndex)
-	end, ok2 := t.index(endIndex)
+func (t *TextWidget) Delete[A, B IndexSpec](startIndex A, endIndex B) error {
+	start, ok1 := indexOf(t, startIndex)
+	end, ok2 := indexOf(t, endIndex)
 	if !ok1 || !ok2 {
-		return
+		return ErrBadIndex
 	}
 	if Compare(start, end) >= 0 {
-		return
+		return nil
 	}
 	text := t.doc.Get(start, end)
 	t.doc.Delete(start, end)
@@ -416,12 +417,13 @@ func (t *TextWidget) Delete(startIndex, endIndex string) {
 	}
 	t.notifyYScrollbar()
 	t.Display()
+	return nil
 }
 
 // Get returns the text between two index strings.
-func (t *TextWidget) Get(startIndex, endIndex string) string {
-	start, ok1 := t.index(startIndex)
-	end, ok2 := t.index(endIndex)
+func (t *TextWidget) Get[A, B IndexSpec](startIndex A, endIndex B) string {
+	start, ok1 := indexOf(t, startIndex)
+	end, ok2 := indexOf(t, endIndex)
 	if !ok1 || !ok2 {
 		return ""
 	}
@@ -435,32 +437,35 @@ func withoutPlaceholders(s string) string {
 }
 
 // See scrolls the view to make the given index visible.
-func (t *TextWidget) See(index string) {
-	idx, ok := t.index(index)
+func (t *TextWidget) See[I IndexSpec](index I) error {
+	idx, ok := indexOf(t, index)
 	if !ok {
-		return
+		return ErrBadIndex
 	}
 	t.seeIndex(idx)
 	t.notifyYScrollbar()
 	t.Display()
+	return nil
 }
 
 // SetInsertPos moves the insert cursor to the given index.
-func (t *TextWidget) SetInsertPos(index string) {
-	idx, ok := t.index(index)
+func (t *TextWidget) SetInsertPos[I IndexSpec](index I) error {
+	idx, ok := indexOf(t, index)
 	if !ok {
-		return
+		return ErrBadIndex
 	}
 	t.doc.MarkSet("insert", idx)
+	return nil
 }
 
 // MarkSet sets a mark at the given index.
-func (t *TextWidget) MarkSet(markName, index string) {
-	idx, ok := t.index(index)
+func (t *TextWidget) MarkSet[I IndexSpec](markName string, index I) error {
+	idx, ok := indexOf(t, index)
 	if !ok {
-		return
+		return ErrBadIndex
 	}
 	t.doc.MarkSet(markName, idx)
+	return nil
 }
 
 // MarkNames returns all mark names.
@@ -601,27 +606,27 @@ func (t *TextWidget) Doc() *Document {
 }
 
 // EndIndex returns the current end position as a "line.char" string.
-func (t *TextWidget) EndIndex() string {
+func (t *TextWidget) EndIndex() Index {
 	n := t.doc.LineCount()
 	if n == 0 {
-		return "1.0"
+		return Index{Line: 1}
 	}
-	c := len(t.doc.Lines[n-1].Text)
-	return fmt.Sprintf("%d.%d", n, c)
+	return Index{Line: n, Char: len(t.doc.Lines[n-1].Text)}
 }
 
 // WindowCreate embeds a child window inline at the given text index.
 // A placeholder character is inserted into the document so that text wraps
 // around the window, and the position is tracked by a mark.
-func (t *TextWidget) WindowCreate(indexStr string, w *window.Window) {
+func (t *TextWidget) WindowCreate[I IndexSpec](indexStr I, w *window.Window) error {
 	t.WindowCreatePad(indexStr, w, 0, 0)
+	return nil
 }
 
 // WindowCreatePad is "window create" with -padx and -pady (Tk distances).
-func (t *TextWidget) WindowCreatePad[X, Y screenunit.Length](indexStr string, w *window.Window, padX X, padY Y) {
-	idx, ok := t.index(indexStr)
+func (t *TextWidget) WindowCreatePad[I IndexSpec, X, Y screenunit.Length](indexStr I, w *window.Window, padX X, padY Y) error {
+	idx, ok := indexOf(t, indexStr)
 	if !ok {
-		return
+		return ErrBadIndex
 	}
 	// Insert placeholder character into the document.
 	t.doc.Insert(idx, string(runeEmbeddedWindow))
@@ -634,15 +639,19 @@ func (t *TextWidget) WindowCreatePad[X, Y screenunit.Length](indexStr string, w 
 	t.doc.addObject(markName)
 	t.embeddedWindows = append(t.embeddedWindows, embeddedWin{markName: markName, win: w,
 		padX: screenunit.ToPixels(padX), padY: screenunit.ToPixels(padY)})
+	return nil
 }
 
 // ImageCreate embeds an image at the given text index. As in Tk it takes
 // one index position: text flows around it, it moves with edits before it,
 // and deleting its position removes it. Every peer shows it.
-func (t *TextWidget) ImageCreate(indexStr string, img widget.WidgetImage) {
-	idx, ok := t.index(indexStr)
-	if !ok || img == nil {
-		return
+func (t *TextWidget) ImageCreate[I IndexSpec](indexStr I, img widget.WidgetImage) error {
+	idx, ok := indexOf(t, indexStr)
+	if !ok {
+		return ErrBadIndex
+	}
+	if img == nil {
+		return nil
 	}
 	d := t.doc
 	d.Insert(idx, string(runeEmbeddedWindow))
@@ -657,6 +666,7 @@ func (t *TextWidget) ImageCreate(indexStr string, img widget.WidgetImage) {
 	}
 	d.images[name] = img
 	t.Display()
+	return nil
 }
 
 // lineHeightFor returns the display line height for the given logical line,

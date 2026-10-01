@@ -1,29 +1,29 @@
 package text
 
-import "strings"
-
 // Tag methods on *TextWidget. Tag ranges are stored on each *Tag in t.doc;
 // per-tag bindings and hover state live on the widget itself
 // (t.tagBindings, t.hoverTags).
 
 // TagAdd adds a tag to the given range.
-func (t *TextWidget) TagAdd(tagName, startIndex, endIndex string) {
-	start, ok1 := t.index(startIndex)
-	end, ok2 := t.index(endIndex)
+func (t *TextWidget) TagAdd[A, B IndexSpec](tagName string, startIndex A, endIndex B) error {
+	start, ok1 := indexOf(t, startIndex)
+	end, ok2 := indexOf(t, endIndex)
 	if !ok1 || !ok2 {
-		return
+		return ErrBadIndex
 	}
-	t.doc.tagAdd(tagName, start, end, strings.TrimSpace(endIndex) == "end")
+	t.doc.tagAdd(tagName, start, end, isEnd(endIndex))
+	return nil
 }
 
 // TagRemove removes a tag from the given range.
-func (t *TextWidget) TagRemove(tagName, startIndex, endIndex string) {
-	start, ok1 := t.index(startIndex)
-	end, ok2 := t.index(endIndex)
+func (t *TextWidget) TagRemove[A, B IndexSpec](tagName string, startIndex A, endIndex B) error {
+	start, ok1 := indexOf(t, startIndex)
+	end, ok2 := indexOf(t, endIndex)
 	if !ok1 || !ok2 {
-		return
+		return ErrBadIndex
 	}
 	t.doc.TagRemove(tagName, start, end)
+	return nil
 }
 
 // TagConfigure configures a tag's display attributes.
