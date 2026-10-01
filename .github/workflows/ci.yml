@@ -37,6 +37,8 @@ jobs:
         # refuses connections meanwhile, failing tests that open a new App
         # right after destroying one.
         run: xvfb-run -a -s "-screen 0 1280x1024x24 -noreset" go test -race -short -coverprofile=coverage.out ./...
+      - name: Tutorial programs compile
+        run: bash scripts/check_tutorial.sh
       - name: Coverage
         run: go tool cover -func=coverage.out | tail -n 1
       - uses: actions/upload-artifact@v4

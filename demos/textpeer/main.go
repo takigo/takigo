@@ -11,6 +11,7 @@ import (
 	"github.com/msorc/takigo/geometry/grid"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/ttk"
+	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/button"
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/text"
@@ -76,25 +77,7 @@ func main() {
 
 		sb := ttk.NewScrollbar(f, fmt.Sprintf("sb%d", idx),
 			ttk.ScrollbarOrientOpt(ttk.Vertical),
-			ttk.ScrollbarCommandOpt(func(args ...any) {
-				if len(args) < 1 {
-					return
-				}
-				switch args[0] {
-				case "moveto":
-					if len(args) >= 2 {
-						if fv, ok := args[1].(float64); ok {
-							tw.YViewMoveTo(fv)
-						}
-					}
-				case "scroll":
-					if len(args) >= 3 {
-						n, _ := args[1].(int)
-						unit, _ := args[2].(string)
-						tw.YViewScroll(n, unit == "pages")
-					}
-				}
-			}),
+			ttk.ScrollbarCommandOpt(widget.ScrollY(tw)),
 		)
 		tw.YScrollCmd = func(first, last float64) { sb.Set(first, last) }
 

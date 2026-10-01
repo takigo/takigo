@@ -95,17 +95,7 @@ func main() {
 	txt := text.New(f, "txt", text.Width(12), text.Height(1),
 		text.PadXOpt(screenunit.Pt(3).Pixels()), text.FontOpt(font.TkFixedFont))
 	vs := ttk.NewScrollbar(f, "vs", ttk.ScrollbarOrientOpt(ttk.Vertical),
-		ttk.ScrollbarCommandOpt(func(args ...any) {
-			if len(args) >= 2 && args[0] == "moveto" {
-				if v, ok := args[1].(float64); ok {
-					txt.YViewMoveTo(v)
-				}
-			} else if len(args) >= 3 && args[0] == "scroll" {
-				n, _ := args[1].(int)
-				unit, _ := args[2].(string)
-				txt.YViewScroll(n, unit == "pages")
-			}
-		}))
+		ttk.ScrollbarCommandOpt(widget.ScrollY(txt)))
 	txt.YScrollCmd = vs.Set
 
 	speed := widget.NewVariable(1400.0)

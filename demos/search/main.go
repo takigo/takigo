@@ -15,6 +15,7 @@ import (
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/ttk"
+	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/button"
 	"github.com/msorc/takigo/widget/entry"
 	"github.com/msorc/takigo/widget/frame"
@@ -69,25 +70,7 @@ func main() {
 		text.SetGridOpt(true),
 	)
 
-	scroll.Command = func(args ...any) {
-		if len(args) < 1 {
-			return
-		}
-		switch args[0] {
-		case "moveto":
-			if len(args) >= 2 {
-				if f, ok := args[1].(float64); ok {
-					tw.YViewMoveTo(f)
-				}
-			}
-		case "scroll":
-			if len(args) >= 3 {
-				n, _ := args[1].(int)
-				unit, _ := args[2].(string)
-				tw.YViewScroll(n, unit == "pages")
-			}
-		}
-	}
+	scroll.Command = widget.ScrollY(tw)
 	tw.YScrollCmd = func(first, last float64) {
 		scroll.Set(first, last)
 	}

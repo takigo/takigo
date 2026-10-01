@@ -20,7 +20,7 @@ type Scrollbar struct {
 	Last  float64
 
 	// Command callback: called when user interacts.
-	Command func(args ...any)
+	Command func(widget.ScrollRequest)
 
 	// Pixel geometry.
 	troughStart int
@@ -54,7 +54,7 @@ func ScrollbarOrientOpt(o Orientation) ScrollbarOption {
 }
 
 // ScrollbarCommandOpt sets the scroll command callback.
-func ScrollbarCommandOpt(fn func(args ...any)) ScrollbarOption {
+func ScrollbarCommandOpt(fn func(widget.ScrollRequest)) ScrollbarOption {
 	return func(s *Scrollbar) { s.Command = fn }
 }
 
@@ -300,13 +300,13 @@ func bindTtkScrollbar(s *Scrollbar, app widget.AppContext) {
 		// Mouse wheel.
 		if ev.Button == 4 {
 			if s.Command != nil {
-				s.Command("scroll", -3, "units")
+				s.Command(widget.ScrollUnits(-3))
 			}
 			return
 		}
 		if ev.Button == 5 {
 			if s.Command != nil {
-				s.Command("scroll", 3, "units")
+				s.Command(widget.ScrollUnits(3))
 			}
 			return
 		}
@@ -319,19 +319,19 @@ func bindTtkScrollbar(s *Scrollbar, app widget.AppContext) {
 		switch rgn {
 		case sbArrow1:
 			if s.Command != nil {
-				s.Command("scroll", -1, "units")
+				s.Command(widget.ScrollUnits(-1))
 			}
 		case sbArrow2:
 			if s.Command != nil {
-				s.Command("scroll", 1, "units")
+				s.Command(widget.ScrollUnits(1))
 			}
 		case sbTroughBefore:
 			if s.Command != nil {
-				s.Command("scroll", -1, "pages")
+				s.Command(widget.ScrollPages(-1))
 			}
 		case sbTroughAfter:
 			if s.Command != nil {
-				s.Command("scroll", 1, "pages")
+				s.Command(widget.ScrollPages(1))
 			}
 		case sbThumb:
 			if s.Orient == Vertical {
@@ -378,7 +378,7 @@ func bindTtkScrollbar(s *Scrollbar, app widget.AppContext) {
 		}
 
 		if s.Command != nil {
-			s.Command("moveto", fraction)
+			s.Command(widget.ScrollTo(fraction))
 		}
 	})
 }

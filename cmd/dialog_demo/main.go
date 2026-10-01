@@ -13,6 +13,7 @@ import (
 	"github.com/msorc/takigo/dialog"
 	"github.com/msorc/takigo/geometry/pack"
 	"github.com/msorc/takigo/systray"
+	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/button"
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
@@ -181,8 +182,8 @@ func main() {
 
 	testScrollbar := scrollbar.New(wheelFrame, "testscroll",
 		scrollbar.OrientOpt(scrollbar.Vertical),
-		scrollbar.CommandOpt(func(args ...any) {
-			setStatus(fmt.Sprintf("Scrollbar: %v", args))
+		scrollbar.CommandOpt(func(r widget.ScrollRequest) {
+			setStatus(fmt.Sprintf("Scrollbar: %+v", r))
 		}),
 	)
 	testScrollbar.Set(0.3, 0.6)

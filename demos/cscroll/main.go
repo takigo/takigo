@@ -58,48 +58,12 @@ func main() {
 
 	vscroll := scrollbar.New(gf, "vscroll",
 		scrollbar.OrientOpt(scrollbar.Vertical),
-		scrollbar.CommandOpt(func(args ...any) {
-			if len(args) < 1 {
-				return
-			}
-			switch args[0] {
-			case "moveto":
-				if len(args) >= 2 {
-					if f, ok := args[1].(float64); ok {
-						c.YViewMoveTo(f)
-					}
-				}
-			case "scroll":
-				if len(args) >= 3 {
-					n, _ := args[1].(int)
-					unit, _ := args[2].(string)
-					c.YViewScroll(n, unit == "pages")
-				}
-			}
-		}),
+		scrollbar.CommandOpt(widget.ScrollY(c)),
 	)
 
 	hscroll := scrollbar.New(gf, "hscroll",
 		scrollbar.OrientOpt(scrollbar.Horizontal),
-		scrollbar.CommandOpt(func(args ...any) {
-			if len(args) < 1 {
-				return
-			}
-			switch args[0] {
-			case "moveto":
-				if len(args) >= 2 {
-					if f, ok := args[1].(float64); ok {
-						c.XViewMoveTo(f)
-					}
-				}
-			case "scroll":
-				if len(args) >= 3 {
-					n, _ := args[1].(int)
-					unit, _ := args[2].(string)
-					c.XViewScroll(n, unit == "pages")
-				}
-			}
-		}),
+		scrollbar.CommandOpt(widget.ScrollX(c)),
 	)
 
 	c.Configure(

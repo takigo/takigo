@@ -12,6 +12,7 @@ import (
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/ttk"
+	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/entry"
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
@@ -48,25 +49,7 @@ func main() {
 	e1 := entry.New(fr, "e1")
 	s1 := ttk.NewScrollbar(fr, "s1",
 		ttk.ScrollbarOrientOpt(ttk.Horizontal),
-		ttk.ScrollbarCommandOpt(func(args ...any) {
-			if len(args) < 1 {
-				return
-			}
-			switch args[0] {
-			case "moveto":
-				if len(args) >= 2 {
-					if f, ok := args[1].(float64); ok {
-						e1.XViewMoveTo(f)
-					}
-				}
-			case "scroll":
-				if len(args) >= 3 {
-					n, _ := args[1].(int)
-					unit, _ := args[2].(string)
-					e1.XViewScroll(n, unit == "pages")
-				}
-			}
-		}),
+		ttk.ScrollbarCommandOpt(widget.ScrollX(e1)),
 	)
 	e1.ScrollCmd = func(first, last float64) {
 		s1.Set(first, last)
@@ -77,25 +60,7 @@ func main() {
 	e2 := entry.New(fr, "e2")
 	s2 := ttk.NewScrollbar(fr, "s2",
 		ttk.ScrollbarOrientOpt(ttk.Horizontal),
-		ttk.ScrollbarCommandOpt(func(args ...any) {
-			if len(args) < 1 {
-				return
-			}
-			switch args[0] {
-			case "moveto":
-				if len(args) >= 2 {
-					if f, ok := args[1].(float64); ok {
-						e2.XViewMoveTo(f)
-					}
-				}
-			case "scroll":
-				if len(args) >= 3 {
-					n, _ := args[1].(int)
-					unit, _ := args[2].(string)
-					e2.XViewScroll(n, unit == "pages")
-				}
-			}
-		}),
+		ttk.ScrollbarCommandOpt(widget.ScrollX(e2)),
 	)
 	e2.ScrollCmd = func(first, last float64) {
 		s2.Set(first, last)
@@ -109,25 +74,7 @@ func main() {
 	)
 	s3 := ttk.NewScrollbar(fr, "s3",
 		ttk.ScrollbarOrientOpt(ttk.Horizontal),
-		ttk.ScrollbarCommandOpt(func(args ...any) {
-			if len(args) < 1 {
-				return
-			}
-			switch args[0] {
-			case "moveto":
-				if len(args) >= 2 {
-					if f, ok := args[1].(float64); ok {
-						e3.XViewMoveTo(f)
-					}
-				}
-			case "scroll":
-				if len(args) >= 3 {
-					n, _ := args[1].(int)
-					unit, _ := args[2].(string)
-					e3.XViewScroll(n, unit == "pages")
-				}
-			}
-		}),
+		ttk.ScrollbarCommandOpt(widget.ScrollX(e3)),
 	)
 	e3.ScrollCmd = func(first, last float64) {
 		s3.Set(first, last)

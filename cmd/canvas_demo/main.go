@@ -68,25 +68,7 @@ func main() {
 	xscroll := scrollbar.New(app, "xscroll",
 		scrollbar.OrientOpt(scrollbar.Horizontal),
 		scrollbar.WidthOpt(14),
-		scrollbar.CommandOpt(func(args ...any) {
-			if len(args) < 1 {
-				return
-			}
-			switch args[0] {
-			case "moveto":
-				if len(args) >= 2 {
-					if f, ok := args[1].(float64); ok {
-						cv.XViewMoveTo(f)
-					}
-				}
-			case "scroll":
-				if len(args) >= 3 {
-					n, _ := args[1].(int)
-					unit, _ := args[2].(string)
-					cv.XViewScroll(n, unit == "pages")
-				}
-			}
-		}),
+		scrollbar.CommandOpt(widget.ScrollX(cv)),
 	)
 	cv.XScrollCmd = func(first, last float64) {
 		xscroll.Set(first, last)
@@ -96,25 +78,7 @@ func main() {
 	yscroll := scrollbar.New(app, "yscroll",
 		scrollbar.OrientOpt(scrollbar.Vertical),
 		scrollbar.WidthOpt(14),
-		scrollbar.CommandOpt(func(args ...any) {
-			if len(args) < 1 {
-				return
-			}
-			switch args[0] {
-			case "moveto":
-				if len(args) >= 2 {
-					if f, ok := args[1].(float64); ok {
-						cv.YViewMoveTo(f)
-					}
-				}
-			case "scroll":
-				if len(args) >= 3 {
-					n, _ := args[1].(int)
-					unit, _ := args[2].(string)
-					cv.YViewScroll(n, unit == "pages")
-				}
-			}
-		}),
+		scrollbar.CommandOpt(widget.ScrollY(cv)),
 	)
 	cv.YScrollCmd = func(first, last float64) {
 		yscroll.Set(first, last)

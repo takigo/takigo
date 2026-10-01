@@ -383,24 +383,7 @@ func showCode(app widget.AppContext, srcFile string) {
 
 	sb := scrollbar.New(txtFrame, "codesb")
 	codeText.YScrollCmd = func(first, last float64) { sb.Set(first, last) }
-	sb.Command = func(args ...any) {
-		if len(args) < 2 {
-			return
-		}
-		action, _ := args[0].(string)
-		switch action {
-		case "moveto":
-			if f, ok := args[1].(float64); ok {
-				codeText.YViewMoveTo(f)
-			}
-		case "scroll":
-			if len(args) >= 3 {
-				n, _ := args[1].(int)
-				unit, _ := args[2].(string)
-				codeText.YViewScroll(n, unit == "pages")
-			}
-		}
-	}
+	sb.Command = widget.ScrollY(codeText)
 
 	pack.Pack(sb, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
 	pack.Pack(codeText, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.Expand(true))

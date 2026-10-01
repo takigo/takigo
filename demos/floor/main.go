@@ -16,6 +16,7 @@ import (
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/screenunit"
 	"github.com/msorc/takigo/ttk"
+	"github.com/msorc/takigo/widget"
 	"github.com/msorc/takigo/widget/entry"
 	"github.com/msorc/takigo/widget/frame"
 	"github.com/msorc/takigo/widget/label"
@@ -106,35 +107,13 @@ func main() {
 	pack.Pack(c, pack.Expand(true), pack.FillOpt(pack.FillBoth))
 
 	// Scrollbars.
-	scrollCmd := func(viewFunc func(int, bool), moveFunc func(float64)) func(...any) {
-		return func(args ...any) {
-			if len(args) < 1 {
-				return
-			}
-			switch args[0] {
-			case "moveto":
-				if len(args) >= 2 {
-					if fv, ok := args[1].(float64); ok {
-						moveFunc(fv)
-					}
-				}
-			case "scroll":
-				if len(args) >= 3 {
-					n, _ := args[1].(int)
-					unit, _ := args[2].(string)
-					viewFunc(n, unit == "pages")
-				}
-			}
-		}
-	}
-
 	v := ttk.NewScrollbar(contentFrame, "vscroll",
 		ttk.ScrollbarOrientOpt(ttk.Vertical),
-		ttk.ScrollbarCommandOpt(scrollCmd(c.YViewScroll, c.YViewMoveTo)),
+		ttk.ScrollbarCommandOpt(widget.ScrollY(c)),
 	)
 	h := ttk.NewScrollbar(contentFrame, "hscroll",
 		ttk.ScrollbarOrientOpt(ttk.Horizontal),
-		ttk.ScrollbarCommandOpt(scrollCmd(c.XViewScroll, c.XViewMoveTo)),
+		ttk.ScrollbarCommandOpt(widget.ScrollX(c)),
 	)
 	c.Configure(
 		canvas.YScrollCommand(func(first, last float64) { v.Set(first, last) }),

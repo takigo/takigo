@@ -319,25 +319,7 @@ func (b *fileBrowser) buildBody() {
 
 	b.vscroll = ttk.NewScrollbar(listFrame, "vsb",
 		ttk.ScrollbarOrientOpt(ttk.Vertical),
-		ttk.ScrollbarCommandOpt(func(args ...any) {
-			if len(args) == 0 {
-				return
-			}
-			switch args[0] {
-			case "moveto":
-				if len(args) >= 2 {
-					if f, ok := args[1].(float64); ok {
-						b.list.YViewMoveTo(f)
-					}
-				}
-			case "scroll":
-				if len(args) >= 3 {
-					n, _ := args[1].(int)
-					unit, _ := args[2].(string)
-					b.list.YViewScroll(n, unit == "pages")
-				}
-			}
-		}))
+		ttk.ScrollbarCommandOpt(widget.ScrollY(b.list)))
 	b.list.YScrollCmd = b.vscroll.Set
 
 	grid.Grid(b.list, grid.Row(0), grid.Column(0), grid.Sticky(grid.NSEW))
