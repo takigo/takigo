@@ -94,6 +94,7 @@ func (j Justify) String() string {
 		return "center"
 	case JustifyRight:
 		return "right"
+	case JustifyLeft:
 	}
 	return "left"
 }
@@ -102,6 +103,7 @@ func (j Justify) String() string {
 // or progress bar.
 type Orient int
 
+// The orientations.
 const (
 	Horizontal Orient = iota
 	Vertical
@@ -118,6 +120,7 @@ func (o Orient) String() string {
 // Side is an edge of a container, as in pack's -side.
 type Side int
 
+// The sides.
 const (
 	SideTop Side = iota
 	SideBottom
@@ -137,6 +140,7 @@ func (s Side) String() string {
 // Direction is where a menubutton posts its menu (-direction).
 type Direction int
 
+// The directions.
 const (
 	DirBelow Direction = iota
 	DirAbove
@@ -157,6 +161,7 @@ func (d Direction) String() string {
 // (-sticky).
 type Sticky uint
 
+// The edges, and their usual combinations.
 const (
 	StickN Sticky = 1 << iota
 	StickE

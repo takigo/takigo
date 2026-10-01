@@ -129,12 +129,12 @@ func main() {
 
 	// Bind Return key on entries.
 	eng := app.Bind()
-	eng.BindWindow(fileEntry, "<Return>", func(ev *bind.EventData) bool {
+	eng.BindWindow(fileEntry, "<Return>", func(*bind.EventData) bool {
 		textLoadFile(fileEntry.GetText())
 		app.FocusManager().SetFocus(searchEntry.Window())
 		return false
 	})
-	eng.BindWindow(searchEntry, "<Return>", func(ev *bind.EventData) bool {
+	eng.BindWindow(searchEntry, "<Return>", func(*bind.EventData) bool {
 		textSearch(searchEntry.GetText())
 		return false
 	})

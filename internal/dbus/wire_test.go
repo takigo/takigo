@@ -113,7 +113,7 @@ func FuzzDecode(f *testing.F) {
 	f.Add([]byte{2, 0, 0, 0, 'h', 'i', 0}, "s")
 	f.Add([]byte{15, 0, 0, 0, 1, 0, 0, 0, 'a', 0, 0, 0, 2, 0, 0, 0, 'b', 'c', 0}, "as")
 	f.Add([]byte{1, 'u', 0, 0, 9, 0, 0, 0}, "v")
-	f.Fuzz(func(t *testing.T, data []byte, sig string) {
+	f.Fuzz(func(_ *testing.T, data []byte, sig string) {
 		if len(sig) > 16 {
 			return
 		}

@@ -99,6 +99,7 @@ func TearOffOpt(on bool) MenuOption {
 	return func(m *Menu) { m.TearOff = on }
 }
 
+// Background sets the background colour.
 func Background[C color.Spec](name C) MenuOption {
 	return func(m *Menu) { m.SetBackgroundColor(name) }
 }

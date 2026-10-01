@@ -135,6 +135,7 @@ func Height[L screenunit.Length](h L) CanvasOption {
 	return func(c *Canvas) { c.reqH = screenunit.ToPixels(h) }
 }
 
+// Background sets the canvas background colour.
 func Background[C color.Spec](name C) CanvasOption {
 	return func(c *Canvas) { c.SetBackgroundColor(name) }
 }
@@ -653,6 +654,7 @@ func (c *Canvas) CreateBitmap(x, y float64, xbm *XBMData, opts ...ItemOption) It
 	return c.createItem(item, opts)
 }
 
+// CreateImage creates an image item at (x, y).
 func (c *Canvas) CreateImage(x, y float64, opts ...ItemOption) ItemID {
 	item := newImageItem(x, y, c)
 	return c.createItem(item, opts)

@@ -590,6 +590,7 @@ type SeparatorElement struct {
 // Orientation for separator.
 type Orientation = option.Orient
 
+// The values of -orient.
 const (
 	Horizontal = option.Horizontal
 	Vertical   = option.Vertical

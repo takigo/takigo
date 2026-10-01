@@ -107,7 +107,7 @@ func TestXftDPI(t *testing.T) {
 }
 
 // Every NewApp sets the metrics while other Apps convert distances.
-func TestConcurrentSetAndConvert(t *testing.T) {
+func TestConcurrentSetAndConvert(_ *testing.T) {
 	defer SetScreenDPI(1920, 508, 0)
 	var wg sync.WaitGroup
 	for i := range 4 {

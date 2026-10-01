@@ -17,6 +17,7 @@ import (
 // Side specifies which edge of the cavity to pack against.
 type Side = option.Side
 
+// The sides of -side.
 const (
 	Top    = option.SideTop
 	Bottom = option.SideBottom

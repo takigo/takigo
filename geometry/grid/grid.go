@@ -5,6 +5,7 @@ package grid
 import (
 	"errors"
 	"fmt"
+
 	"github.com/msorc/takigo/geometry"
 	"github.com/msorc/takigo/option"
 	"github.com/msorc/takigo/platform"

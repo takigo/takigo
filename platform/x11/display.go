@@ -457,6 +457,7 @@ func (s *X11Display) SetWindowIcons(w platform.WindowID, icons []platform.IconIm
 	s.dpy.ChangeProperty(xlib.Window(w), prop, cardinal, 32, platform.PropModeReplace, data, len(data)/4)
 }
 
+// SetCursorShape sets the window's cursor to the font cursor for shape.
 func (s *X11Display) SetCursorShape(w platform.WindowID, shape cursor.Shape) {
 	x11Shape := uint(shape)
 	if int(shape) < len(shapeToX11Cursor) {
