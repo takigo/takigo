@@ -1,5 +1,10 @@
 # takigo
 
+> [!WARNING]
+> **This project is experimental and not recommended for use.** The API is
+> unstable and may change or break without notice, and the toolkit is
+> incomplete and untested in production.
+
 A Go port of the [Tk 9.1](https://www.tcl-lang.org/) GUI toolkit: classic and
 themed (ttk) widgets, the pack/grid/place geometry managers, canvas, text,
 bindings, dialogs and the window-manager interface, behind a Go API of typed
