@@ -32,10 +32,10 @@ package cocoa
 import (
 	"errors"
 
-	"github.com/msorc/takigo/cursor"
-	"github.com/msorc/takigo/font"
-	clib "github.com/msorc/takigo/internal/cocoa"
-	"github.com/msorc/takigo/platform"
+	"github.com/takigo/takigo/cursor"
+	"github.com/takigo/takigo/font"
+	clib "github.com/takigo/takigo/internal/cocoa"
+	"github.com/takigo/takigo/platform"
 )
 
 // Type conversion helpers — platform types are uintptr, internal/cocoa types

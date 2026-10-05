@@ -4,12 +4,12 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/msorc/takigo/geometry/pack"
-	"github.com/msorc/takigo/internal/testutil"
-	"github.com/msorc/takigo/ttk"
-	_ "github.com/msorc/takigo/ttk/clamtheme"
-	_ "github.com/msorc/takigo/ttk/darktheme"
-	_ "github.com/msorc/takigo/ttk/defaulttheme"
+	"github.com/takigo/takigo/geometry/pack"
+	"github.com/takigo/takigo/internal/testutil"
+	"github.com/takigo/takigo/ttk"
+	_ "github.com/takigo/takigo/ttk/clamtheme"
+	_ "github.com/takigo/takigo/ttk/darktheme"
+	_ "github.com/takigo/takigo/ttk/defaulttheme"
 )
 
 func TestUseThemeRethemesOneApp(t *testing.T) {

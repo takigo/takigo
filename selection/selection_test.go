@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/msorc/takigo/platform"
+	"github.com/takigo/takigo/platform"
 )
 
 func TestManagerOwnGetContent(t *testing.T) {

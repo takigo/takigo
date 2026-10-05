@@ -6,7 +6,7 @@ package image
 import (
 	"sync"
 
-	"github.com/msorc/takigo/platform"
+	"github.com/takigo/takigo/platform"
 )
 
 // Image is the interface implemented by all takigo image types.

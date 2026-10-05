@@ -1,9 +1,9 @@
 package dialog
 
 import (
-	"github.com/msorc/takigo/geometry/pack"
-	"github.com/msorc/takigo/ttk"
-	"github.com/msorc/takigo/widget"
+	"github.com/takigo/takigo/geometry/pack"
+	"github.com/takigo/takigo/ttk"
+	"github.com/takigo/takigo/widget"
 )
 
 // AskString displays a modal dialog with a prompt and a text entry.

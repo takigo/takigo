@@ -5,9 +5,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/msorc/takigo/color"
-	"github.com/msorc/takigo/font"
-	"github.com/msorc/takigo/widget"
+	"github.com/takigo/takigo/color"
+	"github.com/takigo/takigo/font"
+	"github.com/takigo/takigo/widget"
 )
 
 // Line holds one logical line of text as a rune slice.

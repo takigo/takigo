@@ -5,9 +5,9 @@ package x11
 import (
 	"bytes"
 	"encoding/binary"
-	"github.com/msorc/takigo/font"
-	"github.com/msorc/takigo/internal/displaylock"
-	"github.com/msorc/takigo/platform"
+	"github.com/takigo/takigo/font"
+	"github.com/takigo/takigo/internal/displaylock"
+	"github.com/takigo/takigo/platform"
 	"os"
 	"testing"
 )

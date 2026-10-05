@@ -5,8 +5,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/msorc/takigo/internal/nanosvg"
-	"github.com/msorc/takigo/platform"
+	"github.com/takigo/takigo/internal/nanosvg"
+	"github.com/takigo/takigo/platform"
 )
 
 // IndicatorKind selects one of Tk 9's check/radio indicator images.

@@ -3,7 +3,7 @@ package image
 import (
 	"testing"
 
-	"github.com/msorc/takigo/platform"
+	"github.com/takigo/takigo/platform"
 )
 
 // stubImage implements Image for testing without X11.

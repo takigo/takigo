@@ -4,8 +4,8 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/msorc/takigo/event"
-	"github.com/msorc/takigo/platform"
+	"github.com/takigo/takigo/event"
+	"github.com/takigo/takigo/platform"
 )
 
 // pickScene returns a canvas with filled rectangles "a" at (0,0)-(40,30) and

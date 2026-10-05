@@ -10,17 +10,17 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/msorc/takigo"
-	"github.com/msorc/takigo/demos/demohelper"
-	"github.com/msorc/takigo/dialog"
-	"github.com/msorc/takigo/geometry/pack"
-	tkimage "github.com/msorc/takigo/image"
-	"github.com/msorc/takigo/platform"
-	"github.com/msorc/takigo/screenunit"
-	"github.com/msorc/takigo/widget"
-	"github.com/msorc/takigo/widget/button"
-	"github.com/msorc/takigo/widget/frame"
-	"github.com/msorc/takigo/window"
+	"github.com/takigo/takigo"
+	"github.com/takigo/takigo/demos/demohelper"
+	"github.com/takigo/takigo/dialog"
+	"github.com/takigo/takigo/geometry/pack"
+	tkimage "github.com/takigo/takigo/image"
+	"github.com/takigo/takigo/platform"
+	"github.com/takigo/takigo/screenunit"
+	"github.com/takigo/takigo/widget"
+	"github.com/takigo/takigo/widget/button"
+	"github.com/takigo/takigo/widget/frame"
+	"github.com/takigo/takigo/window"
 )
 
 func main() {

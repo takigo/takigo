@@ -2,7 +2,7 @@
 
 package windows
 
-import "github.com/msorc/takigo/platform"
+import "github.com/takigo/takigo/platform"
 
 // --- InputMethodManager implementation ---
 // Windows handles IME natively through the WM_CHAR/WM_UNICHAR/WM_IME_* messages.

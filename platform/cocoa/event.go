@@ -3,8 +3,8 @@
 package cocoa
 
 import (
-	clib "github.com/msorc/takigo/internal/cocoa"
-	"github.com/msorc/takigo/platform"
+	clib "github.com/takigo/takigo/internal/cocoa"
+	"github.com/takigo/takigo/platform"
 )
 
 // EventParser implements platform.EventParser for macOS.

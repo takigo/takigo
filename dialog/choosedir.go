@@ -1,7 +1,7 @@
 package dialog
 
 import (
-	"github.com/msorc/takigo/widget"
+	"github.com/takigo/takigo/widget"
 )
 
 // dirConfig holds directory dialog options.

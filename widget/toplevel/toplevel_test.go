@@ -3,9 +3,9 @@ package toplevel_test
 import (
 	"testing"
 
-	"github.com/msorc/takigo/internal/testutil"
-	"github.com/msorc/takigo/widget/label"
-	"github.com/msorc/takigo/widget/toplevel"
+	"github.com/takigo/takigo/internal/testutil"
+	"github.com/takigo/takigo/widget/label"
+	"github.com/takigo/takigo/widget/toplevel"
 )
 
 func TestToplevelLifecycle(t *testing.T) {

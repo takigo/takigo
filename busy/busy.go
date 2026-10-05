@@ -3,10 +3,10 @@
 package busy
 
 import (
-	"github.com/msorc/takigo/cursor"
-	"github.com/msorc/takigo/platform"
-	"github.com/msorc/takigo/widget"
-	"github.com/msorc/takigo/window"
+	"github.com/takigo/takigo/cursor"
+	"github.com/takigo/takigo/platform"
+	"github.com/takigo/takigo/widget"
+	"github.com/takigo/takigo/window"
 )
 
 // BusyWin is an InputOnly overlay window that intercepts all input

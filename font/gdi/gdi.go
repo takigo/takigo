@@ -5,15 +5,15 @@
 package gdi
 
 import (
-	"github.com/msorc/takigo/font"
+	"github.com/takigo/takigo/font"
 	"sort"
 	"sync"
 	"syscall"
 	"unicode/utf16"
 	"unsafe"
 
-	w32 "github.com/msorc/takigo/internal/win32"
-	"github.com/msorc/takigo/platform"
+	w32 "github.com/takigo/takigo/internal/win32"
+	"github.com/takigo/takigo/platform"
 )
 
 // DCResolver returns an HDC for a given DrawableID and a cleanup function.

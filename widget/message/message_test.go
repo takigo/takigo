@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/msorc/takigo/internal/testutil"
-	"github.com/msorc/takigo/widget/message"
+	"github.com/takigo/takigo/internal/testutil"
+	"github.com/takigo/takigo/widget/message"
 )
 
 func TestMessageWraps(t *testing.T) {

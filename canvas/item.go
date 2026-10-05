@@ -5,8 +5,8 @@ package canvas
 import (
 	"slices"
 
-	"github.com/msorc/takigo/color"
-	"github.com/msorc/takigo/platform"
+	"github.com/takigo/takigo/color"
+	"github.com/takigo/takigo/platform"
 )
 
 // ItemState controls per-item visibility.

@@ -4,7 +4,7 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/msorc/takigo/event"
+	"github.com/takigo/takigo/event"
 )
 
 func TestItemConfigureTagsUpdatesIndex(t *testing.T) {

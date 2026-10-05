@@ -6,14 +6,14 @@ import (
 	"math"
 	"testing"
 
-	"github.com/msorc/takigo/canvas"
-	tkcolor "github.com/msorc/takigo/color"
-	"github.com/msorc/takigo/geometry/pack"
-	"github.com/msorc/takigo/internal/testutil"
-	"github.com/msorc/takigo/option"
-	"github.com/msorc/takigo/widget/button"
-	"github.com/msorc/takigo/widget/frame"
-	"github.com/msorc/takigo/widget/label"
+	"github.com/takigo/takigo/canvas"
+	tkcolor "github.com/takigo/takigo/color"
+	"github.com/takigo/takigo/geometry/pack"
+	"github.com/takigo/takigo/internal/testutil"
+	"github.com/takigo/takigo/option"
+	"github.com/takigo/takigo/widget/button"
+	"github.com/takigo/takigo/widget/frame"
+	"github.com/takigo/takigo/widget/label"
 )
 
 // These check what widgets actually paint, without golden images: only

@@ -4,10 +4,10 @@ import (
 	"slices"
 	"sort"
 
-	"github.com/msorc/takigo/color"
-	"github.com/msorc/takigo/font"
-	"github.com/msorc/takigo/option"
-	"github.com/msorc/takigo/screenunit"
+	"github.com/takigo/takigo/color"
+	"github.com/takigo/takigo/font"
+	"github.com/takigo/takigo/option"
+	"github.com/takigo/takigo/screenunit"
 )
 
 // Tag defines display attributes that can be applied to text ranges.

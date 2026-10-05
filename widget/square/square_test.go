@@ -3,8 +3,8 @@ package square_test
 import (
 	"testing"
 
-	"github.com/msorc/takigo/internal/testutil"
-	"github.com/msorc/takigo/widget/square"
+	"github.com/takigo/takigo/internal/testutil"
+	"github.com/takigo/takigo/widget/square"
 )
 
 func TestSquareConfigure(t *testing.T) {

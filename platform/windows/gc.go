@@ -3,8 +3,8 @@
 package windows
 
 import (
-	w32 "github.com/msorc/takigo/internal/win32"
-	"github.com/msorc/takigo/platform"
+	w32 "github.com/takigo/takigo/internal/win32"
+	"github.com/takigo/takigo/platform"
 )
 
 // gcState emulates an X11 graphics context as a Go struct.

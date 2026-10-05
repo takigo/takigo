@@ -3,8 +3,8 @@ package grid
 import (
 	"testing"
 
-	"github.com/msorc/takigo/geometry"
-	"github.com/msorc/takigo/window"
+	"github.com/takigo/takigo/geometry"
+	"github.com/takigo/takigo/window"
 )
 
 func gridSlot(t *testing.T, parent, w *window.Window) (row, col int, ok bool) {

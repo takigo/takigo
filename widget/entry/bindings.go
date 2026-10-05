@@ -1,10 +1,10 @@
 package entry
 
 import (
-	"github.com/msorc/takigo/event"
-	"github.com/msorc/takigo/platform"
-	"github.com/msorc/takigo/widget"
-	"github.com/msorc/takigo/widget/entryutil"
+	"github.com/takigo/takigo/event"
+	"github.com/takigo/takigo/platform"
+	"github.com/takigo/takigo/widget"
+	"github.com/takigo/takigo/widget/entryutil"
 )
 
 // bindEntry registers all event handlers for the entry widget.

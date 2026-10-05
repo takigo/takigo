@@ -3,7 +3,7 @@ package busy
 import (
 	"testing"
 
-	"github.com/msorc/takigo/platform"
+	"github.com/takigo/takigo/platform"
 )
 
 func TestBusyWinNil(t *testing.T) {

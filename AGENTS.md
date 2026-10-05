@@ -4,7 +4,7 @@ A pure-Go port of the Tk GUI toolkit. The Go source mirrors the structure of
 the original Tcl/Tk codebase; the corresponding Tk sources live in the
 gitignored `tk/` and `tcl/` directories and are used as the reference.
 
-Module path: `github.com/msorc/takigo`
+Module path: `github.com/takigo/takigo`
 Go version: `1.27.0` (`go` directive; with an older local Go, `GOTOOLCHAIN=auto`
 fetches go1.27 from proxy.golang.org)
 
@@ -51,7 +51,7 @@ Xvfb resets when its last client disconnects and refuses connections
 meanwhile, so tests that open an App right after destroying one fail
 with "cannot open display".
 `.golangci.yml` enables a broad linter set plus `gofmt`/`goimports` with
-`local-prefixes: github.com/msorc/takigo`; CI gates only the lines a change
+`local-prefixes: github.com/takigo/takigo`; CI gates only the lines a change
 touches (`only-new-issues`), so existing code is not lint-clean — don't
 mass-fix unrelated warnings.
 
@@ -430,7 +430,7 @@ lookup.
 |---|---|
 | Add a Tk widget option | mirror `tk/generic/<file>.c` + `library/<widget>.tcl`; add the option setter in `widget/<name>/<name>.go` and read the field in `computeGeometry`/`display` — `Configure` then handles it at runtime |
 | Add a new platform capability | extend `platform.DisplayServer` (`platform/display.go`) and implement in all three `platform/<x11|cocoa|windows>/` |
-| Add a new ttk theme | drop a `ttk/<name>theme/theme.go` that registers with `ttk.RegisterTheme(...)` at init; require it from demos with `_ "github.com/msorc/takigo/ttk/<name>theme"` |
+| Add a new ttk theme | drop a `ttk/<name>theme/theme.go` that registers with `ttk.RegisterTheme(...)` at init; require it from demos with `_ "github.com/takigo/takigo/ttk/<name>theme"` |
 | Fix a wrong-looking demo | use the `tk-demo-compare` skill — it drives the comparison and edit loop end-to-end |
 | Add a unit test for pure logic | table-driven `*_test.go` next to the source, no display required |
 | Add an integration test needing X | import `internal/testutil` and call `testutil.NewTestApp(t)` (registers `t.Cleanup`) |

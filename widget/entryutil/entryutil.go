@@ -2,7 +2,7 @@
 // both the entry and spinbox widgets.
 package entryutil
 
-import "github.com/msorc/takigo/font"
+import "github.com/takigo/takigo/font"
 
 // MeasureRunes returns the pixel width of a rune slice using the given font.
 func MeasureRunes(f font.Font, runes []rune) int {

@@ -3,9 +3,9 @@ package place
 import (
 	"testing"
 
-	"github.com/msorc/takigo/option"
-	"github.com/msorc/takigo/platform"
-	"github.com/msorc/takigo/window"
+	"github.com/takigo/takigo/option"
+	"github.com/takigo/takigo/platform"
+	"github.com/takigo/takigo/window"
 )
 
 type fakeServer struct {

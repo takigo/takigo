@@ -1,11 +1,11 @@
 package ttk
 
 import (
-	"github.com/msorc/takigo/font"
-	"github.com/msorc/takigo/geometry"
-	"github.com/msorc/takigo/platform"
-	"github.com/msorc/takigo/widget"
-	"github.com/msorc/takigo/window"
+	"github.com/takigo/takigo/font"
+	"github.com/takigo/takigo/geometry"
+	"github.com/takigo/takigo/platform"
+	"github.com/takigo/takigo/widget"
+	"github.com/takigo/takigo/window"
 )
 
 // Labelframe is ttk::labelframe (tk/generic/ttk/ttkFrame.c): a frame with a

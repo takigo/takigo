@@ -3,7 +3,7 @@ package focus
 import (
 	"testing"
 
-	"github.com/msorc/takigo/window"
+	"github.com/takigo/takigo/window"
 )
 
 func TestFlattenTree(t *testing.T) {

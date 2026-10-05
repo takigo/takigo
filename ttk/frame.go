@@ -1,10 +1,10 @@
 package ttk
 
 import (
-	"github.com/msorc/takigo/option"
-	"github.com/msorc/takigo/screenunit"
-	"github.com/msorc/takigo/widget"
-	"github.com/msorc/takigo/window"
+	"github.com/takigo/takigo/option"
+	"github.com/takigo/takigo/screenunit"
+	"github.com/takigo/takigo/widget"
+	"github.com/takigo/takigo/window"
 )
 
 // Frame is a themed container widget.

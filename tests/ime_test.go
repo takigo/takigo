@@ -4,16 +4,16 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/msorc/takigo/bind"
-	"github.com/msorc/takigo/event"
-	"github.com/msorc/takigo/internal/testutil"
-	"github.com/msorc/takigo/platform"
-	"github.com/msorc/takigo/ttk"
-	_ "github.com/msorc/takigo/ttk/defaulttheme"
-	"github.com/msorc/takigo/widget/entry"
-	"github.com/msorc/takigo/widget/spinbox"
-	"github.com/msorc/takigo/widget/text"
-	"github.com/msorc/takigo/window"
+	"github.com/takigo/takigo/bind"
+	"github.com/takigo/takigo/event"
+	"github.com/takigo/takigo/internal/testutil"
+	"github.com/takigo/takigo/platform"
+	"github.com/takigo/takigo/ttk"
+	_ "github.com/takigo/takigo/ttk/defaulttheme"
+	"github.com/takigo/takigo/widget/entry"
+	"github.com/takigo/takigo/widget/spinbox"
+	"github.com/takigo/takigo/widget/text"
+	"github.com/takigo/takigo/window"
 )
 
 // The events a backend sends while an input method composes "かな", as the

@@ -5,8 +5,8 @@ package windows
 import (
 	"unsafe"
 
-	w32 "github.com/msorc/takigo/internal/win32"
-	"github.com/msorc/takigo/platform"
+	w32 "github.com/takigo/takigo/internal/win32"
+	"github.com/takigo/takigo/platform"
 )
 
 // pixmapInfo holds state for an offscreen bitmap.

@@ -3,9 +3,9 @@ package panedwindow_test
 import (
 	"testing"
 
-	"github.com/msorc/takigo/internal/testutil"
-	"github.com/msorc/takigo/widget/frame"
-	"github.com/msorc/takigo/widget/panedwindow"
+	"github.com/takigo/takigo/internal/testutil"
+	"github.com/takigo/takigo/widget/frame"
+	"github.com/takigo/takigo/widget/panedwindow"
 )
 
 func TestPanedWindowPanes(t *testing.T) {

@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/msorc/takigo/internal/treedump"
+	"github.com/takigo/takigo/internal/treedump"
 )
 
 // Kind classifies a difference. Lower values are more likely root causes and

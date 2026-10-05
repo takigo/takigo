@@ -3,13 +3,13 @@ package dialog
 import (
 	"strconv"
 
-	"github.com/msorc/takigo/font"
-	"github.com/msorc/takigo/geometry/pack"
-	"github.com/msorc/takigo/widget"
-	"github.com/msorc/takigo/widget/checkbutton"
-	"github.com/msorc/takigo/widget/frame"
-	"github.com/msorc/takigo/widget/label"
-	"github.com/msorc/takigo/widget/listbox"
+	"github.com/takigo/takigo/font"
+	"github.com/takigo/takigo/geometry/pack"
+	"github.com/takigo/takigo/widget"
+	"github.com/takigo/takigo/widget/checkbutton"
+	"github.com/takigo/takigo/widget/frame"
+	"github.com/takigo/takigo/widget/label"
+	"github.com/takigo/takigo/widget/listbox"
 )
 
 // fontConfig holds ChooseFont options.

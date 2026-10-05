@@ -4,7 +4,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/msorc/takigo/font"
+	"github.com/takigo/takigo/font"
 )
 
 // psFontName converts a takigo font (family + weight + slant + size) to the

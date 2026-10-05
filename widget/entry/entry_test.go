@@ -3,8 +3,8 @@ package entry_test
 import (
 	"testing"
 
-	"github.com/msorc/takigo/internal/testutil"
-	"github.com/msorc/takigo/widget/entry"
+	"github.com/takigo/takigo/internal/testutil"
+	"github.com/takigo/takigo/widget/entry"
 )
 
 func TestEntryEditing(t *testing.T) {

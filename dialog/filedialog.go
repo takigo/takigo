@@ -14,14 +14,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/msorc/takigo/event"
-	"github.com/msorc/takigo/geometry/grid"
-	"github.com/msorc/takigo/geometry/pack"
-	"github.com/msorc/takigo/option"
-	"github.com/msorc/takigo/platform"
-	"github.com/msorc/takigo/ttk"
-	_ "github.com/msorc/takigo/ttk/defaulttheme"
-	"github.com/msorc/takigo/widget"
+	"github.com/takigo/takigo/event"
+	"github.com/takigo/takigo/geometry/grid"
+	"github.com/takigo/takigo/geometry/pack"
+	"github.com/takigo/takigo/option"
+	"github.com/takigo/takigo/platform"
+	"github.com/takigo/takigo/ttk"
+	_ "github.com/takigo/takigo/ttk/defaulttheme"
+	"github.com/takigo/takigo/widget"
 )
 
 // FileType describes a file type filter. Pattern holds one or more glob

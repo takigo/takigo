@@ -6,16 +6,16 @@ import (
 	"strconv"
 	"testing"
 
-	takigo "github.com/msorc/takigo"
-	"github.com/msorc/takigo/geometry"
-	"github.com/msorc/takigo/geometry/grid"
-	"github.com/msorc/takigo/geometry/pack"
-	"github.com/msorc/takigo/internal/testutil"
-	"github.com/msorc/takigo/platform"
-	"github.com/msorc/takigo/ttk"
-	_ "github.com/msorc/takigo/ttk/defaulttheme"
-	"github.com/msorc/takigo/widget/frame"
-	"github.com/msorc/takigo/widget/label"
+	takigo "github.com/takigo/takigo"
+	"github.com/takigo/takigo/geometry"
+	"github.com/takigo/takigo/geometry/grid"
+	"github.com/takigo/takigo/geometry/pack"
+	"github.com/takigo/takigo/internal/testutil"
+	"github.com/takigo/takigo/platform"
+	"github.com/takigo/takigo/ttk"
+	_ "github.com/takigo/takigo/ttk/defaulttheme"
+	"github.com/takigo/takigo/widget/frame"
+	"github.com/takigo/takigo/widget/label"
 )
 
 func benchApp(b *testing.B) *takigo.App {

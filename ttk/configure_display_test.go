@@ -3,10 +3,10 @@ package ttk_test
 import (
 	"testing"
 
-	"github.com/msorc/takigo/geometry/pack"
-	"github.com/msorc/takigo/internal/testutil"
-	"github.com/msorc/takigo/ttk"
-	_ "github.com/msorc/takigo/ttk/defaulttheme"
+	"github.com/takigo/takigo/geometry/pack"
+	"github.com/takigo/takigo/internal/testutil"
+	"github.com/takigo/takigo/ttk"
+	_ "github.com/takigo/takigo/ttk/defaulttheme"
 )
 
 func TestEntryWidthAndStyleOptions(t *testing.T) {

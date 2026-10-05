@@ -3,7 +3,7 @@ package text
 import (
 	"testing"
 
-	"github.com/msorc/takigo/window"
+	"github.com/takigo/takigo/window"
 )
 
 // TestParseIndexExpressions checks the Tk index grammar against the results

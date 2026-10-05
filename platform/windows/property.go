@@ -6,8 +6,8 @@ import (
 	"encoding/binary"
 	"sync"
 
-	w32 "github.com/msorc/takigo/internal/win32"
-	"github.com/msorc/takigo/platform"
+	w32 "github.com/takigo/takigo/internal/win32"
+	"github.com/takigo/takigo/platform"
 )
 
 // Per-window property storage for emulating X11 properties.

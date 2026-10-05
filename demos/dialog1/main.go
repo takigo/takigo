@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/msorc/takigo"
-	"github.com/msorc/takigo/demos/demohelper"
-	"github.com/msorc/takigo/dialog"
-	"github.com/msorc/takigo/screenunit"
-	"github.com/msorc/takigo/widget/label"
+	"github.com/takigo/takigo"
+	"github.com/takigo/takigo/demos/demohelper"
+	"github.com/takigo/takigo/dialog"
+	"github.com/takigo/takigo/screenunit"
+	"github.com/takigo/takigo/widget/label"
 )
 
 func main() {

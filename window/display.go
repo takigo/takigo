@@ -3,7 +3,7 @@
 package window
 
 import (
-	"github.com/msorc/takigo/platform"
+	"github.com/takigo/takigo/platform"
 )
 
 // Display holds per-display state shared across all windows on a single

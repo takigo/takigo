@@ -6,10 +6,10 @@ import (
 	"testing"
 	"time"
 
-	takigo "github.com/msorc/takigo"
+	takigo "github.com/takigo/takigo"
 
-	"github.com/msorc/takigo/dialog"
-	"github.com/msorc/takigo/internal/testutil"
+	"github.com/takigo/takigo/dialog"
+	"github.com/takigo/takigo/internal/testutil"
 )
 
 func TestRunContextQuitsWhenDone(t *testing.T) {

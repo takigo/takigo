@@ -3,9 +3,9 @@ package listbox
 import (
 	"testing"
 
-	"github.com/msorc/takigo/color"
-	"github.com/msorc/takigo/font"
-	"github.com/msorc/takigo/window"
+	"github.com/takigo/takigo/color"
+	"github.com/takigo/takigo/font"
+	"github.com/takigo/takigo/window"
 )
 
 type charFont struct{}

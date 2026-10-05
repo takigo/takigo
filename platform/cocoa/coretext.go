@@ -3,9 +3,9 @@
 package cocoa
 
 import (
-	"github.com/msorc/takigo/font"
-	clib "github.com/msorc/takigo/internal/cocoa"
-	"github.com/msorc/takigo/platform"
+	"github.com/takigo/takigo/font"
+	clib "github.com/takigo/takigo/internal/cocoa"
+	"github.com/takigo/takigo/platform"
 )
 
 // CoreTextFont implements font.Font using Core Text via cgo.

@@ -3,7 +3,7 @@ package ttk
 import (
 	"testing"
 
-	"github.com/msorc/takigo/option"
+	"github.com/takigo/takigo/option"
 )
 
 func TestStyleLookupDefaults(t *testing.T) {

@@ -4,18 +4,18 @@ package main
 
 import (
 	"fmt"
-	"github.com/msorc/takigo/font"
+	"github.com/takigo/takigo/font"
 	"os"
 	"os/exec"
 
-	"github.com/msorc/takigo"
-	"github.com/msorc/takigo/demos/demohelper"
-	"github.com/msorc/takigo/geometry/pack"
-	"github.com/msorc/takigo/option"
-	"github.com/msorc/takigo/ttk"
-	"github.com/msorc/takigo/widget"
-	"github.com/msorc/takigo/widget/frame"
-	"github.com/msorc/takigo/widget/text"
+	"github.com/takigo/takigo"
+	"github.com/takigo/takigo/demos/demohelper"
+	"github.com/takigo/takigo/geometry/pack"
+	"github.com/takigo/takigo/option"
+	"github.com/takigo/takigo/ttk"
+	"github.com/takigo/takigo/widget"
+	"github.com/takigo/takigo/widget/frame"
+	"github.com/takigo/takigo/widget/text"
 )
 
 func main() {

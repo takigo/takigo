@@ -3,10 +3,10 @@ package widget_test
 import (
 	"testing"
 
-	"github.com/msorc/takigo/internal/testutil"
-	"github.com/msorc/takigo/platform"
-	"github.com/msorc/takigo/widget"
-	"github.com/msorc/takigo/window"
+	"github.com/takigo/takigo/internal/testutil"
+	"github.com/takigo/takigo/platform"
+	"github.com/takigo/takigo/widget"
+	"github.com/takigo/takigo/window"
 )
 
 func TestEventuallyRedrawCoalescesOffscreen(t *testing.T) {

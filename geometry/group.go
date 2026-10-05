@@ -1,6 +1,6 @@
 package geometry
 
-import "github.com/msorc/takigo/window"
+import "github.com/takigo/takigo/window"
 
 type Elementer interface {
 	GeometryElements() []window.Windower

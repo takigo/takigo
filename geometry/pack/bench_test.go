@@ -3,10 +3,10 @@ package pack_test
 import (
 	"testing"
 
-	"github.com/msorc/takigo/geometry"
-	"github.com/msorc/takigo/geometry/pack"
-	"github.com/msorc/takigo/platform"
-	"github.com/msorc/takigo/window"
+	"github.com/takigo/takigo/geometry"
+	"github.com/takigo/takigo/geometry/pack"
+	"github.com/takigo/takigo/platform"
+	"github.com/takigo/takigo/window"
 )
 
 type benchServer struct{ platform.DisplayServer }

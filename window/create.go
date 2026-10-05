@@ -6,7 +6,7 @@ import (
 	"slices"
 	"strconv"
 
-	"github.com/msorc/takigo/platform"
+	"github.com/takigo/takigo/platform"
 )
 
 // CreateMainWindow creates the root window of a takigo application.

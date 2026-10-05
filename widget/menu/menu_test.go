@@ -3,8 +3,8 @@ package menu_test
 import (
 	"testing"
 
-	"github.com/msorc/takigo/internal/testutil"
-	"github.com/msorc/takigo/widget/menu"
+	"github.com/takigo/takigo/internal/testutil"
+	"github.com/takigo/takigo/widget/menu"
 )
 
 func TestMenuEntries(t *testing.T) {

@@ -5,15 +5,15 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/msorc/takigo"
-	"github.com/msorc/takigo/event"
-	"github.com/msorc/takigo/geometry/pack"
-	"github.com/msorc/takigo/option"
-	"github.com/msorc/takigo/platform"
-	"github.com/msorc/takigo/widget"
-	"github.com/msorc/takigo/widget/label"
-	"github.com/msorc/takigo/widget/scrollbar"
-	"github.com/msorc/takigo/widget/text"
+	"github.com/takigo/takigo"
+	"github.com/takigo/takigo/event"
+	"github.com/takigo/takigo/geometry/pack"
+	"github.com/takigo/takigo/option"
+	"github.com/takigo/takigo/platform"
+	"github.com/takigo/takigo/widget"
+	"github.com/takigo/takigo/widget/label"
+	"github.com/takigo/takigo/widget/scrollbar"
+	"github.com/takigo/takigo/widget/text"
 )
 
 func main() {

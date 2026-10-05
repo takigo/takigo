@@ -5,8 +5,8 @@ package takigo
 import (
 	"errors"
 
-	"github.com/msorc/takigo/font"
-	"github.com/msorc/takigo/platform"
+	"github.com/takigo/takigo/font"
+	"github.com/takigo/takigo/platform"
 )
 
 // platformInit without cgo: the X11 backend binds Xlib through cgo, so

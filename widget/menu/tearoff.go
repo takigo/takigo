@@ -1,14 +1,14 @@
 package menu
 
 import (
-	"github.com/msorc/takigo/color"
-	"github.com/msorc/takigo/draw"
-	"github.com/msorc/takigo/event"
-	"github.com/msorc/takigo/font"
-	"github.com/msorc/takigo/option"
-	"github.com/msorc/takigo/platform"
-	"github.com/msorc/takigo/widget"
-	"github.com/msorc/takigo/window"
+	"github.com/takigo/takigo/color"
+	"github.com/takigo/takigo/draw"
+	"github.com/takigo/takigo/event"
+	"github.com/takigo/takigo/font"
+	"github.com/takigo/takigo/option"
+	"github.com/takigo/takigo/platform"
+	"github.com/takigo/takigo/widget"
+	"github.com/takigo/takigo/window"
 )
 
 // TearoffWindow is a persistent toplevel window created when a menu is torn off.

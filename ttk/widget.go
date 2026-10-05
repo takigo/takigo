@@ -5,10 +5,10 @@ package ttk
 import (
 	"strings"
 
-	"github.com/msorc/takigo/event"
-	"github.com/msorc/takigo/platform"
-	"github.com/msorc/takigo/widget"
-	"github.com/msorc/takigo/window"
+	"github.com/takigo/takigo/event"
+	"github.com/takigo/takigo/platform"
+	"github.com/takigo/takigo/widget"
+	"github.com/takigo/takigo/window"
 )
 
 // TtkWidget is the base struct for all TTK themed widgets.

@@ -3,9 +3,9 @@ package checkbutton_test
 import (
 	"testing"
 
-	"github.com/msorc/takigo/internal/testutil"
-	"github.com/msorc/takigo/widget"
-	"github.com/msorc/takigo/widget/checkbutton"
+	"github.com/takigo/takigo/internal/testutil"
+	"github.com/takigo/takigo/widget"
+	"github.com/takigo/takigo/widget/checkbutton"
 )
 
 func TestCheckbuttonVariable(t *testing.T) {

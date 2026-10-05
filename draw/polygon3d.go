@@ -3,8 +3,8 @@ package draw
 import (
 	"math"
 
-	"github.com/msorc/takigo/option"
-	"github.com/msorc/takigo/platform"
+	"github.com/takigo/takigo/option"
+	"github.com/takigo/takigo/platform"
 )
 
 // X11 XFillPolygon shape/mode values.

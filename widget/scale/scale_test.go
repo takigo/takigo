@@ -4,8 +4,8 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/msorc/takigo/font"
-	"github.com/msorc/takigo/window"
+	"github.com/takigo/takigo/font"
+	"github.com/takigo/takigo/window"
 )
 
 type fixedFont struct{}

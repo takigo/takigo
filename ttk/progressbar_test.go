@@ -4,9 +4,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/msorc/takigo/internal/testutil"
-	"github.com/msorc/takigo/ttk"
-	_ "github.com/msorc/takigo/ttk/defaulttheme"
+	"github.com/takigo/takigo/internal/testutil"
+	"github.com/takigo/takigo/ttk"
+	_ "github.com/takigo/takigo/ttk/defaulttheme"
 )
 
 func TestProgressbarRestartRunsOneTimerChain(t *testing.T) {

@@ -3,8 +3,8 @@ package ttk
 import (
 	"strings"
 
-	"github.com/msorc/takigo/option"
-	"github.com/msorc/takigo/screenunit"
+	"github.com/takigo/takigo/option"
+	"github.com/takigo/takigo/screenunit"
 )
 
 // Box represents a rectangular area. Ported from ttkLayout.c.

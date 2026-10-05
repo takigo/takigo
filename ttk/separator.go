@@ -1,8 +1,8 @@
 package ttk
 
 import (
-	"github.com/msorc/takigo/widget"
-	"github.com/msorc/takigo/window"
+	"github.com/takigo/takigo/widget"
+	"github.com/takigo/takigo/window"
 )
 
 // Separator is a themed separator widget.

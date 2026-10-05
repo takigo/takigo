@@ -3,8 +3,8 @@ package canvas
 import (
 	"math"
 
-	"github.com/msorc/takigo/color"
-	"github.com/msorc/takigo/platform"
+	"github.com/takigo/takigo/color"
+	"github.com/takigo/takigo/platform"
 )
 
 // LineItem implements a polyline canvas item with optional arrows and smoothing.

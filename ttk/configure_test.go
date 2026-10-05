@@ -3,7 +3,7 @@ package ttk
 import (
 	"testing"
 
-	"github.com/msorc/takigo/window"
+	"github.com/takigo/takigo/window"
 )
 
 type fakeManager struct{ requests int }

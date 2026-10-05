@@ -4,17 +4,17 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/msorc/takigo"
-	"github.com/msorc/takigo/canvas"
-	"github.com/msorc/takigo/dialog"
-	"github.com/msorc/takigo/geometry/grid"
-	"github.com/msorc/takigo/geometry/pack"
-	"github.com/msorc/takigo/option"
-	"github.com/msorc/takigo/ttk"
-	_ "github.com/msorc/takigo/ttk/defaulttheme"
-	"github.com/msorc/takigo/widget/button"
-	"github.com/msorc/takigo/widget/entry"
-	"github.com/msorc/takigo/widget/label"
+	"github.com/takigo/takigo"
+	"github.com/takigo/takigo/canvas"
+	"github.com/takigo/takigo/dialog"
+	"github.com/takigo/takigo/geometry/grid"
+	"github.com/takigo/takigo/geometry/pack"
+	"github.com/takigo/takigo/option"
+	"github.com/takigo/takigo/ttk"
+	_ "github.com/takigo/takigo/ttk/defaulttheme"
+	"github.com/takigo/takigo/widget/button"
+	"github.com/takigo/takigo/widget/entry"
+	"github.com/takigo/takigo/widget/label"
 )
 
 // The examples have no "Output:" comment: they open a window, so go test

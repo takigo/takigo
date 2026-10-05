@@ -5,7 +5,7 @@ package appearance
 import (
 	"testing"
 
-	"github.com/msorc/takigo/internal/dbus"
+	"github.com/takigo/takigo/internal/dbus"
 )
 
 func TestColorSchemeMode(t *testing.T) {

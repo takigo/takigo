@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/msorc/takigo/color"
-	"github.com/msorc/takigo/font"
+	"github.com/takigo/takigo/color"
+	"github.com/takigo/takigo/font"
 )
 
 // stubFont implements font.Font with whatever Attributes the test passes.

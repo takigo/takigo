@@ -3,12 +3,12 @@ package takigo_test
 import (
 	"testing"
 
-	"github.com/msorc/takigo/bind"
-	"github.com/msorc/takigo/event"
-	"github.com/msorc/takigo/geometry"
-	"github.com/msorc/takigo/geometry/pack"
-	"github.com/msorc/takigo/internal/testutil"
-	"github.com/msorc/takigo/widget/button"
+	"github.com/takigo/takigo/bind"
+	"github.com/takigo/takigo/event"
+	"github.com/takigo/takigo/geometry"
+	"github.com/takigo/takigo/geometry/pack"
+	"github.com/takigo/takigo/internal/testutil"
+	"github.com/takigo/takigo/widget/button"
 )
 
 // A binding on a button's path runs before the Button class behaviour and

@@ -4,12 +4,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/msorc/takigo/canvas"
-	"github.com/msorc/takigo/geometry"
-	"github.com/msorc/takigo/geometry/pack"
-	"github.com/msorc/takigo/internal/testutil"
-	"github.com/msorc/takigo/option"
-	"github.com/msorc/takigo/platform"
+	"github.com/takigo/takigo/canvas"
+	"github.com/takigo/takigo/geometry"
+	"github.com/takigo/takigo/geometry/pack"
+	"github.com/takigo/takigo/internal/testutil"
+	"github.com/takigo/takigo/option"
+	"github.com/takigo/takigo/platform"
 )
 
 // TestBitmapItemDrawsThroughMask checks a bitmap with a transparent

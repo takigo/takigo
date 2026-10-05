@@ -10,10 +10,10 @@ import (
 	"syscall"
 	"unsafe"
 
-	"github.com/msorc/takigo/cursor"
-	"github.com/msorc/takigo/font"
-	w32 "github.com/msorc/takigo/internal/win32"
-	"github.com/msorc/takigo/platform"
+	"github.com/takigo/takigo/cursor"
+	"github.com/takigo/takigo/font"
+	w32 "github.com/takigo/takigo/internal/win32"
+	"github.com/takigo/takigo/platform"
 )
 
 func init() {

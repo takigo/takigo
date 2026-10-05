@@ -3,10 +3,10 @@ package labelframe_test
 import (
 	"testing"
 
-	"github.com/msorc/takigo/geometry/pack"
-	"github.com/msorc/takigo/internal/testutil"
-	"github.com/msorc/takigo/widget/label"
-	"github.com/msorc/takigo/widget/labelframe"
+	"github.com/takigo/takigo/geometry/pack"
+	"github.com/takigo/takigo/internal/testutil"
+	"github.com/takigo/takigo/widget/label"
+	"github.com/takigo/takigo/widget/labelframe"
 )
 
 func TestLabelframeLabelMakesRoom(t *testing.T) {

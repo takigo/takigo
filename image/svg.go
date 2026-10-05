@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/msorc/takigo/internal/nanosvg"
+	"github.com/takigo/takigo/internal/nanosvg"
 )
 
 // NewPhotoFromSVGFile loads an SVG file as a Photo. Like Tk 9's svg

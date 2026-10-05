@@ -3,9 +3,9 @@ package radiobutton_test
 import (
 	"testing"
 
-	"github.com/msorc/takigo/internal/testutil"
-	"github.com/msorc/takigo/widget"
-	"github.com/msorc/takigo/widget/radiobutton"
+	"github.com/takigo/takigo/internal/testutil"
+	"github.com/takigo/takigo/widget"
+	"github.com/takigo/takigo/widget/radiobutton"
 )
 
 func TestRadiobuttonGroup(t *testing.T) {

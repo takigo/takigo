@@ -6,8 +6,8 @@ import (
 	"testing"
 	"unicode/utf8"
 
-	"github.com/msorc/takigo/font"
-	"github.com/msorc/takigo/window"
+	"github.com/takigo/takigo/font"
+	"github.com/takigo/takigo/window"
 )
 
 // fixedFont is a display-free font.Font: 7px per rune, ascent 10, descent 3.

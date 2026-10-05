@@ -6,7 +6,7 @@ import (
 	"math/bits"
 	"sync"
 
-	"github.com/msorc/takigo/internal/xlib"
+	"github.com/takigo/takigo/internal/xlib"
 )
 
 // pixelFormat converts the logical pixels the rest of takigo uses

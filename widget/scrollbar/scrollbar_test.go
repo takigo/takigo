@@ -3,9 +3,9 @@ package scrollbar_test
 import (
 	"testing"
 
-	"github.com/msorc/takigo/internal/testutil"
-	"github.com/msorc/takigo/widget"
-	"github.com/msorc/takigo/widget/scrollbar"
+	"github.com/takigo/takigo/internal/testutil"
+	"github.com/takigo/takigo/widget"
+	"github.com/takigo/takigo/widget/scrollbar"
 )
 
 func TestScrollbarGeometry(t *testing.T) {

@@ -12,16 +12,16 @@ import (
 	"os"
 	"time"
 
-	"github.com/msorc/takigo"
-	"github.com/msorc/takigo/demos/demohelper"
-	"github.com/msorc/takigo/font"
-	"github.com/msorc/takigo/geometry/pack"
-	tkimage "github.com/msorc/takigo/image"
-	"github.com/msorc/takigo/option"
-	"github.com/msorc/takigo/screenunit"
-	"github.com/msorc/takigo/widget/frame"
-	"github.com/msorc/takigo/widget/label"
-	"github.com/msorc/takigo/widget/labelframe"
+	"github.com/takigo/takigo"
+	"github.com/takigo/takigo/demos/demohelper"
+	"github.com/takigo/takigo/font"
+	"github.com/takigo/takigo/geometry/pack"
+	tkimage "github.com/takigo/takigo/image"
+	"github.com/takigo/takigo/option"
+	"github.com/takigo/takigo/screenunit"
+	"github.com/takigo/takigo/widget/frame"
+	"github.com/takigo/takigo/widget/label"
+	"github.com/takigo/takigo/widget/labelframe"
 )
 
 // scrollLabel holds the state for one animated scrolling label.

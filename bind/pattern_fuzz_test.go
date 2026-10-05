@@ -4,8 +4,8 @@ package bind
 import (
 	"testing"
 
-	"github.com/msorc/takigo/event"
-	"github.com/msorc/takigo/platform"
+	"github.com/takigo/takigo/event"
+	"github.com/takigo/takigo/platform"
 )
 
 // FuzzParse fuzzes the Parse function with arbitrary input.

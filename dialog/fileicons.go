@@ -4,7 +4,7 @@ import (
 	goimage "image"
 	"image/color"
 
-	tkimage "github.com/msorc/takigo/image"
+	tkimage "github.com/takigo/takigo/image"
 )
 
 // fileIcons are the 16x16 pictograms of the file dialog, drawn in code so

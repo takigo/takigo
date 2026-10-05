@@ -3,9 +3,9 @@
 package windows
 
 import (
-	"github.com/msorc/takigo/cursor"
-	w32 "github.com/msorc/takigo/internal/win32"
-	"github.com/msorc/takigo/platform"
+	"github.com/takigo/takigo/cursor"
+	w32 "github.com/takigo/takigo/internal/win32"
+	"github.com/takigo/takigo/platform"
 )
 
 // shapeToWinCursor maps abstract cursor shapes to Windows IDC_* constants.

@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/msorc/takigo/draw"
-	"github.com/msorc/takigo/event"
-	"github.com/msorc/takigo/font"
-	"github.com/msorc/takigo/internal/nanosvg"
-	"github.com/msorc/takigo/platform"
-	"github.com/msorc/takigo/screenunit"
-	"github.com/msorc/takigo/widget"
-	"github.com/msorc/takigo/window"
+	"github.com/takigo/takigo/draw"
+	"github.com/takigo/takigo/event"
+	"github.com/takigo/takigo/font"
+	"github.com/takigo/takigo/internal/nanosvg"
+	"github.com/takigo/takigo/platform"
+	"github.com/takigo/takigo/screenunit"
+	"github.com/takigo/takigo/widget"
+	"github.com/takigo/takigo/window"
 )
 
 // Toggleswitch is a TTK sliding on/off toggle switch.

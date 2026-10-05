@@ -3,9 +3,9 @@ package bind
 import (
 	"testing"
 
-	"github.com/msorc/takigo/event"
-	"github.com/msorc/takigo/platform"
-	"github.com/msorc/takigo/window"
+	"github.com/takigo/takigo/event"
+	"github.com/takigo/takigo/platform"
+	"github.com/takigo/takigo/window"
 )
 
 func newSeqEngine(t *testing.T) *Engine {

@@ -4,17 +4,17 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/msorc/takigo/color"
-	"github.com/msorc/takigo/font"
-	"github.com/msorc/takigo/geometry/grid"
-	"github.com/msorc/takigo/geometry/pack"
-	"github.com/msorc/takigo/internal/testutil"
-	"github.com/msorc/takigo/ttk"
-	_ "github.com/msorc/takigo/ttk/defaulttheme"
-	"github.com/msorc/takigo/widget"
-	"github.com/msorc/takigo/widget/button"
-	"github.com/msorc/takigo/widget/checkbutton"
-	"github.com/msorc/takigo/widget/label"
+	"github.com/takigo/takigo/color"
+	"github.com/takigo/takigo/font"
+	"github.com/takigo/takigo/geometry/grid"
+	"github.com/takigo/takigo/geometry/pack"
+	"github.com/takigo/takigo/internal/testutil"
+	"github.com/takigo/takigo/ttk"
+	_ "github.com/takigo/takigo/ttk/defaulttheme"
+	"github.com/takigo/takigo/widget"
+	"github.com/takigo/takigo/widget/button"
+	"github.com/takigo/takigo/widget/checkbutton"
+	"github.com/takigo/takigo/widget/label"
 )
 
 func TestConfigureReturnsOptionErrors(t *testing.T) {

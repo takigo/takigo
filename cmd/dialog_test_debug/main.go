@@ -6,9 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/msorc/takigo"
-	"github.com/msorc/takigo/dialog"
-	"github.com/msorc/takigo/window"
+	"github.com/takigo/takigo"
+	"github.com/takigo/takigo/dialog"
+	"github.com/takigo/takigo/window"
 )
 
 func dumpWindow(w *window.Window, depth int) {

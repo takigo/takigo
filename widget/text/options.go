@@ -1,10 +1,10 @@
 package text
 
 import (
-	"github.com/msorc/takigo/font"
-	"github.com/msorc/takigo/screenunit"
+	"github.com/takigo/takigo/font"
+	"github.com/takigo/takigo/screenunit"
 
-	"github.com/msorc/takigo/color"
+	"github.com/takigo/takigo/color"
 )
 
 // WrapMode specifies how lines are wrapped at widget boundaries.

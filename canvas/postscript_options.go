@@ -4,7 +4,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/msorc/takigo/option"
+	"github.com/takigo/takigo/option"
 )
 
 // PostscriptOption configures a Canvas.Postscript call.

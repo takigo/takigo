@@ -3,9 +3,9 @@
 package x11
 
 import (
-	"github.com/msorc/takigo/font"
-	"github.com/msorc/takigo/font/xft"
-	"github.com/msorc/takigo/internal/xlib"
+	"github.com/takigo/takigo/font"
+	"github.com/takigo/takigo/font/xft"
+	"github.com/takigo/takigo/internal/xlib"
 )
 
 // X11FontOpener implements font.FontOpener using Xft/fontconfig.

@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/msorc/takigo/internal/dbus"
+	"github.com/takigo/takigo/internal/dbus"
 )
 
 func notify(title, message string) error {

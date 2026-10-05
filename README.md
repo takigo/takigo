@@ -22,9 +22,9 @@ package main
 import (
 	"log"
 
-	"github.com/msorc/takigo"
-	"github.com/msorc/takigo/geometry/pack"
-	"github.com/msorc/takigo/widget/button"
+	"github.com/takigo/takigo"
+	"github.com/takigo/takigo/geometry/pack"
+	"github.com/takigo/takigo/widget/button"
 )
 
 func main() {

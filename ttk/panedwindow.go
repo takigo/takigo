@@ -1,9 +1,9 @@
 package ttk
 
 import (
-	"github.com/msorc/takigo/screenunit"
-	"github.com/msorc/takigo/widget"
-	"github.com/msorc/takigo/widget/panedwindow"
+	"github.com/takigo/takigo/screenunit"
+	"github.com/takigo/takigo/widget"
+	"github.com/takigo/takigo/widget/panedwindow"
 )
 
 // Panedwindow is a TTK-themed panedwindow with a flat sash style.

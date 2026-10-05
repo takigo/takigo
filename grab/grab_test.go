@@ -3,7 +3,7 @@ package grab
 import (
 	"testing"
 
-	"github.com/msorc/takigo/window"
+	"github.com/takigo/takigo/window"
 )
 
 func makeTree() (root, child1, child2, grandchild *window.Window) {

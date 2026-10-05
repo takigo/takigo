@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/msorc/takigo/event"
-	"github.com/msorc/takigo/internal/displaylock"
-	"github.com/msorc/takigo/platform"
+	"github.com/takigo/takigo/event"
+	"github.com/takigo/takigo/internal/displaylock"
+	"github.com/takigo/takigo/platform"
 )
 
 func TestURIListFiles(t *testing.T) {

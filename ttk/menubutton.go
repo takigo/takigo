@@ -1,12 +1,12 @@
 package ttk
 
 import (
-	"github.com/msorc/takigo/event"
-	"github.com/msorc/takigo/font"
-	"github.com/msorc/takigo/option"
-	"github.com/msorc/takigo/widget"
-	"github.com/msorc/takigo/widget/menu"
-	"github.com/msorc/takigo/window"
+	"github.com/takigo/takigo/event"
+	"github.com/takigo/takigo/font"
+	"github.com/takigo/takigo/option"
+	"github.com/takigo/takigo/widget"
+	"github.com/takigo/takigo/widget/menu"
+	"github.com/takigo/takigo/window"
 )
 
 // Direction specifies where the menu pops up relative to the menubutton.

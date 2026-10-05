@@ -1,6 +1,6 @@
 package geometry
 
-import "github.com/msorc/takigo/window"
+import "github.com/takigo/takigo/window"
 
 // WhenIdle runs arrange once the event loop is idle, however many times
 // it is requested before then, as Tk's geometry managers do with

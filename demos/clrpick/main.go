@@ -6,17 +6,17 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/msorc/takigo"
-	"github.com/msorc/takigo/demos/demohelper"
-	"github.com/msorc/takigo/dialog"
-	"github.com/msorc/takigo/geometry"
-	"github.com/msorc/takigo/geometry/pack"
-	"github.com/msorc/takigo/option"
-	"github.com/msorc/takigo/screenunit"
-	"github.com/msorc/takigo/widget/button"
-	"github.com/msorc/takigo/widget/frame"
-	"github.com/msorc/takigo/widget/label"
-	"github.com/msorc/takigo/window"
+	"github.com/takigo/takigo"
+	"github.com/takigo/takigo/demos/demohelper"
+	"github.com/takigo/takigo/dialog"
+	"github.com/takigo/takigo/geometry"
+	"github.com/takigo/takigo/geometry/pack"
+	"github.com/takigo/takigo/option"
+	"github.com/takigo/takigo/screenunit"
+	"github.com/takigo/takigo/widget/button"
+	"github.com/takigo/takigo/widget/frame"
+	"github.com/takigo/takigo/widget/label"
+	"github.com/takigo/takigo/window"
 )
 
 func main() {

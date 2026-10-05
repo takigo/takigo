@@ -3,7 +3,7 @@
 package geometry
 
 import (
-	"github.com/msorc/takigo/window"
+	"github.com/takigo/takigo/window"
 )
 
 // Manager is an alias for the interface defined in the window package.

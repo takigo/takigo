@@ -3,7 +3,7 @@ package ttk
 import (
 	"testing"
 
-	"github.com/msorc/takigo/ttk/entrytext"
+	"github.com/takigo/takigo/ttk/entrytext"
 )
 
 // --- entrytext.Helper pure-logic tests (no display required) ---

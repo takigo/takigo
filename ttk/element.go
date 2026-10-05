@@ -1,9 +1,9 @@
 package ttk
 
 import (
-	"github.com/msorc/takigo/font"
-	"github.com/msorc/takigo/platform"
-	"github.com/msorc/takigo/widget"
+	"github.com/takigo/takigo/font"
+	"github.com/takigo/takigo/platform"
+	"github.com/takigo/takigo/widget"
 )
 
 // Element is the interface for TTK drawing elements.

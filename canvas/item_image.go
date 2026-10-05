@@ -1,9 +1,9 @@
 package canvas
 
 import (
-	"github.com/msorc/takigo/option"
-	"github.com/msorc/takigo/platform"
-	"github.com/msorc/takigo/widget"
+	"github.com/takigo/takigo/option"
+	"github.com/takigo/takigo/platform"
+	"github.com/takigo/takigo/widget"
 )
 
 // ImageItem implements a positioned image canvas item.

@@ -5,7 +5,7 @@ package windows
 import (
 	"testing"
 
-	"github.com/msorc/takigo/platform"
+	"github.com/takigo/takigo/platform"
 )
 
 func TestClosestIcon(t *testing.T) {

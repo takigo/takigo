@@ -3,12 +3,12 @@ package dialog
 import (
 	"fmt"
 
-	"github.com/msorc/takigo/geometry/pack"
-	"github.com/msorc/takigo/widget"
-	"github.com/msorc/takigo/widget/entry"
-	"github.com/msorc/takigo/widget/frame"
-	"github.com/msorc/takigo/widget/label"
-	"github.com/msorc/takigo/widget/scale"
+	"github.com/takigo/takigo/geometry/pack"
+	"github.com/takigo/takigo/widget"
+	"github.com/takigo/takigo/widget/entry"
+	"github.com/takigo/takigo/widget/frame"
+	"github.com/takigo/takigo/widget/label"
+	"github.com/takigo/takigo/widget/scale"
 )
 
 // colorConfig holds ChooseColor options.

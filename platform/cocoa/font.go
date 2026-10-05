@@ -5,9 +5,9 @@ package cocoa
 import (
 	"fmt"
 
-	"github.com/msorc/takigo/font"
-	"github.com/msorc/takigo/font/coretext"
-	clib "github.com/msorc/takigo/internal/cocoa"
+	"github.com/takigo/takigo/font"
+	"github.com/takigo/takigo/font/coretext"
+	clib "github.com/takigo/takigo/internal/cocoa"
 )
 
 // FontOpener implements font.FontOpener using Core Text.

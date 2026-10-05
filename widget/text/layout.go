@@ -4,7 +4,7 @@ import (
 	"math/bits"
 	"slices"
 
-	"github.com/msorc/takigo/font"
+	"github.com/takigo/takigo/font"
 )
 
 // layoutCache keeps each logical line's wrapped display lines and pixel

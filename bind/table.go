@@ -4,8 +4,8 @@ import (
 	"slices"
 	"sync"
 
-	"github.com/msorc/takigo/event"
-	"github.com/msorc/takigo/window"
+	"github.com/takigo/takigo/event"
+	"github.com/takigo/takigo/window"
 )
 
 // HandlerFunc is a binding callback. It receives the event and returns true

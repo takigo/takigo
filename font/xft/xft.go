@@ -138,13 +138,13 @@ static FcResult fc_pattern_get_family(FcPattern *p, FcChar8 **family) {
 import "C"
 import (
 	"fmt"
-	"github.com/msorc/takigo/font"
+	"github.com/takigo/takigo/font"
 	"math"
 	"unicode/utf8"
 	"unsafe"
 
-	"github.com/msorc/takigo/internal/xlib"
-	"github.com/msorc/takigo/platform"
+	"github.com/takigo/takigo/internal/xlib"
+	"github.com/takigo/takigo/platform"
 )
 
 // XftFont wraps an Xft font handle and provides text measurement and drawing.

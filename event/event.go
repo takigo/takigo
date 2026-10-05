@@ -1,6 +1,6 @@
 package event
 
-import "github.com/msorc/takigo/platform"
+import "github.com/takigo/takigo/platform"
 
 // Event is the unified event struct delivered to handlers.
 // Only fields relevant to the event type are populated.

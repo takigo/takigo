@@ -3,9 +3,9 @@ package place_test
 import (
 	"testing"
 
-	"github.com/msorc/takigo/geometry/place"
-	"github.com/msorc/takigo/platform"
-	"github.com/msorc/takigo/window"
+	"github.com/takigo/takigo/geometry/place"
+	"github.com/takigo/takigo/platform"
+	"github.com/takigo/takigo/window"
 )
 
 type benchServer struct{ platform.DisplayServer }

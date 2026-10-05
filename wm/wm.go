@@ -11,8 +11,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/msorc/takigo/platform"
-	"github.com/msorc/takigo/window"
+	"github.com/takigo/takigo/platform"
+	"github.com/takigo/takigo/window"
 )
 
 // State represents a toplevel window's WM state.

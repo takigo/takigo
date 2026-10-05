@@ -4,14 +4,14 @@ import (
 	"testing"
 	"time"
 
-	takigo "github.com/msorc/takigo"
+	takigo "github.com/takigo/takigo"
 
-	"github.com/msorc/takigo/event"
-	"github.com/msorc/takigo/geometry"
-	"github.com/msorc/takigo/geometry/pack"
-	"github.com/msorc/takigo/internal/testutil"
-	"github.com/msorc/takigo/widget/button"
-	"github.com/msorc/takigo/widget/frame"
+	"github.com/takigo/takigo/event"
+	"github.com/takigo/takigo/geometry"
+	"github.com/takigo/takigo/geometry/pack"
+	"github.com/takigo/takigo/internal/testutil"
+	"github.com/takigo/takigo/widget/button"
+	"github.com/takigo/takigo/widget/frame"
 )
 
 func TestDestroyingParentCleansUpChildWidget(t *testing.T) {

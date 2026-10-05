@@ -1,6 +1,6 @@
 package geometry
 
-import "github.com/msorc/takigo/window"
+import "github.com/takigo/takigo/window"
 
 // Table is a geometry manager's table of per-window state, used like a
 // map[*window.Window]V. The entries live on the windows (Window.Value), as

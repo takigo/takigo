@@ -9,9 +9,9 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/msorc/takigo/font"
-	"github.com/msorc/takigo/window"
-	"github.com/msorc/takigo/wm"
+	"github.com/takigo/takigo/font"
+	"github.com/takigo/takigo/window"
+	"github.com/takigo/takigo/wm"
 )
 
 // SampleText is measured with every dumped font on both sides.

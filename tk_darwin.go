@@ -3,9 +3,9 @@
 package takigo
 
 import (
-	"github.com/msorc/takigo/font"
-	"github.com/msorc/takigo/platform"
-	cocoaplatform "github.com/msorc/takigo/platform/cocoa"
+	"github.com/takigo/takigo/font"
+	"github.com/takigo/takigo/platform"
+	cocoaplatform "github.com/takigo/takigo/platform/cocoa"
 )
 
 // platformInit creates the platform-specific display server, event parser,

@@ -3,8 +3,8 @@ package grid
 import (
 	"testing"
 
-	"github.com/msorc/takigo/geometry"
-	"github.com/msorc/takigo/window"
+	"github.com/takigo/takigo/geometry"
+	"github.com/takigo/takigo/window"
 )
 
 func gridEntryOf(t *testing.T, w *window.Window) gridConfig {

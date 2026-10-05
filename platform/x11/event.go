@@ -3,8 +3,8 @@
 package x11
 
 import (
-	"github.com/msorc/takigo/internal/xlib"
-	"github.com/msorc/takigo/platform"
+	"github.com/takigo/takigo/internal/xlib"
+	"github.com/takigo/takigo/platform"
 )
 
 // X11EventParser implements platform.EventParser for X11.

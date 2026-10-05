@@ -4,8 +4,8 @@
 package windows
 
 import (
-	w32 "github.com/msorc/takigo/internal/win32"
-	"github.com/msorc/takigo/platform"
+	w32 "github.com/takigo/takigo/internal/win32"
+	"github.com/takigo/takigo/platform"
 )
 
 // Type conversion helpers — platform types are uintptr, win32 types are uintptr-based.

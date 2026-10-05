@@ -3,10 +3,10 @@ package menubutton_test
 import (
 	"testing"
 
-	"github.com/msorc/takigo/geometry/pack"
-	"github.com/msorc/takigo/internal/testutil"
-	"github.com/msorc/takigo/widget/menu"
-	"github.com/msorc/takigo/widget/menubutton"
+	"github.com/takigo/takigo/geometry/pack"
+	"github.com/takigo/takigo/internal/testutil"
+	"github.com/takigo/takigo/widget/menu"
+	"github.com/takigo/takigo/widget/menubutton"
 )
 
 func TestMenubuttonGeometry(t *testing.T) {

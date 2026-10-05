@@ -3,7 +3,7 @@ package event
 import (
 	"testing"
 
-	"github.com/msorc/takigo/platform"
+	"github.com/takigo/takigo/platform"
 )
 
 type wheelParser struct {

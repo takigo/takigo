@@ -3,13 +3,13 @@
 package xft
 
 import (
-	"github.com/msorc/takigo/font"
+	"github.com/takigo/takigo/font"
 	"os"
 	"strings"
 	"testing"
 
-	"github.com/msorc/takigo/internal/displaylock"
-	"github.com/msorc/takigo/internal/xlib"
+	"github.com/takigo/takigo/internal/displaylock"
+	"github.com/takigo/takigo/internal/xlib"
 )
 
 func openTestXft(t testing.TB) *XftFont {

@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/msorc/takigo/platform"
+	"github.com/takigo/takigo/platform"
 )
 
 // fakeServer is a DisplayServer whose NextEvent reads from a channel.

@@ -7,7 +7,7 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/msorc/takigo/internal/testutil"
+	"github.com/takigo/takigo/internal/testutil"
 )
 
 func TestSetIconPhoto(t *testing.T) {

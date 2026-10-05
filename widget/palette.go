@@ -1,6 +1,6 @@
 package widget
 
-import "github.com/msorc/takigo/window"
+import "github.com/takigo/takigo/window"
 
 // Palette is the set of default colours the classic widgets of one App
 // start with, as Tk colour strings. LightPalette holds Tk's own defaults

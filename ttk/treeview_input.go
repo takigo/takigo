@@ -1,9 +1,9 @@
 package ttk
 
 import (
-	"github.com/msorc/takigo/event"
-	"github.com/msorc/takigo/platform"
-	"github.com/msorc/takigo/widget"
+	"github.com/takigo/takigo/event"
+	"github.com/takigo/takigo/platform"
+	"github.com/takigo/takigo/widget"
 )
 
 // --- Hit Testing ---

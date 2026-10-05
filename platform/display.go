@@ -1,7 +1,7 @@
 package platform
 
 import (
-	"github.com/msorc/takigo/cursor"
+	"github.com/takigo/takigo/cursor"
 )
 
 // WindowManager manages window creation, destruction, and manipulation.

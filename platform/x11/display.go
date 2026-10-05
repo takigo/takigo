@@ -7,11 +7,11 @@ import (
 	"encoding/binary"
 	"sync"
 
-	"github.com/msorc/takigo/cursor"
-	"github.com/msorc/takigo/font"
-	"github.com/msorc/takigo/font/xft"
-	"github.com/msorc/takigo/internal/xlib"
-	"github.com/msorc/takigo/platform"
+	"github.com/takigo/takigo/cursor"
+	"github.com/takigo/takigo/font"
+	"github.com/takigo/takigo/font/xft"
+	"github.com/takigo/takigo/internal/xlib"
+	"github.com/takigo/takigo/platform"
 )
 
 // Pool for XPoint slices to avoid allocations in DrawLines/FillPolygon.

@@ -4,14 +4,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/msorc/takigo/dialog"
-	"github.com/msorc/takigo/event"
-	"github.com/msorc/takigo/geometry"
-	"github.com/msorc/takigo/geometry/pack"
-	"github.com/msorc/takigo/internal/testutil"
-	"github.com/msorc/takigo/platform"
-	"github.com/msorc/takigo/widget/label"
-	"github.com/msorc/takigo/window"
+	"github.com/takigo/takigo/dialog"
+	"github.com/takigo/takigo/event"
+	"github.com/takigo/takigo/geometry"
+	"github.com/takigo/takigo/geometry/pack"
+	"github.com/takigo/takigo/internal/testutil"
+	"github.com/takigo/takigo/platform"
+	"github.com/takigo/takigo/widget/label"
+	"github.com/takigo/takigo/window"
 )
 
 // A modal dialog opened from a callback runs a nested loop. Callbacks

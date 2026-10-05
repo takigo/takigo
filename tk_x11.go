@@ -3,9 +3,9 @@
 package takigo
 
 import (
-	"github.com/msorc/takigo/font"
-	"github.com/msorc/takigo/platform"
-	x11platform "github.com/msorc/takigo/platform/x11"
+	"github.com/takigo/takigo/font"
+	"github.com/takigo/takigo/platform"
+	x11platform "github.com/takigo/takigo/platform/x11"
 )
 
 // platformInit creates the platform-specific display server, event parser,

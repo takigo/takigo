@@ -3,8 +3,8 @@
 package draw
 
 import (
-	"github.com/msorc/takigo/option"
-	"github.com/msorc/takigo/platform"
+	"github.com/takigo/takigo/option"
+	"github.com/takigo/takigo/platform"
 )
 
 // Point represents an x,y coordinate.

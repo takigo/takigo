@@ -5,7 +5,7 @@ import (
 	"image/color"
 	"testing"
 
-	"github.com/msorc/takigo/internal/treedump"
+	"github.com/takigo/takigo/internal/treedump"
 )
 
 func wd(path, class, parent, top string, index, x, y, w, h int) treedump.Widget {

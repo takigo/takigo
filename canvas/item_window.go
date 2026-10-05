@@ -1,9 +1,9 @@
 package canvas
 
 import (
-	"github.com/msorc/takigo/option"
-	"github.com/msorc/takigo/platform"
-	"github.com/msorc/takigo/window"
+	"github.com/takigo/takigo/option"
+	"github.com/takigo/takigo/platform"
+	"github.com/takigo/takigo/window"
 )
 
 // WindowItem embeds a child window at a fixed canvas position.

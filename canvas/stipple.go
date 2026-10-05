@@ -1,8 +1,8 @@
 package canvas
 
 import (
-	"github.com/msorc/takigo/bitmap"
-	"github.com/msorc/takigo/platform"
+	"github.com/takigo/takigo/bitmap"
+	"github.com/takigo/takigo/platform"
 )
 
 // stippleOn switches gc to FillStippled with the bitmap spec (a built-in

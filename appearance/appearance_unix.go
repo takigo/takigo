@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/msorc/takigo/internal/dbus"
+	"github.com/takigo/takigo/internal/dbus"
 )
 
 // system asks the XDG settings portal for org.freedesktop.appearance

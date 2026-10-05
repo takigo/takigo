@@ -1,11 +1,11 @@
 // Package defaulttheme registers the default TTK theme.
-// Import with blank identifier to auto-register: _ "github.com/msorc/takigo/ttk/defaulttheme"
+// Import with blank identifier to auto-register: _ "github.com/takigo/takigo/ttk/defaulttheme"
 package defaulttheme
 
 import (
-	"github.com/msorc/takigo/option"
-	"github.com/msorc/takigo/screenunit"
-	"github.com/msorc/takigo/ttk"
+	"github.com/takigo/takigo/option"
+	"github.com/takigo/takigo/screenunit"
+	"github.com/takigo/takigo/ttk"
 )
 
 func init() {

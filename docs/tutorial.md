@@ -67,7 +67,7 @@ takigo has **no third-party Go dependencies** — only the standard library.
 ```bash
 mkdir hello && cd hello
 go mod init example.com/hello
-go get github.com/msorc/takigo
+go get github.com/takigo/takigo
 ```
 
 ### Running without a desktop
@@ -96,10 +96,10 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/msorc/takigo"
-	"github.com/msorc/takigo/geometry/pack"
-	"github.com/msorc/takigo/widget/button"
-	"github.com/msorc/takigo/widget/label"
+	"github.com/takigo/takigo"
+	"github.com/takigo/takigo/geometry/pack"
+	"github.com/takigo/takigo/widget/button"
+	"github.com/takigo/takigo/widget/label"
 )
 
 func main() {
@@ -201,7 +201,7 @@ Conventions that apply across the classic widget packages:
 - An `Opt` suffix appears when the bare name would clash with something else
   in the package: `label.FontOpt`, `label.ImageOpt`, `label.JustifyOpt`,
   `scale.FromOpt`, `menu.TearOffOpt`. When in doubt, check the package with
-  `go doc github.com/msorc/takigo/widget/label`.
+  `go doc github.com/takigo/takigo/widget/label`.
 - Every classic package also exports **prefixed aliases**, so code reads the
   same whether you use classic or themed widgets: `button.Text`,
   `label.Text`, `entry.Text`, …
@@ -324,7 +324,7 @@ manager, and nesting frames is how you build complex layouts.
 *cavity*), in the order you pack them.
 
 ```go
-import "github.com/msorc/takigo/geometry/pack"
+import "github.com/takigo/takigo/geometry/pack"
 
 pack.Pack(toolbar, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
 pack.Pack(status,  pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
@@ -357,7 +357,7 @@ To pack several widgets with the same options in one call, wrap them in a
 `geometry.Group`:
 
 ```go
-import "github.com/msorc/takigo/geometry"
+import "github.com/takigo/takigo/geometry"
 
 pack.Pack(geometry.Group{ok, cancel, help}, pack.SideOpt(pack.Left), pack.PadX(4))
 ```
@@ -391,7 +391,7 @@ at the end, as a newly packed widget does.
 for forms and dialogs.
 
 ```go
-import "github.com/msorc/takigo/geometry/grid"
+import "github.com/takigo/takigo/geometry/grid"
 
 grid.Grid(nameLabel, grid.Row(0), grid.Column(0), grid.Sticky(grid.StickE))
 grid.Grid(nameEntry, grid.Row(0), grid.Column(1), grid.Sticky(grid.EW))
@@ -464,16 +464,16 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/msorc/takigo"
-	"github.com/msorc/takigo/bind"
-	"github.com/msorc/takigo/geometry"
-	"github.com/msorc/takigo/geometry/grid"
-	"github.com/msorc/takigo/option"
-	"github.com/msorc/takigo/widget"
-	"github.com/msorc/takigo/widget/button"
-	"github.com/msorc/takigo/widget/entry"
-	"github.com/msorc/takigo/widget/frame"
-	"github.com/msorc/takigo/widget/label"
+	"github.com/takigo/takigo"
+	"github.com/takigo/takigo/bind"
+	"github.com/takigo/takigo/geometry"
+	"github.com/takigo/takigo/geometry/grid"
+	"github.com/takigo/takigo/option"
+	"github.com/takigo/takigo/widget"
+	"github.com/takigo/takigo/widget/button"
+	"github.com/takigo/takigo/widget/entry"
+	"github.com/takigo/takigo/widget/frame"
+	"github.com/takigo/takigo/widget/label"
 )
 
 func main() {
@@ -562,7 +562,7 @@ Things to notice:
 overlays, badges and custom layouts; for ordinary forms prefer `grid`.
 
 ```go
-import "github.com/msorc/takigo/geometry/place"
+import "github.com/takigo/takigo/geometry/place"
 
 f := frame.New(app, "stage", frame.Width(300), frame.Height(200))
 pack.Pack(f)
@@ -782,15 +782,15 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/msorc/takigo"
-	"github.com/msorc/takigo/geometry/pack"
-	"github.com/msorc/takigo/option"
-	"github.com/msorc/takigo/widget"
-	"github.com/msorc/takigo/widget/checkbutton"
-	"github.com/msorc/takigo/widget/label"
-	"github.com/msorc/takigo/widget/labelframe"
-	"github.com/msorc/takigo/widget/radiobutton"
-	"github.com/msorc/takigo/widget/scale"
+	"github.com/takigo/takigo"
+	"github.com/takigo/takigo/geometry/pack"
+	"github.com/takigo/takigo/option"
+	"github.com/takigo/takigo/widget"
+	"github.com/takigo/takigo/widget/checkbutton"
+	"github.com/takigo/takigo/widget/label"
+	"github.com/takigo/takigo/widget/labelframe"
+	"github.com/takigo/takigo/widget/radiobutton"
+	"github.com/takigo/takigo/widget/scale"
 )
 
 func main() {
@@ -1115,15 +1115,15 @@ import (
 	"log"
 	"strings"
 
-	"github.com/msorc/takigo"
-	"github.com/msorc/takigo/bind"
-	"github.com/msorc/takigo/geometry/pack"
-	"github.com/msorc/takigo/widget"
-	"github.com/msorc/takigo/widget/entry"
-	"github.com/msorc/takigo/widget/frame"
-	"github.com/msorc/takigo/widget/label"
-	"github.com/msorc/takigo/widget/listbox"
-	"github.com/msorc/takigo/widget/scrollbar"
+	"github.com/takigo/takigo"
+	"github.com/takigo/takigo/bind"
+	"github.com/takigo/takigo/geometry/pack"
+	"github.com/takigo/takigo/widget"
+	"github.com/takigo/takigo/widget/entry"
+	"github.com/takigo/takigo/widget/frame"
+	"github.com/takigo/takigo/widget/label"
+	"github.com/takigo/takigo/widget/listbox"
+	"github.com/takigo/takigo/widget/scrollbar"
 )
 
 func main() {
@@ -1279,16 +1279,16 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/msorc/takigo"
-	"github.com/msorc/takigo/bind"
-	"github.com/msorc/takigo/dialog"
-	"github.com/msorc/takigo/geometry/pack"
-	"github.com/msorc/takigo/option"
-	"github.com/msorc/takigo/widget"
-	"github.com/msorc/takigo/widget/label"
-	"github.com/msorc/takigo/widget/menu"
-	"github.com/msorc/takigo/widget/scrollbar"
-	"github.com/msorc/takigo/widget/text"
+	"github.com/takigo/takigo"
+	"github.com/takigo/takigo/bind"
+	"github.com/takigo/takigo/dialog"
+	"github.com/takigo/takigo/geometry/pack"
+	"github.com/takigo/takigo/option"
+	"github.com/takigo/takigo/widget"
+	"github.com/takigo/takigo/widget/label"
+	"github.com/takigo/takigo/widget/menu"
+	"github.com/takigo/takigo/widget/scrollbar"
+	"github.com/takigo/takigo/widget/text"
 )
 
 type editor struct {
@@ -1904,14 +1904,14 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/msorc/takigo"
-	"github.com/msorc/takigo/canvas"
-	"github.com/msorc/takigo/event"
-	"github.com/msorc/takigo/geometry/pack"
-	"github.com/msorc/takigo/option"
-	"github.com/msorc/takigo/platform"
-	"github.com/msorc/takigo/screenunit"
-	"github.com/msorc/takigo/widget/label"
+	"github.com/takigo/takigo"
+	"github.com/takigo/takigo/canvas"
+	"github.com/takigo/takigo/event"
+	"github.com/takigo/takigo/geometry/pack"
+	"github.com/takigo/takigo/option"
+	"github.com/takigo/takigo/platform"
+	"github.com/takigo/takigo/screenunit"
+	"github.com/takigo/takigo/widget/label"
 )
 
 func main() {
@@ -2050,7 +2050,7 @@ string.
 
 ## 14. Images
 
-Images are `*image.Photo` values (package `github.com/msorc/takigo/image`;
+Images are `*image.Photo` values (package `github.com/takigo/takigo/image`;
 import it under another name if you also use the standard `image` package).
 Create one, register it with the app, and pass it to any widget that shows
 images.
@@ -2060,7 +2060,7 @@ import (
 	goimage "image"
 	gocolor "image/color"
 
-	"github.com/msorc/takigo/image"
+	"github.com/takigo/takigo/image"
 )
 
 img, err := image.NewPhotoFromFile("earth", "demos/images/earth.gif")
@@ -2223,10 +2223,10 @@ import (
 	"log"
 	"time"
 
-	"github.com/msorc/takigo"
-	"github.com/msorc/takigo/geometry/pack"
-	"github.com/msorc/takigo/ttk"
-	_ "github.com/msorc/takigo/ttk/defaulttheme"
+	"github.com/takigo/takigo"
+	"github.com/takigo/takigo/geometry/pack"
+	"github.com/takigo/takigo/ttk"
+	_ "github.com/takigo/takigo/ttk/defaulttheme"
 )
 
 func main() {
@@ -2324,11 +2324,11 @@ nothing:
 
 ```go
 import (
-	"github.com/msorc/takigo/ttk"
-	_ "github.com/msorc/takigo/ttk/defaulttheme" // "default"
-	_ "github.com/msorc/takigo/ttk/clamtheme"    // "clam"
-	_ "github.com/msorc/takigo/ttk/alttheme"     // "alt"
-	_ "github.com/msorc/takigo/ttk/classictheme" // "classic"
+	"github.com/takigo/takigo/ttk"
+	_ "github.com/takigo/takigo/ttk/defaulttheme" // "default"
+	_ "github.com/takigo/takigo/ttk/clamtheme"    // "clam"
+	_ "github.com/takigo/takigo/ttk/alttheme"     // "alt"
+	_ "github.com/takigo/takigo/ttk/classictheme" // "classic"
 )
 
 func main() {
@@ -2489,15 +2489,15 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/msorc/takigo"
-	"github.com/msorc/takigo/geometry/grid"
-	"github.com/msorc/takigo/geometry/pack"
-	"github.com/msorc/takigo/option"
-	"github.com/msorc/takigo/screenunit"
-	"github.com/msorc/takigo/ttk"
-	_ "github.com/msorc/takigo/ttk/clamtheme"
-	_ "github.com/msorc/takigo/ttk/defaulttheme"
-	"github.com/msorc/takigo/widget"
+	"github.com/takigo/takigo"
+	"github.com/takigo/takigo/geometry/grid"
+	"github.com/takigo/takigo/geometry/pack"
+	"github.com/takigo/takigo/option"
+	"github.com/takigo/takigo/screenunit"
+	"github.com/takigo/takigo/ttk"
+	_ "github.com/takigo/takigo/ttk/clamtheme"
+	_ "github.com/takigo/takigo/ttk/defaulttheme"
+	"github.com/takigo/takigo/widget"
 )
 
 type planet struct {
@@ -2651,18 +2651,18 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/msorc/takigo"
-	"github.com/msorc/takigo/bind"
-	"github.com/msorc/takigo/dialog"
-	"github.com/msorc/takigo/geometry/grid"
-	"github.com/msorc/takigo/geometry/pack"
-	"github.com/msorc/takigo/option"
-	"github.com/msorc/takigo/ttk"
-	_ "github.com/msorc/takigo/ttk/defaulttheme"
-	"github.com/msorc/takigo/widget"
-	"github.com/msorc/takigo/widget/listbox"
-	"github.com/msorc/takigo/widget/menu"
-	"github.com/msorc/takigo/widget/toplevel"
+	"github.com/takigo/takigo"
+	"github.com/takigo/takigo/bind"
+	"github.com/takigo/takigo/dialog"
+	"github.com/takigo/takigo/geometry/grid"
+	"github.com/takigo/takigo/geometry/pack"
+	"github.com/takigo/takigo/option"
+	"github.com/takigo/takigo/ttk"
+	_ "github.com/takigo/takigo/ttk/defaulttheme"
+	"github.com/takigo/takigo/widget"
+	"github.com/takigo/takigo/widget/listbox"
+	"github.com/takigo/takigo/widget/menu"
+	"github.com/takigo/takigo/widget/toplevel"
 )
 
 // Task is one to-do entry; the model knows nothing about widgets.
@@ -2939,9 +2939,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/msorc/takigo"
-	"github.com/msorc/takigo/widget/button"
-	"github.com/msorc/takigo/widget/label"
+	"github.com/takigo/takigo"
+	"github.com/takigo/takigo/widget/button"
+	"github.com/takigo/takigo/widget/label"
 )
 
 func newTestApp(t *testing.T) *takigo.App {
@@ -3081,8 +3081,8 @@ Tips:
   ```
 
 - **API documentation.** `go doc` works on every package, e.g.
-  `go doc github.com/msorc/takigo/widget/text` or
-  `go doc github.com/msorc/takigo/ttk.Treeview`.
+  `go doc github.com/takigo/takigo/widget/text` or
+  `go doc github.com/takigo/takigo/ttk.Treeview`.
 - **`THREADING.md`** — the precise concurrency contract.
 - **`AGENTS.md`** — the repository layout, coding conventions, and the tools
   for comparing takigo with Tk pixel by pixel. Read it before contributing.

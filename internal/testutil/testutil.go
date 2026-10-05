@@ -7,10 +7,10 @@ import (
 	"testing"
 	"time"
 
-	takigo "github.com/msorc/takigo"
-	"github.com/msorc/takigo/internal/displaylock"
-	"github.com/msorc/takigo/platform"
-	"github.com/msorc/takigo/window"
+	takigo "github.com/takigo/takigo"
+	"github.com/takigo/takigo/internal/displaylock"
+	"github.com/takigo/takigo/platform"
+	"github.com/takigo/takigo/window"
 )
 
 // RequireDisplay skips the test if no X11 display is available or the

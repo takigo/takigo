@@ -6,15 +6,15 @@ package button
 import (
 	"strings"
 
-	"github.com/msorc/takigo/color"
-	"github.com/msorc/takigo/draw"
-	"github.com/msorc/takigo/event"
-	"github.com/msorc/takigo/font"
-	"github.com/msorc/takigo/option"
-	"github.com/msorc/takigo/platform"
-	"github.com/msorc/takigo/screenunit"
-	"github.com/msorc/takigo/widget"
-	"github.com/msorc/takigo/window"
+	"github.com/takigo/takigo/color"
+	"github.com/takigo/takigo/draw"
+	"github.com/takigo/takigo/event"
+	"github.com/takigo/takigo/font"
+	"github.com/takigo/takigo/option"
+	"github.com/takigo/takigo/platform"
+	"github.com/takigo/takigo/screenunit"
+	"github.com/takigo/takigo/widget"
+	"github.com/takigo/takigo/window"
 )
 
 // Button is an interactive widget that invokes a command when clicked.

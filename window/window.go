@@ -1,8 +1,8 @@
 package window
 
 import (
-	"github.com/msorc/takigo/cursor"
-	"github.com/msorc/takigo/platform"
+	"github.com/takigo/takigo/cursor"
+	"github.com/takigo/takigo/platform"
 )
 
 // Flags for Window.Flags field.

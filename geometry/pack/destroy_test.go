@@ -3,8 +3,8 @@ package pack
 import (
 	"testing"
 
-	"github.com/msorc/takigo/geometry"
-	"github.com/msorc/takigo/window"
+	"github.com/takigo/takigo/geometry"
+	"github.com/takigo/takigo/window"
 )
 
 func TestDestroyDropsPackState(t *testing.T) {

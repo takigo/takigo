@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/msorc/takigo/color"
-	"github.com/msorc/takigo/font"
-	"github.com/msorc/takigo/option"
+	"github.com/takigo/takigo/color"
+	"github.com/takigo/takigo/font"
+	"github.com/takigo/takigo/option"
 )
 
 // PSContext carries the state of a single canvas PostScript generation.

@@ -5,7 +5,7 @@ package bind
 import (
 	"strconv"
 
-	"github.com/msorc/takigo/platform"
+	"github.com/takigo/takigo/platform"
 )
 
 // keysymNames maps lowercase keysym name strings to platform.KeySym values.

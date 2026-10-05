@@ -3,8 +3,8 @@ package takigo_test
 import (
 	"testing"
 
-	takigo "github.com/msorc/takigo"
-	"github.com/msorc/takigo/internal/testutil"
+	takigo "github.com/takigo/takigo"
+	"github.com/takigo/takigo/internal/testutil"
 )
 
 func TestNewApp(t *testing.T) {

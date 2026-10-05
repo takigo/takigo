@@ -3,9 +3,9 @@ package pack
 import (
 	"testing"
 
-	"github.com/msorc/takigo/option"
-	"github.com/msorc/takigo/screenunit"
-	"github.com/msorc/takigo/window"
+	"github.com/takigo/takigo/option"
+	"github.com/takigo/takigo/screenunit"
+	"github.com/takigo/takigo/window"
 )
 
 func TestAnchorPosition(t *testing.T) {

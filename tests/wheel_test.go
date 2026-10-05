@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/msorc/takigo/bind"
-	"github.com/msorc/takigo/event"
-	"github.com/msorc/takigo/geometry/pack"
-	"github.com/msorc/takigo/internal/testutil"
-	"github.com/msorc/takigo/platform"
-	"github.com/msorc/takigo/widget"
-	"github.com/msorc/takigo/widget/listbox"
-	"github.com/msorc/takigo/widget/scrollbar"
+	"github.com/takigo/takigo/bind"
+	"github.com/takigo/takigo/event"
+	"github.com/takigo/takigo/geometry/pack"
+	"github.com/takigo/takigo/internal/testutil"
+	"github.com/takigo/takigo/platform"
+	"github.com/takigo/takigo/widget"
+	"github.com/takigo/takigo/widget/listbox"
+	"github.com/takigo/takigo/widget/scrollbar"
 )
 
 func TestMouseWheelScrollsListbox(t *testing.T) {

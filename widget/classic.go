@@ -1,6 +1,6 @@
 package widget
 
-import "github.com/msorc/takigo/window"
+import "github.com/takigo/takigo/window"
 
 var classicKey = new(window.ValueKey)
 

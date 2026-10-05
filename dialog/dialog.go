@@ -6,17 +6,17 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/msorc/takigo/event"
-	"github.com/msorc/takigo/geometry/grid"
-	"github.com/msorc/takigo/geometry/pack"
-	"github.com/msorc/takigo/grab"
-	"github.com/msorc/takigo/platform"
-	"github.com/msorc/takigo/widget"
-	"github.com/msorc/takigo/widget/button"
-	"github.com/msorc/takigo/widget/frame"
-	"github.com/msorc/takigo/widget/toplevel"
-	"github.com/msorc/takigo/window"
-	"github.com/msorc/takigo/wm"
+	"github.com/takigo/takigo/event"
+	"github.com/takigo/takigo/geometry/grid"
+	"github.com/takigo/takigo/geometry/pack"
+	"github.com/takigo/takigo/grab"
+	"github.com/takigo/takigo/platform"
+	"github.com/takigo/takigo/widget"
+	"github.com/takigo/takigo/widget/button"
+	"github.com/takigo/takigo/widget/frame"
+	"github.com/takigo/takigo/widget/toplevel"
+	"github.com/takigo/takigo/window"
+	"github.com/takigo/takigo/wm"
 )
 
 // DialogResult identifies which button was pressed to close a dialog.

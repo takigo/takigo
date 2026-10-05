@@ -4,9 +4,9 @@ import (
 	"strconv"
 	"unicode/utf8"
 
-	"github.com/msorc/takigo/event"
-	"github.com/msorc/takigo/geometry/place"
-	"github.com/msorc/takigo/platform"
+	"github.com/takigo/takigo/event"
+	"github.com/takigo/takigo/geometry/place"
+	"github.com/takigo/takigo/platform"
 )
 
 // itemHandler stores a per-item event binding.

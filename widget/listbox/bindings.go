@@ -3,9 +3,9 @@
 package listbox
 
 import (
-	"github.com/msorc/takigo/event"
-	"github.com/msorc/takigo/platform"
-	"github.com/msorc/takigo/widget"
+	"github.com/takigo/takigo/event"
+	"github.com/takigo/takigo/platform"
+	"github.com/takigo/takigo/widget"
 )
 
 func bindListbox(lb *Listbox, app widget.AppContext) {

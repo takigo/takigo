@@ -6,11 +6,11 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/msorc/takigo/geometry"
-	"github.com/msorc/takigo/option"
-	"github.com/msorc/takigo/platform"
-	"github.com/msorc/takigo/screenunit"
-	"github.com/msorc/takigo/window"
+	"github.com/takigo/takigo/geometry"
+	"github.com/takigo/takigo/option"
+	"github.com/takigo/takigo/platform"
+	"github.com/takigo/takigo/screenunit"
+	"github.com/takigo/takigo/window"
 )
 
 // Sticky flags for positioning within a cell.

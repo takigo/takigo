@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/msorc/takigo/event"
-	"github.com/msorc/takigo/platform"
+	"github.com/takigo/takigo/event"
+	"github.com/takigo/takigo/platform"
 )
 
 // Modifier represents modifier key flags in a binding pattern.

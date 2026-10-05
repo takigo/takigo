@@ -1,14 +1,14 @@
 // Package classictheme registers the "classic" TTK theme.
 // Implements the classic Motif-like Tk look with custom elements and layouts.
-// Import with blank identifier to auto-register: _ "github.com/msorc/takigo/ttk/classictheme"
+// Import with blank identifier to auto-register: _ "github.com/takigo/takigo/ttk/classictheme"
 package classictheme
 
 import (
-	"github.com/msorc/takigo/draw"
-	"github.com/msorc/takigo/option"
-	"github.com/msorc/takigo/platform"
-	"github.com/msorc/takigo/ttk"
-	_ "github.com/msorc/takigo/ttk/defaulttheme" // ensure default theme init runs first
+	"github.com/takigo/takigo/draw"
+	"github.com/takigo/takigo/option"
+	"github.com/takigo/takigo/platform"
+	"github.com/takigo/takigo/ttk"
+	_ "github.com/takigo/takigo/ttk/defaulttheme" // ensure default theme init runs first
 )
 
 // Classic theme colors.

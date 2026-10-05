@@ -1,9 +1,9 @@
 package widget
 
 import (
-	"github.com/msorc/takigo/focus"
-	"github.com/msorc/takigo/platform"
-	"github.com/msorc/takigo/window"
+	"github.com/takigo/takigo/focus"
+	"github.com/takigo/takigo/platform"
+	"github.com/takigo/takigo/window"
 )
 
 // focuser is the App's focus manager access (takigo.App.FocusManager).

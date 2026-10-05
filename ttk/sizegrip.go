@@ -3,13 +3,13 @@ package ttk
 import (
 	"fmt"
 
-	"github.com/msorc/takigo/cursor"
-	"github.com/msorc/takigo/draw"
-	"github.com/msorc/takigo/event"
-	"github.com/msorc/takigo/platform"
-	"github.com/msorc/takigo/screenunit"
-	"github.com/msorc/takigo/widget"
-	"github.com/msorc/takigo/window"
+	"github.com/takigo/takigo/cursor"
+	"github.com/takigo/takigo/draw"
+	"github.com/takigo/takigo/event"
+	"github.com/takigo/takigo/platform"
+	"github.com/takigo/takigo/screenunit"
+	"github.com/takigo/takigo/widget"
+	"github.com/takigo/takigo/window"
 )
 
 // Sizegrip is a themed grip handle for resizing a toplevel window.

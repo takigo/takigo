@@ -3,8 +3,8 @@
 package systray
 
 import (
-	"github.com/msorc/takigo/widget"
-	"github.com/msorc/takigo/window"
+	"github.com/takigo/takigo/widget"
+	"github.com/takigo/takigo/window"
 )
 
 // New reports ErrUnsupported: only the X11 tray protocol is implemented.

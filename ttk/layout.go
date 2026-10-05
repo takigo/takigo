@@ -1,6 +1,6 @@
 package ttk
 
-import "github.com/msorc/takigo/platform"
+import "github.com/takigo/takigo/platform"
 
 // Position flags for layout elements. Ported from ttkLayout.c. As with
 // TTK_PACK_*, a node without a Pack flag is given the whole cavity and does

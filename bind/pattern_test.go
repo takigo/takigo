@@ -5,8 +5,8 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/msorc/takigo/event"
-	"github.com/msorc/takigo/platform"
+	"github.com/takigo/takigo/event"
+	"github.com/takigo/takigo/platform"
 )
 
 func TestParseButtonPress(t *testing.T) {

@@ -3,7 +3,7 @@ package event
 import (
 	"testing"
 
-	"github.com/msorc/takigo/platform"
+	"github.com/takigo/takigo/platform"
 )
 
 func BenchmarkDispatcher_Dispatch(b *testing.B) {

@@ -6,10 +6,10 @@ package place
 import (
 	"math"
 
-	"github.com/msorc/takigo/geometry"
-	"github.com/msorc/takigo/option"
-	"github.com/msorc/takigo/platform"
-	"github.com/msorc/takigo/window"
+	"github.com/takigo/takigo/geometry"
+	"github.com/takigo/takigo/option"
+	"github.com/takigo/takigo/platform"
+	"github.com/takigo/takigo/window"
 )
 
 // PlaceOption configures a Place call.

@@ -3,7 +3,7 @@ package widget
 import (
 	"testing"
 
-	"github.com/msorc/takigo/option"
+	"github.com/takigo/takigo/option"
 )
 
 func TestComputeAnchor(t *testing.T) {

@@ -3,9 +3,9 @@ package bind
 import (
 	"slices"
 
-	"github.com/msorc/takigo/event"
-	"github.com/msorc/takigo/platform"
-	"github.com/msorc/takigo/window"
+	"github.com/takigo/takigo/event"
+	"github.com/takigo/takigo/platform"
+	"github.com/takigo/takigo/window"
 )
 
 // NewEngine creates a new binding engine for the given display.

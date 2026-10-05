@@ -1,9 +1,9 @@
 package dialog
 
 import (
-	"github.com/msorc/takigo/geometry/pack"
-	"github.com/msorc/takigo/widget"
-	"github.com/msorc/takigo/widget/label"
+	"github.com/takigo/takigo/geometry/pack"
+	"github.com/takigo/takigo/widget"
+	"github.com/takigo/takigo/widget/label"
 )
 
 // MessageType identifies the kind of message.

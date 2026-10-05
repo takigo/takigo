@@ -3,9 +3,9 @@
 package takigo
 
 import (
-	"github.com/msorc/takigo/font"
-	"github.com/msorc/takigo/platform"
-	winplatform "github.com/msorc/takigo/platform/windows"
+	"github.com/takigo/takigo/font"
+	"github.com/takigo/takigo/platform"
+	winplatform "github.com/takigo/takigo/platform/windows"
 )
 
 // platformInit creates the platform-specific display server, event parser,

@@ -3,17 +3,17 @@ package takigo_test
 import (
 	"testing"
 
-	takigo "github.com/msorc/takigo"
+	takigo "github.com/takigo/takigo"
 
-	"github.com/msorc/takigo/appearance"
-	"github.com/msorc/takigo/canvas"
-	"github.com/msorc/takigo/geometry/pack"
-	"github.com/msorc/takigo/internal/testutil"
-	"github.com/msorc/takigo/ttk"
-	_ "github.com/msorc/takigo/ttk/darktheme"
-	"github.com/msorc/takigo/widget"
-	"github.com/msorc/takigo/widget/entry"
-	"github.com/msorc/takigo/widget/label"
+	"github.com/takigo/takigo/appearance"
+	"github.com/takigo/takigo/canvas"
+	"github.com/takigo/takigo/geometry/pack"
+	"github.com/takigo/takigo/internal/testutil"
+	"github.com/takigo/takigo/ttk"
+	_ "github.com/takigo/takigo/ttk/darktheme"
+	"github.com/takigo/takigo/widget"
+	"github.com/takigo/takigo/widget/entry"
+	"github.com/takigo/takigo/widget/label"
 )
 
 func newAppWith(t *testing.T, opts ...takigo.AppOption) *takigo.App {

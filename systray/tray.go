@@ -7,8 +7,8 @@ package systray
 import (
 	"errors"
 
-	"github.com/msorc/takigo/platform"
-	"github.com/msorc/takigo/widget"
+	"github.com/takigo/takigo/platform"
+	"github.com/takigo/takigo/widget"
 )
 
 // ErrUnsupported is returned by New on platforms without a tray backend.

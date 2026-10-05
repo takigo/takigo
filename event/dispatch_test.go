@@ -5,7 +5,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/msorc/takigo/platform"
+	"github.com/takigo/takigo/platform"
 )
 
 func TestDispatcherBindAndDispatch(t *testing.T) {

@@ -5,8 +5,8 @@ package x11
 import (
 	"unsafe"
 
-	"github.com/msorc/takigo/internal/xlib"
-	"github.com/msorc/takigo/platform"
+	"github.com/takigo/takigo/internal/xlib"
+	"github.com/takigo/takigo/platform"
 )
 
 // toXGC converts a platform.GCID to xlib.GC. GCIDs hold C pointers,

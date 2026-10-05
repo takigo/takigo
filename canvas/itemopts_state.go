@@ -1,7 +1,7 @@
 package canvas
 
 import (
-	"github.com/msorc/takigo/color"
+	"github.com/takigo/takigo/color"
 )
 
 // ActiveFill sets -activefill.

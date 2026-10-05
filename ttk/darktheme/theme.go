@@ -1,11 +1,11 @@
 // Package darktheme registers the "dark" TTK theme: clam's layouts and
 // elements in a dark palette. It has no counterpart in Tk.
-// Import with blank identifier to auto-register: _ "github.com/msorc/takigo/ttk/darktheme"
+// Import with blank identifier to auto-register: _ "github.com/takigo/takigo/ttk/darktheme"
 package darktheme
 
 import (
-	"github.com/msorc/takigo/ttk"
-	"github.com/msorc/takigo/ttk/clamtheme"
+	"github.com/takigo/takigo/ttk"
+	"github.com/takigo/takigo/ttk/clamtheme"
 )
 
 // Palette is the dark theme's colours.

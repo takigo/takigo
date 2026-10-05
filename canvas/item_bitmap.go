@@ -3,9 +3,9 @@ package canvas
 import (
 	"image/color"
 
-	colortakigo "github.com/msorc/takigo/color"
-	"github.com/msorc/takigo/option"
-	"github.com/msorc/takigo/platform"
+	colortakigo "github.com/takigo/takigo/color"
+	"github.com/takigo/takigo/option"
+	"github.com/takigo/takigo/platform"
 )
 
 // BitmapItem displays a 1-bit XBM bitmap on the canvas.

@@ -57,4 +57,4 @@ formatters:
   settings:
     goimports:
       local-prefixes:
-        - github.com/msorc/takigo
+        - github.com/takigo/takigo

@@ -7,11 +7,11 @@ import (
 	"testing"
 	"time"
 
-	takigo "github.com/msorc/takigo"
-	"github.com/msorc/takigo/font"
-	"github.com/msorc/takigo/internal/testutil"
-	"github.com/msorc/takigo/internal/xlib"
-	"github.com/msorc/takigo/platform"
+	takigo "github.com/takigo/takigo"
+	"github.com/takigo/takigo/font"
+	"github.com/takigo/takigo/internal/testutil"
+	"github.com/takigo/takigo/internal/xlib"
+	"github.com/takigo/takigo/platform"
 )
 
 // Apps drawing text on their own event loops, then destroyed at the same

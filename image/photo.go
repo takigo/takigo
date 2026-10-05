@@ -14,8 +14,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/msorc/takigo/internal/nanosvg"
-	"github.com/msorc/takigo/platform"
+	"github.com/takigo/takigo/internal/nanosvg"
+	"github.com/takigo/takigo/platform"
 )
 
 // Photo is an image backed by Go RGBA pixel data. It caches rendered

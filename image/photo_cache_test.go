@@ -4,7 +4,7 @@ import (
 	goimage "image"
 	"testing"
 
-	"github.com/msorc/takigo/platform"
+	"github.com/takigo/takigo/platform"
 )
 
 // countingServer records pixmap traffic; other methods are unused.

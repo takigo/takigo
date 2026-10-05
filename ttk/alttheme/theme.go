@@ -1,12 +1,12 @@
 // Package alttheme registers the "alt" (alternate) TTK theme.
-// Import with blank identifier to auto-register: _ "github.com/msorc/takigo/ttk/alttheme"
+// Import with blank identifier to auto-register: _ "github.com/takigo/takigo/ttk/alttheme"
 package alttheme
 
 import (
-	"github.com/msorc/takigo/option"
-	"github.com/msorc/takigo/screenunit"
-	"github.com/msorc/takigo/ttk"
-	_ "github.com/msorc/takigo/ttk/defaulttheme" // ensure default theme init runs first
+	"github.com/takigo/takigo/option"
+	"github.com/takigo/takigo/screenunit"
+	"github.com/takigo/takigo/ttk"
+	_ "github.com/takigo/takigo/ttk/defaulttheme" // ensure default theme init runs first
 )
 
 // Alt theme colors (from Tk's altTheme.tcl).

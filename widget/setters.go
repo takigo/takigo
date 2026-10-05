@@ -4,8 +4,8 @@ import (
 	"errors"
 	"log/slog"
 
-	"github.com/msorc/takigo/color"
-	"github.com/msorc/takigo/font"
+	"github.com/takigo/takigo/color"
+	"github.com/takigo/takigo/font"
 )
 
 // WidgetBase returns the embedded Base; Configure reaches the common

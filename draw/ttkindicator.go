@@ -3,7 +3,7 @@ package draw
 import (
 	"strings"
 
-	"github.com/msorc/takigo/platform"
+	"github.com/takigo/takigo/platform"
 )
 
 // SVG data of ttkElements.c (checkbutton_spec, radiobutton_spec, sliderData).

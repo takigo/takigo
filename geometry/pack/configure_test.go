@@ -4,9 +4,9 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/msorc/takigo/geometry"
-	"github.com/msorc/takigo/option"
-	"github.com/msorc/takigo/window"
+	"github.com/takigo/takigo/geometry"
+	"github.com/takigo/takigo/option"
+	"github.com/takigo/takigo/window"
 )
 
 // g wraps one window for Pack.

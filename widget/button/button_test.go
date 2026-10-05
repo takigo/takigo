@@ -4,12 +4,12 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/msorc/takigo/color"
-	"github.com/msorc/takigo/internal/testutil"
-	"github.com/msorc/takigo/option"
-	"github.com/msorc/takigo/screenunit"
-	"github.com/msorc/takigo/widget"
-	"github.com/msorc/takigo/widget/button"
+	"github.com/takigo/takigo/color"
+	"github.com/takigo/takigo/internal/testutil"
+	"github.com/takigo/takigo/option"
+	"github.com/takigo/takigo/screenunit"
+	"github.com/takigo/takigo/widget"
+	"github.com/takigo/takigo/widget/button"
 )
 
 func TestButtonGeometryFollowsOptions(t *testing.T) {

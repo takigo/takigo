@@ -6,12 +6,12 @@ import (
 	"fmt"
 	"image"
 
-	"github.com/msorc/takigo/color"
-	"github.com/msorc/takigo/event"
-	"github.com/msorc/takigo/platform"
-	"github.com/msorc/takigo/widget"
-	"github.com/msorc/takigo/window"
-	"github.com/msorc/takigo/wm"
+	"github.com/takigo/takigo/color"
+	"github.com/takigo/takigo/event"
+	"github.com/takigo/takigo/platform"
+	"github.com/takigo/takigo/widget"
+	"github.com/takigo/takigo/window"
+	"github.com/takigo/takigo/wm"
 )
 
 // Toplevel is a top-level window managed by the window manager.

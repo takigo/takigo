@@ -8,14 +8,14 @@ import (
 	"slices"
 	"strconv"
 
-	"github.com/msorc/takigo/color"
-	"github.com/msorc/takigo/cursor"
-	"github.com/msorc/takigo/draw"
-	"github.com/msorc/takigo/option"
-	"github.com/msorc/takigo/platform"
-	"github.com/msorc/takigo/widget"
-	"github.com/msorc/takigo/widget/entryutil"
-	"github.com/msorc/takigo/window"
+	"github.com/takigo/takigo/color"
+	"github.com/takigo/takigo/cursor"
+	"github.com/takigo/takigo/draw"
+	"github.com/takigo/takigo/option"
+	"github.com/takigo/takigo/platform"
+	"github.com/takigo/takigo/widget"
+	"github.com/takigo/takigo/widget/entryutil"
+	"github.com/takigo/takigo/window"
 )
 
 // Spinbox is a single-line text entry with up/down spinner buttons.

@@ -16,7 +16,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/msorc/takigo/internal/treedump"
+	"github.com/takigo/takigo/internal/treedump"
 )
 
 func main() {

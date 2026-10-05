@@ -1,8 +1,8 @@
 package text
 
 import (
-	"github.com/msorc/takigo/bitmap"
-	"github.com/msorc/takigo/platform"
+	"github.com/takigo/takigo/bitmap"
+	"github.com/takigo/takigo/platform"
 )
 
 // stipplePixmap returns a cached depth-1 Pixmap for the named stipple pattern,

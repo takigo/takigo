@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	takigo "github.com/msorc/takigo"
-	"github.com/msorc/takigo/internal/testutil"
-	"github.com/msorc/takigo/platform"
+	takigo "github.com/takigo/takigo"
+	"github.com/takigo/takigo/internal/testutil"
+	"github.com/takigo/takigo/platform"
 )
 
 // A clipboard far over Tk's 4000-byte limit goes through the INCR

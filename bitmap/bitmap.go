@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	tkimage "github.com/msorc/takigo/image"
+	tkimage "github.com/takigo/takigo/image"
 )
 
 // Get returns a Photo for the named built-in bitmap with the given foreground
