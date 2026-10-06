@@ -19,6 +19,7 @@ type gcState struct {
 	fillStyle  int
 	function   int // GX raster op
 	stipple    platform.PixmapID
+	tsX, tsY   int
 	dashOffset int
 	dashList   []byte
 
@@ -121,7 +122,13 @@ func (d *WindowsDisplay) SetFillStyle(gc platform.GCID, fillStyle int) {
 	d.gcMu.Unlock()
 }
 
-func (d *WindowsDisplay) SetTSOrigin(gc platform.GCID, x, y int) {}
+func (d *WindowsDisplay) SetTSOrigin(gc platform.GCID, x, y int) {
+	d.gcMu.Lock()
+	if g, ok := d.gcs[gc]; ok {
+		g.tsX, g.tsY = x, y
+	}
+	d.gcMu.Unlock()
+}
 
 func (d *WindowsDisplay) SetStipple(gc platform.GCID, stipple platform.PixmapID) {
 	d.gcMu.Lock()

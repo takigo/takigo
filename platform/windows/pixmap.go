@@ -3,6 +3,7 @@
 package windows
 
 import (
+	mathbits "math/bits"
 	"unsafe"
 
 	w32 "github.com/takigo/takigo/internal/win32"
@@ -17,6 +18,7 @@ type pixmapInfo struct {
 	width   int
 	height  int
 	depth   int
+	pattern w32.HBRUSH // depth-1 bitmaps: the bitmap as a brush, for stipples
 }
 
 // --- PixmapManager implementation ---
@@ -67,6 +69,9 @@ func (d *WindowsDisplay) FreePixmap(pixmap platform.PixmapID) {
 	d.pixmapMu.Unlock()
 
 	if ok && pix != nil {
+		if pix.pattern != 0 {
+			w32.DeleteObject(w32.HGDIOBJ(pix.pattern))
+		}
 		w32.SelectObject(pix.hdc, pix.oldBmp)
 		w32.DeleteObject(w32.HGDIOBJ(pix.hbitmap))
 		w32.DeleteDC(pix.hdc)
@@ -82,35 +87,44 @@ func (d *WindowsDisplay) CreateBitmapFromData(drawable platform.DrawableID, bits
 
 	memDC := w32.CreateCompatibleDC(srcDC)
 
-	// Create a monochrome bitmap.
-	bmi := w32.BITMAPINFO{
-		BmiHeader: w32.BITMAPINFOHEADER{
+	// Create a monochrome bitmap whose set bits are white: drawn through
+	// a brush, white lets the source through (see render).
+	bmi := struct {
+		header w32.BITMAPINFOHEADER
+		colors [2]uint32
+	}{
+		header: w32.BITMAPINFOHEADER{
 			BiSize:     uint32(unsafe.Sizeof(w32.BITMAPINFOHEADER{})),
 			BiWidth:    int32(width),
 			BiHeight:   -int32(height), // top-down
 			BiPlanes:   1,
 			BiBitCount: 1,
 		},
+		colors: [2]uint32{0x00000000, 0x00FFFFFF},
 	}
 	var bitsPtr unsafe.Pointer
-	hbitmap := w32.CreateDIBSection(memDC, &bmi, w32.DIB_RGB_COLORS, &bitsPtr, 0, 0)
+	hbitmap := w32.CreateDIBSection(memDC, (*w32.BITMAPINFO)(unsafe.Pointer(&bmi)), w32.DIB_RGB_COLORS, &bitsPtr, 0, 0)
 
 	if hbitmap == 0 {
 		// Fallback: create a compatible monochrome bitmap.
 		hbitmap = w32.CreateCompatibleBitmap(srcDC, int32(width), int32(height))
 	} else if bitsPtr != nil && len(bits) > 0 {
-		// XBM data: copy row by row, accounting for stride differences.
+		// XBM rows are byte-aligned with the leftmost pixel in the low
+		// bit; DIB rows are 32-bit aligned with it in the high bit.
 		xbmStride := (int(width) + 7) / 8
 		dibStride := ((int(width) + 31) / 32) * 4
 		dst := (*[1 << 30]byte)(bitsPtr)
-		for row := 0; row < int(height); row++ {
+		for row := range int(height) {
 			srcOff := row * xbmStride
 			dstOff := row * dibStride
 			for col := 0; col < xbmStride && srcOff+col < len(bits); col++ {
-				dst[dstOff+col] = bits[srcOff+col]
+				dst[dstOff+col] = mathbits.Reverse8(bits[srcOff+col])
 			}
 		}
 	}
+
+	// The brush copies the bitmap; make it while no DC holds the bitmap.
+	pattern := w32.CreatePatternBrush(hbitmap)
 
 	oldBmp := w32.SelectObject(memDC, w32.HGDIOBJ(hbitmap))
 
@@ -124,6 +138,7 @@ func (d *WindowsDisplay) CreateBitmapFromData(drawable platform.DrawableID, bits
 		width:   int(width),
 		height:  int(height),
 		depth:   1,
+		pattern: pattern,
 	}
 	d.pixmapMu.Unlock()
 

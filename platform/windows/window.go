@@ -74,6 +74,12 @@ func (d *WindowsDisplay) CreateWindow(parent platform.WindowID, x, y int, width,
 	if hwnd == 0 {
 		return 0
 	}
+	// Windows puts a new child at the bottom of its siblings, X on top;
+	// raise it as Tk_MakeWindow does (tk/win/tkWinWindow.c).
+	if !isTopLevel && !isOverride {
+		w32.SetWindowPos(hwnd, w32.HWND_TOP, 0, 0, 0, 0,
+			w32.SWP_NOMOVE|w32.SWP_NOSIZE|w32.SWP_NOACTIVATE)
+	}
 
 	var eventMask int64
 	if attrs != nil {
