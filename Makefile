@@ -39,8 +39,12 @@ fix: ## Apply the go fix modernizers
 fix-check: ## Fail if go fix would change anything (CI gate)
 	$(GO) fix -diff $(PKGS)
 
+# Directories, not import paths, and without the gitignored tmp/ scratch space,
+# whose programs may not build and would show up as typecheck errors.
+LINTDIRS ?= $(shell $(GO) list -f '{{.Dir}}' $(PKGS) 2>/dev/null | sed "s|^$(CURDIR)|.|" | grep -v '^\./tmp\(/\|$$\)')
+
 lint: ## golangci-lint (CI only gates changed lines)
-	golangci-lint run $(PKGS)
+	golangci-lint run $(LINTDIRS)
 
 check: vet fmt-check fix-check vet-windows ## The static checks CI gates on
 
