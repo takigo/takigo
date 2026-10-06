@@ -546,7 +546,7 @@ func adjustIdxDelete(pos, start, end Index) Index {
 }
 
 // splitRunes splits runes by newline into a slice of rune slices.
-// "abc\ndef" → [['a','b','c'], ['d','e','f']]
+// "abc\ndef" → [['a','b','c'], ['d','e','f']].
 func splitRunes(runes []rune) [][]rune {
 	var result [][]rune
 	start := 0

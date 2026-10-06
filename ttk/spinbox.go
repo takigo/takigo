@@ -523,13 +523,14 @@ func bindSpinbox(s *Spinbox, app widget.AppContext) {
 			widget.Focus(app, win)
 
 			btn := s.hitButton(ev.X, ev.Y)
-			if btn == "up" {
+			switch btn {
+			case "up":
 				s.pressedButton = "up"
 				s.SpinUp()
-			} else if btn == "down" {
+			case "down":
 				s.pressedButton = "down"
 				s.SpinDown()
-			} else {
+			default:
 				// Click in text area — position cursor.
 				s.edit.SelAnchor = s.closestGap(ev.X)
 				s.edit.InsertPos = s.edit.SelAnchor
@@ -559,11 +560,12 @@ func bindSpinbox(s *Spinbox, app widget.AppContext) {
 
 	// Focus.
 	app.Dispatcher().Bind(win.PlatformID, event.FocusChangeMask, func(ev *event.Event) {
-		if ev.Type == event.FocusInType {
+		switch ev.Type {
+		case event.FocusInType:
 			s.hasFocus = true
 			s.cursorOn = true
 			s.ChangeState(StateFocus, 0)
-		} else if ev.Type == event.FocusOutType {
+		case event.FocusOutType:
 			s.hasFocus = false
 			s.ChangeState(0, StateFocus)
 		}

@@ -34,7 +34,7 @@ func newArcItem(x1, y1, x2, y2 float64, c *Canvas) *ArcItem {
 		outlineWidth: 1,
 	}
 	item.outline = c.defaultInk()
-	item.ItemBase.canvas = c
+	item.canvas = c
 	item.updateBBox()
 	return item
 }

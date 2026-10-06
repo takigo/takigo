@@ -1502,17 +1502,18 @@ func (g *goldberg) move8() int {
 	if step > 3 {
 		return 0
 	}
-	if step == 0 {
+	switch step {
+	case 0:
 		sx, sy := g.anchor("I8_s", "s")
 		g.sparkle(sx, sy, "I8")
 		return 1
-	} else if step == 1 {
+	case 1:
 		cx, cy := g.anchor("I8_s", "c")
 		g.moveAbs("I8", cx, cy)
-	} else if step == 2 {
+	case 2:
 		nx, ny := g.anchor("I8_s", "n")
 		g.moveAbs("I8", nx, ny)
-	} else {
+	default:
 		g.c.Delete("I8")
 	}
 	if step == 2 {

@@ -4,8 +4,9 @@ package main
 
 import (
 	"fmt"
-	"github.com/takigo/takigo/screenunit"
 	"os"
+
+	"github.com/takigo/takigo/screenunit"
 
 	"github.com/takigo/takigo"
 	"github.com/takigo/takigo/canvas"

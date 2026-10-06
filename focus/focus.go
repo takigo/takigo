@@ -347,9 +347,10 @@ func (m *Manager) BindTraversal(w *window.Window) {
 		if m.winDisplay != nil {
 			eventWin = m.winDisplay.LookupWindow(ev.Window)
 		}
-		if ev.KeySym == platform.XK_Tab {
+		switch ev.KeySym {
+		case platform.XK_Tab:
 			m.FocusNext(eventWin)
-		} else if ev.KeySym == platform.XK_ISO_Left_Tab {
+		case platform.XK_ISO_Left_Tab:
 			m.FocusPrev(eventWin)
 		}
 	})

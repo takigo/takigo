@@ -42,7 +42,7 @@ func main() {
 	pack.Pack(msg, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
 
 	firstValue := widget.NewVariable[string]("")
-	secondValue := widget.NewVariable[string]("unchangable")
+	secondValue := widget.NewVariable[string]("unchangeable")
 	ozCity := widget.NewVariable[string]("Sydney")
 	vars := []demohelper.NamedVar{
 		{Name: "firstValue", Var: firstValue},

@@ -137,7 +137,7 @@ func main() {
 
 	sep := ttk.NewSeparator(chkFrame, "sep")
 	pack.Pack(sep, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadY(screenunit.Pt(1.5)))
-	ttkWidgets = append(ttkWidgets, ttkRef{&sep.TtkWidget, sep.TtkWidget.Display})
+	ttkWidgets = append(ttkWidgets, ttkRef{&sep.TtkWidget, sep.Display})
 
 	c3 := ttk.NewCheckbutton(chkFrame, "c3",
 		ttk.CheckbuttonText("Basil"),

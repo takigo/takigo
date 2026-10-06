@@ -32,7 +32,7 @@ func newBitmapItem(x, y float64, xbm *XBMData, c *Canvas) *BitmapItem {
 		Foreground: color.RGBA{R: 0, G: 0, B: 0, A: 255},
 		Background: color.RGBA{A: 0}, // transparent
 	}
-	item.ItemBase.canvas = c
+	item.canvas = c
 	item.updateBBox()
 	return item
 }

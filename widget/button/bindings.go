@@ -12,7 +12,7 @@ import (
 // - Enter → active state, highlight
 // - Leave → normal state
 // - Button1 press → sunken relief
-// - Button1 release → invoke if still inside
+// - Button1 release → invoke if still inside.
 func bindButton(b *Button, app widget.AppContext) {
 	w := b.Win
 

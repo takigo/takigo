@@ -1,12 +1,13 @@
 package ttk
 
 import (
+	"sort"
+
 	"github.com/takigo/takigo/draw"
 	"github.com/takigo/takigo/font"
 	"github.com/takigo/takigo/option"
 	"github.com/takigo/takigo/platform"
 	"github.com/takigo/takigo/screenunit"
-	"sort"
 )
 
 // Display renders the treeview to its window via double-buffered pixmap.

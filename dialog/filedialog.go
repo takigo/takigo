@@ -546,8 +546,8 @@ func (b *fileBrowser) load(dir string) {
 	b.syncPlaces()
 	b.updating = false
 
-	switch {
-	case b.mode == browseDir:
+	switch b.mode {
+	case browseDir:
 		b.status.SetText(fmt.Sprintf("%d folders", nDirs))
 	default:
 		b.status.SetText(fmt.Sprintf("%d folders, %d files", nDirs, nFiles))

@@ -1,6 +1,9 @@
 package ttk
 
 import (
+	"math"
+	"slices"
+
 	"github.com/takigo/takigo/draw"
 	"github.com/takigo/takigo/event"
 	"github.com/takigo/takigo/font"
@@ -9,8 +12,6 @@ import (
 	"github.com/takigo/takigo/screenunit"
 	"github.com/takigo/takigo/widget"
 	"github.com/takigo/takigo/window"
-	"math"
-	"slices"
 )
 
 // notebookTab holds information about a single notebook tab.

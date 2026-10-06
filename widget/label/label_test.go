@@ -144,7 +144,7 @@ func TestLabelTextLinesWithWrap(t *testing.T) {
 	l := &Label{
 		WrapLen: 50,
 	}
-	l.Base.Font = &mockFont{metrics: font.Metrics{MaxWidth: 10}}
+	l.Font = &mockFont{metrics: font.Metrics{MaxWidth: 10}}
 
 	l.Text = "word1 word2 word3 word4"
 	lines := l.textLines()
@@ -183,7 +183,7 @@ func TestLabelCompoundSize(t *testing.T) {
 
 func TestLabelConfigure(t *testing.T) {
 	l := &Label{Win: &window.Window{}}
-	l.Base.Font = &mockFont{metrics: font.Metrics{MaxWidth: 10, Ascent: 8, Descent: 2}}
+	l.Font = &mockFont{metrics: font.Metrics{MaxWidth: 10, Ascent: 8, Descent: 2}}
 	l.Configure(Text("abc"))
 	short := l.Win.ReqWidth
 	l.Configure(Text("abcdef"), BorderWidth(2))
@@ -214,7 +214,7 @@ func TestLabelDestroy(t *testing.T) {
 	l.unsub()
 }
 
-// Mock types for testing
+// Mock types for testing.
 type mockFont struct {
 	metrics font.Metrics
 }

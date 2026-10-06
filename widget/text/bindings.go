@@ -101,11 +101,12 @@ func (t *TextWidget) handleConfigure(ev *event.Event) {
 
 // handleFocus handles FocusIn/FocusOut events.
 func (t *TextWidget) handleFocus(ev *event.Event) {
-	if ev.Type == event.FocusInType {
+	switch ev.Type {
+	case event.FocusInType:
 		t.hasFocus = true
 		t.cursorOn = true
 		t.Display()
-	} else if ev.Type == event.FocusOutType {
+	case event.FocusOutType:
 		t.hasFocus = false
 		t.Display()
 	}

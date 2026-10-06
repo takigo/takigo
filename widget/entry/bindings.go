@@ -98,12 +98,13 @@ func (e *Entry) handleConfigure(ev *event.Event) {
 
 // handleFocus handles FocusIn/FocusOut events.
 func (e *Entry) handleFocus(ev *event.Event) {
-	if ev.Type == event.FocusInType {
+	switch ev.Type {
+	case event.FocusInType:
 		e.HasFocus = true
 		e.CursorOn = true
 		e.tryFocusValidate("focusin")
 		e.Display()
-	} else if ev.Type == event.FocusOutType {
+	case event.FocusOutType:
 		e.HasFocus = false
 		e.tryFocusValidate("focusout")
 		e.Display()

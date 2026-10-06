@@ -3,10 +3,11 @@
 package xft
 
 import (
-	"github.com/takigo/takigo/font"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/takigo/takigo/font"
 
 	"github.com/takigo/takigo/internal/displaylock"
 	"github.com/takigo/takigo/internal/xlib"

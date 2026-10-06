@@ -130,7 +130,7 @@ func newTextItem(x, y float64, c *Canvas) *TextItem {
 		anchor: option.AnchorCenter,
 	}
 	item.color = c.defaultInk()
-	item.ItemBase.canvas = c
+	item.canvas = c
 
 	// Use default font.
 	if f, err := c.FontRegistry().Get(font.TkDefaultFont); err == nil {

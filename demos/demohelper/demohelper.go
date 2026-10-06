@@ -117,7 +117,7 @@ type NamedVar struct {
 
 // AddSeeDismissWithVars creates the See Code / Dismiss button bar with an
 // additional See Variables button that displays the given named variables.
-// Matches Tcl's: addSeeDismiss $w.buttons $w [list size color align ...]
+// Matches Tcl's: addSeeDismiss $w.buttons $w [list size color align ...].
 func AddSeeDismissWithVars(parent widget.Caregiver, vars []NamedVar) *ttk.Frame {
 	varsMap := make(map[string]any, len(vars))
 	for _, nv := range vars {

@@ -232,8 +232,8 @@ func New(parent widget.Caregiver, name string, opts ...CanvasOption) *Canvas {
 	w.Width, w.Height = 1, 1
 
 	// Set window background pixel for child window creation.
-	if c.Base.Background != nil {
-		w.SetBackgroundPixel(c.Base.Background.Pixel)
+	if c.Background != nil {
+		w.SetBackgroundPixel(c.Background.Pixel)
 	}
 
 	// Set up event handlers.
@@ -342,8 +342,8 @@ func (c *Canvas) paint(x1, y1, x2, y2 int) {
 
 	// Clear the repainted area to the background color.
 	bgPixel := uint64(0xFFFFFF)
-	if c.Base.Background != nil {
-		bgPixel = c.Base.Background.Pixel
+	if c.Background != nil {
+		bgPixel = c.Background.Pixel
 	}
 	d.SetForeground(gc, bgPixel)
 	d.FillRectangle(pxDrawable, gc, x1-pixOriginX, y1-pixOriginY, uint(x2-x1), uint(y2-y1))
@@ -540,8 +540,8 @@ func (c *Canvas) Configure(opts ...CanvasOption) error {
 	// Tk relays out at idle, so CanvasSetOrigin still sees the old window
 	// size; our geometry managers resize synchronously, so confine first.
 	c.setOrigin(c.xOrigin, c.yOrigin)
-	if c.Base.Background != nil {
-		c.Win.SetBackgroundPixel(c.Base.Background.Pixel)
+	if c.Background != nil {
+		c.Win.SetBackgroundPixel(c.Background.Pixel)
 	}
 	if rw, rh := c.reqW+2*c.inset, c.reqH+2*c.inset; rw != c.Win.ReqWidth || rh != c.Win.ReqHeight {
 		geometry.GeometryRequest(c.Win, rw, rh)

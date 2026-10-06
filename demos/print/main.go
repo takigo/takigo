@@ -5,14 +5,15 @@ package main
 import (
 	"encoding/base64"
 	"fmt"
-	tkimage "github.com/takigo/takigo/image"
-	"github.com/takigo/takigo/screenunit"
 	goimage "image"
 	"image/draw"
 	"image/gif"
 	"math"
 	"os"
 	"strings"
+
+	tkimage "github.com/takigo/takigo/image"
+	"github.com/takigo/takigo/screenunit"
 
 	"github.com/takigo/takigo"
 	"github.com/takigo/takigo/canvas"

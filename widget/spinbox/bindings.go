@@ -115,11 +115,12 @@ func (s *Spinbox) handleConfigure(ev *event.Event) {
 
 // handleFocus handles FocusIn/FocusOut events.
 func (s *Spinbox) handleFocus(ev *event.Event) {
-	if ev.Type == event.FocusInType {
+	switch ev.Type {
+	case event.FocusInType:
 		s.HasFocus = true
 		s.CursorOn = true
 		s.Display()
-	} else if ev.Type == event.FocusOutType {
+	case event.FocusOutType:
 		s.HasFocus = false
 		s.Display()
 	}
@@ -132,15 +133,16 @@ func (s *Spinbox) handleButtonPress(ev *event.Event) {
 		widget.Focus(app, s.Win)
 
 		btn := s.hitButton(ev.X, ev.Y)
-		if btn == "up" {
+		switch btn {
+		case "up":
 			s.pressedButton = "up"
 			s.SpinUp()
 			s.Display()
-		} else if btn == "down" {
+		case "down":
 			s.pressedButton = "down"
 			s.SpinDown()
 			s.Display()
-		} else {
+		default:
 			// Click in text area -- position cursor.
 			s.ClearSelection()
 			s.InsertPos = s.closestGap(ev.X)

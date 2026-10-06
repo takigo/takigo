@@ -4,9 +4,10 @@ package main
 
 import (
 	"fmt"
-	"github.com/takigo/takigo/font"
 	"os"
 	"os/exec"
+
+	"github.com/takigo/takigo/font"
 
 	"github.com/takigo/takigo"
 	"github.com/takigo/takigo/demos/demohelper"

@@ -305,10 +305,10 @@ func (info *WmInfo) ConfigureNotify(width, height int) {
 	if width == w.Width && height == w.Height {
 		return
 	}
-	if !(info.UserW <= 0 && width == w.ReqWidth) {
+	if info.UserW > 0 || width != w.ReqWidth {
 		info.UserW = width
 	}
-	if !(info.UserH <= 0 && height == w.ReqHeight) {
+	if info.UserH > 0 || height != w.ReqHeight {
 		info.UserH = height
 	}
 }

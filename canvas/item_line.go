@@ -37,7 +37,7 @@ func newLineItem(coords []float64, c *Canvas) *LineItem {
 	}
 	// Default color is black.
 	item.color = c.defaultInk()
-	item.ItemBase.canvas = c
+	item.canvas = c
 	item.updateBBox()
 	return item
 }

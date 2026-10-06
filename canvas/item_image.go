@@ -20,7 +20,7 @@ func newImageItem(x, y float64, c *Canvas) *ImageItem {
 		y:      y,
 		anchor: option.AnchorCenter,
 	}
-	item.ItemBase.canvas = c
+	item.canvas = c
 	item.updateBBox()
 	return item
 }
@@ -90,8 +90,8 @@ func (im *ImageItem) Display(d platform.DisplayServer, drawable platform.Drawabl
 	// Get depth/bgPixel from the canvas window.
 	win := im.canvas.Win
 	bgPixel := win.BackgroundPixel
-	if im.canvas.Base.Background != nil {
-		bgPixel = im.canvas.Base.Background.Pixel
+	if im.canvas.Background != nil {
+		bgPixel = im.canvas.Background.Pixel
 	}
 
 	im.image.Draw(d, drawable, gc,
