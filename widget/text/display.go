@@ -630,6 +630,7 @@ func (t *TextWidget) renderToPixmap() []displayLine {
 			justifyOffset = max((availW-totalW)/2, 0)
 		case option.JustifyRight:
 			justifyOffset = max(availW-totalW, 0)
+		default:
 		}
 
 		xOffset := t.insetX + dl.leftMargin + justifyOffset - t.xOffset
@@ -793,6 +794,7 @@ func (t *TextWidget) drawCursor(d platform.DisplayServer, gc platform.GCID, draw
 				justifyOffset = max((availW-totalW)/2, 0)
 			case option.JustifyRight:
 				justifyOffset = max(availW-totalW, 0)
+			default:
 			}
 		}
 
@@ -854,6 +856,7 @@ func (t *TextWidget) indexFromPixel(x, y int) Index {
 			justifyOffset = max((availW-totalW)/2, 0)
 		case option.JustifyRight:
 			justifyOffset = max(availW-totalW, 0)
+		default:
 		}
 	}
 

@@ -19,8 +19,8 @@ import (
 	tkimage "github.com/takigo/takigo/image"
 	"github.com/takigo/takigo/screenunit"
 	"github.com/takigo/takigo/ttk"
-	_ "github.com/takigo/takigo/ttk/clamtheme"
-	_ "github.com/takigo/takigo/ttk/defaulttheme"
+	_ "github.com/takigo/takigo/ttk/clamtheme"    // registers the clam theme
+	_ "github.com/takigo/takigo/ttk/defaulttheme" // registers the default theme
 	"github.com/takigo/takigo/widget"
 	"github.com/takigo/takigo/widget/frame"
 	"github.com/takigo/takigo/widget/labelframe"
@@ -117,7 +117,7 @@ type NamedVar struct {
 
 // AddSeeDismissWithVars creates the See Code / Dismiss button bar with an
 // additional See Variables button that displays the given named variables.
-// Matches Tcl's: addSeeDismiss $w.buttons $w [list size color align ...]
+// Matches Tcl's: addSeeDismiss $w.buttons $w [list size color align ...].
 func AddSeeDismissWithVars(parent widget.Caregiver, vars []NamedVar) *ttk.Frame {
 	varsMap := make(map[string]any, len(vars))
 	for _, nv := range vars {
@@ -201,20 +201,20 @@ func showVarsAny(app widget.AppContext, vars map[string]any) {
 func bindAnyVarToLabel(valLabel *ttk.Label, v any) func() {
 	switch val := v.(type) {
 	case *widget.Variable[string]:
-		return val.OnChange(func(_, new string) {
-			updateValueLabel(valLabel, new)
+		return val.OnChange(func(_, newVal string) {
+			updateValueLabel(valLabel, newVal)
 		})
 	case *widget.Variable[bool]:
-		return val.OnChange(func(_, new bool) {
-			updateValueLabel(valLabel, fmt.Sprintf("%v", new))
+		return val.OnChange(func(_, newVal bool) {
+			updateValueLabel(valLabel, fmt.Sprintf("%v", newVal))
 		})
 	case *widget.Variable[int]:
-		return val.OnChange(func(_, new int) {
-			updateValueLabel(valLabel, fmt.Sprintf("%v", new))
+		return val.OnChange(func(_, newVal int) {
+			updateValueLabel(valLabel, fmt.Sprintf("%v", newVal))
 		})
 	case *widget.Variable[float64]:
-		return val.OnChange(func(_, new float64) {
-			updateValueLabel(valLabel, fmt.Sprintf("%v", new))
+		return val.OnChange(func(_, newVal float64) {
+			updateValueLabel(valLabel, fmt.Sprintf("%v", newVal))
 		})
 	}
 	return nil
@@ -250,7 +250,7 @@ func variableGet(v any) any {
 }
 
 func AddBottomButtons(parent widget.Caregiver, varsFunc func(*ttk.Frame) *ttk.Button) *ttk.Frame {
-	_, callerFile, _, _ := runtime.Caller(2)
+	callerFile := callerFile(2)
 	return bottomButtons(parent, callerFile, func(f *ttk.Frame) window.Windower {
 		if b := varsFunc(f); b != nil {
 			return b
@@ -262,7 +262,7 @@ func AddBottomButtons(parent widget.Caregiver, varsFunc func(*ttk.Frame) *ttk.Bu
 // AddSeeDismissExtra is addSeeDismiss with an extra widget (the launcher's
 // "extra" argument): it is gridded between the empty column and See Code.
 func AddSeeDismissExtra(parent widget.Caregiver, extra func(*ttk.Frame) window.Windower) *ttk.Frame {
-	_, callerFile, _, _ := runtime.Caller(1)
+	callerFile := callerFile(1)
 	return bottomButtons(parent, callerFile, extra)
 }
 
@@ -328,7 +328,7 @@ var codeText *text.TextWidget
 // ShowCode opens the See Code window for the calling demo's source file,
 // like the launcher's showCode proc.
 func ShowCode(app widget.AppContext) {
-	_, callerFile, _, _ := runtime.Caller(1)
+	callerFile := callerFile(1)
 	showCode(app, callerFile)
 }
 
@@ -473,4 +473,15 @@ func FileIcon(path string, size int) *tkimage.Photo {
 	p := loadIcon(name)
 	fileIcons[name] = p
 	return p
+}
+
+// callerFile is the file of the function skip frames above its caller, as
+// runtime.Caller(skip) would report from there.
+func callerFile(skip int) string {
+	pcs := make([]uintptr, 1)
+	if runtime.Callers(skip+2, pcs) == 0 {
+		return ""
+	}
+	frame, _ := runtime.CallersFrames(pcs).Next()
+	return frame.File
 }

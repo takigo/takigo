@@ -29,7 +29,7 @@ func TestBitmapItemDrawsThroughMask(t *testing.T) {
 	c.CreateRectangle(0, 0, 60, 40, canvas.FillColor("red"), canvas.OutlineWidth(0))
 	c.CreateBitmap(10, 10, xbm, canvas.AnchorOpt(option.AnchorNW), canvas.BitmapForeground(0, 0, 255))
 
-	var set, clear [3]byte
+	var set, clearPx [3]byte
 	app.After(300*time.Millisecond, func() {
 		defer app.Quit()
 		c.Display()
@@ -41,16 +41,16 @@ func TestBitmapItemDrawsThroughMask(t *testing.T) {
 			return
 		}
 		copy(set[:], px[0:3])
-		copy(clear[:], px[4:7])
+		copy(clearPx[:], px[4:7])
 	})
 	app.MainLoop()
-	if set == ([3]byte{}) && clear == ([3]byte{}) {
+	if set == ([3]byte{}) && clearPx == ([3]byte{}) {
 		t.Skip("window contents cannot be read back")
 	}
 	if set != [3]byte{0, 0, 255} {
 		t.Errorf("set bit drawn as %v, want blue", set)
 	}
-	if clear != [3]byte{255, 0, 0} {
-		t.Errorf("clear bit drawn as %v, want the red item beneath", clear)
+	if clearPx != [3]byte{255, 0, 0} {
+		t.Errorf("clear bit drawn as %v, want the red item beneath", clearPx)
 	}
 }

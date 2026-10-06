@@ -37,7 +37,7 @@ func newLineItem(coords []float64, c *Canvas) *LineItem {
 	}
 	// Default color is black.
 	item.color = c.defaultInk()
-	item.ItemBase.canvas = c
+	item.canvas = c
 	item.updateBBox()
 	return item
 }
@@ -146,13 +146,12 @@ func (l *LineItem) shaftCoords() []float64 {
 	c := l.canvas
 	// Display coords go through the canvas scratch buffer so the endpoints
 	// can be shortened for arrowheads without touching l.coords.
-	var displayCoords []float64
 	if l.smooth && len(l.coords) >= 6 {
-		displayCoords = appendBezierSpline(c.coordBuf[:0], l.coords, false, l.splineSteps)
+		c.coordBuf = appendBezierSpline(c.coordBuf[:0], l.coords, false, l.splineSteps)
 	} else {
-		displayCoords = append(c.coordBuf[:0], l.coords...)
+		c.coordBuf = append(c.coordBuf[:0], l.coords...)
 	}
-	c.coordBuf = displayCoords
+	displayCoords := c.coordBuf
 
 	// Shorten line endpoints so the thick shaft meets the arrowhead polygon
 	// edge seamlessly. Tk computes a backup distance by interpolating between

@@ -349,7 +349,7 @@ func (tv *Treeview) Move(id, parentID string, index int) {
 		children := item.Parent.Children
 		for i, c := range children {
 			if c == item {
-				item.Parent.Children = append(children[:i], children[i+1:]...)
+				item.Parent.Children = slices.Delete(children, i, i+1)
 				break
 			}
 		}
@@ -666,12 +666,12 @@ func (tv *Treeview) YView(index int) {
 	if index < 0 {
 		index = 0
 	}
-	max := len(tv.displayList) - tv.visibleRows()
-	if max < 0 {
-		max = 0
+	maxTop := len(tv.displayList) - tv.visibleRows()
+	if maxTop < 0 {
+		maxTop = 0
 	}
-	if index > max {
-		index = max
+	if index > maxTop {
+		index = maxTop
 	}
 	tv.topIndex = index
 	tv.notifyYScrollbar()

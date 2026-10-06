@@ -958,6 +958,7 @@ func (m *Menu) invoke(index int) {
 		if e.SubMenu != nil {
 			m.postCascade(index)
 		}
+	default:
 	}
 }
 

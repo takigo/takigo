@@ -516,16 +516,15 @@ func (e *Entry) tryEdit(prospective string) bool {
 	return e.ValidateCmd(prospective)
 }
 
-// tryFocusValidate runs focus-triggered validation. Returns true if valid.
-func (e *Entry) tryFocusValidate(trigger string) bool {
+// tryFocusValidate runs focus-triggered validation.
+func (e *Entry) tryFocusValidate(trigger string) {
 	if e.ValidateCmd == nil {
-		return true
+		return
 	}
 	v := e.Validate
 	if v == "all" || v == trigger || (v == "focus" && (trigger == "focusin" || trigger == "focusout")) {
-		return e.ValidateCmd(string(e.text))
+		e.ValidateCmd(string(e.text))
 	}
-	return true
 }
 
 // notifyScrollbar calls the scroll command if set.

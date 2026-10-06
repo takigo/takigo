@@ -134,10 +134,10 @@ func (l *Layout) Place(state State, bounds Box) {
 		return
 	}
 	measure(l.Root, state, 0)
-	placeNodes(l.Root, state, bounds, 0)
+	placeNodes(l.Root, bounds, 0)
 }
 
-func placeNodes(n *LayoutNode, state State, cavity Box, depth int) {
+func placeNodes(n *LayoutNode, cavity Box, depth int) {
 	for cur := n; cur != nil; cur = cur.Next {
 		nodeW, nodeH, epad := cur.w, cur.h, cur.pad
 
@@ -179,7 +179,7 @@ func placeNodes(n *LayoutNode, state State, cavity Box, depth int) {
 		// Place children inside the element's inner area.
 		if cur.Children != nil {
 			inner := PadBox(cur.Parcel, epad)
-			placeNodes(cur.Children, state, inner, depth+1)
+			placeNodes(cur.Children, inner, depth+1)
 		}
 	}
 }

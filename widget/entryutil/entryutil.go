@@ -31,12 +31,12 @@ func RuneIndexAtPixel(f font.Font, runes []rune, targetX int) int {
 }
 
 // ClampIdx clamps an index to [0, max].
-func ClampIdx(idx, max int) int {
+func ClampIdx(idx, maxVal int) int {
 	if idx < 0 {
 		return 0
 	}
-	if idx > max {
-		return max
+	if idx > maxVal {
+		return maxVal
 	}
 	return idx
 }

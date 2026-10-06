@@ -130,7 +130,7 @@ func newTextItem(x, y float64, c *Canvas) *TextItem {
 		anchor: option.AnchorCenter,
 	}
 	item.color = c.defaultInk()
-	item.ItemBase.canvas = c
+	item.canvas = c
 
 	// Use default font.
 	if f, err := c.FontRegistry().Get(font.TkDefaultFont); err == nil {
@@ -196,6 +196,7 @@ func (t *TextItem) relayout() {
 			xs[i] = (w - widths[i]) / 2
 		case option.JustifyRight:
 			xs[i] = w - widths[i]
+		default:
 		}
 	}
 	t.lay = textLayout{lines: lines, segs: segs, xs: xs, w: w,

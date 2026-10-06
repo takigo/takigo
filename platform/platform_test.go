@@ -187,23 +187,23 @@ func TestRawEvent(t *testing.T) {
 	}
 }
 
-func TestEventParser(t *testing.T) {
+func TestEventParser(_ *testing.T) {
 	var _ EventParser
 }
 
-func TestDisplayCoreInterface(t *testing.T) {
+func TestDisplayCoreInterface(_ *testing.T) {
 	// Verify DisplayCore interface exists and has expected methods
 	var dc DisplayCore
 	_ = dc
 }
 
-func TestDisplayServerInterface(t *testing.T) {
+func TestDisplayServerInterface(_ *testing.T) {
 	// Verify DisplayServer interface exists and embeds DisplayCore
 	var ds DisplayServer
 	_ = ds
 }
 
-func TestDisplayServerComposition(t *testing.T) {
+func TestDisplayServerComposition(_ *testing.T) {
 	// Test that displayServer struct composes all interfaces
 	var s displayServer
 	_ = s
@@ -211,17 +211,17 @@ func TestDisplayServerComposition(t *testing.T) {
 
 func TestNewDisplayServer(t *testing.T) {
 	// Test that NewDisplayServer returns a DisplayServer
-	var core DisplayCore = nil
-	var wm WindowManager = nil
-	var drawer Drawer = nil
-	var gc GCManager = nil
-	var pixmap PixmapManager = nil
-	var eventSrc EventSource = nil
-	var grab GrabManager = nil
-	var sel SelectionManager = nil
-	var cursor CursorManager = nil
-	var prop PropertyManager = nil
-	var im InputMethodManager = nil
+	var core DisplayCore
+	var wm WindowManager
+	var drawer Drawer
+	var gc GCManager
+	var pixmap PixmapManager
+	var eventSrc EventSource
+	var grab GrabManager
+	var sel SelectionManager
+	var cursor CursorManager
+	var prop PropertyManager
+	var im InputMethodManager
 
 	ds := NewDisplayServer(core, wm, drawer, gc, pixmap, eventSrc, grab, sel, cursor, prop, im)
 	if ds == nil {

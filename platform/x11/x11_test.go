@@ -5,11 +5,12 @@ package x11
 import (
 	"bytes"
 	"encoding/binary"
+	"os"
+	"testing"
+
 	"github.com/takigo/takigo/font"
 	"github.com/takigo/takigo/internal/displaylock"
 	"github.com/takigo/takigo/platform"
-	"os"
-	"testing"
 )
 
 func requireDisplay(t *testing.T) {

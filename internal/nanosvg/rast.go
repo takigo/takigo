@@ -213,9 +213,10 @@ func (r *rasterizer) roundCap(left, right, p *point, dx, dy, lineWidth float32, 
 			r.addEdge(prevx, prevy, x, y)
 		}
 		prevx, prevy = x, y
-		if i == 0 {
+		switch i {
+		case 0:
 			lx, ly = x, y
-		} else if i == ncap-1 {
+		case ncap - 1:
 			rx, ry = x, y
 		}
 	}
@@ -556,6 +557,7 @@ func (r *rasterizer) scanlineSolid(dst []uint8, count int, cover []uint8, x, y i
 			blend(i, cache.colors[int(clampf(gy*255, 0, 255))])
 			fx += dx
 		}
+	default:
 	}
 }
 

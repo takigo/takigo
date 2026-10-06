@@ -336,7 +336,7 @@ func (m *Manager) HandleDestroyWindow(w *window.Window) {
 
 // BindTraversal binds Tab and Shift-Tab globally for focus traversal.
 // Uses a global binding so it works regardless of which widget has focus.
-func (m *Manager) BindTraversal(w *window.Window) {
+func (m *Manager) BindTraversal(_ *window.Window) {
 	m.dispatcher.BindGlobal(event.KeyPressMask, func(ev *event.Event) {
 		if ev.Handled {
 			return
@@ -347,9 +347,10 @@ func (m *Manager) BindTraversal(w *window.Window) {
 		if m.winDisplay != nil {
 			eventWin = m.winDisplay.LookupWindow(ev.Window)
 		}
-		if ev.KeySym == platform.XK_Tab {
+		switch ev.KeySym {
+		case platform.XK_Tab:
 			m.FocusNext(eventWin)
-		} else if ev.KeySym == platform.XK_ISO_Left_Tab {
+		case platform.XK_ISO_Left_Tab:
 			m.FocusPrev(eventWin)
 		}
 	})

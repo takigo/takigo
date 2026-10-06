@@ -46,10 +46,12 @@ func (a Attributes) Descriptor() string {
 		w = " Bold"
 	}
 	s := ""
-	if a.Slant == SlantItalic {
+	switch a.Slant {
+	case SlantItalic:
 		s = " Italic"
-	} else if a.Slant == SlantOblique {
+	case SlantOblique:
 		s = " Oblique"
+	default:
 	}
 	size := a.Size
 	if size <= 0 {

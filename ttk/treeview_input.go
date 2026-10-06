@@ -146,10 +146,11 @@ func (tv *Treeview) handleConfigure(ev *event.Event) {
 
 // handleFocus handles FocusIn/FocusOut events.
 func (tv *Treeview) handleFocus(ev *event.Event) {
-	if ev.Type == event.FocusInType {
+	switch ev.Type {
+	case event.FocusInType:
 		tv.hasFocus = true
 		tv.Display()
-	} else if ev.Type == event.FocusOutType {
+	case event.FocusOutType:
 		tv.hasFocus = false
 		tv.Display()
 	}
@@ -209,6 +210,7 @@ func (tv *Treeview) handleButtonPress(ev *event.Event) {
 					}
 				}
 			}
+		default:
 		}
 	}
 }
@@ -242,12 +244,12 @@ func (tv *Treeview) handleButtonRelease(ev *event.Event) {
 // handleKeyPress handles keyboard events.
 func (tv *Treeview) handleKeyPress(ev *event.Event) {
 	ks := ev.KeySym
-	switch {
-	case ks == platform.XK_Up:
+	switch ks {
+	case platform.XK_Up:
 		tv.moveFocus(-1)
-	case ks == platform.XK_Down:
+	case platform.XK_Down:
 		tv.moveFocus(1)
-	case ks == platform.XK_Left:
+	case platform.XK_Left:
 		// Collapse current or move to parent.
 		if item := tv.items[tv.focus]; item != nil {
 			if item.Open && len(item.Children) > 0 {
@@ -258,7 +260,7 @@ func (tv *Treeview) handleKeyPress(ev *event.Event) {
 				tv.See(tv.focus)
 			}
 		}
-	case ks == platform.XK_Right:
+	case platform.XK_Right:
 		// Expand current or move to first child.
 		if item := tv.items[tv.focus]; item != nil {
 			if !item.Open && len(item.Children) > 0 {
@@ -269,17 +271,17 @@ func (tv *Treeview) handleKeyPress(ev *event.Event) {
 				tv.See(tv.focus)
 			}
 		}
-	case ks == platform.XK_Return || ks == platform.XK_space:
+	case platform.XK_Return, platform.XK_space:
 		if item := tv.items[tv.focus]; item != nil && len(item.Children) > 0 {
 			tv.SetItemOpen(tv.focus, !item.Open)
 		}
-	case ks == platform.XK_Home:
+	case platform.XK_Home:
 		if len(tv.displayList) > 0 {
 			tv.focus = tv.displayList[0].item.ID
 			tv.SelectionSet(tv.focus)
 			tv.See(tv.focus)
 		}
-	case ks == platform.XK_End:
+	case platform.XK_End:
 		if len(tv.displayList) > 0 {
 			tv.focus = tv.displayList[len(tv.displayList)-1].item.ID
 			tv.SelectionSet(tv.focus)

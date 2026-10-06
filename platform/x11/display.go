@@ -563,8 +563,8 @@ func (s *X11Display) ChangePropertyAtoms(w platform.WindowID, prop platform.Atom
 	s.dpy.ChangePropertyAtoms(xlib.Window(w), xlib.Atom(prop), xa)
 }
 
-func (s *X11Display) GetWindowProperty(w platform.WindowID, property platform.AtomID, offset, length int64, delete bool) ([]byte, platform.AtomID, int) {
-	data, atype, format := s.dpy.GetWindowProperty(xlib.Window(w), xlib.Atom(property), offset, length, delete)
+func (s *X11Display) GetWindowProperty(w platform.WindowID, property platform.AtomID, offset, length int64, del bool) ([]byte, platform.AtomID, int) {
+	data, atype, format := s.dpy.GetWindowProperty(xlib.Window(w), xlib.Atom(property), offset, length, del)
 	return data, platform.AtomID(atype), format
 }
 
@@ -600,7 +600,7 @@ func (s *X11Display) HasIM() bool                    { return s.dpy.HasIM() }
 func (s *X11Display) SetICFocus(w platform.WindowID) { s.dpy.SetICFocus(xlib.Window(w)) }
 func (s *X11Display) UnsetICFocus()                  { s.dpy.UnsetICFocus() }
 
-// Compile-time interface checks
+// Compile-time interface checks.
 var _ platform.DisplayCore = (*X11Display)(nil)
 var _ platform.WindowManager = (*X11Display)(nil)
 var _ platform.Drawer = (*X11Display)(nil)

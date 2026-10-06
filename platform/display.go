@@ -274,7 +274,7 @@ type PropertyManager interface {
 	ChangePropertyAtoms(w WindowID, prop AtomID, atoms []AtomID)
 
 	// GetWindowProperty reads a window property.
-	GetWindowProperty(w WindowID, property AtomID, offset, length int64, delete bool) ([]byte, AtomID, int)
+	GetWindowProperty(w WindowID, property AtomID, offset, length int64, del bool) ([]byte, AtomID, int)
 
 	// DeleteProperty deletes a window property.
 	DeleteProperty(w WindowID, prop AtomID)

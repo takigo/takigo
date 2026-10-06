@@ -22,8 +22,8 @@ func TestProgressbarRestartRunsOneTimerChain(t *testing.T) {
 
 	// Two Start steps plus at most one per interval from a single chain;
 	// a leaked second chain roughly doubles this.
-	if max := 2 + int(110*time.Millisecond/interval) + 1; p.Value > float64(max) {
-		t.Errorf("value = %v after restart, want <= %d (stale timer chain still running)", p.Value, max)
+	if hi := 2 + int(110*time.Millisecond/interval) + 1; p.Value > float64(hi) {
+		t.Errorf("value = %v after restart, want <= %d (stale timer chain still running)", p.Value, hi)
 	}
 	if p.Value < 2 {
 		t.Errorf("value = %v, want the animation to have stepped", p.Value)

@@ -34,7 +34,7 @@ func newArcItem(x1, y1, x2, y2 float64, c *Canvas) *ArcItem {
 		outlineWidth: 1,
 	}
 	item.outline = c.defaultInk()
-	item.ItemBase.canvas = c
+	item.canvas = c
 	item.updateBBox()
 	return item
 }
@@ -205,6 +205,7 @@ func (a *ArcItem) shape() []float64 {
 		pts = append(pts, cx, cy, pts[0], pts[1])
 	case ArcStyleChord:
 		pts = append(pts, pts[0], pts[1])
+	default:
 	}
 	return pts
 }
@@ -347,6 +348,7 @@ func (a *ArcItem) Postscript(ps *PSContext) error {
 			ps.write("gsave fill grestore newpath\n")
 			ps.Path(pts)
 		}
+	default:
 	}
 
 	if a.outline != nil && a.outlineWidth > 0 {

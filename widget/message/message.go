@@ -324,6 +324,7 @@ func (m *Message) display() {
 					lx = textX + (m.msgWidth-lw)/2
 				case option.JustifyRight:
 					lx = textX + m.msgWidth - lw
+				default:
 				}
 			}
 			df.DrawString(w.Drawable(), lx, baseline, line,

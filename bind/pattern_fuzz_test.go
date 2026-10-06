@@ -46,7 +46,7 @@ func FuzzParse(f *testing.F) {
 	for _, s := range seeds {
 		f.Add(s)
 	}
-	f.Fuzz(func(t *testing.T, input string) {
+	f.Fuzz(func(_ *testing.T, input string) {
 		_, _ = Parse(input)
 	})
 }
@@ -62,7 +62,7 @@ func FuzzParseSequenceString(f *testing.F) {
 	for _, s := range seeds {
 		f.Add(s)
 	}
-	f.Fuzz(func(t *testing.T, input string) {
+	f.Fuzz(func(_ *testing.T, input string) {
 		seq, err := Parse(input)
 		if err == nil {
 			_ = seq.String()
@@ -73,7 +73,7 @@ func FuzzParseSequenceString(f *testing.F) {
 // FuzzPatternMatches fuzzes the Pattern.matches method.
 func FuzzPatternMatches(f *testing.F) {
 	// This requires constructing events, so we use a simpler approach
-	f.Fuzz(func(t *testing.T, pattern string, eventType int, state int, button int, keysym int) {
+	f.Fuzz(func(_ *testing.T, pattern string, eventType int, state int, button int, keysym int) {
 		seq, err := Parse(pattern)
 		if err != nil {
 			return
@@ -107,7 +107,7 @@ func FuzzPatternSpecificity(f *testing.F) {
 	for _, s := range seeds {
 		f.Add(s)
 	}
-	f.Fuzz(func(t *testing.T, pattern string) {
+	f.Fuzz(func(_ *testing.T, pattern string) {
 		seq, err := Parse(pattern)
 		if err != nil {
 			return

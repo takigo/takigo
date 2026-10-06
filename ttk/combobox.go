@@ -700,9 +700,10 @@ func bindCombobox(c *Combobox, app widget.AppContext) {
 
 	// Focus events.
 	app.Dispatcher().Bind(win.PlatformID, event.FocusChangeMask, func(ev *event.Event) {
-		if ev.Type == event.FocusInType {
+		switch ev.Type {
+		case event.FocusInType:
 			c.ChangeState(StateFocus, 0)
-		} else if ev.Type == event.FocusOutType {
+		case event.FocusOutType:
 			c.ChangeState(0, StateFocus)
 			c.edit.ClearSelection()
 			c.closeDropdown()

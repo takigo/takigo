@@ -240,7 +240,7 @@ func promotionSurvives(pat *Pattern, ev *event.Event) bool {
 	}
 	patKey := pat.EventType == event.KeyPressType || pat.EventType == event.KeyReleaseType
 	patButton := pat.EventType == event.ButtonPressType || pat.EventType == event.ButtonReleaseType
-	return !(patKey && isButton) && !(patButton && isKey)
+	return (!patKey || !isButton) && (!patButton || !isKey)
 }
 
 // isModifierKeySym reports whether ks is a modifier key (Shift, Control,
@@ -373,7 +373,7 @@ func abs(n int) int {
 }
 
 // buildTagChain creates the default tag chain for a window:
-// [pathName, className, toplevelPath, "all"]
+// [pathName, className, toplevelPath, "all"].
 func buildTagChain(w *window.Window, className string) []string {
 	tags := []string{w.PathName, className}
 

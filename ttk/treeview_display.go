@@ -1,12 +1,13 @@
 package ttk
 
 import (
+	"sort"
+
 	"github.com/takigo/takigo/draw"
 	"github.com/takigo/takigo/font"
 	"github.com/takigo/takigo/option"
 	"github.com/takigo/takigo/platform"
 	"github.com/takigo/takigo/screenunit"
-	"sort"
 )
 
 // Display renders the treeview to its window via double-buffered pixmap.
@@ -281,6 +282,7 @@ func (tv *Treeview) drawAlignedText(f font.Font, drawable platform.DrawableID,
 		textX = x + (maxW-textW)/2
 	case option.AnchorE, option.AnchorNE, option.AnchorSE:
 		textX = x + maxW - textW
+	default:
 	}
 
 	tv.drawClippedText(f, drawable, textX, textY, maxW, text, pixel, r, g, b)

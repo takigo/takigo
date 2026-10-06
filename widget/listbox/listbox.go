@@ -359,12 +359,9 @@ func (lb *Listbox) YView(index int) {
 	if index < 0 {
 		index = 0
 	}
-	max := len(lb.items) - lb.visibleLines()
-	if max < 0 {
-		max = 0
-	}
-	if index > max {
-		index = max
+	maxTop := max(len(lb.items)-lb.visibleLines(), 0)
+	if index > maxTop {
+		index = maxTop
 	}
 	lb.topIndex = index
 	lb.notifyYScrollbar()

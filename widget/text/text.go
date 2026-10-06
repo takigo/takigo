@@ -770,6 +770,7 @@ func (t *TextWidget) positionEmbeddedWindows(dlines []displayLine) {
 				justifyOffset = max((availW-totalW)/2, 0)
 			case option.JustifyRight:
 				justifyOffset = max(availW-totalW, 0)
+			default:
 			}
 
 			wx := t.insetX + dl.leftMargin + justifyOffset - t.xOffset + xBefore + ew.padX

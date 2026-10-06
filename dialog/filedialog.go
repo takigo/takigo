@@ -20,7 +20,7 @@ import (
 	"github.com/takigo/takigo/option"
 	"github.com/takigo/takigo/platform"
 	"github.com/takigo/takigo/ttk"
-	_ "github.com/takigo/takigo/ttk/defaulttheme"
+	_ "github.com/takigo/takigo/ttk/defaulttheme" // registers the default theme
 	"github.com/takigo/takigo/widget"
 )
 
@@ -427,6 +427,7 @@ func (b *fileBrowser) buildButtons() {
 		okText = "Save"
 	case browseDir:
 		okText = "Select"
+	default:
 	}
 	cancel := ttk.NewButton(b.d.BtnFrame, "cancel", ttk.ButtonText("Cancel"), ttk.ButtonWidth(8),
 		ttk.ButtonCommand(func() { b.d.Close(ResultCancel) }))
@@ -546,8 +547,8 @@ func (b *fileBrowser) load(dir string) {
 	b.syncPlaces()
 	b.updating = false
 
-	switch {
-	case b.mode == browseDir:
+	switch b.mode {
+	case browseDir:
 		b.status.SetText(fmt.Sprintf("%d folders", nDirs))
 	default:
 		b.status.SetText(fmt.Sprintf("%d folders, %d files", nDirs, nFiles))

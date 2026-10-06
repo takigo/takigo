@@ -91,7 +91,7 @@ func newBenchCanvas() *Canvas {
 func benchText(c *Canvas, x, y float64, text string) *TextItem {
 	t := &TextItem{x: x, y: y, anchor: option.AnchorCenter, font: fixedFont{}, text: text}
 	t.color = &color.ColorRef{}
-	t.ItemBase.canvas = c
+	t.canvas = c
 	t.updateBBox()
 	return t
 }

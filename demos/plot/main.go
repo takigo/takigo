@@ -4,6 +4,9 @@ package main
 
 import (
 	"fmt"
+	"math"
+	"os"
+
 	"github.com/takigo/takigo"
 	"github.com/takigo/takigo/canvas"
 	"github.com/takigo/takigo/demos/demohelper"
@@ -14,8 +17,6 @@ import (
 	"github.com/takigo/takigo/screenunit"
 	"github.com/takigo/takigo/widget/frame"
 	"github.com/takigo/takigo/widget/label"
-	"math"
-	"os"
 )
 
 func main() {

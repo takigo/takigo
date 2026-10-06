@@ -17,7 +17,7 @@ type WindowItem struct {
 
 func newWindowItem(x, y float64, win *window.Window, c *Canvas) *WindowItem {
 	item := &WindowItem{x: x, y: y, win: win, anchor: option.AnchorCenter}
-	item.ItemBase.canvas = c
+	item.canvas = c
 	item.updateBBox()
 	return item
 }
@@ -89,6 +89,7 @@ func (wi *WindowItem) updateBBox() {
 	case option.AnchorCenter:
 		x -= w / 2
 		y -= h / 2
+	default:
 	}
 	wi.X1, wi.Y1, wi.X2, wi.Y2 = x, y, x+w, y+h
 }

@@ -130,17 +130,17 @@ func bindMenu(m *Menu, app widget.AppContext) {
 	// Keyboard.
 	app.Dispatcher().Bind(w.PlatformID, event.KeyPressMask, func(ev *event.Event) {
 		ks := ev.KeySym
-		switch {
-		case ks == platform.XK_Escape:
+		switch ks {
+		case platform.XK_Escape:
 			m.Unpost()
 
-		case ks == platform.XK_Up:
+		case platform.XK_Up:
 			moveActiveEntry(m, -1)
 
-		case ks == platform.XK_Down:
+		case platform.XK_Down:
 			moveActiveEntry(m, 1)
 
-		case ks == platform.XK_Right:
+		case platform.XK_Right:
 			// Enter cascade submenu.
 			if m.activeIndex >= 0 && m.activeIndex < len(m.entries) {
 				e := &m.entries[m.activeIndex]
@@ -149,11 +149,11 @@ func bindMenu(m *Menu, app widget.AppContext) {
 				}
 			}
 
-		case ks == platform.XK_Left:
+		case platform.XK_Left:
 			// Close cascade (parent will handle this via unpost).
 			m.Unpost()
 
-		case ks == platform.XK_Return:
+		case platform.XK_Return:
 			if m.activeIndex >= 0 {
 				m.invoke(m.activeIndex)
 			}

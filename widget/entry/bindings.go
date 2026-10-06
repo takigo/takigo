@@ -98,12 +98,13 @@ func (e *Entry) handleConfigure(ev *event.Event) {
 
 // handleFocus handles FocusIn/FocusOut events.
 func (e *Entry) handleFocus(ev *event.Event) {
-	if ev.Type == event.FocusInType {
+	switch ev.Type {
+	case event.FocusInType:
 		e.HasFocus = true
 		e.CursorOn = true
 		e.tryFocusValidate("focusin")
 		e.Display()
-	} else if ev.Type == event.FocusOutType {
+	case event.FocusOutType:
 		e.HasFocus = false
 		e.tryFocusValidate("focusout")
 		e.Display()
@@ -175,10 +176,10 @@ func (e *Entry) handleKeyPress(ev *event.Event) {
 		if ctrl {
 			if e.SelFirst >= 0 {
 				sel := string(e.text[e.SelFirst:e.SelLast])
-				e.App.Clipboard().Set(e.Win.PlatformID, sel, platform.Timestamp(ev.Time))
+				e.App.Clipboard().Set(e.Win.PlatformID, sel, ev.Time)
 			}
 		} else if shift {
-			e.App.Clipboard().Get(e.Win.PlatformID, platform.Timestamp(ev.Time), func(text string) {
+			e.App.Clipboard().Get(e.Win.PlatformID, ev.Time, func(text string) {
 				if text == "" {
 					return
 				}
@@ -201,7 +202,7 @@ func (e *Entry) handleKeyPress(ev *event.Event) {
 		// Shift+Delete: cut selection.
 		if shift && e.SelFirst >= 0 {
 			sel := string(e.text[e.SelFirst:e.SelLast])
-			e.App.Clipboard().Set(e.Win.PlatformID, sel, platform.Timestamp(ev.Time))
+			e.App.Clipboard().Set(e.Win.PlatformID, sel, ev.Time)
 			prospective := string(e.text[:e.SelFirst]) + string(e.text[e.SelLast:])
 			if e.tryEdit(prospective) {
 				e.DeleteSelection()
@@ -303,13 +304,13 @@ func handleCtrlKey(e *Entry, ev *event.Event) {
 	case platform.XK_c: // Ctrl+C: copy selection
 		if e.SelFirst >= 0 {
 			sel := string(e.text[e.SelFirst:e.SelLast])
-			e.App.Clipboard().Set(e.Win.PlatformID, sel, platform.Timestamp(ev.Time))
+			e.App.Clipboard().Set(e.Win.PlatformID, sel, ev.Time)
 		}
 
 	case platform.XK_x: // Ctrl+X: cut selection
 		if e.SelFirst >= 0 {
 			sel := string(e.text[e.SelFirst:e.SelLast])
-			e.App.Clipboard().Set(e.Win.PlatformID, sel, platform.Timestamp(ev.Time))
+			e.App.Clipboard().Set(e.Win.PlatformID, sel, ev.Time)
 			prospective := string(e.text[:e.SelFirst]) + string(e.text[e.SelLast:])
 			if e.tryEdit(prospective) {
 				e.DeleteSelection()
@@ -317,7 +318,7 @@ func handleCtrlKey(e *Entry, ev *event.Event) {
 		}
 
 	case platform.XK_v: // Ctrl+V: paste from clipboard
-		e.App.Clipboard().Get(e.Win.PlatformID, platform.Timestamp(ev.Time), func(text string) {
+		e.App.Clipboard().Get(e.Win.PlatformID, ev.Time, func(text string) {
 			if text == "" {
 				return
 			}
@@ -338,7 +339,7 @@ func handleCtrlKey(e *Entry, ev *event.Event) {
 	case platform.XK_w: // Ctrl+W: cut selection (Emacs kill-region)
 		if e.SelFirst >= 0 {
 			sel := string(e.text[e.SelFirst:e.SelLast])
-			e.App.Clipboard().Set(e.Win.PlatformID, sel, platform.Timestamp(ev.Time))
+			e.App.Clipboard().Set(e.Win.PlatformID, sel, ev.Time)
 			prospective := string(e.text[:e.SelFirst]) + string(e.text[e.SelLast:])
 			if e.tryEdit(prospective) {
 				e.DeleteSelection()

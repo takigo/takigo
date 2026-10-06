@@ -131,7 +131,7 @@ func parseColor(s string) uint32 {
 	return 128 | 128<<8 | 128<<16
 }
 
-func (a *attrs) set(name, value string) bool {
+func (a *attrs) set(name, value string) {
 	switch name {
 	case "fill":
 		a.fill = value
@@ -178,10 +178,7 @@ func (a *attrs) set(name, value string) bool {
 		} else {
 			a.stopOffset = atof(v)
 		}
-	default:
-		return false
 	}
-	return true
 }
 
 type parser struct {

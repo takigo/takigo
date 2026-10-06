@@ -138,10 +138,11 @@ static FcResult fc_pattern_get_family(FcPattern *p, FcChar8 **family) {
 import "C"
 import (
 	"fmt"
-	"github.com/takigo/takigo/font"
 	"math"
 	"unicode/utf8"
 	"unsafe"
+
+	"github.com/takigo/takigo/font"
 
 	"github.com/takigo/takigo/internal/xlib"
 	"github.com/takigo/takigo/platform"
@@ -217,6 +218,7 @@ func OpenXft(display *xlib.Display, screen int, visual *xlib.Visual, colormap xl
 		slant = C.FC_SLANT_ITALIC
 	case font.SlantOblique:
 		slant = C.FC_SLANT_OBLIQUE
+	default:
 	}
 
 	pattern := C.FcPatternCreate()
@@ -251,7 +253,7 @@ func OpenXft(display *xlib.Display, screen int, visual *xlib.Visual, colormap xl
 		font:     xftFont,
 		attrs:    attrs,
 		screen:   cscreen,
-		visual:   (*C.Visual)(unsafe.Pointer(visual.Ptr())),
+		visual:   (*C.Visual)(visual.Ptr()),
 		colormap: C.Colormap(colormap),
 	}
 

@@ -190,7 +190,7 @@ func parseBase(doc *Document, t *TextWidget, spec string) (Index, string, bool) 
 			return idx, rest, true
 		}
 	}
-	if strings.HasPrefix("end", name) && name[0] == 'e' {
+	if strings.HasPrefix("end", name) && name[0] == 'e' { //nolint:gocritic // name may abbreviate "end"
 		return virtualEnd(doc), rest, true
 	}
 	if m := doc.MarkPos(name); m != nil {

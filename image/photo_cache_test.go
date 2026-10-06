@@ -50,23 +50,23 @@ func TestPhotoPixmapCache(t *testing.T) {
 	}
 
 	s = &countingServer{live: map[platform.PixmapID]bool{}}
-	clear := newTestPhoto(0x80)
+	clearPh := newTestPhoto(0x80)
 	for range 10 {
-		draw(clear, s, 1)
-		draw(clear, s, 2)
+		draw(clearPh, s, 1)
+		draw(clearPh, s, 2)
 	}
 	if s.uploads != 2 {
 		t.Errorf("translucent photo on two backgrounds uploaded %d times, want 2", s.uploads)
 	}
 	for bg := range uint64(maxPhotoPixmaps + 2) {
-		draw(clear, s, 10+bg)
+		draw(clearPh, s, 10+bg)
 	}
 	if len(s.live) != maxPhotoPixmaps {
 		t.Errorf("%d pixmaps live, want at most %d", len(s.live), maxPhotoPixmaps)
 	}
-	clear.Invalidate()
-	draw(clear, s, 1)
-	clear.Destroy()
+	clearPh.Invalidate()
+	draw(clearPh, s, 1)
+	clearPh.Destroy()
 	if len(s.live) != 0 {
 		t.Errorf("%d pixmaps leaked after Destroy", len(s.live))
 	}

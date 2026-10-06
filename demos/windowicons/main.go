@@ -131,7 +131,7 @@ func setIconFromRGBA(win *window.Window, rgba *image.RGBA) {
 			r, g, b, a := rgba.At(x+rgba.Bounds().Min.X, y+rgba.Bounds().Min.Y).RGBA()
 			// Convert 16-bit -> 8-bit and pack as ARGB.
 			binary.NativeEndian.PutUint32(data[offset:offset+4],
-				uint32(a>>8)<<24|uint32(r>>8)<<16|uint32(g>>8)<<8|uint32(b>>8))
+				a>>8<<24|r>>8<<16|g>>8<<8|b>>8)
 		}
 	}
 	d := win.Display.Server

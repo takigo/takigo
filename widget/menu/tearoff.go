@@ -129,10 +129,11 @@ func (m *Menu) Detach() {
 	})
 
 	disp.Bind(xwin, event.StructureNotifyMask, func(ev *event.Event) {
-		if ev.Type == event.ConfigureType {
+		switch ev.Type {
+		case event.ConfigureType:
 			w.Width = ev.ConfigWidth
 			w.Height = ev.ConfigHeight
-		} else if ev.Type == event.DestroyType {
+		case event.DestroyType:
 			tw.destroyed = true
 		}
 	})
@@ -186,6 +187,7 @@ func (m *Menu) Detach() {
 			if e.Command != nil {
 				e.Command()
 			}
+		default:
 		}
 	})
 

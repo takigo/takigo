@@ -38,11 +38,11 @@ func newTestWidget() (*testWidget, *fakeManager) {
 
 func TestConfigureRequestsOnChange(t *testing.T) {
 	w, m := newTestWidget()
-	Configure(w, []testOption{text("abc")}, w.computeGeometry)
+	_ = Configure(w, []testOption{text("abc")}, w.computeGeometry)
 	if w.Win.ReqWidth != 21 || m.requests != 1 || w.displays != 1 {
 		t.Fatalf("ReqWidth = %d, requests = %d, displays = %d", w.Win.ReqWidth, m.requests, w.displays)
 	}
-	Configure(w, []testOption{text("abc")}, w.computeGeometry)
+	_ = Configure(w, []testOption{text("abc")}, w.computeGeometry)
 	if m.requests != 1 || w.displays != 2 {
 		t.Fatalf("unchanged request: requests = %d, displays = %d", m.requests, w.displays)
 	}
@@ -51,7 +51,7 @@ func TestConfigureRequestsOnChange(t *testing.T) {
 func TestConfigureDirectRequestWrite(t *testing.T) {
 	w, m := newTestWidget()
 	width := func(n int) testOption { return func(w *testWidget) { w.Win.ReqWidth = n } }
-	Configure(w, []testOption{width(300)}, nil)
+	_ = Configure(w, []testOption{width(300)}, nil)
 	if m.requests != 1 {
 		t.Fatalf("requests = %d", m.requests)
 	}
@@ -60,7 +60,7 @@ func TestConfigureDirectRequestWrite(t *testing.T) {
 func TestConfigureSyncsBackground(t *testing.T) {
 	w, _ := newTestWidget()
 	bg := func(name string) testOption { return func(w *testWidget) { w.SetBackgroundColor(name) } }
-	Configure(w, []testOption{bg("#123456")}, nil)
+	_ = Configure(w, []testOption{bg("#123456")}, nil)
 	if w.Win.BackgroundPixel != w.Background.Pixel || w.Win.BackgroundPixel == 0 {
 		t.Fatalf("BackgroundPixel = %x, want %x", w.Win.BackgroundPixel, w.Background.Pixel)
 	}
@@ -72,8 +72,8 @@ func TestConfigureRearrangesContent(t *testing.T) {
 	w.Win.OnConfigure(func() { arranged++ })
 	border := func(n int) testOption { return func(w *testWidget) { w.BorderWidth = n } }
 	geom := func() { w.Win.InternalBorderLeft = w.BorderWidth }
-	Configure(w, []testOption{border(3)}, geom)
-	Configure(w, []testOption{border(3)}, geom)
+	_ = Configure(w, []testOption{border(3)}, geom)
+	_ = Configure(w, []testOption{border(3)}, geom)
 	if arranged != 1 || m.requests != 0 {
 		t.Fatalf("arranged = %d, requests = %d", arranged, m.requests)
 	}

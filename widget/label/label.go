@@ -69,8 +69,8 @@ func TextVariable(v *widget.Variable[string]) LabelOption {
 		}
 		l.TextVar = v
 		l.Text = v.Get()
-		l.unsub = v.OnChange(func(_, new string) {
-			l.Text = new
+		l.unsub = v.OnChange(func(_, newVal string) {
+			l.Text = newVal
 			l.computeGeometry()
 			l.Display()
 		})
@@ -400,6 +400,7 @@ func (l *Label) display() {
 						lx = textX + (l.textWidth-lw)/2
 					case option.JustifyRight:
 						lx = textX + l.textWidth - lw
+					default:
 					}
 				}
 				for _, seg := range font.Segments(l.Font, line) {
@@ -468,6 +469,7 @@ func drawCompound(l *Label, w *window.Window,
 		imgY = cy + (contentH-imgH)/2
 		textX = cx + (contentW-l.textWidth)/2
 		textY = cy + (contentH-l.textHeight)/2
+	default:
 	}
 
 	// Draw image.

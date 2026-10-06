@@ -38,18 +38,18 @@ func (d *Display) ConvertSelection(selection, target, property Atom, requestor W
 
 // GetWindowProperty reads a window property. Returns the data as bytes,
 // the actual type, and the actual format.
-func (d *Display) GetWindowProperty(w Window, property Atom, offset, length int64, delete bool) ([]byte, Atom, int) {
+func (d *Display) GetWindowProperty(w Window, property Atom, offset, length int64, del bool) ([]byte, Atom, int) {
 	var actualType C.Atom
 	var actualFormat C.int
 	var nItems, bytesAfter C.ulong
 	var data *C.uchar
-	var del C.int
-	if delete {
-		del = 1
+	var cdel C.int
+	if del {
+		cdel = 1
 	}
 
 	C.XGetWindowProperty(d.ptr, C.Window(w), C.Atom(property),
-		C.long(offset), C.long(length), del, C.AnyPropertyType,
+		C.long(offset), C.long(length), cdel, C.AnyPropertyType,
 		&actualType, &actualFormat, &nItems, &bytesAfter, &data)
 
 	if data == nil {

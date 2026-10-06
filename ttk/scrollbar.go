@@ -337,6 +337,7 @@ func bindTtkScrollbar(s *Scrollbar, app widget.AppContext) {
 			} else {
 				s.dragOffset = ev.X - s.thumbStart
 			}
+		default:
 		}
 	})
 

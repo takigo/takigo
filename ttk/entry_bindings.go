@@ -68,13 +68,14 @@ func bindEntry(e *Entry, app widget.AppContext) {
 
 	// Focus events.
 	app.Dispatcher().Bind(win.PlatformID, event.FocusChangeMask, func(ev *event.Event) {
-		if ev.Type == event.FocusInType {
+		switch ev.Type {
+		case event.FocusInType:
 			e.ChangeState(StateFocus, 0)
 			if e.ValidateMode == ValidateFocus || e.ValidateMode == ValidateAll || e.ValidateMode == ValidateFocusIn {
 				e.Validate()
 			}
 			e.Display()
-		} else if ev.Type == event.FocusOutType {
+		case event.FocusOutType:
 			if e.ValidateMode == ValidateFocus || e.ValidateMode == ValidateAll || e.ValidateMode == ValidateFocusOut {
 				e.Validate()
 			}

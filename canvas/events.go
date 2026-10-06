@@ -31,7 +31,8 @@ func bindCanvas(c *Canvas) {
 
 	// Configure → resize.
 	disp.Bind(w.PlatformID, event.StructureNotifyMask, func(ev *event.Event) {
-		if ev.Type == event.ConfigureType {
+		switch ev.Type {
+		case event.ConfigureType:
 			w.Width = ev.ConfigWidth
 			w.Height = ev.ConfigHeight
 			c.setOrigin(c.xOrigin, c.yOrigin)
@@ -39,7 +40,7 @@ func bindCanvas(c *Canvas) {
 			c.notifyScrollbars()
 			place.ArrangeContainer(w)
 			w.NotifyConfigure()
-		} else if ev.Type == event.DestroyType {
+		case event.DestroyType:
 			c.Destroy()
 		}
 	})

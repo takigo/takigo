@@ -147,7 +147,7 @@ func (b *Base) Window() *window.Window {
 	return b.Win
 }
 
-// To be used by geometry managers as a geometry.Elementer
+// To be used by geometry managers as a geometry.Elementer.
 func (b *Base) GeometryElements() []window.Windower {
 	return []window.Windower{b}
 }

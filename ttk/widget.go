@@ -219,9 +219,9 @@ func (w *TtkWidget) Display() {
 }
 
 // ChangeState updates the widget state, redisplaying if changed.
-func (w *TtkWidget) ChangeState(set, clear State) {
+func (w *TtkWidget) ChangeState(set, clearBits State) {
 	old := w.State
-	w.State = (w.State & ^clear) | set
+	w.State = (w.State & ^clearBits) | set
 	if w.State != old {
 		w.redisplay()
 	}
@@ -275,7 +275,7 @@ func (w *TtkWidget) Window() *window.Window {
 	return w.Win
 }
 
-// To be used by geometry managers as a geometry.Elementer
+// To be used by geometry managers as a geometry.Elementer.
 func (w *TtkWidget) GeometryElements() []window.Windower {
 	return []window.Windower{w}
 }
@@ -339,9 +339,10 @@ func bindTtkCommon(w *TtkWidget, app widget.AppContext) {
 
 	// FocusIn → +StateFocus.
 	app.Dispatcher().Bind(win.PlatformID, event.FocusChangeMask, func(ev *event.Event) {
-		if ev.Type == event.FocusInType {
+		switch ev.Type {
+		case event.FocusInType:
 			w.ChangeState(StateFocus, 0)
-		} else if ev.Type == event.FocusOutType {
+		case event.FocusOutType:
 			w.ChangeState(0, StateFocus)
 		}
 	})

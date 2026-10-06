@@ -313,10 +313,10 @@ func SplineSteps(n int) ItemOption {
 }
 
 // CapStyleOpt sets the cap style for line items.
-func CapStyleOpt(cap int) ItemOption {
+func CapStyleOpt(capStyle int) ItemOption {
 	return func(_ *Canvas, item Item) error {
 		if it, ok := item.(*LineItem); ok {
-			it.capStyle = cap
+			it.capStyle = capStyle
 		}
 		return nil
 	}
