@@ -1,5 +1,6 @@
 # Convenience wrappers around the commands in AGENTS.md. Run `make help`.
 
+SHELL  := bash
 GO     ?= go
 PKGS   ?= ./...
 DEMO   ?= button
@@ -27,24 +28,28 @@ test-race: ## Short tests with the race detector, as CI does
 vet: ## go vet
 	$(GO) vet $(PKGS)
 
-fmt: ## Format all Go files
-	gofmt -w .
+# Go files git does not ignore, and the buildable package directories among
+# them, so the gitignored scratch space (tmp/, tk/, tcl/) is left out: its
+# programs may not build and would show up as errors. Directories, not import
+# paths, as golangci-lint wants; go list drops packages for other platforms.
+GOFILES ?= $(shell git ls-files -co --exclude-standard '*.go')
+GODIRS  ?= $(shell $(GO) list -f '{{.Dir}}' ./... 2>/dev/null | sed "s|^$(CURDIR)|.|" | \
+	grep -Fxf <(printf '%s\n' $(GOFILES) | xargs -n1 dirname | sed 's|^[^.]|./&|' | sort -u))
 
-fmt-check: ## Fail if any file needs gofmt
-	@out=$$(gofmt -l .); if [ -n "$$out" ]; then echo "needs gofmt:"; echo "$$out"; exit 1; fi
+fmt: ## Format all tracked Go files
+	gofmt -w $(GOFILES)
+
+fmt-check: ## Fail if any tracked file needs gofmt
+	@out=$$(gofmt -l $(GOFILES)); if [ -n "$$out" ]; then echo "needs gofmt:"; echo "$$out"; exit 1; fi
 
 fix: ## Apply the go fix modernizers
-	$(GO) fix $(PKGS)
+	$(GO) fix $(GODIRS)
 
 fix-check: ## Fail if go fix would change anything (CI gate)
-	$(GO) fix -diff $(PKGS)
-
-# Directories, not import paths, and without the gitignored tmp/ scratch space,
-# whose programs may not build and would show up as typecheck errors.
-LINTDIRS ?= $(shell $(GO) list -f '{{.Dir}}' $(PKGS) 2>/dev/null | sed "s|^$(CURDIR)|.|" | grep -v '^\./tmp\(/\|$$\)')
+	$(GO) fix -diff $(GODIRS)
 
 lint: ## golangci-lint (CI only gates changed lines)
-	golangci-lint run --allow-parallel-runners $(LINTDIRS)
+	golangci-lint run --allow-parallel-runners $(GODIRS)
 
 check: vet fmt-check fix-check vet-windows ## The static checks CI gates on
 

@@ -666,10 +666,7 @@ func (tv *Treeview) YView(index int) {
 	if index < 0 {
 		index = 0
 	}
-	maxTop := len(tv.displayList) - tv.visibleRows()
-	if maxTop < 0 {
-		maxTop = 0
-	}
+	maxTop := max(len(tv.displayList)-tv.visibleRows(), 0)
 	if index > maxTop {
 		index = maxTop
 	}
