@@ -51,8 +51,8 @@ func LabelTextVariable(v *widget.Variable[string]) LabelOption {
 		}
 		l.TextVar = v
 		l.Text = v.Get()
-		l.unsub = v.OnChange(func(_, new string) {
-			l.SetText(new)
+		l.unsub = v.OnChange(func(_, newVal string) {
+			l.SetText(newVal)
 		})
 	}
 }

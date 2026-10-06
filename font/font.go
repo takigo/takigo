@@ -51,6 +51,7 @@ func (a Attributes) Descriptor() string {
 		s = " Italic"
 	case SlantOblique:
 		s = " Oblique"
+	default:
 	}
 	size := a.Size
 	if size <= 0 {

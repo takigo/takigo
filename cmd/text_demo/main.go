@@ -104,7 +104,7 @@ Type here to test editing...`
 	txt.TagAdd("error", "22.30", "22.35")   // "error"
 
 	// Move cursor to beginning.
-	txt.SetInsertPos("1.0")
+	_ = txt.SetInsertPos("1.0")
 	txt.See("1.0")
 
 	// Root event handlers.

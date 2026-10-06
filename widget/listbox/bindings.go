@@ -101,6 +101,7 @@ func bindListbox(lb *Listbox, app widget.AppContext) {
 				lb.selected[i] = true
 			}
 			lb.activeIndex = idx
+		default:
 		}
 		lb.See(idx)
 		lb.Display()

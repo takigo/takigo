@@ -13,7 +13,7 @@ import (
 func TestBindingTableAddAndLookup(t *testing.T) {
 	bt := NewBindingTable()
 	seq, _ := Parse("<Button-1>")
-	bt.Add("Button", seq, func(ev *EventData) bool { return false })
+	bt.Add("Button", seq, func(_ *EventData) bool { return false })
 
 	bindings := bt.Lookup("Button")
 	if len(bindings) != 1 {
@@ -25,10 +25,10 @@ func TestBindingTableAddReplacesSameSequence(t *testing.T) {
 	bt := NewBindingTable()
 	seq, _ := Parse("<Button-1>")
 	other, _ := Parse("<Button-3>")
-	bt.Add("Button", seq, func(ev *EventData) bool { return false })
-	bt.Add("Button", other, func(ev *EventData) bool { return false })
+	bt.Add("Button", seq, func(_ *EventData) bool { return false })
+	bt.Add("Button", other, func(_ *EventData) bool { return false })
 	before := bt.Lookup("Button")
-	bt.Add("Button", seq, func(ev *EventData) bool { return true })
+	bt.Add("Button", seq, func(_ *EventData) bool { return true })
 
 	bindings := bt.Lookup("Button")
 	if len(bindings) != 2 {
@@ -80,8 +80,8 @@ func TestBindingTableMultipleBindings(t *testing.T) {
 	bt := NewBindingTable()
 	seq1, _ := Parse("<Button-1>")
 	seq2, _ := Parse("<Button-3>")
-	bt.Add("Button", seq1, func(ev *EventData) bool { return false })
-	bt.Add("Button", seq2, func(ev *EventData) bool { return false })
+	bt.Add("Button", seq1, func(_ *EventData) bool { return false })
+	bt.Add("Button", seq2, func(_ *EventData) bool { return false })
 
 	bindings := bt.Lookup("Button")
 	if len(bindings) != 2 {
@@ -93,8 +93,8 @@ func TestBindingTableRemove(t *testing.T) {
 	bt := NewBindingTable()
 	seq1, _ := Parse("<Button-1>")
 	seq2, _ := Parse("<Button-3>")
-	bt.Add("Button", seq1, func(ev *EventData) bool { return false })
-	bt.Add("Button", seq2, func(ev *EventData) bool { return false })
+	bt.Add("Button", seq1, func(_ *EventData) bool { return false })
+	bt.Add("Button", seq2, func(_ *EventData) bool { return false })
 
 	bt.Remove("Button", seq1)
 	bindings := bt.Lookup("Button")
@@ -106,8 +106,8 @@ func TestBindingTableRemove(t *testing.T) {
 func TestBindingTableRemoveAll(t *testing.T) {
 	bt := NewBindingTable()
 	seq, _ := Parse("<Button-1>")
-	bt.Add("Button", seq, func(ev *EventData) bool { return false })
-	bt.Add("Button", seq, func(ev *EventData) bool { return false })
+	bt.Add("Button", seq, func(_ *EventData) bool { return false })
+	bt.Add("Button", seq, func(_ *EventData) bool { return false })
 
 	bt.RemoveAll("Button")
 	bindings := bt.Lookup("Button")
@@ -119,7 +119,7 @@ func TestBindingTableRemoveAll(t *testing.T) {
 func TestBindingTableRemoveLastCleans(t *testing.T) {
 	bt := NewBindingTable()
 	seq, _ := Parse("<Button-1>")
-	bt.Add("Button", seq, func(ev *EventData) bool { return false })
+	bt.Add("Button", seq, func(_ *EventData) bool { return false })
 	bt.Remove("Button", seq)
 
 	bindings := bt.Lookup("Button")

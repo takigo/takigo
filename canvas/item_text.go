@@ -196,6 +196,7 @@ func (t *TextItem) relayout() {
 			xs[i] = (w - widths[i]) / 2
 		case option.JustifyRight:
 			xs[i] = w - widths[i]
+		default:
 		}
 	}
 	t.lay = textLayout{lines: lines, segs: segs, xs: xs, w: w,

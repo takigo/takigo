@@ -1,3 +1,4 @@
+// Command dialog_test_debug opens takigo dialogs and dumps the window tree for debugging.
 package main
 
 import (

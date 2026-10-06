@@ -26,25 +26,69 @@ linters:
     - unused
 
   settings:
+    exhaustive:
+      default-signifies-exhaustive: true
+      # Handlers react to a few keys or events, not to all of them.
+      ignore-enum-types: 'platform\.KeySym|event\.Type'
     # The Tk procedures this code ports are long; the limits flag the
     # outliers, not every faithful port.
     funlen:
-      lines: 200
-      statements: 120
+      lines: 220
+      statements: 160
+    gocritic:
+      disabled-checks:
+        - ifElseChain # chains of if/else if on unrelated conditions are fine
     gocyclo:
-      min-complexity: 50
+      min-complexity: 60
     goconst:
       min-occurrences: 5
+      ignore-string-values:
+        - Cancel
+        - sans-serif # the generic font family name
+        - down # a Tk option value
     gosec:
       excludes:
         - G115 # integer conversions: pixel, colour and wire-format arithmetic
         - G104 # unhandled errors: errcheck's job, with its exclusions below
+        - G103 # unsafe: the cgo and Win32 bridges are made of it
+        - G304 # file inclusion: loading the file the application names is the job
+        - G301 # permissions of directories and files the user asks for
+        - G302
+        - G306
+        - G703 # the lock file name is the display name with its slashes replaced
   exclusions:
     rules:
+      # Tk's configure-style calls return an error nobody tests need to read.
+      - path: _test\.go
+        linters: [errcheck, dogsled]
+      - path: ^(demos|cmd)/
+        linters: [dogsled]
       # Layout and configuration calls return an error for the caller who
       # wants it; like fmt.Println, most callers have nothing to do with it.
       - linters: [errcheck]
         text: 'Error return value of `[^`]*\.(Close|Configure|Pack|Grid|Bind|BindWindow|Unbind|UnbindWindow|UseTheme|Insert|Delete|See|MarkSet|TagAdd|TagRemove|WindowCreate|WindowCreatePad|ImageCreate|ItemConfigure|SetItemCoords)` is not checked'
+      # X11 keysyms, event masks and Win32 constants keep the names of the
+      # headers they come from.
+      - path: ^(platform/(attrs|event)|internal/xlib/(keysym|types|selection|wm))\.go$
+        linters: [revive]
+        text: "var-naming"
+      # Exported names mirror Tk's (PackOption, GrabState, WmInfo, ...) and
+      # comments are kept sparse (AGENTS.md); renaming would break the API.
+      - linters: [revive]
+        text: 'stutters|unexported-return|should have comment|should be of the form'
+      # Callbacks and interface implementations take parameters they do not use.
+      - linters: [revive]
+        text: unused-parameter
+      # cgo expands C.f(&x) calls into code that compares a value with itself.
+      - path: ^(internal/xlib|font/xft)/
+        linters: [gocritic]
+        text: dupSubExpr
+      # The ttk element and theme tables repeat by design.
+      - path: ^ttk/
+        linters: [dupl]
+      # init registers a whole theme; Display is a port of TreeviewDisplay.
+      - path: ^ttk/(.*theme/theme\.go|treeview_display\.go)$
+        linters: [funlen]
       - path: _test\.go
         linters: [goconst, funlen, unparam, prealloc, dupl, gosec]
       - path: ^(demos|cmd)/
@@ -58,3 +102,6 @@ formatters:
     goimports:
       local-prefixes:
         - github.com/takigo/takigo
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0

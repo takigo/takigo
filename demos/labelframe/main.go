@@ -74,7 +74,7 @@ func main() {
 	grid.Grid(lfOpts, grid.Row(0), grid.Column(1), grid.PadX(screenunit.Mm(2)), grid.PadY(screenunit.Mm(2)))
 
 	// Option checkbuttons.
-	var optionCbs []*checkbutton.Checkbutton
+	optionCbs := make([]*checkbutton.Checkbutton, 0, 3)
 	enableVar := widget.NewVariable("0")
 
 	enableCb := checkbutton.New(lfOpts, "cb",

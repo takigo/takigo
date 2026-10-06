@@ -504,7 +504,7 @@ func bindNotebook(nb *Notebook, app widget.AppContext) {
 				}
 				runes := []rune(tab.Text)
 				if tab.Underline < len(runes) {
-					tabRune := rune(runes[tab.Underline])
+					tabRune := runes[tab.Underline]
 					if tabRune >= 'A' && tabRune <= 'Z' {
 						tabRune += 32 // toLower
 					}

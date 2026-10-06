@@ -44,7 +44,7 @@ fix-check: ## Fail if go fix would change anything (CI gate)
 LINTDIRS ?= $(shell $(GO) list -f '{{.Dir}}' $(PKGS) 2>/dev/null | sed "s|^$(CURDIR)|.|" | grep -v '^\./tmp\(/\|$$\)')
 
 lint: ## golangci-lint (CI only gates changed lines)
-	golangci-lint run $(LINTDIRS)
+	golangci-lint run --allow-parallel-runners $(LINTDIRS)
 
 check: vet fmt-check fix-check vet-windows ## The static checks CI gates on
 

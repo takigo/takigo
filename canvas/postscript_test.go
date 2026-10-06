@@ -265,7 +265,10 @@ func TestPostscriptEmitsEachItemOnce(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	body := out[strings.Index(out, "%%EndSetup"):]
+	_, body, ok := strings.Cut(out, "%%EndSetup")
+	if !ok {
+		t.Fatalf("no %%%%EndSetup in the output:\n%s", out)
+	}
 	if n := strings.Count(body, "stroke\n"); n != 2 {
 		t.Errorf("%d outlines stroked, want 2 (one per item):\n%s", n, body)
 	}

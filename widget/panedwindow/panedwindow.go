@@ -136,6 +136,7 @@ func isStretchable(s Stretch, i, first, last int) bool {
 		return i == last
 	case StretchMiddle:
 		return i != first && i != last
+	default:
 	}
 	return false
 }

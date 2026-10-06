@@ -64,10 +64,10 @@ func checkLayoutMatches(t *testing.T, step int, tw *TextWidget) {
 		}
 	}
 	for y := 0; y < want.totalPixels()+20; y += 7 {
-		gl, go_ := got.lineAtPixel(y)
+		gl, goPos := got.lineAtPixel(y)
 		wl, wo := want.lineAtPixel(y)
-		if gl != wl || go_ != wo {
-			t.Fatalf("step %d lineAtPixel(%d) = %d/%d, want %d/%d", step, y, gl, go_, wl, wo)
+		if gl != wl || goPos != wo {
+			t.Fatalf("step %d lineAtPixel(%d) = %d/%d, want %d/%d", step, y, gl, goPos, wl, wo)
 		}
 	}
 	if got.maxWidth() != want.maxWidth() {

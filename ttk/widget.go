@@ -219,9 +219,9 @@ func (w *TtkWidget) Display() {
 }
 
 // ChangeState updates the widget state, redisplaying if changed.
-func (w *TtkWidget) ChangeState(set, clear State) {
+func (w *TtkWidget) ChangeState(set, clearBits State) {
 	old := w.State
-	w.State = (w.State & ^clear) | set
+	w.State = (w.State & ^clearBits) | set
 	if w.State != old {
 		w.redisplay()
 	}

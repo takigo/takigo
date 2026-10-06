@@ -41,10 +41,10 @@ func TestRegistryGetMissing(t *testing.T) {
 func TestRegistryRegisterOverwrite(t *testing.T) {
 	r := NewRegistry()
 	old := &stubImage{name: "img", w: 10, h: 10}
-	new_ := &stubImage{name: "img", w: 20, h: 20}
+	newImg := &stubImage{name: "img", w: 20, h: 20}
 
 	r.Register(old)
-	r.Register(new_)
+	r.Register(newImg)
 
 	if !old.destroyed {
 		t.Error("old image was not destroyed on overwrite")

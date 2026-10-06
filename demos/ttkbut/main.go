@@ -83,7 +83,7 @@ func main() {
 		pack.Expand(true))
 
 	// Collect all TTK widgets for enable/disable toggling and theme refresh.
-	var ttkWidgets []ttkRef
+	ttkWidgets := make([]ttkRef, 0, len(bottomButtons)+len(ttk.ThemeNames())+2+1+2+5)
 
 	// Add bottom bar buttons to TTK widget tracking.
 	for _, btn := range bottomButtons {

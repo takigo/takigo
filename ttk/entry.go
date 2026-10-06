@@ -483,7 +483,7 @@ func (e *Entry) Display() {
 	(&FieldElement{ctx: e.Context}).Draw(d, pixDrawable, gc, Box{0, 0, width, height}, e.State)
 
 	// Determine display text (mask if -show set).
-	display := []rune(e.edit.Text)
+	display := e.edit.Text
 	if e.Show != 0 {
 		display = make([]rune, len(e.edit.Text))
 		for i := range display {

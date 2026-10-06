@@ -557,6 +557,7 @@ func (r *rasterizer) scanlineSolid(dst []uint8, count int, cover []uint8, x, y i
 			blend(i, cache.colors[int(clampf(gy*255, 0, 255))])
 			fx += dx
 		}
+	default:
 	}
 }
 

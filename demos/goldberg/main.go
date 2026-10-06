@@ -687,7 +687,7 @@ func (g *goldberg) draw6() {
 	// All the balls
 	ballColors := []string{"red", "cyan", "orange", "green", "blue", "darkblue"}
 	// Repeat 3 times for 18 total (we use 17)
-	var allColors []string
+	allColors := make([]string, 0, len(ballColors)*3)
 	for range 3 {
 		allColors = append(allColors, ballColors...)
 	}
@@ -1274,8 +1274,8 @@ func (g *goldberg) callMove(who int) int {
 	return 0
 }
 
-// go_ is the main animation loop callback.
-func (g *goldberg) go_() {
+// animate is the main animation loop callback.
+func (g *goldberg) animate() {
 	if g.mode == mDone || g.mode == -1 {
 		return
 	}
@@ -1290,7 +1290,7 @@ func (g *goldberg) go_() {
 		g.mode = mSStep
 	}
 	delay := time.Duration(delays[g.speed]) * time.Millisecond
-	g.app.After(delay, g.go_)
+	g.app.After(delay, g.animate)
 }
 
 // Move functions
@@ -2035,7 +2035,7 @@ func main() {
 
 	g.drawAll()
 	c.YViewMoveTo(0.06)
-	g.go_()
+	g.animate()
 
 	// StartMessage / PlacedDialog.
 	placedDialog := func(msg, fnt string) {

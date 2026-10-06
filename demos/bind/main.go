@@ -119,7 +119,7 @@ func main() {
 		})
 	}
 
-	tw.SetInsertPos("1.0")
+	_ = tw.SetInsertPos("1.0")
 	// Match Tcl's `-state disabled` (read-only after setup).
 	tw.Configure(text.ReadOnly(true))
 	app.Run()

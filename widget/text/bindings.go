@@ -114,8 +114,7 @@ func (t *TextWidget) handleFocus(ev *event.Event) {
 
 // handleButtonPress handles mouse button press events.
 func (t *TextWidget) handleButtonPress(ev *event.Event) {
-	switch ev.Button {
-	case 1:
+	if ev.Button == 1 {
 		widget.Focus(t.App, t.Win)
 		idx := t.indexFromPixel(ev.X, ev.Y)
 		// Fire tag Button-1 bindings before modifying selection.
@@ -271,13 +270,13 @@ func (t *TextWidget) handleKeyPress(ev *event.Event) {
 		// Ctrl+Insert: copy; Shift+Insert: paste.
 		if ctrl {
 			if sel := t.GetSelection(); sel != "" {
-				t.App.Clipboard().Set(t.Win.PlatformID, sel, platform.Timestamp(ev.Time))
+				t.App.Clipboard().Set(t.Win.PlatformID, sel, ev.Time)
 			}
 		} else if shift {
 			if t.readOnly {
 				return
 			}
-			t.App.Clipboard().Get(t.Win.PlatformID, platform.Timestamp(ev.Time), func(text string) {
+			t.App.Clipboard().Get(t.Win.PlatformID, ev.Time, func(text string) {
 				if text == "" {
 					return
 				}
@@ -299,7 +298,7 @@ func (t *TextWidget) handleKeyPress(ev *event.Event) {
 		// Shift+Delete: cut selection.
 		if shift && !t.readOnly {
 			if sel := t.GetSelection(); sel != "" {
-				t.App.Clipboard().Set(t.Win.PlatformID, sel, platform.Timestamp(ev.Time))
+				t.App.Clipboard().Set(t.Win.PlatformID, sel, ev.Time)
 				t.deleteSelection()
 				t.seeInsert()
 				t.notifyYScrollbar()
@@ -421,14 +420,14 @@ func handleCtrlKey(t *TextWidget, ev *event.Event) {
 	// --- Clipboard (work in read-only mode for copy) ---
 	case platform.XK_c: // Ctrl+C: copy selection
 		if sel := t.GetSelection(); sel != "" {
-			t.App.Clipboard().Set(t.Win.PlatformID, sel, platform.Timestamp(ev.Time))
+			t.App.Clipboard().Set(t.Win.PlatformID, sel, ev.Time)
 		}
 	case platform.XK_x: // Ctrl+X: cut selection
 		if t.readOnly {
 			return
 		}
 		if sel := t.GetSelection(); sel != "" {
-			t.App.Clipboard().Set(t.Win.PlatformID, sel, platform.Timestamp(ev.Time))
+			t.App.Clipboard().Set(t.Win.PlatformID, sel, ev.Time)
 			t.deleteSelection()
 			t.seeInsert()
 			t.notifyYScrollbar()
@@ -438,7 +437,7 @@ func handleCtrlKey(t *TextWidget, ev *event.Event) {
 		if t.readOnly {
 			return
 		}
-		t.App.Clipboard().Get(t.Win.PlatformID, platform.Timestamp(ev.Time), func(text string) {
+		t.App.Clipboard().Get(t.Win.PlatformID, ev.Time, func(text string) {
 			if text == "" {
 				return
 			}
@@ -501,7 +500,7 @@ func handleCtrlKey(t *TextWidget, ev *event.Event) {
 			return
 		}
 		if sel := t.GetSelection(); sel != "" {
-			t.App.Clipboard().Set(t.Win.PlatformID, sel, platform.Timestamp(ev.Time))
+			t.App.Clipboard().Set(t.Win.PlatformID, sel, ev.Time)
 			t.deleteSelection()
 			t.seeInsert()
 			t.notifyYScrollbar()

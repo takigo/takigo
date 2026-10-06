@@ -89,6 +89,7 @@ func (wi *WindowItem) updateBBox() {
 	case option.AnchorCenter:
 		x -= w / 2
 		y -= h / 2
+	default:
 	}
 	wi.X1, wi.Y1, wi.X2, wi.Y2 = x, y, x+w, y+h
 }

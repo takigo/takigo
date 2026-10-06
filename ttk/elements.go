@@ -115,6 +115,7 @@ func drawCorner(d platform.DisplayServer, drawable platform.DrawableID, gc platf
 		pixel = border.DarkPixel
 	case shBrdr:
 		pixel = borderColor
+	default:
 	}
 	w--
 	h--
@@ -343,6 +344,7 @@ func underlineChar(d platform.DisplayServer, drawable platform.DrawableID, gc pl
 			lx = x + (tw-f.MeasureString(line))/2
 		case option.JustifyRight:
 			lx = x + tw - f.MeasureString(line)
+		default:
 		}
 		pos, h := font.Underline(f)
 		ux := lx + f.MeasureString(string(runes[:u]))
@@ -365,6 +367,7 @@ func drawTextLines(d platform.DisplayServer, drawable platform.DrawableID, f fon
 			lx = x + (tw-f.MeasureString(line))/2
 		case option.JustifyRight:
 			lx = x + tw - f.MeasureString(line)
+		default:
 		}
 		drawText(d, drawable, f, line, lx, y+i*ls, fgPixel)
 	}
@@ -419,6 +422,7 @@ func drawCompound(d platform.DisplayServer, drawable platform.DrawableID, gc pla
 		imgY = cy + (contentH-imgH)/2
 		textX = cx + (contentW-tw)/2
 		textY = cy + (contentH-th)/2
+	default:
 	}
 
 	img.Draw(d, drawable, gc, ctx.Depth,

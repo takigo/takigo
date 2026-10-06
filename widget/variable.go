@@ -9,7 +9,7 @@ import "slices"
 type Variable[T comparable] struct {
 	value     T
 	unset     bool
-	listeners []*func(old, new T)
+	listeners []*func(old, cur T)
 }
 
 // NewVariable creates a Variable with the given initial value.
@@ -51,7 +51,7 @@ func (v *Variable[T]) Set(val T) {
 // Returns an unsubscribe function, which removes exactly this listener
 // whatever order listeners are removed in and is safe to call from a
 // listener or more than once.
-func (v *Variable[T]) OnChange(fn func(old, new T)) func() {
+func (v *Variable[T]) OnChange(fn func(old, cur T)) func() {
 	p := &fn
 	v.listeners = append(slices.Clip(v.listeners), p)
 	return func() {

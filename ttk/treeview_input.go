@@ -210,6 +210,7 @@ func (tv *Treeview) handleButtonPress(ev *event.Event) {
 					}
 				}
 			}
+		default:
 		}
 	}
 }

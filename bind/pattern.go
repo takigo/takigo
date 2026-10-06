@@ -86,7 +86,7 @@ func (s Sequence) Then(next Sequence) Sequence {
 
 // String returns the original pattern string representation.
 func (s Sequence) String() string {
-	var parts []string
+	parts := make([]string, 0, len(s.Patterns))
 	for _, p := range s.Patterns {
 		parts = append(parts, patternString(p))
 	}

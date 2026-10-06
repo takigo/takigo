@@ -114,7 +114,7 @@ func resolveFile(dir, text, defaultExt string) (flag resolveFlag, outDir, file s
 		withExt := path + defaultExt
 		if _, err2 := os.Stat(withExt); err2 == nil || !strings.ContainsAny(filepath.Base(path), "*?[") {
 			path = withExt
-			info, err = os.Stat(path)
+			_, err = os.Stat(path)
 		}
 	}
 	if err == nil {

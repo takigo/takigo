@@ -477,12 +477,12 @@ func (s *Spinbox) Display() {
 	d.Flush()
 }
 
-func sbClamp(idx, max int) int {
+func sbClamp(idx, hi int) int {
 	if idx < 0 {
 		return 0
 	}
-	if idx > max {
-		return max
+	if idx > hi {
+		return hi
 	}
 	return idx
 }

@@ -134,7 +134,7 @@ func TestNextFocusableNone(t *testing.T) {
 	root.Children = []*window.Window{a}
 
 	m := &Manager{
-		IsFocusable: func(w *window.Window) bool { return false },
+		IsFocusable: func(_ *window.Window) bool { return false },
 	}
 
 	got := m.nextFocusable(root, root, true)

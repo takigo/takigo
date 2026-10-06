@@ -226,8 +226,7 @@ func (s *Spinbox) handleKeyPress(ev *event.Event) {
 
 	default:
 		if ctrl {
-			switch ev.KeySym {
-			case platform.KeySym(0x0061): // XK_a
+			if ev.KeySym == platform.KeySym(0x0061) { // XK_a
 				s.SelectAll()
 				s.Display()
 			}

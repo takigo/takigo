@@ -361,6 +361,7 @@ func (b *Button) display() {
 		case DefaultNormal:
 			rect(0, 5, option.ReliefFlat)
 			ringInset += 5
+		default:
 		}
 		draw.Draw3DRectangle(d, w.Drawable(), gc, border,
 			ringInset, ringInset, w.Width-2*ringInset, w.Height-2*ringInset, b.BorderWidth, relief)
@@ -423,6 +424,7 @@ func drawCompoundButton(b *Button, w *window.Window,
 		contentW, contentH = max(imgW, b.textWidth), imgH+b.PadY+b.textHeight
 	case widget.CompoundCenter:
 		contentW, contentH = max(imgW, b.textWidth), max(imgH, b.textHeight)
+	default:
 	}
 
 	inset := b.inset()
@@ -457,6 +459,7 @@ func drawCompoundButton(b *Button, w *window.Window,
 		imgY = cy + (contentH-imgH)/2
 		textX = cx + (contentW-b.textWidth)/2
 		textY = cy + (contentH-b.textHeight)/2
+	default:
 	}
 
 	// Draw image.

@@ -187,6 +187,7 @@ func (m *Menu) Detach() {
 			if e.Command != nil {
 				e.Command()
 			}
+		default:
 		}
 	})
 

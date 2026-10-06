@@ -113,6 +113,7 @@ func Draw3DRectangle(d platform.DisplayServer, drawable platform.DrawableID, gc 
 			d.DrawRectangle(drawable, gc, x+i, y+i, uint(width-2*i-1), uint(height-2*i-1))
 		}
 		return
+	default:
 	}
 	verticalBevel(d, drawable, gc, border, x, y, borderWidth, height, true, relief)
 	verticalBevel(d, drawable, gc, border, x+width-borderWidth, y, borderWidth, height, false, relief)
@@ -148,6 +149,7 @@ func verticalBevel(d platform.DisplayServer, drawable platform.DrawableID, gc pl
 		}
 		fill(left, x, y, half, height)
 		fill(right, x+half, y, width-half, height)
+	default:
 	}
 }
 
@@ -222,38 +224,38 @@ func Fill3DRectangle(d platform.DisplayServer, drawable platform.DrawableID, gc 
 // lightColor computes the light shadow from Tk's algorithm.
 // Input/output are 16-bit RGB.
 func lightColor(r, g, b uint16) (uint16, uint16, uint16) {
-	const max = 65535
+	const maxVal = 65535
 
 	// If very bright (green > 95%), darken by 10%.
-	if g > max*95/100 {
+	if g > maxVal*95/100 {
 		return uint16(90 * uint32(r) / 100),
 			uint16(90 * uint32(g) / 100),
 			uint16(90 * uint32(b) / 100)
 	}
 
-	// Normal: max of (boost 40%, halfway to white).
-	boost := func(v uint16) uint16 { return uint16(min(14*uint32(v)/10, max)) }
-	lr := maxU16(boost(r), uint16((max+uint32(r))/2))
-	lg := maxU16(boost(g), uint16((max+uint32(g))/2))
-	lb := maxU16(boost(b), uint16((max+uint32(b))/2))
+	// Normal: maxVal of (boost 40%, halfway to white).
+	boost := func(v uint16) uint16 { return uint16(min(14*uint32(v)/10, maxVal)) }
+	lr := maxU16(boost(r), uint16((maxVal+uint32(r))/2))
+	lg := maxU16(boost(g), uint16((maxVal+uint32(g))/2))
+	lb := maxU16(boost(b), uint16((maxVal+uint32(b))/2))
 	return lr, lg, lb
 }
 
 // darkColor computes the dark shadow from Tk's algorithm.
 func darkColor(r, g, b uint16) (uint16, uint16, uint16) {
-	const max = 65535
+	const maxVal = 65535
 
 	// Check perceived brightness: 0.5*R^2 + 1.0*G^2 + 0.28*B^2.
 	brightness := 0.5*float64(r)*float64(r) +
 		1.0*float64(g)*float64(g) +
 		0.28*float64(b)*float64(b)
-	threshold := 0.05 * float64(max) * float64(max)
+	threshold := 0.05 * float64(maxVal) * float64(maxVal)
 
 	if brightness < threshold {
 		// Very dark: lighten by 1/4 toward white.
-		return uint16((max + 3*uint32(r)) / 4),
-			uint16((max + 3*uint32(g)) / 4),
-			uint16((max + 3*uint32(b)) / 4)
+		return uint16((maxVal + 3*uint32(r)) / 4),
+			uint16((maxVal + 3*uint32(g)) / 4),
+			uint16((maxVal + 3*uint32(b)) / 4)
 	}
 
 	// Normal: reduce by 40%.

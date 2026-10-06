@@ -156,7 +156,7 @@ func score(a, b *node, aOrigin, bOrigin [2]int) float64 {
 		math.Abs(float64(a.w.W-b.w.W)) + math.Abs(float64(a.w.H-b.w.H))
 	s += 6 * math.Max(0, 1-dist/200)
 	if a.w.Index == b.w.Index {
-		s += 1
+		s++
 	}
 	return s
 }

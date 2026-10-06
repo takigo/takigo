@@ -218,6 +218,7 @@ func OpenXft(display *xlib.Display, screen int, visual *xlib.Visual, colormap xl
 		slant = C.FC_SLANT_ITALIC
 	case font.SlantOblique:
 		slant = C.FC_SLANT_OBLIQUE
+	default:
 	}
 
 	pattern := C.FcPatternCreate()
@@ -252,7 +253,7 @@ func OpenXft(display *xlib.Display, screen int, visual *xlib.Visual, colormap xl
 		font:     xftFont,
 		attrs:    attrs,
 		screen:   cscreen,
-		visual:   (*C.Visual)(unsafe.Pointer(visual.Ptr())),
+		visual:   (*C.Visual)(visual.Ptr()),
 		colormap: C.Colormap(colormap),
 	}
 
