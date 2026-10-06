@@ -12,19 +12,126 @@ import (
 
 // --- Drawer implementation ---
 
-func (d *WindowsDisplay) FillRectangle(drawable platform.DrawableID, gc platform.GCID, x, y int, width, height uint) {
+// render runs draw on the drawable's DC. With a stippled fill style it
+// does what RenderObject in tk/win/tkWinDraw.c does: draw works on a copy
+// of the box left, top .. right, bottom, and only the pixels where the
+// stipple is set are copied back.
+//
+// The copy-back departs from Tk. Tk selects the stipple into the
+// destination as a pattern brush, sets the brush origin to the GC's
+// ts origin and does one BitBlt with the ternary raster op COPYFG
+// (0x00CA0749, dest = (pat & src) | (!pat & dst)). Done that way, Wine
+// 11.17 put the pattern at the brush origin plus the destination
+// rectangle's position, so anything with a non-zero ts origin (canvas
+// bitmap items, stipples in a scrolled canvas) came out wrapped. Here the
+// brush paints a mask with a plain PatBlt and the mask is combined with
+// SRCINVERT and SRCAND only, which costs a second scratch bitmap and two
+// more blits.
+//
+// Not established: whether that is a Wine bug (Tk's stipple is a
+// device-dependent monochrome bitmap, ours a 1-bit DIB section, and the
+// COPYFG path was not tried with the former), and how either method
+// behaves on real Windows, where only Tk's is proven. If COPYFG turns out
+// to be right there, it can replace the mask.
+func (d *WindowsDisplay) render(drawable platform.DrawableID, g *gcState, left, top, right, bottom int32, draw func(dc w32.HDC)) {
 	hdc, cleanup := d.getDrawableDC(drawable)
 	defer cleanup()
 
-	g := d.getGC(gc)
-	if g == nil {
+	var pattern w32.HBRUSH
+	if g.fillStyle == platform.FillStippled {
+		if pix := d.getPixmap(g.stipple); pix != nil {
+			pattern = pix.pattern
+		}
+	}
+	if pattern == 0 {
+		draw(hdc)
 		return
 	}
 
-	brush := g.getBrush()
+	dw, dh := d.drawableSize(drawable)
+	left, top = max(left, 0), max(top, 0)
+	right, bottom = min(right, dw), min(bottom, dh)
+	w, h := right-left, bottom-top
+	if w <= 0 || h <= 0 {
+		return
+	}
 
-	if g.function != platform.GXcopy {
-		w32.SetROP2(hdc, gcROP2(g.function))
+	memDC, freeMem := scratchDC(hdc, w, h)
+	defer freeMem()
+	maskDC, freeMask := scratchDC(hdc, w, h)
+	defer freeMask()
+
+	w32.BitBlt(memDC, 0, 0, w, h, hdc, left, top, w32.SRCCOPY)
+	w32.SetViewportOrgEx(memDC, -left, -top, nil)
+	draw(memDC)
+	w32.SetViewportOrgEx(memDC, 0, 0, nil)
+
+	// The mask is white where the stipple is set: a monochrome brush
+	// paints its 0 bits in the text colour and its 1 bits in the
+	// background colour.
+	w32.SetTextColor(maskDC, w32.RGB(0, 0, 0))
+	w32.SetBkColor(maskDC, w32.RGB(255, 255, 255))
+	w32.SetBrushOrgEx(maskDC, int32(g.tsX)-left, int32(g.tsY)-top, nil)
+	oldBrush := w32.SelectObject(maskDC, w32.HGDIOBJ(pattern))
+	w32.PatBlt(maskDC, 0, 0, w, h, w32.PATCOPY)
+	w32.SelectObject(maskDC, oldBrush)
+
+	// mem = (mem ^ dst) & mask, then dst ^= mem: dst takes the drawn
+	// pixels where the mask is white and keeps its own elsewhere.
+	w32.BitBlt(memDC, 0, 0, w, h, hdc, left, top, w32.SRCINVERT)
+	w32.BitBlt(memDC, 0, 0, w, h, maskDC, 0, 0, w32.SRCAND)
+	w32.BitBlt(hdc, left, top, w, h, memDC, 0, 0, w32.SRCINVERT)
+}
+
+// scratchDC returns a memory DC holding a w x h bitmap compatible with
+// hdc, and the function that frees both.
+func scratchDC(hdc w32.HDC, w, h int32) (w32.HDC, func()) {
+	dc := w32.CreateCompatibleDC(hdc)
+	bmp := w32.CreateCompatibleBitmap(hdc, w, h)
+	old := w32.SelectObject(dc, w32.HGDIOBJ(bmp))
+	return dc, func() {
+		w32.SelectObject(dc, old)
+		w32.DeleteObject(w32.HGDIOBJ(bmp))
+		w32.DeleteDC(dc)
+	}
+}
+
+// drawableSize returns the size of a pixmap or of a window's client area.
+func (d *WindowsDisplay) drawableSize(drawable platform.DrawableID) (w, h int32) {
+	if pix := d.getPixmap(platform.PixmapID(drawable)); pix != nil {
+		return int32(pix.width), int32(pix.height)
+	}
+	var rect w32.RECT
+	w32.GetClientRect(toDrawableHWND(drawable), &rect)
+	return rect.Right, rect.Bottom
+}
+
+// gdiPoints converts X points (relative to the previous one with
+// CoordModePrevious) and returns their bounding box.
+func gdiPoints(points []platform.Point, mode int) (pts []w32.POINT, left, top, right, bottom int32) {
+	pts = make([]w32.POINT, len(points))
+	var cx, cy int32
+	for i, p := range points {
+		if mode == platform.CoordModePrevious {
+			cx += int32(p.X)
+			cy += int32(p.Y)
+		} else {
+			cx, cy = int32(p.X), int32(p.Y)
+		}
+		pts[i] = w32.POINT{X: cx, Y: cy}
+		if i == 0 {
+			left, top, right, bottom = cx, cy, cx, cy
+		}
+		left, top = min(left, cx), min(top, cy)
+		right, bottom = max(right, cx), max(bottom, cy)
+	}
+	return pts, left, top, right + 1, bottom + 1
+}
+
+func (d *WindowsDisplay) FillRectangle(drawable platform.DrawableID, gc platform.GCID, x, y int, width, height uint) {
+	g := d.getGC(gc)
+	if g == nil {
+		return
 	}
 
 	rect := w32.RECT{
@@ -33,53 +140,59 @@ func (d *WindowsDisplay) FillRectangle(drawable platform.DrawableID, gc platform
 		Right:  int32(x + int(width)),
 		Bottom: int32(y + int(height)),
 	}
-	w32.FillRect(hdc, &rect, brush)
+	d.render(drawable, g, rect.Left, rect.Top, rect.Right, rect.Bottom, func(hdc w32.HDC) {
+		if g.function != platform.GXcopy {
+			w32.SetROP2(hdc, gcROP2(g.function))
+		}
+		w32.FillRect(hdc, &rect, g.getBrush())
+	})
 }
 
 func (d *WindowsDisplay) DrawRectangle(drawable platform.DrawableID, gc platform.GCID, x, y int, width, height uint) {
-	hdc, cleanup := d.getDrawableDC(drawable)
-	defer cleanup()
-
 	g := d.getGC(gc)
 	if g == nil {
 		return
 	}
 
-	pen := g.getPen()
-	oldPen := w32.SelectObject(hdc, w32.HGDIOBJ(pen))
-	defer w32.SelectObject(hdc, oldPen)
+	left, top := int32(x), int32(y)
+	right, bottom := int32(x+int(width)+1), int32(y+int(height)+1)
+	lw := max(int32(g.lineWidth), 1)
+	d.render(drawable, g, left-lw, top-lw, right+lw, bottom+lw, func(hdc w32.HDC) {
+		oldPen := w32.SelectObject(hdc, w32.HGDIOBJ(g.getPen()))
+		defer w32.SelectObject(hdc, oldPen)
 
-	// Use null brush for outline only.
-	nullBrush := w32.GetStockObject(w32.NULL_BRUSH)
-	oldBrush := w32.SelectObject(hdc, nullBrush)
-	defer w32.SelectObject(hdc, oldBrush)
+		// Use null brush for outline only.
+		oldBrush := w32.SelectObject(hdc, w32.GetStockObject(w32.NULL_BRUSH))
+		defer w32.SelectObject(hdc, oldBrush)
 
-	if g.function != platform.GXcopy {
-		w32.SetROP2(hdc, gcROP2(g.function))
-	}
+		if g.function != platform.GXcopy {
+			w32.SetROP2(hdc, gcROP2(g.function))
+		}
 
-	w32.GdiRectangle(hdc, int32(x), int32(y), int32(x+int(width)+1), int32(y+int(height)+1))
+		w32.GdiRectangle(hdc, left, top, right, bottom)
+	})
 }
 
 func (d *WindowsDisplay) DrawLine(drawable platform.DrawableID, gc platform.GCID, x1, y1, x2, y2 int) {
-	hdc, cleanup := d.getDrawableDC(drawable)
-	defer cleanup()
-
 	g := d.getGC(gc)
 	if g == nil {
 		return
 	}
 
-	pen := g.getPen()
-	oldPen := w32.SelectObject(hdc, w32.HGDIOBJ(pen))
-	defer w32.SelectObject(hdc, oldPen)
+	lw := max(int32(g.lineWidth), 1)
+	left, top := int32(min(x1, x2)), int32(min(y1, y2))
+	right, bottom := int32(max(x1, x2))+1, int32(max(y1, y2))+1
+	d.render(drawable, g, left-lw, top-lw, right+lw, bottom+lw, func(hdc w32.HDC) {
+		oldPen := w32.SelectObject(hdc, w32.HGDIOBJ(g.getPen()))
+		defer w32.SelectObject(hdc, oldPen)
 
-	if g.function != platform.GXcopy {
-		w32.SetROP2(hdc, gcROP2(g.function))
-	}
+		if g.function != platform.GXcopy {
+			w32.SetROP2(hdc, gcROP2(g.function))
+		}
 
-	w32.MoveToEx(hdc, int32(x1), int32(y1), nil)
-	w32.LineTo(hdc, int32(x2), int32(y2))
+		w32.MoveToEx(hdc, int32(x1), int32(y1), nil)
+		w32.LineTo(hdc, int32(x2), int32(y2))
+	})
 }
 
 func (d *WindowsDisplay) DrawLines(drawable platform.DrawableID, gc platform.GCID, points []platform.Point, mode int) {
@@ -87,38 +200,23 @@ func (d *WindowsDisplay) DrawLines(drawable platform.DrawableID, gc platform.GCI
 		return
 	}
 
-	hdc, cleanup := d.getDrawableDC(drawable)
-	defer cleanup()
-
 	g := d.getGC(gc)
 	if g == nil {
 		return
 	}
 
-	pen := g.getPen()
-	oldPen := w32.SelectObject(hdc, w32.HGDIOBJ(pen))
-	defer w32.SelectObject(hdc, oldPen)
+	pts, left, top, right, bottom := gdiPoints(points, mode)
+	lw := max(int32(g.lineWidth), 1)
+	d.render(drawable, g, left-lw, top-lw, right+lw, bottom+lw, func(hdc w32.HDC) {
+		oldPen := w32.SelectObject(hdc, w32.HGDIOBJ(g.getPen()))
+		defer w32.SelectObject(hdc, oldPen)
 
-	if g.function != platform.GXcopy {
-		w32.SetROP2(hdc, gcROP2(g.function))
-	}
-
-	// Convert points. If CoordModePrevious, accumulate offsets.
-	pts := make([]w32.POINT, len(points))
-	if mode == platform.CoordModePrevious {
-		var cx, cy int16
-		for i, p := range points {
-			cx += p.X
-			cy += p.Y
-			pts[i] = w32.POINT{X: int32(cx), Y: int32(cy)}
+		if g.function != platform.GXcopy {
+			w32.SetROP2(hdc, gcROP2(g.function))
 		}
-	} else {
-		for i, p := range points {
-			pts[i] = w32.POINT{X: int32(p.X), Y: int32(p.Y)}
-		}
-	}
 
-	w32.Polyline(hdc, &pts[0], int32(len(pts)))
+		w32.Polyline(hdc, &pts[0], int32(len(pts)))
+	})
 }
 
 func (d *WindowsDisplay) FillPolygon(drawable platform.DrawableID, gc platform.GCID, points []platform.Point, shape, mode int) {
@@ -126,62 +224,31 @@ func (d *WindowsDisplay) FillPolygon(drawable platform.DrawableID, gc platform.G
 		return
 	}
 
-	hdc, cleanup := d.getDrawableDC(drawable)
-	defer cleanup()
-
 	g := d.getGC(gc)
 	if g == nil {
 		return
 	}
 
-	brush := g.getBrush()
-	oldBrush := w32.SelectObject(hdc, w32.HGDIOBJ(brush))
-	defer w32.SelectObject(hdc, oldBrush)
+	pts, left, top, right, bottom := gdiPoints(points, mode)
+	d.render(drawable, g, left, top, right, bottom, func(hdc w32.HDC) {
+		oldBrush := w32.SelectObject(hdc, w32.HGDIOBJ(g.getBrush()))
+		defer w32.SelectObject(hdc, oldBrush)
 
-	pen := w32.GetStockObject(w32.NULL_PEN)
-	oldPen := w32.SelectObject(hdc, pen)
-	defer w32.SelectObject(hdc, oldPen)
+		oldPen := w32.SelectObject(hdc, w32.GetStockObject(w32.NULL_PEN))
+		defer w32.SelectObject(hdc, oldPen)
 
-	if g.function != platform.GXcopy {
-		w32.SetROP2(hdc, gcROP2(g.function))
-	}
-
-	pts := make([]w32.POINT, len(points))
-	if mode == platform.CoordModePrevious {
-		var cx, cy int16
-		for i, p := range points {
-			cx += p.X
-			cy += p.Y
-			pts[i] = w32.POINT{X: int32(cx), Y: int32(cy)}
+		if g.function != platform.GXcopy {
+			w32.SetROP2(hdc, gcROP2(g.function))
 		}
-	} else {
-		for i, p := range points {
-			pts[i] = w32.POINT{X: int32(p.X), Y: int32(p.Y)}
-		}
-	}
 
-	w32.GdiPolygon(hdc, &pts[0], int32(len(pts)))
+		w32.GdiPolygon(hdc, &pts[0], int32(len(pts)))
+	})
 }
 
 func (d *WindowsDisplay) FillArc(drawable platform.DrawableID, gc platform.GCID, x, y int, width, height uint, angle1, angle2 int) {
-	hdc, cleanup := d.getDrawableDC(drawable)
-	defer cleanup()
-
 	g := d.getGC(gc)
 	if g == nil {
 		return
-	}
-
-	brush := g.getBrush()
-	oldBrush := w32.SelectObject(hdc, w32.HGDIOBJ(brush))
-	defer w32.SelectObject(hdc, oldBrush)
-
-	pen := w32.GetStockObject(w32.NULL_PEN)
-	oldPen := w32.SelectObject(hdc, pen)
-	defer w32.SelectObject(hdc, oldPen)
-
-	if g.function != platform.GXcopy {
-		w32.SetROP2(hdc, gcROP2(g.function))
 	}
 
 	left := int32(x)
@@ -192,29 +259,30 @@ func (d *WindowsDisplay) FillArc(drawable platform.DrawableID, gc platform.GCID,
 	// X11 angles are in 64ths of a degree, counterclockwise from 3 o'clock.
 	startX, startY, endX, endY := arcPoints(x, y, int(width), int(height), angle1, angle2)
 
-	if angle2 >= 360*64 || angle2 <= -360*64 {
-		// Full ellipse.
-		w32.GdiEllipse(hdc, left, top, right, bottom)
-	} else {
-		w32.Pie(hdc, left, top, right, bottom, startX, startY, endX, endY)
-	}
+	d.render(drawable, g, left, top, right+1, bottom+1, func(hdc w32.HDC) {
+		oldBrush := w32.SelectObject(hdc, w32.HGDIOBJ(g.getBrush()))
+		defer w32.SelectObject(hdc, oldBrush)
+
+		oldPen := w32.SelectObject(hdc, w32.GetStockObject(w32.NULL_PEN))
+		defer w32.SelectObject(hdc, oldPen)
+
+		if g.function != platform.GXcopy {
+			w32.SetROP2(hdc, gcROP2(g.function))
+		}
+
+		if angle2 >= 360*64 || angle2 <= -360*64 {
+			// Full ellipse.
+			w32.GdiEllipse(hdc, left, top, right, bottom)
+		} else {
+			w32.Pie(hdc, left, top, right, bottom, startX, startY, endX, endY)
+		}
+	})
 }
 
 func (d *WindowsDisplay) DrawArc(drawable platform.DrawableID, gc platform.GCID, x, y int, width, height uint, angle1, angle2 int) {
-	hdc, cleanup := d.getDrawableDC(drawable)
-	defer cleanup()
-
 	g := d.getGC(gc)
 	if g == nil {
 		return
-	}
-
-	pen := g.getPen()
-	oldPen := w32.SelectObject(hdc, w32.HGDIOBJ(pen))
-	defer w32.SelectObject(hdc, oldPen)
-
-	if g.function != platform.GXcopy {
-		w32.SetROP2(hdc, gcROP2(g.function))
 	}
 
 	left := int32(x)
@@ -224,11 +292,25 @@ func (d *WindowsDisplay) DrawArc(drawable platform.DrawableID, gc platform.GCID,
 
 	startX, startY, endX, endY := arcPoints(x, y, int(width), int(height), angle1, angle2)
 
-	if angle2 >= 360*64 || angle2 <= -360*64 {
-		w32.GdiEllipse(hdc, left, top, right, bottom)
-	} else {
-		w32.GdiArc(hdc, left, top, right, bottom, startX, startY, endX, endY)
-	}
+	lw := max(int32(g.lineWidth), 1)
+	d.render(drawable, g, left-lw, top-lw, right+lw+1, bottom+lw+1, func(hdc w32.HDC) {
+		oldPen := w32.SelectObject(hdc, w32.HGDIOBJ(g.getPen()))
+		defer w32.SelectObject(hdc, oldPen)
+
+		// Ellipse fills with the DC's brush; only the outline is wanted.
+		oldBrush := w32.SelectObject(hdc, w32.GetStockObject(w32.NULL_BRUSH))
+		defer w32.SelectObject(hdc, oldBrush)
+
+		if g.function != platform.GXcopy {
+			w32.SetROP2(hdc, gcROP2(g.function))
+		}
+
+		if angle2 >= 360*64 || angle2 <= -360*64 {
+			w32.GdiEllipse(hdc, left, top, right, bottom)
+		} else {
+			w32.GdiArc(hdc, left, top, right, bottom, startX, startY, endX, endY)
+		}
+	})
 }
 
 func (d *WindowsDisplay) ClearWindow(w platform.WindowID) {
@@ -348,6 +430,11 @@ func (d *WindowsDisplay) PutImageRGBA(drawable platform.DrawableID, gc platform.
 				// data is premultiplied, so out = src + bg*(1-a). BitBlt
 				// ignores the alpha byte, so a partly transparent pixel
 				// must be blended here.
+				// A fully transparent pixel may still carry a colour;
+				// put_rgba_image ignores it, so drop it here too.
+				if a == 0 {
+					r, g, b = 0, 0, 0
+				}
 				inv := uint32(255 - a)
 				blend := func(c, bg byte) byte { return byte(min(uint32(c)+uint32(bg)*inv/255, 255)) }
 				dst[di+0] = blend(b, byte(bgPixel))

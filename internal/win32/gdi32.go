@@ -49,6 +49,9 @@ var (
 	procEnumFontFamiliesExW    = gdi32.NewProc("EnumFontFamiliesExW")
 	procSaveDC                 = gdi32.NewProc("SaveDC")
 	procRestoreDC              = gdi32.NewProc("RestoreDC")
+	procCreatePatternBrush     = gdi32.NewProc("CreatePatternBrush")
+	procSetBrushOrgEx          = gdi32.NewProc("SetBrushOrgEx")
+	procSetViewportOrgEx       = gdi32.NewProc("SetViewportOrgEx")
 )
 
 func CreateCompatibleDC(hdc HDC) HDC {
@@ -147,6 +150,21 @@ func Pie(hdc HDC, x1, y1, x2, y2, x3, y3, x4, y4 int32) bool {
 	r, _, _ := procPie.Call(uintptr(hdc),
 		uintptr(x1), uintptr(y1), uintptr(x2), uintptr(y2),
 		uintptr(x3), uintptr(y3), uintptr(x4), uintptr(y4))
+	return r != 0
+}
+
+func CreatePatternBrush(bitmap HBITMAP) HBRUSH {
+	r, _, _ := procCreatePatternBrush.Call(uintptr(bitmap))
+	return HBRUSH(r)
+}
+
+func SetBrushOrgEx(hdc HDC, x, y int32, prev *POINT) bool {
+	r, _, _ := procSetBrushOrgEx.Call(uintptr(hdc), uintptr(x), uintptr(y), uintptr(unsafe.Pointer(prev)))
+	return r != 0
+}
+
+func SetViewportOrgEx(hdc HDC, x, y int32, prev *POINT) bool {
+	r, _, _ := procSetViewportOrgEx.Call(uintptr(hdc), uintptr(x), uintptr(y), uintptr(unsafe.Pointer(prev)))
 	return r != 0
 }
 
