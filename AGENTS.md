@@ -39,7 +39,8 @@ go fix ./...              # apply modernizers; CI runs `go fix -diff ./...`
 golangci-lint run ./...   # config in .golangci.yml (v2 format)
 ```
 
-There is **no `Makefile` and no `go.sum`** — dependencies are stdlib only.
+There is **no `go.sum`** — dependencies are stdlib only. The `Makefile` only
+wraps the commands above (`make help` lists the goals).
 `go vet ./...`, `gofmt -l` and `go fix -diff ./...` are clean and gated by
 `.github/workflows/ci.yml`, which also vets the Windows backend
 (`CGO_ENABLED=0 GOOS=windows go vet ./...`, pure Go, runs on Linux) and
