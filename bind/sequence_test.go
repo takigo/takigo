@@ -31,6 +31,7 @@ func release(win platform.WindowID, ks platform.KeySym) *event.Event {
 }
 
 func TestMultiEventSequence(t *testing.T) {
+	t.Parallel()
 	const escape, controlL = 0xff1b, 0xffe3
 	tests := []struct {
 		name   string

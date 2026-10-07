@@ -10,6 +10,7 @@ import (
 )
 
 func TestParseButtonPress(t *testing.T) {
+	t.Parallel()
 	seq, err := Parse("<Button-1>")
 	if err != nil {
 		t.Fatal(err)
@@ -27,6 +28,7 @@ func TestParseButtonPress(t *testing.T) {
 }
 
 func TestParseKeyA(t *testing.T) {
+	t.Parallel()
 	seq, err := Parse("<Key-a>")
 	if err != nil {
 		t.Fatal(err)
@@ -41,6 +43,7 @@ func TestParseKeyA(t *testing.T) {
 }
 
 func TestParseMotion(t *testing.T) {
+	t.Parallel()
 	seq, err := Parse("<Motion>")
 	if err != nil {
 		t.Fatal(err)
@@ -51,6 +54,7 @@ func TestParseMotion(t *testing.T) {
 }
 
 func TestParseEnter(t *testing.T) {
+	t.Parallel()
 	seq, err := Parse("<Enter>")
 	if err != nil {
 		t.Fatal(err)
@@ -61,6 +65,7 @@ func TestParseEnter(t *testing.T) {
 }
 
 func TestParseModifiers(t *testing.T) {
+	t.Parallel()
 	seq, err := Parse("<Control-a>")
 	if err != nil {
 		t.Fatal(err)
@@ -75,6 +80,7 @@ func TestParseModifiers(t *testing.T) {
 }
 
 func TestParseControlShift(t *testing.T) {
+	t.Parallel()
 	seq, err := Parse("<Control-Shift-x>")
 	if err != nil {
 		t.Fatal(err)
@@ -89,6 +95,7 @@ func TestParseControlShift(t *testing.T) {
 }
 
 func TestParseAltF4(t *testing.T) {
+	t.Parallel()
 	seq, err := Parse("<Alt-F4>")
 	if err != nil {
 		t.Fatal(err)
@@ -103,6 +110,7 @@ func TestParseAltF4(t *testing.T) {
 }
 
 func TestParseDoubleButton(t *testing.T) {
+	t.Parallel()
 	seq, err := Parse("<Double-Button-1>")
 	if err != nil {
 		t.Fatal(err)
@@ -117,6 +125,7 @@ func TestParseDoubleButton(t *testing.T) {
 }
 
 func TestParseTripleButton(t *testing.T) {
+	t.Parallel()
 	seq, err := Parse("<Triple-Button-1>")
 	if err != nil {
 		t.Fatal(err)
@@ -128,6 +137,7 @@ func TestParseTripleButton(t *testing.T) {
 }
 
 func TestParseVirtualEvent(t *testing.T) {
+	t.Parallel()
 	seq, err := Parse("<<Copy>>")
 	if err != nil {
 		t.Fatal(err)
@@ -138,6 +148,7 @@ func TestParseVirtualEvent(t *testing.T) {
 }
 
 func TestParseVirtualPaste(t *testing.T) {
+	t.Parallel()
 	seq, err := Parse("<<Paste>>")
 	if err != nil {
 		t.Fatal(err)
@@ -148,6 +159,7 @@ func TestParseVirtualPaste(t *testing.T) {
 }
 
 func TestParseKeyRelease(t *testing.T) {
+	t.Parallel()
 	seq, err := Parse("<KeyRelease-Escape>")
 	if err != nil {
 		t.Fatal(err)
@@ -162,6 +174,7 @@ func TestParseKeyRelease(t *testing.T) {
 }
 
 func TestParseSingleChar(t *testing.T) {
+	t.Parallel()
 	seq, err := Parse("a")
 	if err != nil {
 		t.Fatal(err)
@@ -176,6 +189,7 @@ func TestParseSingleChar(t *testing.T) {
 }
 
 func TestParseSingleCharQ(t *testing.T) {
+	t.Parallel()
 	seq, err := Parse("q")
 	if err != nil {
 		t.Fatal(err)
@@ -186,6 +200,7 @@ func TestParseSingleCharQ(t *testing.T) {
 }
 
 func TestParseErrors(t *testing.T) {
+	t.Parallel()
 	errors := []string{
 		"",            // empty
 		"<Unknown>",   // unknown event type
@@ -204,6 +219,7 @@ func TestParseErrors(t *testing.T) {
 }
 
 func TestSpecificity(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		pattern string
 		want    int
@@ -225,6 +241,7 @@ func TestSpecificity(t *testing.T) {
 }
 
 func TestPatternMatches(t *testing.T) {
+	t.Parallel()
 	// Button-1 pattern should match a button press event with button 1.
 	p := MustParse("<Button-1>").Patterns[0]
 	ev := &event.Event{Type: event.ButtonPressType, Button: 1}
@@ -246,6 +263,7 @@ func TestPatternMatches(t *testing.T) {
 }
 
 func TestPatternMatchesModifiers(t *testing.T) {
+	t.Parallel()
 	p := MustParse("<Control-a>").Patterns[0]
 
 	// Control+a with Control held.
@@ -270,6 +288,7 @@ func TestPatternMatchesModifiers(t *testing.T) {
 }
 
 func TestPatternMatchesDouble(t *testing.T) {
+	t.Parallel()
 	p := MustParse("<Double-Button-1>").Patterns[0]
 	ev := &event.Event{Type: event.ButtonPressType, Button: 1}
 
@@ -285,6 +304,7 @@ func TestPatternMatchesDouble(t *testing.T) {
 }
 
 func TestVirtualPatternDoesNotMatchPhysical(t *testing.T) {
+	t.Parallel()
 	seq := MustParse("<<Copy>>")
 	p := seq.Patterns[0]
 	ev := &event.Event{Type: event.KeyPressType, KeySym: platform.KeySym(0x0063), State: platform.ControlMask}
@@ -294,6 +314,7 @@ func TestVirtualPatternDoesNotMatchPhysical(t *testing.T) {
 }
 
 func TestSpecificityControlShiftButton(t *testing.T) {
+	t.Parallel()
 	// <Control-Shift-Button-1> = 4 (button detail) + 2 (control) + 2 (shift) = 8
 	seq := MustParse("<Control-Shift-Button-1>")
 	got := seq.Patterns[0].specificity()
@@ -306,6 +327,7 @@ func TestSpecificityControlShiftButton(t *testing.T) {
 // patterns for different keys differ and the string parses back to the
 // same pattern.
 func TestSequenceStringRoundTripsKeys(t *testing.T) {
+	t.Parallel()
 	inputs := []string{"<Key>", "<KeyRelease-Escape>", "<Control-Shift-z>", "<Alt-F4>", "q", "<Key-at>", "<Prior>", "<Next>"}
 	for name := range keysymNames {
 		inputs = append(inputs, "<Key-"+name+">")
@@ -338,6 +360,7 @@ func TestSequenceStringRoundTripsKeys(t *testing.T) {
 // button press (<1>, <Double-1>), B1..B5 and <Motion-N> require a held
 // button, and <Key-1> is still the digit key.
 func TestParseButtonShorthands(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		in     string
 		typ    event.Type
@@ -378,6 +401,7 @@ func TestParseButtonShorthands(t *testing.T) {
 }
 
 func TestPatternMatchesHeldButton(t *testing.T) {
+	t.Parallel()
 	drag := MustParse("<B1-Motion>").Patterns[0]
 	plain := MustParse("<Motion>").Patterns[0]
 	tests := []struct {

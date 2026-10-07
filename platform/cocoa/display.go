@@ -22,8 +22,12 @@
 //     routing. Marked (composing) text is shown inline through Tk's
 //     <<TkStartIMEMarkedText>> virtual events, but the candidate window
 //     opens at the view's corner, not at the insertion cursor.
-//   - CreatePixmap stipple parameters — CGPatternRef support missing
-//     (see TODO in this file).
+//   - SetStipple, SetTSOrigin, SetArcMode — stipple patterns (CGPatternRef)
+//     and the arc mode are not applied to the CGContext.
+//   - GetImageRGBA — pixel read-back returns nil, so the pixel tests skip.
+//   - ChangePropertyAtoms — like the other property calls.
+//   - ChildAt — returns 0: the window tree is not walked, so a drag from
+//     App.StartDrag finds no target (drag and drop is X11-only anyway).
 //
 // Before removing any of these stubs, port the behavior to NSWindow /
 // NSPasteboard / NSTextInputClient as appropriate.

@@ -81,6 +81,26 @@ jobs:
           bash scripts/apidiff.sh | tee api.txt
           { echo '```'; cat api.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
 
+  fuzz:
+    # Each fuzz target runs briefly on its seed corpus plus random inputs,
+    # so a regression in a parser shows up before a long fuzzing run would.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Install X11 development packages
+        run: sudo apt-get update && sudo apt-get install -y libx11-dev libxft-dev libfontconfig1-dev
+      - run: |
+          set -e
+          for pkg in $(go list ./...); do
+            for f in $(go test -list '^Fuzz' "$pkg" 2>/dev/null | grep '^Fuzz' || true); do
+              echo "== $pkg $f"
+              go test "$pkg" -run '^$' -fuzz "^$f\$" -fuzztime 10s
+            done
+          done
+
   vulncheck:
     runs-on: ubuntu-latest
     steps:

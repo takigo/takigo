@@ -6,6 +6,7 @@ import (
 )
 
 func TestParseHexRGB(t *testing.T) {
+	t.Parallel()
 	r, g, b, err := Parse("#f00")
 	if err != nil {
 		t.Fatal(err)
@@ -16,6 +17,7 @@ func TestParseHexRGB(t *testing.T) {
 }
 
 func TestParseHexRRGGBB(t *testing.T) {
+	t.Parallel()
 	r, g, b, err := Parse("#ff8800")
 	if err != nil {
 		t.Fatal(err)
@@ -26,6 +28,7 @@ func TestParseHexRRGGBB(t *testing.T) {
 }
 
 func TestParseHexRRRRGGGGBBBB(t *testing.T) {
+	t.Parallel()
 	r, g, b, err := Parse("#ffff00000000")
 	if err != nil {
 		t.Fatal(err)
@@ -36,6 +39,7 @@ func TestParseHexRRRRGGGGBBBB(t *testing.T) {
 }
 
 func TestParseNamedColor(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name  string
 		wantR uint16
@@ -60,6 +64,7 @@ func TestParseNamedColor(t *testing.T) {
 }
 
 func TestParseInvalid(t *testing.T) {
+	t.Parallel()
 	invalids := []string{"", "#zz", "#12345", "nonexistent", "#zzzzzz", "#12g", "#-12345", "#1234567890123"}
 	for _, s := range invalids {
 		_, _, _, err := Parse(s)
@@ -70,6 +75,7 @@ func TestParseInvalid(t *testing.T) {
 }
 
 func TestParseHexRRRGGGBBB(t *testing.T) {
+	t.Parallel()
 	r, g, b, err := Parse("#fff800123")
 	if err != nil {
 		t.Fatal(err)
@@ -80,6 +86,7 @@ func TestParseHexRRRGGGBBB(t *testing.T) {
 }
 
 func TestColorRGBA(t *testing.T) {
+	t.Parallel()
 	c := &Color{Red: 0xff00, Green: 0x8000, Blue: 0}
 	r, g, b, a := c.RGBA()
 	if r != 0xff || g != 0x80 || b != 0 || a != 255 {
@@ -88,6 +95,7 @@ func TestColorRGBA(t *testing.T) {
 }
 
 func TestTrueColorPixelRoundTrip(t *testing.T) {
+	t.Parallel()
 	// Parse a color, compute pixel, verify it's the expected 24-bit value.
 	r, g, b, _ := Parse("#ff8800")
 	pixel := trueColorPixel(r, g, b)
@@ -98,6 +106,7 @@ func TestTrueColorPixelRoundTrip(t *testing.T) {
 }
 
 func TestParseHexWhite(t *testing.T) {
+	t.Parallel()
 	r, g, b, err := Parse("#fff")
 	if err != nil {
 		t.Fatal(err)
@@ -108,6 +117,7 @@ func TestParseHexWhite(t *testing.T) {
 }
 
 func TestParseHexBlack(t *testing.T) {
+	t.Parallel()
 	r, g, b, err := Parse("#000000")
 	if err != nil {
 		t.Fatal(err)
@@ -119,6 +129,7 @@ func TestParseHexBlack(t *testing.T) {
 
 // Concurrent GetByValue calls for one value share one Color.
 func TestGetByValueConcurrent(t *testing.T) {
+	t.Parallel()
 	c := NewCache(0)
 	for v := range uint16(200) {
 		var wg sync.WaitGroup

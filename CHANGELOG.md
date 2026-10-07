@@ -89,6 +89,9 @@ version is 0, a minor release may break the API and says so here.
   (`geometry.Registry`, `geometry.PlaceContent`, `geometry.HasForeign`):
   creating a container's state with its hooks, dropping it with the window,
   and keeping `-in` content mapped and placed with its container (additive).
+- `docs/options.md` lists every widget option with the Tk option it stands
+  for (`scripts/options_doc.py` regenerates it); the widget packages have
+  `Example` functions (additive).
 - `demos/busy` shows the `busy` package (additive). The test programs under
   `cmd/` are gone, each overlapped by a demo; the comparison tools moved to
   `internal/cmd/`.
