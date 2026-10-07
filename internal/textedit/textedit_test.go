@@ -15,6 +15,7 @@ func (fixedFont) MeasureString(s string) int { return 10 * len([]rune(s)) }
 func (fixedFont) Close()                     {}
 
 func TestRuneIndexAtPixel(t *testing.T) {
+	t.Parallel()
 	text := []rune("héllo")
 	for _, tt := range []struct{ x, want int }{
 		{-5, 0}, {0, 0}, {9, 0}, {10, 1}, {25, 2}, {49, 4}, {50, 5}, {500, 5},
@@ -29,6 +30,7 @@ func TestRuneIndexAtPixel(t *testing.T) {
 }
 
 func TestWordBoundaries(t *testing.T) {
+	t.Parallel()
 	text := []rune("foo_1 bar,  baz")
 	// WordStart at a word's first character goes to the previous word, as
 	// tk::EntryPreviousWord does; WordEnd skips the word and the gap after it.
@@ -46,6 +48,7 @@ func TestWordBoundaries(t *testing.T) {
 }
 
 func TestClampIdx(t *testing.T) {
+	t.Parallel()
 	for _, tt := range []struct{ idx, max, want int }{{-3, 5, 0}, {2, 5, 2}, {9, 5, 5}, {0, 0, 0}} {
 		if got := ClampIdx(tt.idx, tt.max); got != tt.want {
 			t.Errorf("ClampIdx(%d, %d) = %d, want %d", tt.idx, tt.max, got, tt.want)

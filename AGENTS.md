@@ -75,7 +75,7 @@ tests/                                              — black-box App tests and 
 widget/                                            — Widget interface, Base struct, defaults, AppContext
 widget/<name>/                                     — classic widgets: button, label, frame, entry,
                                                     listbox, menu, menubutton, message, panedwindow,
-                                                    radiobutton, scale, scrollbar, spinbox, square,
+                                                    radiobutton, scale, scrollbar, spinbox,
                                                     text, toplevel, labelframe, checkbutton
                                                     — each widget has a `<name>.go` and usually a
                                                       `bindings.go` for event handlers
@@ -105,7 +105,9 @@ draw/                                              — high-level drawing primit
 font/  color/  image/  bitmap/                     — resource subsystems; font/ itself is pure Go,
                                                     the backends are font/xft (X11), font/gdi
                                                     (Windows), font/coretext + platform/cocoa (macOS)
-wm/  focus/  grab/  selection/                     — window manager + input subsystems
+wm/  focus/  grab/                                 — window manager + input subsystems
+internal/selection/                                — X selections and the clipboard (App.Clipboard)
+internal/xdnd/                                     — XDND drag and drop (App.OnDrop, App.StartDrag)
 cursor/  busy/  systray/  screenunit/  option/     — supporting subsystems
 appearance/                                        — desktop light/dark preference (not in Tk)
 internal/dbus/                                     — minimal D-Bus client (settings portal, notifications)
@@ -114,6 +116,7 @@ internal/nanosvg/                                  — SVG rasterizer port; also
 demos/<name>/main.go                               — one Go demo per directory, mirrors tk/library/demos/*.tcl
 demos/demohelper/                                  — shared demo boilerplate (AddSeeDismiss, images, vars)
 demos/images/                                      — image assets only (gif/png/xbm), no main.go
+demos/square/square/                               — the square widget of tkSquare.c: the example of a custom widget
 demos/widget_demo/                                 — launcher, Go counterpart of tk/library/demos/widget
 
 internal/cmd/                                      — tools of the demo comparison pipeline (demotitle, demodiff)

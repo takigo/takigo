@@ -1,5 +1,9 @@
 //go:build linux || freebsd || openbsd || netbsd
 
+// Package systray puts an icon in the desktop's system tray and shows
+// desktop notifications (Tk's tk systray and tk sysnotify). The tray icon
+// works on X11 desktops (XEmbed, the freedesktop notification service);
+// on Windows and macOS New reports an error and Notify does nothing.
 package systray
 
 import (

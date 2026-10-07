@@ -3,14 +3,8 @@ package widget
 import (
 	"testing"
 
-	"github.com/takigo/takigo/window"
+	"github.com/takigo/takigo/internal/stubs"
 )
-
-type fakeManager struct{ requests int }
-
-func (*fakeManager) Name() string                   { return "fake" }
-func (m *fakeManager) RequestProc(*window.Window)   { m.requests++ }
-func (*fakeManager) LostContentProc(*window.Window) {}
 
 type testWidget struct {
 	Base
@@ -29,8 +23,8 @@ type testOption func(*testWidget)
 
 func text(s string) testOption { return func(w *testWidget) { w.text = s } }
 
-func newTestWidget() (*testWidget, *fakeManager) {
-	m := &fakeManager{}
+func newTestWidget() (*testWidget, *stubs.Manager) {
+	m := &stubs.Manager{}
 	w := &testWidget{Base: *newTestBase("Test")}
 	w.Win.GeomManager = m
 	return w, m
@@ -39,12 +33,12 @@ func newTestWidget() (*testWidget, *fakeManager) {
 func TestConfigureRequestsOnChange(t *testing.T) {
 	w, m := newTestWidget()
 	_ = Configure(w, []testOption{text("abc")}, w.computeGeometry)
-	if w.Win.ReqWidth != 21 || m.requests != 1 || w.displays != 1 {
-		t.Fatalf("ReqWidth = %d, requests = %d, displays = %d", w.Win.ReqWidth, m.requests, w.displays)
+	if w.Win.ReqWidth != 21 || m.Requests != 1 || w.displays != 1 {
+		t.Fatalf("ReqWidth = %d, requests = %d, displays = %d", w.Win.ReqWidth, m.Requests, w.displays)
 	}
 	_ = Configure(w, []testOption{text("abc")}, w.computeGeometry)
-	if m.requests != 1 || w.displays != 2 {
-		t.Fatalf("unchanged request: requests = %d, displays = %d", m.requests, w.displays)
+	if m.Requests != 1 || w.displays != 2 {
+		t.Fatalf("unchanged request: requests = %d, displays = %d", m.Requests, w.displays)
 	}
 }
 
@@ -52,8 +46,8 @@ func TestConfigureDirectRequestWrite(t *testing.T) {
 	w, m := newTestWidget()
 	width := func(n int) testOption { return func(w *testWidget) { w.Win.ReqWidth = n } }
 	_ = Configure(w, []testOption{width(300)}, nil)
-	if m.requests != 1 {
-		t.Fatalf("requests = %d", m.requests)
+	if m.Requests != 1 {
+		t.Fatalf("requests = %d", m.Requests)
 	}
 }
 
@@ -74,7 +68,7 @@ func TestConfigureRearrangesContent(t *testing.T) {
 	geom := func() { w.Win.InternalBorderLeft = w.BorderWidth }
 	_ = Configure(w, []testOption{border(3)}, geom)
 	_ = Configure(w, []testOption{border(3)}, geom)
-	if arranged != 1 || m.requests != 0 {
-		t.Fatalf("arranged = %d, requests = %d", arranged, m.requests)
+	if arranged != 1 || m.Requests != 0 {
+		t.Fatalf("arranged = %d, requests = %d", arranged, m.Requests)
 	}
 }

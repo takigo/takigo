@@ -67,6 +67,7 @@ go run ./demos/button          # a single demo
 ## Documentation
 
 - [docs/tutorial.md](docs/tutorial.md): from an empty directory to a complete application.
+- [docs/options.md](docs/options.md): every widget option, with the Tk option it stands for.
 - [THREADING.md](THREADING.md): which types are safe to use from which goroutine.
 - [AGENTS.md](AGENTS.md): repository layout, conventions, build and test commands.
 - [docs/architecture-review.md](docs/architecture-review.md): known design debt.
