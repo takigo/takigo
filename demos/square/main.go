@@ -8,13 +8,13 @@ import (
 
 	"github.com/takigo/takigo"
 	"github.com/takigo/takigo/demos/demohelper"
+	"github.com/takigo/takigo/demos/square/square"
 	"github.com/takigo/takigo/event"
 	"github.com/takigo/takigo/geometry/pack"
 	"github.com/takigo/takigo/option"
 	"github.com/takigo/takigo/screenunit"
 	"github.com/takigo/takigo/widget/frame"
 	"github.com/takigo/takigo/widget/label"
-	"github.com/takigo/takigo/widget/square"
 )
 
 func main() {

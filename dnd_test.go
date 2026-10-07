@@ -7,20 +7,10 @@ import (
 
 	"github.com/takigo/takigo/event"
 	"github.com/takigo/takigo/internal/displaylock"
+	"github.com/takigo/takigo/internal/xdnd"
 	"github.com/takigo/takigo/platform"
 	"github.com/takigo/takigo/widget/frame"
 )
-
-func TestURIListFiles(t *testing.T) {
-	list := "# a comment\r\nfile:///tmp/a%20b.txt\r\nfile://localhost/etc/hosts\r\nhttps://example.com/x\r\n\r\nnot a uri at all\r\n"
-	want := []string{"/tmp/a b.txt", "/etc/hosts"}
-	if got := uriListFiles(list); !slices.Equal(got, want) {
-		t.Errorf("uriListFiles = %q, want %q", got, want)
-	}
-	if got := uriListFiles(""); len(got) != 0 {
-		t.Errorf("empty list gave %q", got)
-	}
-}
 
 // settle waits for the display server and window manager to finish with
 // Apps destroyed just before (see testutil.Settle, which this package
@@ -68,7 +58,7 @@ func uncoveredPoint(t *testing.T, probe, app *App) (x, y int) {
 	ox, oy := rootOrigin(app)
 	for y := 10; y < app.root.Height-10; y += 10 {
 		for x := 10; x < app.root.Width-10; x += 10 {
-			if w, _ := probe.dnd.awareWindowAt(ox+x, oy+y); w == app.root.PlatformID {
+			if w, _ := probe.dnd.AwareWindowAt(ox+x, oy+y); w == app.root.PlatformID {
 				return x, y
 			}
 		}
@@ -127,7 +117,7 @@ func TestDropFromAnotherClient(t *testing.T) {
 		source.RunOnMain(func() {
 			source.selMgr.OwnFormats(atom("XdndSelection"), source.root.PlatformID,
 				map[platform.AtomID][]byte{atom(typ): []byte(data)}, platform.CurrentTime)
-			srv.SendClientMessage(dst, dst, atom("XdndEnter"), src, xdndVersion<<24, int64(atom(typ)), 0, 0)
+			srv.SendClientMessage(dst, dst, atom("XdndEnter"), src, xdnd.Version<<24, int64(atom(typ)), 0, 0)
 			srv.SendClientMessage(dst, dst, atom("XdndPosition"), src, 0, int64((ox+x)<<16|(oy+y)), 0, int64(atom("XdndActionCopy")))
 			srv.SendClientMessage(dst, dst, atom("XdndDrop"), src, 0, 0, 0, 0)
 			srv.Flush()
@@ -328,11 +318,11 @@ func TestOnDropHandlerFollowsWindow(t *testing.T) {
 	f := frame.New(app, "f")
 	app.OnDrop(f, func(Drop) {})
 	app.OnDrop(f, func(Drop) {})
-	if len(app.dnd.handlers) != 1 {
-		t.Fatalf("%d drop handlers registered, want 1", len(app.dnd.handlers))
+	if app.dnd.Targets() != 1 {
+		t.Fatalf("%d drop handlers registered, want 1", app.dnd.Targets())
 	}
 	f.Destroy()
-	if len(app.dnd.handlers) != 0 {
-		t.Errorf("%d drop handlers left after destroying the window, want 0", len(app.dnd.handlers))
+	if app.dnd.Targets() != 0 {
+		t.Errorf("%d drop handlers left after destroying the window, want 0", app.dnd.Targets())
 	}
 }

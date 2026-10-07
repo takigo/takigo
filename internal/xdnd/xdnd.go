@@ -1,4 +1,8 @@
-package takigo
+// Package xdnd implements XDND, the drag-and-drop protocol of X11
+// desktops, for App.OnDrop and App.StartDrag. Tk has none (tkdnd is an
+// extension). Nothing arrives on Windows and macOS, whose backends do not
+// deliver these messages.
+package xdnd
 
 import (
 	"encoding/binary"
@@ -8,6 +12,7 @@ import (
 	"time"
 
 	"github.com/takigo/takigo/event"
+	"github.com/takigo/takigo/internal/selection"
 	"github.com/takigo/takigo/platform"
 	"github.com/takigo/takigo/window"
 )
@@ -25,15 +30,17 @@ type Drop struct {
 	Text  string
 }
 
-// xdndVersion is the version of the XDND protocol this side speaks.
-const xdndVersion = 5
+// Version is the version of the XDND protocol this side speaks.
+const Version = 5
 
-// dnd is the drop-target side of XDND, the drag-and-drop protocol of X11
-// desktops. Tk has none (tkdnd is an extension). Nothing arrives on Windows
-// and macOS, whose backends do not deliver these messages.
-type dnd struct {
-	app      *App
-	handlers map[*window.Window]func(Drop)
+// Manager is one App's side of XDND: the windows that take drops and the
+// drag in progress, in or out.
+type Manager struct {
+	display    *window.Display
+	dispatcher *event.Dispatcher
+	sel        *selection.Manager
+	after      func(time.Duration, func())
+	handlers   map[*window.Window]func(Drop)
 
 	aware, typeList, selection                platform.AtomID
 	enter, position, status, leave, drop, fin platform.AtomID
@@ -66,36 +73,40 @@ type outgoingDrag struct {
 	done     func(dropped bool)
 }
 
-// OnDrop makes w accept text and files dragged onto it from other
+// OnDrop makes win accept text and files dragged onto it from other
 // applications and calls handler with each drop; a nil handler stops that.
 // With several registered windows under the pointer, the innermost gets
-// the drop. It works on X11 desktops (XDND).
-func (a *App) OnDrop(w window.Windower, handler func(Drop)) {
-	if a.dnd == nil {
-		a.dnd = newDnd(a)
-	}
-	win := w.Window()
+// the drop.
+func (m *Manager) OnDrop(win *window.Window, handler func(Drop)) {
 	if handler == nil {
-		delete(a.dnd.handlers, win)
+		delete(m.handlers, win)
 		return
 	}
-	if _, ok := a.dnd.handlers[win]; !ok {
-		win.OnDestroy(func() { delete(a.dnd.handlers, win) })
+	if _, ok := m.handlers[win]; !ok {
+		win.OnDestroy(func() { delete(m.handlers, win) })
 	}
-	a.dnd.handlers[win] = handler
+	m.handlers[win] = handler
 	// The source looks for XdndAware on the toplevel under the pointer.
 	if top := window.Toplevel(win); top != nil && top.PlatformID != 0 {
-		version := binary.NativeEndian.AppendUint32(nil, xdndVersion)
-		a.display.Server.ChangeProperty(top.PlatformID, a.dnd.aware, a.display.Server.Atoms().Atom,
+		version := binary.NativeEndian.AppendUint32(nil, Version)
+		m.display.Server.ChangeProperty(top.PlatformID, m.aware, m.display.Server.Atoms().Atom,
 			32, platform.PropModeReplace, version, 1)
 	}
 }
 
-func newDnd(a *App) *dnd {
-	s := a.display.Server
+// Targets returns how many windows take drops.
+func (m *Manager) Targets() int { return len(m.handlers) }
+
+// New makes the Manager of the App with display, dispatcher and selection
+// manager; after schedules a function on the App's loop.
+func New(display *window.Display, dispatcher *event.Dispatcher, sel *selection.Manager, after func(time.Duration, func())) *Manager {
+	s := display.Server
 	atom := func(name string) platform.AtomID { return s.InternAtom(name, false) }
-	return &dnd{
-		app:        a,
+	return &Manager{
+		display:    display,
+		dispatcher: dispatcher,
+		sel:        sel,
+		after:      after,
 		handlers:   make(map[*window.Window]func(Drop)),
 		aware:      atom("XdndAware"),
 		typeList:   atom("XdndTypeList"),
@@ -114,63 +125,63 @@ func newDnd(a *App) *dnd {
 	}
 }
 
-// handle processes an XDND client message sent to one of our toplevels and
+// Handle processes an XDND client message sent to one of our toplevels and
 // reports whether ev was one.
-func (d *dnd) handle(ev *event.Event) bool {
-	s := d.app.display.Server
+func (m *Manager) Handle(ev *event.Event) bool {
+	s := m.display.Server
 	data := ev.MessageData
 	switch ev.MessageType {
-	case d.enter:
-		d.source = platform.WindowID(data[0])
-		d.target = nil
-		d.offered = d.offered[:0]
+	case m.enter:
+		m.source = platform.WindowID(data[0])
+		m.target = nil
+		m.offered = m.offered[:0]
 		if data[1]&1 != 0 {
 			// More than three types: they are in a property on the source.
-			raw, _, _ := s.GetWindowProperty(d.source, d.typeList, 0, 1024, false)
+			raw, _, _ := s.GetWindowProperty(m.source, m.typeList, 0, 1024, false)
 			for i := 0; i+4 <= len(raw); i += 4 {
-				d.offered = append(d.offered, platform.AtomID(binary.NativeEndian.Uint32(raw[i:])))
+				m.offered = append(m.offered, platform.AtomID(binary.NativeEndian.Uint32(raw[i:])))
 			}
 		} else {
 			for _, t := range data[2:5] {
 				if t != 0 {
-					d.offered = append(d.offered, platform.AtomID(t))
+					m.offered = append(m.offered, platform.AtomID(t))
 				}
 			}
 		}
-	case d.position:
-		if platform.WindowID(data[0]) != d.source {
+	case m.position:
+		if platform.WindowID(data[0]) != m.source {
 			return true
 		}
 		rootX, rootY := int(data[2]>>16&0xffff), int(data[2]&0xffff)
-		d.target, d.x, d.y = d.windowAt(ev.Window, rootX, rootY)
+		m.target, m.x, m.y = m.windowAt(ev.Window, rootX, rootY)
 		accept, action := int64(0), int64(0)
-		if d.target != nil && d.bestType() != 0 {
-			accept, action = 1, int64(d.actionCopy)
+		if m.target != nil && m.bestType() != 0 {
+			accept, action = 1, int64(m.actionCopy)
 		}
 		// Bit 1 asks for a position message on every move, since which of
 		// our windows is under the pointer may change.
-		s.SendClientMessage(d.source, d.source, d.status, int64(ev.Window), accept|2, 0, 0, action)
-	case d.status:
-		if d.out != nil && platform.WindowID(data[0]) == d.out.over {
-			d.out.accepted = data[1]&1 != 0
+		s.SendClientMessage(m.source, m.source, m.status, int64(ev.Window), accept|2, 0, 0, action)
+	case m.status:
+		if m.out != nil && platform.WindowID(data[0]) == m.out.over {
+			m.out.accepted = data[1]&1 != 0
 		}
-	case d.fin:
-		if d.out != nil && d.out.over == 0 {
-			d.endDrag(data[1]&1 != 0)
+	case m.fin:
+		if m.out != nil && m.out.over == 0 {
+			m.endDrag(data[1]&1 != 0)
 		}
-	case d.leave:
-		d.source, d.target = 0, nil
-	case d.drop:
-		d.finishDrop(ev.Window, platform.Timestamp(data[2]))
+	case m.leave:
+		m.source, m.target = 0, nil
+	case m.drop:
+		m.finishDrop(ev.Window, platform.Timestamp(data[2]))
 	default:
 		return false
 	}
 	return true
 }
 
-func (d *dnd) bestType() platform.AtomID {
-	for _, want := range d.accepted {
-		if slices.Contains(d.offered, want) {
+func (m *Manager) bestType() platform.AtomID {
+	for _, want := range m.accepted {
+		if slices.Contains(m.offered, want) {
 			return want
 		}
 	}
@@ -180,11 +191,11 @@ func (d *dnd) bestType() platform.AtomID {
 // windowAt returns the innermost registered window of the toplevel with
 // platform window top that contains the root position, and the position
 // inside it.
-func (d *dnd) windowAt(top platform.WindowID, rootX, rootY int) (*window.Window, int, int) {
-	disp := d.app.display
+func (m *Manager) windowAt(top platform.WindowID, rootX, rootY int) (*window.Window, int, int) {
+	disp := m.display
 	var best *window.Window
 	var bx, by int
-	for w := range d.handlers {
+	for w := range m.handlers {
 		if w.PlatformID == 0 || w.IsDestroyed() {
 			continue
 		}
@@ -202,31 +213,31 @@ func (d *dnd) windowAt(top platform.WindowID, rootX, rootY int) (*window.Window,
 	return best, bx, by
 }
 
-func (d *dnd) finishDrop(top platform.WindowID, ts platform.Timestamp) {
-	s := d.app.display.Server
-	source, target, x, y := d.source, d.target, d.x, d.y
-	typ := d.bestType()
-	d.source, d.target = 0, nil
+func (m *Manager) finishDrop(top platform.WindowID, ts platform.Timestamp) {
+	s := m.display.Server
+	source, target, x, y := m.source, m.target, m.x, m.y
+	typ := m.bestType()
+	m.source, m.target = 0, nil
 	done := func(accepted bool) {
 		ok, action := int64(0), int64(0)
 		if accepted {
-			ok, action = 1, int64(d.actionCopy)
+			ok, action = 1, int64(m.actionCopy)
 		}
-		s.SendClientMessage(source, source, d.fin, int64(top), ok, action, 0, 0)
+		s.SendClientMessage(source, source, m.fin, int64(top), ok, action, 0, 0)
 		s.Flush()
 	}
-	handler := d.handlers[target]
+	handler := m.handlers[target]
 	if target == nil || handler == nil || typ == 0 {
 		done(false)
 		return
 	}
-	d.app.selMgr.RequestTarget(d.selection, typ, top, ts, func(data []byte) {
+	m.sel.RequestTarget(m.selection, typ, top, ts, func(data []byte) {
 		if data == nil {
 			done(false)
 			return
 		}
 		drop := Drop{Window: target, X: x, Y: y}
-		if typ == d.accepted[0] {
+		if typ == m.accepted[0] {
 			drop.Files = uriListFiles(string(data))
 		}
 		if len(drop.Files) == 0 {
@@ -255,29 +266,21 @@ func uriListFiles(list string) []string {
 	return files
 }
 
-// StartDrag starts dragging data out of w to wherever the user releases the
-// mouse button: another application or one of this App's own OnDrop
-// windows. Call it from a handler while a button is held on w, typically
-// on the first Motion after a ButtonPress. done, which may be nil, is
-// called when the drag ends, with whether a target took the data. It works
-// on X11 desktops (XDND); elsewhere done is called with false at once.
-func (a *App) StartDrag(w window.Windower, data DragData, done func(dropped bool)) {
-	if a.dnd == nil {
-		a.dnd = newDnd(a)
-	}
-	a.dnd.startDrag(w.Window(), data, done)
-}
-
-func (d *dnd) startDrag(w *window.Window, data DragData, done func(bool)) {
+// StartDrag starts dragging data out of w to wherever the user releases
+// the mouse button: another application or one of this App's own OnDrop
+// windows. done, which may be nil, is called when the drag ends, with
+// whether a target took the data; when no drag can start it is called
+// with false at once.
+func (m *Manager) StartDrag(w *window.Window, data DragData, done func(bool)) {
 	if done == nil {
 		done = func(bool) {}
 	}
 	top := window.Toplevel(w)
-	if d.out != nil || top == nil || top.PlatformID == 0 || (len(data.Files) == 0 && data.Text == "") {
+	if m.out != nil || top == nil || top.PlatformID == 0 || (len(data.Files) == 0 && data.Text == "") {
 		done(false)
 		return
 	}
-	s := d.app.display.Server
+	s := m.display.Server
 	formats := map[platform.AtomID][]byte{}
 	text := data.Text
 	if len(data.Files) > 0 {
@@ -285,69 +288,69 @@ func (d *dnd) startDrag(w *window.Window, data DragData, done func(bool)) {
 		for _, f := range data.Files {
 			list.WriteString((&url.URL{Scheme: "file", Path: f}).String() + "\r\n")
 		}
-		formats[d.accepted[0]] = []byte(list.String())
+		formats[m.accepted[0]] = []byte(list.String())
 		text = strings.Join(data.Files, "\n")
 	}
-	for _, t := range d.accepted[1:4] {
+	for _, t := range m.accepted[1:4] {
 		formats[t] = []byte(text)
 	}
 	out := &outgoingDrag{from: top.PlatformID, done: done}
-	for _, t := range d.accepted {
+	for _, t := range m.accepted {
 		if _, ok := formats[t]; ok {
 			out.types = append(out.types, t)
 		}
 	}
-	d.app.selMgr.OwnFormats(d.selection, top.PlatformID, formats, platform.CurrentTime)
+	m.sel.OwnFormats(m.selection, top.PlatformID, formats, platform.CurrentTime)
 	// More than three types go in a property the target reads.
 	list := make([]byte, 0, 4*len(out.types))
 	for _, t := range out.types {
 		list = binary.NativeEndian.AppendUint32(list, uint32(t))
 	}
-	s.ChangeProperty(top.PlatformID, d.typeList, s.Atoms().Atom, 32, platform.PropModeReplace, list, len(out.types))
-	d.out = out
+	s.ChangeProperty(top.PlatformID, m.typeList, s.Atoms().Atom, 32, platform.PropModeReplace, list, len(out.types))
+	m.out = out
 
 	// While the button is held the X server sends every pointer event to
 	// the window it was pressed in, with root coordinates.
-	disp := d.app.dispatcher
+	disp := m.dispatcher
 	out.bindings = append(out.bindings,
 		disp.BindGlobal(event.MotionMask, func(ev *event.Event) {
-			if ev.Type == event.MotionType && d.out == out {
-				d.dragMove(ev.RootX, ev.RootY, ev.Time)
+			if ev.Type == event.MotionType && m.out == out {
+				m.dragMove(ev.RootX, ev.RootY, ev.Time)
 			}
 		}),
 		disp.BindGlobal(event.ButtonReleaseMask, func(ev *event.Event) {
-			if ev.Type == event.ButtonReleaseType && d.out == out {
-				d.dragMove(ev.RootX, ev.RootY, ev.Time)
-				d.dragRelease(ev.Time)
+			if ev.Type == event.ButtonReleaseType && m.out == out {
+				m.dragMove(ev.RootX, ev.RootY, ev.Time)
+				m.dragRelease(ev.Time)
 			}
 		}))
 }
 
-// awareWindowAt returns the innermost window under the root position that
+// AwareWindowAt returns the innermost window under the root position that
 // has the XdndAware property, and the XDND version it speaks.
-func (d *dnd) awareWindowAt(x, y int) (platform.WindowID, int64) {
-	s := d.app.display.Server
-	win := d.app.display.RootWindow
+func (m *Manager) AwareWindowAt(x, y int) (platform.WindowID, int64) {
+	s := m.display.Server
+	win := m.display.RootWindow
 	for range 32 { // deeper than any real window tree
 		child := s.ChildAt(win, x, y)
 		if child == 0 {
 			break
 		}
 		win = child
-		if raw, _, _ := s.GetWindowProperty(win, d.aware, 0, 1, false); len(raw) >= 4 {
-			return win, min(int64(binary.NativeEndian.Uint32(raw)), xdndVersion)
+		if raw, _, _ := s.GetWindowProperty(win, m.aware, 0, 1, false); len(raw) >= 4 {
+			return win, min(int64(binary.NativeEndian.Uint32(raw)), Version)
 		}
 	}
 	return 0, 0
 }
 
-func (d *dnd) dragMove(x, y int, ts platform.Timestamp) {
-	s := d.app.display.Server
-	out := d.out
-	over, version := d.awareWindowAt(x, y)
+func (m *Manager) dragMove(x, y int, ts platform.Timestamp) {
+	s := m.display.Server
+	out := m.out
+	over, version := m.AwareWindowAt(x, y)
 	if over != out.over {
 		if out.over != 0 {
-			s.SendClientMessage(out.over, out.over, d.leave, int64(out.from), 0, 0, 0, 0)
+			s.SendClientMessage(out.over, out.over, m.leave, int64(out.from), 0, 0, 0, 0)
 		}
 		out.over, out.accepted = over, false
 		if over != 0 {
@@ -359,21 +362,21 @@ func (d *dnd) dragMove(x, y int, ts platform.Timestamp) {
 			if len(out.types) > 3 {
 				more = 1
 			}
-			s.SendClientMessage(over, over, d.enter, int64(out.from), version<<24|more, first[0], first[1], first[2])
+			s.SendClientMessage(over, over, m.enter, int64(out.from), version<<24|more, first[0], first[1], first[2])
 		}
 	}
 	if over != 0 {
-		s.SendClientMessage(over, over, d.position, int64(out.from), 0,
-			int64(x&0xffff)<<16|int64(y&0xffff), int64(ts), int64(d.actionCopy))
+		s.SendClientMessage(over, over, m.position, int64(out.from), 0,
+			int64(x&0xffff)<<16|int64(y&0xffff), int64(ts), int64(m.actionCopy))
 	}
 	s.Flush()
 }
 
-func (d *dnd) dragRelease(ts platform.Timestamp) {
-	s := d.app.display.Server
-	out := d.out
+func (m *Manager) dragRelease(ts platform.Timestamp) {
+	s := m.display.Server
+	out := m.out
 	for _, id := range out.bindings {
-		d.app.dispatcher.UnbindID(id)
+		m.dispatcher.UnbindID(id)
 	}
 	out.bindings = nil
 	over := out.over
@@ -381,23 +384,23 @@ func (d *dnd) dragRelease(ts platform.Timestamp) {
 	// for the last position may still be on its way, so the release waits
 	// for it, with a limit.
 	finish := func() {
-		if d.out != out {
+		if m.out != out {
 			return
 		}
 		if over == 0 || !out.accepted {
 			if over != 0 {
-				s.SendClientMessage(over, over, d.leave, int64(out.from), 0, 0, 0, 0)
+				s.SendClientMessage(over, over, m.leave, int64(out.from), 0, 0, 0, 0)
 				s.Flush()
 			}
-			d.endDrag(false)
+			m.endDrag(false)
 			return
 		}
 		out.over = 0 // waiting for XdndFinished
-		s.SendClientMessage(over, over, d.drop, int64(out.from), 0, int64(ts), 0, 0)
+		s.SendClientMessage(over, over, m.drop, int64(out.from), 0, int64(ts), 0, 0)
 		s.Flush()
-		d.app.loop.After(dragTimeout, func() {
-			if d.out == out {
-				d.endDrag(false)
+		m.after(dragTimeout, func() {
+			if m.out == out {
+				m.endDrag(false)
 			}
 		})
 	}
@@ -405,7 +408,7 @@ func (d *dnd) dragRelease(ts platform.Timestamp) {
 		finish()
 		return
 	}
-	d.app.loop.After(statusWait, finish)
+	m.after(statusWait, finish)
 }
 
 // statusWait is how long a release waits for the target's answer to the
@@ -415,14 +418,14 @@ const (
 	dragTimeout = 5 * time.Second
 )
 
-func (d *dnd) endDrag(dropped bool) {
-	out := d.out
+func (m *Manager) endDrag(dropped bool) {
+	out := m.out
 	if out == nil {
 		return
 	}
-	d.out = nil
+	m.out = nil
 	for _, id := range out.bindings {
-		d.app.dispatcher.UnbindID(id)
+		m.dispatcher.UnbindID(id)
 	}
 	out.done(dropped)
 }

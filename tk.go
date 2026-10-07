@@ -20,10 +20,11 @@ import (
 	"github.com/takigo/takigo/font"
 	"github.com/takigo/takigo/grab"
 	"github.com/takigo/takigo/image"
+	"github.com/takigo/takigo/internal/selection"
 	"github.com/takigo/takigo/internal/treedump"
+	"github.com/takigo/takigo/internal/xdnd"
 	"github.com/takigo/takigo/platform"
 	"github.com/takigo/takigo/screenunit"
-	"github.com/takigo/takigo/selection"
 	"github.com/takigo/takigo/widget"
 	"github.com/takigo/takigo/window"
 	"github.com/takigo/takigo/wm"
@@ -36,6 +37,7 @@ type App struct {
 	root       *window.Window
 	wmInfo     *wm.WmInfo
 	dispatcher *event.Dispatcher
+	parser     platform.EventParser
 	loop       *event.Loop
 	colorCache *color.Cache
 	fontReg    *font.Registry
@@ -45,7 +47,7 @@ type App struct {
 	selMgr     *selection.Manager
 	grabMgr    *grab.Manager
 	logger     *slog.Logger
-	dnd        *dnd
+	dnd        *xdnd.Manager
 }
 
 // NewApp creates a new takigo application. It opens the X11 display,
@@ -114,6 +116,7 @@ func NewApp(opts ...AppOption) (*App, error) {
 		display:    d,
 		root:       root,
 		dispatcher: dispatcher,
+		parser:     parser,
 		loop:       loop,
 		colorCache: colors,
 		fontReg:    fontReg,
@@ -124,86 +127,9 @@ func NewApp(opts ...AppOption) (*App, error) {
 		logger:     cfg.logger,
 	}
 
-	// Tk never reads a child window's size back from X: the geometry
-	// managers own it. A queued ConfigureNotify can describe a size that has
-	// since been replaced, so report the current one to every handler.
-	loop.SetEventFilter(func(ev *event.Event) {
-		switch ev.Type {
-		case event.ConfigureType:
-			w := d.LookupWindow(ev.Window)
-			switch {
-			case w == nil:
-			case !w.IsTopLevel():
-				ev.ConfigWidth, ev.ConfigHeight = w.Width, w.Height
-			case w.WmData != nil:
-				// A size the user dragged to becomes the toplevel's
-				// geometry (ConfigureEvent in tkUnixWm.c).
-				w.WmData.ConfigureNotify(ev.ConfigWidth, ev.ConfigHeight)
-			}
-		case event.FocusInType, event.FocusOutType:
-			// Tk's focus model: the manager turns toplevel focus changes
-			// into FocusIn/FocusOut on its focus windows and drops the
-			// rest (TkFocusFilterEvent).
-			if app.focusMgr != nil && !app.focusMgr.FilterEvent(ev) {
-				ev.Type = 0
-			}
-		case event.KeyPressType, event.KeyReleaseType, event.ButtonPressType, event.ButtonReleaseType,
-			event.MotionType, event.EnterType, event.LeaveType, event.MouseWheelType:
-			// Keys go to the focus window (TkFocusKeyEvent), and leaving
-			// a toplevel can end an implicit focus.
-			if app.focusMgr != nil && (ev.Type == event.KeyPressType || ev.Type == event.KeyReleaseType || ev.Type == event.LeaveType) {
-				app.focusMgr.FilterEvent(ev)
-			}
-			// A local grab (tkGrab.c's TkPointerEvent) discards input
-			// for this application's windows outside the grab tree.
-			if app.grabMgr.Current() == nil {
-				return
-			}
-			if w := d.LookupWindow(ev.Window); w != nil && app.grabMgr.ShouldRedirect(w) {
-				ev.Type = 0
-			}
-		}
-	})
-
-	// Handle selection events (clipboard serve + async paste response).
-	loop.SetRawEventHandler(func(raw *platform.RawEvent) {
-		switch raw.EventType {
-		case platform.SelectionRequestEvent:
-			req := parser.ParseSelectionRequestEvent(raw)
-			selMgr.HandleSelectionRequest(req.Requestor, req.Selection, req.Target, req.Property, req.Time)
-		case platform.SelectionClearEvent:
-			clr := parser.ParseSelectionClearEvent(raw)
-			selMgr.HandleSelectionClear(clr.Selection)
-		case platform.SelectionNotifyEvent:
-			ntf := parser.ParseSelectionNotifyEvent(raw)
-			selMgr.HandleSelectionNotify(ntf.Requestor, ntf.Property)
-		case platform.PropertyNotifyEvent:
-			prop := parser.ParsePropertyEvent(raw)
-			selMgr.HandlePropertyNotify(prop.EventWindow, prop.Atom, prop.Deleted)
-		}
-	})
-
-	// Initialize WM state for root window, same as Tk does for ".".
-	// This sets WM_CLASS, WM_HINTS, size hints, and WM_PROTOCOLS.
-	app.wmInfo = wm.Init(root)
-	app.wmInfo.SetTitle(cfg.title)
-
-	// Apply geometry string if provided (overrides Size).
-	if cfg.geometry != "" {
-		if err := app.wmInfo.SetGeometry(cfg.geometry); err != nil {
-			cfg.logger.Warn("bad geometry", "geometry", cfg.geometry, "err", err)
-		}
-	}
-
-	// Apply icon name if provided.
-	if cfg.iconName != "" {
-		app.wmInfo.SetIconName(cfg.iconName)
-	}
-
-	// Default close action: quit the application.
-	app.wmInfo.OnDeleteWindow(func() {
-		app.Quit()
-	})
+	loop.SetEventFilter(app.filterEvent)
+	loop.SetRawEventHandler(app.handleRawEvent)
+	app.initWM(cfg)
 
 	// Handle ConfigureNotify on root window so geometry managers
 	// (pack/grid) re-layout when the window is resized.
@@ -221,42 +147,11 @@ func NewApp(opts ...AppOption) (*App, error) {
 	// Set up global focus manager with Tab/Shift-Tab traversal,
 	// matching Tk's "bind all <<NextWindow>>" / "bind all <<PrevWindow>>"
 	// from tk.tcl.
-	focusMgr := focus.NewManager(dispatcher, server, d)
-	focusMgr.BindTraversal(root)
-	app.focusMgr = focusMgr
+	app.focusMgr = focus.NewManager(dispatcher, server, d)
+	app.focusMgr.BindTraversal(root)
 
-	// Tk_DestroyWindow delivers <Destroy> and then forgets the window:
-	// its event handlers, bind tags and focus state go with it, so their
-	// closures do not leak and a reused window ID starts clean.
-	d.OnWindowDestroy(func(w *window.Window) {
-		if w.PlatformID == 0 {
-			return
-		}
-		dispatcher.Dispatch(&event.Event{Type: event.DestroyType, Window: w.PlatformID})
-		dispatcher.Unbind(w.PlatformID)
-		bindEng.UnregisterWindow(w)
-		focusMgr.HandleDestroyWindow(w)
-	})
-
-	// Route WM protocol messages (WM_DELETE_WINDOW, _NET_WM_PING, etc.)
-	// to the appropriate toplevel's WmInfo handler.
-	// This mirrors TkWmProtocolEventProc in tk/unix/tkUnixWm.c.
-	dispatcher.BindGlobal(event.ClientMessageMask, func(ev *event.Event) {
-		if ev.Type != event.ClientMessageType {
-			return
-		}
-		if app.dnd != nil && app.dnd.handle(ev) {
-			return
-		}
-		// Look up the window and dispatch via its WmInfo.
-		w := d.LookupWindow(ev.Window)
-		if w == nil {
-			return
-		}
-		if info := w.WmData; info != nil {
-			info.HandleClientMessage(ev.MessageType, ev.MessageData)
-		}
-	})
+	d.OnWindowDestroy(app.forgetWindow)
+	dispatcher.BindGlobal(event.ClientMessageMask, app.routeClientMessage)
 
 	return app, nil
 }
@@ -648,4 +543,36 @@ func parseXftDPI(resources string) (float64, bool) {
 		return dpi, true
 	}
 	return 0, false
+}
+
+// Drop is what another application dropped on a window registered with
+// OnDrop; DragData what StartDrag offers.
+type (
+	Drop     = xdnd.Drop
+	DragData = xdnd.DragData
+)
+
+// OnDrop makes w accept text and files dragged onto it from other
+// applications and calls handler with each drop; a nil handler stops that.
+// With several registered windows under the pointer, the innermost gets
+// the drop. It works on X11 desktops (XDND).
+func (a *App) OnDrop(w window.Windower, handler func(Drop)) {
+	a.dragAndDrop().OnDrop(w.Window(), handler)
+}
+
+// StartDrag starts dragging data out of w to wherever the user releases the
+// mouse button: another application or one of this App's own OnDrop
+// windows. Call it from a handler while a button is held on w, typically
+// on the first Motion after a ButtonPress. done, which may be nil, is
+// called when the drag ends, with whether a target took the data. It works
+// on X11 desktops (XDND); elsewhere done is called with false at once.
+func (a *App) StartDrag(w window.Windower, data DragData, done func(dropped bool)) {
+	a.dragAndDrop().StartDrag(w.Window(), data, done)
+}
+
+func (a *App) dragAndDrop() *xdnd.Manager {
+	if a.dnd == nil {
+		a.dnd = xdnd.New(a.display, a.dispatcher, a.selMgr, func(d time.Duration, fn func()) { a.loop.After(d, fn) })
+	}
+	return a.dnd
 }

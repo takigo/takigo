@@ -48,6 +48,11 @@ version is 0, a minor release may break the API and says so here.
 - **Removed**: `widget.AnchorText`, `geometry.UsableWidth`, `UsableHeight`,
   `SetInternalBorderUniform`, `draw.FillRect`, `StrokeRect`, `DrawLines`,
   `window.Window.ConfigureCallback` (use `OnConfigure`).
+- **The `selection` and `widget/square` packages moved**: X selections and
+  the clipboard are an internal package behind `App.Clipboard`; the square
+  widget of `tkSquare.c`, the example of a custom widget, is
+  `demos/square/square`. Drag and drop lives in `internal/xdnd`;
+  `takigo.Drop`, `DragData`, `App.OnDrop` and `App.StartDrag` are unchanged.
 - **`ttk.ParsePadding` and `Notebook.SetPanePadding` return an error** for a
   bad distance (wrapping `screenunit.ErrBadDistance`) instead of reading it
   as 0.

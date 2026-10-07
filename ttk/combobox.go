@@ -302,10 +302,9 @@ func (c *Combobox) openDropdown() {
 	dropH := min(lineH*len(c.Values), 200)
 	dropW := win.Width
 
-	// Create override-redirect popup window.
-	attrs := &platform.WindowAttrs{
-		BackgroundPixel:  disp.WhitePixel,
-		BorderPixel:      disp.BlackPixel,
+	// The dropdown bypasses the window manager, like a menu.
+	dw := window.NewTopLevelWindow(win, "dropdown", window.TopLevelSpec{
+		X: screenX, Y: screenY, Width: dropW, Height: dropH, BorderWidth: 1,
 		OverrideRedirect: true,
 		EventMask: int64(
 			platform.ButtonPressMask |
@@ -315,37 +314,8 @@ func (c *Combobox) openDropdown() {
 				platform.LeaveWindowMask |
 				platform.ExposureMask |
 				platform.StructureNotifyMask),
-	}
-
-	xwin := d.CreateWindow(
-		disp.RootWindow,
-		screenX, screenY, uint(dropW), uint(dropH), 1,
-		disp.Depth, platform.InputOutput,
-		platform.CWBackPixel|platform.CWBorderPixel|platform.CWOverrideRedirect|platform.CWEventMask,
-		attrs,
-	)
-
-	dw := &window.Window{
-		PlatformID:      xwin,
-		Display:         disp,
-		Parent:          win,
-		Name:            "dropdown",
-		PathName:        window.BuildPathName(win, "dropdown"),
-		Width:           dropW,
-		Height:          dropH,
-		ReqWidth:        dropW,
-		ReqHeight:       dropH,
-		Depth:           disp.Depth,
-		BackgroundPixel: disp.WhitePixel,
-	}
-
-	dw.GC = d.CreateGC(dw.Drawable(), platform.GCForeground|platform.GCBackground, &platform.GCValues{
-		Foreground: disp.BlackPixel,
-		Background: disp.WhitePixel,
 	})
-
-	disp.RegisterWindow(xwin, dw)
-	win.AddChild(dw)
+	xwin := dw.PlatformID
 
 	c.dropWin = dw
 	c.dropSel = -1
