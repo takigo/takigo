@@ -9,6 +9,7 @@ package entrytext
 import (
 	"github.com/takigo/takigo/event"
 	"github.com/takigo/takigo/font"
+	"github.com/takigo/takigo/internal/textedit"
 	"github.com/takigo/takigo/platform"
 	"github.com/takigo/takigo/widget"
 	"github.com/takigo/takigo/window"
@@ -205,7 +206,7 @@ func (h *Helper) ClosestGap(x int) int {
 	if xInText <= 0 {
 		return 0
 	}
-	idx := RuneIndexAtPixel(h.Font, h.Text, xInText)
+	idx := textedit.RuneIndexAtPixel(h.Font, h.Text, xInText)
 	if idx >= len(h.Text) {
 		return len(h.Text)
 	}
@@ -218,10 +219,10 @@ func (h *Helper) ClosestGap(x int) int {
 }
 
 // WordStart returns the rune index of the start of the word at or before pos.
-func (h *Helper) WordStart(pos int) int { return WordStart(h.Text, pos) }
+func (h *Helper) WordStart(pos int) int { return textedit.WordStart(h.Text, pos) }
 
 // WordEnd returns the rune index past the end of the word at or after pos.
-func (h *Helper) WordEnd(pos int) int { return WordEnd(h.Text, pos) }
+func (h *Helper) WordEnd(pos int) int { return textedit.WordEnd(h.Text, pos) }
 
 // ClipboardSet puts the current selection on the clipboard.
 func (h *Helper) ClipboardSet(time platform.Timestamp) {
@@ -419,63 +420,4 @@ func (h *Helper) runValidate(reason ValidateReason, newValue string) bool {
 		return true
 	}
 	return h.Validate(reason, newValue)
-}
-
-// RuneIndexAtPixel finds the rune index at a given pixel offset using binary
-// search. Returns 0 if the target is at or before the start, len(runes) if
-// past the end.
-func RuneIndexAtPixel(f font.Font, runes []rune, targetX int) int {
-	if targetX <= 0 || len(runes) == 0 {
-		return 0
-	}
-	lo, hi := 0, len(runes)
-	for lo < hi {
-		mid := (lo + hi) / 2
-		w := f.MeasureString(string(runes[:mid+1]))
-		if w <= targetX {
-			lo = mid + 1
-		} else {
-			hi = mid
-		}
-	}
-	return lo
-}
-
-// WordStart returns the rune index of the start of the word at or before pos.
-func WordStart(text []rune, pos int) int {
-	if pos <= 0 {
-		return 0
-	}
-	if pos > len(text) {
-		pos = len(text)
-	}
-	i := pos - 1
-	for i > 0 && !IsWordChar(text[i]) {
-		i--
-	}
-	for i > 0 && IsWordChar(text[i-1]) {
-		i--
-	}
-	return i
-}
-
-// WordEnd returns the rune index past the end of the word at or after pos.
-func WordEnd(text []rune, pos int) int {
-	if pos >= len(text) {
-		return len(text)
-	}
-	i := pos
-	for i < len(text) && IsWordChar(text[i]) {
-		i++
-	}
-	for i < len(text) && !IsWordChar(text[i]) {
-		i++
-	}
-	return i
-}
-
-// IsWordChar returns true for alphanumeric and underscore characters.
-func IsWordChar(r rune) bool {
-	return (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') ||
-		(r >= '0' && r <= '9') || r == '_'
 }

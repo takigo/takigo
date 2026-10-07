@@ -26,6 +26,17 @@ version is 0, a minor release may break the API and says so here.
   and cursor in fixed colours (wrong in the dark theme); a `busy` overlay
   was destroyed twice when its window went first; frames and canvases ran
   the place manager twice per resize.
+- **The `widget/entryutil` and `ttk/entrytext` packages are gone**: the
+  helpers live in internal packages now. The classic `entry` and `spinbox`
+  share one editing core: their `Text []rune`, `ImeMark` and the methods
+  `Get`, `Set`, `Insert`, `Delete`, `HasSelection`, `SelectedText`,
+  `Prospective`, `MoveCursor`, `ExtendTo` are new (additive); the spinbox
+  gained the entry's Control and clipboard key bindings.
+- `checkbutton` and `radiobutton` gained `-compound`, `-width` (both),
+  `-height`, `-wraplength`, `-justify` and `-selectimage` (radiobutton),
+  `label` gained `State`; the button draws disabled text in the disabled
+  foreground, the `-underline` character is underlined, and a push button's
+  content shifts with its relief as in Tk (additive, visual).
 - `demos/busy` shows the `busy` package (additive). The test programs under
   `cmd/` are gone, each overlapped by a demo; the comparison tools moved to
   `internal/cmd/`.

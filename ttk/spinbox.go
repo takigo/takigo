@@ -9,10 +9,11 @@ import (
 	"github.com/takigo/takigo/draw"
 	"github.com/takigo/takigo/event"
 	"github.com/takigo/takigo/font"
+	"github.com/takigo/takigo/internal/textedit"
 	"github.com/takigo/takigo/option"
 	"github.com/takigo/takigo/platform"
 	"github.com/takigo/takigo/screenunit"
-	"github.com/takigo/takigo/ttk/entrytext"
+	"github.com/takigo/takigo/ttk/internal/entrytext"
 	"github.com/takigo/takigo/widget"
 	"github.com/takigo/takigo/window"
 )
@@ -441,8 +442,8 @@ func (s *Spinbox) Display() {
 
 		// Selection highlight.
 		if s.hasFocus && s.edit.HasSelection() {
-			selStartX := textX + s.Font.MeasureString(string(s.edit.Text[:sbClamp(s.edit.SelFirst, len(s.edit.Text))]))
-			selEndX := textX + s.Font.MeasureString(string(s.edit.Text[:sbClamp(s.edit.SelLast, len(s.edit.Text))]))
+			selStartX := textX + s.Font.MeasureString(string(s.edit.Text[:textedit.ClampIdx(s.edit.SelFirst, len(s.edit.Text))]))
+			selEndX := textX + s.Font.MeasureString(string(s.edit.Text[:textedit.ClampIdx(s.edit.SelLast, len(s.edit.Text))]))
 			rightEdge := btnLeft - s.insetX
 			if selStartX < textX {
 				selStartX = textX
@@ -466,7 +467,7 @@ func (s *Spinbox) Display() {
 
 		// Insert cursor.
 		if s.hasFocus && s.cursorOn {
-			cursorX := textX + s.Font.MeasureString(string(s.edit.Text[:sbClamp(s.edit.InsertPos, len(s.edit.Text))]))
+			cursorX := textX + s.Font.MeasureString(string(s.edit.Text[:textedit.ClampIdx(s.edit.InsertPos, len(s.edit.Text))]))
 			rightEdge := btnLeft - s.insetX
 			if cursorX >= textX && cursorX < rightEdge {
 				d.SetForeground(gc, insertColor)
@@ -478,16 +479,6 @@ func (s *Spinbox) Display() {
 	// Copy to window.
 	d.CopyArea(pixDrawable, win.Drawable(), gc, 0, 0, uint(width), uint(height), 0, 0)
 	d.Flush()
-}
-
-func sbClamp(idx, hi int) int {
-	if idx < 0 {
-		return 0
-	}
-	if idx > hi {
-		return hi
-	}
-	return idx
 }
 
 func bindSpinbox(s *Spinbox, app widget.AppContext) {

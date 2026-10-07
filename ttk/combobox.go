@@ -8,7 +8,7 @@ import (
 	"github.com/takigo/takigo/option"
 	"github.com/takigo/takigo/platform"
 	"github.com/takigo/takigo/screenunit"
-	"github.com/takigo/takigo/ttk/entrytext"
+	"github.com/takigo/takigo/ttk/internal/entrytext"
 	"github.com/takigo/takigo/widget"
 	"github.com/takigo/takigo/window"
 )

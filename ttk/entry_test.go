@@ -3,7 +3,8 @@ package ttk
 import (
 	"testing"
 
-	"github.com/takigo/takigo/ttk/entrytext"
+	"github.com/takigo/takigo/internal/textedit"
+	"github.com/takigo/takigo/ttk/internal/entrytext"
 )
 
 // --- entrytext.Helper pure-logic tests (no display required) ---
@@ -116,7 +117,7 @@ func TestWordStartEnd(t *testing.T) {
 		{"", 0, 0},
 	}
 	for _, c := range cases {
-		got := entrytext.WordStart([]rune(c.in), c.startPos)
+		got := textedit.WordStart([]rune(c.in), c.startPos)
 		if got != c.want {
 			t.Errorf("WordStart(%q, %d) = %d, want %d", c.in, c.startPos, got, c.want)
 		}
@@ -141,8 +142,8 @@ func TestWordEnd(t *testing.T) {
 		{"  hello", 0, 0, 2},
 	}
 	for _, c := range cases {
-		s := entrytext.WordStart([]rune(c.in), c.pos)
-		e := entrytext.WordEnd([]rune(c.in), c.pos)
+		s := textedit.WordStart([]rune(c.in), c.pos)
+		e := textedit.WordEnd([]rune(c.in), c.pos)
 		if s != c.wantS || e != c.wantE {
 			t.Errorf("pos=%d in=%q: start=%d end=%d, want start=%d end=%d",
 				c.pos, c.in, s, e, c.wantS, c.wantE)
@@ -152,12 +153,12 @@ func TestWordEnd(t *testing.T) {
 
 func TestIsWordChar(t *testing.T) {
 	for _, r := range []rune{'a', 'Z', '0', '_'} {
-		if !entrytext.IsWordChar(r) {
+		if !textedit.IsWordChar(r) {
 			t.Errorf("IsWordChar(%q) false, want true", r)
 		}
 	}
 	for _, r := range []rune{' ', '.', '-', '\n'} {
-		if entrytext.IsWordChar(r) {
+		if textedit.IsWordChar(r) {
 			t.Errorf("IsWordChar(%q) true, want false", r)
 		}
 	}

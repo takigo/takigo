@@ -10,9 +10,10 @@ import (
 	"github.com/takigo/takigo/draw"
 	"github.com/takigo/takigo/event"
 	"github.com/takigo/takigo/font"
+	"github.com/takigo/takigo/internal/textedit"
 	"github.com/takigo/takigo/option"
 	"github.com/takigo/takigo/platform"
-	"github.com/takigo/takigo/ttk/entrytext"
+	"github.com/takigo/takigo/ttk/internal/entrytext"
 	"github.com/takigo/takigo/widget"
 	"github.com/takigo/takigo/window"
 )
@@ -593,7 +594,7 @@ func (e *Entry) xview(display []rune) (first, last float64) {
 		return 0, 1
 	}
 	visible := max(e.Win.Width-e.edit.TextX-2, 1)
-	right := entrytext.RuneIndexAtPixel(e.Font, display, e.edit.XOffset+visible)
+	right := textedit.RuneIndexAtPixel(e.Font, display, e.edit.XOffset+visible)
 	n := float64(len(display))
 	return float64(e.leftIndex) / n, float64(max(right, e.leftIndex)) / n
 }

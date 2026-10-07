@@ -76,12 +76,13 @@ widget/                                            — Widget interface, Base st
 widget/<name>/                                     — classic widgets: button, label, frame, entry,
                                                     listbox, menu, menubutton, message, panedwindow,
                                                     radiobutton, scale, scrollbar, spinbox, square,
-                                                    text, toplevel, labelframe, checkbutton, entryutil
+                                                    text, toplevel, labelframe, checkbutton
                                                     — each widget has a `<name>.go` and usually a
                                                       `bindings.go` for event handlers
 ttk/                                               — themed widget package; widgets embed TtkWidget
 ttk/<name>theme/                                   — theme registrations (default, clam, alt, classic, dark)
-ttk/entrytext/                                     — shared editing logic for ttk entry/combobox/spinbox
+ttk/internal/entrytext/                            — shared editing logic for ttk entry/combobox/spinbox
+internal/textedit/                                 — text measuring and word helpers shared by every entry-like widget
 
 window/                                            — Window struct, display, hierarchy, creation
 event/                                             — event loop, dispatcher, raw event parsing
