@@ -43,7 +43,7 @@ func bindCheckbutton(c *Checkbutton, app widget.AppContext) {
 			return
 		}
 		c.State = widget.StateNormal
-		c.pressed = false
+		c.SetPressed(false)
 		c.Display()
 	})
 
@@ -53,7 +53,7 @@ func bindCheckbutton(c *Checkbutton, app widget.AppContext) {
 			return
 		}
 		if ev.Button == 1 {
-			c.pressed = true
+			c.SetPressed(true)
 		}
 	})
 
@@ -62,8 +62,8 @@ func bindCheckbutton(c *Checkbutton, app widget.AppContext) {
 		if c.State == widget.StateDisabled {
 			return
 		}
-		if ev.Button == 1 && c.pressed {
-			c.pressed = false
+		if ev.Button == 1 && c.Pressed() {
+			c.SetPressed(false)
 			if ev.X >= 0 && ev.X < w.Width && ev.Y >= 0 && ev.Y < w.Height {
 				c.Toggle()
 			}

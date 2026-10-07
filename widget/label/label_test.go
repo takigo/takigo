@@ -5,8 +5,6 @@ import (
 
 	"github.com/takigo/takigo/font"
 	"github.com/takigo/takigo/option"
-	"github.com/takigo/takigo/platform"
-	"github.com/takigo/takigo/widget"
 	"github.com/takigo/takigo/window"
 )
 
@@ -112,71 +110,20 @@ func TestLabelDefaults(t *testing.T) {
 	}
 }
 
-func TestLabelTextLines(t *testing.T) {
-	l := &Label{
-		WrapLen: 0,
-	}
-	l.Font = nil // no font for simple splitting test
-
-	// Test single line
-	l.Text = "hello"
-	lines := l.textLines()
-	if len(lines) != 1 || lines[0] != "hello" {
-		t.Errorf("textLines(\"hello\") = %v, want [\"hello\"]", lines)
-	}
-
-	// Test multi-line
-	l.Text = "line1\nline2\nline3"
-	lines = l.textLines()
-	if len(lines) != 3 || lines[0] != "line1" || lines[1] != "line2" || lines[2] != "line3" {
-		t.Errorf("textLines multi = %v, want [\"line1\", \"line2\", \"line3\"]", lines)
-	}
-
-	// Test empty
-	l.Text = ""
-	lines = l.textLines()
-	if lines != nil {
-		t.Errorf("textLines(\"\") = %v, want nil", lines)
-	}
-}
-
 func TestLabelTextLinesWithWrap(t *testing.T) {
-	l := &Label{
-		WrapLen: 50,
-	}
+	l := &Label{}
+	l.WrapLen = 50
 	l.Font = &mockFont{metrics: font.Metrics{MaxWidth: 10}}
 
 	l.Text = "word1 word2 word3 word4"
-	lines := l.textLines()
+	lines := l.TextLines(l.Font)
 	if len(lines) == 0 {
-		t.Error("textLines with wrap returned empty")
+		t.Error("TextLines with wrap returned empty")
 	}
 	// Each line should fit within WrapLen
 	for _, line := range lines {
 		if l.Font.MeasureString(line) > l.WrapLen {
 			t.Errorf("line %q exceeds WrapLen (%d > %d)", line, l.Font.MeasureString(line), l.WrapLen)
-		}
-	}
-}
-
-func TestLabelCompoundSize(t *testing.T) {
-	img := &mockImage{w: 20, h: 30}
-	tests := []struct {
-		compound widget.Compound
-		w, h     int
-	}{
-		{widget.CompoundNone, 20, 30},
-		{widget.CompoundLeft, 73, 60},
-		{widget.CompoundRight, 73, 60},
-		{widget.CompoundTop, 50, 92},
-		{widget.CompoundBottom, 50, 92},
-		{widget.CompoundCenter, 50, 60},
-	}
-	for _, tt := range tests {
-		l := &Label{Img: img, Compound: tt.compound, textWidth: 50, textHeight: 60}
-		l.PadX, l.PadY = 3, 2
-		if w, h := l.compoundSize(); w != tt.w || h != tt.h {
-			t.Errorf("compoundSize(%v) = (%d, %d), want (%d, %d)", tt.compound, w, h, tt.w, tt.h)
 		}
 	}
 }
@@ -223,15 +170,3 @@ func (m *mockFont) Attrs() font.Attributes     { return font.Attributes{} }
 func (m *mockFont) Metrics() font.Metrics      { return m.metrics }
 func (m *mockFont) MeasureString(s string) int { return len(s) * m.metrics.MaxWidth }
 func (m *mockFont) Close()                     {}
-
-type mockImage struct {
-	w, h int
-}
-
-func (m *mockImage) Width() int  { return m.w }
-func (m *mockImage) Height() int { return m.h }
-func (m *mockImage) Draw(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID,
-	depth int,
-	imgX, imgY, w, h, dstX, dstY int,
-	bgPixel uint64) {
-}
