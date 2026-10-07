@@ -86,8 +86,6 @@ func (e *Entry) handleExpose(ev *event.Event) {
 // handleConfigure handles ConfigureNotify (resize) events.
 func (e *Entry) handleConfigure(ev *event.Event) {
 	if ev.Type == event.ConfigureType {
-		e.Win.Width = ev.ConfigWidth
-		e.Win.Height = ev.ConfigHeight
 		e.computeGeometry()
 		e.Display()
 		// Tk's EntryUpdateScrollbar runs on every redisplay, so the

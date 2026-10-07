@@ -348,3 +348,38 @@ func TestConfigureNotifyRecordsUserResize(t *testing.T) {
 		t.Errorf("size after a user resize and a new request = %dx%d, want 400x300", w.Width, w.Height)
 	}
 }
+
+// A gridded toplevel (a text widget's -setgrid) resizes in whole cells:
+// the hints carry the cell size as increments and the part of the request
+// that is not cells as the base size, and UnsetGrid puts them back.
+func TestSetGrid(t *testing.T) {
+	info, s := newToplevel(t)
+	w := info.Win
+	w.ReqWidth, w.ReqHeight = 80*7+10, 24*13+6
+	grid := &window.Window{Display: w.Display, Parent: w}
+
+	info.SetGrid(grid, 80, 24, 7, 13)
+	h := s.sizeHints
+	if h.Flags&platform.PBaseSize == 0 || h.WidthInc != 7 || h.HeightInc != 13 {
+		t.Fatalf("size hints after SetGrid = %+v", h)
+	}
+	if h.BaseWidth != 10 || h.BaseHeight != 6 || h.MinWidth != 10+7 || h.MinHeight != 6+13 {
+		t.Errorf("base %dx%d min %dx%d, want base 10x6 min 17x19", h.BaseWidth, h.BaseHeight, h.MinWidth, h.MinHeight)
+	}
+
+	other := &window.Window{Display: w.Display, Parent: w}
+	info.SetGrid(other, 1, 1, 2, 2)
+	if s.sizeHints.WidthInc != 7 {
+		t.Error("a second window took over the grid")
+	}
+	info.UnsetGrid(other)
+	if s.sizeHints.WidthInc != 7 {
+		t.Error("UnsetGrid by a window that does not grid cleared the grid")
+	}
+
+	info.UnsetGrid(grid)
+	h = s.sizeHints
+	if h.Flags&platform.PBaseSize != 0 || h.WidthInc != 1 || h.HeightInc != 1 || h.MinWidth != 1 {
+		t.Errorf("size hints after UnsetGrid = %+v", h)
+	}
+}

@@ -281,27 +281,15 @@ func (t *TextWidget) computeGeometry() {
 	w.ReqWidth = t.prefWidth*avgWidth + 2*t.insetX
 	w.ReqHeight = t.prefHeight*lineHeight + 2*t.insetY
 
-	if t.setGrid {
-		t.applySetGrid(avgWidth, lineHeight)
+	// -setgrid: the toplevel resizes in whole character cells
+	// (Tk_SetGrid in TextWorldChanged; Tk_UnsetGrid when it goes off).
+	if top := window.Toplevel(t.Win); top != nil && top.WmData != nil {
+		if t.setGrid {
+			top.WmData.SetGrid(t.Win, t.prefWidth, t.prefHeight, avgWidth, lineHeight)
+		} else {
+			top.WmData.UnsetGrid(t.Win)
+		}
 	}
-}
-
-// applySetGrid sets the WM size-increment hints on the nearest toplevel so the
-// window resizes in whole character steps (Tk's -setgrid 1 behaviour).
-func (t *TextWidget) applySetGrid(charW, lineH int) {
-	top := window.Toplevel(t.Win)
-	if top == nil || top.PlatformID == 0 {
-		return
-	}
-	inset := 2 * t.inset
-	hints := &platform.SizeHints{
-		Flags:     platform.PResizeInc | platform.PMinSize,
-		WidthInc:  charW,
-		HeightInc: lineH,
-		MinWidth:  inset + charW,
-		MinHeight: inset + lineH,
-	}
-	t.App.Server().SetWMNormalHints(top.PlatformID, hints)
 }
 
 // Display schedules a redraw; like Tk's REDRAW_PENDING, any number of
@@ -586,6 +574,9 @@ func (t *TextWidget) Destroy() {
 		return
 	}
 	t.Destroyed = true
+	if top := window.Toplevel(t.Win); top != nil && top.WmData != nil {
+		top.WmData.UnsetGrid(t.Win)
+	}
 	d := t.Win.Display.Server
 	if t.pixmap != 0 {
 		d.FreePixmap(t.pixmap)
@@ -790,7 +781,7 @@ func (t *TextWidget) positionEmbeddedWindows(dlines []displayLine) {
 		}
 		if !visible {
 			d.UnmapWindow(ew.win.PlatformID)
-			ew.win.Flags &^= window.FlagMapped
+			window.MarkUnmapped(ew.win)
 		}
 	}
 }

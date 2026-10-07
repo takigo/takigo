@@ -104,7 +104,9 @@ func LookupPadding(s *Style, name string, state State, fallback Padding) Padding
 	case screenunit.Distance:
 		return UniformPadding(p.Pixels())
 	case string:
-		return ParsePadding(p)
+		if pad, err := ParsePadding(p); err == nil {
+			return pad
+		}
 	}
 	return fallback
 }

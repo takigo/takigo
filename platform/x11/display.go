@@ -518,6 +518,8 @@ func (s *X11Display) SetWMNormalHints(w platform.WindowID, hints *platform.SizeH
 		MaxHeight:  hints.MaxHeight,
 		WidthInc:   hints.WidthInc,
 		HeightInc:  hints.HeightInc,
+		BaseWidth:  hints.BaseWidth,
+		BaseHeight: hints.BaseHeight,
 		WinGravity: hints.WinGravity,
 	})
 }

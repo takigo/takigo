@@ -7,7 +7,6 @@ import (
 	"github.com/takigo/takigo/draw"
 
 	"github.com/takigo/takigo/event"
-	"github.com/takigo/takigo/geometry/place"
 	"github.com/takigo/takigo/option"
 	"github.com/takigo/takigo/platform"
 	"github.com/takigo/takigo/screenunit"
@@ -91,10 +90,6 @@ func New(parent widget.Caregiver, name string, opts ...FrameOption) *Frame {
 
 	app.Dispatcher().Bind(w.PlatformID, event.StructureNotifyMask, func(ev *event.Event) {
 		if ev.Type == event.ConfigureType {
-			w.Width = ev.ConfigWidth
-			w.Height = ev.ConfigHeight
-			// Re-run place geometry manager if any children use place.
-			place.ArrangeContainer(w)
 			f.Display()
 			w.NotifyConfigure()
 		}

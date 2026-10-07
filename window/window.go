@@ -45,6 +45,11 @@ type WmInfo interface {
 	// ConfigureNotify handles the toplevel's reported size before the
 	// window takes it, recording a user resize as its geometry.
 	ConfigureNotify(w, h int)
+	// SetGrid makes the toplevel resize in steps of widthInc x heightInc
+	// pixels on behalf of gridWin, whose request is reqWidth x reqHeight
+	// grid units (Tk_SetGrid); UnsetGrid cancels it.
+	SetGrid(gridWin *Window, reqWidth, reqHeight, widthInc, heightInc int)
+	UnsetGrid(gridWin *Window)
 }
 
 // Window represents a single window in the takigo hierarchy.

@@ -72,13 +72,14 @@ const (
 
 // SizeHints holds XSizeHints data.
 type SizeHints struct {
-	Flags               int64
-	X, Y                int
-	Width, Height       int
-	MinWidth, MinHeight int
-	MaxWidth, MaxHeight int
-	WidthInc, HeightInc int
-	WinGravity          int
+	Flags                 int64
+	X, Y                  int
+	Width, Height         int
+	MinWidth, MinHeight   int
+	MaxWidth, MaxHeight   int
+	WidthInc, HeightInc   int
+	BaseWidth, BaseHeight int
+	WinGravity            int
 }
 
 // SetWMNormalHints sets the WM_NORMAL_HINTS property.
@@ -95,6 +96,8 @@ func (d *Display) SetWMNormalHints(w Window, hints *SizeHints) {
 	sh.max_height = C.int(hints.MaxHeight)
 	sh.width_inc = C.int(hints.WidthInc)
 	sh.height_inc = C.int(hints.HeightInc)
+	sh.base_width = C.int(hints.BaseWidth)
+	sh.base_height = C.int(hints.BaseHeight)
 	sh.win_gravity = C.int(hints.WinGravity)
 	C.XSetWMNormalHints(d.ptr, C.Window(w), &sh)
 }

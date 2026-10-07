@@ -2,8 +2,10 @@ package ttk_test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/takigo/takigo/geometry/pack"
+	"github.com/takigo/takigo/geometry/place"
 	"github.com/takigo/takigo/internal/testutil"
 	"github.com/takigo/takigo/ttk"
 	_ "github.com/takigo/takigo/ttk/defaulttheme"
@@ -60,5 +62,42 @@ func TestConfigureRelaysOutParent(t *testing.T) {
 	app.UpdateIdleTasks()
 	if f.Win.ReqWidth != frameW+40 {
 		t.Errorf("FramePadding: frame request = %d, want %d", f.Win.ReqWidth, frameW+40)
+	}
+}
+
+// Hiding a notebook pane runs the unmap hooks of the geometry managers, so
+// content placed -in the pane from elsewhere is unmapped with it
+// (Tk_MaintainGeometry).
+func TestNotebookUnmapsContentPlacedInHiddenPane(t *testing.T) {
+	app := testutil.NewTestApp(t)
+	nb := ttk.NewNotebook(app, "nb")
+	pack.Pack(nb)
+	first := ttk.NewFrame(nb, "first")
+	second := ttk.NewFrame(nb, "second")
+	nb.Add(first.Win, "First")
+	nb.Add(second.Win, "Second")
+	floating := ttk.NewLabel(app, "floating", ttk.LabelText("in the second pane"))
+	place.Place(floating, place.In(second), place.X(5), place.Y(5))
+
+	// The root is mapped when the loop starts, so check from inside it.
+	var shown, hidden, reshown bool
+	app.After(50*time.Millisecond, func() {
+		defer app.Quit()
+		nb.Select(1)
+		shown = floating.Win.IsMapped()
+		nb.Select(0)
+		hidden = !floating.Win.IsMapped()
+		nb.Select(1)
+		reshown = floating.Win.IsMapped()
+	})
+	app.MainLoop()
+	if !shown {
+		t.Fatal("content placed in the selected pane is not mapped")
+	}
+	if !hidden {
+		t.Error("content placed in a hidden pane stayed mapped")
+	}
+	if !reshown {
+		t.Error("content not remapped with its pane")
 	}
 }

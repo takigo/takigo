@@ -91,7 +91,7 @@ func (nb *Notebook) Add(pane *window.Window, text string) {
 	} else {
 		// Unmap the new pane (not selected).
 		pane.Display.Server.UnmapWindow(pane.PlatformID)
-		pane.Flags &^= window.FlagMapped
+		window.MarkUnmapped(pane)
 		nb.Display()
 	}
 }
@@ -170,7 +170,6 @@ func (nb *Notebook) Select(index int) {
 	if index < 0 || index >= len(nb.tabs) {
 		return
 	}
-	old := nb.selected
 	nb.selected = index
 
 	// Map selected pane, unmap others.
@@ -182,9 +181,8 @@ func (nb *Notebook) Select(index int) {
 			window.MarkMapped(tab.Window)
 		} else {
 			tab.Window.Display.Server.UnmapWindow(tab.Window.PlatformID)
-			tab.Window.Flags &^= window.FlagMapped
+			window.MarkUnmapped(tab.Window)
 		}
-		_ = old
 	}
 
 	nb.Display()
@@ -194,17 +192,23 @@ func (nb *Notebook) Select(index int) {
 const nbClientBorder = 1
 
 // SetPanePadding sets a tab's -padding (a Tk padding spec such as "1.5p"):
-// extra space between the notebook's client area and the pane.
-func (nb *Notebook) SetPanePadding(index int, spec string) {
+// extra space between the notebook's client area and the pane. A bad spec
+// is an error wrapping screenunit.ErrBadDistance and changes nothing.
+func (nb *Notebook) SetPanePadding(index int, spec string) error {
 	if index < 0 || index >= len(nb.tabs) {
-		return
+		return nil
 	}
-	nb.tabs[index].PanePad = ParsePadding(spec)
+	pad, err := ParsePadding(spec)
+	if err != nil {
+		return err
+	}
+	nb.tabs[index].PanePad = pad
 	nb.updateReqSize()
 	if index == nb.selected {
 		nb.layoutPane(nb.tabs[index])
 	}
 	nb.Display()
+	return nil
 }
 
 // TabCount returns the number of tabs.

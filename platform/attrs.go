@@ -30,7 +30,10 @@ type SizeHints struct {
 	MinWidth, MinHeight int
 	MaxWidth, MaxHeight int
 	WidthInc, HeightInc int
-	WinGravity          int
+	// BaseWidth and BaseHeight (PBaseSize) are the size at which the
+	// increments count from, for a gridded window (Tk_SetGrid).
+	BaseWidth, BaseHeight int
+	WinGravity            int
 }
 
 // WMHints holds window manager hints.
@@ -148,6 +151,7 @@ const (
 	PMinSize    = 1 << 4
 	PMaxSize    = 1 << 5
 	PResizeInc  = 1 << 6
+	PBaseSize   = 1 << 8
 	PWinGravity = 1 << 9
 )
 

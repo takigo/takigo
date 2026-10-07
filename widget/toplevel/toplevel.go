@@ -168,7 +168,7 @@ func (t *Toplevel) Show() {
 func (t *Toplevel) Hide() {
 	if t.Win.PlatformID != platform.WindowID(0) {
 		t.WmInfo.Withdraw()
-		t.Win.Flags &^= window.FlagMapped
+		window.MarkUnmapped(t.Win)
 	}
 }
 

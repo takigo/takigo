@@ -91,8 +91,6 @@ func (t *TextWidget) handleExpose(ev *event.Event) {
 // handleConfigure handles ConfigureNotify (resize) events.
 func (t *TextWidget) handleConfigure(ev *event.Event) {
 	if ev.Type == event.ConfigureType {
-		t.Win.Width = ev.ConfigWidth
-		t.Win.Height = ev.ConfigHeight
 		t.inset = t.BorderWidth + t.HighlightWidth
 		t.notifyYScrollbar()
 		t.Display()

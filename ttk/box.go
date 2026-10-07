@@ -1,6 +1,7 @@
 package ttk
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/takigo/takigo/option"
@@ -55,24 +56,32 @@ func UniformDistancePadding(d screenunit.Distance) Padding {
 
 // ParsePadding parses a Tk padding spec of 1-4 distances ("2.25p",
 // "7.5p 2.25p", "1.5p 0 7.5p 0"), as Ttk_GetPaddingFromObj does: missing
-// right/bottom values default to left/top.
-func ParsePadding(spec string) Padding {
+// right/bottom values default to left/top. A bad distance is an error
+// wrapping screenunit.ErrBadDistance.
+func ParsePadding(spec string) (Padding, error) {
 	f := strings.Fields(spec)
-	px := func(i int) int {
-		d, _ := screenunit.Parse(f[i])
-		return d.Pixels()
+	if len(f) > 4 {
+		return Padding{}, fmt.Errorf("ttk: padding %q: %w", spec, screenunit.ErrBadDistance)
+	}
+	var px [4]int
+	for i, s := range f {
+		d, err := screenunit.Parse(s)
+		if err != nil {
+			return Padding{}, fmt.Errorf("ttk: padding %q: %w", spec, err)
+		}
+		px[i] = d.Pixels()
 	}
 	switch len(f) {
 	case 0:
-		return Padding{}
+		return Padding{}, nil
 	case 1:
-		return UniformPadding(px(0))
+		return UniformPadding(px[0]), nil
 	case 2:
-		return Padding{px(0), px(1), px(0), px(1)}
+		return Padding{px[0], px[1], px[0], px[1]}, nil
 	case 3:
-		return Padding{px(0), px(1), px(2), px(1)}
+		return Padding{px[0], px[1], px[2], px[1]}, nil
 	default:
-		return Padding{px(0), px(1), px(2), px(3)}
+		return Padding{px[0], px[1], px[2], px[3]}, nil
 	}
 }
 

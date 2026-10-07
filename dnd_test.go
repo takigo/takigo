@@ -8,6 +8,7 @@ import (
 	"github.com/takigo/takigo/event"
 	"github.com/takigo/takigo/internal/displaylock"
 	"github.com/takigo/takigo/platform"
+	"github.com/takigo/takigo/widget/frame"
 )
 
 func TestURIListFiles(t *testing.T) {
@@ -309,5 +310,29 @@ func TestStartDragOntoAnotherClient(t *testing.T) {
 	source.RunOnMain(func() { source.StartDrag(source, DragData{}, func(dropped bool) { results <- dropped }) })
 	if result() {
 		t.Error("an empty drag was reported as dropped")
+	}
+}
+
+// A drop handler goes away with its window, so destroyed widgets do not
+// accumulate in the drop table.
+func TestOnDropHandlerFollowsWindow(t *testing.T) {
+	if !haveDisplayBackend {
+		t.Skip("no display backend in this build (cgo disabled)")
+	}
+	displaylock.Require(t)
+	app, err := NewApp(Size(50, 50))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer app.Destroy()
+	f := frame.New(app, "f")
+	app.OnDrop(f, func(Drop) {})
+	app.OnDrop(f, func(Drop) {})
+	if len(app.dnd.handlers) != 1 {
+		t.Fatalf("%d drop handlers registered, want 1", len(app.dnd.handlers))
+	}
+	f.Destroy()
+	if len(app.dnd.handlers) != 0 {
+		t.Errorf("%d drop handlers left after destroying the window, want 0", len(app.dnd.handlers))
 	}
 }

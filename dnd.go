@@ -79,6 +79,9 @@ func (a *App) OnDrop(w window.Windower, handler func(Drop)) {
 		delete(a.dnd.handlers, win)
 		return
 	}
+	if _, ok := a.dnd.handlers[win]; !ok {
+		win.OnDestroy(func() { delete(a.dnd.handlers, win) })
+	}
 	a.dnd.handlers[win] = handler
 	// The source looks for XdndAware on the toplevel under the pointer.
 	if top := window.Toplevel(win); top != nil && top.PlatformID != 0 {

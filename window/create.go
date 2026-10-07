@@ -65,10 +65,6 @@ func CreateMainWindow(d *Display, x, y, width, height int) *Window {
 		d.Server.StoreName(w.PlatformID, w.Name)
 	}
 
-	// Set WM_DELETE_WINDOW protocol.
-	protocols := []platform.AtomID{d.WMDeleteWindow}
-	d.Server.SetWMProtocols(w.PlatformID, protocols)
-
 	// Create a default GC for drawing.
 	w.GC = d.Server.CreateGC(w.Drawable(), platform.GCForeground|platform.GCBackground, &platform.GCValues{
 		Foreground: d.BlackPixel,
