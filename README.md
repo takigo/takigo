@@ -81,6 +81,17 @@ go test -short ./...   # display tests use a private Xvfb if installed
 
 See [CONTRIBUTING.md](CONTRIBUTING.md).
 
+## Authors
+
+takigo is written by Mikhail Sorochan and the takigo contributors, with
+the assistance of AI coding agents.
+
+It is a port of Tk and would not exist without the work of Tk's authors:
+the Regents of the University of California, Sun Microsystems, Inc.,
+Scriptics Corporation, ActiveState Corporation, Apple Inc. and the many
+contributors to the Tcl/Tk project. Their copyright notice is retained in
+[LICENSE](LICENSE). See also [AUTHORS](AUTHORS).
+
 ## License
 
 takigo is distributed under the same BSD-style terms as Tk; see [LICENSE](LICENSE).

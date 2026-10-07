@@ -1,0 +1,11 @@
+takigo authors
+==============
+
+Mikhail Sorochan <msorc@yandex.ru>
+The takigo contributors (see `git shortlog -sne`)
+
+With the assistance of AI coding agents.
+
+takigo is a port of Tk. Tk is copyrighted by the Regents of the University
+of California, Sun Microsystems, Inc., Scriptics Corporation, ActiveState
+Corporation, Apple Inc. and other parties; see LICENSE.
