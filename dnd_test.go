@@ -1,7 +1,6 @@
 package takigo
 
 import (
-	"os"
 	"slices"
 	"testing"
 	"time"
@@ -80,11 +79,10 @@ func uncoveredPoint(t *testing.T, probe, app *App) (x, y int) {
 // One App plays the drag source of the XDND protocol by hand and drops a
 // file list and then text on another App, a separate X client.
 func TestDropFromAnotherClient(t *testing.T) {
-	displaylock.UseVirtualDisplay()
-	if os.Getenv("DISPLAY") == "" || !haveDisplayBackend {
-		t.Skip("needs an X display")
+	if !haveDisplayBackend {
+		t.Skip("no display backend in this build (cgo disabled)")
 	}
-	displaylock.Acquire(t)
+	displaylock.Require(t)
 	settle()
 
 	target, err := NewApp(Title("target"), Size(200, 150), Geometry("+0+0"))
@@ -198,11 +196,10 @@ func TestDropFromAnotherClient(t *testing.T) {
 // A real drag: StartDrag in one App, the pointer simulated by motion and
 // release events carrying root coordinates, dropped on another App.
 func TestStartDragOntoAnotherClient(t *testing.T) {
-	displaylock.UseVirtualDisplay()
-	if os.Getenv("DISPLAY") == "" || !haveDisplayBackend {
-		t.Skip("needs an X display")
+	if !haveDisplayBackend {
+		t.Skip("no display backend in this build (cgo disabled)")
 	}
-	displaylock.Acquire(t)
+	displaylock.Require(t)
 	settle()
 
 	target, err := NewApp(Title("target"), Size(200, 150), Geometry("+0+0"))

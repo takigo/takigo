@@ -61,7 +61,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y libx11-dev libxft-dev libfontconfig1-dev
       - uses: golangci/golangci-lint-action@v8
         with:
-          version: latest
+          version: v2.13.2
           only-new-issues: true
 
   api:
@@ -90,7 +90,7 @@ jobs:
           go-version-file: go.mod
       - name: Install X11 development packages
         run: sudo apt-get update && sudo apt-get install -y libx11-dev libxft-dev libfontconfig1-dev
-      - run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+      - run: go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 ./...
 
   no-cgo:
     # Widgets, ttk and the pure-logic packages must build, and their

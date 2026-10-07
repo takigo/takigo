@@ -9,7 +9,7 @@
 #   <demo>_tcl.png      -- Tcl screenshot
 #   <demo>_diff.png     -- Pixel-level difference heatmap
 #   <demo>_side.png     -- Side-by-side montage for easy viewing
-#   <demo>_tree.txt     -- Structural diff (cmd/demodiff), when both sides
+#   <demo>_tree.txt     -- Structural diff (internal/cmd/demodiff), when both sides
 #   <demo>_tree.json       wrote a widget-tree dump (DUMP_TREE=1, default)
 #
 # Prints a diff score (odiff diff percentage, lower = more similar) to stdout.

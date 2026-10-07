@@ -3,7 +3,6 @@ package testutil
 
 import (
 	"image"
-	"os"
 	"testing"
 	"time"
 
@@ -20,11 +19,7 @@ func RequireDisplay(t testing.TB) {
 	if !haveBackend {
 		t.Skip("no display backend in this build (cgo disabled)")
 	}
-	displaylock.UseVirtualDisplay()
-	if os.Getenv("DISPLAY") == "" && os.Getenv("WAYLAND_DISPLAY") == "" {
-		t.Skip("no display available (set DISPLAY or use xvfb-run)")
-	}
-	displaylock.Acquire(t)
+	displaylock.Require(t)
 }
 
 // NewTestApp creates a takigo App for testing and registers cleanup.

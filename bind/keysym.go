@@ -1,5 +1,3 @@
-// Package bind provides a Tk-compatible event binding engine with pattern
-// matching, tag-based dispatch chains, virtual events, and double-click support.
 package bind
 
 import (

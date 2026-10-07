@@ -1,4 +1,3 @@
-// Package bind implements the Tk binding system.
 package bind
 
 import (

@@ -3,7 +3,6 @@
 package xft
 
 import (
-	"os"
 	"strings"
 	"testing"
 
@@ -15,10 +14,7 @@ import (
 
 func openTestXft(t testing.TB) *XftFont {
 	t.Helper()
-	displaylock.UseVirtualDisplay()
-	if os.Getenv("DISPLAY") == "" {
-		t.Skip("no display available (set DISPLAY or use xvfb-run)")
-	}
+	displaylock.Require(t)
 	dpy, err := xlib.OpenDisplay("")
 	if err != nil {
 		t.Skip(err)

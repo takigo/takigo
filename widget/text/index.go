@@ -1,5 +1,3 @@
-// Package text implements a multi-line text editor widget.
-// It ports a practical subset of tk/generic/tkText*.c.
 package text
 
 import (

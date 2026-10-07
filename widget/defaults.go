@@ -1,4 +1,5 @@
-// Package widget default values ported from tk/unix/tkUnixDefault.h.
+// Default values ported from tk/unix/tkUnixDefault.h.
+
 package widget
 
 // Default color strings used by InitBase.

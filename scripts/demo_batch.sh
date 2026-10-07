@@ -19,7 +19,7 @@
 # Output:
 #   tmp/screenshots/<demo>_*.png      for each demo
 #   tmp/screenshots/scores.tsv        demo, tcl, score, tree diffs, sizes, stability
-#   tmp/screenshots/<demo>_tree.txt   structural diff per demo (cmd/demodiff)
+#   tmp/screenshots/<demo>_tree.txt   structural diff per demo (internal/cmd/demodiff)
 #   tmp/screenshots/scores_sorted.txt "score go tcl", worst first
 # A score of 9999 marks a failed comparison.
 

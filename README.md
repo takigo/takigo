@@ -13,7 +13,7 @@ constructors and functional options.
 - **No third-party dependencies**: the module needs only the Go standard library.
 - **Three backends**: X11 (Linux/BSD, cgo over Xlib and Xft), macOS (cgo over
   AppKit) and Windows (pure Go).
-- **Tracks Tk**: the sources mirror Tk's, and the 67 demos under
+- **Tracks Tk**: the sources mirror Tk's, and the 68 demos under
   `demos/`, most of them ports of Tk's own, are compared against `wish`
   screenshot by screenshot.
 

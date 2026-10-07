@@ -5,6 +5,10 @@ version is 0, a minor release may break the API and says so here.
 
 ## Unreleased
 
+- `demos/busy` shows the `busy` package (additive). The test programs under
+  `cmd/` are gone, each overlapped by a demo; the comparison tools moved to
+  `internal/cmd/`.
+
 ## v0.2.0 (2026-10-07)
 
 v0.1.0 is the last version with the original, Tk-shaped API. The changes
