@@ -302,20 +302,10 @@ func (nb *Notebook) Display() {
 		return
 	}
 
-	// Allocate or resize pixmap.
-	if nb.pixmap == 0 || nb.pixmapW != width || nb.pixmapH != height {
-		if nb.pixmap != 0 {
-			d.FreePixmap(nb.pixmap)
-		}
-		nb.pixmap = d.CreatePixmap(win.Drawable(), uint(width), uint(height), uint(win.Depth))
-		nb.pixmapW = width
-		nb.pixmapH = height
-	}
-	if nb.pixmap == 0 {
+	pixDrawable := nb.backBuffer(width, height)
+	if pixDrawable == 0 {
 		return
 	}
-
-	pixDrawable := platform.PixmapDrawable(nb.pixmap)
 
 	bg := LookupColor(nb.Context.Style, "-background", 0, 0xd9d9d9)
 	d.SetForeground(gc, bg)
@@ -381,10 +371,7 @@ func (nb *Notebook) Display() {
 			textY := tab.Padding.Top + m.Ascent
 
 			if df, ok := nb.Font.(platform.DrawableFont); ok {
-				r := uint16((fgPixel>>16)&0xFF) * 257
-				g := uint16((fgPixel>>8)&0xFF) * 257
-				b := uint16((fgPixel)&0xFF) * 257
-				df.DrawString(pixDrawable, textX, textY, tab.Text, fgPixel, r, g, b)
+				drawString(df, pixDrawable, textX, textY, tab.Text, fgPixel)
 			}
 
 			// Underline a specific character for Alt+letter keyboard shortcut.

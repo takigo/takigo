@@ -181,17 +181,10 @@ func (ts *Toggleswitch) Display() {
 	if width <= 0 || height <= 0 {
 		return
 	}
-	if ts.pixmap == 0 || ts.pixmapW != width || ts.pixmapH != height {
-		if ts.pixmap != 0 {
-			d.FreePixmap(ts.pixmap)
-		}
-		ts.pixmap = d.CreatePixmap(win.Drawable(), uint(width), uint(height), uint(win.Depth))
-		ts.pixmapW, ts.pixmapH = width, height
-	}
-	if ts.pixmap == 0 {
+	pix := ts.backBuffer(width, height)
+	if pix == 0 {
 		return
 	}
-	pix := platform.PixmapDrawable(ts.pixmap)
 
 	bg := uint64(0xd9d9d9)
 	if ts.Context != nil && ts.Context.Style != nil {
@@ -221,10 +214,7 @@ func (ts *Toggleswitch) Display() {
 		if df, ok := ts.Font.(platform.DrawableFont); ok {
 			fg := LookupColor(ts.Context.Style, "-foreground", ts.State, 0x000000)
 			m := ts.Font.Metrics()
-			r := uint16((fg>>16)&0xFF) * 257
-			g := uint16((fg>>8)&0xFF) * 257
-			b := uint16(fg&0xFF) * 257
-			df.DrawString(pix, tx+tw+6, (height-m.Linespace())/2+m.Ascent, ts.Text, fg, r, g, b)
+			drawString(df, pix, tx+tw+6, (height-m.Linespace())/2+m.Ascent, ts.Text, fg)
 		}
 	}
 

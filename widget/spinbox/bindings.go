@@ -4,7 +4,6 @@ import (
 	"github.com/takigo/takigo/event"
 	"github.com/takigo/takigo/platform"
 	"github.com/takigo/takigo/widget"
-	"github.com/takigo/takigo/widget/entryutil"
 )
 
 // bindSpinbox registers all event handlers for the spinbox widget.
@@ -47,52 +46,7 @@ func bindSpinbox(s *Spinbox, app widget.AppContext) {
 
 	// Keyboard.
 	app.Dispatcher().Bind(w.PlatformID, event.KeyPressMask, s.handleKeyPress)
-	app.Dispatcher().Bind(w.PlatformID, event.VirtualMask, s.handleVirtual)
-}
-
-// handleVirtual handles the input method's virtual events as the entry
-// does. library/spinbox.tcl has no such bindings, which leaves every
-// intermediate composition behind in a Tk spinbox.
-func (s *Spinbox) handleVirtual(ev *event.Event) {
-	switch ev.Name {
-	case event.IMEStart:
-		s.imeMark = s.InsertPos
-		return
-	case event.IMEEnd:
-		if s.imeMark < s.InsertPos && s.InsertPos <= len(s.text) {
-			s.SelFirst, s.SelLast, s.SelAnchor = s.imeMark, s.InsertPos, s.imeMark
-		}
-	case event.IMEClear:
-		first := min(s.imeMark, len(s.text))
-		if first < s.InsertPos {
-			if !s.tryEdit(string(s.text[:first]) + string(s.text[s.InsertPos:])) {
-				return
-			}
-			s.DeleteChars(first, s.InsertPos-first)
-		}
-	case event.AccentBackspace:
-		s.backspace()
-	default:
-		return
-	}
-	s.seeInsert()
-	s.Display()
-}
-
-// backspace deletes the selection, or the character before the insertion
-// cursor (tk::EntryBackspace).
-func (s *Spinbox) backspace() {
-	if s.SelFirst >= 0 {
-		prospective := string(s.text[:s.SelFirst]) + string(s.text[s.SelLast:])
-		if s.tryEdit(prospective) {
-			s.DeleteSelection()
-		}
-	} else if s.InsertPos > 0 {
-		prospective := string(s.text[:s.InsertPos-1]) + string(s.text[s.InsertPos:])
-		if s.tryEdit(prospective) {
-			s.DeleteChars(s.InsertPos-1, 1)
-		}
-	}
+	app.Dispatcher().Bind(w.PlatformID, event.VirtualMask, s.edit.HandleVirtual)
 }
 
 // handleExpose handles Exposure events.
@@ -165,123 +119,21 @@ func (s *Spinbox) handleMotion(ev *event.Event) {
 		if s.hitButton(ev.X, ev.Y) != "" {
 			return
 		}
-		pos := s.closestGap(ev.X)
-		if pos < s.SelAnchor {
-			s.SelFirst = pos
-			s.SelLast = s.SelAnchor
-		} else {
-			s.SelFirst = s.SelAnchor
-			s.SelLast = pos
-		}
-		s.InsertPos = pos
+		s.ExtendTo(s.closestGap(ev.X))
 		s.seeInsert()
 		s.Display()
 	}
 }
 
-// handleKeyPress handles keyboard events.
+// handleKeyPress spins on Up and Down (library/spinbox.tcl) and edits the
+// text as an entry does otherwise.
 func (s *Spinbox) handleKeyPress(ev *event.Event) {
-	shift := ev.State&platform.ShiftMask != 0
-	ctrl := ev.State&(platform.ControlMask|platform.CommandMask) != 0
-
 	switch ev.KeySym {
 	case platform.XK_Up:
 		s.SpinUp()
 	case platform.XK_Down:
 		s.SpinDown()
-
-	case platform.XK_Left:
-		if ctrl {
-			moveCursor(s, entryutil.WordStart(s.text, s.InsertPos), shift)
-		} else {
-			moveCursor(s, s.InsertPos-1, shift)
-		}
-	case platform.XK_Right:
-		if ctrl {
-			moveCursor(s, entryutil.WordEnd(s.text, s.InsertPos), shift)
-		} else {
-			moveCursor(s, s.InsertPos+1, shift)
-		}
-	case platform.XK_Home:
-		moveCursor(s, 0, shift)
-	case platform.XK_End:
-		moveCursor(s, len(s.text), shift)
-
-	case platform.XK_BackSpace:
-		s.backspace()
-	case platform.XK_Delete:
-		if s.SelFirst >= 0 {
-			prospective := string(s.text[:s.SelFirst]) + string(s.text[s.SelLast:])
-			if s.tryEdit(prospective) {
-				s.DeleteSelection()
-			}
-		} else if s.InsertPos < len(s.text) {
-			prospective := string(s.text[:s.InsertPos]) + string(s.text[s.InsertPos+1:])
-			if s.tryEdit(prospective) {
-				s.DeleteChars(s.InsertPos, 1)
-			}
-		}
-
 	default:
-		if ctrl {
-			if ev.KeySym == platform.KeySym(0x0061) { // XK_a
-				s.SelectAll()
-				s.Display()
-			}
-			return
-		}
-		// Insert printable characters.
-		insertStr := ev.Str
-		if insertStr == "" {
-			if r := platform.KeySymToRune(ev.KeySym); r > 0 {
-				insertStr = string(r)
-			}
-		}
-		if insertStr != "" && insertStr[0] >= 32 {
-			var prospective string
-			if s.SelFirst >= 0 {
-				prospective = string(s.text[:s.SelFirst]) + insertStr + string(s.text[s.SelLast:])
-			} else {
-				prospective = string(s.text[:s.InsertPos]) + insertStr + string(s.text[s.InsertPos:])
-			}
-			if s.tryEdit(prospective) {
-				if s.SelFirst >= 0 {
-					s.DeleteSelection()
-				}
-				s.InsertChars(s.InsertPos, insertStr)
-			}
-		}
+		s.edit.HandleKey(ev)
 	}
-}
-
-// moveCursor moves the cursor, optionally extending selection.
-func moveCursor(s *Spinbox, newPos int, shift bool) {
-	if newPos < 0 {
-		newPos = 0
-	}
-	if newPos > len(s.text) {
-		newPos = len(s.text)
-	}
-
-	if shift {
-		if s.SelFirst < 0 {
-			s.SelAnchor = s.InsertPos
-		}
-		if newPos < s.SelAnchor {
-			s.SelFirst = newPos
-			s.SelLast = s.SelAnchor
-		} else {
-			s.SelFirst = s.SelAnchor
-			s.SelLast = newPos
-		}
-		if s.SelFirst == s.SelLast {
-			s.ClearSelection()
-		}
-	} else {
-		s.ClearSelection()
-	}
-
-	s.InsertPos = newPos
-	s.seeInsert()
-	s.Display()
 }

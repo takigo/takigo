@@ -8,7 +8,7 @@ import (
 	"github.com/takigo/takigo/option"
 	"github.com/takigo/takigo/platform"
 	"github.com/takigo/takigo/screenunit"
-	"github.com/takigo/takigo/ttk/entrytext"
+	"github.com/takigo/takigo/ttk/internal/entrytext"
 	"github.com/takigo/takigo/widget"
 	"github.com/takigo/takigo/window"
 )
@@ -210,20 +210,10 @@ func (c *Combobox) Display() {
 		return
 	}
 
-	// Double buffer.
-	if c.pixmap == 0 || c.pixmapW != width || c.pixmapH != height {
-		if c.pixmap != 0 {
-			d.FreePixmap(c.pixmap)
-		}
-		c.pixmap = d.CreatePixmap(win.Drawable(), uint(width), uint(height), uint(win.Depth))
-		c.pixmapW = width
-		c.pixmapH = height
-	}
-	if c.pixmap == 0 {
+	pixDrawable := c.backBuffer(width, height)
+	if pixDrawable == 0 {
 		return
 	}
-
-	pixDrawable := platform.PixmapDrawable(c.pixmap)
 
 	st := c.Context.Style
 	bg := LookupColor(st, "-background", c.State, 0xd9d9d9)
@@ -268,90 +258,25 @@ func (c *Combobox) Display() {
 	d.DrawLines(pixDrawable, gc, append(pts, pts[0]), 0)
 	d.DrawLine(pixDrawable, gc, int(pts[2].X), int(pts[2].Y), int(pts[2].X), int(pts[2].Y))
 
-	// Draw text (with optional selection highlight).
-	textX := c.insetX
-	if c.Font != nil {
-		m := c.Font.Metrics()
-		textY := (height-m.Linespace())/2 + m.Ascent
-		hasSel := c.State&StateFocus != 0 && c.edit.HasSelection()
-
-		// Selection highlight rectangle.
-		if hasSel && len(c.edit.Text) > 0 {
-			sf := c.edit.SelFirst
-			sl := c.edit.SelLast
-			if sf > len(c.edit.Text) {
-				sf = len(c.edit.Text)
-			}
-			if sl > len(c.edit.Text) {
-				sl = len(c.edit.Text)
-			}
-			selStartX := textX + c.Font.MeasureString(string(c.edit.Text[:sf]))
-			selEndX := textX + c.Font.MeasureString(string(c.edit.Text[:sl]))
-			if selStartX < textX {
-				selStartX = textX
-			}
-			if selEndX > arrowX-1 {
-				selEndX = arrowX - 1
-			}
-			if selEndX > selStartX {
-				d.SetForeground(gc, c.selBg)
-				d.FillRectangle(pixDrawable, gc, selStartX, c.insetY,
-					uint(selEndX-selStartX), uint(m.Linespace()))
-			}
-		}
-
-		// Draw text in segments: before selection / selection / after selection.
-		if df, ok := c.Font.(platform.DrawableFont); ok {
-			drawSeg := func(start, end int, clr uint64) {
-				if start >= end || end > len(c.edit.Text) || start < 0 {
-					return
-				}
-				seg := string(c.edit.Text[start:end])
-				segX := textX + c.Font.MeasureString(string(c.edit.Text[:start]))
-				r := uint16((clr>>16)&0xFF) * 257
-				g := uint16((clr>>8)&0xFF) * 257
-				b := uint16((clr)&0xFF) * 257
-				df.DrawString(pixDrawable, segX, textY, seg, clr, r, g, b)
-			}
-			if hasSel && len(c.edit.Text) > 0 {
-				sf := c.edit.SelFirst
-				sl := c.edit.SelLast
-				if sf > len(c.edit.Text) {
-					sf = len(c.edit.Text)
-				}
-				if sl > len(c.edit.Text) {
-					sl = len(c.edit.Text)
-				}
-				drawSeg(0, sf, fg)
-				drawSeg(sf, sl, c.selFg)
-				drawSeg(sl, len(c.edit.Text), fg)
-			} else if len(c.edit.Text) > 0 {
-				drawSeg(0, len(c.edit.Text), fg)
-			}
-		}
+	// The text with its selection and cursor, or the placeholder.
+	ft := fieldText{
+		font: c.Font, text: c.edit.Text, x: c.insetX,
+		left: c.insetX, right: arrowX - 1, top: c.insetY, height: height - 2*c.insetY,
+		selFirst: -1, selLast: -1, cursor: -1,
+		fg: fg, selBg: c.selBg, selFg: c.selFg,
+		insertColor: LookupColor(st, "-insertcolor", c.State, fg),
+		insertWidth: LookupInt(st, "-insertwidth", c.State, 1),
 	}
-
-	if len(c.edit.Text) == 0 && c.Placeholder != "" && c.Font != nil {
-		if df, ok := c.Font.(platform.DrawableFont); ok {
-			ph := LookupColor(st, "-placeholderforeground", c.State, 0xb3b3b3)
-			m := c.Font.Metrics()
-			r := uint16((ph>>16)&0xFF) * 257
-			g := uint16((ph>>8)&0xFF) * 257
-			b := uint16(ph&0xFF) * 257
-			df.DrawString(pixDrawable, textX, (height-m.Linespace())/2+m.Ascent, c.Placeholder, ph, r, g, b)
-		}
+	if len(c.edit.Text) == 0 && c.Placeholder != "" {
+		ft.text = []rune(c.Placeholder)
+		ft.fg = LookupColor(st, "-placeholderforeground", c.State, 0xb3b3b3)
+	} else if c.State&StateFocus != 0 && c.edit.HasSelection() {
+		ft.selFirst, ft.selLast = c.edit.SelFirst, c.edit.SelLast
 	}
-
-	// Draw insertion cursor when focused and editable.
 	if c.State&StateFocus != 0 && c.CbState == ComboNormal {
-		textX := c.insetX
-		cursorX := textX
-		if c.Font != nil && c.edit.InsertPos > 0 {
-			cursorX = textX + c.Font.MeasureString(string(c.edit.Text[:c.edit.InsertPos]))
-		}
-		d.SetForeground(gc, LookupColor(st, "-insertcolor", c.State, fg))
-		d.DrawLine(pixDrawable, gc, cursorX, c.insetY, cursorX, height-c.insetY-1)
+		ft.cursor = c.edit.InsertPos
 	}
+	drawFieldText(d, pixDrawable, gc, ft)
 
 	// Copy to window.
 	d.CopyArea(pixDrawable, win.Drawable(), gc, 0, 0, uint(width), uint(height), 0, 0)
@@ -561,10 +486,7 @@ func (c *Combobox) displayDropdown() {
 			}
 
 			if df, ok := c.Font.(platform.DrawableFont); ok {
-				r := uint16((fg>>16)&0xFF) * 257
-				g := uint16((fg>>8)&0xFF) * 257
-				b := uint16((fg)&0xFF) * 257
-				df.DrawString(dw.Drawable(), 4, textY, val, fg, r, g, b)
+				drawString(df, dw.Drawable(), 4, textY, val, fg)
 			}
 		}
 	}

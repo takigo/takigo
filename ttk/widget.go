@@ -188,20 +188,10 @@ func (w *TtkWidget) Display() {
 		return
 	}
 
-	// Allocate or resize pixmap.
-	if w.pixmap == 0 || w.pixmapW != width || w.pixmapH != height {
-		if w.pixmap != 0 {
-			d.FreePixmap(w.pixmap)
-		}
-		w.pixmap = d.CreatePixmap(win.Drawable(), uint(width), uint(height), uint(win.Depth))
-		w.pixmapW = width
-		w.pixmapH = height
-	}
-	if w.pixmap == 0 {
+	pixDrawable := w.backBuffer(width, height)
+	if pixDrawable == 0 {
 		return
 	}
-
-	pixDrawable := platform.PixmapDrawable(w.pixmap)
 
 	// Clear pixmap with background.
 	bg := LookupColor(w.Context.Style, "-background", w.State, 0xd9d9d9)
@@ -216,6 +206,24 @@ func (w *TtkWidget) Display() {
 	// Copy to window.
 	d.CopyArea(pixDrawable, win.Drawable(), gc, 0, 0, uint(width), uint(height), 0, 0)
 	d.Flush()
+}
+
+// backBuffer returns the widget's pixmap, made or remade at width x height
+// (Tk_GetPixmap in the display procedures), or 0 when the server has none.
+func (w *TtkWidget) backBuffer(width, height int) platform.DrawableID {
+	win := w.Win
+	d := win.Display.Server
+	if w.pixmap == 0 || w.pixmapW != width || w.pixmapH != height {
+		if w.pixmap != 0 {
+			d.FreePixmap(w.pixmap)
+		}
+		w.pixmap = d.CreatePixmap(win.Drawable(), uint(width), uint(height), uint(win.Depth))
+		w.pixmapW, w.pixmapH = width, height
+	}
+	if w.pixmap == 0 {
+		return 0
+	}
+	return platform.PixmapDrawable(w.pixmap)
 }
 
 // ChangeState updates the widget state, redisplaying if changed.

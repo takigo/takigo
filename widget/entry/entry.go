@@ -7,33 +7,23 @@ import (
 	"github.com/takigo/takigo/cursor"
 	"github.com/takigo/takigo/draw"
 	"github.com/takigo/takigo/font"
+	"github.com/takigo/takigo/internal/textedit"
 	"github.com/takigo/takigo/option"
 	"github.com/takigo/takigo/platform"
 	"github.com/takigo/takigo/screenunit"
 	"github.com/takigo/takigo/widget"
-	"github.com/takigo/takigo/widget/entryutil"
+	"github.com/takigo/takigo/widget/internal/entryedit"
 	"github.com/takigo/takigo/window"
 )
 
 // Entry is a single-line text input widget.
 type Entry struct {
 	widget.Base
+	entryedit.Buffer
 
-	// Text state.
-	text     []rune // the content
-	ShowChar rune   // 0 = normal, else password char (e.g. '*')
+	ShowChar rune // 0 = normal, else password char (e.g. '*')
 
-	// Cursor.
-	InsertPos int // rune index of cursor (0..len(text))
-
-	// Selection (half-open interval [SelFirst, SelLast)).
-	SelFirst  int // -1 = no selection
-	SelLast   int // -1 = no selection
-	SelAnchor int // fixed end of selection
-	imeMark   int // insert position when the input method began composing
-
-	// Scroll state.
-	LeftIndex int // rune index of leftmost visible char
+	edit entryedit.Editor
 
 	// Layout.
 	layoutX  int // pixel offset: windowX = charX + layoutX
@@ -73,7 +63,7 @@ type EntryOption func(*Entry)
 
 // Text sets the initial text.
 func Text(s string) EntryOption {
-	return func(e *Entry) { e.text = []rune(s) }
+	return func(e *Entry) { e.Text = []rune(s) }
 }
 
 // Placeholder sets the placeholder text.
@@ -146,15 +136,19 @@ func New(parent widget.Caregiver, name string, opts ...EntryOption) *Entry {
 	window.MakeWindowExist(w)
 
 	e := &Entry{
-		SelFirst:    -1,
-		SelLast:     -1,
 		InsertWidth: 2,
 		PrefWidth:   20,
 		CursorOn:    true,
 		Anchor:      option.AnchorCenter,
 		Justify:     option.JustifyLeft,
 	}
+	e.Init()
 	widget.InitBase(&e.Base, w, app)
+	e.edit = entryedit.Editor{
+		Buf: &e.Buffer, App: app, Win: w,
+		TryEdit: e.tryEdit, Insert: e.InsertChars, Delete: e.DeleteChars,
+		Moved: func() { e.seeInsert(); e.Display() },
+	}
 	e.SetDisplayProc(e.display)
 	w.Class = "Entry"
 
@@ -201,59 +195,21 @@ func New(parent widget.Caregiver, name string, opts ...EntryOption) *Entry {
 
 // GetText returns the entry's text as a string.
 func (e *Entry) GetText() string {
-	return string(e.text)
+	return e.Get()
 }
 
 // SetText sets the entry's text.
 func (e *Entry) SetText(s string) {
-	e.text = []rune(s)
-	if e.InsertPos > len(e.text) {
-		e.InsertPos = len(e.text)
-	}
-	e.ClearSelection()
+	e.Set(s)
 	e.computeGeometry()
 	e.Display()
 }
 
 // InsertChars inserts text at the given rune index.
 func (e *Entry) InsertChars(index int, s string) {
-	if len(s) == 0 {
+	if !e.Insert(index, []rune(s)) {
 		return
 	}
-	runes := []rune(s)
-	count := len(runes)
-
-	if index < 0 {
-		index = 0
-	}
-	if index > len(e.text) {
-		index = len(e.text)
-	}
-
-	// Splice in new text.
-	newText := make([]rune, 0, len(e.text)+count)
-	newText = append(newText, e.text[:index]...)
-	newText = append(newText, runes...)
-	newText = append(newText, e.text[index:]...)
-	e.text = newText
-
-	// Adjust indexes.
-	if e.InsertPos >= index {
-		e.InsertPos += count
-	}
-	if e.SelFirst >= index {
-		e.SelFirst += count
-	}
-	if e.SelLast > index {
-		e.SelLast += count
-	}
-	if e.SelAnchor >= index {
-		e.SelAnchor += count
-	}
-	if e.LeftIndex > index {
-		e.LeftIndex += count
-	}
-
 	e.computeGeometry()
 	e.seeInsert()
 	e.notifyScrollbar()
@@ -262,45 +218,9 @@ func (e *Entry) InsertChars(index int, s string) {
 
 // DeleteChars deletes count runes starting at index.
 func (e *Entry) DeleteChars(index, count int) {
-	if count <= 0 || len(e.text) == 0 {
+	if !e.Delete(index, count) {
 		return
 	}
-	if index < 0 {
-		index = 0
-	}
-	if index >= len(e.text) {
-		return
-	}
-	if index+count > len(e.text) {
-		count = len(e.text) - index
-	}
-
-	// Remove range.
-	e.text = append(e.text[:index], e.text[index+count:]...)
-
-	// Adjust indexes.
-	adjustIndex := func(idx *int) {
-		if *idx < 0 {
-			return
-		}
-		if *idx >= index+count {
-			*idx -= count
-		} else if *idx >= index {
-			*idx = index
-		}
-	}
-	adjustIndex(&e.InsertPos)
-	adjustIndex(&e.SelFirst)
-	adjustIndex(&e.SelLast)
-	adjustIndex(&e.SelAnchor)
-	adjustIndex(&e.LeftIndex)
-
-	// Clear selection if empty.
-	if e.SelFirst >= 0 && e.SelLast <= e.SelFirst {
-		e.SelFirst = -1
-		e.SelLast = -1
-	}
-
 	e.computeGeometry()
 	e.seeInsert()
 	e.notifyScrollbar()
@@ -309,59 +229,21 @@ func (e *Entry) DeleteChars(index, count int) {
 
 // DeleteSelection deletes the selected text.
 func (e *Entry) DeleteSelection() {
-	if e.SelFirst < 0 {
-		return
+	if e.HasSelection() {
+		e.DeleteChars(e.SelFirst, e.SelLast-e.SelFirst)
 	}
-	e.DeleteChars(e.SelFirst, e.SelLast-e.SelFirst)
-}
-
-// ClearSelection clears the selection.
-func (e *Entry) ClearSelection() {
-	e.SelFirst = -1
-	e.SelLast = -1
-}
-
-// SelectRange sets the selection range.
-func (e *Entry) SelectRange(first, last int) {
-	if first < 0 {
-		first = 0
-	}
-	if last > len(e.text) {
-		last = len(e.text)
-	}
-	if first >= last {
-		e.ClearSelection()
-		return
-	}
-	e.SelFirst = first
-	e.SelLast = last
-}
-
-// SelectAll selects all text.
-func (e *Entry) SelectAll() {
-	if len(e.text) > 0 {
-		e.SelectRange(0, len(e.text))
-	}
-}
-
-// SelectedText returns the currently selected text.
-func (e *Entry) SelectedText() string {
-	if e.SelFirst < 0 || e.SelFirst >= e.SelLast {
-		return ""
-	}
-	return string(e.text[e.SelFirst:e.SelLast])
 }
 
 // displayText returns the text to display (handles password mode).
 func (e *Entry) displayText() []rune {
 	if e.ShowChar != 0 {
-		dt := make([]rune, len(e.text))
+		dt := make([]rune, len(e.Text))
 		for i := range dt {
 			dt[i] = e.ShowChar
 		}
 		return dt
 	}
-	return e.text
+	return e.Text
 }
 
 // computeGeometry recalculates layout after text or size changes.
@@ -383,7 +265,7 @@ func (e *Entry) computeGeometry() {
 	e.layoutY = e.inset + m.Ascent
 
 	dt := e.displayText()
-	totalWidth := entryutil.MeasureRunes(e.Font, dt)
+	totalWidth := textedit.MeasureRunes(e.Font, dt)
 	availWidth := max(w.Width-2*e.inset, 1)
 
 	if totalWidth <= availWidth {
@@ -392,14 +274,14 @@ func (e *Entry) computeGeometry() {
 		e.layoutX = e.inset
 	} else {
 		// Clamp leftIndex.
-		maxOff := entryutil.RuneIndexAtPixel(e.Font, dt, totalWidth-availWidth)
+		maxOff := textedit.RuneIndexAtPixel(e.Font, dt, totalWidth-availWidth)
 		if e.LeftIndex > maxOff {
 			e.LeftIndex = maxOff
 		}
 		if e.LeftIndex < 0 {
 			e.LeftIndex = 0
 		}
-		leftCharX := entryutil.MeasureRunes(e.Font, dt[:e.LeftIndex])
+		leftCharX := textedit.MeasureRunes(e.Font, dt[:e.LeftIndex])
 		e.layoutX = e.inset - leftCharX
 	}
 }
@@ -420,7 +302,7 @@ func (e *Entry) seeInsert() {
 		e.LeftIndex = e.InsertPos
 		e.computeGeometry()
 	} else {
-		cursorX := entryutil.MeasureRunes(e.Font, dt[:e.InsertPos]) + e.layoutX
+		cursorX := textedit.MeasureRunes(e.Font, dt[:e.InsertPos]) + e.layoutX
 		if cursorX >= e.Win.Width-e.inset {
 			e.LeftIndex = max(e.InsertPos-availWidth/e.avgWidth, 0)
 			e.computeGeometry()
@@ -430,20 +312,20 @@ func (e *Entry) seeInsert() {
 
 // closestGap returns the rune index of the nearest inter-character gap.
 func (e *Entry) closestGap(x int) int {
-	if e.Font == nil || len(e.text) == 0 {
+	if e.Font == nil || len(e.Text) == 0 {
 		return 0
 	}
 	dt := e.displayText()
 	xInLayout := x - e.layoutX
 
-	idx := entryutil.RuneIndexAtPixel(e.Font, dt, xInLayout)
+	idx := textedit.RuneIndexAtPixel(e.Font, dt, xInLayout)
 	if idx >= len(dt) {
 		return len(dt)
 	}
 
 	// Check if x is past the midpoint of the character.
-	charStart := entryutil.MeasureRunes(e.Font, dt[:idx])
-	charEnd := entryutil.MeasureRunes(e.Font, dt[:idx+1])
+	charStart := textedit.MeasureRunes(e.Font, dt[:idx])
+	charEnd := textedit.MeasureRunes(e.Font, dt[:idx+1])
 	mid := (charStart + charEnd) / 2
 	if xInLayout >= mid {
 		return idx + 1
@@ -456,8 +338,8 @@ func (e *Entry) XView(index int) {
 	if index < 0 {
 		index = 0
 	}
-	if index > len(e.text) {
-		index = len(e.text)
+	if index > len(e.Text) {
+		index = len(e.Text)
 	}
 	e.LeftIndex = index
 	e.computeGeometry()
@@ -477,13 +359,13 @@ func (e *Entry) XViewScroll(count int, pages bool) {
 
 // XViewMoveTo scrolls to a fraction of the total text.
 func (e *Entry) XViewMoveTo(fraction float64) {
-	index := int(fraction*float64(len(e.text)) + 0.5)
+	index := int(fraction*float64(len(e.Text)) + 0.5)
 	e.XView(index)
 }
 
 // VisibleRange returns the fraction of text currently visible.
 func (e *Entry) VisibleRange() (float64, float64) {
-	n := len(e.text)
+	n := len(e.Text)
 	if n == 0 {
 		return 0, 1
 	}
@@ -494,7 +376,7 @@ func (e *Entry) VisibleRange() (float64, float64) {
 	// border (Tk_PointToChar), counting a partly visible one.
 	dt := e.displayText()
 	x := e.Win.Width - e.inset - e.layoutX - 1
-	chars := entryutil.RuneIndexAtPixel(e.Font, dt, x)
+	chars := textedit.RuneIndexAtPixel(e.Font, dt, x)
 	if chars < n {
 		chars++
 	}
@@ -523,7 +405,7 @@ func (e *Entry) tryFocusValidate(trigger string) {
 	}
 	v := e.Validate
 	if v == "all" || v == trigger || (v == "focus" && (trigger == "focusin" || trigger == "focusout")) {
-		e.ValidateCmd(string(e.text))
+		e.ValidateCmd(string(e.Text))
 	}
 }
 
@@ -562,7 +444,7 @@ func (e *Entry) display() {
 	dt := e.displayText()
 	xftFont, isXft := e.Font.(platform.DrawableFont)
 
-	if len(e.text) == 0 && e.Placeholder != "" && !e.HasFocus {
+	if len(e.Text) == 0 && e.Placeholder != "" && !e.HasFocus {
 		// Draw placeholder.
 		if isXft && e.PlaceholderFg != nil {
 			xftFont.DrawString(w.Drawable(), e.inset, e.layoutY, e.Placeholder,
@@ -571,8 +453,8 @@ func (e *Entry) display() {
 	} else if isXft && len(dt) > 0 {
 		// Draw selection highlight.
 		if e.HasFocus && e.SelFirst >= 0 && e.SelLast > e.SelFirst && e.SelBg != nil {
-			selStartX := entryutil.MeasureRunes(e.Font, dt[:entryutil.ClampIdx(e.SelFirst, len(dt))]) + e.layoutX
-			selEndX := entryutil.MeasureRunes(e.Font, dt[:entryutil.ClampIdx(e.SelLast, len(dt))]) + e.layoutX
+			selStartX := textedit.MeasureRunes(e.Font, dt[:textedit.ClampIdx(e.SelFirst, len(dt))]) + e.layoutX
+			selEndX := textedit.MeasureRunes(e.Font, dt[:textedit.ClampIdx(e.SelLast, len(dt))]) + e.layoutX
 
 			if selStartX < e.inset {
 				selStartX = e.inset
@@ -602,17 +484,17 @@ func (e *Entry) display() {
 			}
 			// Selection.
 			if e.SelFirst < len(dt) {
-				segStart := entryutil.ClampIdx(e.SelFirst, len(dt))
-				segEnd := entryutil.ClampIdx(e.SelLast, len(dt))
+				segStart := textedit.ClampIdx(e.SelFirst, len(dt))
+				segEnd := textedit.ClampIdx(e.SelLast, len(dt))
 				seg := string(dt[segStart:segEnd])
-				segX := entryutil.MeasureRunes(e.Font, dt[:segStart]) + e.layoutX
+				segX := textedit.MeasureRunes(e.Font, dt[:segStart]) + e.layoutX
 				xftFont.DrawString(w.Drawable(), segX, e.layoutY, seg,
 					e.SelFg.Pixel, e.SelFg.Red, e.SelFg.Green, e.SelFg.Blue)
 			}
 			// After selection.
 			if e.SelLast < len(dt) {
 				seg := string(dt[e.SelLast:])
-				segX := entryutil.MeasureRunes(e.Font, dt[:e.SelLast]) + e.layoutX
+				segX := textedit.MeasureRunes(e.Font, dt[:e.SelLast]) + e.layoutX
 				xftFont.DrawString(w.Drawable(), segX, e.layoutY, seg,
 					e.Foreground.Pixel, e.Foreground.Red, e.Foreground.Green, e.Foreground.Blue)
 			}
@@ -625,7 +507,7 @@ func (e *Entry) display() {
 
 	// Draw cursor (outside text block so it works for empty entries too).
 	if e.HasFocus && e.CursorOn && e.InsertBg != nil && e.Font != nil {
-		cursorX := entryutil.MeasureRunes(e.Font, dt[:entryutil.ClampIdx(e.InsertPos, len(dt))]) + e.layoutX
+		cursorX := textedit.MeasureRunes(e.Font, dt[:textedit.ClampIdx(e.InsertPos, len(dt))]) + e.layoutX
 		if cursorX >= e.inset && cursorX < w.Width-e.inset {
 			m := e.Font.Metrics()
 			d.SetForeground(gc, e.InsertBg.Pixel)

@@ -5,23 +5,20 @@ package checkbutton
 
 import (
 	"github.com/takigo/takigo/color"
-	"github.com/takigo/takigo/draw"
 	"github.com/takigo/takigo/font"
 	"github.com/takigo/takigo/option"
-	"github.com/takigo/takigo/platform"
 	"github.com/takigo/takigo/screenunit"
 	"github.com/takigo/takigo/widget"
+	"github.com/takigo/takigo/widget/internal/tkbutton"
 	"github.com/takigo/takigo/window"
 )
 
-// Checkbutton is a toggle widget with a square indicator and text label.
+// Checkbutton is a two-state (or three-state) toggle with an indicator.
 type Checkbutton struct {
 	widget.Base
+	tkbutton.Shared
 
-	Text    string
 	Command func() // invoked on toggle
-	Anchor  option.Anchor
-	State   widget.State
 
 	// Variable linkage. The variable holds a string equal to OnValue, OffValue,
 	// or TristateValue. The checkbutton renders a checkmark when the
@@ -32,27 +29,6 @@ type Checkbutton struct {
 	OffValue      string // value meaning "off" (default "0")
 	TristateValue string // Tk -tristatevalue (default "")
 	unsub         func()
-
-	// Indicator.
-	IndicatorOn bool            // whether to draw the indicator (default true)
-	SelectColor *color.ColorRef // indicator fill color when selected
-
-	// Images (selectimage shown when checked; image shown otherwise).
-	Img       widget.WidgetImage
-	SelectImg widget.WidgetImage
-
-	// Active colors (used on hover).
-	ActiveBackground *color.ColorRef
-	ActiveForeground *color.ColorRef
-
-	// Disabled foreground (used when State == StateDisabled).
-	DisabledFg *color.ColorRef
-
-	textWidth      int
-	textHeight     int
-	indicatorSpace int // Tk butPtr->indicatorSpace
-	pressed        bool
-	HasFocus       bool
 }
 
 // CheckbuttonOption configures a Checkbutton.
@@ -201,12 +177,8 @@ func New(parent widget.Caregiver, name string, opts ...CheckbuttonOption) *Check
 
 	w.Flags |= window.FlagFocusable
 
-	c := &Checkbutton{
-		Anchor:      option.AnchorCenter,
-		IndicatorOn: true,
-		OnValue:     "1",
-		OffValue:    "0",
-	}
+	c := &Checkbutton{OnValue: "1", OffValue: "0"}
+	tkbutton.Init(&c.Shared, tkbutton.TypeCheck)
 	widget.InitBase(&c.Base, w, app)
 	c.SetDisplayProc(c.display)
 	w.OnDestroy(c.Destroy)
@@ -258,52 +230,6 @@ func New(parent widget.Caregiver, name string, opts ...CheckbuttonOption) *Check
 	return c
 }
 
-// computeGeometry ports TkpComputeButtonGeometry (tk/unix/tkUnixButton.c)
-// for check/radio buttons: the indicator gets its own column
-// (indicatorSpace) left of the content.
-func (c *Checkbutton) computeGeometry() {
-	c.textWidth, c.textHeight = 0, 0
-	avg := 0
-	if c.Font != nil {
-		c.textWidth = c.Font.MeasureString(c.Text)
-		c.textHeight = c.Font.Metrics().Linespace()
-		avg = c.Font.MeasureString("0")
-	}
-
-	inset := c.BorderWidth + c.HighlightWidth
-	// TkpComputeButtonGeometry sizes from -image alone; -selectimage is
-	// drawn in the same space.
-	img := c.Img
-	var width, height int
-	c.indicatorSpace = 0
-	if img != nil {
-		width, height = img.Width(), img.Height()
-		if c.IndicatorOn {
-			c.indicatorSpace = height
-		}
-	} else {
-		width, height = c.textWidth, c.textHeight
-		if c.IndicatorOn {
-			c.indicatorSpace = c.textHeight + avg
-		}
-		width += 2 * c.PadX
-		height += 2 * c.PadY
-	}
-
-	w := c.Win
-	w.ReqWidth = width + c.indicatorSpace + 2*inset
-	w.ReqHeight = height + 2*inset
-}
-
-// activeImage returns the image to display: as in TkpDisplayButton,
-// -selectimage replaces -image while selected, and only when -image is set.
-func (c *Checkbutton) activeImage() widget.WidgetImage {
-	if c.Img != nil && c.Selected() && c.SelectImg != nil {
-		return c.SelectImg
-	}
-	return c.Img
-}
-
 // Selected returns whether the checkbutton is currently selected
 // (variable equals OnValue).
 func (c *Checkbutton) Selected() bool {
@@ -319,159 +245,17 @@ func (c *Checkbutton) isTristate() bool {
 	return v != c.OnValue && v == c.TristateValue
 }
 
+// computeGeometry ports TkpComputeButtonGeometry for TYPE_CHECK_BUTTON.
+func (c *Checkbutton) computeGeometry() { tkbutton.ComputeGeometry(&c.Base, &c.Shared) }
+
+// display ports TkpDisplayButton for TYPE_CHECK_BUTTON.
+func (c *Checkbutton) display() {
+	tkbutton.Display(&c.Base, &c.Shared, tkbutton.Selection{Selected: c.Selected(), Tristate: c.isTristate()})
+}
+
 // Display schedules a redraw at idle time; see widget.Base.EventuallyRedraw.
 func (c *Checkbutton) Display() {
 	c.EventuallyRedraw()
-}
-
-// display draws the checkbutton.
-func (c *Checkbutton) display() {
-	if c.Destroyed {
-		return
-	}
-	w := c.Win
-	if w.PlatformID == platform.WindowID(0) {
-		return
-	}
-
-	d := w.Display.Server
-	gc := w.GC
-
-	selected := c.Selected()
-	tristate := c.isTristate()
-
-	// Choose colors based on state.
-	bgPixel := uint64(0)
-	var fgCol *color.ColorRef
-	if c.Background != nil {
-		bgPixel = c.Background.Pixel
-	}
-	if c.Foreground != nil {
-		fgCol = c.Foreground.Ref()
-	}
-
-	if c.State == widget.StateActive && c.ActiveBackground != nil {
-		bgPixel = c.ActiveBackground.Pixel
-	}
-	if c.State == widget.StateActive && c.ActiveForeground != nil {
-		fgCol = c.ActiveForeground
-	}
-	if c.State == widget.StateDisabled && c.DisabledFg != nil {
-		fgCol = c.DisabledFg
-	}
-
-	// In toggle mode, the SelectColor fills an inner "indicator" rectangle
-	// around the image (matching Tk's -indicatoron 0 -selectcolor behaviour,
-	// where the selectcolor area sits inside the widget border instead of
-	// flooding the whole widget). Keep the widget background as the default
-	// bg so the rest of the widget keeps its normal appearance.
-	widgetBg := bgPixel
-	selectPixel := uint64(0)
-	hasSelectFill := false
-	if !c.IndicatorOn && selected && c.SelectColor != nil {
-		selectPixel = c.SelectColor.Pixel
-		hasSelectFill = true
-	}
-
-	// Fill background with the widget's own background colour.
-	d.SetForeground(gc, widgetBg)
-	d.FillRectangle(w.Drawable(), gc, 0, 0, uint(w.Width), uint(w.Height))
-
-	// Draw border (inset by highlight width so highlight ring is outermost).
-	hlw := c.HighlightWidth
-	if !c.IndicatorOn {
-		// Toggle button mode: raised or sunken relief based on selection.
-		btnRelief := option.ReliefRaised
-		if selected {
-			btnRelief = option.ReliefSunken
-		}
-		border := c.Border
-		if border == nil {
-			border = draw.NewBorderFromPixel(widgetBg)
-		}
-		draw.Draw3DRectangle(d, w.Drawable(), gc, border, hlw, hlw, w.Width-2*hlw, w.Height-2*hlw, c.BorderWidth, btnRelief)
-	} else if c.Border != nil && c.BorderWidth > 0 {
-		draw.Draw3DRectangle(d, w.Drawable(), gc, c.Border,
-			hlw, hlw, w.Width-2*hlw, w.Height-2*hlw, c.BorderWidth, c.Relief)
-	}
-
-	// Fill the SelectColor indicator area inside the bezel (matches Tk's
-	// -indicatoron 0 -selectcolor rendering: a small colour rectangle that
-	// hugs the image).
-	if hasSelectFill && c.Img != nil {
-		// Inset by 1 pixel so the SelectColor area sits just inside the
-		// widget edge, leaving room for a visible bezel frame around it.
-		innerInset := 1
-		if innerInset*2 < w.Width && innerInset*2 < w.Height {
-			d.SetForeground(gc, selectPixel)
-			d.FillRectangle(w.Drawable(), gc,
-				innerInset, innerInset,
-				uint(w.Width-2*innerInset), uint(w.Height-2*innerInset))
-		}
-		// Image transparent pixels show the widget's normal background
-		// (not the selectcolor), so the bitmap stays readable on top of
-		// the selectcolor frame.
-	} else if hasSelectFill {
-		// No image: selectcolor becomes the full background (pushbutton mode).
-		d.SetForeground(gc, selectPixel)
-		d.FillRectangle(w.Drawable(), gc, 0, 0, uint(w.Width), uint(w.Height))
-		bgPixel = selectPixel
-	}
-
-	inset := c.BorderWidth + c.HighlightWidth
-	img := c.activeImage()
-	var contentX, contentY int
-	if img != nil {
-		contentX, contentY = widget.ComputeAnchor(c.Anchor, w.Width, w.Height, inset, 0, 0, c.indicatorSpace+img.Width(), img.Height())
-	} else {
-		contentX, contentY = widget.ComputeAnchor(c.Anchor, w.Width, w.Height, inset, c.PadX, c.PadY, c.indicatorSpace+c.textWidth, c.textHeight)
-	}
-	contentX += c.indicatorSpace
-
-	if c.IndicatorOn {
-		// Tk centres the indicator in its column and on the window's mid-line.
-		state := draw.IndicatorOff
-		switch {
-		case tristate:
-			state = draw.IndicatorTristate
-		case selected:
-			state = draw.IndicatorOn
-		}
-		selPixel := uint64(0xffffff)
-		if c.SelectColor != nil {
-			selPixel = c.SelectColor.Pixel
-		}
-		var fgPixel, disPixel uint64 = 0, 0xa3a3a3
-		if c.Foreground != nil {
-			fgPixel = c.Foreground.Pixel
-		}
-		if c.DisabledFg != nil {
-			disPixel = c.DisabledFg.Pixel
-		}
-		draw.DrawCheckIndicator(d, w.Drawable(), gc, w.Depth,
-			contentX-c.indicatorSpace/2, w.Height/2, draw.CheckIndicator,
-			draw.NewBorderFromPixel(bgPixel), fgPixel, selPixel, disPixel,
-			state, c.State == widget.StateDisabled)
-	}
-
-	// Draw image (if set) or text.
-	if img != nil {
-		imgW := img.Width()
-		imgH := img.Height()
-		imgX, imgY := contentX, contentY
-		img.Draw(d, w.Drawable(), gc, w.Depth, 0, 0, imgW, imgH, imgX, imgY, bgPixel)
-	} else if c.Font != nil && c.Text != "" && fgCol != nil {
-		textX, textY := contentX, contentY
-		m := c.Font.Metrics()
-		baseline := textY + m.Ascent
-		if df, ok := c.Font.(platform.DrawableFont); ok {
-			df.DrawString(w.Drawable(), textX, baseline, c.Text,
-				fgCol.Pixel, fgCol.Red, fgCol.Green, fgCol.Blue)
-		}
-	}
-
-	c.DrawHighlightBorder(c.HasFocus, 0)
-
 }
 
 // Toggle flips the checkbutton state by alternating the linked variable

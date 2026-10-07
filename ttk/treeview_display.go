@@ -33,20 +33,10 @@ func (tv *Treeview) Display() {
 	// TreeviewDoLayout: fit the columns to the tree area.
 	tv.resizeColumns(width)
 
-	// Allocate or resize pixmap.
-	if tv.pixmap == 0 || tv.pixmapW != width || tv.pixmapH != height {
-		if tv.pixmap != 0 {
-			d.FreePixmap(tv.pixmap)
-		}
-		tv.pixmap = d.CreatePixmap(win.Drawable(), uint(width), uint(height), uint(win.Depth))
-		tv.pixmapW = width
-		tv.pixmapH = height
-	}
-	if tv.pixmap == 0 {
+	pixDrawable := tv.backBuffer(width, height)
+	if pixDrawable == 0 {
 		return
 	}
-
-	pixDrawable := platform.PixmapDrawable(tv.pixmap)
 
 	// Colors from style.
 	bg := LookupColor(tv.Context.Style, "-background", tv.State, 0xd9d9d9)

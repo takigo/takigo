@@ -12,7 +12,7 @@ import (
 	"github.com/takigo/takigo/option"
 	"github.com/takigo/takigo/platform"
 	"github.com/takigo/takigo/screenunit"
-	"github.com/takigo/takigo/ttk/entrytext"
+	"github.com/takigo/takigo/ttk/internal/entrytext"
 	"github.com/takigo/takigo/widget"
 	"github.com/takigo/takigo/window"
 )
@@ -371,20 +371,10 @@ func (s *Spinbox) Display() {
 		return
 	}
 
-	// Double buffer.
-	if s.pixmap == 0 || s.pixmapW != width || s.pixmapH != height {
-		if s.pixmap != 0 {
-			d.FreePixmap(s.pixmap)
-		}
-		s.pixmap = d.CreatePixmap(win.Drawable(), uint(width), uint(height), uint(win.Depth))
-		s.pixmapW = width
-		s.pixmapH = height
-	}
-	if s.pixmap == 0 {
+	pixDrawable := s.backBuffer(width, height)
+	if pixDrawable == 0 {
 		return
 	}
-
-	pixDrawable := platform.PixmapDrawable(s.pixmap)
 
 	st := s.Context.Style
 	bg := LookupColor(st, "-background", s.State, 0xd9d9d9)
@@ -433,61 +423,25 @@ func (s *Spinbox) Display() {
 		d.DrawLine(pixDrawable, gc, int(pts[2].X), int(pts[2].Y), int(pts[2].X), int(pts[2].Y))
 	}
 
-	// Draw text.
-	if s.Font != nil && len(s.edit.Text) > 0 {
-		m := s.Font.Metrics()
-		textX := s.insetX
-		textY := (height-m.Linespace())/2 + m.Ascent
-
-		// Selection highlight.
-		if s.hasFocus && s.edit.HasSelection() {
-			selStartX := textX + s.Font.MeasureString(string(s.edit.Text[:sbClamp(s.edit.SelFirst, len(s.edit.Text))]))
-			selEndX := textX + s.Font.MeasureString(string(s.edit.Text[:sbClamp(s.edit.SelLast, len(s.edit.Text))]))
-			rightEdge := btnLeft - s.insetX
-			if selStartX < textX {
-				selStartX = textX
-			}
-			if selEndX > rightEdge {
-				selEndX = rightEdge
-			}
-			if selEndX > selStartX {
-				d.SetForeground(gc, selBg)
-				d.FillRectangle(pixDrawable, gc, selStartX, (height-m.Linespace())/2,
-					uint(selEndX-selStartX), uint(m.Linespace()))
-			}
-		}
-
-		if df, ok := s.Font.(platform.DrawableFont); ok {
-			r := uint16((fg>>16)&0xFF) * 257
-			g := uint16((fg>>8)&0xFF) * 257
-			b := uint16((fg)&0xFF) * 257
-			df.DrawString(pixDrawable, textX, textY, string(s.edit.Text), fg, r, g, b)
-		}
-
-		// Insert cursor.
-		if s.hasFocus && s.cursorOn {
-			cursorX := textX + s.Font.MeasureString(string(s.edit.Text[:sbClamp(s.edit.InsertPos, len(s.edit.Text))]))
-			rightEdge := btnLeft - s.insetX
-			if cursorX >= textX && cursorX < rightEdge {
-				d.SetForeground(gc, insertColor)
-				d.FillRectangle(pixDrawable, gc, cursorX, (height-m.Linespace())/2, uint(insertWidth), uint(m.Linespace()))
-			}
-		}
+	// The text with its selection and cursor.
+	ft := fieldText{
+		font: s.Font, text: s.edit.Text, x: s.insetX,
+		left: s.insetX, right: btnLeft - s.insetX, top: s.insetY, height: height - 2*s.insetY,
+		selFirst: -1, selLast: -1, cursor: -1,
+		fg: fg, selBg: selBg, selFg: LookupColor(st, "-selectforeground", s.State, 0xffffff),
+		insertColor: insertColor, insertWidth: insertWidth,
 	}
+	if s.hasFocus && s.edit.HasSelection() {
+		ft.selFirst, ft.selLast = s.edit.SelFirst, s.edit.SelLast
+	}
+	if s.hasFocus && s.cursorOn {
+		ft.cursor = s.edit.InsertPos
+	}
+	drawFieldText(d, pixDrawable, gc, ft)
 
 	// Copy to window.
 	d.CopyArea(pixDrawable, win.Drawable(), gc, 0, 0, uint(width), uint(height), 0, 0)
 	d.Flush()
-}
-
-func sbClamp(idx, hi int) int {
-	if idx < 0 {
-		return 0
-	}
-	if idx > hi {
-		return hi
-	}
-	return idx
 }
 
 func bindSpinbox(s *Spinbox, app widget.AppContext) {

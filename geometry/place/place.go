@@ -34,9 +34,6 @@ func In(container window.Windower) PlaceOption {
 	return func(c *placeConfig) { c.in = container.Window() }
 }
 
-// containerOf records each content window's container.
-var containerOf = new(geometry.Table[*window.Window])
-
 // X sets the absolute x position.
 func X(v int) PlaceOption { return func(c *placeConfig) { c.x = v } }
 
@@ -70,72 +67,35 @@ type placeEntry struct {
 	config placeConfig
 }
 
+// reg is place's window.GeomManager: the containers' state and the
+// plumbing the managers share (geometry.Registry).
+var reg = geometry.NewRegistry("place", func(c *window.Window) *placer { return &placer{container: c} })
+
+var (
+	mgr         = reg
+	placers     = &reg.Containers
+	containerOf = &reg.ContainerOf
+)
+
+func containerFor(content *window.Window) *window.Window { return reg.ContainerFor(content) }
+
+// Window, Contents, Arrange, ScheduleArrange and Remove make the placer a
+// geometry.Container.
+func (p *placer) Window() *window.Window { return p.container }
+
+func (p *placer) Contents() []*window.Window {
+	ws := make([]*window.Window, len(p.entries))
+	for i, e := range p.entries {
+		ws[i] = e.window
+	}
+	return ws
+}
+
 // placer manages place state for a container.
 type placer struct {
 	container *window.Window
 	pending   bool // an arrange is scheduled for idle time
 	entries   []*placeEntry
-}
-
-// singleton manager instance.
-var mgr = &placeManager{}
-
-// placers tracks per-container state.
-var placers = new(geometry.Table[*placer])
-
-// hooked records the containers whose destroy and configure hooks are
-// registered.
-var hooked = new(geometry.Table[bool])
-
-type placeManager struct{}
-
-func (m *placeManager) Name() string { return "place" }
-
-func (m *placeManager) RequestProc(content *window.Window) {
-	if p, ok := placers.Get(containerFor(content)); ok {
-		p.scheduleArrange()
-	}
-}
-
-// LostContentProc drops content from its container, e.g. when content is
-// destroyed or taken over by another geometry manager.
-func (m *placeManager) LostContentProc(content *window.Window) {
-	container := containerFor(content)
-	containerOf.Delete(content)
-	if p, ok := placers.Get(container); ok {
-		p.remove(content)
-		p.scheduleArrange()
-	}
-}
-
-// containerFor returns the window content is managed in: its -in
-// container if one was given, else its parent.
-func containerFor(content *window.Window) *window.Window {
-	if c := containerOf.Of(content); c != nil {
-		return c
-	}
-	return content.Parent
-}
-
-// forgetContainer drops a destroyed container's state; content managed
-// in it from outside its subtree (via -in) becomes unmanaged, as in
-// Tk's DestroyNotify handling in the geometry managers.
-func forgetContainer(container *window.Window) {
-	p, ok := placers.Get(container)
-	if !ok {
-		return
-	}
-	placers.Delete(container)
-	for _, e := range p.entries {
-		if w := e.window; containerOf.Of(w) == container {
-			containerOf.Delete(w)
-			w.GeomManager = nil
-			if w.IsMapped() && !w.IsDestroyed() && w.PlatformID != 0 {
-				w.Display.Server.UnmapWindow(w.PlatformID)
-				window.MarkUnmapped(w)
-			}
-		}
-	}
 }
 
 // Place positions a child within its parent using absolute/relative coords.
@@ -161,46 +121,26 @@ func Place(child window.Windower, opts ...PlaceOption) {
 	}
 	if old := containerOf.Of(w); old != nil && old != parent {
 		if op, ok := placers.Get(old); ok {
-			op.remove(w)
+			op.Remove(w)
 		}
 	}
 	containerOf.Set(w, parent)
 
 	geometry.ManageGeometry(w, mgr)
 
-	p, ok := placers.Get(parent)
-	if !ok {
-		p = &placer{container: parent}
-		placers.Set(parent, p)
-	}
-	if !hooked.Of(parent) {
-		// The placer is dropped when its last content goes but the hooks
-		// stay with the window, so register them once.
-		hooked.Set(parent, true)
-		parent.OnDestroy(func() {
-			forgetContainer(parent)
-			hooked.Delete(parent)
-		})
-		// Relative placement follows the container's size, whatever
-		// resizes it (PlaceStructureProc).
-		parent.OnConfigure(func() {
-			if pp, ok := placers.Get(parent); ok {
-				pp.scheduleArrange()
-			}
-		})
-	}
+	p := reg.For(parent)
 
 	// Update or add entry.
 	for _, e := range p.entries {
 		if e.window == w {
 			e.config = cfg
-			p.scheduleArrange()
+			p.ScheduleArrange()
 			return
 		}
 	}
 
 	p.entries = append(p.entries, &placeEntry{window: w, config: cfg})
-	p.scheduleArrange()
+	p.ScheduleArrange()
 }
 
 // Forget removes a child from place management.
@@ -215,7 +155,7 @@ func Forget(child window.Windower) {
 	}
 	containerOf.Delete(w)
 	if p, ok := placers.Get(parent); ok {
-		p.remove(w)
+		p.Remove(w)
 	}
 	w.GeomManager = nil
 	// place forget unmaps the content.
@@ -225,7 +165,7 @@ func Forget(child window.Windower) {
 	}
 }
 
-func (p *placer) remove(child *window.Window) {
+func (p *placer) Remove(child *window.Window) {
 	for i, e := range p.entries {
 		if e.window == child {
 			p.entries = append(p.entries[:i], p.entries[i+1:]...)
@@ -238,7 +178,7 @@ func (p *placer) remove(child *window.Window) {
 }
 
 // arrange positions all placed children.
-func (p *placer) arrange() {
+func (p *placer) Arrange() {
 	container := p.container
 	if container.PlatformID == platform.WindowID(0) || container.IsDestroyed() {
 		return
@@ -327,93 +267,18 @@ func (p *placer) arrange() {
 			childH = 1
 		}
 
-		// Content placed -in another container is offset by its position.
-		dx, dy := window.ContentOffset(container, child)
-		moved := child.X != x+dx || child.Y != y+dy
-		child.X = x + dx
-		child.Y = y + dy
-		child.Width = childW - bw2
-		child.Height = childH - bw2
-		if child.Width < 1 {
-			child.Width = 1
-		}
-		if child.Height < 1 {
-			child.Height = 1
-		}
-
-		if child.PlatformID != platform.WindowID(0) {
-			container.Display.Server.MoveResizeWindow(child.PlatformID,
-				child.X, child.Y, uint(child.Width), uint(child.Height))
-			// Tk maps content only once its container is mapped; the
-			// container's MarkMapped re-arranges and maps it then.
-			if child.Flags&window.FlagMapped == 0 && window.ContainerViewable(container, child) {
-				window.SyncBackground(child)
-				container.Display.Server.MapWindow(child.PlatformID)
-				window.MarkMapped(child)
-			}
-		}
-		if moved {
-			window.NotifyMoved(child)
-		}
+		geometry.PlaceContent(container, child, x, y, childW-bw2, childH-bw2)
 	}
 }
 
 // ArrangeAll triggers layout for the place-managed containers in root's
 // subtree, root included.
-func ArrangeAll(root *window.Window) {
-	if root == nil {
-		return
-	}
-	if p, ok := placers.Get(root); ok {
-		p.scheduleArrange()
-	}
-	for _, c := range root.Children {
-		ArrangeAll(c)
-	}
-}
-
-// Arrange (and so map) the content once its container is mapped, as the
-// managers' structure procs do on MapNotify; keep -in content with its
-// container when it moves or is unmapped (Tk_MaintainGeometry).
-func init() {
-	window.AddMappedHook(ArrangeContainer)
-	window.AddMovedHook(func(w *window.Window) {
-		if p, ok := placers.Get(w); ok && p.hasForeign() {
-			p.scheduleArrange()
-		}
-	})
-	window.AddUnmappedHook(func(w *window.Window) {
-		p, ok := placers.Get(w)
-		if !ok {
-			return
-		}
-		for _, e := range p.entries {
-			c := e.window
-			if c.Parent != w && c.IsMapped() && c.PlatformID != platform.WindowID(0) {
-				c.Display.Server.UnmapWindow(c.PlatformID)
-				window.MarkUnmapped(c)
-			}
-		}
-	})
-}
-
-func (p *placer) hasForeign() bool {
-	for _, e := range p.entries {
-		if e.window.Parent != p.container {
-			return true
-		}
-	}
-	return false
-}
+func ArrangeAll(root *window.Window) { reg.ArrangeAll(root) }
 
 // ArrangeContainer triggers layout for a specific container.
-func ArrangeContainer(container *window.Window) {
-	if p, ok := placers.Get(container); ok {
-		p.arrange()
-	}
-}
+func ArrangeContainer(container *window.Window) { reg.ArrangeContainer(container) }
 
 // scheduleArrange re-arranges the container at idle time.
-func (p *placer) scheduleArrange() {
-	geometry.WhenIdle(p.container, &p.pending, p.arrange)
+func (p *placer) ScheduleArrange() {
+	geometry.WhenIdle(p.container, &p.pending, p.Arrange)
 }

@@ -5,53 +5,28 @@ package radiobutton
 
 import (
 	"github.com/takigo/takigo/color"
-	"github.com/takigo/takigo/draw"
 	"github.com/takigo/takigo/font"
 	"github.com/takigo/takigo/option"
-	"github.com/takigo/takigo/platform"
 	"github.com/takigo/takigo/screenunit"
 	"github.com/takigo/takigo/widget"
+	"github.com/takigo/takigo/widget/internal/tkbutton"
 	"github.com/takigo/takigo/window"
 )
 
-// Radiobutton is a mutually-exclusive selection widget with a circle indicator.
+// Radiobutton is one choice of a group sharing a variable.
 type Radiobutton struct {
 	widget.Base
+	tkbutton.Shared
 
-	Text    string
 	Command func() // invoked on selection
-	Anchor  option.Anchor
-	State   widget.State
 	Value   string // the value this radio represents
 
 	// Variable linkage (shared across radio group).
 	Variable *widget.Variable[string]
 	unsub    func()
 
-	// Indicator.
-	IndicatorOn   bool
-	untraced      bool            // created its variable; see Var
-	TristateValue string          // Tk -tristatevalue (default ""): variable==TristateValue shows the tri-state look
-	SelectColor   *color.ColorRef // indicator fill when selected
-
-	// Image (displayed instead of text when set).
-	Img widget.WidgetImage
-
-	// Active colors.
-	ActiveBackground *color.ColorRef
-	ActiveForeground *color.ColorRef
-
-	// Disabled foreground (used when State == StateDisabled).
-	DisabledFg *color.ColorRef
-
-	// WidthChars sets the requested width in characters of the default font (Tk's -width).
-	WidthChars int
-
-	textWidth      int
-	textHeight     int
-	indicatorSpace int // Tk butPtr->indicatorSpace
-	pressed        bool
-	HasFocus       bool
+	untraced      bool   // created its variable; see Var
+	TristateValue string // Tk -tristatevalue (default ""): variable==TristateValue shows the tri-state look
 }
 
 // RadiobuttonOption configures a Radiobutton.
@@ -157,10 +132,8 @@ func New(parent widget.Caregiver, name string, opts ...RadiobuttonOption) *Radio
 
 	w.Flags |= window.FlagFocusable
 
-	r := &Radiobutton{
-		Anchor:      option.AnchorCenter,
-		IndicatorOn: true,
-	}
+	r := &Radiobutton{}
+	tkbutton.Init(&r.Shared, tkbutton.TypeRadio)
 	widget.InitBase(&r.Base, w, app)
 	r.SetDisplayProc(r.display)
 	w.OnDestroy(r.Destroy)
@@ -209,173 +182,25 @@ func New(parent widget.Caregiver, name string, opts ...RadiobuttonOption) *Radio
 	return r
 }
 
-// computeGeometry ports TkpComputeButtonGeometry (tk/unix/tkUnixButton.c)
-// for check/radio buttons: the indicator gets its own column
-// (indicatorSpace) left of the content.
-func (r *Radiobutton) computeGeometry() {
-	r.textWidth, r.textHeight = 0, 0
-	avg := 0
-	if r.Font != nil {
-		r.textWidth = r.Font.MeasureString(r.Text)
-		r.textHeight = r.Font.Metrics().Linespace()
-		avg = r.Font.MeasureString("0")
-	}
-
-	inset := r.BorderWidth + r.HighlightWidth
-	img := r.Img
-	var width, height int
-	r.indicatorSpace = 0
-	if img != nil {
-		width, height = img.Width(), img.Height()
-		if r.IndicatorOn {
-			r.indicatorSpace = height
-		}
-	} else {
-		width, height = r.textWidth, r.textHeight
-		if r.WidthChars > 0 {
-			width = r.WidthChars * avg
-		}
-		if r.IndicatorOn {
-			r.indicatorSpace = r.textHeight + avg
-		}
-		width += 2 * r.PadX
-		height += 2 * r.PadY
-	}
-
-	w := r.Win
-	w.ReqWidth = width + r.indicatorSpace + 2*inset
-	w.ReqHeight = height + 2*inset
-}
-
 // Selected returns whether this radiobutton is currently selected.
 func (r *Radiobutton) Selected() bool {
 	return r.Variable.Get() == r.Value
 }
 
+// computeGeometry ports TkpComputeButtonGeometry for TYPE_RADIO_BUTTON.
+func (r *Radiobutton) computeGeometry() { tkbutton.ComputeGeometry(&r.Base, &r.Shared) }
+
+// display ports TkpDisplayButton for TYPE_RADIO_BUTTON. The -value match
+// wins, then -tristatevalue (default "").
+func (r *Radiobutton) display() {
+	selected := r.Selected()
+	tristate := !selected && !r.untraced && r.Variable.Get() == r.TristateValue
+	tkbutton.Display(&r.Base, &r.Shared, tkbutton.Selection{Selected: selected, Tristate: tristate})
+}
+
 // Display schedules a redraw at idle time; see widget.Base.EventuallyRedraw.
 func (r *Radiobutton) Display() {
 	r.EventuallyRedraw()
-}
-
-// display draws the radiobutton.
-func (r *Radiobutton) display() {
-	if r.Destroyed {
-		return
-	}
-	w := r.Win
-	if w.PlatformID == platform.WindowID(0) {
-		return
-	}
-
-	d := w.Display.Server
-	gc := w.GC
-
-	selected := r.Selected()
-	// Tk: the -value match wins, then -tristatevalue (default "").
-	tristate := !selected && !r.untraced && r.Variable.Get() == r.TristateValue
-
-	// Choose colors based on state.
-	bgPixel := uint64(0)
-	var fgCol *color.ColorRef
-	if r.Background != nil {
-		bgPixel = r.Background.Pixel
-	}
-	if r.Foreground != nil {
-		fgCol = r.Foreground.Ref()
-	}
-
-	if r.State == widget.StateActive && r.ActiveBackground != nil {
-		bgPixel = r.ActiveBackground.Pixel
-	}
-	if r.State == widget.StateActive && r.ActiveForeground != nil {
-		fgCol = r.ActiveForeground
-	}
-	if r.State == widget.StateDisabled && r.DisabledFg != nil {
-		fgCol = r.DisabledFg
-	}
-
-	// Fill background.
-	d.SetForeground(gc, bgPixel)
-	d.FillRectangle(w.Drawable(), gc, 0, 0, uint(w.Width), uint(w.Height))
-
-	// Draw border (inset by highlight width so highlight ring is outermost).
-	hlw := r.HighlightWidth
-	if !r.IndicatorOn {
-		// TkpDisplayButton: selected -> sunken on -selectcolor, otherwise
-		// -offrelief (raised by default).
-		btnRelief := option.ReliefRaised
-		border := r.Border
-		if border == nil {
-			border = draw.NewBorderFromPixel(bgPixel)
-		}
-		if selected {
-			btnRelief = option.ReliefSunken
-			if r.SelectColor != nil {
-				border = draw.NewBorderFromPixel(r.SelectColor.Pixel)
-				d.SetForeground(gc, border.BgPixel)
-				d.FillRectangle(w.Drawable(), gc, hlw, hlw, uint(w.Width-2*hlw), uint(w.Height-2*hlw))
-			}
-		}
-		draw.Draw3DRectangle(d, w.Drawable(), gc, border, hlw, hlw, w.Width-2*hlw, w.Height-2*hlw, r.BorderWidth, btnRelief)
-	} else if r.Border != nil && r.BorderWidth > 0 {
-		draw.Draw3DRectangle(d, w.Drawable(), gc, r.Border,
-			hlw, hlw, w.Width-2*hlw, w.Height-2*hlw, r.BorderWidth, r.Relief)
-	}
-
-	inset := r.BorderWidth + r.HighlightWidth
-	img := r.Img
-	var contentX, contentY int
-	if img != nil {
-		contentX, contentY = widget.ComputeAnchor(r.Anchor, w.Width, w.Height, inset, 0, 0, r.indicatorSpace+img.Width(), img.Height())
-	} else {
-		contentX, contentY = widget.ComputeAnchor(r.Anchor, w.Width, w.Height, inset, r.PadX, r.PadY, r.indicatorSpace+r.textWidth, r.textHeight)
-	}
-	contentX += r.indicatorSpace
-
-	if r.IndicatorOn {
-		// Tk centres the indicator in its column and on the window's mid-line.
-		state := draw.IndicatorOff
-		switch {
-		case tristate:
-			state = draw.IndicatorTristate
-		case selected:
-			state = draw.IndicatorOn
-		}
-		selPixel := uint64(0xffffff)
-		if r.SelectColor != nil {
-			selPixel = r.SelectColor.Pixel
-		}
-		var fgPixel, disPixel uint64 = 0, 0xa3a3a3
-		if r.Foreground != nil {
-			fgPixel = r.Foreground.Pixel
-		}
-		if r.DisabledFg != nil {
-			disPixel = r.DisabledFg.Pixel
-		}
-		draw.DrawCheckIndicator(d, w.Drawable(), gc, w.Depth,
-			contentX-r.indicatorSpace/2, w.Height/2, draw.RadioIndicator,
-			draw.NewBorderFromPixel(bgPixel), fgPixel, selPixel, disPixel,
-			state, r.State == widget.StateDisabled)
-	}
-
-	// Draw image (if set) or text.
-	if img != nil {
-		imgW := img.Width()
-		imgH := img.Height()
-		imgX, imgY := contentX, contentY
-		img.Draw(d, w.Drawable(), gc, w.Depth, 0, 0, imgW, imgH, imgX, imgY, bgPixel)
-	} else if r.Font != nil && r.Text != "" && fgCol != nil {
-		textX, textY := contentX, contentY
-		m := r.Font.Metrics()
-		baseline := textY + m.Ascent
-		if df, ok := r.Font.(platform.DrawableFont); ok {
-			df.DrawString(w.Drawable(), textX, baseline, r.Text,
-				fgCol.Pixel, fgCol.Red, fgCol.Green, fgCol.Blue)
-		}
-	}
-
-	r.DrawHighlightBorder(r.HasFocus, 0)
-
 }
 
 // Select selects this radiobutton (sets the variable to this button's value).

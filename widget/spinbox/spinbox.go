@@ -11,25 +11,20 @@ import (
 	"github.com/takigo/takigo/color"
 	"github.com/takigo/takigo/cursor"
 	"github.com/takigo/takigo/draw"
+	"github.com/takigo/takigo/internal/textedit"
 	"github.com/takigo/takigo/option"
 	"github.com/takigo/takigo/platform"
 	"github.com/takigo/takigo/widget"
-	"github.com/takigo/takigo/widget/entryutil"
+	"github.com/takigo/takigo/widget/internal/entryedit"
 	"github.com/takigo/takigo/window"
 )
 
 // Spinbox is a single-line text entry with up/down spinner buttons.
 type Spinbox struct {
 	widget.Base
+	entryedit.Buffer
 
-	// Text state (reuses entry patterns).
-	text      []rune
-	InsertPos int
-	SelFirst  int
-	SelLast   int
-	SelAnchor int
-	LeftIndex int
-	imeMark   int // insert position when the input method began composing
+	edit entryedit.Editor
 
 	// Range mode.
 	From      float64
@@ -114,8 +109,6 @@ func New(parent widget.Caregiver, name string, opts ...SpinboxOption) *Spinbox {
 	window.MakeWindowExist(w)
 
 	s := &Spinbox{
-		SelFirst:    -1,
-		SelLast:     -1,
 		PrefWidth:   10,
 		CursorOn:    true,
 		From:        0,
@@ -123,9 +116,15 @@ func New(parent widget.Caregiver, name string, opts ...SpinboxOption) *Spinbox {
 		Increment:   1,
 		buttonWidth: 16,
 	}
+	s.Init()
 	widget.InitBase(&s.Base, w, app)
 	s.SetDisplayProc(s.display)
 	w.Class = "Spinbox"
+	s.edit = entryedit.Editor{
+		Buf: &s.Buffer, App: app, Win: w,
+		TryEdit: s.tryEdit, Insert: s.InsertChars, Delete: s.DeleteChars,
+		Moved: func() { s.seeInsert(); s.Display() },
+	}
 
 	s.BorderWidth = 1 // DEF_ENTRY_BORDER_WIDTH
 	s.Relief = option.ReliefSunken
@@ -152,9 +151,9 @@ func New(parent widget.Caregiver, name string, opts ...SpinboxOption) *Spinbox {
 
 	// Set initial value.
 	if len(s.Values) > 0 {
-		s.text = []rune(s.Values[0])
+		s.Text = []rune(s.Values[0])
 	} else {
-		s.text = []rune(s.formatValue(s.From))
+		s.Text = []rune(s.formatValue(s.From))
 	}
 
 	s.computeGeometry()
@@ -172,15 +171,12 @@ func New(parent widget.Caregiver, name string, opts ...SpinboxOption) *Spinbox {
 
 // GetText returns the spinbox text.
 func (s *Spinbox) GetText() string {
-	return string(s.text)
+	return s.Get()
 }
 
 // SetText sets the spinbox text.
 func (s *Spinbox) SetText(text string) {
-	s.text = []rune(text)
-	s.InsertPos = min(s.InsertPos, len(s.text))
-	s.LeftIndex = min(s.LeftIndex, len(s.text))
-	s.ClearSelection()
+	s.Set(text)
 	s.computeGeometry()
 	s.Display()
 }
@@ -250,7 +246,7 @@ func (s *Spinbox) SpinDown() {
 }
 
 func (s *Spinbox) currentNumericValue() float64 {
-	val, err := strconv.ParseFloat(string(s.text), 64)
+	val, err := strconv.ParseFloat(string(s.Text), 64)
 	if err != nil {
 		return s.From
 	}
@@ -260,10 +256,10 @@ func (s *Spinbox) currentNumericValue() float64 {
 // syncValuesIndex finds the text in -values if it was changed since the
 // last spin, as SpinboxInvoke does; an unknown text keeps the index.
 func (s *Spinbox) syncValuesIndex() {
-	if s.valuesIndex >= 0 && s.valuesIndex < len(s.Values) && s.Values[s.valuesIndex] == string(s.text) {
+	if s.valuesIndex >= 0 && s.valuesIndex < len(s.Values) && s.Values[s.valuesIndex] == string(s.Text) {
 		return
 	}
-	if i := slices.Index(s.Values, string(s.text)); i >= 0 {
+	if i := slices.Index(s.Values, string(s.Text)); i >= 0 {
 		s.valuesIndex = i
 	}
 }
@@ -312,7 +308,7 @@ func (s *Spinbox) digitFormat() string {
 
 func (s *Spinbox) fireCommand() {
 	if s.Command != nil {
-		s.Command(string(s.text))
+		s.Command(string(s.Text))
 	}
 }
 
@@ -330,41 +326,9 @@ func (s *Spinbox) tryEdit(prospective string) bool {
 
 // InsertChars inserts text at the given rune index.
 func (s *Spinbox) InsertChars(index int, text string) {
-	if len(text) == 0 {
+	if !s.Insert(index, []rune(text)) {
 		return
 	}
-	runes := []rune(text)
-	count := len(runes)
-
-	if index < 0 {
-		index = 0
-	}
-	if index > len(s.text) {
-		index = len(s.text)
-	}
-
-	newText := make([]rune, 0, len(s.text)+count)
-	newText = append(newText, s.text[:index]...)
-	newText = append(newText, runes...)
-	newText = append(newText, s.text[index:]...)
-	s.text = newText
-
-	if s.InsertPos >= index {
-		s.InsertPos += count
-	}
-	if s.SelFirst >= index {
-		s.SelFirst += count
-	}
-	if s.SelLast > index {
-		s.SelLast += count
-	}
-	if s.SelAnchor >= index {
-		s.SelAnchor += count
-	}
-	if s.LeftIndex > index {
-		s.LeftIndex += count
-	}
-
 	s.computeGeometry()
 	s.seeInsert()
 	s.Display()
@@ -372,42 +336,9 @@ func (s *Spinbox) InsertChars(index int, text string) {
 
 // DeleteChars deletes count runes starting at index.
 func (s *Spinbox) DeleteChars(index, count int) {
-	if count <= 0 || len(s.text) == 0 {
+	if !s.Delete(index, count) {
 		return
 	}
-	if index < 0 {
-		index = 0
-	}
-	if index >= len(s.text) {
-		return
-	}
-	if index+count > len(s.text) {
-		count = len(s.text) - index
-	}
-
-	s.text = append(s.text[:index], s.text[index+count:]...)
-
-	adjustIndex := func(idx *int) {
-		if *idx < 0 {
-			return
-		}
-		if *idx >= index+count {
-			*idx -= count
-		} else if *idx >= index {
-			*idx = index
-		}
-	}
-	adjustIndex(&s.InsertPos)
-	adjustIndex(&s.SelFirst)
-	adjustIndex(&s.SelLast)
-	adjustIndex(&s.SelAnchor)
-	adjustIndex(&s.LeftIndex)
-
-	if s.SelFirst >= 0 && s.SelLast <= s.SelFirst {
-		s.SelFirst = -1
-		s.SelLast = -1
-	}
-
 	s.computeGeometry()
 	s.seeInsert()
 	s.Display()
@@ -415,23 +346,8 @@ func (s *Spinbox) DeleteChars(index, count int) {
 
 // DeleteSelection deletes the selected text.
 func (s *Spinbox) DeleteSelection() {
-	if s.SelFirst < 0 {
-		return
-	}
-	s.DeleteChars(s.SelFirst, s.SelLast-s.SelFirst)
-}
-
-// ClearSelection clears the selection.
-func (s *Spinbox) ClearSelection() {
-	s.SelFirst = -1
-	s.SelLast = -1
-}
-
-// SelectAll selects all text.
-func (s *Spinbox) SelectAll() {
-	if len(s.text) > 0 {
-		s.SelFirst = 0
-		s.SelLast = len(s.text)
+	if s.HasSelection() {
+		s.DeleteChars(s.SelFirst, s.SelLast-s.SelFirst)
 	}
 }
 
@@ -451,15 +367,15 @@ func (s *Spinbox) computeGeometry() {
 
 	s.layoutY = s.inset + m.Ascent
 
-	totalWidth := entryutil.MeasureRunes(s.Font, s.text)
+	totalWidth := textedit.MeasureRunes(s.Font, s.Text)
 	availWidth := max(w.Width-2*s.inset-s.buttonWidth, 1)
 
 	if totalWidth <= availWidth {
 		s.LeftIndex = 0
 		s.layoutX = s.inset
 	} else {
-		s.LeftIndex = max(0, min(s.LeftIndex, len(s.text)))
-		leftCharX := entryutil.MeasureRunes(s.Font, s.text[:s.LeftIndex])
+		s.LeftIndex = max(0, min(s.LeftIndex, len(s.Text)))
+		leftCharX := textedit.MeasureRunes(s.Font, s.Text[:s.LeftIndex])
 		s.layoutX = s.inset - leftCharX
 	}
 }
@@ -476,7 +392,7 @@ func (s *Spinbox) seeInsert() {
 		s.LeftIndex = s.InsertPos
 		s.computeGeometry()
 	} else {
-		cursorX := entryutil.MeasureRunes(s.Font, s.text[:s.InsertPos]) + s.layoutX
+		cursorX := textedit.MeasureRunes(s.Font, s.Text[:s.InsertPos]) + s.layoutX
 		if cursorX >= s.Win.Width-s.inset-s.buttonWidth {
 			s.LeftIndex = max(s.InsertPos-availWidth/s.avgWidth, 0)
 			s.computeGeometry()
@@ -485,16 +401,16 @@ func (s *Spinbox) seeInsert() {
 }
 
 func (s *Spinbox) closestGap(x int) int {
-	if s.Font == nil || len(s.text) == 0 {
+	if s.Font == nil || len(s.Text) == 0 {
 		return 0
 	}
 	xInLayout := x - s.layoutX
-	idx := entryutil.RuneIndexAtPixel(s.Font, s.text, xInLayout)
-	if idx >= len(s.text) {
-		return len(s.text)
+	idx := textedit.RuneIndexAtPixel(s.Font, s.Text, xInLayout)
+	if idx >= len(s.Text) {
+		return len(s.Text)
 	}
-	charStart := entryutil.MeasureRunes(s.Font, s.text[:idx])
-	charEnd := entryutil.MeasureRunes(s.Font, s.text[:idx+1])
+	charStart := textedit.MeasureRunes(s.Font, s.Text[:idx])
+	charEnd := textedit.MeasureRunes(s.Font, s.Text[:idx+1])
 	mid := (charStart + charEnd) / 2
 	if xInLayout >= mid {
 		return idx + 1
@@ -550,11 +466,11 @@ func (s *Spinbox) display() {
 
 	// Draw text.
 	xftFont, isXft := s.Font.(platform.DrawableFont)
-	if isXft && len(s.text) > 0 {
+	if isXft && len(s.Text) > 0 {
 		// Selection highlight.
 		if s.HasFocus && s.SelFirst >= 0 && s.SelLast > s.SelFirst && s.SelBg != nil {
-			selStartX := entryutil.MeasureRunes(s.Font, s.text[:entryutil.ClampIdx(s.SelFirst, len(s.text))]) + s.layoutX
-			selEndX := entryutil.MeasureRunes(s.Font, s.text[:entryutil.ClampIdx(s.SelLast, len(s.text))]) + s.layoutX
+			selStartX := textedit.MeasureRunes(s.Font, s.Text[:textedit.ClampIdx(s.SelFirst, len(s.Text))]) + s.layoutX
+			selEndX := textedit.MeasureRunes(s.Font, s.Text[:textedit.ClampIdx(s.SelLast, len(s.Text))]) + s.layoutX
 			if selStartX < s.inset {
 				selStartX = s.inset
 			}
@@ -572,14 +488,14 @@ func (s *Spinbox) display() {
 
 		// Draw all text.
 		if s.Foreground != nil {
-			xftFont.DrawString(w.Drawable(), s.layoutX, s.layoutY, string(s.text),
+			xftFont.DrawString(w.Drawable(), s.layoutX, s.layoutY, string(s.Text),
 				s.Foreground.Pixel, s.Foreground.Red, s.Foreground.Green, s.Foreground.Blue)
 		}
 	}
 
 	// Cursor.
 	if s.HasFocus && s.CursorOn && s.InsertBg != nil && s.Font != nil {
-		cursorX := entryutil.MeasureRunes(s.Font, s.text[:entryutil.ClampIdx(s.InsertPos, len(s.text))]) + s.layoutX
+		cursorX := textedit.MeasureRunes(s.Font, s.Text[:textedit.ClampIdx(s.InsertPos, len(s.Text))]) + s.layoutX
 		rightEdge := w.Width - s.inset - s.buttonWidth
 		if cursorX >= s.inset && cursorX < rightEdge {
 			m := s.Font.Metrics()

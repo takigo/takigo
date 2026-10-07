@@ -118,72 +118,35 @@ type packEntry struct {
 	config packConfig
 }
 
+// reg is pack's window.GeomManager: the containers' state and the
+// plumbing the managers share (geometry.Registry).
+var reg = geometry.NewRegistry("pack", func(c *window.Window) *packer { return &packer{container: c} })
+
+var (
+	mgr         = reg
+	packers     = &reg.Containers
+	containerOf = &reg.ContainerOf
+)
+
+func containerFor(content *window.Window) *window.Window { return reg.ContainerFor(content) }
+
+// Window, Contents, Arrange, ScheduleArrange and Remove make the packer a
+// geometry.Container.
+func (p *packer) Window() *window.Window { return p.container }
+
+func (p *packer) Contents() []*window.Window {
+	ws := make([]*window.Window, len(p.entries))
+	for i, e := range p.entries {
+		ws[i] = e.window
+	}
+	return ws
+}
+
 // packer manages the pack state for a container window.
 type packer struct {
 	container *window.Window
 	pending   bool // an arrange is scheduled for idle time
 	entries   []*packEntry
-}
-
-// singleton manager instance.
-var mgr = &packManager{}
-
-// packers tracks per-container state.
-var packers = new(geometry.Table[*packer])
-
-// hooked records the containers whose destroy and configure hooks are
-// registered.
-var hooked = new(geometry.Table[bool])
-
-type packManager struct{}
-
-func (m *packManager) Name() string { return "pack" }
-
-func (m *packManager) RequestProc(content *window.Window) {
-	if p, ok := packers.Get(containerFor(content)); ok {
-		p.scheduleArrange()
-	}
-}
-
-// LostContentProc drops content from its container, e.g. when content is
-// destroyed or taken over by another geometry manager.
-func (m *packManager) LostContentProc(content *window.Window) {
-	container := containerFor(content)
-	containerOf.Delete(content)
-	if p, ok := packers.Get(container); ok {
-		p.remove(content)
-		p.scheduleArrange()
-	}
-}
-
-// containerFor returns the window content is managed in: its -in
-// container if one was given, else its parent.
-func containerFor(content *window.Window) *window.Window {
-	if c := containerOf.Of(content); c != nil {
-		return c
-	}
-	return content.Parent
-}
-
-// forgetContainer drops a destroyed container's state; content managed
-// in it from outside its subtree (via -in) becomes unmanaged, as in
-// Tk's DestroyNotify handling in the geometry managers.
-func forgetContainer(container *window.Window) {
-	p, ok := packers.Get(container)
-	if !ok {
-		return
-	}
-	packers.Delete(container)
-	for _, e := range p.entries {
-		if w := e.window; containerOf.Of(w) == container {
-			containerOf.Delete(w)
-			w.GeomManager = nil
-			if w.IsMapped() && !w.IsDestroyed() && w.PlatformID != 0 {
-				w.Display.Server.UnmapWindow(w.PlatformID)
-				window.MarkUnmapped(w)
-			}
-		}
-	}
 }
 
 // In is pack's -in: manage the content inside container, which must be the
@@ -204,9 +167,6 @@ func Before(sibling window.Windower) PackOption {
 func After(sibling window.Windower) PackOption {
 	return func(c *packConfig) { c.after, c.before = sibling.Window(), nil }
 }
-
-// containerOf records each content window's container (Tk's containerPtr).
-var containerOf = new(geometry.Table[*window.Window])
 
 // ErrNotPacked is wrapped by the error Pack returns when the Before or
 // After sibling is not packed.
@@ -312,7 +272,7 @@ func Pack(children geometry.Elementer, opts ...PackOption) error {
 		}
 		if entry != nil {
 			if op, ok := packers.Get(cur); ok {
-				op.remove(w)
+				op.Remove(w)
 				touch(op)
 			}
 		}
@@ -325,35 +285,13 @@ func Pack(children geometry.Elementer, opts ...PackOption) error {
 		prev = w
 	}
 	for _, p := range touched {
-		p.scheduleArrange()
+		p.ScheduleArrange()
 	}
 	return nil
 }
 
 // packerFor returns container's packer, creating it and its hooks.
-func packerFor(container *window.Window) *packer {
-	p, ok := packers.Get(container)
-	if !ok {
-		p = &packer{container: container}
-		packers.Set(container, p)
-	}
-	if !hooked.Of(container) {
-		// The packer is dropped when its last content goes but the
-		// hooks stay with the window, so register them once.
-		hooked.Set(container, true)
-		container.OnDestroy(func() {
-			forgetContainer(container)
-			hooked.Delete(container)
-		})
-		// Re-layout when resized by external forces (e.g. PanedWindow).
-		container.OnConfigure(func() {
-			if pp, ok2 := packers.Get(container); ok2 {
-				pp.scheduleArrange()
-			}
-		})
-	}
-	return p
-}
+func packerFor(container *window.Window) *packer { return reg.For(container) }
 
 // entry returns child's entry, or nil.
 func (p *packer) entry(child *window.Window) *packEntry {
@@ -398,13 +336,13 @@ func Forget(child window.Windower) {
 		window.MarkUnmapped(w)
 	}
 	if p, ok := packers.Get(parent); ok {
-		p.remove(w)
-		p.scheduleArrange()
+		p.Remove(w)
+		p.ScheduleArrange()
 	}
 }
 
 // remove removes a child from the packer's entry list.
-func (p *packer) remove(child *window.Window) {
+func (p *packer) Remove(child *window.Window) {
 	for i, e := range p.entries {
 		if e.window == child {
 			p.entries = append(p.entries[:i], p.entries[i+1:]...)
@@ -417,7 +355,7 @@ func (p *packer) remove(child *window.Window) {
 }
 
 // arrange performs the two-pass layout algorithm.
-func (p *packer) arrange() {
+func (p *packer) Arrange() {
 	container := p.container
 	// As in tkPack.c ArrangePacking, a container left without content
 	// keeps its size, so another geometry manager can take it over.
@@ -550,29 +488,7 @@ func (p *packer) arrange() {
 			continue
 		}
 
-		// Move and resize the child window; content packed -in another
-		// container is offset by that container's position.
-		dx, dy := window.ContentOffset(container, child)
-		moved := child.X != childX+dx || child.Y != childY+dy
-		child.X = childX + dx
-		child.Y = childY + dy
-		child.Width = childW - bw2
-		child.Height = childH - bw2
-
-		if child.PlatformID != platform.WindowID(0) {
-			container.Display.Server.MoveResizeWindow(child.PlatformID,
-				child.X, child.Y, uint(child.Width), uint(child.Height))
-			// Tk maps content only once its container is mapped; the
-			// container's MarkMapped re-arranges and maps it then.
-			if child.Flags&window.FlagMapped == 0 && window.ContainerViewable(container, child) {
-				window.SyncBackground(child)
-				container.Display.Server.MapWindow(child.PlatformID)
-				window.MarkMapped(child)
-			}
-		}
-		if moved {
-			window.NotifyMoved(child)
-		}
+		geometry.PlaceContent(container, child, childX, childY, childW-bw2, childH-bw2)
 	}
 }
 
@@ -695,66 +611,12 @@ func anchorPosition(a option.Anchor, frameX, frameY, frameW, frameH, childW, chi
 
 // ArrangeAll triggers layout for the pack-managed containers in root's
 // subtree, root included.
-func ArrangeAll(root *window.Window) {
-	if root == nil {
-		return
-	}
-	if p, ok := packers.Get(root); ok {
-		p.scheduleArrange()
-	}
-	for _, c := range root.Children {
-		ArrangeAll(c)
-	}
-}
-
-// Arrange (and so map) the content once its container is mapped, as the
-// managers' structure procs do on MapNotify; keep -in content with its
-// container when it moves or is unmapped (Tk_MaintainGeometry).
-func init() {
-	window.AddMappedHook(ArrangeContainer)
-	window.AddMovedHook(func(w *window.Window) {
-		if p, ok := packers.Get(w); ok && p.hasForeign() {
-			p.scheduleArrange()
-		}
-	})
-	window.AddUnmappedHook(func(w *window.Window) {
-		if p, ok := packers.Get(w); ok {
-			p.unmapForeign()
-		}
-	})
-}
-
-// hasForeign reports whether some content is packed -in this container
-// without being its child.
-func (p *packer) hasForeign() bool {
-	for _, e := range p.entries {
-		if e.window.Parent != p.container {
-			return true
-		}
-	}
-	return false
-}
-
-// unmapForeign unmaps -in content whose container was unmapped; X does this
-// for real children.
-func (p *packer) unmapForeign() {
-	for _, e := range p.entries {
-		w := e.window
-		if w.Parent != p.container && w.IsMapped() && w.PlatformID != platform.WindowID(0) {
-			w.Display.Server.UnmapWindow(w.PlatformID)
-			window.MarkUnmapped(w)
-		}
-	}
-}
+func ArrangeAll(root *window.Window) { reg.ArrangeAll(root) }
 
 // ArrangeContainer triggers layout for a specific container.
-func ArrangeContainer(container *window.Window) {
-	if p, ok := packers.Get(container); ok {
-		p.arrange()
-	}
-}
+func ArrangeContainer(container *window.Window) { reg.ArrangeContainer(container) }
 
 // scheduleArrange re-arranges the container at idle time.
-func (p *packer) scheduleArrange() {
-	geometry.WhenIdle(p.container, &p.pending, p.arrange)
+func (p *packer) ScheduleArrange() {
+	geometry.WhenIdle(p.container, &p.pending, p.Arrange)
 }

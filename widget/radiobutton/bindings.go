@@ -43,7 +43,7 @@ func bindRadiobutton(r *Radiobutton, app widget.AppContext) {
 			return
 		}
 		r.State = widget.StateNormal
-		r.pressed = false
+		r.SetPressed(false)
 		r.Display()
 	})
 
@@ -53,7 +53,7 @@ func bindRadiobutton(r *Radiobutton, app widget.AppContext) {
 			return
 		}
 		if ev.Button == 1 {
-			r.pressed = true
+			r.SetPressed(true)
 		}
 	})
 
@@ -62,8 +62,8 @@ func bindRadiobutton(r *Radiobutton, app widget.AppContext) {
 		if r.State == widget.StateDisabled {
 			return
 		}
-		if ev.Button == 1 && r.pressed {
-			r.pressed = false
+		if ev.Button == 1 && r.Pressed() {
+			r.SetPressed(false)
 			if ev.X >= 0 && ev.X < w.Width && ev.Y >= 0 && ev.Y < w.Height {
 				r.Select()
 			}

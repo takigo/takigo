@@ -48,7 +48,7 @@ func bindButton(b *Button, app widget.AppContext) {
 			return
 		}
 		b.State = widget.StateNormal
-		b.pressed = false
+		b.SetPressed(false)
 		b.Display()
 	})
 
@@ -58,7 +58,7 @@ func bindButton(b *Button, app widget.AppContext) {
 			return
 		}
 		if ev.Button == 1 {
-			b.pressed = true
+			b.SetPressed(true)
 			b.Display()
 		}
 	})
@@ -68,8 +68,8 @@ func bindButton(b *Button, app widget.AppContext) {
 		if b.State == widget.StateDisabled {
 			return
 		}
-		if ev.Button == 1 && b.pressed {
-			b.pressed = false
+		if ev.Button == 1 && b.Pressed() {
+			b.SetPressed(false)
 			b.Display()
 			// Only invoke if the pointer is still inside the button.
 			if ev.X >= 0 && ev.X < w.Width && ev.Y >= 0 && ev.Y < w.Height {

@@ -26,12 +26,13 @@ func TestFormatValue(t *testing.T) {
 }
 
 func TestSyncValuesIndex(t *testing.T) {
-	s := &Spinbox{Values: []string{"a", "b", "c"}, text: []rune("c")}
+	s := &Spinbox{Values: []string{"a", "b", "c"}}
+	s.Text = []rune("c")
 	s.syncValuesIndex()
 	if s.valuesIndex != 2 {
 		t.Errorf("valuesIndex = %d after the text became %q, want 2", s.valuesIndex, "c")
 	}
-	s.text = []rune("zzz")
+	s.Text = []rune("zzz")
 	s.syncValuesIndex()
 	if s.valuesIndex != 2 {
 		t.Errorf("an unknown text moved valuesIndex to %d", s.valuesIndex)
