@@ -88,6 +88,13 @@ Ctrl+C at any time — the next run resumes from the first pending demo.
 | `_lib.sh` | Shared helpers (`tcl_demo_for`, `run_compare`, `odiff_score`, `maybe_xvfb`, `LLM_TOOL` launch configs); source it from new scripts |
 | `demo_wrapper.tcl <demo>` | Run a Tk 9.1 demo standalone (used by screenshot scripts) |
 
+### Release scripts
+
+| Script | Purpose |
+|--------|---------|
+| `release.sh vX.Y.Z [--push]` | Check the tree, run `make check test`, turn `CHANGELOG.md`'s Unreleased section into the release section, commit and tag it; `--push` pushes, registers with proxy.golang.org and creates a GitHub release (`make release`) |
+| `apidiff.sh [--incompatible] [BASE [NEW]]` | Exported API changes between two revisions (default: last `v*` tag → HEAD) via `golang.org/x/exp/cmd/apidiff` on clean worktrees in `tmp/apidiff` (`make apidiff`) |
+
 ---
 
 ## Output files

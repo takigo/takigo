@@ -1,9 +1,15 @@
 # Changelog
 
-## Unreleased (since v0.1.0)
+Versions follow [semantic versioning](https://semver.org); while the major
+version is 0, a minor release may break the API and says so here.
+
+## Unreleased
 
 v0.1.0 is the last version with the original, Tk-shaped API. The changes
 below are breaking unless marked otherwise; each lists what to change.
+
+- **The module path is `github.com/takigo/takigo`** (it was
+  `github.com/msorc/takigo`): rewrite the imports.
 
 ### Options and errors
 
@@ -95,8 +101,15 @@ below are breaking unless marked otherwise; each lists what to change.
   `Canvas.Items` (iterators).
 - JPEG photos decode; `image.NewPhotoFramesFromGIF` loads animated GIFs.
 - `widget.Resources` and `widget.Scheduler`, the two halves of `AppContext`.
+- `takigo.Version()` reports the takigo version a program was built with,
+  from the build info.
 
 ### Removed
 
 - The unused packages `config`, `gc` and `widget/editutil`, and the
   `widget.BindEngine` interface.
+
+## v0.1.0 (2026-10-01)
+
+Baseline with the original, Tk-shaped API, under the module path
+`github.com/msorc/takigo`. Not published to the module proxy.
