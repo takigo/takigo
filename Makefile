@@ -9,7 +9,8 @@ OUTDIR ?= tmp/bin
 .DEFAULT_GOAL := help
 
 .PHONY: help all build test test-race vet fmt fmt-check fix fix-check lint \
-	check ci build-windows vet-windows demos run-demo bench fuzz clean distclean
+	check ci build-windows vet-windows demos run-demo bench fuzz apidiff release \
+	clean distclean
 
 help: ## List the goals
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-14s %s\n", $$1, $$2}'
@@ -72,6 +73,13 @@ bench: ## Run benchmarks without tests
 
 fuzz: ## Fuzz the binding parser: make fuzz FUZZTIME=30s
 	$(GO) test ./bind/ -run '^$$' -fuzz '^FuzzParse$$' -fuzztime $(or $(FUZZTIME),30s)
+
+apidiff: ## Exported API changes since the last tag: make apidiff [BASE=v0.2.0]
+	bash scripts/apidiff.sh $(BASE)
+
+release: ## Tag a release from CHANGELOG.md: make release VERSION=v0.2.0 [PUSH=1]
+	@[ -n "$(VERSION)" ] || { echo "usage: make release VERSION=vX.Y.Z [PUSH=1]"; exit 1; }
+	bash scripts/release.sh $(VERSION) $(if $(PUSH),--push)
 
 clean: ## Remove built binaries
 	rm -rf $(OUTDIR)/demos $(OUTDIR)/windows

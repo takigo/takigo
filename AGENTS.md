@@ -37,7 +37,15 @@ go test ./event/ -run '^$' -bench .
 go vet ./...
 go fix ./...              # apply modernizers; CI runs `go fix -diff ./...`
 golangci-lint run ./...   # config in .golangci.yml (v2 format)
+
+# Releases (CONTRIBUTING.md, "Releases").
+make apidiff              # exported API changes since the last v* tag
+make release VERSION=v0.2.0 [PUSH=1]   # changelog section -> commit + annotated tag
 ```
+
+Versions exist only as git tags: no version constant, `takigo.Version()`
+reads the build info. Releases stay at v0.x; a breaking change bumps the
+minor version and gets a `CHANGELOG.md` entry under `## Unreleased`.
 
 There is **no `go.sum`** — dependencies are stdlib only. The `Makefile` only
 wraps the commands above (`make help` lists the goals).
@@ -438,6 +446,7 @@ lookup.
 | Understand a Tk semantic | grep `tk/library/<file>.tcl` and the relevant `tk/generic/<file>.c` (vendored, gitignored) |
 | Adjust default widget colour/font | `widget/palette.go` (`LightPalette` mirrors `tk/unix/tkUnixDefault.h`; read defaults with `widget.PaletteFor(app)`, never a literal) |
 | Add a binding tag | `bind/table.go` (`BindingTable`) + `bind/pattern.go` (Tk pattern syntax) |
+| Cut a release | `make release VERSION=vX.Y.Z` (`scripts/release.sh`); check `make apidiff` first |
 | Adjust DPI / unit conversion | `screenunit/screenunit.go` (Tk's `tkCmds.c:1316` ScalingCmd) |
 
 ---

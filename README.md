@@ -17,7 +17,8 @@ constructors and functional options.
   `demos/`, most of them ports of Tk's own, are compared against `wish`
   screenshot by screenshot.
 
-The API is not stable yet; there is no tagged release.
+The API is not stable yet: releases stay at v0.x, and each one lists its
+breaking changes in [CHANGELOG.md](CHANGELOG.md).
 
 ## Hello, world
 

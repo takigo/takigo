@@ -64,6 +64,23 @@ jobs:
           version: latest
           only-new-issues: true
 
+  api:
+    # Lists the exported API changes since the last v* tag. Informational:
+    # under v0 a breaking change asks for a minor version bump, not a fix.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Install X11 development packages
+        run: sudo apt-get update && sudo apt-get install -y libx11-dev libxft-dev libfontconfig1-dev
+      - run: |
+          bash scripts/apidiff.sh | tee api.txt
+          { echo '```'; cat api.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
   vulncheck:
     runs-on: ubuntu-latest
     steps:
