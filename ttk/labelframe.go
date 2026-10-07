@@ -173,17 +173,10 @@ func (lf *Labelframe) Display() {
 	}
 	d := win.Display.Server
 	gc := win.GC
-	if lf.pixmap == 0 || lf.pixmapW != width || lf.pixmapH != height {
-		if lf.pixmap != 0 {
-			d.FreePixmap(lf.pixmap)
-		}
-		lf.pixmap = d.CreatePixmap(win.Drawable(), uint(width), uint(height), uint(win.Depth))
-		lf.pixmapW, lf.pixmapH = width, height
-	}
-	if lf.pixmap == 0 {
+	pix := lf.backBuffer(width, height)
+	if pix == 0 {
 		return
 	}
-	pix := platform.PixmapDrawable(lf.pixmap)
 
 	style := lf.Context.Style
 	bg := LookupColor(style, "-background", lf.State, 0xd9d9d9)
@@ -217,10 +210,7 @@ func (lf *Labelframe) Display() {
 		d.FillRectangle(pix, gc, lx, 0, uint(lw), uint(lh))
 		fg := LookupColor(lf.labelStyle(), "-foreground", lf.State, 0x000000)
 		if df, ok := lf.Font.(platform.DrawableFont); ok {
-			r := uint16((fg>>16)&0xFF) * 257
-			g := uint16((fg>>8)&0xFF) * 257
-			b := uint16(fg&0xFF) * 257
-			df.DrawString(pix, lx, lf.Font.Metrics().Ascent, lf.Text, fg, r, g, b)
+			drawString(df, pix, lx, lf.Font.Metrics().Ascent, lf.Text, fg)
 		}
 	}
 

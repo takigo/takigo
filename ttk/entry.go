@@ -12,7 +12,6 @@ import (
 	"github.com/takigo/takigo/font"
 	"github.com/takigo/takigo/internal/textedit"
 	"github.com/takigo/takigo/option"
-	"github.com/takigo/takigo/platform"
 	"github.com/takigo/takigo/ttk/internal/entrytext"
 	"github.com/takigo/takigo/widget"
 	"github.com/takigo/takigo/window"
@@ -460,19 +459,10 @@ func (e *Entry) Display() {
 		return
 	}
 
-	// Double buffer.
-	if e.pixmap == 0 || e.pixmapW != width || e.pixmapH != height {
-		if e.pixmap != 0 {
-			d.FreePixmap(e.pixmap)
-		}
-		e.pixmap = d.CreatePixmap(win.Drawable(), uint(width), uint(height), uint(win.Depth))
-		e.pixmapW = width
-		e.pixmapH = height
-	}
-	if e.pixmap == 0 {
+	pixDrawable := e.backBuffer(width, height)
+	if pixDrawable == 0 {
 		return
 	}
-	pixDrawable := platform.PixmapDrawable(e.pixmap)
 
 	fg := LookupColor(e.Context.Style, "-foreground", e.State, 0x000000)
 	selBg := LookupColor(e.Context.Style, "-selectbackground", e.State, 0x4a6984)
@@ -496,87 +486,24 @@ func (e *Entry) Display() {
 	// Scroll the text horizontally if the insertion cursor has moved off-screen.
 	e.maybeScrollIntoView(display)
 
-	textX := e.edit.TextX - e.edit.XOffset
-	if e.Font != nil {
-		m := e.Font.Metrics()
-		textY := (height-m.Linespace())/2 + m.Ascent
-		hasSel := e.State&StateFocus != 0 && e.edit.HasSelection()
-
-		// Selection highlight.
-		if hasSel && len(display) > 0 {
-			sf := e.edit.SelFirst
-			sl := e.edit.SelLast
-			if sf > len(display) {
-				sf = len(display)
-			}
-			if sl > len(display) {
-				sl = len(display)
-			}
-			selStartX := textX + e.Font.MeasureString(string(display[:sf]))
-			selEndX := textX + e.Font.MeasureString(string(display[:sl]))
-			selStartX = max(selStartX, e.edit.TextX)
-			if selEndX > width-2 {
-				selEndX = width - 2
-			}
-			if selEndX > selStartX {
-				d.SetForeground(gc, selBg)
-				d.FillRectangle(pixDrawable, gc, selStartX, e.insetY,
-					uint(selEndX-selStartX), uint(m.Linespace()))
-			}
+	ft := fieldText{
+		font: e.Font, text: display, x: e.edit.TextX - e.edit.XOffset,
+		left: e.edit.TextX, right: width - 2, top: e.insetY, height: height - 2*e.insetY,
+		selFirst: -1, selLast: -1, cursor: -1,
+		fg: fg, selBg: selBg, selFg: selFg, insertColor: insertColor, insertWidth: insertWidth,
+	}
+	if showPlaceholder {
+		ft.text = []rune(e.Placeholder)
+		ft.fg = LookupColor(e.Context.Style, "-placeholderforeground", e.State, 0xb3b3b3)
+	} else {
+		if e.State&StateFocus != 0 && e.edit.HasSelection() {
+			ft.selFirst, ft.selLast = e.edit.SelFirst, e.edit.SelLast
 		}
-
-		// Text.
-		if e.Font != nil {
-			phFg := LookupColor(e.Context.Style, "-placeholderforeground", e.State, 0xb3b3b3)
-			if showPlaceholder {
-				display = []rune(e.Placeholder)
-				fg = phFg
-			}
-			if df, ok := e.Font.(platform.DrawableFont); ok {
-				drawSeg := func(start, end int, clr uint64) {
-					if start >= end || end > len(display) || start < 0 {
-						return
-					}
-					seg := string(display[start:end])
-					segX := textX + e.Font.MeasureString(string(display[:start]))
-					if segX >= width || segX+e.Font.MeasureString(seg) <= 0 {
-						return
-					}
-					r := uint16((clr>>16)&0xFF) * 257
-					g := uint16((clr>>8)&0xFF) * 257
-					b := uint16((clr)&0xFF) * 257
-					df.DrawString(pixDrawable, segX, textY, seg, clr, r, g, b)
-				}
-				if hasSel && !showPlaceholder && len(display) > 0 {
-					sf := e.edit.SelFirst
-					sl := e.edit.SelLast
-					if sf > len(display) {
-						sf = len(display)
-					}
-					if sl > len(display) {
-						sl = len(display)
-					}
-					drawSeg(0, sf, fg)
-					drawSeg(sf, sl, selFg)
-					drawSeg(sl, len(display), fg)
-				} else if len(display) > 0 {
-					drawSeg(0, len(display), fg)
-				}
-			}
-		}
-		_ = m
-
-		// Insertion cursor.
-		if e.State&StateFocus != 0 && e.StateMode != EntryDisabled && !showPlaceholder {
-			curIdx := e.edit.InsertPos
-			curX := textX + e.Font.MeasureString(string(display[:curIdx]))
-			rightEdge := width - 2
-			if curX >= e.edit.TextX && curX < rightEdge {
-				d.SetForeground(gc, insertColor)
-				d.FillRectangle(pixDrawable, gc, curX, e.insetY, uint(insertWidth), uint(height-2*e.insetY))
-			}
+		if e.State&StateFocus != 0 && e.StateMode != EntryDisabled {
+			ft.cursor = e.edit.InsertPos
 		}
 	}
+	drawFieldText(d, pixDrawable, gc, ft)
 
 	// Copy to window.
 	d.CopyArea(pixDrawable, win.Drawable(), gc, 0, 0, uint(width), uint(height), 0, 0)

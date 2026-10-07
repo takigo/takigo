@@ -72,20 +72,10 @@ func (sg *Sizegrip) Display() {
 		return
 	}
 
-	// Double buffer.
-	if sg.pixmap == 0 || sg.pixmapW != width || sg.pixmapH != height {
-		if sg.pixmap != 0 {
-			d.FreePixmap(sg.pixmap)
-		}
-		sg.pixmap = d.CreatePixmap(win.Drawable(), uint(width), uint(height), uint(win.Depth))
-		sg.pixmapW = width
-		sg.pixmapH = height
-	}
-	if sg.pixmap == 0 {
+	pixDrawable := sg.backBuffer(width, height)
+	if pixDrawable == 0 {
 		return
 	}
-
-	pixDrawable := platform.PixmapDrawable(sg.pixmap)
 
 	bg := LookupColor(sg.Context.Style, "-background", sg.State, 0xd9d9d9)
 

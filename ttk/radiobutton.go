@@ -265,10 +265,7 @@ func (r *Radiobutton) Display() {
 			m := r.Font.Metrics()
 			textX := labelX
 			textY := labelY + m.Ascent
-			rv := uint16((fgColor>>16)&0xFF) * 257
-			gv := uint16((fgColor>>8)&0xFF) * 257
-			bv := uint16((fgColor)&0xFF) * 257
-			df.DrawString(win.Drawable(), textX, textY, r.Text, fgColor, rv, gv, bv)
+			drawString(df, win.Drawable(), textX, textY, r.Text, fgColor)
 		}
 	}
 

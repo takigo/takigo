@@ -231,17 +231,10 @@ func (s *Scale) Display() {
 	}
 	d := win.Display.Server
 	gc := win.GC
-	if s.pixmap == 0 || s.pixmapW != width || s.pixmapH != height {
-		if s.pixmap != 0 {
-			d.FreePixmap(s.pixmap)
-		}
-		s.pixmap = d.CreatePixmap(win.Drawable(), uint(width), uint(height), uint(win.Depth))
-		s.pixmapW, s.pixmapH = width, height
-	}
-	if s.pixmap == 0 {
+	pix := s.backBuffer(width, height)
+	if pix == 0 {
 		return
 	}
-	pix := platform.PixmapDrawable(s.pixmap)
 	st := s.Context.Style
 	bg := LookupColor(st, "-background", s.State, 0xd9d9d9)
 	d.SetForeground(gc, bg)

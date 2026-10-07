@@ -6,7 +6,6 @@ import (
 
 	"github.com/takigo/takigo/draw"
 	"github.com/takigo/takigo/option"
-	"github.com/takigo/takigo/platform"
 	"github.com/takigo/takigo/screenunit"
 	"github.com/takigo/takigo/widget"
 	"github.com/takigo/takigo/window"
@@ -133,20 +132,10 @@ func (p *Progressbar) Display() {
 		return
 	}
 
-	// Allocate or resize pixmap.
-	if p.pixmap == 0 || p.pixmapW != width || p.pixmapH != height {
-		if p.pixmap != 0 {
-			d.FreePixmap(p.pixmap)
-		}
-		p.pixmap = d.CreatePixmap(win.Drawable(), uint(width), uint(height), uint(win.Depth))
-		p.pixmapW = width
-		p.pixmapH = height
-	}
-	if p.pixmap == 0 {
+	pixDrawable := p.backBuffer(width, height)
+	if pixDrawable == 0 {
 		return
 	}
-
-	pixDrawable := platform.PixmapDrawable(p.pixmap)
 
 	// Background.
 	bg := LookupColor(p.Context.Style, "-background", p.State, 0xd9d9d9)
