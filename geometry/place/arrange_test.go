@@ -3,6 +3,7 @@ package place
 import (
 	"testing"
 
+	"github.com/takigo/takigo/geometry"
 	"github.com/takigo/takigo/option"
 	"github.com/takigo/takigo/platform"
 	"github.com/takigo/takigo/window"
@@ -201,7 +202,7 @@ func TestPlaceIn(t *testing.T) {
 	if got, want := geom(ch), [4]int{80, 75, 20, 10}; got != want {
 		t.Errorf("geometry = %v, want %v", got, want)
 	}
-	if !placers.Of(sib).hasForeign() {
+	if !geometry.HasForeign(placers.Of(sib)) {
 		t.Error("hasForeign = false for -in content")
 	}
 

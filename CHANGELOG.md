@@ -37,6 +37,10 @@ version is 0, a minor release may break the API and says so here.
   `label` gained `State`; the button draws disabled text in the disabled
   foreground, the `-underline` character is underlined, and a push button's
   content shifts with its relief as in Tk (additive, visual).
+- The pack, grid and place managers share their container plumbing
+  (`geometry.Registry`, `geometry.PlaceContent`, `geometry.HasForeign`):
+  creating a container's state with its hooks, dropping it with the window,
+  and keeping `-in` content mapped and placed with its container (additive).
 - `demos/busy` shows the `busy` package (additive). The test programs under
   `cmd/` are gone, each overlapped by a demo; the comparison tools moved to
   `internal/cmd/`.

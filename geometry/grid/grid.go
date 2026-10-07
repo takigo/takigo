@@ -55,9 +55,6 @@ func In(container window.Windower) GridOption {
 	return func(c *gridConfig) { c.in = container.Window() }
 }
 
-// containerOf records each content window's container (Tk's containerPtr).
-var containerOf = new(geometry.Table[*window.Window])
-
 // Row sets the row.
 func Row(r int) GridOption { return func(c *gridConfig) { c.row, c.rowSet = r, true } }
 
@@ -156,6 +153,30 @@ type gridEntry struct {
 	config gridConfig
 }
 
+// reg is grid's window.GeomManager: the containers' state and the
+// plumbing the managers share (geometry.Registry).
+var reg = geometry.NewRegistry("grid", newGridder)
+
+var (
+	mgr         = reg
+	gridders    = &reg.Containers
+	containerOf = &reg.ContainerOf
+)
+
+func containerFor(content *window.Window) *window.Window { return reg.ContainerFor(content) }
+
+// Window, Contents, Arrange, ScheduleArrange and Remove make the gridder a
+// geometry.Container.
+func (g *gridder) Window() *window.Window { return g.container }
+
+func (g *gridder) Contents() []*window.Window {
+	ws := make([]*window.Window, len(g.entries))
+	for i, e := range g.entries {
+		ws[i] = e.window
+	}
+	return ws
+}
+
 // gridder manages grid state for a container.
 type gridder struct {
 	container *window.Window
@@ -177,80 +198,8 @@ func newGridder(container *window.Window) *gridder {
 	}
 }
 
-// gridderFor returns the container's gridder, creating it with the resize
-// hook that re-arranges the grid (whichever of grid, rowconfigure,
-// columnconfigure or anchor touches the container first).
-func gridderFor(container *window.Window) *gridder {
-	if g, ok := gridders.Get(container); ok {
-		return g
-	}
-	g := newGridder(container)
-	gridders.Set(container, g)
-	container.OnDestroy(func() { forgetContainer(container) })
-	container.OnConfigure(func() {
-		if gg, ok := gridders.Get(container); ok {
-			gg.scheduleArrange()
-		}
-	})
-	return g
-}
-
-// singleton manager instance.
-var mgr = &gridManager{}
-
-// gridders tracks per-container state.
-var gridders = new(geometry.Table[*gridder])
-
-type gridManager struct{}
-
-func (m *gridManager) Name() string { return "grid" }
-
-func (m *gridManager) RequestProc(content *window.Window) {
-	if p, ok := gridders.Get(containerFor(content)); ok {
-		p.scheduleArrange()
-	}
-}
-
-// LostContentProc drops content from its container, e.g. when content is
-// destroyed or taken over by another geometry manager.
-func (m *gridManager) LostContentProc(content *window.Window) {
-	container := containerFor(content)
-	containerOf.Delete(content)
-	if p, ok := gridders.Get(container); ok {
-		p.remove(content)
-		p.scheduleArrange()
-	}
-}
-
-// containerFor returns the window content is managed in: its -in
-// container if one was given, else its parent.
-func containerFor(content *window.Window) *window.Window {
-	if c := containerOf.Of(content); c != nil {
-		return c
-	}
-	return content.Parent
-}
-
-// forgetContainer drops a destroyed container's state; content managed
-// in it from outside its subtree (via -in) becomes unmanaged, as in
-// Tk's DestroyNotify handling in the geometry managers.
-func forgetContainer(container *window.Window) {
-	p, ok := gridders.Get(container)
-	if !ok {
-		return
-	}
-	gridders.Delete(container)
-	for _, e := range p.entries {
-		if w := e.window; containerOf.Of(w) == container {
-			containerOf.Delete(w)
-			w.GeomManager = nil
-			if w.IsMapped() && !w.IsDestroyed() && w.PlatformID != 0 {
-				w.Display.Server.UnmapWindow(w.PlatformID)
-				window.MarkUnmapped(w)
-			}
-		}
-	}
-}
+// gridderFor returns the container's gridder, creating it with its hooks.
+func gridderFor(container *window.Window) *gridder { return reg.For(container) }
 
 // RelativePlacement represents Tk's grid relative placement shortcuts.
 // See tk/generic/tkGrid.c ConfigureContent and the "RELATIVE PLACEMENT"
@@ -448,8 +397,8 @@ func Grid(children geometry.Elementer, opts ...GridOption) error {
 
 		if old != nil && old != container {
 			if og, ok := gridders.Get(old); ok {
-				og.remove(w)
-				og.scheduleArrange()
+				og.Remove(w)
+				og.ScheduleArrange()
 			}
 			existing = nil
 		}
@@ -465,7 +414,7 @@ func Grid(children geometry.Elementer, opts ...GridOption) error {
 			g.entries = append(g.entries, lastEntry)
 		}
 		if container != parent {
-			g.scheduleArrange()
+			g.ScheduleArrange()
 		}
 
 		col++
@@ -498,7 +447,7 @@ func Grid(children geometry.Elementer, opts ...GridOption) error {
 		col++
 	}
 
-	g.scheduleArrange()
+	g.ScheduleArrange()
 	return nil
 }
 
@@ -520,8 +469,8 @@ func Forget(child window.Windower) {
 		window.MarkUnmapped(w)
 	}
 	if g, ok := gridders.Get(parent); ok {
-		g.remove(w)
-		g.scheduleArrange()
+		g.Remove(w)
+		g.ScheduleArrange()
 	}
 }
 
@@ -534,7 +483,7 @@ func RowConfigure(container window.Windower, row int, opts ...SlotOption) {
 	}
 	g := gridderFor(w)
 	g.rowConf[row] = &conf
-	g.scheduleArrange()
+	g.ScheduleArrange()
 }
 
 // ColumnConfigure sets configuration for a column.
@@ -546,7 +495,7 @@ func ColumnConfigure(container window.Windower, col int, opts ...SlotOption) {
 	}
 	g := gridderFor(w)
 	g.colConf[col] = &conf
-	g.scheduleArrange()
+	g.ScheduleArrange()
 }
 
 // SetAnchor sets the anchor for a grid container. The anchor controls where
@@ -555,7 +504,7 @@ func SetAnchor(container window.Windower, anchor option.Anchor) {
 	w := container.Window()
 	g := gridderFor(w)
 	g.anchor = anchor
-	g.scheduleArrange()
+	g.ScheduleArrange()
 }
 
 // GetAnchor returns the anchor for a grid container.
@@ -573,7 +522,7 @@ func SetPropagate(container window.Windower, propagate bool) {
 	w := container.Window()
 	g := gridderFor(w)
 	g.propagate = propagate
-	g.scheduleArrange()
+	g.ScheduleArrange()
 }
 
 // GetPropagate returns whether the grid propagates geometry requests.
@@ -595,7 +544,7 @@ func (g *gridder) entry(child *window.Window) *gridEntry {
 	return nil
 }
 
-func (g *gridder) remove(child *window.Window) {
+func (g *gridder) Remove(child *window.Window) {
 	for i, e := range g.entries {
 		if e.window == child {
 			g.entries = append(g.entries[:i], g.entries[i+1:]...)
@@ -1058,7 +1007,7 @@ func adjustOffsets(size int, offsets []int, conf map[int]*SlotConfig) int {
 }
 
 // arrange performs the grid layout.
-func (g *gridder) arrange() {
+func (g *gridder) Arrange() {
 	container := g.container
 	if container.PlatformID == platform.WindowID(0) || container.IsDestroyed() || len(g.entries) == 0 {
 		return
@@ -1157,34 +1106,7 @@ func (g *gridder) arrange() {
 		// Apply sticky.
 		x, y, w, h := applySticky(cfg.sticky, cavX, cavY, cavW, cavH, childW, childH)
 
-		// Content gridded -in another container is offset by its position.
-		dx, dy := window.ContentOffset(container, child)
-		moved := child.X != x+dx || child.Y != y+dy
-		child.X = x + dx
-		child.Y = y + dy
-		child.Width = w - bw2
-		child.Height = h - bw2
-		if child.Width < 1 {
-			child.Width = 1
-		}
-		if child.Height < 1 {
-			child.Height = 1
-		}
-
-		if child.PlatformID != platform.WindowID(0) {
-			container.Display.Server.MoveResizeWindow(child.PlatformID,
-				child.X, child.Y, uint(child.Width), uint(child.Height))
-			// Tk maps content only once its container is mapped; the
-			// container's MarkMapped re-arranges and maps it then.
-			if child.Flags&window.FlagMapped == 0 && window.ContainerViewable(container, child) {
-				window.SyncBackground(child)
-				container.Display.Server.MapWindow(child.PlatformID)
-				window.MarkMapped(child)
-			}
-		}
-		if moved {
-			window.NotifyMoved(child)
-		}
+		geometry.PlaceContent(container, child, x, y, w-bw2, h-bw2)
 	}
 }
 
@@ -1249,66 +1171,12 @@ func computeAnchor(anchor option.Anchor, container *window.Window, usedW, usedH 
 
 // ArrangeAll triggers layout for the grid-managed containers in root's
 // subtree, root included.
-func ArrangeAll(root *window.Window) {
-	if root == nil {
-		return
-	}
-	if g, ok := gridders.Get(root); ok {
-		g.scheduleArrange()
-	}
-	for _, c := range root.Children {
-		ArrangeAll(c)
-	}
-}
-
-// Arrange (and so map) the content once its container is mapped, as the
-// managers' structure procs do on MapNotify; keep -in content with its
-// container when it moves or is unmapped (Tk_MaintainGeometry).
-func init() {
-	window.AddMappedHook(ArrangeContainer)
-	window.AddMovedHook(func(w *window.Window) {
-		if g, ok := gridders.Get(w); ok && g.hasForeign() {
-			g.scheduleArrange()
-		}
-	})
-	window.AddUnmappedHook(func(w *window.Window) {
-		if g, ok := gridders.Get(w); ok {
-			g.unmapForeign()
-		}
-	})
-}
-
-// hasForeign reports whether some content is gridded -in this container
-// without being its child.
-func (g *gridder) hasForeign() bool {
-	for _, e := range g.entries {
-		if e.window.Parent != g.container {
-			return true
-		}
-	}
-	return false
-}
-
-// unmapForeign unmaps -in content whose container was unmapped; X does this
-// for real children.
-func (g *gridder) unmapForeign() {
-	for _, e := range g.entries {
-		w := e.window
-		if w.Parent != g.container && w.IsMapped() && w.PlatformID != platform.WindowID(0) {
-			w.Display.Server.UnmapWindow(w.PlatformID)
-			window.MarkUnmapped(w)
-		}
-	}
-}
+func ArrangeAll(root *window.Window) { reg.ArrangeAll(root) }
 
 // ArrangeContainer triggers layout for a specific container.
-func ArrangeContainer(container *window.Window) {
-	if g, ok := gridders.Get(container); ok {
-		g.arrange()
-	}
-}
+func ArrangeContainer(container *window.Window) { reg.ArrangeContainer(container) }
 
 // scheduleArrange re-arranges the container at idle time.
-func (g *gridder) scheduleArrange() {
-	geometry.WhenIdle(g.container, &g.pending, g.arrange)
+func (g *gridder) ScheduleArrange() {
+	geometry.WhenIdle(g.container, &g.pending, g.Arrange)
 }

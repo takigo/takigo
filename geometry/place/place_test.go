@@ -134,19 +134,19 @@ func TestPlacerRemove(t *testing.T) {
 	p.entries = append(p.entries, e1, e2)
 
 	// Remove w1
-	p.remove(w1)
+	p.Remove(w1)
 	if len(p.entries) != 1 || p.entries[0].window != w2 {
 		t.Errorf("After removing w1: entries = %v, want [w2]", p.entries)
 	}
 
 	// Remove w2
-	p.remove(w2)
+	p.Remove(w2)
 	if len(p.entries) != 0 {
 		t.Errorf("After removing w2: entries = %v, want []", p.entries)
 	}
 
 	// Remove non-existent
-	p.remove(w1) // should not panic
+	p.Remove(w1) // should not panic
 	if len(p.entries) != 0 {
 		t.Error("Removing non-existent should not change entries")
 	}
