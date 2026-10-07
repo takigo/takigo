@@ -73,6 +73,12 @@ type WmInfo struct {
 	// Transient.
 	TransientFor *window.Window
 
+	// Gridding (Tk_SetGrid): the window whose grid the toplevel resizes
+	// in, its request in grid units and the pixel size of a unit.
+	gridWin                     *window.Window
+	reqGridWidth, reqGridHeight int
+	widthInc, heightInc         int
+
 	// Protocol handlers.
 	Protocols map[platform.AtomID]func()
 
@@ -352,7 +358,38 @@ func (info *WmInfo) SetResizable(width, height bool) {
 	info.updateSizeHints()
 }
 
-// updateSizeHints sends WM_NORMAL_HINTS to the X server.
+// SetGrid ports Tk_SetGrid: the toplevel resizes in steps of widthInc x
+// heightInc pixels, gridWin's request being reqWidth x reqHeight units
+// (a text widget's -setgrid). Only one window grids a toplevel at a time.
+func (info *WmInfo) SetGrid(gridWin *window.Window, reqWidth, reqHeight, widthInc, heightInc int) {
+	widthInc = max(widthInc, 1)
+	heightInc = max(heightInc, 1)
+	if info.gridWin != nil && info.gridWin != gridWin {
+		return
+	}
+	if info.gridWin == gridWin && info.reqGridWidth == reqWidth && info.reqGridHeight == reqHeight &&
+		info.widthInc == widthInc && info.heightInc == heightInc {
+		return
+	}
+	info.gridWin = gridWin
+	info.reqGridWidth, info.reqGridHeight = reqWidth, reqHeight
+	info.widthInc, info.heightInc = widthInc, heightInc
+	info.updateSizeHints()
+}
+
+// UnsetGrid ports Tk_UnsetGrid: the toplevel resizes by the pixel again.
+func (info *WmInfo) UnsetGrid(gridWin *window.Window) {
+	if info.gridWin != gridWin {
+		return
+	}
+	info.gridWin = nil
+	info.updateSizeHints()
+}
+
+// updateSizeHints sends WM_NORMAL_HINTS to the X server (UpdateSizeHints in
+// tkUnixWm.c). For a gridded toplevel the base size is the part of the
+// request that is not grid units, and the minimum and the increments are
+// in units.
 func (info *WmInfo) updateSizeHints() {
 	w := info.Win
 	if w.PlatformID == platform.WindowID(0) {
@@ -366,6 +403,14 @@ func (info *WmInfo) updateSizeHints() {
 		WidthInc:   1,
 		HeightInc:  1,
 		WinGravity: platform.NorthWestGravity,
+	}
+	if info.gridWin != nil {
+		hints.Flags |= platform.PBaseSize
+		hints.BaseWidth = max(w.ReqWidth-info.reqGridWidth*info.widthInc, 0)
+		hints.BaseHeight = max(w.ReqHeight-info.reqGridHeight*info.heightInc, 0)
+		hints.MinWidth = hints.BaseWidth + info.MinWidth*info.widthInc
+		hints.MinHeight = hints.BaseHeight + info.MinHeight*info.heightInc
+		hints.WidthInc, hints.HeightInc = info.widthInc, info.heightInc
 	}
 
 	if info.PositionSet {

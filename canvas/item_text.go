@@ -2,6 +2,8 @@ package canvas
 
 import (
 	"math"
+	"strconv"
+	"unicode/utf8"
 
 	"github.com/takigo/takigo/color"
 	"github.com/takigo/takigo/font"
@@ -77,28 +79,58 @@ func (t *TextItem) cursorLine() (line, col int) {
 	return 0, 0
 }
 
-// InsertText inserts s at the given byte position and advances the cursor.
-func (t *TextItem) InsertText(pos int, s string) {
-	if pos < 0 {
-		pos = 0
+// byteIndex returns the byte offset of character index chars, clamped to
+// the text (Tcl_UtfAtIndex): the item's indexes count characters, as Tk's.
+func (t *TextItem) byteIndex(chars int) int {
+	if chars <= 0 {
+		return 0
 	}
-	if pos > len(t.text) {
-		pos = len(t.text)
+	for i := range t.text {
+		if chars == 0 {
+			return i
+		}
+		chars--
 	}
+	return len(t.text)
+}
+
+// parseIndex reads a text item index as Tk's "insert", "end", "insert-1"
+// and a character number; anything else is 0.
+func (t *TextItem) parseIndex(s string) int {
+	switch s {
+	case "end":
+		return t.CharCount()
+	case "insert":
+		return t.CursorIndex()
+	case "insert-1":
+		return max(t.CursorIndex()-1, 0)
+	}
+	n, _ := strconv.Atoi(s)
+	return max(n, 0)
+}
+
+// CharCount returns the number of characters in the text (Tk's "end").
+func (t *TextItem) CharCount() int { return utf8.RuneCountInString(t.text) }
+
+// CursorIndex returns the character index of the insertion cursor.
+func (t *TextItem) CursorIndex() int { return utf8.RuneCountInString(t.text[:t.cursorPos]) }
+
+// InsertText inserts s before character index pos and puts the cursor
+// after it.
+func (t *TextItem) InsertText(pos int, s string) { t.insertBytes(t.byteIndex(pos), s) }
+
+func (t *TextItem) insertBytes(pos int, s string) {
 	t.text = t.text[:pos] + s + t.text[pos:]
 	t.cursorPos = pos + len(s)
 	t.updateBBox()
 }
 
-// DeleteChars removes bytes from first to last (exclusive).
+// DeleteChars removes the characters from index first to last (exclusive).
 func (t *TextItem) DeleteChars(first, last int) {
-	n := len(t.text)
-	if first < 0 {
-		first = 0
-	}
-	if last > n {
-		last = n
-	}
+	t.deleteBytes(t.byteIndex(first), t.byteIndex(last))
+}
+
+func (t *TextItem) deleteBytes(first, last int) {
 	if first >= last {
 		return
 	}
@@ -112,16 +144,9 @@ func (t *TextItem) DeleteChars(first, last int) {
 	t.updateBBox()
 }
 
-// SetCursorPos sets the cursor byte position (clamped to text length).
-func (t *TextItem) SetCursorPos(pos int) {
-	if pos < 0 {
-		pos = 0
-	}
-	if pos > len(t.text) {
-		pos = len(t.text)
-	}
-	t.cursorPos = pos
-}
+// SetCursorPos puts the insertion cursor before character index pos,
+// clamped to the text.
+func (t *TextItem) SetCursorPos(pos int) { t.cursorPos = t.byteIndex(pos) }
 
 func newTextItem(x, y float64, c *Canvas) *TextItem {
 	item := &TextItem{

@@ -24,9 +24,6 @@ type Display struct {
 	WhitePixel uint64
 	BlackPixel uint64
 
-	// WM atoms.
-	WMDeleteWindow platform.AtomID
-
 	// WMAtoms caches package wm's interned atoms for this display, so
 	// they live and die with it (wm cannot be imported here).
 	WMAtoms any
@@ -62,9 +59,6 @@ func NewDisplay(server platform.DisplayServer) (*Display, error) {
 		WhitePixel: server.WhitePixel(screen),
 		BlackPixel: server.BlackPixel(screen),
 	}
-
-	// Intern WM atoms.
-	d.WMDeleteWindow = server.InternAtom("WM_DELETE_WINDOW", false)
 
 	return d, nil
 }

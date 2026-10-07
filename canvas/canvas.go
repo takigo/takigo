@@ -436,7 +436,7 @@ func (c *Canvas) positionWindowItems() {
 			window.MarkMapped(wi.win)
 		} else {
 			d.UnmapWindow(wi.win.PlatformID)
-			wi.win.Flags &^= window.FlagMapped
+			window.MarkUnmapped(wi.win)
 		}
 	}
 }
@@ -1007,18 +1007,8 @@ func (c *Canvas) ICursor[S Selector](sel S, index string) {
 	entries := c.resolve(tagOrID)
 	for _, e := range entries {
 		if ti, ok := e.item.(*TextItem); ok {
-			pos := 0
-			if index == "end" {
-				pos = len(ti.text)
-			} else {
-				for _, ch := range index {
-					if ch >= '0' && ch <= '9' {
-						pos = pos*10 + int(ch-'0')
-					}
-				}
-			}
 			c.redrawItems(e)
-			ti.SetCursorPos(pos)
+			ti.SetCursorPos(ti.parseIndex(index))
 			c.redrawItems(e)
 			break
 		}
@@ -1032,56 +1022,24 @@ func (c *Canvas) Insert[S Selector](sel S, index string, text string) {
 	entries := c.resolve(tagOrID)
 	for _, e := range entries {
 		if ti, ok := e.item.(*TextItem); ok {
-			pos := 0
-			if index == "end" || index == "insert" {
-				pos = ti.cursorPos
-			} else {
-				for _, ch := range index {
-					if ch >= '0' && ch <= '9' {
-						pos = pos*10 + int(ch-'0')
-					}
-				}
-			}
 			c.redrawItems(e)
-			ti.InsertText(pos, text)
+			ti.InsertText(ti.parseIndex(index), text)
 			c.redrawItems(e)
 			break
 		}
 	}
 }
 
-// Dchars deletes characters from a text item between first and last indices.
-// Supports numeric indices and "insert"/"end" keywords; "insert-1" subtracts 1.
+// Dchars deletes the characters of a text item from index first through
+// last, inclusive as in Tk ("dchars"). An index is a character number,
+// "end", "insert" or "insert-1".
 func (c *Canvas) Dchars[S Selector](sel S, first string, last string) {
 	tagOrID := selectorString(sel)
 	entries := c.resolve(tagOrID)
 	for _, e := range entries {
 		if ti, ok := e.item.(*TextItem); ok {
-			parseIdx := func(s string) int {
-				if s == "end" {
-					return len(ti.text)
-				}
-				if s == "insert" {
-					return ti.cursorPos
-				}
-				if s == "insert-1" {
-					if ti.cursorPos > 0 {
-						return ti.cursorPos - 1
-					}
-					return 0
-				}
-				n := 0
-				for _, ch := range s {
-					if ch >= '0' && ch <= '9' {
-						n = n*10 + int(ch-'0')
-					}
-				}
-				return n
-			}
-			f := parseIdx(first)
-			l := parseIdx(last)
 			c.redrawItems(e)
-			ti.DeleteChars(f, l)
+			ti.DeleteChars(ti.parseIndex(first), ti.parseIndex(last)+1)
 			c.redrawItems(e)
 			break
 		}

@@ -104,3 +104,40 @@ func TestDeleteKeepsDisplayOrder(t *testing.T) {
 		t.Errorf("display list after deletes and a raise = %v, want %v", got, want)
 	}
 }
+
+// Text item indexes count characters, as Tk's, so editing never splits a
+// multi-byte character; "dchars" is inclusive of its last index.
+func TestTextItemCharIndexes(t *testing.T) {
+	c := newBenchCanvas()
+	ti := benchText(c, 0, 0, "añb")
+	ti.InsertText(2, "€")
+	if ti.text != "añ€b" || ti.CursorIndex() != 3 {
+		t.Errorf("after InsertText(2): %q cursor %d, want %q 3", ti.text, ti.CursorIndex(), "añ€b")
+	}
+	ti.SetCursorPos(2)
+	if ti.cursorPos != len("añ") {
+		t.Errorf("SetCursorPos(2) = byte %d, want %d", ti.cursorPos, len("añ"))
+	}
+	ti.DeleteChars(1, 3)
+	if ti.text != "ab" || ti.CursorIndex() != 1 {
+		t.Errorf("after DeleteChars(1, 3): %q cursor %d, want %q 1", ti.text, ti.CursorIndex(), "ab")
+	}
+	ti.SetCursorPos(99)
+	if ti.CursorIndex() != 2 || ti.CharCount() != 2 {
+		t.Errorf("cursor %d count %d after clamping, want 2 2", ti.CursorIndex(), ti.CharCount())
+	}
+	for _, tt := range []struct {
+		index string
+		want  int
+	}{{"end", 2}, {"insert", 2}, {"insert-1", 1}, {"1", 1}, {"x", 0}} {
+		if got := ti.parseIndex(tt.index); got != tt.want {
+			t.Errorf("parseIndex(%q) = %d, want %d", tt.index, got, tt.want)
+		}
+	}
+
+	id := c.createItem(benchText(c, 0, 0, "héllo"), nil)
+	c.Dchars(id, "1", "2")
+	if got := c.resolve(id)[0].item.(*TextItem).text; got != "hlo" {
+		t.Errorf("Dchars(1, 2) left %q, want %q", got, "hlo")
+	}
+}

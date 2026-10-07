@@ -59,11 +59,14 @@ func Hold(app widget.AppContext, target *window.Window) *BusyWin {
 	// Set the busy cursor (watch cursor).
 	d.SetCursorShape(overlay, cursor.Watch)
 
-	return &BusyWin{
+	b := &BusyWin{
 		overlay: overlay,
 		display: d,
 		target:  target,
 	}
+	// The overlay is a child of target: the server destroys it with target.
+	target.OnDestroy(func() { b.overlay = platform.WindowID(0) })
+	return b
 }
 
 // Release destroys the overlay window, restoring interaction.

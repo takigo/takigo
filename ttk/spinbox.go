@@ -389,6 +389,9 @@ func (s *Spinbox) Display() {
 	st := s.Context.Style
 	bg := LookupColor(st, "-background", s.State, 0xd9d9d9)
 	fg := LookupColor(st, "-foreground", s.State, 0x000000)
+	selBg := LookupColor(st, "-selectbackground", s.State, 0x4a6984)
+	insertColor := LookupColor(st, "-insertcolor", s.State, 0x000000)
+	insertWidth := LookupInt(st, "-insertwidth", s.State, 1)
 
 	// Spinbox.field (FieldElementDraw, ttkElements.c).
 	fieldBg := LookupColor(st, "-fieldbackground", s.State, 0xffffff)
@@ -448,7 +451,7 @@ func (s *Spinbox) Display() {
 				selEndX = rightEdge
 			}
 			if selEndX > selStartX {
-				d.SetForeground(gc, uint64(0x4a6984))
+				d.SetForeground(gc, selBg)
 				d.FillRectangle(pixDrawable, gc, selStartX, (height-m.Linespace())/2,
 					uint(selEndX-selStartX), uint(m.Linespace()))
 			}
@@ -466,8 +469,8 @@ func (s *Spinbox) Display() {
 			cursorX := textX + s.Font.MeasureString(string(s.edit.Text[:sbClamp(s.edit.InsertPos, len(s.edit.Text))]))
 			rightEdge := btnLeft - s.insetX
 			if cursorX >= textX && cursorX < rightEdge {
-				d.SetForeground(gc, uint64(0x000000))
-				d.FillRectangle(pixDrawable, gc, cursorX, (height-m.Linespace())/2, 2, uint(m.Linespace()))
+				d.SetForeground(gc, insertColor)
+				d.FillRectangle(pixDrawable, gc, cursorX, (height-m.Linespace())/2, uint(insertWidth), uint(m.Linespace()))
 			}
 		}
 	}

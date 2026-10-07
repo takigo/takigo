@@ -106,8 +106,6 @@ func (s *Spinbox) handleExpose(ev *event.Event) {
 // handleConfigure handles ConfigureNotify (resize) events.
 func (s *Spinbox) handleConfigure(ev *event.Event) {
 	if ev.Type == event.ConfigureType {
-		s.Win.Width = ev.ConfigWidth
-		s.Win.Height = ev.ConfigHeight
 		s.computeGeometry()
 		s.Display()
 	}

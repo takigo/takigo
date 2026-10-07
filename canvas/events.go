@@ -5,7 +5,6 @@ import (
 	"unicode/utf8"
 
 	"github.com/takigo/takigo/event"
-	"github.com/takigo/takigo/geometry/place"
 	"github.com/takigo/takigo/platform"
 )
 
@@ -33,12 +32,9 @@ func bindCanvas(c *Canvas) {
 	disp.Bind(w.PlatformID, event.StructureNotifyMask, func(ev *event.Event) {
 		switch ev.Type {
 		case event.ConfigureType:
-			w.Width = ev.ConfigWidth
-			w.Height = ev.ConfigHeight
 			c.setOrigin(c.xOrigin, c.yOrigin)
 			c.scheduleRedraw()
 			c.notifyScrollbars()
-			place.ArrangeContainer(w)
 			w.NotifyConfigure()
 		case event.DestroyType:
 			c.Destroy()
@@ -88,12 +84,12 @@ func bindCanvas(c *Canvas) {
 				// Find previous rune boundary.
 				prev := ti.cursorPos
 				_, sz := utf8.DecodeLastRuneInString(ti.text[:prev])
-				ti.DeleteChars(prev-sz, prev)
+				ti.deleteBytes(prev-sz, prev)
 			}
 		case platform.XK_Delete:
 			if ti.cursorPos < len(ti.text) {
 				_, sz := utf8.DecodeRuneInString(ti.text[ti.cursorPos:])
-				ti.DeleteChars(ti.cursorPos, ti.cursorPos+sz)
+				ti.deleteBytes(ti.cursorPos, ti.cursorPos+sz)
 			}
 		case platform.XK_Left:
 			if ti.cursorPos > 0 {
@@ -110,7 +106,7 @@ func bindCanvas(c *Canvas) {
 		case platform.XK_End:
 			ti.cursorPos = len(ti.text)
 		case platform.XK_Return:
-			ti.InsertText(ti.cursorPos, "\n")
+			ti.insertBytes(ti.cursorPos, "\n")
 		default:
 			// Insert what %A would give: the composed string, or the
 			// keysym's character; modifiers, function keys and Control
@@ -125,7 +121,7 @@ func bindCanvas(c *Canvas) {
 				}
 			}
 			if s != "" && s[0] >= 0x20 && s[0] != 0x7f {
-				ti.InsertText(ti.cursorPos, s)
+				ti.insertBytes(ti.cursorPos, s)
 			}
 		}
 		c.redrawItems(e)

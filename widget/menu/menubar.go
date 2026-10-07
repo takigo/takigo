@@ -256,11 +256,12 @@ func bindMenubar(mb *Menubar, app widget.AppContext) {
 			mb.Display()
 		}
 	})
-	disp.Bind(mb.top.PlatformID, event.StructureNotifyMask, func(ev *event.Event) {
+	topID := disp.Bind(mb.top.PlatformID, event.StructureNotifyMask, func(ev *event.Event) {
 		if ev.Type == event.ConfigureType && mb.top.Width != w.Width {
 			mb.layout()
 		}
 	})
+	w.OnDestroy(func() { disp.UnbindID(topID) })
 	disp.Bind(w.PlatformID, event.ButtonPressMask, func(ev *event.Event) {
 		if ev.Button != 1 {
 			return

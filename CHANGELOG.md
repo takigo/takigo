@@ -5,6 +5,27 @@ version is 0, a minor release may break the API and says so here.
 
 ## Unreleased
 
+- **`ttk.ParsePadding` and `Notebook.SetPanePadding` return an error** for a
+  bad distance (wrapping `screenunit.ErrBadDistance`) instead of reading it
+  as 0.
+- **Canvas text item indexes count characters**, as Tk's do, not bytes:
+  `TextItem.InsertText`, `DeleteChars`, `SetCursorPos` and the canvas
+  `Insert`, `Dchars`, `ICursor` no longer split a multi-byte character;
+  `Dchars` deletes through its last index inclusive, as Tk's `dchars`.
+  `TextItem.CharCount` and `CursorIndex` are new.
+- **`window.Display.WMDeleteWindow` is gone**; the `wm` package owns the
+  protocol atoms.
+- `WmInfo.SetGrid` / `UnsetGrid` port `Tk_SetGrid`; the text widget's
+  `-setgrid` goes through them, so it no longer fights the window manager
+  hints `wm` writes (`platform.SizeHints` gains `BaseWidth`, `BaseHeight`
+  and `PBaseSize`) (additive).
+- Fixed: hiding a notebook pane, a toplevel, an embedded text or canvas
+  window ran no unmap hooks, so content placed `-in` it from elsewhere
+  stayed on screen; drop handlers and a menubar's toplevel handler
+  outlived their windows; the ttk spinbox and combobox drew the selection
+  and cursor in fixed colours (wrong in the dark theme); a `busy` overlay
+  was destroyed twice when its window went first; frames and canvases ran
+  the place manager twice per resize.
 - `demos/busy` shows the `busy` package (additive). The test programs under
   `cmd/` are gone, each overlapped by a demo; the comparison tools moved to
   `internal/cmd/`.

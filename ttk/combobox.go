@@ -349,7 +349,7 @@ func (c *Combobox) Display() {
 		if c.Font != nil && c.edit.InsertPos > 0 {
 			cursorX = textX + c.Font.MeasureString(string(c.edit.Text[:c.edit.InsertPos]))
 		}
-		d.SetForeground(gc, fg)
+		d.SetForeground(gc, LookupColor(st, "-insertcolor", c.State, fg))
 		d.DrawLine(pixDrawable, gc, cursorX, c.insetY, cursorX, height-c.insetY-1)
 	}
 
