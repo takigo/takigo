@@ -165,7 +165,6 @@ func destroyWindowDepth(w *Window, depth int) {
 		w.GeomManager.LostContentProc(w)
 		w.GeomManager = nil
 	}
-	w.ConfigureCallback = nil
 	w.configureHooks = nil
 	w.BackgroundHook = nil
 

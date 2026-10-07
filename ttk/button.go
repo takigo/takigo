@@ -13,7 +13,6 @@ type Button struct {
 	TtkWidget
 	Text      string
 	Command   func()
-	Anchor    int // reserved
 	Font      font.Font
 	Img       widget.WidgetImage
 	Compound  widget.Compound
@@ -81,9 +80,9 @@ func ButtonWidth(n int) ButtonOption {
 	return func(b *Button) { b.SetWidgetOption("-width", n) }
 }
 
-// ButtonStyleOpt overrides the TTK style name (e.g. "Toolbutton").
+// ButtonStyle overrides the TTK style name (e.g. "Toolbutton").
 // Must be applied before other options that depend on the layout.
-func ButtonStyleOpt(name string) ButtonOption {
+func ButtonStyle(name string) ButtonOption {
 	return func(b *Button) { b.StyleName = name }
 }
 

@@ -108,12 +108,12 @@ func main() {
 
 	// Scrollbars.
 	v := ttk.NewScrollbar(contentFrame, "vscroll",
-		ttk.ScrollbarOrientOpt(ttk.Vertical),
-		ttk.ScrollbarCommandOpt(widget.ScrollY(c)),
+		ttk.ScrollbarOrient(ttk.Vertical),
+		ttk.ScrollbarCommand(widget.ScrollY(c)),
 	)
 	h := ttk.NewScrollbar(contentFrame, "hscroll",
-		ttk.ScrollbarOrientOpt(ttk.Horizontal),
-		ttk.ScrollbarCommandOpt(widget.ScrollX(c)),
+		ttk.ScrollbarOrient(ttk.Horizontal),
+		ttk.ScrollbarCommand(widget.ScrollX(c)),
 	)
 	c.Configure(
 		canvas.YScrollCommand(func(first, last float64) { v.Set(first, last) }),

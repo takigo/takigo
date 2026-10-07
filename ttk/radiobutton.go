@@ -67,6 +67,11 @@ func RadiobuttonAlternate() RadiobuttonOption {
 	return func(r *Radiobutton) { r.State |= StateAlternate }
 }
 
+// RadiobuttonStyle sets -style.
+func RadiobuttonStyle(name string) RadiobuttonOption {
+	return func(r *Radiobutton) { r.StyleName = name }
+}
+
 // NewRadiobutton creates a TTK themed radiobutton.
 func NewRadiobutton(parent widget.Caregiver, name string, opts ...RadiobuttonOption) *Radiobutton {
 	app := parent.AppContext()
@@ -86,6 +91,9 @@ func NewRadiobutton(parent widget.Caregiver, name string, opts ...RadiobuttonOpt
 
 	for _, opt := range opts {
 		opt(r)
+	}
+	if r.StyleName != "TRadiobutton" {
+		r.RefreshTheme()
 	}
 
 	r.syncSelected()
@@ -133,7 +141,7 @@ func (r *Radiobutton) Selected() bool {
 
 // Display renders the radiobutton.
 func (r *Radiobutton) Display() {
-	if r.Destroyed {
+	if r.Destroyed() {
 		return
 	}
 	win := r.Win

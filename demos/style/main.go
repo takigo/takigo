@@ -35,8 +35,8 @@ func main() {
 
 	// Scrollbar packed right, text fills rest (matches Tcl: pack $w.scroll -side right; pack $w.text).
 	yscroll := ttk.NewScrollbar(f, "scroll",
-		ttk.ScrollbarOrientOpt(ttk.Vertical),
-		ttk.ScrollbarCommandOpt(func(widget.ScrollRequest) {}),
+		ttk.ScrollbarOrient(ttk.Vertical),
+		ttk.ScrollbarCommand(func(widget.ScrollRequest) {}),
 	)
 
 	tw := text.New(f, "text",

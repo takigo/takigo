@@ -78,8 +78,8 @@ func main() {
 	)
 
 	lbScroll := ttk.NewScrollbar(topFrame, "scr",
-		ttk.ScrollbarOrientOpt(ttk.Vertical),
-		ttk.ScrollbarCommandOpt(widget.ScrollY(lb)),
+		ttk.ScrollbarOrient(ttk.Vertical),
+		ttk.ScrollbarCommand(widget.ScrollY(lb)),
 	)
 	lb.YScrollCmd = func(first, last float64) {
 		lbScroll.Set(first, last)
@@ -103,16 +103,16 @@ func main() {
 	)
 
 	yscroll := ttk.NewScrollbar(bottomFrame, "yscr",
-		ttk.ScrollbarOrientOpt(ttk.Vertical),
-		ttk.ScrollbarCommandOpt(widget.ScrollY(tw)),
+		ttk.ScrollbarOrient(ttk.Vertical),
+		ttk.ScrollbarCommand(widget.ScrollY(tw)),
 	)
 	tw.YScrollCmd = func(first, last float64) {
 		yscroll.Set(first, last)
 	}
 
 	xscroll := ttk.NewScrollbar(bottomFrame, "xscr",
-		ttk.ScrollbarOrientOpt(ttk.Horizontal),
-		ttk.ScrollbarCommandOpt(widget.ScrollX(tw)),
+		ttk.ScrollbarOrient(ttk.Horizontal),
+		ttk.ScrollbarCommand(widget.ScrollX(tw)),
 	)
 	tw.XScrollCmd = func(first, last float64) {
 		xscroll.Set(first, last)

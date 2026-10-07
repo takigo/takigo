@@ -37,7 +37,7 @@ func TestDestroyingParentCleansUpChildWidget(t *testing.T) {
 	if destroyEvents != 1 {
 		t.Errorf("<Destroy> delivered %d times to the child, want 1", destroyEvents)
 	}
-	if !b.Destroyed {
+	if !b.Destroyed() {
 		t.Error("child widget not marked destroyed with its parent")
 	}
 	if app.Display().LookupWindow(id) != nil {

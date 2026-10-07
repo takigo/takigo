@@ -66,7 +66,7 @@ linters:
       # Layout and configuration calls return an error for the caller who
       # wants it; like fmt.Println, most callers have nothing to do with it.
       - linters: [errcheck]
-        text: 'Error return value of `[^`]*\.(Close|Configure|Pack|Grid|Bind|BindWindow|Unbind|UnbindWindow|UseTheme|Insert|Delete|See|MarkSet|TagAdd|TagRemove|WindowCreate|WindowCreatePad|ImageCreate|ItemConfigure|SetItemCoords|SetPanePadding)` is not checked'
+        text: 'Error return value of `[^`]*\.(Close|Configure|Pack|Grid|Bind|BindWindow|Unbind|UnbindWindow|UseTheme|Insert|Delete|See|MarkSet|TagAdd|TagRemove|WindowCreate|WindowCreatePad|ImageCreate|ItemConfigure|SetItemCoords|SetPanePadding|TabConfigure|SetText|SetImage|SetJustify|SetWrapMode|SetPadX|SetPadY)` is not checked'
       # X11 keysyms, event masks and Win32 constants keep the names of the
       # headers they come from.
       - path: ^(platform/(attrs|event)|internal/xlib/(keysym|types|selection|wm))\.go$

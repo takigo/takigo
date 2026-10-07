@@ -129,8 +129,8 @@ func main() {
 		listbox.Height(10),
 	)
 	yscroll := ttk.NewScrollbar(fileLF, "scroll",
-		ttk.ScrollbarOrientOpt(ttk.Vertical),
-		ttk.ScrollbarCommandOpt(widget.ScrollY(lb)),
+		ttk.ScrollbarOrient(ttk.Vertical),
+		ttk.ScrollbarCommand(widget.ScrollY(lb)),
 	)
 	lb.YScrollCmd = func(first, last float64) { yscroll.Set(first, last) }
 	pack.Pack(lb, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillY), pack.Expand(true))
@@ -168,7 +168,7 @@ func main() {
 			if len(sel) == 0 {
 				return
 			}
-			items := lb.GetItems()
+			items := lb.Items()
 			if sel[0] >= len(items) {
 				return
 			}

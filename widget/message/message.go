@@ -102,8 +102,8 @@ func PadY[L screenunit.Length](p L) MessageOption {
 }
 
 // HighlightWidth sets the focus highlight border width.
-func HighlightWidth(w int) MessageOption {
-	return func(m *Message) { m.HighlightWidth = w }
+func HighlightWidth[L screenunit.Length](w L) MessageOption {
+	return func(m *Message) { m.HighlightWidth = screenunit.ToPixels(w) }
 }
 
 // New creates a new Message widget as a child of parent.
@@ -279,7 +279,7 @@ func (m *Message) Display() {
 
 // display draws the message widget.
 func (m *Message) display() {
-	if m.Destroyed {
+	if m.Destroyed() {
 		return
 	}
 	w := m.Win
@@ -341,9 +341,9 @@ func (m *Message) Configure(opts ...MessageOption) error {
 
 // Destroy cleans up the message widget.
 func (m *Message) Destroy() {
-	if m.Destroyed {
+	if m.Destroyed() {
 		return
 	}
-	m.Destroyed = true
+	m.MarkDestroyed()
 	window.DestroyWindow(m.Win)
 }

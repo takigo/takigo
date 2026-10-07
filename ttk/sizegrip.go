@@ -1,6 +1,7 @@
 package ttk
 
 import (
+	"cmp"
 	"fmt"
 
 	"github.com/takigo/takigo/cursor"
@@ -27,6 +28,11 @@ type Sizegrip struct {
 // SizegripOption configures a Sizegrip.
 type SizegripOption func(*Sizegrip)
 
+// SizegripStyle sets -style.
+func SizegripStyle(name string) SizegripOption {
+	return func(sg *Sizegrip) { sg.StyleName = name }
+}
+
 // NewSizegrip creates a themed sizegrip widget.
 func NewSizegrip(parent widget.Caregiver, name string, opts ...SizegripOption) *Sizegrip {
 	app := parent.AppContext()
@@ -39,7 +45,7 @@ func NewSizegrip(parent widget.Caregiver, name string, opts ...SizegripOption) *
 		opt(sg)
 	}
 
-	InitTtkWidget(&sg.TtkWidget, win, app, "TSizegrip")
+	InitTtkWidget(&sg.TtkWidget, win, app, cmp.Or(sg.StyleName, "TSizegrip"))
 	sg.DisplayFunc = sg.Display
 
 	// Set size to match grip element — Tk default is "11.25p" (11.25 points).
@@ -55,7 +61,7 @@ func NewSizegrip(parent widget.Caregiver, name string, opts ...SizegripOption) *
 
 // Display renders the sizegrip with diagonal grip lines.
 func (sg *Sizegrip) Display() {
-	if sg.Destroyed {
+	if sg.Destroyed() {
 		return
 	}
 	win := sg.Win

@@ -221,7 +221,7 @@ func TestTransientAndStates(t *testing.T) {
 		t.Error("transient hint not set")
 	}
 	info.Iconify()
-	if s.iconified || info.GetState() != StateNormal {
+	if s.iconified || info.State() != StateNormal {
 		t.Error("a transient window was iconified")
 	}
 	info.SetTransientFor(nil)
@@ -230,15 +230,15 @@ func TestTransientAndStates(t *testing.T) {
 	}
 
 	info.Iconify()
-	if !s.iconified || info.GetState() != StateIconic {
+	if !s.iconified || info.State() != StateIconic {
 		t.Error("Iconify did not iconify")
 	}
 	info.Withdraw()
-	if !s.withdrawn || !info.Withdrawn || info.GetState() != StateWithdrawn {
+	if !s.withdrawn || !info.Withdrawn || info.State() != StateWithdrawn {
 		t.Error("Withdraw did not withdraw")
 	}
 	info.Deiconify()
-	if !s.mapped || info.Withdrawn || info.GetState() != StateNormal || !info.Win.IsMapped() {
+	if !s.mapped || info.Withdrawn || info.State() != StateNormal || !info.Win.IsMapped() {
 		t.Error("Deiconify did not restore the window")
 	}
 }
@@ -258,8 +258,8 @@ func TestUnrealizedWindowSkipsServer(t *testing.T) {
 	if s.sizeHints != nil || s.protocols != nil || len(s.moves) != 0 || s.iconified || s.withdrawn || s.mapped {
 		t.Error("server called for a window with no platform window")
 	}
-	if info.GetState() != StateNormal {
-		t.Errorf("state = %v, want normal", info.GetState())
+	if info.State() != StateNormal {
+		t.Errorf("state = %v, want normal", info.State())
 	}
 }
 

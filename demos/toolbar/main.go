@@ -86,14 +86,14 @@ func main() {
 
 	// Button (Toolbutton style: flat, raised on hover).
 	btnNew := ttk.NewButton(contents, "button",
-		ttk.ButtonStyleOpt("Toolbutton"),
+		ttk.ButtonStyle("Toolbutton"),
 		ttk.ButtonText("Button"),
 		ttk.ButtonCommand(func() { appendMsg("Button Pressed") }),
 	)
 
 	checkVar := widget.NewVariable(false)
 	checkBtn := ttk.NewCheckbutton(contents, "check",
-		ttk.CheckbuttonStyleOpt("Toolbutton"),
+		ttk.CheckbuttonStyle("Toolbutton"),
 		ttk.CheckbuttonText("Check"),
 		ttk.CheckbuttonVar(checkVar),
 		ttk.CheckbuttonCommand(func() {
@@ -117,7 +117,7 @@ func main() {
 	sort.Strings(families)
 	combo := ttk.NewCombobox(contents, "combo",
 		ttk.ComboboxValues(families),
-		ttk.ComboboxCbState(ttk.ComboReadonly),
+		ttk.ComboboxState(ttk.FieldReadonly),
 		ttk.ComboboxCommand(func(val string) {
 			tw.Configure(text.FontOpt(val + " 10"))
 		}),

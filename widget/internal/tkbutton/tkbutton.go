@@ -75,10 +75,9 @@ type Shared struct {
 	OverRelief option.Relief
 	OffRelief  option.Relief
 
-	HasFocus bool
-
-	typ     Type
-	pressed bool
+	typ      Type
+	pressed  bool
+	hasFocus bool
 
 	textWidth, textHeight             int
 	indicatorSpace, indicatorDiameter int
@@ -120,6 +119,12 @@ func (s *Shared) Type() Type { return s.typ }
 
 // Pressed reports whether button 1 is held down on the widget.
 func (s *Shared) Pressed() bool { return s.pressed }
+
+// Focused reports whether the widget has the keyboard focus.
+func (s *Shared) Focused() bool { return s.hasFocus }
+
+// SetFocused records whether the widget has the keyboard focus.
+func (s *Shared) SetFocused(f bool) { s.hasFocus = f }
 
 // SetPressed records whether button 1 is held down on the widget.
 func (s *Shared) SetPressed(p bool) { s.pressed = p }
@@ -452,7 +457,7 @@ func Display(b *widget.Base, s *Shared, sel Selection) {
 	if s.Default == DefaultNormal {
 		focusPad = 5
 	}
-	b.DrawHighlightBorder(s.HasFocus, focusPad)
+	b.DrawHighlightBorder(s.hasFocus, focusPad)
 }
 
 // shift ports ShiftByOffset: a push button's content moves down and right

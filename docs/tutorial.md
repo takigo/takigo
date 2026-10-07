@@ -671,7 +671,7 @@ e := entry.New(app, "e",
 )
 text := e.GetText()
 e.SetText("replacement")
-e.InsertChars(0, "prefix ")
+e.Insert(0, "prefix ")
 e.SelectAll()
 ```
 
@@ -1102,8 +1102,8 @@ pack.Pack(sb, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))
 pack.Pack(lb, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth), pack.Expand(true))
 ```
 
-The same wiring works with `ttk.NewScrollbar` (`ttk.ScrollbarOrientOpt`,
-`ttk.ScrollbarCommandOpt`). The mouse wheel scrolls these widgets without any
+The same wiring works with `ttk.NewScrollbar` (`ttk.ScrollbarOrient`,
+`ttk.ScrollbarCommand`). The mouse wheel scrolls these widgets without any
 extra code.
 
 ### Example: a filterable colour list
@@ -1168,7 +1168,7 @@ func main() {
 		if len(sel) == 0 {
 			return
 		}
-		name := lb.GetItems()[sel[0]]
+		name := lb.Items()[sel[0]]
 		swatch.Configure(label.Text(name), label.Background(name))
 	}
 
@@ -1733,7 +1733,7 @@ tw.TagBind("link", "<Leave>", func() { /* restore */ })
 ```
 
 The selection is the special tag `"sel"`: `tw.HasSelection()`,
-`tw.GetSelection()`, `tw.SelectAll()`.
+`tw.SelectedText()`, `tw.SelectAll()`.
 
 ### Marks
 
@@ -2364,16 +2364,16 @@ to be told: call `w.RefreshTheme()` and then `w.Display()` on each (the
 | `ttk.NewFrame` | `ttk::frame` | `FramePadding(ttk.UniformPadding(8))`, `FrameRelief`, `FrameBorderWidth` |
 | `ttk.NewLabelframe` | `ttk::labelframe` | `LabelframeText`, `LabelframePadding("8 4")` |
 | `ttk.NewLabel` | `ttk::label` | `LabelText`, `LabelTextVariable`, `LabelImage`, `LabelWrapLength`, `LabelPadding`; `SetText` |
-| `ttk.NewButton` | `ttk::button` | `ButtonText`, `ButtonCommand`, `ButtonImage`, `ButtonWidth`, `ButtonStyleOpt`; `Invoke` |
+| `ttk.NewButton` | `ttk::button` | `ButtonText`, `ButtonCommand`, `ButtonImage`, `ButtonWidth`, `ButtonStyle`; `Invoke` |
 | `ttk.NewCheckbutton` | `ttk::checkbutton` | `CheckbuttonVar(*Variable[bool])`, `CheckbuttonCommand` |
 | `ttk.NewRadiobutton` | `ttk::radiobutton` | `RadiobuttonVar(*Variable[string])`, `RadiobuttonValue` |
 | `ttk.NewToggleswitch` | `ttk::toggleswitch` | `ToggleswitchVar(*Variable[bool])` |
 | `ttk.NewEntry` | `ttk::entry` | `EntryTextVariable`, `EntryPlaceholder`, `EntryShow`, `EntryValidate`/`EntryValidateCmd`/`EntryInvalidCmd`; `Get`, `Set` |
-| `ttk.NewCombobox` | `ttk::combobox` | `ComboboxValues`, `ComboboxText`, `ComboboxCbState(ttk.ComboReadonly)`, `ComboboxCommand`; `Get`, `Set` |
+| `ttk.NewCombobox` | `ttk::combobox` | `ComboboxValues`, `ComboboxText`, `ComboboxState(ttk.FieldReadonly)`, `ComboboxCommand`; `Get`, `Set` |
 | `ttk.NewSpinbox` | `ttk::spinbox` | `SpinboxFrom/To/Increment/Values/Wrap/Format/Command`; `Get` |
 | `ttk.NewScale` | `ttk::scale` | `ScaleFrom`, `ScaleTo`, `ScaleVariable(*Variable[float64])`, `ScaleLength`, `ScaleCommand` |
 | `ttk.NewProgressbar` | `ttk::progressbar` | `ProgressbarMaximum`, `ProgressbarMode(ttk.ProgressIndeterminate)`; `SetValue`, `Step`, `Start(interval)`, `Stop` |
-| `ttk.NewScrollbar` | `ttk::scrollbar` | `ScrollbarOrientOpt(ttk.Vertical)`, `ScrollbarCommandOpt`; `Set` |
+| `ttk.NewScrollbar` | `ttk::scrollbar` | `ScrollbarOrient(ttk.Vertical)`, `ScrollbarCommand`; `Set` |
 | `ttk.NewSeparator` | `ttk::separator` | `SeparatorOrient(ttk.Horizontal)` |
 | `ttk.NewSizegrip` | `ttk::sizegrip` | bottom-right resize handle |
 | `ttk.NewMenubutton` | `ttk::menubutton` | `MenubuttonText`, `MenubuttonMenu` |
@@ -2456,7 +2456,7 @@ if c, err := app.ColorCache().Get("dodger blue"); err == nil {
 	}
 }
 
-ok := ttk.NewButton(f, "ok", ttk.ButtonText("OK"), ttk.ButtonStyleOpt("Accent.TButton"))
+ok := ttk.NewButton(f, "ok", ttk.ButtonText("OK"), ttk.ButtonStyle("Accent.TButton"))
 ```
 
 Details worth knowing:
@@ -2539,14 +2539,14 @@ func main() {
 	nb.Add(page1.Window(), "Planets")
 
 	var tv *ttk.Treeview
-	vsb := ttk.NewScrollbar(page1, "vsb", ttk.ScrollbarOrientOpt(ttk.Vertical))
+	vsb := ttk.NewScrollbar(page1, "vsb", ttk.ScrollbarOrient(ttk.Vertical))
 	tv = ttk.NewTreeview(page1, "tv",
 		ttk.TreeviewColumns("moons", "radius"),
 		ttk.TreeviewShow("tree", "headings"),
 		ttk.TreeviewHeight(8),
 		ttk.TreeviewYScrollCommand(vsb.Set),
 	)
-	vsb.Configure(ttk.ScrollbarCommandOpt(widget.ScrollY(tv)))
+	vsb.Configure(ttk.ScrollbarCommand(widget.ScrollY(tv)))
 	tv.HeadingConfigure("#0", ttk.HeadText("Body"))
 	tv.HeadingConfigure("moons", ttk.HeadText("Moons"))
 	tv.HeadingConfigure("radius", ttk.HeadText("Radius (km)"))
@@ -2615,7 +2615,7 @@ func main() {
 	lang := ttk.NewCombobox(page2, "lang",
 		ttk.ComboboxValues([]string{"English", "Deutsch", "Français", "日本語"}),
 		ttk.ComboboxText("English"),
-		ttk.ComboboxCbState(ttk.ComboReadonly),
+		ttk.ComboboxState(ttk.FieldReadonly),
 	)
 	pack.Pack(lang, pack.Anchor(option.AnchorW))
 
@@ -2623,7 +2623,7 @@ func main() {
 	bottom := ttk.NewFrame(root, "bottom")
 	pack.Pack(bottom, pack.FillOpt(pack.FillX), pack.PadY(4))
 	pack.Pack(ttk.NewButton(bottom, "ok",
-		ttk.ButtonText("OK"), ttk.ButtonStyleOpt("Accent.TButton"), ttk.ButtonCommand(app.Quit)),
+		ttk.ButtonText("OK"), ttk.ButtonStyle("Accent.TButton"), ttk.ButtonCommand(app.Quit)),
 		pack.SideOpt(pack.Right))
 	pack.Pack(ttk.NewButton(bottom, "cancel",
 		ttk.ButtonText("Cancel"), ttk.ButtonCommand(app.Quit)),
@@ -2799,7 +2799,7 @@ func (u *UI) clearDone() {
 }
 
 func (u *UI) showAbout() {
-	if u.about != nil && !u.about.Destroyed {
+	if u.about != nil && !u.about.Destroyed() {
 		u.about.Show()
 		return
 	}
@@ -2842,13 +2842,13 @@ func (u *UI) build() {
 	u.input = ttk.NewEntry(f, "input", ttk.EntryPlaceholder("What needs doing?"))
 	addBtn := ttk.NewButton(f, "add", ttk.ButtonText("Add"), ttk.ButtonCommand(u.add))
 
-	vsb := ttk.NewScrollbar(f, "vsb", ttk.ScrollbarOrientOpt(ttk.Vertical))
+	vsb := ttk.NewScrollbar(f, "vsb", ttk.ScrollbarOrient(ttk.Vertical))
 	u.list = listbox.New(f, "list",
 		listbox.Height(12), listbox.Width(40),
 		listbox.SelectModeOpt(listbox.SelectBrowse),
 		listbox.YScrollCommand(vsb.Set),
 	)
-	vsb.Configure(ttk.ScrollbarCommandOpt(widget.ScrollY(u.list)))
+	vsb.Configure(ttk.ScrollbarCommand(widget.ScrollY(u.list)))
 	u.count = ttk.NewLabel(f, "count")
 
 	grid.Grid(u.input, grid.Row(0), grid.Column(0), grid.Sticky(grid.EW), grid.PadY(4))

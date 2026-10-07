@@ -13,24 +13,12 @@ import (
 	"github.com/takigo/takigo/window"
 )
 
-// ComboboxState controls the editability of a combobox.
-type ComboboxState int
-
-const (
-	// ComboNormal allows editing.
-	ComboNormal ComboboxState = iota
-	// ComboReadonly only allows selection from the dropdown.
-	ComboReadonly
-	// ComboDisabled is fully disabled.
-	ComboDisabled
-)
-
 // Combobox is a themed entry with a dropdown list.
 type Combobox struct {
 	TtkWidget
 	Values  []string
 	edit    entrytext.Helper
-	CbState ComboboxState
+	CbState FieldState
 	Font    font.Font
 	Command func(value string) // called when value changes
 	// Placeholder is -placeholder: shown while the text is empty.
@@ -64,8 +52,9 @@ func ComboboxText(s string) ComboboxOption {
 	return func(c *Combobox) { c.edit.Text = []rune(s) }
 }
 
-// ComboboxCbState sets the combobox state.
-func ComboboxCbState(s ComboboxState) ComboboxOption {
+// ComboboxState sets -state: FieldReadonly only allows choosing from the
+// dropdown.
+func ComboboxState(s FieldState) ComboboxOption {
 	return func(c *Combobox) { c.CbState = s }
 }
 
@@ -77,6 +66,11 @@ func ComboboxPlaceholder(s string) ComboboxOption {
 // ComboboxCommand sets the value change callback.
 func ComboboxCommand(fn func(string)) ComboboxOption {
 	return func(c *Combobox) { c.Command = fn }
+}
+
+// ComboboxStyle sets -style.
+func ComboboxStyle(name string) ComboboxOption {
+	return func(c *Combobox) { c.StyleName = name }
 }
 
 // NewCombobox creates a themed combobox widget.
@@ -103,7 +97,7 @@ func NewCombobox(parent widget.Caregiver, name string, opts ...ComboboxOption) *
 		App:      app,
 		Win:      win,
 		Redraw:   c.Display,
-		Editable: func() bool { return c.CbState == ComboNormal },
+		Editable: func() bool { return c.CbState == FieldNormal },
 	}
 
 	InitTtkWidget(&c.TtkWidget, win, app, "TCombobox")
@@ -113,6 +107,9 @@ func NewCombobox(parent widget.Caregiver, name string, opts ...ComboboxOption) *
 
 	for _, opt := range opts {
 		opt(c)
+	}
+	if c.StyleName != "TCombobox" {
+		c.RefreshTheme()
 	}
 	c.requestSize()
 	c.syncState()
@@ -124,14 +121,14 @@ func NewCombobox(parent widget.Caregiver, name string, opts ...ComboboxOption) *
 // syncState applies -state to the widget state and cursor.
 func (c *Combobox) syncState() {
 	switch c.CbState {
-	case ComboDisabled:
+	case FieldDisabled:
 		c.ChangeState(StateDisabled, StateReadonly)
-	case ComboReadonly:
+	case FieldReadonly:
 		c.ChangeState(StateReadonly, StateDisabled)
 	default:
 		c.ChangeState(0, StateDisabled|StateReadonly)
 	}
-	if c.CbState == ComboNormal {
+	if c.CbState == FieldNormal {
 		c.Win.SetCursor(cursor.XTerm)
 	} else {
 		c.Win.SetCursor(cursor.LeftPtr)
@@ -193,7 +190,7 @@ func (c *Combobox) Set(s string) {
 
 // Display draws the combobox.
 func (c *Combobox) Display() {
-	if c.Destroyed {
+	if c.Destroyed() {
 		return
 	}
 	win := c.Win
@@ -273,7 +270,7 @@ func (c *Combobox) Display() {
 	} else if c.State&StateFocus != 0 && c.edit.HasSelection() {
 		ft.selFirst, ft.selLast = c.edit.SelFirst, c.edit.SelLast
 	}
-	if c.State&StateFocus != 0 && c.CbState == ComboNormal {
+	if c.State&StateFocus != 0 && c.CbState == FieldNormal {
 		ft.cursor = c.edit.InsertPos
 	}
 	drawFieldText(d, pixDrawable, gc, ft)
@@ -497,7 +494,7 @@ func (c *Combobox) displayDropdown() {
 // updateCursor sets the cursor shape based on mouse x position and combobox state.
 func (c *Combobox) updateCursor(x int) {
 	arrowX := c.Win.Width - c.arrowWidth
-	if x >= arrowX || c.CbState != ComboNormal {
+	if x >= arrowX || c.CbState != FieldNormal {
 		c.Win.SetCursor(cursor.LeftPtr)
 	} else {
 		c.Win.SetCursor(cursor.XTerm)
@@ -514,7 +511,7 @@ func bindCombobox(c *Combobox, app widget.AppContext) {
 
 	app.Dispatcher().Bind(win.PlatformID, event.MotionMask, func(ev *event.Event) {
 		c.updateCursor(ev.X)
-		if ev.State&platform.Button1Mask != 0 && c.CbState == ComboNormal && c.State&StateFocus != 0 {
+		if ev.State&platform.Button1Mask != 0 && c.CbState == FieldNormal && c.State&StateFocus != 0 {
 			c.edit.MoveCursor(c.edit.ClosestGap(ev.X), c.edit.SelAnchor, true)
 		}
 	})
@@ -530,7 +527,7 @@ func bindCombobox(c *Combobox, app widget.AppContext) {
 		}
 		if ev.Button == 1 {
 			arrowX := win.Width - c.arrowWidth
-			if ev.X >= arrowX || c.CbState == ComboReadonly {
+			if ev.X >= arrowX || c.CbState == FieldReadonly {
 				// ttk::combobox::Press: the widget takes the focus so the
 				// posted list gets the keys.
 				widget.Focus(app, win)
@@ -597,7 +594,7 @@ func bindCombobox(c *Combobox, app widget.AppContext) {
 			c.openDropdown()
 			return
 		}
-		if c.CbState != ComboNormal {
+		if c.CbState != FieldNormal {
 			return
 		}
 
@@ -615,7 +612,7 @@ func bindCombobox(c *Combobox, app widget.AppContext) {
 		}
 	})
 	app.Dispatcher().Bind(win.PlatformID, event.VirtualMask, func(ev *event.Event) {
-		if c.State&StateDisabled == 0 && c.CbState == ComboNormal {
+		if c.State&StateDisabled == 0 && c.CbState == FieldNormal {
 			c.edit.HandleVirtual(ev)
 		}
 	})
@@ -636,7 +633,7 @@ func bindCombobox(c *Combobox, app widget.AppContext) {
 	// Hide cursor when user clicks any other window (non-focusable widgets don't
 	// call SetInputFocus, so FocusOut never fires for those clicks).
 	app.Dispatcher().BindGlobalFor(win.PlatformID, event.ButtonPressMask, func(ev *event.Event) {
-		if c.State&StateFocus == 0 || c.CbState != ComboNormal {
+		if c.State&StateFocus == 0 || c.CbState != FieldNormal {
 			return
 		}
 		if ev.Window == win.PlatformID {

@@ -6,6 +6,7 @@ import (
 	"github.com/takigo/takigo/color"
 	"github.com/takigo/takigo/font"
 	"github.com/takigo/takigo/option"
+	"github.com/takigo/takigo/screenunit"
 	"github.com/takigo/takigo/widget"
 )
 
@@ -59,7 +60,8 @@ func OutlineColor[C color.Spec](name C) ItemOption {
 }
 
 // OutlineWidth sets the outline/line width.
-func OutlineWidth(w int) ItemOption {
+func OutlineWidth[L screenunit.Length](width L) ItemOption {
+	w := screenunit.ToPixels(width)
 	return func(_ *Canvas, item Item) error {
 		switch it := item.(type) {
 		case *RectOvalItem:
@@ -343,7 +345,8 @@ func JustifyOpt(j option.Justify) ItemOption {
 }
 
 // WidthOpt sets the wrap length for text items.
-func WidthOpt(w int) ItemOption {
+func WidthOpt[L screenunit.Length](width L) ItemOption {
+	w := screenunit.ToPixels(width)
 	return func(_ *Canvas, item Item) error {
 		if it, ok := item.(*TextItem); ok {
 			it.wrapLength = w

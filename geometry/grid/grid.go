@@ -215,27 +215,27 @@ const (
 	RelUp
 )
 
-// relativeWidget is a dummy widget used as a sentinel in Grid calls.
+// RelativeWidget stands for a relative placement in a Grid call.
 // It implements both window.Windower and geometry.Elementer so it can
 // appear inside geometry.Group or be passed directly to Grid.
-type relativeWidget struct {
+type RelativeWidget struct {
 	placement RelativePlacement
 }
 
 // sentinel Window pointers for each relative placement type.
 var relSentinels [3]window.Window
 
-func (r *relativeWidget) Window() *window.Window {
+func (r *RelativeWidget) Window() *window.Window {
 	return &relSentinels[r.placement]
 }
 
-func (r *relativeWidget) GeometryElements() []window.Windower {
+func (r *RelativeWidget) GeometryElements() []window.Windower {
 	return []window.Windower{r}
 }
 
-// Relative returns a dummy widget representing a relative placement shortcut.
-func Relative(rp RelativePlacement) *relativeWidget {
-	return &relativeWidget{placement: rp}
+// Relative returns the RelativeWidget for a relative placement shortcut.
+func Relative(rp RelativePlacement) *RelativeWidget {
+	return &RelativeWidget{placement: rp}
 }
 
 func isRelative(w *window.Window) (RelativePlacement, bool) {

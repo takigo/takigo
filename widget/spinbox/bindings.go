@@ -69,11 +69,11 @@ func (s *Spinbox) handleConfigure(ev *event.Event) {
 func (s *Spinbox) handleFocus(ev *event.Event) {
 	switch ev.Type {
 	case event.FocusInType:
-		s.HasFocus = true
-		s.CursorOn = true
+		s.hasFocus = true
+		s.cursorOn = true
 		s.Display()
 	case event.FocusOutType:
-		s.HasFocus = false
+		s.hasFocus = false
 		s.Display()
 	}
 }

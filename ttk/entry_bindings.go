@@ -16,7 +16,7 @@ func bindEntry(e *Entry, app widget.AppContext) {
 
 	// Button1: position cursor. Shift extends selection. Double/triple select word/line.
 	app.Dispatcher().Bind(win.PlatformID, event.ButtonPressMask, func(ev *event.Event) {
-		if e.StateMode == EntryDisabled {
+		if e.StateMode == FieldDisabled {
 			return
 		}
 		if ev.Button == 1 {
@@ -35,14 +35,14 @@ func bindEntry(e *Entry, app widget.AppContext) {
 
 	// Motion-drag selection (when Button1 still held).
 	app.Dispatcher().Bind(win.PlatformID, event.MotionMask, func(ev *event.Event) {
-		if ev.State&platform.Button1Mask != 0 && e.StateMode != EntryDisabled {
+		if ev.State&platform.Button1Mask != 0 && e.StateMode != FieldDisabled {
 			e.edit.MoveCursor(e.edit.ClosestGap(ev.X), e.edit.SelAnchor, true)
 		}
 	})
 
 	// Key handling.
 	app.Dispatcher().Bind(win.PlatformID, event.KeyPressMask, func(ev *event.Event) {
-		if e.StateMode == EntryDisabled {
+		if e.StateMode == FieldDisabled {
 			return
 		}
 		switch ev.KeySym {
@@ -60,7 +60,7 @@ func bindEntry(e *Entry, app widget.AppContext) {
 		e.notifyTextVar()
 	})
 	app.Dispatcher().Bind(win.PlatformID, event.VirtualMask, func(ev *event.Event) {
-		if e.StateMode != EntryDisabled {
+		if e.StateMode != FieldDisabled {
 			e.edit.HandleVirtual(ev)
 			e.notifyTextVar()
 		}
@@ -87,7 +87,7 @@ func bindEntry(e *Entry, app widget.AppContext) {
 
 	// Hide cursor when the user clicks any other window.
 	app.Dispatcher().BindGlobalFor(win.PlatformID, event.ButtonPressMask, func(ev *event.Event) {
-		if e.State&StateFocus == 0 || e.StateMode == EntryDisabled {
+		if e.State&StateFocus == 0 || e.StateMode == FieldDisabled {
 			return
 		}
 		if ev.Window == win.PlatformID {

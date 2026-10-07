@@ -196,7 +196,7 @@ func (mb *Menubutton) Display() {
 
 // display draws the menubutton.
 func (mb *Menubutton) display() {
-	if mb.Destroyed {
+	if mb.Destroyed() {
 		return
 	}
 	w := mb.Win
@@ -275,8 +275,8 @@ func (mb *Menubutton) display() {
 }
 
 // SetText changes the button label and requests a re-layout if the size changed.
-func (mb *Menubutton) SetText(text string) {
-	mb.Configure(Text(text))
+func (mb *Menubutton) SetText(text string) error {
+	return mb.Configure(Text(text))
 }
 
 // Configure applies options.
@@ -286,10 +286,10 @@ func (mb *Menubutton) Configure(opts ...MenubuttonOption) error {
 
 // Destroy cleans up.
 func (mb *Menubutton) Destroy() {
-	if mb.Destroyed {
+	if mb.Destroyed() {
 		return
 	}
-	mb.Destroyed = true
+	mb.MarkDestroyed()
 	window.DestroyWindow(mb.Win)
 }
 
@@ -348,7 +348,7 @@ func bindMenubutton(mb *Menubutton, app widget.AppContext) {
 			if ev.State&platform.Mod1Mask == 0 {
 				return
 			}
-			if mb.Destroyed || mb.State == widget.StateDisabled {
+			if mb.Destroyed() || mb.State == widget.StateDisabled {
 				return
 			}
 			r := platform.KeySymToRune(ev.KeySym)

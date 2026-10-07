@@ -50,7 +50,7 @@ func main() {
 		ttk.SpinboxFrom(1),
 		ttk.SpinboxTo(10),
 		ttk.SpinboxWidth(10),
-		ttk.SpinboxValidate("key"),
+		ttk.SpinboxValidate(ttk.ValidateKey),
 		ttk.SpinboxValidateCmd(func(s string) bool {
 			if s == "" {
 				return true

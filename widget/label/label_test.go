@@ -146,13 +146,13 @@ func TestLabelDestroy(t *testing.T) {
 		unsub: func() {},
 	}
 
-	if l.Destroyed {
+	if l.Destroyed() {
 		t.Error("New label should not be destroyed")
 	}
 
 	// Manually set and verify
-	l.Destroyed = true
-	if !l.Destroyed {
+	l.MarkDestroyed()
+	if !l.Destroyed() {
 		t.Error("Destroyed flag should be true after setting")
 	}
 

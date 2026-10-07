@@ -55,11 +55,10 @@ func TestDestroyWindowRunsHooks(t *testing.T) {
 func TestOnConfigureHooksCoexist(t *testing.T) {
 	w := &Window{}
 	var calls []string
-	w.ConfigureCallback = func() { calls = append(calls, "legacy") }
 	w.OnConfigure(func() { calls = append(calls, "pack") })
 	w.OnConfigure(func() { calls = append(calls, "user") })
 	w.NotifyConfigure()
-	if !slices.Equal(calls, []string{"legacy", "pack", "user"}) {
+	if !slices.Equal(calls, []string{"pack", "user"}) {
 		t.Errorf("configure callbacks = %q", calls)
 	}
 }

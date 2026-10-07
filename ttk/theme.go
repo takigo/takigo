@@ -285,7 +285,7 @@ var ErrUnknownTheme = errors.New("ttk: unknown theme")
 // UseTheme, or the process default (CurrentTheme) when none was.
 func ThemeFor(app widget.AppContext) *Theme {
 	if app != nil {
-		if root := app.Window(); root != nil {
+		if root := app.Root(); root != nil {
 			if t, ok := root.Value(appThemeKey).(*Theme); ok {
 				return t
 			}
@@ -311,11 +311,11 @@ func UseTheme(app widget.AppContext, name string) error {
 	if !ok {
 		return fmt.Errorf("%w %q", ErrUnknownTheme, name)
 	}
-	root := app.Window()
+	root := app.Root()
 	root.SetValue(appThemeKey, t)
 	for win := range root.Descendants() {
 		w, ok := win.Value(ttkWidgetKey).(*TtkWidget)
-		if !ok || w.Destroyed {
+		if !ok || w.Destroyed() {
 			continue
 		}
 		w.RefreshTheme()

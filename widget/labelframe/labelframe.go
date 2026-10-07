@@ -278,7 +278,7 @@ func (lf *Labelframe) Display() {
 
 // display draws the labelframe.
 func (lf *Labelframe) display() {
-	if lf.Destroyed {
+	if lf.Destroyed() {
 		return
 	}
 	w := lf.Win
@@ -433,7 +433,7 @@ type labelGeomMgr struct{ lf *Labelframe }
 func (m *labelGeomMgr) Name() string { return "labelframe" }
 
 func (m *labelGeomMgr) RequestProc(content *window.Window) {
-	if lw := m.lf.LabelWidget; lw != nil && lw.Window() == content && !m.lf.Destroyed {
+	if lw := m.lf.LabelWidget; lw != nil && lw.Window() == content && !m.lf.Destroyed() {
 		m.lf.labelChanged()
 	}
 }
@@ -441,7 +441,7 @@ func (m *labelGeomMgr) RequestProc(content *window.Window) {
 func (m *labelGeomMgr) LostContentProc(content *window.Window) {
 	if lw := m.lf.LabelWidget; lw != nil && lw.Window() == content {
 		m.lf.LabelWidget = nil
-		if !m.lf.Destroyed {
+		if !m.lf.Destroyed() {
 			m.lf.labelChanged()
 		}
 	}
@@ -449,9 +449,9 @@ func (m *labelGeomMgr) LostContentProc(content *window.Window) {
 
 // Destroy cleans up the labelframe.
 func (lf *Labelframe) Destroy() {
-	if lf.Destroyed {
+	if lf.Destroyed() {
 		return
 	}
-	lf.Destroyed = true
+	lf.MarkDestroyed()
 	window.DestroyWindow(lf.Win)
 }

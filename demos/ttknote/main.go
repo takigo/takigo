@@ -105,8 +105,8 @@ func main() {
 
 	// ttk::scrollbar ... -orient vertical -command "... yview"
 	yscroll := ttk.NewScrollbar(page3, "s",
-		ttk.ScrollbarOrientOpt(ttk.Vertical),
-		ttk.ScrollbarCommandOpt(widget.ScrollY(tw)),
+		ttk.ScrollbarOrient(ttk.Vertical),
+		ttk.ScrollbarCommand(widget.ScrollY(tw)),
 	)
 	tw.YScrollCmd = func(first, last float64) {
 		yscroll.Set(first, last)

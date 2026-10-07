@@ -226,16 +226,16 @@ func (l *Label) Configure(opts ...LabelOption) error {
 
 // SetImage sets or clears the label image at runtime, recomputing geometry
 // and requesting re-layout from the geometry manager.
-func (l *Label) SetImage(img widget.WidgetImage) {
-	l.Configure(ImageOpt(img))
+func (l *Label) SetImage(img widget.WidgetImage) error {
+	return l.Configure(ImageOpt(img))
 }
 
 // Destroy cleans up the label, unsubscribing from any linked TextVariable.
 func (l *Label) Destroy() {
-	if l.Destroyed {
+	if l.Destroyed() {
 		return
 	}
-	l.Destroyed = true
+	l.MarkDestroyed()
 	if l.unsub != nil {
 		l.unsub()
 		l.unsub = nil

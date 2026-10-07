@@ -227,10 +227,10 @@ func (r *Radiobutton) Configure(opts ...RadiobuttonOption) error {
 
 // Destroy cleans up the radiobutton.
 func (r *Radiobutton) Destroy() {
-	if r.Destroyed {
+	if r.Destroyed() {
 		return
 	}
-	r.Destroyed = true
+	r.MarkDestroyed()
 	if r.unsub != nil {
 		r.unsub()
 	}

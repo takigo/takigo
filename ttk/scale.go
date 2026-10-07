@@ -1,6 +1,7 @@
 package ttk
 
 import (
+	"cmp"
 	"time"
 
 	"github.com/takigo/takigo/draw"
@@ -60,6 +61,11 @@ func ScaleVariable(v *widget.Variable[float64]) ScaleOption {
 	return func(s *Scale) { s.Variable = v }
 }
 
+// ScaleStyle sets -style.
+func ScaleStyle(name string) ScaleOption {
+	return func(s *Scale) { s.StyleName = name }
+}
+
 // NewScale creates a themed scale.
 func NewScale(parent widget.Caregiver, name string, opts ...ScaleOption) *Scale {
 	app := parent.AppContext()
@@ -72,7 +78,7 @@ func NewScale(parent widget.Caregiver, name string, opts ...ScaleOption) *Scale 
 	for _, opt := range opts {
 		opt(s)
 	}
-	InitTtkWidget(&s.TtkWidget, win, app, s.orientStyle())
+	InitTtkWidget(&s.TtkWidget, win, app, cmp.Or(s.StyleName, s.orientStyle()))
 	s.reconfigure = func() { _ = s.Configure() }
 	win.OnDestroy(s.Destroy)
 	win.Class = "TScale"
@@ -222,7 +228,7 @@ func (s *Scale) increment(delta float64) {
 // the inner-colour fill up to the slider centre and the slider image.
 func (s *Scale) Display() {
 	win := s.Win
-	if s.Destroyed || win.PlatformID == 0 || s.Context == nil {
+	if s.Destroyed() || win.PlatformID == 0 || s.Context == nil {
 		return
 	}
 	width, height := win.Width, win.Height
@@ -352,7 +358,7 @@ func (s *Scale) repeat(app widget.AppContext, fn func()) {
 	fn()
 	var tick func()
 	tick = func() {
-		if gen != s.repeatGen || s.Destroyed {
+		if gen != s.repeatGen || s.Destroyed() {
 			return
 		}
 		fn()

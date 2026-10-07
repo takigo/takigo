@@ -222,10 +222,10 @@ func (b *fileBrowser) buildToolbar() {
 		ttk.FramePadding(ttk.Padding{Left: dialogPadding, Top: dialogPadding, Right: dialogPadding, Bottom: 4}))
 	pack.Pack(bar, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
 
-	up := ttk.NewButton(bar, "up", ttk.ButtonImage(b.icons.up), ttk.ButtonStyleOpt("Toolbutton"),
+	up := ttk.NewButton(bar, "up", ttk.ButtonImage(b.icons.up), ttk.ButtonStyle("Toolbutton"),
 		ttk.ButtonCommand(b.upDir))
 	pack.Pack(up, pack.SideOpt(pack.Left))
-	home := ttk.NewButton(bar, "home", ttk.ButtonImage(b.icons.home), ttk.ButtonStyleOpt("Toolbutton"),
+	home := ttk.NewButton(bar, "home", ttk.ButtonImage(b.icons.home), ttk.ButtonStyle("Toolbutton"),
 		ttk.ButtonCommand(func() {
 			if h, err := os.UserHomeDir(); err == nil {
 				b.load(h)
@@ -235,7 +235,7 @@ func (b *fileBrowser) buildToolbar() {
 
 	newDir := ttk.NewButton(bar, "newfolder", ttk.ButtonText("New Folder"),
 		ttk.ButtonImage(b.icons.newFolder), ttk.ButtonCompound(widget.CompoundLeft),
-		ttk.ButtonStyleOpt("Toolbutton"), ttk.ButtonCommand(b.newFolder))
+		ttk.ButtonStyle("Toolbutton"), ttk.ButtonCommand(b.newFolder))
 	pack.Pack(newDir, pack.SideOpt(pack.Right))
 
 	b.pathEntry = ttk.NewEntry(bar, "path", ttk.EntryWidth(40))
@@ -318,8 +318,8 @@ func (b *fileBrowser) buildBody() {
 	})
 
 	b.vscroll = ttk.NewScrollbar(listFrame, "vsb",
-		ttk.ScrollbarOrientOpt(ttk.Vertical),
-		ttk.ScrollbarCommandOpt(widget.ScrollY(b.list)))
+		ttk.ScrollbarOrient(ttk.Vertical),
+		ttk.ScrollbarCommand(widget.ScrollY(b.list)))
 	b.list.YScrollCmd = b.vscroll.Set
 
 	grid.Grid(b.list, grid.Row(0), grid.Column(0), grid.Sticky(grid.NSEW))
@@ -388,7 +388,7 @@ func (b *fileBrowser) buildForm() {
 		b.typeBox = ttk.NewCombobox(form, "types",
 			ttk.ComboboxValues(values),
 			ttk.ComboboxText(values[0]),
-			ttk.ComboboxCbState(ttk.ComboReadonly),
+			ttk.ComboboxState(ttk.FieldReadonly),
 			ttk.ComboboxCommand(b.setFilter))
 		grid.Grid(typeLab, grid.Row(row), grid.Column(0), grid.Sticky(grid.EW), grid.PadY(3))
 		grid.Grid(b.typeBox, grid.Row(row), grid.Column(1), grid.Sticky(grid.EW), grid.PadX(6), grid.PadY(3))

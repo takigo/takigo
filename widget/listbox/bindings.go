@@ -33,10 +33,10 @@ func bindListbox(lb *Listbox, app widget.AppContext) {
 	app.Dispatcher().Bind(w.PlatformID, event.FocusChangeMask, func(ev *event.Event) {
 		switch ev.Type {
 		case event.FocusInType:
-			lb.HasFocus = true
+			lb.hasFocus = true
 			lb.Display()
 		case event.FocusOutType:
-			lb.HasFocus = false
+			lb.hasFocus = false
 			lb.Display()
 		}
 	})

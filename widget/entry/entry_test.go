@@ -13,12 +13,12 @@ func TestEntryEditing(t *testing.T) {
 	if e.GetText() != "hello" {
 		t.Fatalf("GetText = %q", e.GetText())
 	}
-	e.InsertChars(5, " world")
-	e.InsertChars(0, ">> ")
+	e.Insert(5, " world")
+	e.Insert(0, ">> ")
 	if e.GetText() != ">> hello world" {
 		t.Errorf("after inserts: %q", e.GetText())
 	}
-	e.DeleteChars(0, 3)
+	e.Delete(0, 3)
 	if e.GetText() != "hello world" {
 		t.Errorf("after delete: %q", e.GetText())
 	}
@@ -41,7 +41,7 @@ func TestEntryEditing(t *testing.T) {
 	}
 
 	e.SetText("héllo ✓")
-	e.InsertChars(1, "X")
+	e.Insert(1, "X")
 	if e.GetText() != "hXéllo ✓" {
 		t.Errorf("indices are not in characters: %q", e.GetText())
 	}

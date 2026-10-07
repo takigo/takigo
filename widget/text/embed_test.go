@@ -41,8 +41,8 @@ func TestEmbeddedImageTracksEdits(t *testing.T) {
 		t.Errorf(`Get("1.0", "end") = %q, want "abcd"`, got)
 	}
 	tw.SelectAll()
-	if got := tw.GetSelection(); got != "abcd" {
-		t.Errorf("GetSelection() = %q, want %q", got, "abcd")
+	if got := tw.SelectedText(); got != "abcd" {
+		t.Errorf("SelectedText() = %q, want %q", got, "abcd")
 	}
 	tw.clearSelection()
 	steps := []struct {

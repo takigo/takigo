@@ -184,10 +184,10 @@ func TagRelief(r option.Relief) TagOption {
 	}
 }
 
-// TagBorderWidth sets the border thickness (pixels) used with TagRelief.
-func TagBorderWidth(n int) TagOption {
+// TagBorderWidth sets the border thickness used with TagRelief.
+func TagBorderWidth[L screenunit.Length](n L) TagOption {
 	return func(cache *color.Cache, reg *font.Registry, tag *Tag) {
-		tag.BorderWidth = n
+		tag.BorderWidth = screenunit.ToPixels(n)
 	}
 }
 

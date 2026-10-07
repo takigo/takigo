@@ -114,7 +114,7 @@ func New(parent widget.Caregiver, title string, minWidth, minHeight int) *Dialog
 	closeFn := func() {
 		d.Close(ResultCancel)
 	}
-	app.RegisterCloseHandler(d.Toplevel.Window().PlatformID, closeFn)
+	d.Toplevel.WmInfo.OnDeleteWindow(closeFn)
 
 	// Bind Escape to cancel.
 	d.bindKey(platform.XK_Escape, func() { d.Close(ResultCancel) })
@@ -254,7 +254,7 @@ func (d *Dialog) finish(result DialogResult, destroy bool) {
 	d.result = result
 
 	// Unregister the close handler.
-	d.App.UnregisterCloseHandler(d.Toplevel.Window().PlatformID)
+	d.Toplevel.WmInfo.OffDeleteWindow()
 
 	if destroy {
 		d.Toplevel.Hide()

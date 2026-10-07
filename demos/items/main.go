@@ -64,12 +64,12 @@ func main() {
 	)
 
 	yscroll := ttk.NewScrollbar(gf, "vscroll",
-		ttk.ScrollbarOrientOpt(ttk.Vertical),
-		ttk.ScrollbarCommandOpt(widget.ScrollY(c)),
+		ttk.ScrollbarOrient(ttk.Vertical),
+		ttk.ScrollbarCommand(widget.ScrollY(c)),
 	)
 	xscroll := ttk.NewScrollbar(gf, "hscroll",
-		ttk.ScrollbarOrientOpt(ttk.Horizontal),
-		ttk.ScrollbarCommandOpt(widget.ScrollX(c)),
+		ttk.ScrollbarOrient(ttk.Horizontal),
+		ttk.ScrollbarCommand(widget.ScrollX(c)),
 	)
 	c.Configure(
 		canvas.YScrollCommand(func(first, last float64) { yscroll.Set(first, last) }),
@@ -375,7 +375,7 @@ func main() {
 
 	// Embedded entry.
 	ent := entry.New(c, "win_entry", entry.Width(20))
-	ent.InsertChars(0, "Edit this text")
+	ent.Insert(0, "Edit this text")
 	c.CreateWindow(p(21), p(21), ent.Win, canvas.AnchorOpt(option.AnchorNW), canvas.Tags("item"))
 
 	// Label text "Scale:".

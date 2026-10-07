@@ -63,7 +63,7 @@ func main() {
 
 	// Text widget + scrollbar.
 	scroll := ttk.NewScrollbar(f, "scroll",
-		ttk.ScrollbarOrientOpt(ttk.Vertical),
+		ttk.ScrollbarOrient(ttk.Vertical),
 	)
 
 	tw := text.New(f, "text",

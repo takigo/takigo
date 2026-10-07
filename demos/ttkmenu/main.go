@@ -66,7 +66,7 @@ func main() {
 	)
 	m4 := ttk.NewMenubutton(cf, "m4",
 		ttk.MenubuttonText("Select a theme"),
-		ttk.MenubuttonStyleOpt("TMenubutton.Toolbutton"),
+		ttk.MenubuttonStyle("TMenubutton.Toolbutton"),
 	)
 	m5 := ttk.NewMenubutton(cf, "m5",
 		ttk.MenubuttonText("Select a theme"),

@@ -9,8 +9,10 @@ import (
 	"github.com/takigo/takigo/color"
 	"github.com/takigo/takigo/draw"
 	"github.com/takigo/takigo/event"
+	"github.com/takigo/takigo/geometry"
 	"github.com/takigo/takigo/option"
 	"github.com/takigo/takigo/platform"
+	"github.com/takigo/takigo/screenunit"
 	"github.com/takigo/takigo/widget"
 	"github.com/takigo/takigo/window"
 )
@@ -55,17 +57,23 @@ type Scale struct {
 // ScaleOption configures a Scale.
 type ScaleOption func(*Scale)
 
-func OrientOpt(o Orient) ScaleOption          { return func(s *Scale) { s.Orient = o } }
-func FromOpt(v float64) ScaleOption           { return func(s *Scale) { s.From = v } }
-func ToOpt(v float64) ScaleOption             { return func(s *Scale) { s.To = v } }
-func ValueOpt(v float64) ScaleOption          { return func(s *Scale) { s.Value = v } }
-func ResolutionOpt(v float64) ScaleOption     { return func(s *Scale) { s.Resolution = v } }
-func ShowValueOpt(b bool) ScaleOption         { return func(s *Scale) { s.ShowValue = b } }
-func LabelOpt(s string) ScaleOption           { return func(sc *Scale) { sc.Label = s } }
-func SliderLengthOpt(n int) ScaleOption       { return func(s *Scale) { s.SliderLength = n } }
-func WidthOpt(w int) ScaleOption              { return func(s *Scale) { s.Width = w } }
-func TickIntervalOpt(v float64) ScaleOption   { return func(s *Scale) { s.TickInterval = v } }
-func LengthOpt(n int) ScaleOption             { return func(s *Scale) { s.Length = n } }
+func OrientOpt(o Orient) ScaleOption      { return func(s *Scale) { s.Orient = o } }
+func FromOpt(v float64) ScaleOption       { return func(s *Scale) { s.From = v } }
+func ToOpt(v float64) ScaleOption         { return func(s *Scale) { s.To = v } }
+func ValueOpt(v float64) ScaleOption      { return func(s *Scale) { s.Value = v } }
+func ResolutionOpt(v float64) ScaleOption { return func(s *Scale) { s.Resolution = v } }
+func ShowValueOpt(b bool) ScaleOption     { return func(s *Scale) { s.ShowValue = b } }
+func LabelOpt(s string) ScaleOption       { return func(sc *Scale) { sc.Label = s } }
+func SliderLengthOpt[L screenunit.Length](n L) ScaleOption {
+	return func(s *Scale) { s.SliderLength = screenunit.ToPixels(n) }
+}
+func WidthOpt[L screenunit.Length](w L) ScaleOption {
+	return func(s *Scale) { s.Width = screenunit.ToPixels(w) }
+}
+func TickIntervalOpt(v float64) ScaleOption { return func(s *Scale) { s.TickInterval = v } }
+func LengthOpt[L screenunit.Length](n L) ScaleOption {
+	return func(s *Scale) { s.Length = screenunit.ToPixels(n) }
+}
 func CommandOpt(fn func(float64)) ScaleOption { return func(s *Scale) { s.Command = fn } }
 
 // Background sets the background colour.
@@ -311,10 +319,8 @@ func (s *Scale) geometry() (g scaleLayout, reqW, reqH int) {
 func (s *Scale) computeGeometry() {
 	_, w, h := s.geometry()
 	s.Win.ReqWidth, s.Win.ReqHeight = w, h
-	s.Win.InternalBorderLeft = s.inset()
-	s.Win.InternalBorderRight = s.inset()
-	s.Win.InternalBorderTop = s.inset()
-	s.Win.InternalBorderBottom = s.inset()
+	in := s.inset()
+	geometry.SetInternalBorder(s.Win, in, in, in, in)
 }
 
 // formatValue and formatTick stand in for Tk's ComputeFormat digits.
@@ -368,7 +374,7 @@ func (s *Scale) Display() {
 
 // display ports TkpDisplayScale (tk/unix/tkUnixScale.c).
 func (s *Scale) display() {
-	if s.Destroyed {
+	if s.Destroyed() {
 		return
 	}
 	w := s.Win
@@ -528,10 +534,10 @@ func (s *Scale) Configure(opts ...ScaleOption) error {
 
 // Destroy cleans up the scale.
 func (s *Scale) Destroy() {
-	if s.Destroyed {
+	if s.Destroyed() {
 		return
 	}
-	s.Destroyed = true
+	s.MarkDestroyed()
 	window.DestroyWindow(s.Win)
 }
 

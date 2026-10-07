@@ -173,7 +173,7 @@ func main() {
 	inRight.Add(rightBotLF.Window(), 0)
 
 	// A TEntry-styled ttk::frame gives the classic text a themed border.
-	entryFrame := ttk.NewFrame(rightBotLF, "f", ttk.FrameStyleOpt("TEntry"))
+	entryFrame := ttk.NewFrame(rightBotLF, "f", ttk.FrameStyle("TEntry"))
 	txt := text.New(entryFrame, "txt",
 		text.Width(30),
 		text.WrapModeOpt(text.WrapWord),
@@ -181,8 +181,8 @@ func main() {
 	)
 
 	sb := ttk.NewScrollbar(rightBotLF, "sb",
-		ttk.ScrollbarOrientOpt(ttk.Vertical),
-		ttk.ScrollbarCommandOpt(widget.ScrollY(txt)),
+		ttk.ScrollbarOrient(ttk.Vertical),
+		ttk.ScrollbarCommand(widget.ScrollY(txt)),
 	)
 	txt.YScrollCmd = func(first, last float64) {
 		sb.Set(first, last)

@@ -48,8 +48,8 @@ func main() {
 
 	e1 := entry.New(fr, "e1")
 	s1 := ttk.NewScrollbar(fr, "s1",
-		ttk.ScrollbarOrientOpt(ttk.Horizontal),
-		ttk.ScrollbarCommandOpt(widget.ScrollX(e1)),
+		ttk.ScrollbarOrient(ttk.Horizontal),
+		ttk.ScrollbarCommand(widget.ScrollX(e1)),
 	)
 	e1.ScrollCmd = func(first, last float64) {
 		s1.Set(first, last)
@@ -59,8 +59,8 @@ func main() {
 
 	e2 := entry.New(fr, "e2")
 	s2 := ttk.NewScrollbar(fr, "s2",
-		ttk.ScrollbarOrientOpt(ttk.Horizontal),
-		ttk.ScrollbarCommandOpt(widget.ScrollX(e2)),
+		ttk.ScrollbarOrient(ttk.Horizontal),
+		ttk.ScrollbarCommand(widget.ScrollX(e2)),
 	)
 	e2.ScrollCmd = func(first, last float64) {
 		s2.Set(first, last)
@@ -73,8 +73,8 @@ func main() {
 		entry.PlaceholderForeground("gray75"),
 	)
 	s3 := ttk.NewScrollbar(fr, "s3",
-		ttk.ScrollbarOrientOpt(ttk.Horizontal),
-		ttk.ScrollbarCommandOpt(widget.ScrollX(e3)),
+		ttk.ScrollbarOrient(ttk.Horizontal),
+		ttk.ScrollbarCommand(widget.ScrollX(e3)),
 	)
 	e3.ScrollCmd = func(first, last float64) {
 		s3.Set(first, last)

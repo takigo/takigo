@@ -163,11 +163,7 @@ func New(parent widget.Caregiver, name string, opts ...ButtonOption) *Button {
 
 	// FocusIn/FocusOut — track focus state and redraw highlight.
 	app.Dispatcher().Bind(w.PlatformID, event.FocusChangeMask, func(ev *event.Event) {
-		if ev.Type == event.FocusInType {
-			b.HasFocus = true
-		} else {
-			b.HasFocus = false
-		}
+		b.SetFocused(ev.Type == event.FocusInType)
 		b.Display()
 	})
 
@@ -196,8 +192,8 @@ func (b *Button) Invoke() {
 }
 
 // SetText updates the button's label text and refreshes its size and display.
-func (b *Button) SetText(s string) {
-	b.Configure(Text(s))
+func (b *Button) SetText(s string) error {
+	return b.Configure(Text(s))
 }
 
 // Configure applies options to the button.
@@ -207,9 +203,9 @@ func (b *Button) Configure(opts ...ButtonOption) error {
 
 // Destroy cleans up the button.
 func (b *Button) Destroy() {
-	if b.Destroyed {
+	if b.Destroyed() {
 		return
 	}
-	b.Destroyed = true
+	b.MarkDestroyed()
 	window.DestroyWindow(b.Win)
 }

@@ -79,9 +79,9 @@ func XScrollCommand(fn func(first, last float64)) TextOption {
 	return func(t *TextWidget) { t.XScrollCmd = fn }
 }
 
-// InsertWidth sets the cursor width in pixels.
-func InsertWidth(w int) TextOption {
-	return func(t *TextWidget) { t.insertWidth = w }
+// InsertWidth sets the cursor width (Tk: -insertwidth).
+func InsertWidth[L screenunit.Length](w L) TextOption {
+	return func(t *TextWidget) { t.insertWidth = screenunit.ToPixels(w) }
 }
 
 // ReadOnly sets the text widget to read-only mode. Navigation and selection

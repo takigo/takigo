@@ -65,7 +65,7 @@ type Listbox struct {
 	// SelectCmd is called whenever the selection changes.
 	SelectCmd func()
 
-	HasFocus bool
+	hasFocus bool
 
 	// Text justification within items (left/center/right).
 	Justify option.Justify
@@ -165,8 +165,8 @@ func (lb *Listbox) ItemCount() int {
 	return len(lb.items)
 }
 
-// GetItems returns a copy of all items.
-func (lb *Listbox) GetItems() []string {
+// Items returns a copy of all items.
+func (lb *Listbox) Items() []string {
 	out := make([]string, len(lb.items))
 	copy(out, lb.items)
 	return out
@@ -329,8 +329,8 @@ func (lb *Listbox) ItemConfigure(idx int, fg, bg string) {
 }
 
 // SetJustify changes the text justification and redraws.
-func (lb *Listbox) SetJustify(j option.Justify) {
-	lb.Configure(JustifyOpt(j))
+func (lb *Listbox) SetJustify(j option.Justify) error {
+	return lb.Configure(JustifyOpt(j))
 }
 
 // See scrolls the listbox so that the item at index is visible.
@@ -550,7 +550,7 @@ func (lb *Listbox) Display() {
 
 // display draws the listbox.
 func (lb *Listbox) display() {
-	if lb.Destroyed {
+	if lb.Destroyed() {
 		return
 	}
 	w := lb.Win
@@ -575,7 +575,7 @@ func (lb *Listbox) display() {
 			draw.Draw3DRectangle(d, w.Drawable(), gc, lb.Border,
 				hl, hl, w.Width-2*hl, w.Height-2*hl, lb.BorderWidth, lb.Relief)
 		}
-		lb.DrawHighlightBorder(lb.HasFocus, 0)
+		lb.DrawHighlightBorder(lb.hasFocus, 0)
 	}()
 
 	if lb.Font == nil || lb.lineHeight <= 0 {
@@ -642,7 +642,7 @@ func (lb *Listbox) display() {
 		}
 
 		// Active item indicator (underline when focused).
-		if lb.HasFocus && itemIdx == lb.activeIndex && lb.Foreground != nil {
+		if lb.hasFocus && itemIdx == lb.activeIndex && lb.Foreground != nil {
 			lineY := textY + m.Descent - 1
 			d.SetForeground(gc, lb.Foreground.Pixel)
 			d.DrawLine(w.Drawable(), gc, textX, lineY, textX+textW, lineY)
@@ -657,9 +657,9 @@ func (lb *Listbox) Configure(opts ...ListboxOption) error {
 
 // Destroy cleans up the listbox.
 func (lb *Listbox) Destroy() {
-	if lb.Destroyed {
+	if lb.Destroyed() {
 		return
 	}
-	lb.Destroyed = true
+	lb.MarkDestroyed()
 	window.DestroyWindow(lb.Win)
 }

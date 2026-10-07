@@ -89,7 +89,7 @@ func main() {
 	e5 := ttk.NewEntry(f, "e5",
 		ttk.EntryText("42"),
 		ttk.EntryWidth(20),
-		ttk.EntryValidate("key"),
+		ttk.EntryValidate(ttk.ValidateKey),
 		ttk.EntryValidateCmd(func(s string) bool {
 			if s == "" {
 				return true

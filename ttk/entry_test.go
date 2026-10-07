@@ -163,36 +163,3 @@ func TestIsWordChar(t *testing.T) {
 		}
 	}
 }
-
-func TestParseValidate(t *testing.T) {
-	cases := map[string]ValidateMode{
-		"none":     ValidateNone,
-		"key":      ValidateKey,
-		"focus":    ValidateFocus,
-		"focusin":  ValidateFocusIn,
-		"focusout": ValidateFocusOut,
-		"all":      ValidateAll,
-		"":         ValidateNone,
-		"bogus":    ValidateNone,
-	}
-	for in, want := range cases {
-		if got := parseValidate(in); got != want {
-			t.Errorf("parseValidate(%q) = %d, want %d", in, got, want)
-		}
-	}
-}
-
-func TestParseEntryState(t *testing.T) {
-	cases := map[string]EntryState{
-		"normal":    EntryNormal,
-		"disabled":  EntryDisabled,
-		"readonly":  EntryReadonly,
-		"":          EntryNormal,
-		"something": EntryNormal,
-	}
-	for in, want := range cases {
-		if got := parseEntryState(in); got != want {
-			t.Errorf("parseEntryState(%q) = %d, want %d", in, got, want)
-		}
-	}
-}

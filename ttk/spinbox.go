@@ -54,7 +54,7 @@ type Spinbox struct {
 	cursorOn      bool
 
 	// Validation.
-	Validate    string
+	Validate    ValidateMode
 	ValidateCmd func(string) bool
 }
 
@@ -85,12 +85,17 @@ func SpinboxCommand(fn func(string)) SpinboxOption { return func(s *Spinbox) { s
 // SpinboxWidth sets the preferred width in characters.
 func SpinboxWidth(w int) SpinboxOption { return func(s *Spinbox) { s.prefWidth = w } }
 
-// SpinboxValidate sets the validation mode ("key", "all", etc.).
-func SpinboxValidate(v string) SpinboxOption { return func(s *Spinbox) { s.Validate = v } }
+// SpinboxValidate sets -validate: when -validatecommand runs.
+func SpinboxValidate(v ValidateMode) SpinboxOption { return func(s *Spinbox) { s.Validate = v } }
 
 // SpinboxValidateCmd sets the validation callback.
 func SpinboxValidateCmd(fn func(string) bool) SpinboxOption {
 	return func(s *Spinbox) { s.ValidateCmd = fn }
+}
+
+// SpinboxStyle sets -style.
+func SpinboxStyle(name string) SpinboxOption {
+	return func(s *Spinbox) { s.StyleName = name }
 }
 
 // NewSpinbox creates a themed spinbox widget.
@@ -131,6 +136,9 @@ func NewSpinbox(parent widget.Caregiver, name string, opts ...SpinboxOption) *Sp
 
 	for _, opt := range opts {
 		opt(s)
+	}
+	if s.StyleName != "TSpinbox" {
+		s.RefreshTheme()
 	}
 
 	// Set initial value.
@@ -283,8 +291,7 @@ func (s *Spinbox) tryValidate(_ entrytext.ValidateReason, prospective string) bo
 	if s.ValidateCmd == nil {
 		return true
 	}
-	v := s.Validate
-	if v != "key" && v != "all" {
+	if v := s.Validate; v != ValidateKey && v != ValidateAll {
 		return true
 	}
 	return s.ValidateCmd(prospective)
@@ -354,7 +361,7 @@ func (s *Spinbox) closestGap(x int) int { return s.edit.ClosestGap(x) }
 
 // Display draws the themed spinbox.
 func (s *Spinbox) Display() {
-	if s.Destroyed {
+	if s.Destroyed() {
 		return
 	}
 	win := s.Win

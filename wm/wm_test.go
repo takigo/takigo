@@ -42,28 +42,28 @@ func TestParseGeometry(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		w, h, x, y, hasSize, hasPos, negX, negY, err := ParseGeometry(tt.input)
+		w, h, x, y, hasSize, hasPos, negX, negY, err := parseGeometry(tt.input)
 		if (err != nil) != tt.wantErr {
-			t.Errorf("ParseGeometry(%q): err=%v, wantErr=%v", tt.input, err, tt.wantErr)
+			t.Errorf("parseGeometry(%q): err=%v, wantErr=%v", tt.input, err, tt.wantErr)
 			continue
 		}
 		if tt.wantErr {
 			continue
 		}
 		if w != tt.w || h != tt.h {
-			t.Errorf("ParseGeometry(%q): size=%dx%d, want %dx%d", tt.input, w, h, tt.w, tt.h)
+			t.Errorf("parseGeometry(%q): size=%dx%d, want %dx%d", tt.input, w, h, tt.w, tt.h)
 		}
 		if x != tt.x || y != tt.y {
-			t.Errorf("ParseGeometry(%q): pos=%d,%d, want %d,%d", tt.input, x, y, tt.x, tt.y)
+			t.Errorf("parseGeometry(%q): pos=%d,%d, want %d,%d", tt.input, x, y, tt.x, tt.y)
 		}
 		if hasSize != tt.hasSize {
-			t.Errorf("ParseGeometry(%q): hasSize=%v, want %v", tt.input, hasSize, tt.hasSize)
+			t.Errorf("parseGeometry(%q): hasSize=%v, want %v", tt.input, hasSize, tt.hasSize)
 		}
 		if hasPos != tt.hasPos {
-			t.Errorf("ParseGeometry(%q): hasPos=%v, want %v", tt.input, hasPos, tt.hasPos)
+			t.Errorf("parseGeometry(%q): hasPos=%v, want %v", tt.input, hasPos, tt.hasPos)
 		}
 		if negX != tt.negX || negY != tt.negY {
-			t.Errorf("ParseGeometry(%q): neg=%v,%v, want %v,%v", tt.input, negX, negY, tt.negX, tt.negY)
+			t.Errorf("parseGeometry(%q): neg=%v,%v, want %v,%v", tt.input, negX, negY, tt.negX, tt.negY)
 		}
 	}
 }

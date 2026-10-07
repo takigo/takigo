@@ -17,13 +17,14 @@ import (
 	"github.com/takigo/takigo/window"
 )
 
-// EntryState mirrors Tk's -state values for ttk::entry.
-type EntryState int
+// FieldState is the -state of an entry, combobox or spinbox: whether
+// its text can be edited, only chosen (readonly) or neither.
+type FieldState int
 
 const (
-	EntryNormal EntryState = iota
-	EntryDisabled
-	EntryReadonly
+	FieldNormal FieldState = iota
+	FieldDisabled
+	FieldReadonly
 )
 
 // ValidateMode mirrors tk/generic/ttk/ttkEntry.c VMODE.
@@ -51,7 +52,7 @@ type Entry struct {
 	Show        rune // 0 = show text; non-zero = show N copies of this char (password)
 	Justify     option.Justify
 	WidthChars  int
-	StateMode   EntryState
+	StateMode   FieldState
 
 	// Validation.
 	ValidateMode ValidateMode
@@ -121,14 +122,14 @@ func EntryJustify(j option.Justify) EntryOption {
 	return func(e *Entry) { e.Justify = j }
 }
 
-// EntryState2 sets the -state option ("normal", "disabled", "readonly").
-func EntryState2(s string) EntryOption {
-	return func(e *Entry) { e.StateMode = parseEntryState(s) }
+// FieldState sets -state.
+func EntryState(s FieldState) EntryOption {
+	return func(e *Entry) { e.StateMode = s }
 }
 
-// EntryValidate sets when validation runs.
-func EntryValidate(v string) EntryOption {
-	return func(e *Entry) { e.ValidateMode = parseValidate(v) }
+// EntryValidate sets -validate: when -validatecommand runs.
+func EntryValidate(v ValidateMode) EntryOption {
+	return func(e *Entry) { e.ValidateMode = v }
 }
 
 // EntryValidateCmd sets the validation callback. Return false to reject edit.
@@ -152,8 +153,8 @@ func EntryXScrollCommand(fn func(first, last float64)) EntryOption {
 	return func(e *Entry) { e.XScrollCmd = fn }
 }
 
-// EntryStyleOpt overrides the default style name.
-func EntryStyleOpt(name string) EntryOption {
+// EntryStyle sets -style.
+func EntryStyle(name string) EntryOption {
 	return func(e *Entry) { e.StyleName = name }
 }
 
@@ -167,7 +168,7 @@ func NewEntry(parent widget.Caregiver, name string, opts ...EntryOption) *Entry 
 	e := &Entry{
 		Justify:      option.JustifyLeft,
 		WidthChars:   20,
-		StateMode:    EntryNormal,
+		StateMode:    FieldNormal,
 		ValidateMode: ValidateNone,
 		ExportSelect: true,
 		insetX:       2,
@@ -183,7 +184,7 @@ func NewEntry(parent widget.Caregiver, name string, opts ...EntryOption) *Entry 
 		Redraw: func() {
 			e.Display()
 		},
-		Editable: func() bool { return e.StateMode == EntryNormal },
+		Editable: func() bool { return e.StateMode == FieldNormal },
 		Validate: e.runValidate,
 	}
 
@@ -226,9 +227,9 @@ func (e *Entry) requestSize() {
 // syncState applies -state to the widget state.
 func (e *Entry) syncState() {
 	switch e.StateMode {
-	case EntryDisabled:
+	case FieldDisabled:
 		e.ChangeState(StateDisabled, StateReadonly)
-	case EntryReadonly:
+	case FieldReadonly:
 		e.ChangeState(StateReadonly, StateDisabled)
 	default:
 		e.ChangeState(0, StateDisabled|StateReadonly)
@@ -418,7 +419,7 @@ func (s *Selection) Range(first, last string) error {
 }
 
 // SetState changes the entry state.
-func (e *Entry) SetState(s EntryState) {
+func (e *Entry) SetState(s FieldState) {
 	e.StateMode = s
 	e.syncState()
 	e.Display()
@@ -444,7 +445,7 @@ func (e *Entry) Identify(x, y int) string {
 
 // Display draws the entry. Mirrors ttkEntry.c EntryDisplay.
 func (e *Entry) Display() {
-	if e.Destroyed {
+	if e.Destroyed() {
 		return
 	}
 	win := e.Win
@@ -499,7 +500,7 @@ func (e *Entry) Display() {
 		if e.State&StateFocus != 0 && e.edit.HasSelection() {
 			ft.selFirst, ft.selLast = e.edit.SelFirst, e.edit.SelLast
 		}
-		if e.State&StateFocus != 0 && e.StateMode != EntryDisabled {
+		if e.State&StateFocus != 0 && e.StateMode != FieldDisabled {
 			ft.cursor = e.edit.InsertPos
 		}
 	}
@@ -623,34 +624,6 @@ func (e *Entry) runValidate(reason entrytext.ValidateReason, newValue string) bo
 		e.InvalidCmd()
 	}
 	return ok
-}
-
-func parseEntryState(s string) EntryState {
-	switch s {
-	case "disabled":
-		return EntryDisabled
-	case "readonly":
-		return EntryReadonly
-	default:
-		return EntryNormal
-	}
-}
-
-func parseValidate(s string) ValidateMode {
-	switch s {
-	case "key":
-		return ValidateKey
-	case "focus":
-		return ValidateFocus
-	case "focusin":
-		return ValidateFocusIn
-	case "focusout":
-		return ValidateFocusOut
-	case "all":
-		return ValidateAll
-	default:
-		return ValidateNone
-	}
 }
 
 // Avoid unused-import errors in builds without the binding file.

@@ -94,8 +94,8 @@ func main() {
 	c := canvas.New(f, "c", canvas.Width(screenunit.Pt(192)), canvas.Height(screenunit.Pt(192)))
 	txt := text.New(f, "txt", text.Width(12), text.Height(1),
 		text.PadXOpt(screenunit.Pt(3).Pixels()), text.FontOpt(font.TkFixedFont))
-	vs := ttk.NewScrollbar(f, "vs", ttk.ScrollbarOrientOpt(ttk.Vertical),
-		ttk.ScrollbarCommandOpt(widget.ScrollY(txt)))
+	vs := ttk.NewScrollbar(f, "vs", ttk.ScrollbarOrient(ttk.Vertical),
+		ttk.ScrollbarCommand(widget.ScrollY(txt)))
 	txt.YScrollCmd = vs.Set
 
 	speed := widget.NewVariable(1400.0)
