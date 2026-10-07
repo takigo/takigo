@@ -84,7 +84,7 @@ Ctrl+C at any time — the next run resumes from the first pending demo.
 | `demo_interact.sh <demo> [events...]` | Drive a Go demo with xdotool (`--key`, `--type`, `--click X,Y\|<name>`, `--wait`), capture before/after PNGs, `--diff` for odiff %, `--list-widgets` to discover names (needs `TAKIGO_DEBUG_NAME_WIDGETS=1`) |
 | `demo_gate.sh [--tolerance PCT] [--accept]` | Compare the latest `scores.tsv` with `demos/parity.tsv`; lists improved/regressed demos (pixel up by > PCT, default 0.1, or more tree diffs) and exits 1 on any regression. `--accept` then writes the scores into `demos/parity.tsv` |
 | `tk_dump_tree.tcl` | Sourced by `demo_wrapper.tcl` when `TAKIGO_DUMP_TREE=<file>`: writes the Tk widget tree as JSON (same schema as `internal/treedump`, which the Go side writes via the same env var) |
-| `go run ./cmd/demodiff [-json] [-go-png F -tcl-png F] go.tree.json tcl.tree.json` | Structural diff of two tree dumps: TOPLEVEL/FONT/CLASS/MISSING/EXTRA/REQSIZE/SIZE/POS/RENDER, root causes first; run automatically by `demo_compare.sh` |
+| `go run ./internal/cmd/demodiff [-json] [-go-png F -tcl-png F] go.tree.json tcl.tree.json` | Structural diff of two tree dumps: TOPLEVEL/FONT/CLASS/MISSING/EXTRA/REQSIZE/SIZE/POS/RENDER, root causes first; run automatically by `demo_compare.sh` |
 | `_lib.sh` | Shared helpers (`tcl_demo_for`, `run_compare`, `odiff_score`, `maybe_xvfb`, `LLM_TOOL` launch configs); source it from new scripts |
 | `demo_wrapper.tcl <demo>` | Run a Tk 9.1 demo standalone (used by screenshot scripts) |
 
@@ -122,7 +122,7 @@ tmp/logs/<demo>_iter1.log          the LLM's output for each fix attempt
 | `HEADLESS` | `0` (`1` in `demo_batch.sh`) | `1` = run screenshots under `xvfb-run` (also auto-falls back when `DISPLAY` is unset) |
 | `SETTLE_SECS` | `5` | Max wait for the window content to stop changing; capture happens as soon as two consecutive grabs are identical |
 | `DEMO_BIN_DIR` | — | Use prebuilt demo binaries from this dir; `demo_batch.sh` builds all demos there first so a run measures one source snapshot |
-| `DUMP_TREE` | `1` | `1` = both sides write a widget-tree dump next to the screenshot and `demo_compare.sh` runs `cmd/demodiff` |
+| `DUMP_TREE` | `1` | `1` = both sides write a widget-tree dump next to the screenshot and `demo_compare.sh` runs `internal/cmd/demodiff` |
 | `PIN_FONTS` | `1` | `1` = both sides use a private fontconfig with only DejaVu Sans/Serif/Mono, all other families aliased onto them, fixed antialias/hinting |
 | `TAKIGO_FREEZE_TIMERS` | `1` | `1` = drop every timer with a positive delay on both sides (Go `event.Loop.After`, Tcl `after`) and disable cursor blink, so captures are deterministic |
 | `TIMEOUT_SECS` | `15` | Max wait for demo window to appear |

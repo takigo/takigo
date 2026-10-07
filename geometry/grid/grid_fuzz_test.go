@@ -1,4 +1,3 @@
-// Package grid implements the grid geometry manager.
 package grid
 
 import (

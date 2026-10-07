@@ -70,14 +70,14 @@ PNG" failures.
 | Script | Purpose |
 |---|---|
 | `scripts/demo_map.sh`         | Map Go demo name → Tcl demo name (auto-derived from the filesystem; override: `systray → -`). Run with no args for the full list, or with one arg for the mapping of that demo. |
-| `scripts/demo_screenshot.sh <go_demo> {go\|tcl} <out.png> [tcl_name]` | Build, launch, screenshot one side. Reads the window title from `demos/<go_demo>/main.go` via `cmd/demotitle` and waits for it via `xdotool search` (no window manager required). Honours `DEMO_GEOMETRY` and `XFT_DPI` env vars to align with the Go side. Re-execs under `xvfb-run` when `HEADLESS=1` or `DISPLAY` is unset. |
+| `scripts/demo_screenshot.sh <go_demo> {go\|tcl} <out.png> [tcl_name]` | Build, launch, screenshot one side. Reads the window title from `demos/<go_demo>/main.go` via `internal/cmd/demotitle` and waits for it via `xdotool search` (no window manager required). Honours `DEMO_GEOMETRY` and `XFT_DPI` env vars to align with the Go side. Re-execs under `xvfb-run` when `HEADLESS=1` or `DISPLAY` is unset. |
 | `scripts/demo_compare.sh <demo> [tcl_demo]` | Screenshots both sides, normalises sizes, computes the **odiff diff %** (0–100, lower = more similar, anti-aliasing ignored), and produces four outputs: `<demo>_go.png`, `<demo>_tcl.png`, `<demo>_diff.png`, and a side-by-side montage `<demo>_side.png`. Per-demo compare failures are written to `tmp/logs/<demo>.compare.err`. |
 | `scripts/demo_refine.sh <demo> [--retake]` | One-shot wrapper around `demo_compare.sh`; re-prints the paths so they can be `Read`. |
 | `scripts/demo_batch.sh [--retake] [--stability N] [--update-baseline] [prefix]` | Screenshot and score every comparable demo headless (uses `demo_map.sh`). Timers are frozen on both sides, so animated demos are included. Produces `tmp/screenshots/scores_sorted.txt` and `scores.tsv`; `--update-baseline` writes the committed `demos/parity.tsv`. |
 | `scripts/demo_wrapper.tcl`    | Run a Tk demo standalone (no widget launcher). Used internally by the screenshot scripts. Reads `DEMO_GEOMETRY` from env. |
 | `scripts/demo_interact.sh`    | Drive a Go demo through `xdotool` events (key, type, click, wait), capture before/after PNGs, optionally diff (odiff). Use this for **behavioural** verification — does clicking this button do X? does typing into the entry update the variable? See step 5b below. |
 | `scripts/_lib.sh`             | Shared helpers (`tcl_demo_for`, `run_compare`, `set_skip_if_exists`, `odiff_score`, `find_windows_exact`, `maybe_xvfb`). Source this from any new script that needs them. |
-| `cmd/demotitle`               | Small Go CLI: `go run ./cmd/demotitle <path>` extracts the first `takigo.Title("...")`; `… -geometry <path>` extracts `takigo.Geometry("...")`. |
+| `internal/cmd/demotitle`               | Small Go CLI: `go run ./internal/cmd/demotitle <path>` extracts the first `takigo.Title("...")`; `… -geometry <path>` extracts `takigo.Geometry("...")`. |
 | `scripts/fix_demo.sh`         | **Deprecated.** Out-of-session script that invokes an LLM CLI (default `claude -p`, configurable via `LLM_TOOL`). Superseded by this skill — prefer the skill. Refuses to run `claude` when `CLAUDECODE` is set. |
 | `scripts/fix_all.sh`          | **Deprecated.** Out-of-session batch wrapper. Same caveats as `fix_demo.sh`. |
 
@@ -120,7 +120,7 @@ bash scripts/demo_compare.sh <go_demo> <tcl_demo>
 
 Wait for it to finish. The script prints:
 - `Diff score: <number>` — odiff diff %, 0 = identical, higher = worse
-- `Tree diffs: <n>` — structural differences found by `cmd/demodiff`
+- `Tree diffs: <n>` — structural differences found by `internal/cmd/demodiff`
 - Paths to all four PNGs and `tmp/screenshots/<go_demo>_tree.txt`
 
 If both numbers are `0`, the demo already matches — report success and stop
@@ -358,7 +358,7 @@ If the user asks for many/all demos:
 - Tcl demos position the window with `positionWindow` at `+300+300` (or
   similar). Set `takigo.Geometry("+300+300")` (or whatever Tcl does) to
   match — the screenshot script reads this from the Go source via
-  `cmd/demotitle -geometry` and passes it to the Tcl wrapper.
+  `internal/cmd/demotitle -geometry` and passes it to the Tcl wrapper.
 - The Tcl demos may use the launcher fonts (`mainFont`, `boldFont`, etc.).
   In Go, prefer `app.FontRegistry().Get(tkfont.TkDefaultFont)` or an
   explicit `-family/-size/-weight` matching the original. The screenshot

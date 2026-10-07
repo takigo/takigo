@@ -396,6 +396,7 @@ var categories = []category{
 		{"dialog1", "A dialog box with a local grab"},
 		{"dialog2", "A dialog box with a global grab"},
 		{"windowicons", "Window icons and badges"},
+		{"busy", "Blocking input with a busy window"},
 		{"msgwidget", "Message widget with aspect-ratio wrapping"},
 		{"square", "A draggable square widget"},
 	}},

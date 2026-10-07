@@ -22,6 +22,9 @@ PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 SS_DIR="$PROJECT_DIR/tmp/screenshots"
 LOGS_DIR="$PROJECT_DIR/tmp/logs"
 BIN_DIR="$PROJECT_DIR/tmp/bin"
+# tmp/ is a Go module of its own so that scratch programs under it never
+# break `go build ./...` (scripts/check_tutorial.sh writes the same file).
+[[ -f "$PROJECT_DIR/tmp/go.mod" ]] || { mkdir -p "$PROJECT_DIR/tmp"; printf 'module takigo-tmp\n\ngo 1.27.0\n' > "$PROJECT_DIR/tmp/go.mod"; }
 mkdir -p "$SS_DIR" "$LOGS_DIR" "$BIN_DIR"
 
 # maybe_xvfb [ARGS...]
@@ -148,29 +151,29 @@ llm_guard() {
 }
 
 # demotitle_bin
-# Builds cmd/demotitle once into tmp/bin and echoes the path. The cached binary
+# Builds internal/cmd/demotitle once into tmp/bin and echoes the path. The cached binary
 # is rebuilt only when its source is newer, so the per-demo `go run` cost is
 # paid once per source change instead of once per invocation.
 demotitle_bin() {
     local bin="$BIN_DIR/demotitle"
-    local src="$PROJECT_DIR/cmd/demotitle/main.go"
+    local src="$PROJECT_DIR/internal/cmd/demotitle/main.go"
     if [[ ! -x "$bin" || "$src" -nt "$bin" ]]; then
-        (cd "$PROJECT_DIR" && go build -o "$bin" ./cmd/demotitle) || return 1
+        (cd "$PROJECT_DIR" && go build -o "$bin" ./internal/cmd/demotitle) || return 1
     fi
     echo "$bin"
 }
 
 # demodiff_bin
-# Builds cmd/demodiff once into tmp/bin (rebuilt when its sources or
+# Builds internal/cmd/demodiff once into tmp/bin (rebuilt when its sources or
 # internal/treedump change) and echoes the path.
 demodiff_bin() {
     local bin="$BIN_DIR/demodiff"
     local newer
     if [[ -x "$bin" ]]; then
-        newer=$(find "$PROJECT_DIR/cmd/demodiff" "$PROJECT_DIR/internal/treedump" -name '*.go' -newer "$bin" | head -1)
+        newer=$(find "$PROJECT_DIR/internal/cmd/demodiff" "$PROJECT_DIR/internal/treedump" -name '*.go' -newer "$bin" | head -1)
     fi
     if [[ ! -x "$bin" || -n "$newer" ]]; then
-        (cd "$PROJECT_DIR" && go build -o "$bin" ./cmd/demodiff) || return 1
+        (cd "$PROJECT_DIR" && go build -o "$bin" ./internal/cmd/demodiff) || return 1
     fi
     echo "$bin"
 }
@@ -227,7 +230,7 @@ tcl_demo_for() {
 }
 
 # extract_demo_title GO_DEMO
-# Reads the Title() option from the Go source via cmd/demotitle.
+# Reads the Title() option from the Go source via internal/cmd/demotitle.
 # Returns the empty string if the demo has no Title() call or the file
 # can't be parsed. Use go/parser + go/ast (not grep) so escaped strings
 # and comments are handled correctly.
@@ -322,7 +325,7 @@ update_baseline() {
     {
         echo "# Demo parity baseline -- written by: bash scripts/demo_batch.sh --retake --update-baseline (or demo_gate.sh --accept)"
         echo "# Headless Xvfb 96dpi, pinned DejaVu fonts, frozen timers. pixel_pct = odiff % (lower is better);"
-        echo "# tree_diffs = cmd/demodiff structural differences; exact = both 0."
+        echo "# tree_diffs = internal/cmd/demodiff structural differences; exact = both 0."
         echo "# summary: $summary"
         printf '# demo\ttcl\tpixel_pct\ttree_diffs\tgo_size\ttcl_size\tstatus\tnote\n'
         cat "$tmp_base.rows"

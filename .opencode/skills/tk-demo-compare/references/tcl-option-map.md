@@ -96,13 +96,13 @@ TTK widgets use the same constructor name pattern but live under
 
 | Tcl option | Go constructor | Source |
 |---|---|---|
-| `-text` | `ttk.LabelText` / `ttk.ButtonText` | `ttk/label.go`, `ttk/button.go` |
+| `-text` | `ttk.LabelText` / `ttk.ButtonText` | `ttk/ttklabel.go`, `ttk/button.go` |
 | `-image` | `ttk.LabelImage` / `ttk.ButtonImage` | same |
 | `-compound` | `ttk.LabelCompound` / `ttk.ButtonCompound` | same (use `widget.CompoundLeft` etc.) |
 | `-command` | `ttk.ButtonCommand` | `ttk/button.go` |
 | `-variable` | `ttk.CheckbuttonVariable` / `ttk.RadiobuttonVariable` | `ttk/checkbutton.go`, `ttk/radiobutton.go` |
 | `-width` (chars) | `ttk.LabelWidth` / `ttk.ButtonWidth` | per-widget file |
-| `-style` | (style engine — see `ttk.Style(...)`) | `ttk/style.go` |
+| `-style` | (style engine — see `ttk.Style(...)`) | `ttk/theme.go` |
 
 ## Quick discovery cheat
 

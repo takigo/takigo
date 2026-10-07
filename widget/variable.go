@@ -1,5 +1,3 @@
-// Package widget - Variable provides a simple observable value for linking
-// check/radio button groups. Single-threaded (event loop only).
 package widget
 
 import "slices"

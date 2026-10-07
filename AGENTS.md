@@ -115,8 +115,7 @@ demos/demohelper/                                  — shared demo boilerplate (
 demos/images/                                      — image assets only (gif/png/xbm), no main.go
 demos/widget_demo/                                 — launcher, Go counterpart of tk/library/demos/widget
 
-cmd/                                               — top-level test programs (demo, bind_demo,
-                                                    canvas_demo, dialog_demo, text_demo, dialog_test_debug, demotitle, demodiff)
+internal/cmd/                                      — tools of the demo comparison pipeline (demotitle, demodiff)
 
 scripts/                                           — bash + tcl screenshot/compare pipeline (see below)
 docs/architecture-review.md                        — architecture review snapshot (2026-08-31)
@@ -311,7 +310,7 @@ package maps: several Apps may run at once on different goroutines
   `DisplayServer`) and implement it in all three backends; each backend has
   `var _ platform.Xxx = (*XxxDisplay)(nil)` compile-time checks. For
   optional, backend-specific behaviour use an optional interface checked by
-  type assertion, as `event.EventPumper` is at `event/loop.go:67`.
+  type assertion, as `event.EventPumper` is at `event/loop.go:87`.
 
 ---
 
@@ -357,7 +356,7 @@ package maps: several Apps may run at once on different goroutines
 
 ## Demos — visual parity with Tk
 
-The project ships **67** demos under `demos/<name>/main.go`, most a Go port
+The project ships **68** demos under `demos/<name>/main.go`, most a Go port
 of the corresponding `tk/library/demos/<name>.tcl` (`bash scripts/demo_map.sh`
 prints the Go↔Tcl mapping; `msgwidget`, `square`, `ttkentry`, `widget_demo`
 have no same-named `.tcl`). There is a dedicated
@@ -412,7 +411,7 @@ skill and script pipeline for comparing and fixing them.
   can rise while tree diffs fall (a partly fixed layout shifts); judge by the
   tree diff first.
 - **Structural diff:** every compare also dumps both widget trees and runs
-  `cmd/demodiff`, writing `tmp/screenshots/<demo>_tree.txt` (Go path ⇄ Tcl
+  `internal/cmd/demodiff`, writing `tmp/screenshots/<demo>_tree.txt` (Go path ⇄ Tcl
   path, root causes first). Read it before the images; REQSIZE/FONT/RENDER
   entries that repeat across demos for one widget class are core bugs.
   `window.Window.Class` carries the Tk class name for this.
@@ -469,7 +468,7 @@ lookup.
 - **Don't add comments** unless they document a Tk porting decision or a
   non-obvious invariant.
 - **Don't introduce goroutine-shared state in event handlers** — see
-  `event/loop.go:24-27` for the threading contract (loop goroutine owns
+  `event/loop.go:25-33` for the threading contract (loop goroutine owns
   `rawHandler`/`idleQueue`; the reader goroutine only posts to channels).
 
 ---
@@ -484,7 +483,7 @@ lookup.
 | `SKIP_IF_EXISTS=1` | Reuse existing screenshots in `demo_compare.sh` |
 | `SETTLE_SECS` / `TIMEOUT_SECS` | Demo screenshot wait tuning (see `scripts/README.md`) |
 | `PIN_FONTS` | `1` (default in screenshot scripts) = private DejaVu-only fontconfig for both sides |
-| `TAKIGO_DUMP_TREE=<file>` | Go apps (and `demo_wrapper.tcl`) rewrite the widget tree as JSON every 250ms when it changes (`internal/treedump`); compared by `cmd/demodiff` |
+| `TAKIGO_DUMP_TREE=<file>` | Go apps (and `demo_wrapper.tcl`) rewrite the widget tree as JSON every 250ms when it changes (`internal/treedump`); compared by `internal/cmd/demodiff` |
 | `TAKIGO_CLASSIC=1` | Tk-exact drawing (no anti-aliased canvas), like `takigo.Classic()`; set by the screenshot scripts |
 | `TAKIGO_APPEARANCE` | `light` or `dark`: overrides the desktop's appearance for `appearance.System` |
 | `TAKIGO_FREEZE_TIMERS=1` | `event.Loop.After` drops positive-delay timers (and `demo_wrapper.tcl` does the same to `after`); set by the screenshot scripts |

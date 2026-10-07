@@ -1,3 +1,6 @@
+// Package bind provides a Tk-compatible event binding engine with pattern
+// matching, tag-based dispatch chains, virtual events, and double-click support.
+// It ports tk/generic/tkBind.c.
 package bind
 
 import (

@@ -22,6 +22,19 @@ var (
 	holders int
 )
 
+// Require skips t when no display is available, after pointing DISPLAY at
+// the private Xvfb when one can be started (UseVirtualDisplay), and holds
+// the display lock for t. Every display test starts with it, or with a
+// helper that calls it.
+func Require(t testing.TB) {
+	t.Helper()
+	UseVirtualDisplay()
+	if os.Getenv("DISPLAY") == "" && os.Getenv("WAYLAND_DISPLAY") == "" {
+		t.Skip("no display available (set DISPLAY or use xvfb-run)")
+	}
+	Acquire(t)
+}
+
 // Acquire holds the display's lock file until t and its cleanups finish.
 // A process holds the lock once however many tests in it have acquired it:
 // flock on a second descriptor would wait for the first.

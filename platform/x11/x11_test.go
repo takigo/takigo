@@ -5,7 +5,6 @@ package x11
 import (
 	"bytes"
 	"encoding/binary"
-	"os"
 	"testing"
 
 	"github.com/takigo/takigo/font"
@@ -15,11 +14,7 @@ import (
 
 func requireDisplay(t *testing.T) {
 	t.Helper()
-	displaylock.UseVirtualDisplay()
-	if os.Getenv("DISPLAY") == "" && os.Getenv("WAYLAND_DISPLAY") == "" {
-		t.Skip("no display available (set DISPLAY or use xvfb-run)")
-	}
-	displaylock.Acquire(t)
+	displaylock.Require(t)
 }
 
 func TestX11DisplayCore(t *testing.T) {
