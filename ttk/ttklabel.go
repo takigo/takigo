@@ -12,7 +12,6 @@ import (
 type Label struct {
 	TtkWidget
 	Text     string
-	Anchor   int // reserved for future anchor support
 	Font     font.Font
 	Img      widget.WidgetImage
 	Compound widget.Compound
@@ -104,6 +103,11 @@ func LabelCompound(c widget.Compound) LabelOption {
 	return func(l *Label) { l.Compound = c }
 }
 
+// LabelStyle sets -style.
+func LabelStyle(name string) LabelOption {
+	return func(l *Label) { l.StyleName = name }
+}
+
 // NewLabel creates a themed label widget.
 func NewLabel(parent widget.Caregiver, name string, opts ...LabelOption) *Label {
 	app := parent.AppContext()
@@ -142,6 +146,9 @@ func NewLabel(parent widget.Caregiver, name string, opts ...LabelOption) *Label 
 
 	for _, opt := range opts {
 		opt(l)
+	}
+	if l.StyleName != "TLabel" {
+		l.RefreshTheme()
 	}
 	win.OnDestroy(func() {
 		if l.unsub != nil {

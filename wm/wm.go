@@ -233,7 +233,7 @@ func (info *WmInfo) Geometry() string {
 
 // SetGeometry parses and applies a geometry string like "800x600+100+50".
 func (info *WmInfo) SetGeometry(geom string) error {
-	w, h, x, y, hasSize, hasPos, negX, negY, err := ParseGeometry(geom)
+	w, h, x, y, hasSize, hasPos, negX, negY, err := parseGeometry(geom)
 	if err != nil {
 		return err
 	}
@@ -494,8 +494,8 @@ func (info *WmInfo) Withdraw() {
 	w.Display.Server.WithdrawWindow(w.PlatformID, w.Display.Screen)
 }
 
-// GetState returns the current WM state.
-func (info *WmInfo) GetState() State {
+// State returns the current WM state.
+func (info *WmInfo) State() State {
 	return info.CurrentState
 }
 
@@ -568,9 +568,28 @@ func (info *WmInfo) updateProtocols() {
 	w.Display.Server.ChangePropertyAtoms(w.PlatformID, info.atoms.WMProtocols, atoms)
 }
 
-// ParseGeometry parses a geometry string "WxH+X+Y" (each part optional).
-// Returns size, position, flags for which parts were present, and negative flags.
-func ParseGeometry(geom string) (w, h, x, y int, hasSize, hasPos, negX, negY bool, err error) {
+// Geometry is a parsed "wm geometry" string: a size, a position, both
+// or neither, with the position's edges (NegX: from the right, NegY: from
+// the bottom).
+type Geometry struct {
+	Width, Height int
+	X, Y          int
+	HasSize       bool
+	HasPos        bool
+	NegX, NegY    bool
+}
+
+// ParseGeometry parses Tk's geometry string, [=]WxH[+-X+-Y] or +-X+-Y.
+func ParseGeometry(geom string) (Geometry, error) {
+	var g Geometry
+	w, h, x, y, hasSize, hasPos, negX, negY, err := parseGeometry(geom)
+	if err != nil {
+		return g, err
+	}
+	return Geometry{Width: w, Height: h, X: x, Y: y, HasSize: hasSize, HasPos: hasPos, NegX: negX, NegY: negY}, nil
+}
+
+func parseGeometry(geom string) (w, h, x, y int, hasSize, hasPos, negX, negY bool, err error) {
 	s := strings.TrimPrefix(geom, "=")
 
 	// Try to find size part (WxH).

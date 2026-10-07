@@ -68,7 +68,7 @@ func SetPalette(root *window.Window, p Palette) {
 // PaletteFor returns app's palette: LightPalette unless another was set.
 func PaletteFor(app AppContext) Palette {
 	if app != nil {
-		if root := app.Window(); root != nil {
+		if root := app.Root(); root != nil {
 			if p, ok := root.Value(paletteKey).(Palette); ok {
 				return p
 			}

@@ -105,13 +105,13 @@ func TestFrameDestroy(t *testing.T) {
 		Win: &window.Window{PlatformID: 1},
 	}
 
-	if f.Destroyed {
+	if f.Destroyed() {
 		t.Error("New frame should not be destroyed")
 	}
 
 	// Manually set and verify
-	f.Destroyed = true
-	if !f.Destroyed {
+	f.MarkDestroyed()
+	if !f.Destroyed() {
 		t.Error("Destroyed flag should be true after setting")
 	}
 }

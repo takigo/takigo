@@ -72,7 +72,7 @@ func bindCheckbutton(c *Checkbutton, app widget.AppContext) {
 
 	// FocusIn/FocusOut — track focus state and redraw highlight.
 	app.Dispatcher().Bind(w.PlatformID, event.FocusChangeMask, func(ev *event.Event) {
-		c.HasFocus = ev.Type == event.FocusInType
+		c.SetFocused(ev.Type == event.FocusInType)
 		c.Display()
 	})
 

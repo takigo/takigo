@@ -46,6 +46,11 @@ func ToggleswitchCommand(fn func()) ToggleswitchOption {
 	return func(t *Toggleswitch) { t.Command = fn }
 }
 
+// ToggleswitchStyle sets -style.
+func ToggleswitchStyle(name string) ToggleswitchOption {
+	return func(ts *Toggleswitch) { ts.StyleName = name }
+}
+
 // NewToggleswitch creates a TTK toggle switch widget.
 func NewToggleswitch(parent widget.Caregiver, name string, opts ...ToggleswitchOption) *Toggleswitch {
 	app := parent.AppContext()
@@ -63,6 +68,9 @@ func NewToggleswitch(parent widget.Caregiver, name string, opts ...ToggleswitchO
 
 	for _, opt := range opts {
 		opt(ts)
+	}
+	if ts.StyleName != "TCheckbutton" {
+		ts.RefreshTheme()
 	}
 
 	ts.linkVariable()
@@ -168,7 +176,7 @@ func (ts *Toggleswitch) troughColor() uint64 {
 // Display draws the Toggleswitch2 layout: the trough centred in the padding
 // box and the slider at its left (or right when selected) end.
 func (ts *Toggleswitch) Display() {
-	if ts.Destroyed {
+	if ts.Destroyed() {
 		return
 	}
 	win := ts.Win

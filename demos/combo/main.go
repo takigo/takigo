@@ -73,7 +73,7 @@ func main() {
 
 	disCombo := ttk.NewCombobox(disFrame, "c",
 		ttk.ComboboxText(secondValue.Get()),
-		ttk.ComboboxCbState(ttk.ComboDisabled),
+		ttk.ComboboxState(ttk.FieldDisabled),
 	)
 	pack.Pack(disCombo, pack.PadY(screenunit.Pt(3)), pack.PadX(screenunit.Pt(7.5)))
 
@@ -83,7 +83,7 @@ func main() {
 	roCombo := ttk.NewCombobox(roFrame, "c",
 		ttk.ComboboxValues(cities),
 		ttk.ComboboxText(ozCity.Get()),
-		ttk.ComboboxCbState(ttk.ComboReadonly),
+		ttk.ComboboxState(ttk.FieldReadonly),
 	)
 	pack.Pack(roCombo, pack.PadY(screenunit.Pt(3)), pack.PadX(screenunit.Pt(7.5)))
 

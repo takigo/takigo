@@ -1,6 +1,8 @@
 package ttk
 
 import (
+	"cmp"
+
 	"github.com/takigo/takigo/draw"
 	"github.com/takigo/takigo/event"
 	"github.com/takigo/takigo/option"
@@ -48,14 +50,19 @@ const (
 // ScrollbarOption configures a Scrollbar.
 type ScrollbarOption func(*Scrollbar)
 
-// ScrollbarOrientOpt sets the orientation.
-func ScrollbarOrientOpt(o Orientation) ScrollbarOption {
+// ScrollbarOrient sets -orient.
+func ScrollbarOrient(o Orient) ScrollbarOption {
 	return func(s *Scrollbar) { s.Orient = o }
 }
 
-// ScrollbarCommandOpt sets the scroll command callback.
-func ScrollbarCommandOpt(fn func(widget.ScrollRequest)) ScrollbarOption {
+// ScrollbarCommand sets -command, called to scroll the widget.
+func ScrollbarCommand(fn func(widget.ScrollRequest)) ScrollbarOption {
 	return func(s *Scrollbar) { s.Command = fn }
+}
+
+// ScrollbarStyle sets -style.
+func ScrollbarStyle(name string) ScrollbarOption {
+	return func(s *Scrollbar) { s.StyleName = name }
 }
 
 // NewScrollbar creates a themed scrollbar widget.
@@ -75,7 +82,7 @@ func NewScrollbar(parent widget.Caregiver, name string, opts ...ScrollbarOption)
 		opt(s)
 	}
 
-	InitTtkWidget(&s.TtkWidget, win, app, s.orientStyle())
+	InitTtkWidget(&s.TtkWidget, win, app, cmp.Or(s.StyleName, s.orientStyle()))
 	s.reconfigure = func() { _ = s.Configure() }
 	s.DisplayFunc = s.Display
 	s.requestSize()
@@ -165,7 +172,7 @@ func (s *Scrollbar) computeGeometry() {
 // trough (TroughElement, 1px sunken), the two arrows (ArrowElement with a thin
 // raised border and a padded triangle) and the thumb (thin raised).
 func (s *Scrollbar) Display() {
-	if s.Destroyed {
+	if s.Destroyed() {
 		return
 	}
 	w := s.Win

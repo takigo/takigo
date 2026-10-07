@@ -105,7 +105,7 @@ func (f *Frame) Display() {
 
 // display draws the frame.
 func (f *Frame) display() {
-	if f.Destroyed {
+	if f.Destroyed() {
 		return
 	}
 	f.DrawBackground()
@@ -118,10 +118,10 @@ func (f *Frame) Configure(opts ...FrameOption) error {
 
 // Destroy cleans up the frame.
 func (f *Frame) Destroy() {
-	if f.Destroyed {
+	if f.Destroyed() {
 		return
 	}
-	f.Destroyed = true
+	f.MarkDestroyed()
 	window.DestroyWindow(f.Win)
 }
 

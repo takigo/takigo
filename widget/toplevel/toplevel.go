@@ -144,7 +144,7 @@ func (t *Toplevel) Display() {
 
 // display draws the toplevel background.
 func (t *Toplevel) display() {
-	if t.Destroyed {
+	if t.Destroyed() {
 		return
 	}
 	t.DrawBackground()
@@ -174,10 +174,10 @@ func (t *Toplevel) Hide() {
 
 // Destroy cleans up the toplevel.
 func (t *Toplevel) Destroy() {
-	if t.Destroyed {
+	if t.Destroyed() {
 		return
 	}
-	t.Destroyed = true
+	t.MarkDestroyed()
 	window.DestroyWindow(t.Win)
 }
 

@@ -12,6 +12,7 @@ import (
 	"github.com/takigo/takigo/geometry"
 	"github.com/takigo/takigo/option"
 	"github.com/takigo/takigo/platform"
+	"github.com/takigo/takigo/screenunit"
 	"github.com/takigo/takigo/widget"
 	"github.com/takigo/takigo/window"
 )
@@ -186,12 +187,12 @@ func OrientOpt(o Orient) PanedWindowOption {
 	return func(pw *PanedWindow) { pw.Orient = o }
 }
 
-func SashWidthOpt(w int) PanedWindowOption {
-	return func(pw *PanedWindow) { pw.SashWidth = w }
+func SashWidthOpt[L screenunit.Length](w L) PanedWindowOption {
+	return func(pw *PanedWindow) { pw.SashWidth = screenunit.ToPixels(w) }
 }
 
-func HandleSizeOpt(s int) PanedWindowOption {
-	return func(pw *PanedWindow) { pw.HandleSize = s }
+func HandleSizeOpt[L screenunit.Length](s L) PanedWindowOption {
+	return func(pw *PanedWindow) { pw.HandleSize = screenunit.ToPixels(s) }
 }
 
 // Background sets the background colour.
@@ -325,7 +326,7 @@ func (pw *PanedWindow) ttkSchedule(resize, relayout bool) {
 
 func (pw *PanedWindow) ttkIdle() {
 	pw.ttkPending = false
-	if pw.Destroyed {
+	if pw.Destroyed() {
 		return
 	}
 	if pw.ttkResize {
@@ -346,7 +347,7 @@ func (pw *PanedWindow) ttkIdle() {
 // ComputeGeometry.
 func (pw *PanedWindow) scheduleArrange() {
 	geometry.WhenIdle(pw.Win, &pw.arrangePending, func() {
-		if pw.Destroyed {
+		if pw.Destroyed() {
 			return
 		}
 		pw.arrangePanes()
@@ -595,7 +596,7 @@ func (pw *PanedWindow) Display() {
 
 // display draws the paned window (background and sashes).
 func (pw *PanedWindow) display() {
-	if pw.Destroyed {
+	if pw.Destroyed() {
 		return
 	}
 	w := pw.Win
@@ -667,10 +668,10 @@ func (pw *PanedWindow) Configure(opts ...PanedWindowOption) error {
 
 // Destroy cleans up.
 func (pw *PanedWindow) Destroy() {
-	if pw.Destroyed {
+	if pw.Destroyed() {
 		return
 	}
-	pw.Destroyed = true
+	pw.MarkDestroyed()
 	window.DestroyWindow(pw.Win)
 }
 

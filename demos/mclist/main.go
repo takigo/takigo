@@ -167,11 +167,11 @@ func main() {
 
 	// Scrollbars — grid layout: tree(0,0), yscroll(0,1), xscroll(1,0).
 	yscroll := ttk.NewScrollbar(tvFrame, "vsb",
-		ttk.ScrollbarOrientOpt(ttk.Vertical),
-		ttk.ScrollbarCommandOpt(widget.ScrollY(tv)),
+		ttk.ScrollbarOrient(ttk.Vertical),
+		ttk.ScrollbarCommand(widget.ScrollY(tv)),
 	)
 	xscroll := ttk.NewScrollbar(tvFrame, "hsb",
-		ttk.ScrollbarOrientOpt(ttk.Horizontal),
+		ttk.ScrollbarOrient(ttk.Horizontal),
 	)
 
 	tv.YScrollCmd = func(first, last float64) {

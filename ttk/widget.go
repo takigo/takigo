@@ -32,9 +32,8 @@ type TtkWidget struct {
 	pixmapW int
 	pixmapH int
 
-	// NeedRedraw is set while a redisplay is queued for idle time.
-	NeedRedraw bool
-	Destroyed  bool
+	needRedraw bool // a redisplay is queued for idle time
+	destroyed  bool
 
 	// widgetOpts holds widget-level element options (e.g. a label's
 	// -padding or -wraplength). Tk resolves element options on the widget
@@ -85,7 +84,7 @@ func initTtkBase(w *TtkWidget, win *window.Window, app widget.AppContext, styleN
 	style := w.Theme.ResolveStyle(styleName)
 
 	w.Context = &DrawContext{
-		Display: app.Server(),
+		Display: win.Display.Server,
 		Depth:   win.Depth,
 		Style:   style,
 	}
@@ -156,6 +155,13 @@ func configure[W any, O ~func(W)](tw *TtkWidget, w W, opts []O, sync, size func(
 	return err
 }
 
+// Destroyed reports whether the widget has been destroyed.
+func (w *TtkWidget) Destroyed() bool { return w.destroyed }
+
+// MarkDestroyed records that the widget is being destroyed; a widget's
+// Destroy calls it first and does nothing when it already was.
+func (w *TtkWidget) MarkDestroyed() { w.destroyed = true }
+
 // OptionFailed reports an option that could not be applied; the widget
 // keeps its previous value. See widget.OptionErrors.
 func (w *TtkWidget) OptionFailed(err error) {
@@ -171,7 +177,7 @@ func (w *TtkWidget) OptionFailed(err error) {
 
 // Display renders the widget using double-buffered drawing.
 func (w *TtkWidget) Display() {
-	if w.Destroyed || w.Layout == nil {
+	if w.destroyed || w.Layout == nil {
 		return
 	}
 	win := w.Win
@@ -267,10 +273,10 @@ func (w *TtkWidget) RefreshTheme() {
 
 // Destroy frees resources and destroys the window.
 func (w *TtkWidget) Destroy() {
-	if w.Destroyed {
+	if w.destroyed {
 		return
 	}
-	w.Destroyed = true
+	w.destroyed = true
 	if w.pixmap != 0 {
 		w.Win.Display.Server.FreePixmap(w.pixmap)
 		w.pixmap = 0
@@ -298,17 +304,17 @@ func (w *TtkWidget) AppContext() widget.AppContext {
 // redisplay schedules one idle-time redraw, as TtkRedisplayWidget does, so
 // the Expose, Configure and state changes of one event burst draw once.
 func (w *TtkWidget) redisplay() {
-	if w.NeedRedraw || w.Destroyed {
+	if w.needRedraw || w.destroyed {
 		return
 	}
 	if w.App == nil {
 		w.displayNow()
 		return
 	}
-	w.NeedRedraw = true
+	w.needRedraw = true
 	w.App.DoWhenIdle(func() {
-		w.NeedRedraw = false
-		if !w.Destroyed {
+		w.needRedraw = false
+		if !w.destroyed {
 			w.displayNow()
 		}
 	})

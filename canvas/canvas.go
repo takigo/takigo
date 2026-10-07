@@ -140,8 +140,9 @@ func Background[C color.Spec](name C) CanvasOption {
 	return func(c *Canvas) { c.SetBackgroundColor(name) }
 }
 
-func BorderWidthOpt(w int) CanvasOption {
+func BorderWidthOpt[L screenunit.Length](bw L) CanvasOption {
 	return func(c *Canvas) {
+		w := screenunit.ToPixels(bw)
 		c.BorderWidth = w
 		c.inset = w + c.HighlightWidth
 	}
@@ -151,8 +152,9 @@ func ReliefOpt(r option.Relief) CanvasOption {
 	return func(c *Canvas) { c.Relief = r }
 }
 
-func HighlightWidthOpt(w int) CanvasOption {
+func HighlightWidthOpt[L screenunit.Length](hw L) CanvasOption {
 	return func(c *Canvas) {
+		w := screenunit.ToPixels(hw)
 		c.HighlightWidth = w
 		c.inset = c.BorderWidth + w
 	}
@@ -245,7 +247,7 @@ func New(parent widget.Caregiver, name string, opts ...CanvasOption) *Canvas {
 // Display draws the canvas and all its items now.
 func (c *Canvas) Display() {
 	c.damageAll, c.hasDamage = false, false
-	if c.Destroyed {
+	if c.Destroyed() {
 		return
 	}
 	w := c.Win
@@ -272,7 +274,6 @@ func (c *Canvas) Display() {
 	c.DrawHighlightBorder(false, 0)
 
 	d.Flush()
-	c.NeedRedraw = false
 }
 
 // redrawDamage repaints what was damaged since the last redraw; it ports
@@ -284,7 +285,7 @@ func (c *Canvas) redrawDamage() {
 		c.Display()
 		return
 	}
-	if !c.hasDamage || c.Destroyed {
+	if !c.hasDamage || c.Destroyed() {
 		return
 	}
 	c.hasDamage = false
@@ -406,7 +407,7 @@ func (c *Canvas) paint(x1, y1, x2, y2 int) {
 // the canvas window. Items outside the visible area are unmapped.
 func (c *Canvas) positionWindowItems() {
 	c.compact()
-	d := c.App.Server()
+	d := c.Win.Display.Server
 	winW := c.Win.Width - 2*c.inset
 	winH := c.Win.Height - 2*c.inset
 	for _, entry := range c.items {
@@ -481,12 +482,12 @@ func (c *Canvas) redrawItems(entries ...*itemEntry) {
 }
 
 func (c *Canvas) scheduleIdle() {
-	if c.redrawPending || c.Destroyed {
+	if c.redrawPending || c.Destroyed() {
 		return
 	}
 	c.redrawPending = true
 	c.App.DoWhenIdle(func() {
-		if !c.Destroyed {
+		if !c.Destroyed() {
 			c.redrawDamage()
 		}
 	})
@@ -495,10 +496,10 @@ func (c *Canvas) scheduleIdle() {
 // Destroy cleans up the canvas and all its items.
 func (c *Canvas) Destroy() {
 	c.compact()
-	if c.Destroyed {
+	if c.Destroyed() {
 		return
 	}
-	c.Destroyed = true
+	c.MarkDestroyed()
 
 	d := c.Win.Display.Server
 
@@ -967,7 +968,7 @@ func (c *Canvas) FontRegistry() *font.Registry {
 
 // DisplayServer returns the platform display server (for items needing display access).
 func (c *Canvas) DisplayServer() platform.DisplayServer {
-	return c.App.Server()
+	return c.Win.Display.Server
 }
 
 // Focus sets keyboard focus to the given text item. Pass "" to clear focus.

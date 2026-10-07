@@ -288,10 +288,10 @@ func (c *Checkbutton) Configure(opts ...CheckbuttonOption) error {
 
 // Destroy cleans up the checkbutton.
 func (c *Checkbutton) Destroy() {
-	if c.Destroyed {
+	if c.Destroyed() {
 		return
 	}
-	c.Destroyed = true
+	c.MarkDestroyed()
 	if c.unsub != nil {
 		c.unsub()
 	}

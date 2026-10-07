@@ -40,8 +40,8 @@ func (c *Checkbutton) GetImage() widget.WidgetImage { return nil }
 // GetCompound implements TextProvider.
 func (c *Checkbutton) GetCompound() widget.Compound { return widget.CompoundNone }
 
-// CheckbuttonStyleOpt sets -style, e.g. "Toolbutton".
-func CheckbuttonStyleOpt(name string) CheckbuttonOption {
+// CheckbuttonStyle sets -style, e.g. "Toolbutton".
+func CheckbuttonStyle(name string) CheckbuttonOption {
 	return func(c *Checkbutton) { c.StyleName = name }
 }
 
@@ -194,7 +194,7 @@ func (c *Checkbutton) computeSize() {
 
 // Display renders the checkbutton with custom drawing.
 func (c *Checkbutton) Display() {
-	if c.Destroyed {
+	if c.Destroyed() {
 		return
 	}
 	win := c.Win

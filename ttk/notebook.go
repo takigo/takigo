@@ -1,6 +1,8 @@
 package ttk
 
 import (
+	"errors"
+	"fmt"
 	"math"
 	"slices"
 
@@ -40,6 +42,11 @@ type Notebook struct {
 // NotebookOption configures a Notebook.
 type NotebookOption func(*Notebook)
 
+// NotebookStyle sets -style.
+func NotebookStyle(name string) NotebookOption {
+	return func(nb *Notebook) { nb.StyleName = name }
+}
+
 // NewNotebook creates a themed notebook widget.
 func NewNotebook(parent widget.Caregiver, name string, opts ...NotebookOption) *Notebook {
 	app := parent.AppContext()
@@ -55,10 +62,14 @@ func NewNotebook(parent widget.Caregiver, name string, opts ...NotebookOption) *
 	nb.Font, _ = app.FontRegistry().Get(font.TkDefaultFont)
 
 	InitTtkWidget(&nb.TtkWidget, win, app, "TNotebook")
+	nb.reconfigure = func() { _ = nb.Configure() }
 	nb.DisplayFunc = nb.Display
 
 	for _, opt := range opts {
 		opt(nb)
+	}
+	if nb.StyleName != "TNotebook" {
+		nb.RefreshTheme()
 	}
 
 	// Bind notebook-specific events.
@@ -120,7 +131,7 @@ func (m *nbGeomMgr) LostContentProc(content *window.Window) {
 		return
 	}
 	nb.tabs = slices.Delete(nb.tabs, i, i+1)
-	if nb.Destroyed {
+	if nb.Destroyed() {
 		return
 	}
 	switch {
@@ -191,24 +202,63 @@ func (nb *Notebook) Select(index int) {
 // nbClientBorder is the default theme's Notebook.client border width.
 const nbClientBorder = 1
 
-// SetPanePadding sets a tab's -padding (a Tk padding spec such as "1.5p"):
-// extra space between the notebook's client area and the pane. A bad spec
-// is an error wrapping screenunit.ErrBadDistance and changes nothing.
-func (nb *Notebook) SetPanePadding(index int, spec string) error {
+// Configure sets options after creation.
+func (nb *Notebook) Configure(opts ...NotebookOption) error {
+	return configure(&nb.TtkWidget, nb, opts, nil, func() {
+		nb.computeTabGeometry()
+		nb.updateReqSize()
+	})
+}
+
+// ErrNoTab is wrapped by the error TabConfigure returns for a tab index
+// the notebook does not have.
+var ErrNoTab = errors.New("ttk: no such notebook tab")
+
+// TabOption configures one tab of a notebook (Tk: $nb tab INDEX -option).
+type TabOption func(*notebookTab)
+
+// TabText sets the tab's -text.
+func TabText(s string) TabOption { return func(t *notebookTab) { t.Text = s } }
+
+// TabState sets the tab's -state; StateDisabled keeps it from being
+// selected.
+func TabState(s State) TabOption { return func(t *notebookTab) { t.State = s } }
+
+// TabUnderline sets the tab's -underline: the index of the character
+// underlined in its label, which Alt+letter selects; -1 for none.
+func TabUnderline(i int) TabOption { return func(t *notebookTab) { t.Underline = i } }
+
+// TabPadding sets the tab's -padding: extra space between the notebook's
+// client area and the pane.
+func TabPadding(p Padding) TabOption { return func(t *notebookTab) { t.PanePad = p } }
+
+// TabConfigure applies opts to the tab at index and re-lays the notebook
+// out (Tk: $nb tab INDEX -option value ...).
+func (nb *Notebook) TabConfigure(index int, opts ...TabOption) error {
 	if index < 0 || index >= len(nb.tabs) {
-		return nil
+		return fmt.Errorf("%w: %d", ErrNoTab, index)
 	}
-	pad, err := ParsePadding(spec)
-	if err != nil {
-		return err
+	for _, opt := range opts {
+		opt(&nb.tabs[index])
 	}
-	nb.tabs[index].PanePad = pad
+	nb.computeTabGeometry()
 	nb.updateReqSize()
 	if index == nb.selected {
 		nb.layoutPane(nb.tabs[index])
 	}
 	nb.Display()
 	return nil
+}
+
+// SetPanePadding sets a tab's -padding from a Tk padding spec such as
+// "1.5p" (TabPadding takes a Padding). A bad spec is an error wrapping
+// screenunit.ErrBadDistance and changes nothing.
+func (nb *Notebook) SetPanePadding(index int, spec string) error {
+	pad, err := ParsePadding(spec)
+	if err != nil {
+		return err
+	}
+	return nb.TabConfigure(index, TabPadding(pad))
 }
 
 // TabCount returns the number of tabs.
@@ -220,21 +270,13 @@ func (nb *Notebook) TabCount() int {
 // given notebook tab index. Pass -1 to clear the underline. The underlined
 // character acts as an Alt+letter keyboard shortcut to select the tab.
 func (nb *Notebook) SetTabUnderline(tabIndex, charIndex int) {
-	if tabIndex < 0 || tabIndex >= len(nb.tabs) {
-		return
-	}
-	nb.tabs[tabIndex].Underline = charIndex
-	nb.Display()
+	_ = nb.TabConfigure(tabIndex, TabUnderline(charIndex))
 }
 
 // SetTabState sets the state flags on the tab at the given index.
 // Use StateDisabled to prevent tab selection.
 func (nb *Notebook) SetTabState(index int, state State) {
-	if index < 0 || index >= len(nb.tabs) {
-		return
-	}
-	nb.tabs[index].State = state
-	nb.Display()
+	_ = nb.TabConfigure(index, TabState(state))
 }
 
 // Selected returns the index of the selected tab.
@@ -285,7 +327,7 @@ func (nb *Notebook) layoutPane(tab notebookTab) {
 
 // Display draws the notebook.
 func (nb *Notebook) Display() {
-	if nb.Destroyed {
+	if nb.Destroyed() {
 		return
 	}
 	win := nb.Win

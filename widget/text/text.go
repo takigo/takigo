@@ -300,7 +300,7 @@ func (t *TextWidget) Display() {
 
 // display draws the text widget.
 func (t *TextWidget) display() {
-	if t.Destroyed {
+	if t.Destroyed() {
 		return
 	}
 	w := t.Win
@@ -354,13 +354,13 @@ func (t *TextWidget) display() {
 
 // scheduleRedraw schedules a redraw via the idle loop.
 func (t *TextWidget) scheduleRedraw() {
-	if t.redrawPending || t.Destroyed || t.App == nil {
+	if t.redrawPending || t.Destroyed() || t.App == nil {
 		return
 	}
 	t.redrawPending = true
 	t.App.DoWhenIdle(func() {
 		t.redrawPending = false
-		if t.Destroyed {
+		if t.Destroyed() {
 			return
 		}
 		if t.yScrollPending {
@@ -484,8 +484,8 @@ func (t *TextWidget) Edit(mode string) {
 }
 
 // SetWrapMode changes the wrap mode at runtime.
-func (t *TextWidget) SetWrapMode(mode WrapMode) {
-	t.Configure(WrapModeOpt(mode))
+func (t *TextWidget) SetWrapMode(mode WrapMode) error {
+	return t.Configure(WrapModeOpt(mode))
 }
 
 // --- Scroll API ---
@@ -570,10 +570,10 @@ func (t *TextWidget) Configure(opts ...TextOption) error {
 
 // Destroy cleans up the text widget.
 func (t *TextWidget) Destroy() {
-	if t.Destroyed {
+	if t.Destroyed() {
 		return
 	}
-	t.Destroyed = true
+	t.MarkDestroyed()
 	if top := window.Toplevel(t.Win); top != nil && top.WmData != nil {
 		top.WmData.UnsetGrid(t.Win)
 	}
@@ -722,13 +722,13 @@ func (t *TextWidget) MarkGravity(markName string, gravity MarkGravity) {
 }
 
 // SetPadX sets horizontal padding between the border and the text content.
-func (t *TextWidget) SetPadX(n int) {
-	t.Configure(PadXOpt(n))
+func (t *TextWidget) SetPadX(n int) error {
+	return t.Configure(PadXOpt(n))
 }
 
 // SetPadY sets vertical padding between the border and the text content.
-func (t *TextWidget) SetPadY(n int) {
-	t.Configure(PadYOpt(n))
+func (t *TextWidget) SetPadY(n int) error {
+	return t.Configure(PadYOpt(n))
 }
 
 // positionEmbeddedWindows moves embedded windows to their correct inline

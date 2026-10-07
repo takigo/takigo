@@ -1,6 +1,8 @@
 package ttk
 
 import (
+	"cmp"
+
 	"github.com/takigo/takigo/widget"
 	"github.com/takigo/takigo/window"
 )
@@ -19,6 +21,11 @@ func SeparatorOrient(o Orientation) SeparatorOption {
 	return func(s *Separator) { s.Orient = o }
 }
 
+// SeparatorStyle sets -style.
+func SeparatorStyle(name string) SeparatorOption {
+	return func(s *Separator) { s.StyleName = name }
+}
+
 // NewSeparator creates a themed separator widget.
 func NewSeparator(parent widget.Caregiver, name string, opts ...SeparatorOption) *Separator {
 	app := parent.AppContext()
@@ -31,7 +38,7 @@ func NewSeparator(parent widget.Caregiver, name string, opts ...SeparatorOption)
 		opt(s)
 	}
 
-	InitTtkWidget(&s.TtkWidget, win, app, s.orientStyle())
+	InitTtkWidget(&s.TtkWidget, win, app, cmp.Or(s.StyleName, s.orientStyle()))
 	s.reconfigure = func() { _ = s.Configure() }
 	s.requestSize()
 

@@ -8,6 +8,7 @@ import (
 	"github.com/takigo/takigo/font"
 	"github.com/takigo/takigo/option"
 	"github.com/takigo/takigo/platform"
+	"github.com/takigo/takigo/screenunit"
 	"github.com/takigo/takigo/widget"
 	"github.com/takigo/takigo/window"
 )
@@ -182,6 +183,11 @@ func TreeviewXScrollCommand(fn func(float64, float64)) TreeviewOption {
 // treeviewFieldBorder is the default theme's Treeview.field border width.
 const treeviewFieldBorder = 1
 
+// TreeviewStyle sets -style.
+func TreeviewStyle(name string) TreeviewOption {
+	return func(tv *Treeview) { tv.StyleName = name }
+}
+
 // NewTreeview creates a themed treeview widget.
 func NewTreeview(parent widget.Caregiver, name string, opts ...TreeviewOption) *Treeview {
 	app := parent.AppContext()
@@ -224,6 +230,9 @@ func NewTreeview(parent widget.Caregiver, name string, opts ...TreeviewOption) *
 
 	for _, opt := range opts {
 		opt(tv)
+	}
+	if tv.StyleName != "TTreeview" {
+		tv.RefreshTheme()
 	}
 	// RecomputeSlack at creation: the tree area is still empty.
 	tv.slack = -tv.totalWidth()
@@ -503,10 +512,14 @@ func (tv *Treeview) SetFocus(id string) {
 type ColumnOption func(*TreeColumn)
 
 // ColWidth sets column width.
-func ColWidth(w int) ColumnOption { return func(c *TreeColumn) { c.Width = w } }
+func ColWidth[L screenunit.Length](w L) ColumnOption {
+	return func(c *TreeColumn) { c.Width = screenunit.ToPixels(w) }
+}
 
 // ColMinWidth sets column minimum width.
-func ColMinWidth(w int) ColumnOption { return func(c *TreeColumn) { c.MinWidth = w } }
+func ColMinWidth[L screenunit.Length](w L) ColumnOption {
+	return func(c *TreeColumn) { c.MinWidth = screenunit.ToPixels(w) }
+}
 
 // ColAnchor sets cell text alignment.
 func ColAnchor(a option.Anchor) ColumnOption { return func(c *TreeColumn) { c.Anchor = a } }
@@ -514,8 +527,8 @@ func ColAnchor(a option.Anchor) ColumnOption { return func(c *TreeColumn) { c.An
 // ColStretch sets whether the column stretches.
 func ColStretch(b bool) ColumnOption { return func(c *TreeColumn) { c.Stretch = b } }
 
-// ColSeparatorOpt sets whether a vertical separator line is drawn after this column.
-func ColSeparatorOpt(b bool) ColumnOption { return func(c *TreeColumn) { c.Separator = b } }
+// ColSeparator sets whether a vertical separator line is drawn after this column.
+func ColSeparator(b bool) ColumnOption { return func(c *TreeColumn) { c.Separator = b } }
 
 // ColumnConfigure configures a data column by ID.
 func (tv *Treeview) ColumnConfigure(id string, opts ...ColumnOption) {
@@ -758,13 +771,13 @@ func (tv *Treeview) displayIndex(id string) int {
 // scheduleRedisplay batches rebuildDisplayList + Display via the idle loop.
 // Multiple calls before the next idle phase are coalesced into one redisplay.
 func (tv *Treeview) scheduleRedisplay() {
-	if tv.redisplayPending || tv.Destroyed {
+	if tv.redisplayPending || tv.Destroyed() {
 		return
 	}
 	tv.redisplayPending = true
 	tv.App.DoWhenIdle(func() {
 		tv.redisplayPending = false
-		if !tv.Destroyed {
+		if !tv.Destroyed() {
 			tv.rebuildDisplayList()
 			tv.notifyYScrollbar()
 			tv.Display()

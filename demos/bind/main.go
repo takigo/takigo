@@ -44,8 +44,8 @@ func main() {
 	)
 
 	yscroll := ttk.NewScrollbar(f, "scroll",
-		ttk.ScrollbarOrientOpt(ttk.Vertical),
-		ttk.ScrollbarCommandOpt(widget.ScrollY(tw)),
+		ttk.ScrollbarOrient(ttk.Vertical),
+		ttk.ScrollbarCommand(widget.ScrollY(tw)),
 	)
 	tw.YScrollCmd = func(first, last float64) { yscroll.Set(first, last) }
 

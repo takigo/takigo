@@ -56,12 +56,12 @@ type Event struct {
 
 // FromRawEvent converts a platform.RawEvent to a typed Event.
 func FromRawEvent(raw *platform.RawEvent, parser platform.EventParser) Event {
-	return FromRawEventIM(raw, parser, false)
+	return fromRawEventIM(raw, parser, false)
 }
 
-// FromRawEventIM converts a platform.RawEvent to a typed Event, using XIM for
+// fromRawEventIM converts a platform.RawEvent to a typed Event, using XIM for
 // key events when hasIM is true.
-func FromRawEventIM(raw *platform.RawEvent, parser platform.EventParser, hasIM bool) Event {
+func fromRawEventIM(raw *platform.RawEvent, parser platform.EventParser, hasIM bool) Event {
 	ev := Event{
 		Window: raw.EventWindow,
 	}

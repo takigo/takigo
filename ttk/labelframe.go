@@ -4,6 +4,7 @@ import (
 	"github.com/takigo/takigo/font"
 	"github.com/takigo/takigo/geometry"
 	"github.com/takigo/takigo/platform"
+	"github.com/takigo/takigo/screenunit"
 	"github.com/takigo/takigo/widget"
 	"github.com/takigo/takigo/window"
 )
@@ -67,7 +68,7 @@ type lfGeomMgr struct{ lf *Labelframe }
 func (m *lfGeomMgr) Name() string { return "labelframe" }
 
 func (m *lfGeomMgr) RequestProc(content *window.Window) {
-	if m.lf.LabelWidget == content && !m.lf.Destroyed {
+	if m.lf.LabelWidget == content && !m.lf.Destroyed() {
 		m.lf.labelChanged()
 	}
 }
@@ -75,15 +76,20 @@ func (m *lfGeomMgr) RequestProc(content *window.Window) {
 func (m *lfGeomMgr) LostContentProc(content *window.Window) {
 	if m.lf.LabelWidget == content {
 		m.lf.LabelWidget = nil
-		if !m.lf.Destroyed {
+		if !m.lf.Destroyed() {
 			m.lf.labelChanged()
 		}
 	}
 }
 
 // LabelframeBorderWidth sets -borderwidth.
-func LabelframeBorderWidth(bw int) LabelframeOption {
-	return func(lf *Labelframe) { lf.SetWidgetOption("-borderwidth", bw) }
+func LabelframeBorderWidth[L screenunit.Length](bw L) LabelframeOption {
+	return func(lf *Labelframe) { lf.SetWidgetOption("-borderwidth", screenunit.ToPixels(bw)) }
+}
+
+// LabelframeStyle sets -style.
+func LabelframeStyle(name string) LabelframeOption {
+	return func(lf *Labelframe) { lf.StyleName = name }
 }
 
 // NewLabelframe creates a themed labelframe.
@@ -99,6 +105,9 @@ func NewLabelframe(parent widget.Caregiver, name string, opts ...LabelframeOptio
 	lf.reconfigure = func() { _ = lf.Configure() }
 	for _, opt := range opts {
 		opt(lf)
+	}
+	if lf.StyleName != "TLabelframe" {
+		lf.RefreshTheme()
 	}
 	lf.updateMargins()
 	win.ReqWidth, win.ReqHeight = win.MinReqWidth, win.MinReqHeight
@@ -164,7 +173,7 @@ func (lf *Labelframe) SetText(s string) {
 // down by half the label height so its top edge runs through the label.
 func (lf *Labelframe) Display() {
 	win := lf.Win
-	if lf.Destroyed || lf.Layout == nil || win.PlatformID == 0 {
+	if lf.Destroyed() || lf.Layout == nil || win.PlatformID == 0 {
 		return
 	}
 	width, height := win.Width, win.Height

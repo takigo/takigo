@@ -58,8 +58,8 @@ type Spinbox struct {
 	InsertBg *color.ColorRef
 
 	// Interaction state.
-	HasFocus      bool
-	CursorOn      bool
+	hasFocus      bool
+	cursorOn      bool
 	pressedButton string // "up", "down", or ""
 
 	// Validation.
@@ -110,7 +110,7 @@ func New(parent widget.Caregiver, name string, opts ...SpinboxOption) *Spinbox {
 
 	s := &Spinbox{
 		PrefWidth:   10,
-		CursorOn:    true,
+		cursorOn:    true,
 		From:        0,
 		To:          100,
 		Increment:   1,
@@ -122,7 +122,7 @@ func New(parent widget.Caregiver, name string, opts ...SpinboxOption) *Spinbox {
 	w.Class = "Spinbox"
 	s.edit = entryedit.Editor{
 		Buf: &s.Buffer, App: app, Win: w,
-		TryEdit: s.tryEdit, Insert: s.InsertChars, Delete: s.DeleteChars,
+		TryEdit: s.tryEdit, Insert: s.Insert, Delete: func(index, count int) { s.Delete(index, index+count) },
 		Moved: func() { s.seeInsert(); s.Display() },
 	}
 
@@ -324,9 +324,9 @@ func (s *Spinbox) tryEdit(prospective string) bool {
 	return s.ValidateCmd(prospective)
 }
 
-// InsertChars inserts text at the given rune index.
-func (s *Spinbox) InsertChars(index int, text string) {
-	if !s.Insert(index, []rune(text)) {
+// Insert inserts text before character index (Tk: insert INDEX STRING).
+func (s *Spinbox) Insert(index int, text string) {
+	if !s.Buffer.Insert(index, []rune(text)) {
 		return
 	}
 	s.computeGeometry()
@@ -334,9 +334,10 @@ func (s *Spinbox) InsertChars(index int, text string) {
 	s.Display()
 }
 
-// DeleteChars deletes count runes starting at index.
-func (s *Spinbox) DeleteChars(index, count int) {
-	if !s.Delete(index, count) {
+// Delete removes the characters from index first to last, exclusive
+// (Tk: delete FIRST LAST).
+func (s *Spinbox) Delete(first, last int) {
+	if !s.Buffer.Delete(first, last-first) {
 		return
 	}
 	s.computeGeometry()
@@ -347,7 +348,7 @@ func (s *Spinbox) DeleteChars(index, count int) {
 // DeleteSelection deletes the selected text.
 func (s *Spinbox) DeleteSelection() {
 	if s.HasSelection() {
-		s.DeleteChars(s.SelFirst, s.SelLast-s.SelFirst)
+		s.Delete(s.SelFirst, s.SelLast)
 	}
 }
 
@@ -447,7 +448,7 @@ func (s *Spinbox) Display() {
 
 // display draws the spinbox.
 func (s *Spinbox) display() {
-	if s.Destroyed {
+	if s.Destroyed() {
 		return
 	}
 	w := s.Win
@@ -468,7 +469,7 @@ func (s *Spinbox) display() {
 	xftFont, isXft := s.Font.(platform.DrawableFont)
 	if isXft && len(s.Text) > 0 {
 		// Selection highlight.
-		if s.HasFocus && s.SelFirst >= 0 && s.SelLast > s.SelFirst && s.SelBg != nil {
+		if s.hasFocus && s.SelFirst >= 0 && s.SelLast > s.SelFirst && s.SelBg != nil {
 			selStartX := textedit.MeasureRunes(s.Font, s.Text[:textedit.ClampIdx(s.SelFirst, len(s.Text))]) + s.layoutX
 			selEndX := textedit.MeasureRunes(s.Font, s.Text[:textedit.ClampIdx(s.SelLast, len(s.Text))]) + s.layoutX
 			if selStartX < s.inset {
@@ -494,7 +495,7 @@ func (s *Spinbox) display() {
 	}
 
 	// Cursor.
-	if s.HasFocus && s.CursorOn && s.InsertBg != nil && s.Font != nil {
+	if s.hasFocus && s.cursorOn && s.InsertBg != nil && s.Font != nil {
 		cursorX := textedit.MeasureRunes(s.Font, s.Text[:textedit.ClampIdx(s.InsertPos, len(s.Text))]) + s.layoutX
 		rightEdge := w.Width - s.inset - s.buttonWidth
 		if cursorX >= s.inset && cursorX < rightEdge {
@@ -512,7 +513,7 @@ func (s *Spinbox) display() {
 		draw.Draw3DRectangle(d, w.Drawable(), gc, s.Border,
 			hl, hl, w.Width-2*hl, w.Height-2*hl, s.BorderWidth, s.Relief)
 	}
-	s.DrawHighlightBorder(s.HasFocus, 0)
+	s.DrawHighlightBorder(s.hasFocus, 0)
 
 }
 
@@ -583,9 +584,9 @@ func (s *Spinbox) Configure(opts ...SpinboxOption) error {
 
 // Destroy cleans up the spinbox.
 func (s *Spinbox) Destroy() {
-	if s.Destroyed {
+	if s.Destroyed() {
 		return
 	}
-	s.Destroyed = true
+	s.MarkDestroyed()
 	window.DestroyWindow(s.Win)
 }

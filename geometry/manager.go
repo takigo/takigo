@@ -57,18 +57,3 @@ func SetInternalBorder(w *window.Window, left, right, top, bottom int) {
 	w.InternalBorderTop = top
 	w.InternalBorderBottom = bottom
 }
-
-// SetInternalBorderUniform sets all internal borders to the same width.
-func SetInternalBorderUniform(w *window.Window, width int) {
-	SetInternalBorder(w, width, width, width, width)
-}
-
-// UsableWidth returns the width available for placing children.
-func UsableWidth(w *window.Window) int {
-	return w.Width - w.InternalBorderLeft - w.InternalBorderRight
-}
-
-// UsableHeight returns the height available for placing children.
-func UsableHeight(w *window.Window) int {
-	return w.Height - w.InternalBorderTop - w.InternalBorderBottom
-}

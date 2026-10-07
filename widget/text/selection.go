@@ -6,8 +6,8 @@ func (t *TextWidget) HasSelection() bool {
 	return len(ranges) > 0
 }
 
-// GetSelection returns the currently selected text, or "" if none.
-func (t *TextWidget) GetSelection() string {
+// SelectedText returns the currently selected text, or "" if none.
+func (t *TextWidget) SelectedText() string {
 	ranges := t.doc.TagRangesFor("sel")
 	if len(ranges) == 0 {
 		return ""

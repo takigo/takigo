@@ -8,6 +8,7 @@ import (
 	"github.com/takigo/takigo/event"
 	"github.com/takigo/takigo/option"
 	"github.com/takigo/takigo/platform"
+	"github.com/takigo/takigo/screenunit"
 	"github.com/takigo/takigo/widget"
 	"github.com/takigo/takigo/window"
 )
@@ -72,8 +73,8 @@ func OrientOpt(o Orient) ScrollbarOption {
 }
 
 // WidthOpt sets the scrollbar width.
-func WidthOpt(w int) ScrollbarOption {
-	return func(s *Scrollbar) { s.Width = w }
+func WidthOpt[L screenunit.Length](w L) ScrollbarOption {
+	return func(s *Scrollbar) { s.Width = screenunit.ToPixels(w) }
 }
 
 // CommandOpt sets the scroll command callback.
@@ -180,7 +181,7 @@ func (s *Scrollbar) Display() {
 // 3D triangle arrows and the slider, the active element drawn with the
 // active background.
 func (s *Scrollbar) display() {
-	if s.Destroyed {
+	if s.Destroyed() {
 		return
 	}
 	w := s.Win
@@ -278,10 +279,10 @@ func (s *Scrollbar) Configure(opts ...ScrollbarOption) error {
 
 // Destroy cleans up the scrollbar.
 func (s *Scrollbar) Destroy() {
-	if s.Destroyed {
+	if s.Destroyed() {
 		return
 	}
-	s.Destroyed = true
+	s.MarkDestroyed()
 	window.DestroyWindow(s.Win)
 }
 

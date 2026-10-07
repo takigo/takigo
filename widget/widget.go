@@ -11,6 +11,7 @@ import (
 	"github.com/takigo/takigo/color"
 	"github.com/takigo/takigo/draw"
 	"github.com/takigo/takigo/event"
+	"github.com/takigo/takigo/focus"
 	"github.com/takigo/takigo/font"
 	"github.com/takigo/takigo/image"
 	"github.com/takigo/takigo/option"
@@ -81,13 +82,17 @@ type Base struct {
 
 	OptionErrors
 
-	// State.
-	NeedRedraw bool
-	Destroyed  bool
-
+	destroyed     bool
 	displayProc   func()
 	redrawPending bool
 }
+
+// Destroyed reports whether the widget has been destroyed.
+func (b *Base) Destroyed() bool { return b.destroyed }
+
+// MarkDestroyed records that the widget is being destroyed; a widget's
+// Destroy calls it first and does nothing when it already was.
+func (b *Base) MarkDestroyed() { b.destroyed = true }
 
 // ClipboardManager provides clipboard read/write for widgets.
 type ClipboardManager interface {
@@ -125,19 +130,17 @@ type Scheduler interface {
 	Quit()
 }
 
-// AppContext provides the application services widgets need.
-// This avoids importing the top-level takigo package.
+// AppContext provides the application services widgets need, so that
+// they need not import the top-level takigo package; *takigo.App
+// implements it.
 type AppContext interface {
 	Resources
 	Scheduler
-	AppContext() AppContext
-	Window() *window.Window
+	// Root returns the App's root window, where per-App state lives.
+	Root() *window.Window
 	Dispatcher() *event.Dispatcher
-	Server() platform.DisplayServer
-	// RegisterCloseHandler registers a WM_DELETE_WINDOW handler for a toplevel window.
-	RegisterCloseHandler(w platform.WindowID, fn func())
-	// UnregisterCloseHandler removes a WM_DELETE_WINDOW handler.
-	UnregisterCloseHandler(w platform.WindowID)
+	// FocusManager returns the App's focus manager (Tk's focus command).
+	FocusManager() *focus.Manager
 	// Clipboard returns the application clipboard manager.
 	Clipboard() ClipboardManager
 }
@@ -237,7 +240,7 @@ func (b *Base) SetDisplayProc(fn func()) {
 // is called before then, as Tk widgets do with Tcl_DoWhenIdle and a
 // REDRAW_PENDING flag.
 func (b *Base) EventuallyRedraw() {
-	if b.redrawPending || b.Destroyed || b.displayProc == nil {
+	if b.redrawPending || b.destroyed || b.displayProc == nil {
 		return
 	}
 	b.redrawPending = true
@@ -249,7 +252,7 @@ func (b *Base) EventuallyRedraw() {
 func (b *Base) redraw() {
 	b.redrawPending = false
 	w := b.Win
-	if b.Destroyed || w.PlatformID == 0 || w.Width <= 0 || w.Height <= 0 {
+	if b.destroyed || w.PlatformID == 0 || w.Width <= 0 || w.Height <= 0 {
 		return
 	}
 	d := w.Display.Server
@@ -262,7 +265,7 @@ func (b *Base) redraw() {
 	w.SetDrawTarget(pix)
 	b.displayProc()
 	w.SetDrawTarget(0)
-	if !b.Destroyed {
+	if !b.destroyed {
 		d.CopyArea(pix, w.Drawable(), w.GC, 0, 0, uint(w.Width), uint(w.Height), 0, 0)
 	}
 	d.FreePixmap(pm)
@@ -291,7 +294,7 @@ func InitBase(b *Base, win *window.Window, app AppContext) {
 
 	// A widget destroyed along with an ancestor is marked destroyed too;
 	// widgets with more to free register their Destroy after this.
-	win.OnDestroy(func() { b.Destroyed = true })
+	win.OnDestroy(func() { b.destroyed = true })
 
 	// Register background hook so ApplyBackgroundRecursive can update this widget.
 	win.BackgroundHook = func(colorName string) {
@@ -299,34 +302,6 @@ func InitBase(b *Base, win *window.Window, app AppContext) {
 			b.Win.SetBackgroundPixel(b.Background.Pixel)
 		}
 	}
-}
-
-// AnchorText computes the x,y position for content of size (textW x textH)
-// within a frame at (frameX, frameY) of size (frameW x frameH) according
-// to the given anchor.
-func AnchorText(a option.Anchor, frameX, frameY, frameW, frameH, textW, textH int) (int, int) {
-	var x, y int
-	switch a {
-	case option.AnchorNW:
-		x, y = frameX, frameY
-	case option.AnchorN:
-		x, y = frameX+(frameW-textW)/2, frameY
-	case option.AnchorNE:
-		x, y = frameX+frameW-textW, frameY
-	case option.AnchorW:
-		x, y = frameX, frameY+(frameH-textH)/2
-	case option.AnchorCenter:
-		x, y = frameX+(frameW-textW)/2, frameY+(frameH-textH)/2
-	case option.AnchorE:
-		x, y = frameX+frameW-textW, frameY+(frameH-textH)/2
-	case option.AnchorSW:
-		x, y = frameX, frameY+frameH-textH
-	case option.AnchorS:
-		x, y = frameX+(frameW-textW)/2, frameY+frameH-textH
-	case option.AnchorSE:
-		x, y = frameX+frameW-textW, frameY+frameH-textH
-	}
-	return x, y
 }
 
 // ComputeAnchor ports TkComputeAnchor (tk/generic/tkUtil.c): place an

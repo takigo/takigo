@@ -267,7 +267,7 @@ func (t *TextWidget) handleKeyPress(ev *event.Event) {
 	case platform.XK_Insert:
 		// Ctrl+Insert: copy; Shift+Insert: paste.
 		if ctrl {
-			if sel := t.GetSelection(); sel != "" {
+			if sel := t.SelectedText(); sel != "" {
 				t.App.Clipboard().Set(t.Win.PlatformID, sel, ev.Time)
 			}
 		} else if shift {
@@ -295,7 +295,7 @@ func (t *TextWidget) handleKeyPress(ev *event.Event) {
 	case platform.XK_Delete:
 		// Shift+Delete: cut selection.
 		if shift && !t.readOnly {
-			if sel := t.GetSelection(); sel != "" {
+			if sel := t.SelectedText(); sel != "" {
 				t.App.Clipboard().Set(t.Win.PlatformID, sel, ev.Time)
 				t.deleteSelection()
 				t.seeInsert()
@@ -417,14 +417,14 @@ func handleCtrlKey(t *TextWidget, ev *event.Event) {
 
 	// --- Clipboard (work in read-only mode for copy) ---
 	case platform.XK_c: // Ctrl+C: copy selection
-		if sel := t.GetSelection(); sel != "" {
+		if sel := t.SelectedText(); sel != "" {
 			t.App.Clipboard().Set(t.Win.PlatformID, sel, ev.Time)
 		}
 	case platform.XK_x: // Ctrl+X: cut selection
 		if t.readOnly {
 			return
 		}
-		if sel := t.GetSelection(); sel != "" {
+		if sel := t.SelectedText(); sel != "" {
 			t.App.Clipboard().Set(t.Win.PlatformID, sel, ev.Time)
 			t.deleteSelection()
 			t.seeInsert()
@@ -497,7 +497,7 @@ func handleCtrlKey(t *TextWidget, ev *event.Event) {
 		if t.readOnly {
 			return
 		}
-		if sel := t.GetSelection(); sel != "" {
+		if sel := t.SelectedText(); sel != "" {
 			t.App.Clipboard().Set(t.Win.PlatformID, sel, ev.Time)
 			t.deleteSelection()
 			t.seeInsert()

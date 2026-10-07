@@ -12,7 +12,7 @@ import (
 
 // Display renders the treeview to its window via double-buffered pixmap.
 func (tv *Treeview) Display() {
-	if tv.Destroyed {
+	if tv.Destroyed() {
 		return
 	}
 	win := tv.Win

@@ -218,7 +218,7 @@ package maps: several Apps may run at once on different goroutines
   package's existing setters before adding one.
   The `ttk` package, which hosts every themed widget, always prefixes with
   the widget name (`ttk.ButtonText`, `ttk.ButtonCommand`,
-  `ttk.ButtonStyleOpt`).
+  `ttk.ButtonStyle`).
 
 - **Distances.** A distance option is generic over `screenunit.Length`
   (`int | float64 | screenunit.Distance`):

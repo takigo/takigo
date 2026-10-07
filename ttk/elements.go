@@ -589,7 +589,11 @@ type SeparatorElement struct {
 }
 
 // Orientation for separator.
-type Orientation = option.Orient
+type (
+	Orient = option.Orient
+	// Orientation is Orient under its old name.
+	Orientation = option.Orient
+)
 
 // The values of -orient.
 const (

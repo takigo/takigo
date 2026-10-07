@@ -113,7 +113,7 @@ func main() {
 
 	// ttk::scrollbar .s -orient vertical -command {.t yview} -takefocus 1
 	s := ttk.NewScrollbar(textFrame, "s",
-		ttk.ScrollbarOrientOpt(ttk.Vertical),
+		ttk.ScrollbarOrient(ttk.Vertical),
 	)
 	// pack .s -in .textFrame -side right -fill y
 	pack.Pack(s, pack.SideOpt(pack.Right), pack.FillOpt(pack.FillY))

@@ -59,9 +59,9 @@ func FrameBackground(pixel uint64) FrameOption {
 	}
 }
 
-// FrameStyleOpt sets the -style, e.g. "TEntry" to draw a frame like an
+// FrameStyle sets the -style, e.g. "TEntry" to draw a frame like an
 // entry field (as the ttkpane demo does around a classic text widget).
-func FrameStyleOpt(name string) FrameOption {
+func FrameStyle(name string) FrameOption {
 	return func(f *Frame) { f.StyleName = name }
 }
 

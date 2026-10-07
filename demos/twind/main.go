@@ -143,7 +143,7 @@ func main() {
 		button.Command(func() {
 			if hscroll == nil {
 				hscroll = ttk.NewScrollbar(f, "hscroll",
-					ttk.ScrollbarOrientOpt(ttk.Horizontal),
+					ttk.ScrollbarOrient(ttk.Horizontal),
 				)
 				tw.XScrollCmd = func(first, last float64) { hscroll.Set(first, last) }
 				hscroll.Command = widget.ScrollX(tw)

@@ -5,6 +5,49 @@ version is 0, a minor release may break the API and says so here.
 
 ## Unreleased
 
+- **Every distance option takes a `screenunit.Length`** (pixels or a
+  `screenunit.Distance`): `message.HighlightWidth`, the canvas
+  `BorderWidthOpt`, `HighlightWidthOpt`, `OutlineWidth` and the text item's
+  `WidthOpt`, `scale.SliderLengthOpt`, `WidthOpt`, `LengthOpt`,
+  `panedwindow.SashWidthOpt`, `HandleSizeOpt`, `scrollbar.WidthOpt`,
+  `square.SizeOpt`, `text.InsertWidth`, `TagBorderWidth`,
+  `ttk.LabelframeBorderWidth`, `ProgressbarLength`, `ColWidth`,
+  `ColMinWidth`. Pixel arguments compile as before.
+- **ttk options are named alike.** `ButtonStyleOpt`, `CheckbuttonStyleOpt`,
+  `EntryStyleOpt`, `FrameStyleOpt`, `MenubuttonStyleOpt` are `ButtonStyle`,
+  ...; every themed widget has a `<Widget>Style` option now.
+  `ScrollbarOrientOpt` is `ScrollbarOrient`, `ScrollbarCommandOpt` is
+  `ScrollbarCommand`, `ColSeparatorOpt` is `ColSeparator`. One
+  `ttk.FieldState` (`FieldNormal`, `FieldDisabled`, `FieldReadonly`)
+  replaces `EntryState` and `ComboboxState`: `EntryState2("disabled")` is
+  `EntryState(ttk.FieldDisabled)`, `ComboboxCbState(ttk.ComboReadonly)` is
+  `ComboboxState(ttk.FieldReadonly)`. `EntryValidate` and `SpinboxValidate`
+  take a `ValidateMode` (`ttk.ValidateKey`, ...). `ttk.Orient` names the
+  orientation type (`Orientation` remains). The notebook has `Configure`,
+  `NotebookStyle`, and `TabConfigure(index, TabText, TabState,
+  TabUnderline, TabPadding...)` (additive).
+- **The classic entry and spinbox edit with `Insert(index, s)` and
+  `Delete(first, last)`**, character indexes with the end exclusive as in
+  Tk; `InsertChars` and `DeleteChars(index, count)` are gone.
+- **Widget state is read through methods.** `Destroyed` is a method on
+  `widget.Base` and `ttk.TtkWidget` (`MarkDestroyed` sets it); `NeedRedraw`
+  and the entries' `HasFocus`/`CursorOn` are no longer exported; the button
+  family's focus is `Focused()`/`SetFocused`. The `Anchor` fields of
+  `ttk.Button` and `ttk.Label`, which did nothing, are gone.
+- **`widget.AppContext` is narrower**: `Root()` (was `Window()`),
+  `Dispatcher`, `FocusManager`, `Clipboard`, the `Resources` and the
+  `Scheduler`. `Server()`, `RegisterCloseHandler`, `UnregisterCloseHandler`
+  and the self-returning `AppContext()` are gone from it (`*takigo.App`
+  keeps the methods); a widget reaches the server through its window.
+- **Renamed**: `listbox.GetItems` is `Items`, `text.GetSelection` is
+  `SelectedText`, `WmInfo.GetState` is `State`; `wm.ParseGeometry` returns a
+  `wm.Geometry`; `grid.Relative` returns an exported `*RelativeWidget`;
+  `window.WmInfo` (the interface) is `window.WmHooks`. The setters
+  `SetText`, `SetImage`, `SetJustify`, `SetWrapMode`, `SetPadX`, `SetPadY`
+  return `Configure`'s error.
+- **Removed**: `widget.AnchorText`, `geometry.UsableWidth`, `UsableHeight`,
+  `SetInternalBorderUniform`, `draw.FillRect`, `StrokeRect`, `DrawLines`,
+  `window.Window.ConfigureCallback` (use `OnConfigure`).
 - **`ttk.ParsePadding` and `Notebook.SetPanePadding` return an error** for a
   bad distance (wrapping `screenunit.ErrBadDistance`) instead of reading it
   as 0.

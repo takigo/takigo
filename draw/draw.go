@@ -17,16 +17,6 @@ type Rect struct {
 	X, Y, Width, Height int
 }
 
-// FillRect fills a rectangle on a drawable.
-func FillRect(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID, r Rect) {
-	d.FillRectangle(drawable, gc, r.X, r.Y, uint(r.Width), uint(r.Height))
-}
-
-// StrokeRect draws a rectangle outline.
-func StrokeRect(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID, r Rect) {
-	d.DrawRectangle(drawable, gc, r.X, r.Y, uint(r.Width), uint(r.Height))
-}
-
 // Line draws a line between two points.
 func Line(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID, p1, p2 Point) {
 	d.DrawLine(drawable, gc, p1.X, p1.Y, p2.X, p2.Y)
@@ -42,18 +32,6 @@ func FillPolygon(d platform.DisplayServer, drawable platform.DrawableID, gc plat
 		ppoints[i] = platform.Point{X: int16(p.X), Y: int16(p.Y)}
 	}
 	d.FillPolygon(drawable, gc, ppoints, platform.PolygonComplex, platform.CoordModeOrigin)
-}
-
-// DrawLines draws connected line segments.
-func DrawLines(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID, points []Point) {
-	if len(points) < 2 {
-		return
-	}
-	ppoints := make([]platform.Point, len(points))
-	for i, p := range points {
-		ppoints[i] = platform.Point{X: int16(p.X), Y: int16(p.Y)}
-	}
-	d.DrawLines(drawable, gc, ppoints, platform.CoordModeOrigin)
 }
 
 // Border holds the three colors needed for 3D relief drawing:

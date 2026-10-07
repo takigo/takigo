@@ -155,7 +155,7 @@ func (mb *Menubar) Display() {
 // display ports DisplayMenu/TkpDrawMenuEntry for a menubar.
 func (mb *Menubar) display() {
 	w := mb.Win
-	if mb.Destroyed || w.PlatformID == 0 || w.Width <= 0 || w.Height <= 0 {
+	if mb.Destroyed() || w.PlatformID == 0 || w.Width <= 0 || w.Height <= 0 {
 		return
 	}
 	d := w.Display.Server

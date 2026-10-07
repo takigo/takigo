@@ -15,9 +15,9 @@ func SetClassic(root *window.Window, on bool) {
 
 // Classic reports whether app is a Classic App; see SetClassic.
 func Classic(app AppContext) bool {
-	if app == nil || app.Window() == nil {
+	if app == nil || app.Root() == nil {
 		return false
 	}
-	on, _ := app.Window().Value(classicKey).(bool)
+	on, _ := app.Root().Value(classicKey).(bool)
 	return on
 }

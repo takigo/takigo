@@ -29,9 +29,9 @@ type Windower interface {
 // Window returns the Window itself, satisfying the Windower interface.
 func (w *Window) Window() *Window { return w }
 
-// WmInfo defines the interface for WM-specific window data.
-// Implemented by wm.WmInfo to avoid circular imports.
-type WmInfo interface {
+// WmHooks is what the window needs of a toplevel's window-manager state
+// (wm.WmInfo), declared here so that wm can import window.
+type WmHooks interface {
 	HandleClientMessage(messageType platform.AtomID, data [5]int64) bool
 	OnDeleteWindow(fn func())
 	OffDeleteWindow()
@@ -104,19 +104,13 @@ type Window struct {
 	// the content pushed below (InternalBorderTop).
 	Menubar *Window
 
-	// ConfigureCallback is called when the window is resized.
-	//
-	// Deprecated: it holds a single callback that any other user
-	// overwrites; use OnConfigure.
-	ConfigureCallback func()
-
-	// configureHooks run on resize, after ConfigureCallback; see OnConfigure.
+	// configureHooks run on resize; see OnConfigure.
 	configureHooks []func()
 
 	// WmData stores per-toplevel WM state for toplevel windows.
-	// Uses WmInfo interface to avoid circular imports between window and wm packages.
+	// Uses the WmHooks interface: wm imports window, not the reverse.
 	// Mirrors TkWindow.wmInfoPtr in Tk's C code.
-	WmData WmInfo
+	WmData WmHooks
 
 	// BackgroundHook is called when a recursive background change is applied.
 	// Widgets register this to update their own Background field and pixel.
@@ -203,9 +197,6 @@ func (w *Window) OnConfigure(fn func()) {
 // NotifyConfigure runs w's resize callbacks. Call it after changing
 // w.Width or w.Height.
 func (w *Window) NotifyConfigure() {
-	if w.ConfigureCallback != nil {
-		w.ConfigureCallback()
-	}
 	for _, fn := range w.configureHooks {
 		fn()
 	}

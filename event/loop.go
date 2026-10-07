@@ -190,7 +190,7 @@ func (l *Loop) handleRaw(raw *platform.RawEvent) {
 	if l.rawHandler != nil {
 		l.rawHandler(raw)
 	}
-	ev := FromRawEventIM(raw, l.parser, l.hasIM)
+	ev := fromRawEventIM(raw, l.parser, l.hasIM)
 	if ev.Type != 0 {
 		if l.hasIM {
 			switch ev.Type {

@@ -71,8 +71,8 @@ func MenubuttonCompound(c widget.Compound) MenubuttonOption {
 	return func(mb *Menubutton) { mb.Compound = c }
 }
 
-// MenubuttonStyleOpt overrides the TTK style name (e.g. "TMenubutton.Toolbutton").
-func MenubuttonStyleOpt(name string) MenubuttonOption {
+// MenubuttonStyle overrides the TTK style name (e.g. "TMenubutton.Toolbutton").
+func MenubuttonStyle(name string) MenubuttonOption {
 	return func(mb *Menubutton) { mb.StyleName = name }
 }
 
@@ -156,7 +156,7 @@ func (mb *Menubutton) Configure(opts ...MenubuttonOption) error {
 
 // Display renders the menubutton with an indicator arrow.
 func (mb *Menubutton) Display() {
-	if mb.Destroyed {
+	if mb.Destroyed() {
 		return
 	}
 	win := mb.Win

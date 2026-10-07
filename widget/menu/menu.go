@@ -681,7 +681,7 @@ func (m *Menu) Display() {
 
 // display draws the menu.
 func (m *Menu) display() {
-	if m.Destroyed || !m.posted {
+	if m.Destroyed() || !m.posted {
 		return
 	}
 	w := m.Win
@@ -1001,10 +1001,10 @@ func (m *Menu) Configure(opts ...MenuOption) error {
 
 // Destroy cleans up.
 func (m *Menu) Destroy() {
-	if m.Destroyed {
+	if m.Destroyed() {
 		return
 	}
 	m.Unpost()
-	m.Destroyed = true
+	m.MarkDestroyed()
 	window.DestroyWindow(m.Win)
 }

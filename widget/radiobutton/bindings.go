@@ -72,7 +72,7 @@ func bindRadiobutton(r *Radiobutton, app widget.AppContext) {
 
 	// FocusIn/FocusOut — track focus state and redraw highlight.
 	app.Dispatcher().Bind(w.PlatformID, event.FocusChangeMask, func(ev *event.Event) {
-		r.HasFocus = ev.Type == event.FocusInType
+		r.SetFocused(ev.Type == event.FocusInType)
 		r.Display()
 	})
 

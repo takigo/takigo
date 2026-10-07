@@ -97,7 +97,7 @@ func AddVarsSeeDismiss[T comparable](parent widget.Caregiver, vars *DemoVars[T])
 			ttk.ButtonText("See Variables"),
 			ttk.ButtonImage(img["view"]),
 			ttk.ButtonCompound(widget.CompoundLeft),
-			ttk.ButtonCommand(func() { showVars(parent.AppContext(), vars) }),
+			ttk.ButtonCommand(func() { showVars(parent, vars) }),
 		)
 	}
 
@@ -128,19 +128,19 @@ func AddSeeDismissWithVars(parent widget.Caregiver, vars []NamedVar) *ttk.Frame 
 			ttk.ButtonText("See Variables"),
 			ttk.ButtonImage(img["view"]),
 			ttk.ButtonCompound(widget.CompoundLeft),
-			ttk.ButtonCommand(func() { showVarsAny(parent.AppContext(), varsMap) }),
+			ttk.ButtonCommand(func() { showVarsAny(parent, varsMap) }),
 		)
 	})
 }
 
 // showVarsAny is a type-erased showVars for mixed-type variable maps.
 // It uses each variable's underlying *widget.Variable via a small adapter.
-func showVarsAny(app widget.AppContext, vars map[string]any) {
+func showVarsAny(parent widget.Caregiver, vars map[string]any) {
 	releaseVarsSubscriptions()
-	if varsWindow != nil && !varsWindow.Destroyed {
+	if varsWindow != nil && !varsWindow.Destroyed() {
 		varsWindow.Destroy()
 	}
-	varsWindow = toplevel.New(app, "vars",
+	varsWindow = toplevel.New(parent, "vars",
 		toplevel.Title("Variable values"),
 	)
 	varsWindow.Show()
@@ -225,7 +225,7 @@ func bindAnyVarToLabel(valLabel *ttk.Label, v any) func() {
 // manager. This matches Tk's -textvariable behavior where a label re-requests
 // its natural size whenever the underlying variable changes.
 func updateValueLabel(valLabel *ttk.Label, text string) {
-	if valLabel.Destroyed {
+	if valLabel.Destroyed() {
 		return
 	}
 	valLabel.Configure(ttk.LabelText(text))
@@ -283,7 +283,7 @@ func bottomButtons(parent widget.Caregiver, callerFile string, extra func(*ttk.F
 		ttk.ButtonText("See Code"),
 		ttk.ButtonImage(img["view"]),
 		ttk.ButtonCompound(widget.CompoundLeft),
-		ttk.ButtonCommand(func() { showCode(parent.AppContext(), callerFile) }),
+		ttk.ButtonCommand(func() { showCode(parent, callerFile) }),
 	)
 
 	buttons := []window.Windower{grid.Relative(grid.RelEmpty), codeBtn, dismissBtn}
@@ -327,19 +327,19 @@ var codeText *text.TextWidget
 // Uses TTK widgets for the button bar (matching Tk's showCode proc).
 // ShowCode opens the See Code window for the calling demo's source file,
 // like the launcher's showCode proc.
-func ShowCode(app widget.AppContext) {
+func ShowCode(parent widget.Caregiver) {
 	callerFile := callerFile(1)
-	showCode(app, callerFile)
+	showCode(parent, callerFile)
 }
 
-func showCode(app widget.AppContext, srcFile string) {
+func showCode(parent widget.Caregiver, srcFile string) {
 	source, err := os.ReadFile(srcFile)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "See Code: %v\n", err)
 		return
 	}
 
-	if codeWindow != nil && !codeWindow.Destroyed {
+	if codeWindow != nil && !codeWindow.Destroyed() {
 		// Reuse: clear old text and insert new source.
 		codeText.Delete("1.0", "end")
 		codeText.Insert("1.0", string(source))
@@ -348,7 +348,7 @@ func showCode(app widget.AppContext, srcFile string) {
 		return
 	}
 
-	codeWindow = toplevel.New(app, "code",
+	codeWindow = toplevel.New(parent, "code",
 		toplevel.Title(fmt.Sprintf("Demo code: %s", srcFile)),
 		toplevel.Background("#d9d9d9"),
 	)
@@ -392,7 +392,7 @@ func showCode(app widget.AppContext, srcFile string) {
 	codeText.See("1.0")
 
 	// Handle resize.
-	app.Dispatcher().Bind(codeRoot.PlatformID, event.StructureNotifyMask, func(ev *event.Event) {
+	parent.AppContext().Dispatcher().Bind(codeRoot.PlatformID, event.StructureNotifyMask, func(ev *event.Event) {
 		if ev.Type == event.ConfigureType {
 			codeRoot.Width = ev.ConfigWidth
 			codeRoot.Height = ev.ConfigHeight
@@ -417,12 +417,12 @@ func showCode(app widget.AppContext, srcFile string) {
 //	    ttk::label $f.v$var -textvariable $var -anchor w
 //	    ...
 //	}
-func showVars[T comparable](app widget.AppContext, vars *DemoVars[T]) {
+func showVars[T comparable](parent widget.Caregiver, vars *DemoVars[T]) {
 	asAny := make(map[string]any, len(*vars))
 	for name, v := range *vars {
 		asAny[name] = v
 	}
-	showVarsAny(app, asAny)
+	showVarsAny(parent, asAny)
 }
 
 var fileIcons = map[string]*tkimage.Photo{}

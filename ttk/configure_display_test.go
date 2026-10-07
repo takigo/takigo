@@ -18,19 +18,19 @@ func TestEntryWidthAndStyleOptions(t *testing.T) {
 	if wide.Win.ReqWidth <= def.Win.ReqWidth {
 		t.Errorf("EntryWidth(40): ReqWidth = %d, default = %d", wide.Win.ReqWidth, def.Win.ReqWidth)
 	}
-	styled := ttk.NewEntry(app, "styled", ttk.EntryStyleOpt("Custom.TEntry"))
+	styled := ttk.NewEntry(app, "styled", ttk.EntryStyle("Custom.TEntry"))
 	if got := styled.Context.Style.Name; got != "Custom.TEntry" {
-		t.Errorf("EntryStyleOpt: style = %q", got)
+		t.Errorf("EntryStyle: style = %q", got)
 	}
 
-	def.Configure(ttk.EntryWidth(40), ttk.EntryState2("disabled"))
+	def.Configure(ttk.EntryWidth(40), ttk.EntryState(ttk.FieldDisabled))
 	if def.Win.ReqWidth != wide.Win.ReqWidth {
 		t.Errorf("Configure(EntryWidth(40)): ReqWidth = %d, want %d", def.Win.ReqWidth, wide.Win.ReqWidth)
 	}
 	if def.State&ttk.StateDisabled == 0 {
 		t.Error("Configure(EntryState2(disabled)) left the state enabled")
 	}
-	def.Configure(ttk.EntryState2("normal"))
+	def.Configure(ttk.EntryState(ttk.FieldNormal))
 	if def.State&ttk.StateDisabled != 0 {
 		t.Error("Configure(EntryState2(normal)) left the state disabled")
 	}

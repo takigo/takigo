@@ -51,8 +51,8 @@ type Entry struct {
 	ValidateCmd func(string) bool
 
 	// Blink.
-	CursorOn bool
-	HasFocus bool
+	cursorOn bool
+	hasFocus bool
 
 	// Scrollbar callback.
 	ScrollCmd func(first, last float64)
@@ -138,7 +138,7 @@ func New(parent widget.Caregiver, name string, opts ...EntryOption) *Entry {
 	e := &Entry{
 		InsertWidth: 2,
 		PrefWidth:   20,
-		CursorOn:    true,
+		cursorOn:    true,
 		Anchor:      option.AnchorCenter,
 		Justify:     option.JustifyLeft,
 	}
@@ -146,7 +146,7 @@ func New(parent widget.Caregiver, name string, opts ...EntryOption) *Entry {
 	widget.InitBase(&e.Base, w, app)
 	e.edit = entryedit.Editor{
 		Buf: &e.Buffer, App: app, Win: w,
-		TryEdit: e.tryEdit, Insert: e.InsertChars, Delete: e.DeleteChars,
+		TryEdit: e.tryEdit, Insert: e.Insert, Delete: func(index, count int) { e.Delete(index, index+count) },
 		Moved: func() { e.seeInsert(); e.Display() },
 	}
 	e.SetDisplayProc(e.display)
@@ -205,9 +205,9 @@ func (e *Entry) SetText(s string) {
 	e.Display()
 }
 
-// InsertChars inserts text at the given rune index.
-func (e *Entry) InsertChars(index int, s string) {
-	if !e.Insert(index, []rune(s)) {
+// Insert inserts s before character index (Tk: insert INDEX STRING).
+func (e *Entry) Insert(index int, s string) {
+	if !e.Buffer.Insert(index, []rune(s)) {
 		return
 	}
 	e.computeGeometry()
@@ -216,9 +216,10 @@ func (e *Entry) InsertChars(index int, s string) {
 	e.Display()
 }
 
-// DeleteChars deletes count runes starting at index.
-func (e *Entry) DeleteChars(index, count int) {
-	if !e.Delete(index, count) {
+// Delete removes the characters from index first to last, exclusive
+// (Tk: delete FIRST LAST).
+func (e *Entry) Delete(first, last int) {
+	if !e.Buffer.Delete(first, last-first) {
 		return
 	}
 	e.computeGeometry()
@@ -230,7 +231,7 @@ func (e *Entry) DeleteChars(index, count int) {
 // DeleteSelection deletes the selected text.
 func (e *Entry) DeleteSelection() {
 	if e.HasSelection() {
-		e.DeleteChars(e.SelFirst, e.SelLast-e.SelFirst)
+		e.Delete(e.SelFirst, e.SelLast)
 	}
 }
 
@@ -424,7 +425,7 @@ func (e *Entry) Display() {
 
 // display draws the entry widget.
 func (e *Entry) display() {
-	if e.Destroyed {
+	if e.Destroyed() {
 		return
 	}
 	w := e.Win
@@ -444,7 +445,7 @@ func (e *Entry) display() {
 	dt := e.displayText()
 	xftFont, isXft := e.Font.(platform.DrawableFont)
 
-	if len(e.Text) == 0 && e.Placeholder != "" && !e.HasFocus {
+	if len(e.Text) == 0 && e.Placeholder != "" && !e.hasFocus {
 		// Draw placeholder.
 		if isXft && e.PlaceholderFg != nil {
 			xftFont.DrawString(w.Drawable(), e.inset, e.layoutY, e.Placeholder,
@@ -452,7 +453,7 @@ func (e *Entry) display() {
 		}
 	} else if isXft && len(dt) > 0 {
 		// Draw selection highlight.
-		if e.HasFocus && e.SelFirst >= 0 && e.SelLast > e.SelFirst && e.SelBg != nil {
+		if e.hasFocus && e.SelFirst >= 0 && e.SelLast > e.SelFirst && e.SelBg != nil {
 			selStartX := textedit.MeasureRunes(e.Font, dt[:textedit.ClampIdx(e.SelFirst, len(dt))]) + e.layoutX
 			selEndX := textedit.MeasureRunes(e.Font, dt[:textedit.ClampIdx(e.SelLast, len(dt))]) + e.layoutX
 
@@ -474,7 +475,7 @@ func (e *Entry) display() {
 
 		// Draw text in segments: before selection, selection, after selection.
 		visibleStr := string(dt)
-		if e.HasFocus && e.SelFirst >= 0 && e.SelLast > e.SelFirst && e.SelFg != nil && e.Foreground != nil {
+		if e.hasFocus && e.SelFirst >= 0 && e.SelLast > e.SelFirst && e.SelFg != nil && e.Foreground != nil {
 			// Before selection.
 			if e.SelFirst > 0 {
 				seg := string(dt[:e.SelFirst])
@@ -506,7 +507,7 @@ func (e *Entry) display() {
 	}
 
 	// Draw cursor (outside text block so it works for empty entries too).
-	if e.HasFocus && e.CursorOn && e.InsertBg != nil && e.Font != nil {
+	if e.hasFocus && e.cursorOn && e.InsertBg != nil && e.Font != nil {
 		cursorX := textedit.MeasureRunes(e.Font, dt[:textedit.ClampIdx(e.InsertPos, len(dt))]) + e.layoutX
 		if cursorX >= e.inset && cursorX < w.Width-e.inset {
 			m := e.Font.Metrics()
@@ -526,7 +527,7 @@ func (e *Entry) display() {
 	}
 	// The highlight ring sits outside the border (focus colour or
 	// -highlightbackground).
-	e.DrawHighlightBorder(e.HasFocus, 0)
+	e.DrawHighlightBorder(e.hasFocus, 0)
 
 }
 
@@ -537,9 +538,9 @@ func (e *Entry) Configure(opts ...EntryOption) error {
 
 // Destroy cleans up the entry.
 func (e *Entry) Destroy() {
-	if e.Destroyed {
+	if e.Destroyed() {
 		return
 	}
-	e.Destroyed = true
+	e.MarkDestroyed()
 	window.DestroyWindow(e.Win)
 }

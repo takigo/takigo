@@ -83,7 +83,7 @@ func runBusyApp(t *testing.T, n int) {
 		text := strconv.Itoa(rounds)
 		lbl.Configure(label.Text(text))
 		// A style no theme defines is created in the shared theme on demand.
-		tbtn.Configure(ttk.ButtonText(text), ttk.ButtonStyleOpt("App"+strconv.Itoa(n)+"Round"+text+".TButton"))
+		tbtn.Configure(ttk.ButtonText(text), ttk.ButtonStyle("App"+strconv.Itoa(n)+"Round"+text+".TButton"))
 		place.Place(inner, place.X(4+rounds), place.Y(4))
 		pack.Forget(placed)
 		pack.Pack(geometry.Group{placed}, pack.PadX(screenunit.Mm(1)))

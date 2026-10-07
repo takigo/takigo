@@ -1,6 +1,7 @@
 package ttk
 
 import (
+	"cmp"
 	"math"
 	"time"
 
@@ -58,8 +59,13 @@ func ProgressbarOrient(o Orientation) ProgressbarOption {
 }
 
 // ProgressbarLength sets the requested length.
-func ProgressbarLength(l int) ProgressbarOption {
-	return func(p *Progressbar) { p.Length = l }
+func ProgressbarLength[L screenunit.Length](l L) ProgressbarOption {
+	return func(p *Progressbar) { p.Length = screenunit.ToPixels(l) }
+}
+
+// ProgressbarStyle sets -style.
+func ProgressbarStyle(name string) ProgressbarOption {
+	return func(p *Progressbar) { p.StyleName = name }
 }
 
 // NewProgressbar creates a themed progressbar widget.
@@ -78,7 +84,7 @@ func NewProgressbar(parent widget.Caregiver, name string, opts ...ProgressbarOpt
 		opt(p)
 	}
 
-	InitTtkWidget(&p.TtkWidget, win, app, p.orientStyle())
+	InitTtkWidget(&p.TtkWidget, win, app, cmp.Or(p.StyleName, p.orientStyle()))
 	p.reconfigure = func() { _ = p.Configure() }
 	win.OnDestroy(p.Destroy)
 	p.DisplayFunc = p.Display
@@ -115,7 +121,7 @@ const pbTroughBorder = 1
 
 // Display draws the progressbar.
 func (p *Progressbar) Display() {
-	if p.Destroyed {
+	if p.Destroyed() {
 		return
 	}
 	win := p.Win
@@ -214,7 +220,7 @@ func (p *Progressbar) Start(interval time.Duration) {
 
 	var tick func()
 	tick = func() {
-		if p.Destroyed {
+		if p.Destroyed() {
 			return
 		}
 		p.cancelTick = p.App.After(interval, tick)

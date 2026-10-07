@@ -74,7 +74,7 @@ func TestButtonInvokeAndConfigure(t *testing.T) {
 
 	b.Destroy()
 	b.Destroy() // idempotent
-	if !b.Destroyed {
+	if !b.Destroyed() {
 		t.Error("Destroyed not set")
 	}
 }

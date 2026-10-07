@@ -67,8 +67,8 @@ func PosYOpt(y int) SquareOption {
 }
 
 // SizeOpt sets the width and height of the square.
-func SizeOpt(sz int) SquareOption {
-	return func(s *Square) { s.Size = sz }
+func SizeOpt[L screenunit.Length](sz L) SquareOption {
+	return func(s *Square) { s.Size = screenunit.ToPixels(sz) }
 }
 
 // DoubleBufferOpt enables or disables double buffering.
@@ -166,7 +166,7 @@ func (s *Square) SetPosition(x, y int) {
 
 // Display draws the square widget.
 func (s *Square) Display() {
-	if s.Destroyed {
+	if s.Destroyed() {
 		return
 	}
 	w := s.Win
@@ -227,9 +227,9 @@ func (s *Square) Configure(opts ...SquareOption) error {
 
 // Destroy cleans up the square widget.
 func (s *Square) Destroy() {
-	if s.Destroyed {
+	if s.Destroyed() {
 		return
 	}
-	s.Destroyed = true
+	s.MarkDestroyed()
 	window.DestroyWindow(s.Win)
 }

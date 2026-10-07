@@ -111,8 +111,8 @@ func main() {
 
 	// Vertical scrollbar.
 	yscroll := ttk.NewScrollbar(tvFrame, "vsb",
-		ttk.ScrollbarOrientOpt(ttk.Vertical),
-		ttk.ScrollbarCommandOpt(widget.ScrollY(tv)),
+		ttk.ScrollbarOrient(ttk.Vertical),
+		ttk.ScrollbarCommand(widget.ScrollY(tv)),
 	)
 	tv.YScrollCmd = func(first, last float64) {
 		yscroll.Set(first, last)
@@ -120,7 +120,7 @@ func main() {
 
 	// Horizontal scrollbar (display only; X scrolling not yet implemented).
 	xscroll := ttk.NewScrollbar(tvFrame, "hsb",
-		ttk.ScrollbarOrientOpt(ttk.Horizontal),
+		ttk.ScrollbarOrient(ttk.Horizontal),
 	)
 	_ = xscroll
 
