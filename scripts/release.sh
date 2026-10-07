@@ -5,11 +5,11 @@
 #   release.sh vX.Y.Z [--push]
 #
 # Checks that master is clean and up to date with origin, that the tag is
-# new and that `make check test` passes (SKIP_CHECKS=1 skips the last). If
-# CHANGELOG.md has no "## vX.Y.Z" heading yet, the "## Unreleased" heading
-# becomes "## vX.Y.Z (date)", a fresh empty Unreleased section goes above
-# it, and the change is committed. The section's text is the annotated
-# tag's message.
+# new and that `make check test` passes on a clean checkout of HEAD
+# (SKIP_CHECKS=1 skips that). If CHANGELOG.md has no "## vX.Y.Z" heading
+# yet, the "## Unreleased" heading becomes "## vX.Y.Z (date)", a fresh
+# empty Unreleased section goes above it, and the change is committed. The
+# section's text is the annotated tag's message.
 #
 # Without --push the tag stays local and the push commands are printed.
 # --push pushes master and the tag, asks proxy.golang.org to fetch the
@@ -44,7 +44,15 @@ git fetch -q origin master --tags
 git rev-parse -q --verify "refs/tags/$ver" >/dev/null && die "tag $ver exists"
 
 if [[ ${SKIP_CHECKS:-} != 1 ]]; then
-    make check test
+    # Check the commit being tagged in a clean worktree: ./... in the working
+    # tree also picks up gitignored scratch programs under tmp/.
+    check=$PWD/tmp/release-check
+    git worktree remove --force "$check" 2>/dev/null || true
+    git worktree add -q --detach "$check" HEAD
+    trap 'git worktree remove --force "$check"' EXIT
+    make -C "$check" check test
+    git worktree remove --force "$check"
+    trap - EXIT
 fi
 
 if ! grep -q "^## $ver\b" CHANGELOG.md; then
