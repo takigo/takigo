@@ -7,6 +7,10 @@ version is 0, a minor release may break the API and says so here.
 
 ## v0.3.1 (2026-10-08)
 
+- `scripts/release.sh` (`make release`) resets its changelog commit when the
+  release fails before the tag is created, so a failed run leaves the tree
+  as it was.
+
 ## v0.3.0 (2026-10-08)
 
 - **Every distance option takes a `screenunit.Length`** (pixels or a
