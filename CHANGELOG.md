@@ -5,7 +5,16 @@ version is 0, a minor release may break the API and says so here.
 
 ## Unreleased
 
-## v0.3.2 (2026-10-08)
+- **The contributor guides are split per area and checked.** `AGENTS.md`
+  keeps the build and test commands, the layout and the rules that apply
+  everywhere; `widget/AGENTS.md`, `ttk/AGENTS.md`, `platform/AGENTS.md` and
+  `demos/AGENTS.md` hold the conventions of each area, and coding agents
+  load them when they touch that tree. The `tk-demo-compare` skill lives in
+  `.agents/skills/` (reachable as `.claude/skills/` and `.opencode/skills/`),
+  where Claude Code, Codex, OpenCode and Cursor find it; its option
+  cheatsheet is corrected against the source. `scripts/check_docs.sh`
+  (`make check-docs`, part of `make check` and CI) fails when a guide names
+  a path, line, make goal or demo count that no longer matches the tree.
 
 ## v0.3.1 (2026-10-08)
 
