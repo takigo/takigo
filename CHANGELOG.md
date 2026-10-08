@@ -5,6 +5,8 @@ version is 0, a minor release may break the API and says so here.
 
 ## Unreleased
 
+## v0.3.2 (2026-10-08)
+
 ## v0.3.1 (2026-10-08)
 
 - `scripts/release.sh` (`make release`) resets its changelog commit when the
