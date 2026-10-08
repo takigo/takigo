@@ -55,6 +55,20 @@ if [[ ${SKIP_CHECKS:-} != 1 ]]; then
     trap - EXIT
 fi
 
+start=$(git rev-parse HEAD)
+# Undo the changelog commit when the release fails before the tag exists.
+rollback() {
+    local rc=$?
+    ((rc == 0)) && return
+    [[ $(git rev-parse HEAD) == "$start" ]] && return
+    git rev-parse -q --verify "refs/tags/$ver" >/dev/null && return
+    echo "release: failed; resetting to $(git rev-parse --short "$start")" >&2
+    git reset -q --hard "$start"
+}
+
+notes=$(mktemp)
+trap 'rc=$?; rm -f "$notes"; (exit $rc); rollback' EXIT
+
 if ! grep -q "^## $ver\b" CHANGELOG.md; then
     grep -q '^## Unreleased' CHANGELOG.md || die "CHANGELOG.md has neither '## $ver' nor '## Unreleased'"
     awk -v ver="$ver" -v date="$(date +%Y-%m-%d)" '
@@ -64,8 +78,6 @@ if ! grep -q "^## $ver\b" CHANGELOG.md; then
     git commit -q -m "Release $ver" CHANGELOG.md
 fi
 
-notes=$(mktemp)
-trap 'rm -f "$notes"' EXIT
 awk -v ver="$ver" '
     $0 ~ "^## " ver "( |$)" { on=1; next }
     on && /^## / { exit }
