@@ -5,6 +5,8 @@ version is 0, a minor release may break the API and says so here.
 
 ## Unreleased
 
+## v0.3.3 (2026-10-08)
+
 - **The contributor guides are split per area and checked.** `AGENTS.md`
   keeps the build and test commands, the layout and the rules that apply
   everywhere; `widget/AGENTS.md`, `ttk/AGENTS.md`, `platform/AGENTS.md` and
