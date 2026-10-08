@@ -1,8 +1,12 @@
 # Contributing
 
 [AGENTS.md](AGENTS.md) is the maintained guide to the repository: layout,
-coding conventions, how the Go sources map to the Tk sources, and the demo
-comparison pipeline. Read it before a first change.
+build and test commands, the rules that apply everywhere, and an index of
+the per-area guides (`widget/AGENTS.md`, `ttk/AGENTS.md`,
+`platform/AGENTS.md`, `demos/AGENTS.md`). Coding agents load them by
+themselves; read the root and the guide of the area you change before a
+first change. `scripts/check_docs.sh` (part of `make check`) fails when one
+of them names a path that no longer exists.
 
 Before sending a change:
 
@@ -12,6 +16,7 @@ go build ./...
 go vet ./...
 go fix -diff ./...        # prints nothing
 CGO_ENABLED=0 GOOS=windows go vet ./...
+bash scripts/check_docs.sh    # the agent guides name existing paths
 go test -race -short ./...   # display tests start their own Xvfb
 ```
 

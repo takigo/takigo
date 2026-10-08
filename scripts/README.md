@@ -3,9 +3,12 @@
 Automated visual comparison between Go and Tcl/Tk demos, with LLM-powered fixes
 (Claude by default, configurable via the `LLM_TOOL` env var).
 
-> **Note:** `fix_demo.sh` and `fix_all.sh` invoke an LLM CLI (default `claude`)
-> to edit demos. When using `claude`, run from a **regular terminal**, not from
-> inside a Claude Code session. Set `LLM_TOOL` to switch tools, e.g.
+> **Note:** `fix_demo.sh` and `fix_all.sh` are the *out-of-session* way to
+> run the fix loop: they invoke an LLM CLI (default `claude`) from a regular
+> terminal and refuse to start `claude` inside a Claude Code session. Inside
+> an agent session (Claude Code, Codex, OpenCode) the same loop is the
+> `tk-demo-compare` skill in `.agents/skills/`, which the agent loads itself.
+> Set `LLM_TOOL` to switch tools, e.g.
 > `LLM_TOOL=opencode-deepseek-v4-pro bash scripts/fix_demo.sh button`.
 
 ## Quick Start

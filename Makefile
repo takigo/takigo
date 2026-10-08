@@ -49,10 +49,13 @@ fix: ## Apply the go fix modernizers
 fix-check: ## Fail if go fix would change anything (CI gate)
 	$(GO) fix -diff $(GODIRS)
 
+check-docs: ## Fail if AGENTS.md, the skills or the scripts README name a path that is gone
+	bash scripts/check_docs.sh
+
 lint: ## golangci-lint (CI only gates changed lines)
 	golangci-lint run --allow-parallel-runners $(GODIRS)
 
-check: vet fmt-check fix-check vet-windows ## The static checks CI gates on
+check: vet fmt-check fix-check vet-windows check-docs ## The static checks CI gates on
 
 ci: check test-race ## Roughly what CI runs on Linux
 

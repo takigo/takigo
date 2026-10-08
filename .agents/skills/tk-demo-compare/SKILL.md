@@ -39,8 +39,7 @@ tasks.
   `xdotool`, `import` (ImageMagick), `magick`, `montage`, `odiff`,
   `go`, `bash`, and the project's own `./tk/unix/wish`. For headless runs
   also `xvfb-run` (from `xorg-server-xvfb`).
-- Working directory is the repo root (`/home/msorc/projects/takigo` in this
-  project). The skill assumes that.
+- Working directory is the repo root. The skill assumes that.
 - Network/image access is fine — the Read tool can read PNGs.
 
 If any tool is missing, report it and stop; do **not** try to install.
@@ -78,8 +77,8 @@ PNG" failures.
 | `scripts/demo_interact.sh`    | Drive a Go demo through `xdotool` events (key, type, click, wait), capture before/after PNGs, optionally diff (odiff). Use this for **behavioural** verification — does clicking this button do X? does typing into the entry update the variable? See step 5b below. |
 | `scripts/_lib.sh`             | Shared helpers (`tcl_demo_for`, `run_compare`, `set_skip_if_exists`, `odiff_score`, `find_windows_exact`, `maybe_xvfb`). Source this from any new script that needs them. |
 | `internal/cmd/demotitle`               | Small Go CLI: `go run ./internal/cmd/demotitle <path>` extracts the first `takigo.Title("...")`; `… -geometry <path>` extracts `takigo.Geometry("...")`. |
-| `scripts/fix_demo.sh`         | **Deprecated.** Out-of-session script that invokes an LLM CLI (default `claude -p`, configurable via `LLM_TOOL`). Superseded by this skill — prefer the skill. Refuses to run `claude` when `CLAUDECODE` is set. |
-| `scripts/fix_all.sh`          | **Deprecated.** Out-of-session batch wrapper. Same caveats as `fix_demo.sh`. |
+| `scripts/fix_demo.sh`         | The same loop for a terminal outside an agent session: invokes an LLM CLI (default `claude -p`, `LLM_TOOL` picks another). Refuses to run `claude` when `CLAUDECODE` is set. Inside a session, this skill is that loop. |
+| `scripts/fix_all.sh`          | Out-of-session batch wrapper over `fix_demo.sh`, resumable (`--status`). Same caveats. |
 
 Outputs live in `tmp/screenshots/`. Set `SKIP_IF_EXISTS=0` to force retakes,
 `SKIP_IF_EXISTS=1` (default) to reuse. `SETTLE_SECS` (default `5`) is the maximum
@@ -162,15 +161,17 @@ content, image presence. List concrete differences as a checklist.
 Common issues to look for, in priority order:
 1. **Missing or extra widgets** vs the Tcl side (e.g. image label, button).
 2. **Wrong padding/margin** (`pack.PadX`/`pack.PadY`, `grid.PadX`/`grid.PadY`,
-   `-ipadx`/`-ipady` in Tcl → `pack.IpadX`/`pack.IpadY` in Go).
+   `-ipadx`/`-ipady` in Tcl → `pack.IPadX`/`pack.IPadY` in Go).
 3. **Wrong font** (size, family, weight) — the Tcl demos use named fonts
-   (`$font`, `$boldFont`, `$fixedFont`). Match them with `tkfont.TkDefaultFont`,
-   `tkfont.TkTextFont`, `ttk.LabelFont`, or explicit `-family/-size/-weight`
-   options. See `widget/label`, `ttk/label`, etc. for option names.
+   (`$font`, `$boldFont`, `$fixedFont`). Match them with the named fonts
+   `font.TkDefaultFont`, `font.TkTextFont`, … (a `font.Spec` is a name or a
+   `font.Attributes`) through `label.FontOpt`, `ttk.LabelFont`, etc. See
+   `widget/label`, `ttk/ttklabel.go`, etc. for option names.
 4. **Wrong widget dimensions** (`-width/-height` in Tcl → `Width/Height` in
    Go; for ttk use `ttk.LabelWidth` etc.).
-5. **Wrong colours or relief** (`option.ReliefRaised/Sunken/Flat/Groove/Ridge`,
-   `color.RGBA(...)`, hex strings through `app.ColorCache().Get("#...")`).
+5. **Wrong colours or relief** (`option.ReliefRaised/Sunken/Flat/Groove/Ridge`;
+   a colour option takes a `color.Spec`: a name or `"#rrggbb"` string, or
+   `color.RGB(...)`).
 6. **Wrong geometry string** (`takigo.Geometry("+300+300")` matches Tcl's
    `positionWindow` which sets `+300+300`).
 7. **Wrong parent/grid placement** (`grid.Row`/`grid.Column` vs Tcl's
@@ -190,31 +191,32 @@ Use Read on:
 - `demos/<go_demo>/main.go` (the file to edit)
 - `tk/library/demos/<tcl_demo>.tcl` (the reference)
 
-Read related files as needed (`demohelper/demohelper.go` for the button bar,
-`tcl/library/demos/widget` for the launcher equivalent — this lives at
-`tk/library/demos/widget`, search the actual path).
+Read related files as needed (`demos/demohelper/demohelper.go` for the
+button bar, `tk/library/demos/widget` for the launcher the Tcl demos run in).
 
 Cross-check every Tcl widget/property against the Go side. Examples:
 - Tcl: `label $w.msg -font $font -wraplength 4i -justify left -text "..."`
-- Go:  `label.New(f, "msg", label.WrapLength("4i"), label.JustifyOpt(...), label.Text(...))`
-  (note: `label.Font(...)` may be needed to set the font — check
-  `widget/label/label.go` for the option name).
+- Go:  `label.New(f, "msg", label.FontOpt(font), label.WrapLength(screenunit.In(4)), label.JustifyOpt(option.JustifyLeft), label.Text(...))`
+  (check `widget/label/label.go` for the option names; `docs/options.md`
+  lists every option with the Tk option it stands for).
 
 ### 5. Edit the Go source
 
 Use the Edit tool. One focused edit per visual difference. Keep the diff
 minimal — only change what's needed to match Tk.
 
-Conventions in this codebase (see `CLAUDE.md`):
+Conventions in this codebase (see `demos/AGENTS.md` and `widget/AGENTS.md`):
 - **No comments unless required** — don't add explanatory comments to the
   edited file.
-- Functional options: `widget.NewX(parent, name, opt1, opt2, ...)`.
+- Functional options: `label.New(parent, name, opt1, opt2, ...)`; change an
+  option later with `w.Configure(...)`, never by writing a field.
 - Names: usually a single string, no dots (Tcl uses `.a.b.c`; Go uses
   `app`/`f`/`left` etc.).
 - Geometry manager: `pack.Pack`/`grid.Grid` with options
   (`pack.SideOpt(pack.Top)`, `grid.Sticky(grid.EW)`, etc.).
-- Distance strings: `"7.5p"` (points), `"4i"` (inches), `"3m"` (mm) — same
-  syntax as Tcl.
+- Distances are typed, a string does not compile: Tcl `7.5p` is
+  `screenunit.Pt(7.5)`, `4i` is `screenunit.In(4)`, `3m` is
+  `screenunit.Mm(3)`, a bare number is pixels.
 - Relies on `demohelper.AddSeeDismiss(f)` for the bottom button bar.
 
 After editing, **always build** to catch option-name typos:
@@ -360,20 +362,20 @@ If the user asks for many/all demos:
   match — the screenshot script reads this from the Go source via
   `internal/cmd/demotitle -geometry` and passes it to the Tcl wrapper.
 - The Tcl demos may use the launcher fonts (`mainFont`, `boldFont`, etc.).
-  In Go, prefer `app.FontRegistry().Get(tkfont.TkDefaultFont)` or an
-  explicit `-family/-size/-weight` matching the original. The screenshot
-  script exports `XFT_DPI` so the Tcl wrapper picks the same dpi.
+  In Go, prefer the named fonts (`font.TkDefaultFont`, or
+  `demohelper`'s `font` globals) or explicit `font.Attributes` matching the
+  original. The screenshot script exports `XFT_DPI` so the Tcl wrapper
+  picks the same dpi.
 - Window title is taken from `takigo.Title("...")` — make sure it exactly
   matches Tk's `wm title` string, otherwise `demo_compare.sh` will time
   out waiting for the window.
 - The diff score is the **odiff diff %** (0–100, lower = more similar),
   computed with anti-aliasing ignored. It is not comparable with the old
   normalized-MAE numbers from earlier runs — don't mix the two scales.
-- Don't run `scripts/fix_demo.sh` or `scripts/fix_all.sh` from inside
-  opencode with the default `claude` backend — they refuse to run `claude`
-  when `CLAUDECODE` is set. Set `LLM_TOOL` to another tool (e.g.
-  `opencode-deepseek-v4-pro`) if you want to drive them from here. Use this
-  skill instead; it supersedes them.
+- Don't run `scripts/fix_demo.sh` or `scripts/fix_all.sh` from inside an
+  agent session with the default `claude` backend — they refuse to run
+  `claude` when `CLAUDECODE` is set. They are the out-of-session form of
+  this skill; in a session, follow the skill.
 - When in doubt, run `wish tk/library/demos/<tcl_demo>.tcl` by hand (via
   `scripts/demo_wrapper.tcl`) and inspect the window before editing.
 - For behavioural checks, prefer `--click <widget_name>` over
@@ -397,31 +399,32 @@ If the user asks for many/all demos:
 | `-text "..."` | `label.Text("...")` | `ttk.LabelText("...")` / `ttk.ButtonText(...)` |
 | `-image NAME` | `label.ImageOpt(img)` | `ttk.LabelImage(img)` / `ttk.ButtonImage(img)` |
 | `-compound left` | `widget.CompoundLeft` (compound) | `ttk.ButtonCompound(widget.CompoundLeft)` |
-| `-font NAME` | `label.Font(font)` | `ttk.LabelFont(font)` / `ttk.ButtonFont(font)` |
+| `-font NAME` | `label.FontOpt(font)` | `ttk.LabelFont(font)` / `ttk.ButtonFont(font)` |
 | `-width N` | `label.Width(N)` | `ttk.LabelWidth(N)` / `ttk.ButtonWidth(N)` |
 | `-height N` | `label.Height(N)` | `ttk.LabelHeight(N)` |
-| `-wraplength 4i` | `label.WrapLength("4i")` | n/a |
-| `-justify left` | `label.JustifyOpt(option.JustifyLeft)` | `ttk.LabelJustify(option.JustifyLeft)` (verify) |
+| `-wraplength 4i` | `label.WrapLength(screenunit.In(4))` | n/a |
+| `-justify left` | `label.JustifyOpt(option.JustifyLeft)` | `ttk.LabelJustify(option.JustifyLeft)` |
 | `-anchor w` | `label.Anchor(option.AnchorW)` | `ttk.LabelAnchor(option.AnchorW)` |
 | `-relief raised` | `label.Relief(option.ReliefRaised)` | n/a (use style) |
 | `-borderwidth 2` | `label.BorderWidth(2)` | n/a |
 | `-side top` | `pack.SideOpt(pack.Top)` | n/a (use `grid` for TTK) |
-| `-expand yes` | `pack.Expand(true)` | `grid.Sticky(grid.NSEW)` + `grid.Row/ColumnWeight` |
+| `-expand yes` | `pack.Expand(true)` | `grid.Sticky(grid.NSEW)` + `grid.RowConfigure(c, r, grid.Weight(1))` |
 | `-fill both` | `pack.FillOpt(pack.FillBoth)` | (sticky covers most of it) |
-| `-padx 7.5p` | `pack.PadX("7.5p")` | `grid.PadX("7.5p")` |
-| `-pady 7.5p` | `pack.PadY("7.5p")` | `grid.PadY("7.5p")` |
-| `-ipadx N` | `pack.IpadX(N)` | n/a |
-| `-ipady N` | `pack.IpadY(N)` | n/a |
+| `-padx 7.5p` | `pack.PadX(screenunit.Pt(7.5))` | `grid.PadX(screenunit.Pt(7.5))` |
+| `-pady 7.5p` | `pack.PadY(screenunit.Pt(7.5))` | `grid.PadY(screenunit.Pt(7.5))` |
+| `-ipadx N` | `pack.IPadX(N)` | `grid.IPadX(N)` |
+| `-ipady N` | `pack.IPadY(N)` | `grid.IPadY(N)` |
 | `-sticky ew` | n/a | `grid.Sticky(grid.EW)` |
 | `-row N -column N` | n/a | `grid.Row(N)`, `grid.Column(N)` |
 | `-columnspan N` | n/a | `grid.ColumnSpan(N)` |
 | `-rowspan N` | n/a | `grid.RowSpan(N)` |
 | `-command CMD` | `button.Command(cmd)` | `ttk.ButtonCommand(cmd)` |
-| `-textvariable VAR` | `entry.TextVar(v)` | `ttk.LabelTextVar(v)` (verify) |
+| `-textvariable VAR` | `label.TextVariable(v)` | `ttk.LabelTextVariable(v)` / `ttk.EntryTextVariable(v)` |
 
-When an option you need isn't in this table, **grep** the relevant package
-(`widget/<x>/<x>.go`) for similar option names before guessing — the option
-naming is consistent within a package. The inverse lookup (Tcl option →
+When an option you need isn't in this table, look it up in `docs/options.md`
+(every option with the Tk option it stands for) or **grep** the relevant
+package (`widget/<x>/<x>.go`) — the option naming is consistent within a
+package. The inverse lookup (Tcl option →
 takigo source line) lives in
 [`references/tcl-option-map.md`](references/tcl-option-map.md) — read it
 when a Tcl option isn't doing what you expect in Go, since the bug is

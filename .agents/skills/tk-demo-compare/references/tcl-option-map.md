@@ -5,30 +5,32 @@ port, the first place to look is the option's constructor in the takigo
 source. Use this map to jump straight to the right file.
 
 The convention is consistent within each widget package: a Tcl `-foo`
-option is a Go `Foo` constructor taking a typed value (or `any` for
-distance / font specs), placed in the same file as the widget's `New`.
+option is a Go `Foo` constructor taking a typed value (generic over
+`screenunit.Length`, `color.Spec` or `font.Spec` for distances, colours and
+fonts), placed in the same file as the widget's `New`; an `Opt` suffix marks
+the names the bare Tk name could not take. `docs/options.md` lists them all.
 
 ## widget/label
 
 | Tcl option | Go constructor | Source |
 |---|---|---|
-| `-text` | `label.Text` | `widget/label/label.go:48` |
-| `-textvariable` | `label.TextVariable` | `widget/label/label.go:54` |
-| `-image` | `label.ImageOpt` | `widget/label/label.go:133` |
-| `-compound` | `label.CompoundOpt` | `widget/label/label.go:138` |
-| `-bitmap` | `label.Bitmap` | `widget/label/label.go:144` |
-| `-width` (chars) | `label.Width` | `widget/label/label.go:164` |
-| `-height` (lines) | `label.Height` | `widget/label/label.go:169` |
-| `-wraplength` | `label.WrapLength` | `widget/label/label.go:176` |
-| `-justify` | `label.JustifyOpt` | `widget/label/label.go:116` |
-| `-anchor` | `label.Anchor` | `widget/label/label.go:111` |
-| `-padx` | `label.PadX` | `widget/label/label.go:122` |
-| `-pady` | `label.PadY` | `widget/label/label.go:128` |
-| `-relief` | `label.Relief` | `widget/label/label.go:106` |
-| `-borderwidth` | `label.BorderWidth` | `widget/label/label.go:101` |
-| `-background` | `label.Background` | `widget/label/label.go:70` |
-| `-foreground` | `label.Foreground` | `widget/label/label.go:81` |
-| `-font` | `label.FontOpt` | `widget/label/label.go:91` |
+| `-text` | `label.Text` | `widget/label/label.go` |
+| `-textvariable` | `label.TextVariable` | `widget/label/label.go` |
+| `-image` | `label.ImageOpt` | `widget/label/label.go` |
+| `-compound` | `label.CompoundOpt` | `widget/label/label.go` |
+| `-bitmap` | `label.Bitmap` | `widget/label/label.go` |
+| `-width` (chars) | `label.Width` | `widget/label/label.go` |
+| `-height` (lines) | `label.Height` | `widget/label/label.go` |
+| `-wraplength` | `label.WrapLength` | `widget/label/label.go` |
+| `-justify` | `label.JustifyOpt` | `widget/label/label.go` |
+| `-anchor` | `label.Anchor` | `widget/label/label.go` |
+| `-padx` | `label.PadX` | `widget/label/label.go` |
+| `-pady` | `label.PadY` | `widget/label/label.go` |
+| `-relief` | `label.Relief` | `widget/label/label.go` |
+| `-borderwidth` | `label.BorderWidth` | `widget/label/label.go` |
+| `-background` | `label.Background` | `widget/label/label.go` |
+| `-foreground` | `label.Foreground` | `widget/label/label.go` |
+| `-font` | `label.FontOpt` | `widget/label/label.go` |
 | `-underline` | (not yet exposed) | — |
 
 ## widget/button / checkbutton / radiobutton
@@ -42,9 +44,9 @@ radiobutton override individual methods.
 | `-image` | `button.ImageOpt` | same |
 | `-command` | `button.Command` | same |
 | `-variable` | `checkbutton.Var` / `radiobutton.Var` | per-widget file |
-| `-onvalue` / `-offvalue` | `checkbutton.OnValue` / `OffValue` | `widget/checkbutton/` |
+| `-onvalue` / `-offvalue` | `checkbutton.OnValueOpt` / `OffValueOpt` | `widget/checkbutton/` |
 | `-value` | `radiobutton.Value` | `widget/radiobutton/` |
-| `-relief` | `button.Relief` | `widget/button/` |
+| `-relief` | `button.ReliefOpt` | `widget/button/` |
 
 When the option isn't where you'd expect, grep the widget's `New` function
 — it lists every constructor in argument order.
@@ -56,11 +58,11 @@ When the option isn't where you'd expect, grep the widget's `New` function
 | `-side` | `pack.SideOpt` | `geometry/pack/pack.go` |
 | `-expand` | `pack.Expand` | `geometry/pack/pack.go` |
 | `-fill` | `pack.FillOpt` | `geometry/pack/pack.go` |
-| `-anchor` | `pack.Anchor` | `geometry/pack/pack.go:57` |
-| `-padx` | `pack.PadX` | `geometry/pack/pack.go:61` |
-| `-pady` | `pack.PadY` | `geometry/pack/pack.go:65` |
-| `-ipadx` | `pack.IpadX` | `geometry/pack/pack.go` |
-| `-ipady` | `pack.IpadY` | `geometry/pack/pack.go` |
+| `-anchor` | `pack.Anchor` | `geometry/pack/pack.go` |
+| `-padx` | `pack.PadX` | `geometry/pack/pack.go` |
+| `-pady` | `pack.PadY` | `geometry/pack/pack.go` |
+| `-ipadx` | `pack.IPadX` | `geometry/pack/pack.go` |
+| `-ipady` | `pack.IPadY` | `geometry/pack/pack.go` |
 | `-in` | `pack.In` | `geometry/pack/pack.go` |
 | `-after` / `-before` | (not yet exposed) | — |
 
@@ -72,10 +74,10 @@ When the option isn't where you'd expect, grep the widget's `New` function
 | `-rowspan` / `-columnspan` | `grid.RowSpan` / `grid.ColumnSpan` | same |
 | `-sticky` | `grid.Sticky` (constants `grid.NSEW`, `grid.EW`, etc.) | same |
 | `-padx` / `-pady` | `grid.PadX` / `grid.PadY` | same |
-| `-ipadx` / `-ipady` | `grid.IpadX` / `grid.IpadY` | same |
+| `-ipadx` / `-ipady` | `grid.IPadX` / `grid.IPadY` | same |
 | column weight | `grid.ColumnConfigure(..., grid.Weight(n))` | same |
 | row weight | `grid.RowConfigure(..., grid.Weight(n))` | same |
-| Tk's `x` shortcut | `grid.Relative(grid.RelEmpty)` | `geometry/grid/grid.go:227` |
+| Tk's `x` shortcut | `grid.Relative(grid.RelEmpty)` | `geometry/grid/grid.go` |
 
 ## geometry/place
 
@@ -86,7 +88,7 @@ When the option isn't where you'd expect, grep the widget's `New` function
 | `-width` / `-height` | `place.Width` / `place.Height` | same |
 | `-relwidth` / `-relheight` | `place.RelWidth` / `place.RelHeight` | same |
 | `-anchor` | `place.Anchor` | same |
-| `-bordermode` | `place.BorderMode` | same |
+| `-bordermode` | not ported (inside is assumed) | same |
 | `-in` | `place.In` | same |
 
 ## ttk widgets
@@ -100,8 +102,8 @@ TTK widgets use the same constructor name pattern but live under
 | `-image` | `ttk.LabelImage` / `ttk.ButtonImage` | same |
 | `-compound` | `ttk.LabelCompound` / `ttk.ButtonCompound` | same (use `widget.CompoundLeft` etc.) |
 | `-command` | `ttk.ButtonCommand` | `ttk/button.go` |
-| `-variable` | `ttk.CheckbuttonVariable` / `ttk.RadiobuttonVariable` | `ttk/checkbutton.go`, `ttk/radiobutton.go` |
-| `-width` (chars) | `ttk.LabelWidth` / `ttk.ButtonWidth` | per-widget file |
+| `-variable` | `ttk.CheckbuttonVar` / `ttk.RadiobuttonVar` | `ttk/checkbutton.go`, `ttk/radiobutton.go` |
+| `-width` (chars) | `ttk.ButtonWidth` (the ttk label has no width option yet) | per-widget file |
 | `-style` | (style engine — see `ttk.Style(...)`) | `ttk/theme.go` |
 
 ## Quick discovery cheat
