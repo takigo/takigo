@@ -5,6 +5,8 @@ version is 0, a minor release may break the API and says so here.
 
 ## Unreleased
 
+## v0.3.4 (2026-10-14)
+
 - **The file dialogs have Alt mnemonics and back/forward history.** As in
   Tk's `tkfbox.tcl`, the captions and buttons underline a letter:
   Alt+N (file name), Alt+T (file type), Alt+H (hidden files), Alt+O/S
