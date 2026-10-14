@@ -7,6 +7,8 @@
 package entrytext
 
 import (
+	"runtime"
+
 	"github.com/takigo/takigo/event"
 	"github.com/takigo/takigo/font"
 	"github.com/takigo/takigo/internal/textedit"
@@ -246,6 +248,12 @@ func (h *Helper) ClipboardGet(time platform.Timestamp) {
 // Returns true if the event was consumed.
 func (h *Helper) HandleKey(ev *event.Event) bool {
 	if ev.State&platform.ControlMask != 0 {
+		return false
+	}
+	// bind TEntry <Alt-Key> {# nothing} (ttk/entry.tcl), so Alt+letter
+	// reaches dialog mnemonics. On macOS Option is Mod1 and composes
+	// characters, so it still inserts there.
+	if ev.State&platform.Mod1Mask != 0 && runtime.GOOS != "darwin" {
 		return false
 	}
 	s := ev.Str

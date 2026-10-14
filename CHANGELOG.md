@@ -5,6 +5,20 @@ version is 0, a minor release may break the API and says so here.
 
 ## Unreleased
 
+- **The file dialogs have Alt mnemonics and back/forward history.** As in
+  Tk's `tkfbox.tcl`, the captions and buttons underline a letter:
+  Alt+N (file name), Alt+T (file type), Alt+H (hidden files), Alt+O/S
+  (Open/Save, following the button's current text), Alt+C (Cancel), and
+  Alt+D focuses the path. Back and forward toolbar buttons, Alt+Left and
+  Alt+Right step through the directories visited. macOS keeps Option for
+  composing characters and has no Alt mnemonics.
+- `ttk.LabelUnderline` and `ttk.CheckbuttonUnderline` add `-underline` to
+  themed labels and checkbuttons.
+- Themed entries, comboboxes and spinboxes no longer insert the letter of an
+  Alt+key press (Tk's `bind TEntry <Alt-Key> {# nothing}`), except on macOS.
+- `ttk.Treeview.Selection` and `See` work right after `Insert` and `Delete`,
+  before the idle redisplay.
+
 ## v0.3.3 (2026-10-08)
 
 - **The contributor guides are split per area and checked.** `AGENTS.md`

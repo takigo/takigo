@@ -12,21 +12,27 @@ import (
 // in tkfbox.tcl the same way).
 type fileIcons struct {
 	folder, file, up, home, newFolder, drive *tkimage.Photo
+	// back and forward, then their greyed disabled variants.
+	back, forward, backOff, forwardOff *tkimage.Photo
 }
 
 func newFileIcons() *fileIcons {
 	return &fileIcons{
-		folder:    tkimage.NewPhoto("", drawIcon(paintFolder)),
-		file:      tkimage.NewPhoto("", drawIcon(paintFile)),
-		up:        tkimage.NewPhoto("", drawIcon(paintUp)),
-		home:      tkimage.NewPhoto("", drawIcon(paintHome)),
-		newFolder: tkimage.NewPhoto("", drawIcon(paintNewFolder)),
-		drive:     tkimage.NewPhoto("", drawIcon(paintDrive)),
+		folder:     tkimage.NewPhoto("", drawIcon(paintFolder)),
+		file:       tkimage.NewPhoto("", drawIcon(paintFile)),
+		up:         tkimage.NewPhoto("", drawIcon(paintUp)),
+		back:       tkimage.NewPhoto("", drawIcon(paintBack(inkDark))),
+		forward:    tkimage.NewPhoto("", drawIcon(paintForward(inkDark))),
+		backOff:    tkimage.NewPhoto("", drawIcon(paintBack(inkOff))),
+		forwardOff: tkimage.NewPhoto("", drawIcon(paintForward(inkOff))),
+		home:       tkimage.NewPhoto("", drawIcon(paintHome)),
+		newFolder:  tkimage.NewPhoto("", drawIcon(paintNewFolder)),
+		drive:      tkimage.NewPhoto("", drawIcon(paintDrive)),
 	}
 }
 
 func (ic *fileIcons) destroy() {
-	for _, p := range []*tkimage.Photo{ic.folder, ic.file, ic.up, ic.home, ic.newFolder, ic.drive} {
+	for _, p := range []*tkimage.Photo{ic.folder, ic.file, ic.up, ic.back, ic.forward, ic.backOff, ic.forwardOff, ic.home, ic.newFolder, ic.drive} {
 		p.Destroy()
 	}
 }
@@ -80,6 +86,7 @@ var (
 	paperFill   = color.RGBA{0xfc, 0xfc, 0xfc, 0xff}
 	paperLine   = color.RGBA{0xb8, 0xb8, 0xb8, 0xff}
 	inkDark     = color.RGBA{0x3c, 0x3c, 0x3c, 0xff}
+	inkOff      = color.RGBA{0xa8, 0xa8, 0xa8, 0xff}
 	accentGreen = color.RGBA{0x2e, 0x9e, 0x44, 0xff}
 	driveGrey   = color.RGBA{0x9a, 0x9a, 0x9a, 0xff}
 	driveLight  = color.RGBA{0xd8, 0xd8, 0xd8, 0xff}
@@ -118,6 +125,20 @@ func paintFile(r raster) {
 func paintUp(r raster) {
 	r.poly(inkDark, [2]float64{8, 1}, [2]float64{15, 8}, [2]float64{1, 8})
 	r.rect(6, 8, 10, 15, inkDark)
+}
+
+func paintBack(ink color.RGBA) func(raster) {
+	return func(r raster) {
+		r.poly(ink, [2]float64{1, 8}, [2]float64{8, 1}, [2]float64{8, 15})
+		r.rect(8, 6, 15, 10, ink)
+	}
+}
+
+func paintForward(ink color.RGBA) func(raster) {
+	return func(r raster) {
+		r.poly(ink, [2]float64{15, 8}, [2]float64{8, 15}, [2]float64{8, 1})
+		r.rect(1, 6, 8, 10, ink)
+	}
 }
 
 func paintHome(r raster) {

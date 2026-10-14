@@ -194,3 +194,44 @@ func quoteNames(names []string) string {
 	}
 	return strings.Join(parts, " ")
 }
+
+// dirHistory is the file browser's back/forward list of visited
+// directories; pos indexes the current one.
+type dirHistory struct {
+	dirs []string
+	pos  int
+}
+
+// visit records dir as the current directory, dropping the forward
+// entries; revisiting the current directory changes nothing.
+func (h *dirHistory) visit(dir string) {
+	if len(h.dirs) > 0 && h.dirs[h.pos] == dir {
+		return
+	}
+	if len(h.dirs) > 0 {
+		h.dirs = h.dirs[:h.pos+1]
+	}
+	h.dirs = append(h.dirs, dir)
+	h.pos = len(h.dirs) - 1
+}
+
+func (h *dirHistory) canBack() bool    { return h.pos > 0 }
+func (h *dirHistory) canForward() bool { return h.pos+1 < len(h.dirs) }
+
+// back moves to the previous directory and returns it.
+func (h *dirHistory) back() (string, bool) {
+	if !h.canBack() {
+		return "", false
+	}
+	h.pos--
+	return h.dirs[h.pos], true
+}
+
+// forward moves to the next directory and returns it.
+func (h *dirHistory) forward() (string, bool) {
+	if !h.canForward() {
+		return "", false
+	}
+	h.pos++
+	return h.dirs[h.pos], true
+}

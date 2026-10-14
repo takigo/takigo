@@ -101,3 +101,29 @@ func TestNotebookUnmapsContentPlacedInHiddenPane(t *testing.T) {
 		t.Error("content not remapped with its pane")
 	}
 }
+
+func TestTreeviewSelectionRightAfterInsert(t *testing.T) {
+	app := testutil.NewTestApp(t)
+	tv := ttk.NewTreeview(app, "tv")
+	tv.Insert("", -1, ttk.ItemText("old"))
+	tv.Delete(tv.Children("")...)
+	id := tv.Insert("", -1, ttk.ItemText("new"))
+	tv.SelectionSet(id)
+	if got := tv.Selection(); len(got) != 1 || got[0] != id {
+		t.Errorf("Selection before the idle redisplay = %v, want [%s]", got, id)
+	}
+}
+
+func TestUnderlineOptions(t *testing.T) {
+	app := testutil.NewTestApp(t)
+	l := ttk.NewLabel(app, "l", ttk.LabelText("File name:"))
+	c := ttk.NewCheckbutton(app, "c", ttk.CheckbuttonText("Hidden"))
+	if l.GetUnderline() != -1 || c.GetUnderline() != -1 {
+		t.Errorf("default underline: label %d, checkbutton %d", l.GetUnderline(), c.GetUnderline())
+	}
+	_ = l.Configure(ttk.LabelUnderline(5))
+	_ = c.Configure(ttk.CheckbuttonUnderline(0))
+	if l.GetUnderline() != 5 || c.GetUnderline() != 0 {
+		t.Errorf("configured underline: label %d, checkbutton %d", l.GetUnderline(), c.GetUnderline())
+	}
+}

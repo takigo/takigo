@@ -448,6 +448,7 @@ func (tv *Treeview) SetItemOpen(id string, open bool) {
 
 // Selection returns the IDs of selected items.
 func (tv *Treeview) Selection() []string {
+	tv.syncDisplayList()
 	var result []string
 	for _, e := range tv.displayList {
 		if tv.selection[e.item.ID] {
@@ -760,6 +761,7 @@ func (tv *Treeview) notifyYScrollbar() {
 }
 
 func (tv *Treeview) displayIndex(id string) int {
+	tv.syncDisplayList()
 	for i, e := range tv.displayList {
 		if e.item.ID == id {
 			return i
@@ -786,6 +788,14 @@ func (tv *Treeview) scheduleRedisplay() {
 }
 
 // --- Display List ---
+
+// syncDisplayList brings the display list up to date before the idle
+// redisplay, so Selection and See work right after Insert or Delete.
+func (tv *Treeview) syncDisplayList() {
+	if tv.redisplayPending {
+		tv.rebuildDisplayList()
+	}
+}
 
 func (tv *Treeview) rebuildDisplayList() {
 	tv.displayList = tv.displayList[:0]

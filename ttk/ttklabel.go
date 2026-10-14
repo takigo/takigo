@@ -15,6 +15,8 @@ type Label struct {
 	Font     font.Font
 	Img      widget.WidgetImage
 	Compound widget.Compound
+	// Underline is the index of the character to underline; -1 for none.
+	Underline int
 
 	// TextVariable linkage — when set, the variable's value overrides Text.
 	TextVar *widget.Variable[string]
@@ -32,6 +34,9 @@ func (l *Label) GetImage() widget.WidgetImage { return l.Img }
 
 // GetCompound implements TextProvider.
 func (l *Label) GetCompound() widget.Compound { return l.Compound }
+
+// GetUnderline implements the label element's optional underline provider.
+func (l *Label) GetUnderline() int { return l.Underline }
 
 // LabelOption configures a Label.
 type LabelOption func(*Label)
@@ -103,6 +108,11 @@ func LabelCompound(c widget.Compound) LabelOption {
 	return func(l *Label) { l.Compound = c }
 }
 
+// LabelUnderline sets -underline: the index of the character to underline.
+func LabelUnderline(i int) LabelOption {
+	return func(l *Label) { l.Underline = i }
+}
+
 // LabelStyle sets -style.
 func LabelStyle(name string) LabelOption {
 	return func(l *Label) { l.StyleName = name }
@@ -114,7 +124,7 @@ func NewLabel(parent widget.Caregiver, name string, opts ...LabelOption) *Label 
 	win := window.NewChildWindow(parent.Window(), name, 0, 0, 1, 1)
 	window.MakeWindowExist(win)
 
-	l := &Label{}
+	l := &Label{Underline: -1}
 
 	// Get default font.
 	l.Font, _ = app.FontRegistry().Get(font.TkDefaultFont)

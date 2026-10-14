@@ -140,6 +140,7 @@ it is only a hint. Regenerate with `python3 scripts/options_doc.py > docs/option
 | `CheckbuttonOption` | `ttk.CheckbuttonFont` | `name F` | `-font` |
 | `CheckbuttonOption` | `ttk.CheckbuttonStyle` | `name string` | `-style` |
 | `CheckbuttonOption` | `ttk.CheckbuttonText` | `s string` | `-text` |
+| `CheckbuttonOption` | `ttk.CheckbuttonUnderline` | `i int` | `-underline` |
 | `CheckbuttonOption` | `ttk.CheckbuttonVar` | `v *widget.Variable[bool]` | `-var` |
 | `ColumnOption` | `ttk.ColAnchor` | `a option.Anchor` | `-colanchor` |
 | `ColumnOption` | `ttk.ColMinWidth` | `w L` | `-colminwidth` |
@@ -187,6 +188,7 @@ it is only a hint. Regenerate with `python3 scripts/options_doc.py > docs/option
 | `LabelOption` | `ttk.LabelStyle` | `name string` | `-style` |
 | `LabelOption` | `ttk.LabelText` | `s string` | `-text` |
 | `LabelOption` | `ttk.LabelTextVariable` | `v *widget.Variable[string]` | `-textvariable` |
+| `LabelOption` | `ttk.LabelUnderline` | `i int` | `-underline` |
 | `LabelOption` | `ttk.LabelWrapLength` | `v L` | `-wraplength` |
 | `LabelframeOption` | `ttk.LabelframeBorderWidth` | `bw L` | `-frameborderwidth` |
 | `LabelframeOption` | `ttk.LabelframeLabelWidget` | `w window.Windower` | `-framelabelwidget` |

@@ -1,9 +1,12 @@
 package entrytext
 
 import (
+	"runtime"
 	"testing"
 
+	"github.com/takigo/takigo/event"
 	"github.com/takigo/takigo/font"
+	"github.com/takigo/takigo/platform"
 )
 
 // fixedFont is 10px per rune.
@@ -114,5 +117,17 @@ func TestClosestGap(t *testing.T) {
 	}
 	if got := h.WordStart(3); got != 0 {
 		t.Errorf("WordStart = %d", got)
+	}
+}
+
+func TestHandleKeyIgnoresAlt(t *testing.T) {
+	t.Parallel()
+	h, _ := newHelper("")
+	if !h.HandleKey(&event.Event{KeySym: platform.XK_n, Str: "n"}) || h.Get() != "n" {
+		t.Fatalf("plain key: %q", h.Get())
+	}
+	inserted := h.HandleKey(&event.Event{KeySym: platform.XK_n, Str: "n", State: platform.Mod1Mask})
+	if want := runtime.GOOS == "darwin"; inserted != want {
+		t.Errorf("Alt+n inserted = %v, want %v (text %q)", inserted, want, h.Get())
 	}
 }

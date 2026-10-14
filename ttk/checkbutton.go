@@ -18,6 +18,8 @@ type Checkbutton struct {
 	Font     font.Font
 	Command  func()
 	Variable *widget.Variable[bool]
+	// Underline is the index of the character to underline; -1 for none.
+	Underline int
 
 	selected bool
 	unsub    func()
@@ -40,6 +42,9 @@ func (c *Checkbutton) GetImage() widget.WidgetImage { return nil }
 // GetCompound implements TextProvider.
 func (c *Checkbutton) GetCompound() widget.Compound { return widget.CompoundNone }
 
+// GetUnderline implements the label element's optional underline provider.
+func (c *Checkbutton) GetUnderline() int { return c.Underline }
+
 // CheckbuttonStyle sets -style, e.g. "Toolbutton".
 func CheckbuttonStyle(name string) CheckbuttonOption {
 	return func(c *Checkbutton) { c.StyleName = name }
@@ -51,6 +56,12 @@ type CheckbuttonOption func(*Checkbutton)
 // CheckbuttonText sets the button label.
 func CheckbuttonText(s string) CheckbuttonOption {
 	return func(c *Checkbutton) { c.Text = s }
+}
+
+// CheckbuttonUnderline sets -underline: the index of the character to
+// underline.
+func CheckbuttonUnderline(i int) CheckbuttonOption {
+	return func(c *Checkbutton) { c.Underline = i }
 }
 
 // CheckbuttonFont sets the font.
@@ -89,7 +100,7 @@ func NewCheckbutton(parent widget.Caregiver, name string, opts ...CheckbuttonOpt
 
 	win.Flags |= window.FlagFocusable
 
-	c := &Checkbutton{}
+	c := &Checkbutton{Underline: -1}
 	c.Font, _ = app.FontRegistry().Get(font.TkDefaultFont)
 
 	InitTtkWidget(&c.TtkWidget, win, app, "TCheckbutton")
@@ -334,6 +345,8 @@ func (c *Checkbutton) Display() {
 			textX := labelX
 			textY := labelY + m.Ascent
 			drawString(df, win.Drawable(), textX, textY, c.Text, fgColor)
+			underlineChar(d, win.Drawable(), gc, c.Font, []string{c.Text}, option.JustifyLeft,
+				labelX, labelY, c.Font.MeasureString(c.Text), c.Underline, fgColor)
 		}
 	}
 

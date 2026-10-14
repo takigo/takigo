@@ -1,8 +1,9 @@
 // File dialogs: a directory browser shared by OpenFile, SaveFile,
 // OpenFiles and ChooseDirectory. It ports the behaviour of
 // tk/library/tkfbox.tcl and choosedir.tcl (path resolution, filters,
-// hidden files, completion, overwrite confirmation) on a themed layout
-// with a places sidebar and a details list.
+// hidden files, completion, overwrite confirmation, Alt mnemonics through
+// tk.tcl's AmpWidget and AltKeyInDialog) on a themed layout with a places
+// sidebar, a details list and back/forward history.
 package dialog
 
 import (
@@ -17,6 +18,7 @@ import (
 	"github.com/takigo/takigo/event"
 	"github.com/takigo/takigo/geometry/grid"
 	"github.com/takigo/takigo/geometry/pack"
+	tkimage "github.com/takigo/takigo/image"
 	"github.com/takigo/takigo/option"
 	"github.com/takigo/takigo/platform"
 	"github.com/takigo/takigo/ttk"
@@ -136,6 +138,11 @@ type fileBrowser struct {
 	byID       map[string]*dirEntry
 	mustExist  bool
 
+	hist       dirHistory
+	histMoving bool
+
+	backBtn   *ttk.Button
+	fwdBtn    *ttk.Button
 	pathEntry *ttk.Entry
 	places    *ttk.Treeview
 	placeDirs map[string]string
@@ -143,11 +150,13 @@ type fileBrowser struct {
 	vscroll   *ttk.Scrollbar
 	nameEntry *ttk.Entry
 	typeBox   *ttk.Combobox
+	hiddenBtn *ttk.Checkbutton
 	okBtn     *ttk.Button
 	status    *ttk.Label
 
 	updating bool
 	result   []string
+	warnHook func(msg string) // replaces the warning box in tests
 
 	// Type-ahead: printable keys typed in the list select the first
 	// name with that prefix, as file managers do.
@@ -222,6 +231,12 @@ func (b *fileBrowser) buildToolbar() {
 		ttk.FramePadding(ttk.Padding{Left: dialogPadding, Top: dialogPadding, Right: dialogPadding, Bottom: 4}))
 	pack.Pack(bar, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
 
+	b.backBtn = ttk.NewButton(bar, "back", ttk.ButtonImage(b.icons.back), ttk.ButtonStyle("Toolbutton"),
+		ttk.ButtonCommand(b.goBack))
+	pack.Pack(b.backBtn, pack.SideOpt(pack.Left))
+	b.fwdBtn = ttk.NewButton(bar, "forward", ttk.ButtonImage(b.icons.forward), ttk.ButtonStyle("Toolbutton"),
+		ttk.ButtonCommand(b.goForward))
+	pack.Pack(b.fwdBtn, pack.SideOpt(pack.Left), pack.PadXPair(2, 6))
 	up := ttk.NewButton(bar, "up", ttk.ButtonImage(b.icons.up), ttk.ButtonStyle("Toolbutton"),
 		ttk.ButtonCommand(b.upDir))
 	pack.Pack(up, pack.SideOpt(pack.Left))
@@ -353,16 +368,17 @@ func (b *fileBrowser) buildForm() {
 		ttk.FramePadding(ttk.Padding{Left: dialogPadding, Top: 4, Right: dialogPadding, Bottom: 0}))
 	pack.Pack(form, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX))
 
-	nameCaption := "File name:"
+	nameCaption := "File &name:"
 	switch {
 	case b.mode == browseDir:
-		nameCaption = "Folder:"
+		nameCaption = "&Folder:"
 	case b.cfg.multiple:
-		nameCaption = "File names:"
+		nameCaption = "File &names:"
 	}
 	row := 0
-	nameLab := ttk.NewLabel(form, "namelab", ttk.LabelText(nameCaption), ttk.LabelAnchor(option.AnchorE))
+	nameLab := b.ampLabel(form, "namelab", nameCaption)
 	b.nameEntry = ttk.NewEntry(form, "name", ttk.EntryWidth(40))
+	b.d.addMnemonic(nameLab, b.selectEntry)
 	grid.Grid(nameLab, grid.Row(row), grid.Column(0), grid.Sticky(grid.EW), grid.PadY(3))
 	grid.Grid(b.nameEntry, grid.Row(row), grid.Column(1), grid.Sticky(grid.EW), grid.PadX(6), grid.PadY(3))
 	b.app.Dispatcher().Bind(b.nameEntry.Window().PlatformID, event.KeyPressMask, func(ev *event.Event) {
@@ -380,7 +396,7 @@ func (b *fileBrowser) buildForm() {
 	row++
 
 	if b.mode != browseDir && len(b.cfg.fileTypes) > 0 {
-		typeLab := ttk.NewLabel(form, "typelab", ttk.LabelText("Files of type:"), ttk.LabelAnchor(option.AnchorE))
+		typeLab := b.ampLabel(form, "typelab", "Files of &type:")
 		values := make([]string, len(b.cfg.fileTypes))
 		for i, ft := range b.cfg.fileTypes {
 			values[i] = fileTypeLabel(ft)
@@ -390,6 +406,7 @@ func (b *fileBrowser) buildForm() {
 			ttk.ComboboxText(values[0]),
 			ttk.ComboboxState(ttk.FieldReadonly),
 			ttk.ComboboxCommand(b.setFilter))
+		b.d.addMnemonic(typeLab, func() { widget.Focus(b.app, b.typeBox.Window()) })
 		grid.Grid(typeLab, grid.Row(row), grid.Column(0), grid.Sticky(grid.EW), grid.PadY(3))
 		grid.Grid(b.typeBox, grid.Row(row), grid.Column(1), grid.Sticky(grid.EW), grid.PadX(6), grid.PadY(3))
 		row++
@@ -397,19 +414,28 @@ func (b *fileBrowser) buildForm() {
 
 	extra := ttk.NewFrame(form, "extra")
 	grid.Grid(extra, grid.Row(row), grid.Column(1), grid.Sticky(grid.EW), grid.PadX(6), grid.PadY(3))
-	hiddenText := "Show hidden files"
+	hiddenText, hiddenUnder := underlineAmpersand("Show &hidden files")
 	if b.mode == browseDir {
-		hiddenText = "Show hidden folders"
+		hiddenText, hiddenUnder = underlineAmpersand("Show &hidden folders")
 	}
-	hidden := ttk.NewCheckbutton(extra, "hidden",
+	b.hiddenBtn = ttk.NewCheckbutton(extra, "hidden",
 		ttk.CheckbuttonText(hiddenText),
+		ttk.CheckbuttonUnderline(hiddenUnder),
 		ttk.CheckbuttonVar(b.showHidden),
 		ttk.CheckbuttonCommand(func() { b.load(b.dir) }))
-	pack.Pack(hidden, pack.SideOpt(pack.Left))
+	pack.Pack(b.hiddenBtn, pack.SideOpt(pack.Left))
+	b.d.addMnemonic(b.hiddenBtn, b.hiddenBtn.Toggle)
 	b.status = ttk.NewLabel(extra, "status", ttk.LabelText(""), ttk.LabelAnchor(option.AnchorE))
 	pack.Pack(b.status, pack.SideOpt(pack.Right))
 
 	grid.ColumnConfigure(form, 1, grid.Weight(1))
+}
+
+// ampLabel ports ::tk::AmpWidget for a caption label.
+func (b *fileBrowser) ampLabel(parent widget.Caregiver, name, caption string) *ttk.Label {
+	text, under := underlineAmpersand(caption)
+	return ttk.NewLabel(parent, name, ttk.LabelText(text), ttk.LabelUnderline(under),
+		ttk.LabelAnchor(option.AnchorE))
 }
 
 func fileTypeLabel(ft FileType) string {
@@ -421,20 +447,15 @@ func fileTypeLabel(ft FileType) string {
 }
 
 func (b *fileBrowser) buildButtons() {
-	okText := "Open"
-	switch b.mode {
-	case browseSave:
-		okText = "Save"
-	case browseDir:
-		okText = "Select"
-	default:
-	}
-	cancel := ttk.NewButton(b.d.BtnFrame, "cancel", ttk.ButtonText("Cancel"), ttk.ButtonWidth(8),
-		ttk.ButtonCommand(func() { b.d.Close(ResultCancel) }))
+	cancelText, cancelUnder := underlineAmpersand("&Cancel")
+	cancel := ttk.NewButton(b.d.BtnFrame, "cancel", ttk.ButtonText(cancelText), ttk.ButtonUnderline(cancelUnder),
+		ttk.ButtonWidth(8), ttk.ButtonCommand(func() { b.d.Close(ResultCancel) }))
 	pack.Pack(cancel, pack.SideOpt(pack.Right), pack.PadX(dialogPadding), pack.PadY(2))
-	b.okBtn = ttk.NewButton(b.d.BtnFrame, "ok", ttk.ButtonText(okText), ttk.ButtonWidth(8),
-		ttk.ButtonCommand(b.okCmd))
+	b.okBtn = ttk.NewButton(b.d.BtnFrame, "ok", ttk.ButtonWidth(8), ttk.ButtonCommand(b.okCmd))
+	b.restoreOKText()
 	pack.Pack(b.okBtn, pack.SideOpt(pack.Right), pack.PadY(2))
+	b.d.addMnemonic(b.okBtn, b.okBtn.Invoke)
+	b.d.addMnemonic(cancel, cancel.Invoke)
 	b.d.defaultButton = b.nameEntry.Window()
 }
 
@@ -446,18 +467,39 @@ func (b *fileBrowser) bindKeys() {
 			b.upDir()
 		}
 	})
+	b.d.bindKeyEvent(platform.XK_Left, func(ev *event.Event) {
+		if ev.State&platform.Mod1Mask != 0 {
+			b.goBack()
+		}
+	})
+	b.d.bindKeyEvent(platform.XK_Right, func(ev *event.Event) {
+		if ev.State&platform.Mod1Mask != 0 {
+			b.goForward()
+		}
+	})
 	b.d.bindKeyEvent(platform.XK_h, func(ev *event.Event) {
 		if ev.State&platform.ControlMask != 0 {
-			b.showHidden.Set(!b.showHidden.Get())
-			b.load(b.dir)
+			b.hiddenBtn.Toggle()
 		}
 	})
 	b.d.bindKeyEvent(platform.XK_l, func(ev *event.Event) {
 		if ev.State&platform.ControlMask != 0 {
-			widget.Focus(b.app, b.pathEntry.Window())
-			_ = b.pathEntry.Selection().Range("0", "end")
+			b.focusPath()
 		}
 	})
+	// Tk labels the directory field "&Directory:"; the path entry has no
+	// caption here, so Alt+D is bound directly.
+	b.d.bindKeyEvent(platform.XK_d, func(ev *event.Event) {
+		if ev.State&platform.Mod1Mask != 0 && ev.State&platform.ControlMask == 0 {
+			ev.Handled = true
+			b.focusPath()
+		}
+	})
+}
+
+func (b *fileBrowser) focusPath() {
+	widget.Focus(b.app, b.pathEntry.Window())
+	_ = b.pathEntry.Selection().Range("0", "end")
 }
 
 func (b *fileBrowser) run() ([]string, bool) {
@@ -483,6 +525,10 @@ func (b *fileBrowser) load(dir string) {
 		return
 	}
 	b.dir = dir
+	if !b.histMoving {
+		b.hist.visit(dir)
+	}
+	b.updateHistoryButtons()
 	b.pathEntry.Set(dir)
 	if b.mode == browseDir {
 		b.nameEntry.Set(dir)
@@ -628,6 +674,47 @@ func (b *fileBrowser) selectName(name string) {
 
 // --- Navigation ---
 
+func (b *fileBrowser) goBack()    { b.moveInHistory(b.hist.back) }
+func (b *fileBrowser) goForward() { b.moveInHistory(b.hist.forward) }
+
+// moveInHistory loads the directory step returns; when it cannot be
+// read the history stays where it was.
+func (b *fileBrowser) moveInHistory(step func() (string, bool)) {
+	pos := b.hist.pos
+	dir, ok := step()
+	if !ok {
+		return
+	}
+	b.histMoving = true
+	b.load(dir)
+	b.histMoving = false
+	if b.dir != dir {
+		b.hist.pos = pos
+		b.updateHistoryButtons()
+	}
+}
+
+// updateHistoryButtons enables the back and forward buttons; a disabled
+// one shows its greyed icon, since a ttk image does not dim by itself.
+func (b *fileBrowser) updateHistoryButtons() {
+	for _, bs := range []struct {
+		btn      *ttk.Button
+		on       bool
+		img, off *tkimage.Photo
+	}{
+		{b.backBtn, b.hist.canBack(), b.icons.back, b.icons.backOff},
+		{b.fwdBtn, b.hist.canForward(), b.icons.forward, b.icons.forwardOff},
+	} {
+		if bs.on {
+			bs.btn.ChangeState(0, ttk.StateDisabled)
+			_ = bs.btn.Configure(ttk.ButtonImage(bs.img))
+		} else {
+			bs.btn.ChangeState(ttk.StateDisabled, 0)
+			_ = bs.btn.Configure(ttk.ButtonImage(bs.off))
+		}
+	}
+}
+
 func (b *fileBrowser) upDir() {
 	if parent := filepath.Dir(b.dir); parent != b.dir {
 		b.load(parent)
@@ -697,27 +784,29 @@ func (b *fileBrowser) listBrowse() {
 		return
 	}
 	if de.isDir {
-		b.setOKText("Open")
+		b.setOKText("&Open")
 		return
 	}
 	b.nameEntry.Set(de.name)
 	b.restoreOKText()
 }
 
-func (b *fileBrowser) setOKText(s string) {
-	if b.okBtn.Text != s {
-		b.okBtn.Configure(ttk.ButtonText(s))
+// setOKText ports ::tk::SetAmpText for the OK button.
+func (b *fileBrowser) setOKText(caption string) {
+	text, under := underlineAmpersand(caption)
+	if b.okBtn.Text != text || b.okBtn.Underline != under {
+		_ = b.okBtn.Configure(ttk.ButtonText(text), ttk.ButtonUnderline(under))
 	}
 }
 
 func (b *fileBrowser) restoreOKText() {
 	switch b.mode {
 	case browseSave:
-		b.setOKText("Save")
+		b.setOKText("&Save")
 	case browseDir:
-		b.setOKText("Select")
+		b.setOKText("&Select")
 	default:
-		b.setOKText("Open")
+		b.setOKText("&Open")
 	}
 }
 
@@ -976,6 +1065,10 @@ func (b *fileBrowser) finish(paths []string) {
 }
 
 func (b *fileBrowser) warn(msg string) {
+	if b.warnHook != nil {
+		b.warnHook(msg)
+		return
+	}
 	ShowMessage(b.d.Toplevel, MsgTitle(b.cfg.title), MsgType(MsgWarning), MsgMessage(msg))
 }
 

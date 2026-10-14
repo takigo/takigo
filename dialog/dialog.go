@@ -5,6 +5,9 @@ package dialog
 import (
 	"context"
 	"fmt"
+	"runtime"
+	"strings"
+	"unicode"
 
 	"github.com/takigo/takigo/event"
 	"github.com/takigo/takigo/geometry/grid"
@@ -54,6 +57,20 @@ type Dialog struct {
 	returnBound bool
 	// defaultButton gets the focus while the dialog runs.
 	defaultButton *window.Window
+	mnemonics     []mnemonic
+}
+
+// underliner is a widget with -text and -underline.
+type underliner interface {
+	GetText() string
+	GetUnderline() int
+}
+
+// mnemonic is a widget whose underlined character, pressed with Alt,
+// runs fn (Tk's <<AltUnderlined>> binding).
+type mnemonic struct {
+	w  underliner
+	fn func()
 }
 
 type contextParent struct {
@@ -119,6 +136,12 @@ func New(parent widget.Caregiver, title string, minWidth, minHeight int) *Dialog
 	// Bind Escape to cancel.
 	d.bindKey(platform.XK_Escape, func() { d.Close(ResultCancel) })
 
+	// bind $w <Alt-Key> [list tk::AltKeyInDialog $w %A]; macOS has no
+	// mnemonics and Option composes characters.
+	if runtime.GOOS != "darwin" {
+		d.bindAltKey()
+	}
+
 	// Destroyed from elsewhere (its parent went away): end Run.
 	d.Toplevel.Window().OnDestroy(func() { d.finish(ResultCancel, false) })
 
@@ -137,19 +160,97 @@ func (d *Dialog) bindKey(keysym platform.KeySym, fn func()) {
 func (d *Dialog) bindKeyEvent(keysym platform.KeySym, fn func(ev *event.Event)) {
 	tw := d.Toplevel.Window()
 	d.App.Dispatcher().BindGlobalFor(tw.PlatformID, event.KeyPressMask, func(ev *event.Event) {
-		if ev.KeySym != keysym || ev.Handled {
-			return
-		}
-		for w := tw.Display.LookupWindow(ev.Window); w != nil; w = w.Parent {
-			if w == tw {
-				fn(ev)
-				return
-			}
-			if w.IsTopLevel() {
-				return
-			}
+		if ev.KeySym == keysym && !ev.Handled && d.inDialog(ev) {
+			fn(ev)
 		}
 	})
+}
+
+// inDialog reports whether ev happened in the dialog toplevel rather
+// than in another toplevel.
+func (d *Dialog) inDialog(ev *event.Event) bool {
+	tw := d.Toplevel.Window()
+	for w := tw.Display.LookupWindow(ev.Window); w != nil; w = w.Parent {
+		if w == tw {
+			return true
+		}
+		if w.IsTopLevel() {
+			return false
+		}
+	}
+	return false
+}
+
+// addMnemonic makes Alt with w's underlined character run fn, like
+// ::tk::AmpWidget's <<AltUnderlined>> binding.
+func (d *Dialog) addMnemonic(w underliner, fn func()) {
+	d.mnemonics = append(d.mnemonics, mnemonic{w, fn})
+}
+
+func (d *Dialog) bindAltKey() {
+	tw := d.Toplevel.Window()
+	d.App.Dispatcher().BindGlobalFor(tw.PlatformID, event.KeyPressMask, func(ev *event.Event) {
+		if ev.Handled || ev.State&platform.Mod1Mask == 0 || ev.State&platform.ControlMask != 0 || !d.inDialog(ev) {
+			return
+		}
+		r := platform.KeySymToRune(ev.KeySym)
+		if r <= 0 {
+			return
+		}
+		if fn := d.findMnemonic(r); fn != nil {
+			ev.Handled = true
+			fn()
+		}
+	})
+}
+
+// findMnemonic ports ::tk::FindAltKeyTarget: the widgets' current text
+// and underline are matched, so a relabelled button keeps working.
+func (d *Dialog) findMnemonic(r rune) func() {
+	r = unicode.ToLower(r)
+	for _, m := range d.mnemonics {
+		if u := underlinedRune(m.w.GetText(), m.w.GetUnderline()); u != 0 && unicode.ToLower(u) == r {
+			return m.fn
+		}
+	}
+	return nil
+}
+
+func underlinedRune(text string, underline int) rune {
+	runes := []rune(text)
+	if underline < 0 || underline >= len(runes) {
+		return 0
+	}
+	return runes[underline]
+}
+
+// underlineAmpersand ports ::tk::UnderlineAmpersand: "&&" is a literal
+// ampersand and a single "&" marks the next character as the mnemonic.
+// It returns the text without markers and the rune index to underline,
+// or -1.
+func underlineAmpersand(text string) (string, int) {
+	var sb strings.Builder
+	under, n := -1, 0
+	runes := []rune(text)
+	for i := 0; i < len(runes); i++ {
+		r := runes[i]
+		if r == '&' {
+			if i+1 < len(runes) && runes[i+1] == '&' {
+				i++
+			} else {
+				if under < 0 {
+					under = n
+				}
+				continue
+			}
+		}
+		sb.WriteRune(r)
+		n++
+	}
+	if under >= n {
+		under = -1
+	}
+	return sb.String(), under
 }
 
 // grabber is the App's optional grab support (takigo.App.GrabManager).

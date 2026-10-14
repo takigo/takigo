@@ -3,6 +3,7 @@ package dialog
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 )
 
@@ -169,5 +170,97 @@ func TestNameListRoundTrip(t *testing.T) {
 	}
 	if got := parseNameList("   "); len(got) != 0 {
 		t.Errorf("parseNameList(blank) = %v", got)
+	}
+}
+
+func TestUnderlineAmpersand(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		in    string
+		text  string
+		under int
+	}{
+		{"&Open", "Open", 0},
+		{"File &name:", "File name:", 5},
+		{"a&&b", "a&b", -1},
+		{"a&&&b", "a&b", 2},
+		{"none", "none", -1},
+		{"trailing&", "trailing", -1},
+		{"&Über", "Über", 0},
+		{"Fichier &à ouvrir", "Fichier à ouvrir", 8},
+	}
+	for _, tt := range tests {
+		text, under := underlineAmpersand(tt.in)
+		if text != tt.text || under != tt.under {
+			t.Errorf("underlineAmpersand(%q) = %q, %d; want %q, %d", tt.in, text, under, tt.text, tt.under)
+		}
+	}
+}
+
+type fakeUnderliner struct {
+	text  string
+	under int
+}
+
+func (f *fakeUnderliner) GetText() string   { return f.text }
+func (f *fakeUnderliner) GetUnderline() int { return f.under }
+
+func TestFindMnemonic(t *testing.T) {
+	t.Parallel()
+	var got string
+	ok := &fakeUnderliner{"Save", 0}
+	d := &Dialog{}
+	d.addMnemonic(&fakeUnderliner{"File name:", 5}, func() { got = "name" })
+	d.addMnemonic(ok, func() { got = "ok" })
+	d.addMnemonic(&fakeUnderliner{"plain", -1}, func() { got = "plain" })
+
+	for _, tt := range []struct {
+		r    rune
+		want string
+	}{{'n', "name"}, {'N', "name"}, {'s', "ok"}, {'p', ""}, {'x', ""}} {
+		got = ""
+		if fn := d.findMnemonic(tt.r); fn != nil {
+			fn()
+		}
+		if got != tt.want {
+			t.Errorf("findMnemonic(%q) ran %q, want %q", tt.r, got, tt.want)
+		}
+	}
+	// The match follows the widget's current text, as when the OK button
+	// turns into "Open" on a selected directory.
+	ok.text = "Open"
+	if d.findMnemonic('s') != nil || d.findMnemonic('o') == nil {
+		t.Error("relabelled button: mnemonic did not follow its text")
+	}
+}
+
+func TestDirHistory(t *testing.T) {
+	t.Parallel()
+	var h dirHistory
+	if h.canBack() || h.canForward() {
+		t.Fatal("empty history can move")
+	}
+	h.visit("/a")
+	h.visit("/a") // refresh: no new entry
+	h.visit("/b")
+	h.visit("/c")
+	if !h.canBack() || h.canForward() || len(h.dirs) != 3 {
+		t.Fatalf("after visits: %v pos %d", h.dirs, h.pos)
+	}
+	if d, ok := h.back(); !ok || d != "/b" {
+		t.Errorf("back = %q, %v", d, ok)
+	}
+	if d, ok := h.back(); !ok || d != "/a" {
+		t.Errorf("back = %q, %v", d, ok)
+	}
+	if _, ok := h.back(); ok {
+		t.Error("back past the start")
+	}
+	if d, ok := h.forward(); !ok || d != "/b" {
+		t.Errorf("forward = %q, %v", d, ok)
+	}
+	h.visit("/d") // drops /c
+	if h.canForward() || !slices.Equal(h.dirs, []string{"/a", "/b", "/d"}) {
+		t.Errorf("visit after back: %v pos %d", h.dirs, h.pos)
 	}
 }
