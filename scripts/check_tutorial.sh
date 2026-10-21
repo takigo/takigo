@@ -78,6 +78,10 @@ inblock { buf = buf $0 "\n" }
 	printf 'path/filepath\tpath/filepath\n'
 	printf 'encoding/json\tencoding/json\n'
 } > "$work/pkgmap.txt"
+[ "$(grep -c takigo/takigo "$work/pkgmap.txt")" -gt 1 ] || {
+	echo "check_tutorial: no takigo packages found under $root" >&2
+	exit 1
+}
 
 # Aliases the tutorial uses for standard library packages.
 cat > "$work/alias.txt" <<'ALIAS'
