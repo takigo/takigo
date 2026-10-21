@@ -120,7 +120,8 @@ func TestPeersShareUndoHistory(t *testing.T) {
 // history, whether it is reached through the document or through a widget.
 func TestDocumentUndoStackIsShared(t *testing.T) {
 	doc := NewDocument()
-	if doc.UndoStack() != doc.UndoStack() {
+	first := doc.UndoStack()
+	if second := doc.UndoStack(); first != second {
 		t.Error("the document returned two different undo stacks")
 	}
 	widget, _ := newTestPeer(doc, 400, 100)

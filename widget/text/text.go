@@ -379,7 +379,7 @@ func (t *TextWidget) scheduleRedraw() {
 	if t.Destroyed() || t.App == nil {
 		return
 	}
-	t.Base.EventuallyRedraw()
+	t.EventuallyRedraw()
 }
 
 // reportYScroll tells the scrollbar the new view at idle time.

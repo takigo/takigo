@@ -92,9 +92,8 @@ demo-batch: ## Compare every demo with its Tcl counterpart: make demo-batch [RET
 demo-gate: ## Fail when a demo got worse than its baseline
 	bash scripts/demo_gate.sh
 
-release: ## Tag a release from CHANGELOG.md: make release VERSION=v0.2.0 [PUSH=1]
-	@[ -n "$(VERSION)" ] || { echo "usage: make release VERSION=vX.Y.Z [PUSH=1]"; exit 1; }
-	bash scripts/release.sh $(VERSION) $(if $(PUSH),--push)
+release: ## Push master, wait for CI, tag and publish: make release [VERSION=vX.Y.Z]
+	bash scripts/release.sh $(VERSION)
 
 clean: ## Remove built binaries
 	rm -rf $(OUTDIR)/demos $(OUTDIR)/windows

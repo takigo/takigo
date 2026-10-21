@@ -44,10 +44,14 @@ number, and `takigo.Version()` reads it from the build info.
   of compatibility; after it a breaking change needs a `/v2` module path.
 - `make apidiff` (or `bash scripts/apidiff.sh [BASE]`) lists the exported
   API changes since the last tag; CI shows the same list in the `api` job.
-- `make release VERSION=v0.2.0` checks the tree, runs `make check test`,
-  turns the changelog's Unreleased section into the v0.2.0 section, commits
-  it and tags it with that section as the message. `PUSH=1` also pushes the
-  tag, registers it with proxy.golang.org and creates a GitHub release.
+- `make release` (on master, with `gh` logged in) picks the next version
+  from `apidiff` (minor when the API broke, patch otherwise; `VERSION=vX.Y.Z`
+  overrides, `RELEASE_DRY=1` only prints it), runs `make check test`, turns
+  the changelog's Unreleased section into that version's section, commits
+  and pushes master and waits for CI. Only when CI passes does it tag the
+  commit with the section as the message, push the tag, register it with
+  proxy.golang.org and create a GitHub release. When CI fails nothing is
+  tagged: fix it on master and run `make release` again.
 - A pushed tag is permanent (the module proxy caches it). Fix a bad release
   with a new version plus a `retract` line in `go.mod`; never move or delete
   a pushed tag.

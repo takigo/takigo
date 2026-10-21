@@ -43,7 +43,7 @@ make check                            # vet, gofmt, go fix, Windows vet, check-d
 make apidiff                          # exported API changes since the last v* tag
 make demo-batch [RETAKE=1]           # compare every demo with its Tcl counterpart
 make demo-gate                        # fail when a demo got worse than its baseline
-make release VERSION=v0.2.0 [PUSH=1]  # changelog section -> commit + annotated tag
+make release [VERSION=v0.2.0]         # changelog commit, push, wait for CI, tag + publish
 ```
 
 `make help` lists every goal. Run `make check` and `go test -short ./...`
@@ -172,7 +172,7 @@ on different goroutines.
 | Adjust default widget colour/font | `widget/palette.go`; read with `widget.PaletteFor(app)`, never a literal |
 | Adjust DPI / unit conversion | `screenunit/screenunit.go` (Tk's `tkCmds.c` ScalingCmd); `screenunit.SetScreenDPI` is called once in `NewApp` from the screen metrics + `Xft.dpi` |
 | Understand a Tk semantic | grep `tk/library/<file>.tcl` and `tk/generic/<file>.c` |
-| Cut a release | `make release VERSION=vX.Y.Z` (`scripts/release.sh`); check `make apidiff` first |
+| Cut a release | `make release` on master (`scripts/release.sh`); `RELEASE_DRY=1` shows the version it picks |
 | Regenerate the option reference | `python3 scripts/options_doc.py > docs/options.md` |
 
 ## Environment variables
