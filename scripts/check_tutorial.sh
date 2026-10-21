@@ -49,8 +49,8 @@ inblock { buf = buf $0 "\n" }
 # --------------------------------------------------------------------- #
 {
 	while IFS= read -r dir; do
-		rel=${dir#"$root"/}
-		[ "$rel" = "$root" ] && rel=""
+		rel=${dir#./}
+		[ "$rel" = "." ] && rel=""
 		f=""
 		for g in "$dir"/*.go; do
 			case $g in *_test.go) continue ;; esac
@@ -66,7 +66,7 @@ inblock { buf = buf $0 "\n" }
 		else
 			printf '%s\t%s\n' "$name" "github.com/takigo/takigo/$rel"
 		fi
-	done < <(find "$root" -name '*.go' \
+	done < <(find . -name '*.go' \
 		-not -path '*/.git/*' -not -path '*/tmp/*' -not -path '*/tk/*' \
 		-not -path '*/tcl/*' -not -path '*/internal/*' -not -path '*/demos/*' \
 		-not -path '*/tests/*' -not -path '*/docs/*' -not -path '*/scripts/*' \
