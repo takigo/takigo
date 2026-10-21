@@ -43,7 +43,7 @@ func TestPutImageRGBARoundTrip(t *testing.T) {
 	}
 
 	pm := dpy.CreatePixmap(Drawable(dpy.DefaultRootWindow()), w, h, uint(depth))
-	defer dpy.FreePixmap(Pixmap(pm))
+	defer dpy.FreePixmap(pm)
 	gc := dpy.CreateGC(Drawable(pm), 0, nil)
 	defer dpy.FreeGC(gc)
 
