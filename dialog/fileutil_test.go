@@ -289,3 +289,44 @@ func TestParseNameListTrailingBackslash(t *testing.T) {
 		t.Errorf("got %q", got)
 	}
 }
+
+func TestTypeExt(t *testing.T) {
+	tests := []struct{ pattern, want string }{
+		{"*.png *.jpg", ".png"},
+		{"*", ""},
+		{"*.[ch] *.go", ".go"},
+		{"*.tar.gz *.tgz", ".tar.gz"},
+		{"Makefile *.mk", ".mk"},
+		{"*. *.a..b", ""},
+	}
+	for _, tt := range tests {
+		if got := typeExt(splitPatterns(tt.pattern)); got != tt.want {
+			t.Errorf("typeExt(%q) = %q, want %q", tt.pattern, got, tt.want)
+		}
+	}
+}
+
+func TestSwapExt(t *testing.T) {
+	tests := []struct {
+		name, old, ext string
+		want           string
+		ok             bool
+	}{
+		{"report.png", "*.png *.jpg", ".txt", "report.txt", true},
+		{"report.jpg", "*.png *.jpg", ".txt", "report.txt", true},
+		{"REPORT.PNG", "*.png", ".jpg", "REPORT.jpg", true},
+		{"report.txt", "*.png *.jpg", ".gif", "report.txt", false},
+		{"report", "*.png", ".jpg", "report", false},
+		{"report.png", "*.png", "", "report.png", false},
+		{"a.tar.gz", "*.gz *.tar.gz", ".zip", "a.zip", true},
+		{".png", "*.png", ".jpg", ".png", false},
+		{"x.png", "*", ".jpg", "x.png", false},
+		{"x.png", "*.png", ".png", "x.png", false},
+	}
+	for _, tt := range tests {
+		got, ok := swapExt(tt.name, splitPatterns(tt.old), tt.ext)
+		if got != tt.want || ok != tt.ok {
+			t.Errorf("swapExt(%q, %q, %q) = %q, %v, want %q, %v", tt.name, tt.old, tt.ext, got, ok, tt.want, tt.ok)
+		}
+	}
+}

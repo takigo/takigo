@@ -14,6 +14,14 @@ version is 0, a minor release may break the API and says so here.
   an underlined entry, and the entry and spinbox gained `-insertwidth`,
   `-selectbackground`, `-selectforeground`, `-insertbackground`, `-anchor`,
   `-justify` and the `-state`/`-readonly` states.
+- **The save dialog takes its extension from the file type.** Without
+  `FileDefaultExtension`, a name typed without an extension gets the first
+  `*.ext` pattern of the selected type (`*.tar.gz` counts), as in Tk.
+  Choosing another type swaps the typed name's extension when that
+  extension belongs to the old type (`report.png` → `report.jpg`); Classic
+  mode keeps Tk's behaviour and leaves the name alone. The new
+  `FileTypeVariable` (Tk's `-typevariable`) picks the initial type and
+  returns the chosen one.
 - **Text peers** repaint on each other's edits, share one undo history, let
   go of the document when destroyed and paint through the base's pixmap.
 - **Themed styles work like Tk's.** A user `-style` survives theme changes;

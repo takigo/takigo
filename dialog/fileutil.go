@@ -35,6 +35,62 @@ func matchesPatterns(name string, patterns []string) bool {
 	return false
 }
 
+// typeExt ports SetFilter's choice of the default extension: the first
+// pattern of the form *.ext (Tk's {^\*\.\w+$}, here also *.tar.gz),
+// without the star, or "" when there is none.
+func typeExt(patterns []string) string {
+	for _, p := range patterns {
+		if ext, ok := strings.CutPrefix(p, "*"); ok && isLiteralExt(ext) {
+			return ext
+		}
+	}
+	return ""
+}
+
+// isLiteralExt reports whether ext is one or more ".word" parts.
+func isLiteralExt(ext string) bool {
+	rest, ok := strings.CutPrefix(ext, ".")
+	if !ok {
+		return false
+	}
+	for part := range strings.SplitSeq(rest, ".") {
+		if part == "" {
+			return false
+		}
+		for _, r := range part {
+			if r != '_' && (r < '0' || r > '9') && (r < 'a' || r > 'z') && (r < 'A' || r > 'Z') {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+// swapExt replaces the extension of name that belongs to oldPatterns (the
+// longest literal one when several match) with newExt. A name without an
+// extension, with a foreign one or made only of the extension is left
+// alone, as is any name when newExt is "".
+func swapExt(name string, oldPatterns []string, newExt string) (string, bool) {
+	if newExt == "" {
+		return name, false
+	}
+	best := ""
+	for _, p := range oldPatterns {
+		ext, ok := strings.CutPrefix(p, "*")
+		if !ok || !isLiteralExt(ext) || len(ext) <= len(best) || len(name) <= len(ext) {
+			continue
+		}
+		if strings.EqualFold(name[len(name)-len(ext):], ext) {
+			best = ext
+		}
+	}
+	if best == "" {
+		return name, false
+	}
+	swapped := name[:len(name)-len(best)] + newExt
+	return swapped, swapped != name
+}
+
 // humanSize formats a byte count the way file managers do.
 func humanSize(n int64) string {
 	const unit = 1024

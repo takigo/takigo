@@ -121,3 +121,57 @@ func TestFileBrowserHistory(t *testing.T) {
 		t.Errorf("back to a removed dir: warned %v dir %q pos %d", warned, b.dir, b.hist.pos)
 	}
 }
+
+func TestFileBrowserSaveExtension(t *testing.T) {
+	types := []FileType{{"Images", "*.png *.jpg"}, {"Text", "*.txt"}, {"All files", "*"}}
+	b, root := newTestBrowser(t, browseSave, fileConfig{title: "Save", fileTypes: types})
+	if b.defaultExt != ".png" {
+		t.Fatalf("default extension %q, want .png from the first type", b.defaultExt)
+	}
+	if !widget.Classic(b.app) {
+		for _, step := range []struct{ name, label, want string }{
+			{"report.png", fileTypeLabel(types[1]), "report.txt"},
+			{"notes.md", fileTypeLabel(types[0]), "notes.md"},
+			{"report.txt", fileTypeLabel(types[2]), "report.txt"},
+		} {
+			b.nameEntry.Set(step.name)
+			b.typeBox.Set(step.label)
+			if got := b.nameEntry.Get(); got != step.want {
+				t.Errorf("%q after choosing %q: entry %q, want %q", step.name, step.label, got, step.want)
+			}
+		}
+	}
+	b.typeBox.Set(fileTypeLabel(types[1]))
+	b.nameEntry.Set("report")
+	b.activateEntry()
+	if want := filepath.Join(root, "report.txt"); len(b.result) != 1 || b.result[0] != want {
+		t.Errorf("result %q, want %q", b.result, want)
+	}
+}
+
+func TestFileBrowserExplicitExtension(t *testing.T) {
+	b, root := newTestBrowser(t, browseSave, fileConfig{title: "Save", defaultExt: ".dat",
+		fileTypes: []FileType{{"Images", "*.png"}, {"Text", "*.txt"}}})
+	b.typeBox.Set("Text (*.txt)")
+	b.nameEntry.Set("report")
+	b.activateEntry()
+	if want := filepath.Join(root, "report.dat"); len(b.result) != 1 || b.result[0] != want {
+		t.Errorf("result %q, want %q", b.result, want)
+	}
+}
+
+func TestFileBrowserTypeVariable(t *testing.T) {
+	v := widget.NewVariable("")
+	v.Set("Te")
+	b, root := newTestBrowser(t, browseSave, fileConfig{title: "Save", typeVar: v,
+		fileTypes: []FileType{{"Images", "*.png"}, {"Text", "*.txt"}}})
+	if b.filterType != 1 || b.typeBox.Get() != "Text (*.txt)" || b.defaultExt != ".txt" {
+		t.Fatalf("initial type %d %q ext %q, want Text", b.filterType, b.typeBox.Get(), b.defaultExt)
+	}
+	b.typeBox.Set("Images (*.png)")
+	b.nameEntry.Set("pic")
+	b.activateEntry()
+	if want := filepath.Join(root, "pic.png"); len(b.result) != 1 || b.result[0] != want || v.Get() != "Images" {
+		t.Errorf("result %q type %q, want %q Images", b.result, v.Get(), want)
+	}
+}

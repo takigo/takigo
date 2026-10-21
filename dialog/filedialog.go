@@ -40,6 +40,7 @@ type fileConfig struct {
 	initialFile      string
 	defaultExt       string
 	fileTypes        []FileType
+	typeVar          *widget.Variable[string]
 	isSave           bool
 	multiple         bool
 	confirmOverwrite bool
@@ -56,9 +57,17 @@ func FileTypes(types ...FileType) FileOption { return func(c *fileConfig) { c.fi
 func FileInitialFile(s string) FileOption { return func(c *fileConfig) { c.initialFile = s } }
 
 // FileDefaultExtension is appended to a typed name without an extension
-// (Tk's -defaultextension), e.g. ".txt".
+// (Tk's -defaultextension), e.g. ".txt". Without it the extension is the
+// first *.ext pattern of the selected file type.
 func FileDefaultExtension(s string) FileOption {
 	return func(c *fileConfig) { c.defaultExt = s }
+}
+
+// FileTypeVariable selects the initial file type by name (Tk's
+// -typevariable): the first type whose name starts with v's value. On OK
+// v receives the name of the type selected then.
+func FileTypeVariable(v *widget.Variable[string]) FileOption {
+	return func(c *fileConfig) { c.typeVar = v }
 }
 
 // FileConfirmOverwrite controls whether SaveFile asks before returning an
@@ -131,6 +140,8 @@ type fileBrowser struct {
 
 	dir        string
 	filter     []string
+	filterType int    // index into cfg.fileTypes; -1 for a typed pattern
+	defaultExt string // cfg.defaultExt, else the selected type's extension
 	showHidden *widget.Variable[bool]
 	sortCol    string
 	sortRev    bool
@@ -184,10 +195,12 @@ func newFileBrowser(parent widget.Caregiver, mode browserMode, cfg fileConfig) *
 		showHidden: widget.NewVariable(false),
 		sortCol:    "#0",
 		filter:     []string{"*"},
+		filterType: -1,
+		defaultExt: cfg.defaultExt,
 		placeDirs:  map[string]string{},
 	}
 	if len(cfg.fileTypes) > 0 {
-		b.filter = splitPatterns(cfg.fileTypes[0].Pattern)
+		b.applyType(b.initialType(), false)
 	}
 
 	b.d = New(parent, cfg.title, 680, 460)
@@ -403,7 +416,7 @@ func (b *fileBrowser) buildForm() {
 		}
 		b.typeBox = ttk.NewCombobox(form, "types",
 			ttk.ComboboxValues(values),
-			ttk.ComboboxText(values[0]),
+			ttk.ComboboxText(values[b.filterType]),
 			ttk.ComboboxState(ttk.FieldReadonly),
 			ttk.ComboboxCommand(b.setFilter))
 		b.d.addMnemonic(typeLab, func() { widget.Focus(b.app, b.typeBox.Window()) })
@@ -648,12 +661,46 @@ func (b *fileBrowser) sortBy(col string) {
 	b.load(b.dir)
 }
 
+// initialType is the index of the first type whose name starts with the
+// type variable's value, else 0.
+func (b *fileBrowser) initialType() int {
+	if v := b.cfg.typeVar; v != nil && v.IsSet() {
+		for i, ft := range b.cfg.fileTypes {
+			if strings.HasPrefix(ft.Name, v.Get()) {
+				return i
+			}
+		}
+	}
+	return 0
+}
+
+// setFilter is the type box command; a value that is no type's label is a
+// pattern the user typed, which keeps the default extension as Tk does.
 func (b *fileBrowser) setFilter(value string) {
-	b.filter = splitPatterns(value)
-	for _, ft := range b.cfg.fileTypes {
+	for i, ft := range b.cfg.fileTypes {
 		if fileTypeLabel(ft) == value {
-			b.filter = splitPatterns(ft.Pattern)
-			break
+			b.applyType(i, true)
+			return
+		}
+	}
+	b.filter, b.filterType = splitPatterns(value), -1
+	if b.dir != "" {
+		b.load(b.dir)
+	}
+}
+
+// applyType ports SetFilter. With swap, a save dialog outside Classic mode
+// also changes the typed name's extension from the old type to the new
+// one, as GTK and Windows dialogs do.
+func (b *fileBrowser) applyType(i int, swap bool) {
+	old := b.filter
+	b.filter, b.filterType = splitPatterns(b.cfg.fileTypes[i].Pattern), i
+	if b.cfg.defaultExt == "" {
+		b.defaultExt = typeExt(b.filter)
+	}
+	if swap && b.mode == browseSave && !b.cfg.multiple && !widget.Classic(b.app) {
+		if name, ok := swapExt(b.nameEntry.Get(), old, typeExt(b.filter)); ok {
+			b.nameEntry.Set(name)
 		}
 	}
 	if b.dir != "" {
@@ -903,7 +950,7 @@ func (b *fileBrowser) activateEntry() {
 // name denotes a file to return, "" and true when the dialog navigated
 // instead, and false after reporting an error.
 func (b *fileBrowser) verifyName(text string) (string, bool) {
-	flag, dir, file := resolveFile(b.dir, text, b.cfg.defaultExt)
+	flag, dir, file := resolveFile(b.dir, text, b.defaultExt)
 	path := filepath.Join(dir, file)
 	switch flag {
 	case resolveOK:
@@ -1055,6 +1102,9 @@ func (b *fileBrowser) done(paths []string) {
 				return
 			}
 		}
+	}
+	if b.cfg.typeVar != nil && b.filterType >= 0 {
+		b.cfg.typeVar.Set(b.cfg.fileTypes[b.filterType].Name)
 	}
 	b.finish(paths)
 }
