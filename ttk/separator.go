@@ -23,7 +23,7 @@ func SeparatorOrient(o Orientation) SeparatorOption {
 
 // SeparatorStyle sets -style.
 func SeparatorStyle(name string) SeparatorOption {
-	return func(s *Separator) { s.StyleName = name }
+	return func(s *Separator) { s.setStyleName(name) }
 }
 
 // NewSeparator creates a themed separator widget.
@@ -60,5 +60,9 @@ func (s *Separator) requestSize() {
 
 // Configure sets options after creation.
 func (s *Separator) Configure(opts ...SeparatorOption) error {
-	return configure(&s.TtkWidget, s, opts, func() { s.StyleName = s.orientStyle() }, s.requestSize)
+	return configure(&s.TtkWidget, s, opts, func() {
+		if !s.styleSet {
+			s.StyleName = s.orientStyle()
+		}
+	}, s.requestSize)
 }

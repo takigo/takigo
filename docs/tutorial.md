@@ -1868,9 +1868,9 @@ Finding items:
 
 ```go
 ids := c.FindWithTag("enemy")
-hits := c.Find("overlapping", x1, y1, x2, y2) // also "enclosed", "closest", "all"
-nearest := c.FindClosest(x, y, 0, "")
 x1, y1, x2, y2 := c.BBox("all")
+hits := c.Find("overlapping", float64(x1), float64(y1), float64(x2), float64(y2)) // also "enclosed", "closest", "all"
+nearest := c.FindClosest(x, y, 0, "")
 tags := c.GetTags("current")
 ```
 
@@ -2056,12 +2056,7 @@ Create one, register it with the app, and pass it to any widget that shows
 images.
 
 ```go
-import (
-	goimage "image"
-	gocolor "image/color"
-
-	"github.com/takigo/takigo/image"
-)
+import "github.com/takigo/takigo/image"
 
 img, err := image.NewPhotoFromFile("earth", "demos/images/earth.gif")
 if err != nil {
@@ -2085,6 +2080,13 @@ app is destroyed, and `app.ImageRegistry().Get(name)` finds them by name.
 **From Go images.** Anything you can draw into an `*image.RGBA` can be shown:
 
 ```go
+import (
+	goimage "image"
+	gocolor "image/color"
+
+	"github.com/takigo/takigo/image"
+)
+
 rgba := goimage.NewRGBA(goimage.Rect(0, 0, 256, 32))
 for x := range 256 {
 	for y := range 32 {
@@ -2109,11 +2111,14 @@ widget's `Compound` option.
 
 ### Clipboard images and drag and drop
 
-Besides text, the clipboard carries images:
+Besides text, the clipboard carries images — the standard library's
+`image.Image`, not a takigo photo:
 
 ```go
-app.SetClipboardImage(img)                       // an image.Image
-app.ClipboardImage(func(img image.Image) { ... }) // nil if there is none
+import goimage "image"
+
+app.SetClipboardImage(goimage.NewRGBA(goimage.Rect(0, 0, 16, 16))) // any image.Image
+app.ClipboardImage(func(img goimage.Image) { ... })                // nil if there is none
 ```
 
 A window takes files and text dragged from other applications with

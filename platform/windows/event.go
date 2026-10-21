@@ -457,6 +457,16 @@ func (d *WindowsDisplay) wndProc(hwnd w32.HWND, msg uint32, wParam w32.WPARAM, l
 		})
 		return 0
 
+	case w32.WM_APP_DESTROY:
+		// A destroy asked for from another thread; this is the thread
+		// that owns the window, so DestroyWindow works here. The mark
+		// keeps a message for a window that is gone from destroying a
+		// window that took over its handle.
+		if d.takeDestroyPosted(hwnd) {
+			w32.DestroyWindow(hwnd)
+		}
+		return 0
+
 	case w32.WM_DESTROY:
 		raw := &WinRawEvent{Window: wid, Time: now}
 		d.postEvent(&platform.RawEvent{

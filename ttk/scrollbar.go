@@ -62,7 +62,7 @@ func ScrollbarCommand(fn func(widget.ScrollRequest)) ScrollbarOption {
 
 // ScrollbarStyle sets -style.
 func ScrollbarStyle(name string) ScrollbarOption {
-	return func(s *Scrollbar) { s.StyleName = name }
+	return func(s *Scrollbar) { s.setStyleName(name) }
 }
 
 // NewScrollbar creates a themed scrollbar widget.
@@ -112,7 +112,11 @@ func (s *Scrollbar) requestSize() {
 
 // Configure sets options after creation.
 func (s *Scrollbar) Configure(opts ...ScrollbarOption) error {
-	return configure(&s.TtkWidget, s, opts, func() { s.StyleName = s.orientStyle() }, s.requestSize)
+	return configure(&s.TtkWidget, s, opts, func() {
+		if !s.styleSet {
+			s.StyleName = s.orientStyle()
+		}
+	}, s.requestSize)
 }
 
 // Set updates the thumb position. Called by the scrolled widget.
@@ -415,9 +419,9 @@ func drawScrollArrow(d platform.DisplayServer, drawable platform.DrawableID, gc 
 		if bh <= h {
 			h = bh - 1
 		}
-		points[0] = platform.Point{X: int16(cx), Y: int16(cy)}
-		points[1] = platform.Point{X: int16(cx - h), Y: int16(cy + h)}
-		points[2] = platform.Point{X: int16(cx + h), Y: int16(cy + h)}
+		points[0] = platform.Point{X: int32(cx), Y: int32(cy)}
+		points[1] = platform.Point{X: int32(cx - h), Y: int32(cy + h)}
+		points[2] = platform.Point{X: int32(cx + h), Y: int32(cy + h)}
 	case arrowDown:
 		h := (bw - 1) / 2
 		cx := bx + h
@@ -425,9 +429,9 @@ func drawScrollArrow(d platform.DisplayServer, drawable platform.DrawableID, gc 
 		if bh <= h {
 			h = bh - 1
 		}
-		points[0] = platform.Point{X: int16(cx), Y: int16(cy)}
-		points[1] = platform.Point{X: int16(cx - h), Y: int16(cy - h)}
-		points[2] = platform.Point{X: int16(cx + h), Y: int16(cy - h)}
+		points[0] = platform.Point{X: int32(cx), Y: int32(cy)}
+		points[1] = platform.Point{X: int32(cx - h), Y: int32(cy - h)}
+		points[2] = platform.Point{X: int32(cx + h), Y: int32(cy - h)}
 	case arrowLeft:
 		h := (bh - 1) / 2
 		cx := bx
@@ -435,9 +439,9 @@ func drawScrollArrow(d platform.DisplayServer, drawable platform.DrawableID, gc 
 		if bw <= h {
 			h = bw - 1
 		}
-		points[0] = platform.Point{X: int16(cx), Y: int16(cy)}
-		points[1] = platform.Point{X: int16(cx + h), Y: int16(cy - h)}
-		points[2] = platform.Point{X: int16(cx + h), Y: int16(cy + h)}
+		points[0] = platform.Point{X: int32(cx), Y: int32(cy)}
+		points[1] = platform.Point{X: int32(cx + h), Y: int32(cy - h)}
+		points[2] = platform.Point{X: int32(cx + h), Y: int32(cy + h)}
 	case arrowRight:
 		h := (bh - 1) / 2
 		cx := bx + bw - 1
@@ -445,9 +449,9 @@ func drawScrollArrow(d platform.DisplayServer, drawable platform.DrawableID, gc 
 		if bw <= h {
 			h = bw - 1
 		}
-		points[0] = platform.Point{X: int16(cx), Y: int16(cy)}
-		points[1] = platform.Point{X: int16(cx - h), Y: int16(cy - h)}
-		points[2] = platform.Point{X: int16(cx - h), Y: int16(cy + h)}
+		points[0] = platform.Point{X: int32(cx), Y: int32(cy)}
+		points[1] = platform.Point{X: int32(cx - h), Y: int32(cy - h)}
+		points[2] = platform.Point{X: int32(cx - h), Y: int32(cy + h)}
 	}
 	points[3] = points[0]
 

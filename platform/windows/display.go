@@ -107,6 +107,10 @@ type windowInfo struct {
 	// cursor is the window's own cursor (DefineCursor); 0 inherits the
 	// parent's, as an X window with cursor None does.
 	cursor w32.HCURSOR
+	// destroyPosted marks a destroy that was asked for from another
+	// thread and is waiting for the owning thread, so a message that
+	// arrives for a window that is gone (its handle recycled) is ignored.
+	destroyPosted bool
 }
 
 // NewDisplayServer initializes the Windows display and returns a composed

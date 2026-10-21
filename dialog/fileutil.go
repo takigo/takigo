@@ -156,24 +156,32 @@ func completeName(prefix string, candidates []string) (string, bool) {
 }
 
 // parseNameList splits a multiple-selection entry: names separated by
-// spaces, with "double quotes" around names that contain spaces.
+// spaces, with "double quotes" around names that contain spaces. Inside
+// the quotes a backslash escapes a backslash or a double quote, except
+// that a backslash and quote at the end of a name (a typed Windows
+// directory such as "C:\My Files\") close the quotes.
 func parseNameList(text string) []string {
 	var names []string
 	var cur strings.Builder
 	inQuote, has := false, false
-	for _, r := range text {
+	for i := 0; i < len(text); i++ {
+		c := text[i]
 		switch {
-		case r == '"':
+		case inQuote && c == '\\' && i+1 < len(text) && (text[i+1] == '\\' || text[i+1] == '"' && !endsName(text, i+2)):
+			cur.WriteByte(text[i+1])
+			has = true
+			i++
+		case c == '"':
 			inQuote = !inQuote
 			has = true
-		case r == ' ' && !inQuote:
+		case c == ' ' && !inQuote:
 			if has {
 				names = append(names, cur.String())
 				cur.Reset()
 				has = false
 			}
 		default:
-			cur.WriteRune(r)
+			cur.WriteByte(c)
 			has = true
 		}
 	}
@@ -183,12 +191,28 @@ func parseNameList(text string) []string {
 	return names
 }
 
-// quoteNames is the inverse of parseNameList.
+// endsName reports whether a name ends at text[i].
+func endsName(text string, i int) bool {
+	return i >= len(text) || text[i] == ' '
+}
+
+// quoteNames is the inverse of parseNameList: names with a space, a
+// double quote or a backslash are quoted, and a backslash or a double
+// quote inside them is escaped with a backslash.
 func quoteNames(names []string) string {
 	parts := make([]string, len(names))
 	for i, n := range names {
-		if strings.ContainsAny(n, " \"") {
-			n = `"` + strings.ReplaceAll(n, `"`, ``) + `"`
+		if strings.ContainsAny(n, " \"\\") {
+			var b strings.Builder
+			b.WriteByte('"')
+			for j := 0; j < len(n); j++ {
+				if n[j] == '"' || n[j] == '\\' {
+					b.WriteByte('\\')
+				}
+				b.WriteByte(n[j])
+			}
+			b.WriteByte('"')
+			n = b.String()
 		}
 		parts[i] = n
 	}

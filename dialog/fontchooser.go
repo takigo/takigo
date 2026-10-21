@@ -5,6 +5,7 @@ import (
 
 	"github.com/takigo/takigo/font"
 	"github.com/takigo/takigo/geometry/pack"
+	"github.com/takigo/takigo/option"
 	"github.com/takigo/takigo/widget"
 	"github.com/takigo/takigo/widget/checkbutton"
 	"github.com/takigo/takigo/widget/frame"
@@ -117,7 +118,7 @@ func ChooseFont(parent widget.Caregiver, opts ...FontOption) (string, bool) {
 
 	// Preview label.
 	previewFrame := newFrame(d.Content, "previewframe",
-		frame.BorderWidth(1), frame.Relief(1), // sunken
+		frame.BorderWidth(1), frame.Relief(option.ReliefSunken),
 	)
 	pack.Pack(previewFrame, pack.SideOpt(pack.Top), pack.FillOpt(pack.FillX), pack.PadX(5), pack.PadY(5))
 

@@ -63,7 +63,7 @@ func ScaleVariable(v *widget.Variable[float64]) ScaleOption {
 
 // ScaleStyle sets -style.
 func ScaleStyle(name string) ScaleOption {
-	return func(s *Scale) { s.StyleName = name }
+	return func(s *Scale) { s.setStyleName(name) }
 }
 
 // NewScale creates a themed scale.
@@ -118,7 +118,9 @@ func (s *Scale) linkVariable() {
 // Configure sets options after creation.
 func (s *Scale) Configure(opts ...ScaleOption) error {
 	return configure(&s.TtkWidget, s, opts, func() {
-		s.StyleName = s.orientStyle()
+		if !s.styleSet {
+			s.StyleName = s.orientStyle()
+		}
 		s.linkVariable()
 	}, s.requestSize)
 }

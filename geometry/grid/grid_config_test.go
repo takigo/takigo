@@ -58,3 +58,40 @@ func TestGridKeepsContainerConfigWhenEmpty(t *testing.T) {
 		t.Errorf("column 0 config after regridding = %+v, want weight 1", conf)
 	}
 }
+
+func TestRowColumnConfigureMergesOptions(t *testing.T) {
+	parent := &window.Window{PathName: ".gridmerge"}
+
+	RowConfigure(parent, 0, Weight(2))
+	RowConfigure(parent, 0, MinSize(50))
+	conf := gridders.Of(parent).rowConf[0]
+	if conf == nil {
+		t.Fatal("row 0 has no config")
+	}
+	if conf.Weight != 2 || conf.MinSize != 50 {
+		t.Errorf("row 0 config = %+v, want weight 2 and min size 50", *conf)
+	}
+
+	// A call without options changes nothing.
+	RowConfigure(parent, 0)
+	conf = gridders.Of(parent).rowConf[0]
+	if conf.Weight != 2 || conf.MinSize != 50 {
+		t.Errorf("row 0 config after empty call = %+v, want weight 2 and min size 50", *conf)
+	}
+
+	// A row that was never configured stays unconfigured.
+	RowConfigure(parent, 3)
+	if conf := gridders.Of(parent).rowConf[3]; conf != nil {
+		t.Errorf("row 3 config = %+v, want none", *conf)
+	}
+
+	ColumnConfigure(parent, 1, Weight(3))
+	ColumnConfigure(parent, 1, Pad(4))
+	conf = gridders.Of(parent).colConf[1]
+	if conf == nil {
+		t.Fatal("column 1 has no config")
+	}
+	if conf.Weight != 3 || conf.Pad != 4 {
+		t.Errorf("column 1 config = %+v, want weight 3 and pad 4", *conf)
+	}
+}

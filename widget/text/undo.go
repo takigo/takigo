@@ -24,18 +24,30 @@ type UndoStack struct {
 	redoStack [][]UndoAction
 	current   []UndoAction
 	maxDepth  int
+	disabled  bool
 }
 
-// NewUndoStack creates a new undo stack.
+// undoMaxDepth is the depth of a document's shared undo history.
+const undoMaxDepth = 100
+
+// NewUndoStack creates a new undo stack. A maxDepth of zero means the
+// default depth; a negative maxDepth disables the stack: it records
+// nothing and undoes nothing.
 func NewUndoStack(maxDepth int) *UndoStack {
-	if maxDepth <= 0 {
-		maxDepth = 100
+	switch {
+	case maxDepth < 0:
+		return &UndoStack{disabled: true}
+	case maxDepth == 0:
+		maxDepth = undoMaxDepth
 	}
 	return &UndoStack{maxDepth: maxDepth}
 }
 
 // RecordInsert records an insert action. endIdx is the index after insertion.
 func (u *UndoStack) RecordInsert(start, end Index, text string) {
+	if u.disabled {
+		return
+	}
 	action := UndoAction{Type: ActionInsert, Start: start, End: end, Text: text}
 
 	// Auto-group: if current group is a single-char insert at adjacent position, merge.
@@ -59,6 +71,9 @@ func (u *UndoStack) RecordInsert(start, end Index, text string) {
 // deleted range's characters (TextGetText), embedded windows and images are
 // not part of it: undo brings the text back but not them.
 func (u *UndoStack) RecordDelete(start, end Index, text string) {
+	if u.disabled {
+		return
+	}
 	action := UndoAction{Type: ActionDelete, Start: start, End: end, Text: withoutPlaceholders(text)}
 
 	// Auto-group: if current group is a single-char backspace at adjacent position, merge.
@@ -99,7 +114,7 @@ func (u *UndoStack) canMerge(action UndoAction) bool {
 
 // Separator closes the current group, pushing it to the undo stack.
 func (u *UndoStack) Separator() {
-	if len(u.current) == 0 {
+	if u.disabled || len(u.current) == 0 {
 		return
 	}
 	u.undoStack = append(u.undoStack, u.current)
@@ -112,6 +127,9 @@ func (u *UndoStack) Separator() {
 
 // Undo undoes the last group. Returns true if anything was undone.
 func (u *UndoStack) Undo(doc *Document) bool {
+	if u.disabled {
+		return false
+	}
 	// Close any open group first.
 	u.Separator()
 	if len(u.undoStack) == 0 {
@@ -143,7 +161,7 @@ func (u *UndoStack) Undo(doc *Document) bool {
 
 // Redo redoes the last undone group. Returns true if anything was redone.
 func (u *UndoStack) Redo(doc *Document) bool {
-	if len(u.redoStack) == 0 {
+	if u.disabled || len(u.redoStack) == 0 {
 		return false
 	}
 

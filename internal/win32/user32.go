@@ -65,6 +65,8 @@ var (
 	procTrackMouseEvent    = user32.NewProc("TrackMouseEvent")
 	procRedrawWindow       = user32.NewProc("RedrawWindow")
 	procAdjustWindowRectEx = user32.NewProc("AdjustWindowRectEx")
+
+	procGetWindowThreadProcessId = user32.NewProc("GetWindowThreadProcessId")
 )
 
 func RegisterClassEx(wc *WNDCLASSEXW) ATOM {
@@ -372,6 +374,15 @@ func AdjustWindowRectEx(rect *RECT, style uint32, menu bool, exStyle uint32) boo
 	r, _, _ := procAdjustWindowRectEx.Call(uintptr(unsafe.Pointer(rect)),
 		uintptr(style), bMenu, uintptr(exStyle))
 	return r != 0
+}
+
+// GetWindowThreadProcessId returns the id of the thread that created the
+// window and the id of the process that owns it. ok is false when the
+// window is not a window.
+func GetWindowThreadProcessId(hwnd HWND) (threadID uint32, ok bool) {
+	var pid uint32
+	r, _, _ := procGetWindowThreadProcessId.Call(uintptr(hwnd), uintptr(unsafe.Pointer(&pid)))
+	return uint32(r), r != 0
 }
 
 // UTF16PtrFromString converts a Go string to a null-terminated UTF-16 pointer.

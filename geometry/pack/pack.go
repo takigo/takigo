@@ -523,34 +523,56 @@ func (p *packer) computeSize() (int, int) {
 }
 
 // expansion computes extra space for an expanding child along one axis.
-// sideMatch returns true for entries packed on the same axis (Left/Right or Top/Bottom).
-// childNeed returns the space an entry requires along that axis.
+//
+// It ports tk/generic/tkPack.c's XExpansion/YExpansion: the children packed
+// on the other axis may be interspersed among the expanding ones, and each of
+// them claims a share of the cavity. The expansion factor is evaluated at
+// every such child and at the end of the list, and the smallest factor wins.
+//
+// sideMatch returns true for entries packed on the same axis (Left/Right or
+// Top/Bottom); childNeed returns the space an entry requires along the
+// measured axis.
 func expansion(entries []*packEntry, target *packEntry, cavity int,
 	sideMatch func(Side) bool, childNeed func(*packEntry) int) int {
 
+	minExpand := cavity
 	numExpand := 0
+	cur := cavity
 	found := false
 
 	for _, e := range entries {
-		if e == target {
+		if !found {
+			if e != target {
+				continue
+			}
 			found = true
 		}
-		if !found {
+		if sideMatch(e.config.side) {
+			cur -= childNeed(e)
+			if e.config.expand {
+				numExpand++
+			}
 			continue
 		}
-		if !sideMatch(e.config.side) {
-			continue
-		}
-		cavity -= childNeed(e)
-		if e.config.expand {
-			numExpand++
+		// A child on the other axis claims a share of the cavity.
+		if numExpand > 0 {
+			curExpand := (cur - childNeed(e)) / numExpand
+			if curExpand < minExpand {
+				minExpand = curExpand
+			}
 		}
 	}
 
-	if numExpand > 0 && cavity > 0 {
-		return cavity / numExpand
+	if numExpand > 0 {
+		curExpand := cur / numExpand
+		if curExpand < minExpand {
+			minExpand = curExpand
+		}
 	}
-	return 0
+	if minExpand < 0 {
+		return 0
+	}
+	return minExpand
 }
 
 // xExpansion computes extra horizontal space for an expanding child.

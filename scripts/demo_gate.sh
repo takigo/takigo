@@ -21,7 +21,7 @@ TOL=0.1
 ACCEPT=0
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --tolerance) shift; TOL="$1" ;;
+        --tolerance) shift; [[ $# -ge 1 ]] || { echo "--tolerance needs a value" >&2; exit 1; }; TOL="$1" ;;
         --accept)    ACCEPT=1 ;;
         *) echo "Unknown option: $1" >&2; exit 1 ;;
     esac

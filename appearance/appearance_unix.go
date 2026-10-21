@@ -22,7 +22,14 @@ func system() Mode {
 	return Light
 }
 
+// portalColorScheme asks the portal, at most once every lookupTTL, as
+// the call dials the session bus and blocks the caller for seconds when
+// there is no bus.
 func portalColorScheme() (Mode, bool) {
+	return cachedLookup(portalColorSchemeUncached)
+}
+
+func portalColorSchemeUncached() (Mode, bool) {
 	conn, err := dbus.SessionBus()
 	if err != nil {
 		return Light, false

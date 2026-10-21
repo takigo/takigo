@@ -146,5 +146,5 @@ func drawableCoord(v float64, origin int) int {
 
 // drawablePoint converts a canvas point to an X point like drawableCoord.
 func drawablePoint(x, y float64, originX, originY int) platform.Point {
-	return platform.Point{X: int16(drawableCoord(x, originX)), Y: int16(drawableCoord(y, originY))}
+	return platform.Point{X: int32(drawableCoord(x, originX)), Y: int32(drawableCoord(y, originY))}
 }

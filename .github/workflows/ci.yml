@@ -37,10 +37,12 @@ jobs:
         # refuses connections meanwhile, failing tests that open a new App
         # right after destroying one.
         run: xvfb-run -a -s "-screen 0 1280x1024x24 -noreset" go test -race -short -coverprofile=coverage.out ./...
-      - name: Tutorial programs compile
+      - name: The tutorial's programs and fragments compile
         run: bash scripts/check_tutorial.sh
       - name: Agent documents name existing paths
         run: bash scripts/check_docs.sh
+      - name: Standard library only
+        run: bash scripts/check_deps.sh
       - name: Coverage
         run: go tool cover -func=coverage.out | tail -n 1
       - uses: actions/upload-artifact@v4
@@ -80,6 +82,7 @@ jobs:
       - name: Install X11 development packages
         run: sudo apt-get update && sudo apt-get install -y libx11-dev libxft-dev libfontconfig1-dev
       - run: |
+          set -o pipefail
           bash scripts/apidiff.sh | tee api.txt
           { echo '```'; cat api.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
 
@@ -126,9 +129,13 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-      - run: go build . ./font/ ./widget/... ./ttk/... ./canvas/ ./dialog/ ./geometry/... ./bind/ ./event/ ./window/
+      # Every package that does not need a cgo backend builds without cgo;
+      # only the backends (platform/x11, platform/cocoa, platform/windows,
+      # font/xft, font/gdi, font/coretext, internal/xlib, internal/cocoa,
+      # internal/win32) and the packages that use them are excluded.
+      - run: go build $(go list ./... | grep -v -E '/(platform/(x11|cocoa|windows)|font/(xft|gdi|coretext)|internal/(xlib|cocoa|win32))$')
       # internal/testutil skips display tests when the build has no backend.
-      - run: go test -short ./font/ ./bind/ ./event/ ./geometry/... ./screenunit/ ./color/ ./widget/... ./ttk/... ./canvas/ ./dialog/ ./wm/ ./image/ ./bitmap/ ./window/ ./internal/nanosvg/
+      - run: go test -short $(go list ./... | grep -v -E '/(platform/(x11|cocoa|windows)|font/(xft|gdi|coretext)|internal/(xlib|cocoa|win32)|tests)$')
 
   windows-vet:
     # The Windows backend is pure Go (syscall), so it can be checked from Linux.

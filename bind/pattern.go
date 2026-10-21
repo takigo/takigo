@@ -27,6 +27,13 @@ const (
 	ModButton3
 	ModButton4
 	ModButton5
+	// Mod2, Mod3 and Mod5 are the remaining X modifier masks (Tk's Mod2,
+	// Mod3 and Mod5 modifiers); Mod1 is ModAlt and Mod4 is ModMeta.
+	Mod2
+	Mod3
+	Mod5
+	// ModLock is Tk's Lock modifier (the Caps Lock state).
+	ModLock
 )
 
 // buttonMods pairs each button modifier with its event state bit.
@@ -116,6 +123,18 @@ func patternString(p Pattern) string {
 	}
 	if p.Modifiers&ModMeta != 0 {
 		b.WriteString("Meta-")
+	}
+	if p.Modifiers&Mod2 != 0 {
+		b.WriteString("Mod2-")
+	}
+	if p.Modifiers&Mod3 != 0 {
+		b.WriteString("Mod3-")
+	}
+	if p.Modifiers&Mod5 != 0 {
+		b.WriteString("Mod5-")
+	}
+	if p.Modifiers&ModLock != 0 {
+		b.WriteString("Lock-")
 	}
 	for i, bm := range buttonMods {
 		if p.Modifiers&bm.mod != 0 {
@@ -314,7 +333,8 @@ func parseInner(s string) (Pattern, error) {
 	return p, nil
 }
 
-// parseModifier checks if a token is a modifier keyword.
+// parseModifier checks if a token is a modifier keyword. The keyword is
+// matched without regard to case, as Tk looks it up in its modifier table.
 func parseModifier(lower string) (Modifier, bool) {
 	switch lower {
 	case "shift":
@@ -325,6 +345,14 @@ func parseModifier(lower string) (Modifier, bool) {
 		return ModAlt, true
 	case "meta", "mod4", "super":
 		return ModMeta, true
+	case "mod2", "m2":
+		return Mod2, true
+	case "mod3", "m3", "num":
+		return Mod3, true
+	case "mod5", "m5":
+		return Mod5, true
+	case "lock":
+		return ModLock, true
 	case "b1", "button1":
 		return ModButton1, true
 	case "b2", "button2":
@@ -339,6 +367,8 @@ func parseModifier(lower string) (Modifier, bool) {
 		return ModDouble, true
 	case "triple":
 		return ModTriple, true
+	case "any":
+		return 0, true // Tk's historical relic, ignored
 	}
 	return 0, false
 }
@@ -449,18 +479,9 @@ func (p *Pattern) matches(ev *event.Event, clickMods Modifier) bool {
 	return true
 }
 
-// specificity of a sequence is the sum over its patterns, so a completed
-// multi-event sequence outranks its single-event suffix.
-func (s Sequence) specificity() int {
-	n := 0
-	for i := range s.Patterns {
-		n += s.Patterns[i].specificity()
-	}
-	return n
-}
-
 // specificity returns a score for pattern specificity (higher = more specific).
-// More specific patterns take priority when multiple match.
+// It is a rough summary; the dispatcher compares two matching patterns with
+// Tk's CountSpecialized and CompareModMasks instead.
 func (p *Pattern) specificity() int {
 	score := 0
 	if p.KeySym != 0 || p.Button != 0 {
@@ -492,8 +513,20 @@ func eventModifiers(ev *event.Event) Modifier {
 	if ev.State&platform.Mod1Mask != 0 {
 		m |= ModAlt
 	}
+	if ev.State&platform.Mod2Mask != 0 {
+		m |= Mod2
+	}
+	if ev.State&platform.Mod3Mask != 0 {
+		m |= Mod3
+	}
 	if ev.State&platform.Mod4Mask != 0 {
 		m |= ModMeta
+	}
+	if ev.State&platform.Mod5Mask != 0 {
+		m |= Mod5
+	}
+	if ev.State&platform.LockMask != 0 {
+		m |= ModLock
 	}
 	for _, bm := range buttonMods {
 		if ev.State&bm.state != 0 {

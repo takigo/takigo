@@ -19,3 +19,7 @@ func platformInit(displayName string) (platform.DisplayServer, platform.EventPar
 	parser := server.EventParser()
 	return server, parser, fontOpener, nil
 }
+
+// checkEventLoopThread reports whether the event loop may run on the
+// calling goroutine. Only macOS restricts this.
+func checkEventLoopThread() error { return nil }

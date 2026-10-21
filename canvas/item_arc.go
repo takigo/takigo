@@ -47,7 +47,9 @@ func (a *ArcItem) BBox() (x1, y1, x2, y2 int) {
 }
 
 func (a *ArcItem) Coords() []float64 {
-	return a.coords[:]
+	out := make([]float64, len(a.coords))
+	copy(out, a.coords[:])
+	return out
 }
 
 func (a *ArcItem) SetCoords(coords []float64) error {

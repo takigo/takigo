@@ -40,6 +40,16 @@ func NewManager(display platform.DisplayServer, dispatcher *event.Dispatcher) *M
 
 // Current returns the current grab window, or nil if no grab is active.
 func (m *Manager) Current() *window.Window {
+	return m.current()
+}
+
+// current returns the grab window, dropping a grab whose window has been
+// destroyed: a grab on a dead window would swallow every pointer and key
+// event of the application.
+func (m *Manager) current() *window.Window {
+	if m.grabWin != nil && m.grabWin.IsDestroyed() {
+		m.Release()
+	}
 	return m.grabWin
 }
 
@@ -107,23 +117,24 @@ func (m *Manager) Release() {
 
 // State returns the grab state for a given window relative to the current grab.
 func (m *Manager) State(w *window.Window) GrabState {
-	if m.grabWin == nil {
+	grabWin := m.current()
+	if grabWin == nil {
 		return GrabNone
 	}
 
-	if w == m.grabWin {
+	if w == grabWin {
 		return GrabInTree
 	}
 
 	// Check if w is a descendant of the grab window.
 	for p := w.Parent; p != nil; p = p.Parent {
-		if p == m.grabWin {
+		if p == grabWin {
 			return GrabInTree
 		}
 	}
 
 	// Check if w is an ancestor of the grab window.
-	for p := m.grabWin.Parent; p != nil; p = p.Parent {
+	for p := grabWin.Parent; p != nil; p = p.Parent {
 		if p == w {
 			return GrabAncestor
 		}
@@ -136,7 +147,7 @@ func (m *Manager) State(w *window.Window) GrabState {
 // to the grab window. For local grabs, pointer and key events outside
 // the grab tree are redirected.
 func (m *Manager) ShouldRedirect(w *window.Window) bool {
-	if m.grabWin == nil {
+	if m.current() == nil {
 		return false
 	}
 	if m.grabGlobal {

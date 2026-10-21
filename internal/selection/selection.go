@@ -4,8 +4,10 @@ package selection
 
 import (
 	"encoding/binary"
+	"fmt"
 	"slices"
 	"sync"
+	"sync/atomic"
 	"time"
 	"unicode/utf8"
 
@@ -22,16 +24,23 @@ type Manager struct {
 	data map[platform.AtomID]string // selection atom → content
 	// Owner window for each selection.
 	owners map[platform.AtomID]platform.WindowID
-	// pendingGet holds, per requestor, the clipboard request awaiting its
-	// SelectionNotify; at most one is outstanding, as in Tk.
-	pendingGet map[platform.WindowID]*pendingRequest
+	// pendingGet holds the clipboard requests awaiting their
+	// SelectionNotify, keyed by the property each of them uses. Every
+	// request gets a property of its own, so that a text and an image
+	// request can be outstanding at the same time without their answers
+	// colliding.
+	pendingGet map[platform.AtomID]*pendingRequest
 	nextGen    uint64
+	nextProp   uint64
+	freeProps  []platform.AtomID // properties of answered requests, ready for reuse
+	// propPrefix names the properties of this manager.
+	propPrefix string
 	after      func(time.Duration, func())
 
 	// INCR transfers (ICCCM 2.7.2): outgoing ones we serve as owner, keyed
-	// by requestor window and property; incoming ones by our requestor.
+	// by requestor window and property; incoming ones by their property.
 	outgoing map[incrKey]*outgoingIncr
-	incoming map[platform.WindowID]*incomingIncr
+	incoming map[platform.AtomID]*incomingIncr
 
 	// formats holds what OwnFormats offers besides text, by selection and
 	// target.
@@ -47,6 +56,11 @@ type Manager struct {
 // selBytesAtOnce is Tk's TK_SEL_BYTES_AT_ONCE: longer selections are sent
 // with INCR, in chunks of this size.
 const selBytesAtOnce = 4000
+
+// managerSeq numbers the managers, so that the properties of two
+// managers on one display never share a name (and so an answer meant for
+// one of them is not taken for the other's).
+var managerSeq atomic.Uint64
 
 type incrKey struct {
 	window   platform.WindowID
@@ -64,6 +78,7 @@ type outgoingIncr struct {
 // incomingIncr is a selection we receive in chunks.
 type incomingIncr struct {
 	property  platform.AtomID
+	requestor platform.WindowID
 	typ       platform.AtomID
 	buf       []byte
 	callbacks []func(string)
@@ -75,10 +90,13 @@ type incomingIncr struct {
 const requestTimeout = 5 * time.Second
 
 // pendingRequest is an outstanding clipboard request and everyone waiting
-// for its answer.
+// for its answer. The property is the one the answer arrives in; it
+// belongs to this request alone.
 type pendingRequest struct {
 	gen               uint64
 	selection, target platform.AtomID
+	property          platform.AtomID
+	requestor         platform.WindowID
 	callbacks         []func(string)
 }
 
@@ -90,13 +108,14 @@ func NewManager(server platform.DisplayServer, dispatcher *event.Dispatcher) *Ma
 		data:       make(map[platform.AtomID]string),
 		formats:    make(map[platform.AtomID]map[platform.AtomID][]byte),
 		owners:     make(map[platform.AtomID]platform.WindowID),
-		pendingGet: make(map[platform.WindowID]*pendingRequest),
+		pendingGet: make(map[platform.AtomID]*pendingRequest),
 		clipboard:  server.InternAtom("CLIPBOARD", false),
 		utf8str:    server.InternAtom("UTF8_STRING", false),
 		targets:    server.InternAtom("TARGETS", false),
 		incr:       server.InternAtom("INCR", false),
 		outgoing:   make(map[incrKey]*outgoingIncr),
-		incoming:   make(map[platform.WindowID]*incomingIncr),
+		incoming:   make(map[platform.AtomID]*incomingIncr),
+		propPrefix: fmt.Sprintf("TAKIGO_SEL_%d_", managerSeq.Add(1)),
 	}
 
 	return m
@@ -150,7 +169,23 @@ func (m *Manager) GetContent(selection platform.AtomID) string {
 func (m *Manager) HandleSelectionRequest(requestor platform.WindowID, selection, target, property platform.AtomID, time platform.Timestamp) {
 	m.mu.Lock()
 	content, ok := m.data[selection]
-	formats := m.formats[selection]
+	// Copy what the reply needs out of the map: it may change while the
+	// reply is being built.
+	var (
+		haveFormats bool
+		data        []byte
+		haveData    bool
+		atoms       []platform.AtomID
+	)
+	if formats, has := m.formats[selection]; has {
+		haveFormats = true
+		data, haveData = formats[target]
+		atoms = make([]platform.AtomID, 0, len(formats))
+		for t := range formats {
+			atoms = append(atoms, t)
+		}
+		slices.Sort(atoms)
+	}
 	m.mu.Unlock()
 
 	if !ok {
@@ -163,18 +198,12 @@ func (m *Manager) HandleSelectionRequest(requestor platform.WindowID, selection,
 		property = target
 	}
 
-	if formats != nil {
+	if haveFormats {
 		// Offered with OwnFormats: exactly those targets.
-		data, have := formats[target]
 		switch {
 		case target == m.targets:
-			atoms := []platform.AtomID{m.targets}
-			for t := range formats {
-				atoms = append(atoms, t)
-			}
-			slices.Sort(atoms)
-			m.server.ChangePropertyAtoms(requestor, property, atoms)
-		case !have:
+			m.server.ChangePropertyAtoms(requestor, property, append([]platform.AtomID{m.targets}, atoms...))
+		case !haveData:
 			m.server.SendSelectionNotify(requestor, selection, target, 0, time)
 			return
 		case len(data) > selBytesAtOnce:
@@ -221,22 +250,112 @@ func (m *Manager) HandleSelectionClear(selection platform.AtomID) {
 	m.mu.Unlock()
 }
 
-// Request requests the content of a selection from its current owner.
-// The result comes back as a SelectionNotify event with the data in a property.
-func (m *Manager) Request(selection platform.AtomID, requestor platform.WindowID, time platform.Timestamp) {
-	m.convert(selection, m.utf8str, requestor, time)
+// Request asks the owner of selection for its text and returns the
+// property its answer arrives in; the caller reads it with
+// ReadProperty. Use RequestWithCallback or RequestTarget to be told the
+// content.
+func (m *Manager) Request(selection platform.AtomID, requestor platform.WindowID, time platform.Timestamp) platform.AtomID {
+	return m.request(selection, m.utf8str, requestor, time, nil)
 }
 
-func (m *Manager) convert(selection, target platform.AtomID, requestor platform.WindowID, time platform.Timestamp) {
-	property := m.server.InternAtom("TAKIGO_SEL", false)
+// request asks the owner of selection for its data in target and waits
+// for the answer, which arrives as a SelectionNotify carrying the
+// property of the request. The callbacks receive the content. A request
+// for the same selection and target from the same window that is still
+// outstanding shares its answer.
+func (m *Manager) request(selection, target platform.AtomID, requestor platform.WindowID, ts platform.Timestamp, callbacks []func(string)) platform.AtomID {
+	m.mu.Lock()
+	if p := m.findPending(requestor, selection, target); p != nil {
+		p.callbacks = append(p.callbacks, callbacks...)
+		property := p.property
+		m.mu.Unlock()
+		return property
+	}
+	m.mu.Unlock()
+
+	property := m.newProperty()
+	m.mu.Lock()
+	if p := m.findPending(requestor, selection, target); p != nil {
+		// Another request for the same thing started meanwhile.
+		p.callbacks = append(p.callbacks, callbacks...)
+		property := p.property
+		m.mu.Unlock()
+		return property
+	}
+	m.nextGen++
+	gen := m.nextGen
+	m.pendingGet[property] = &pendingRequest{
+		gen:       gen,
+		selection: selection,
+		target:    target,
+		property:  property,
+		requestor: requestor,
+		callbacks: callbacks,
+	}
+	after := m.after
+	m.mu.Unlock()
+
+	m.convert(selection, target, property, requestor, ts)
+	if after != nil {
+		after(requestTimeout, func() { m.expire(property, gen) })
+	}
+	return property
+}
+
+// newProperty returns the property of a new request. Every outstanding
+// request gets a property of its own, so that the answers to two of them
+// can never be confused with one another.
+//
+// X keeps an atom until the server goes away, so a property whose answer
+// was read (and deleted) goes back to a pool for the next request. One
+// that timed out does not: a late answer to the old request must not be
+// taken for the answer to a newer one, so it is never handed out again.
+func (m *Manager) newProperty() platform.AtomID {
+	m.mu.Lock()
+	if n := len(m.freeProps); n > 0 {
+		property := m.freeProps[n-1]
+		m.freeProps = m.freeProps[:n-1]
+		m.mu.Unlock()
+		return property
+	}
+	m.nextProp++
+	n := m.nextProp
+	prefix := m.propPrefix
+	m.mu.Unlock()
+	if prefix == "" {
+		prefix = "TAKIGO_SEL_"
+	}
+	return m.server.InternAtom(fmt.Sprintf("%s%d", prefix, n), false)
+}
+
+// releaseProperty returns the property of an answered request to the pool.
+func (m *Manager) releaseProperty(property platform.AtomID) {
+	m.mu.Lock()
+	m.freeProps = append(m.freeProps, property)
+	m.mu.Unlock()
+}
+
+// findPending returns the outstanding request of requestor for the given
+// selection and target, if there is one: it shares its answer.
+func (m *Manager) findPending(requestor platform.WindowID, selection, target platform.AtomID) *pendingRequest {
+	for _, p := range m.pendingGet {
+		if p.requestor == requestor && p.selection == selection && p.target == target {
+			return p
+		}
+	}
+	return nil
+}
+
+func (m *Manager) convert(selection, target, property platform.AtomID, requestor platform.WindowID, time platform.Timestamp) {
 	m.server.ConvertSelection(selection, target, property, requestor, time)
 }
 
 // RequestTarget asks the owner of selection for its data in the given
 // target and calls callback with the bytes, or with nil if the owner
-// refuses, does not answer within requestTimeout, or another request from
-// the same window for something else is still outstanding. The caller
-// must route SelectionNotify to HandleSelectionNotify, as for
+// refuses or does not answer within requestTimeout. A request for
+// another target of the same selection may be outstanding at the same
+// time; each gets its own answer. The caller must route
+// SelectionNotify to HandleSelectionNotify, as for
 // RequestWithCallback.
 func (m *Manager) RequestTarget(selection, target platform.AtomID, requestor platform.WindowID, ts platform.Timestamp, callback func([]byte)) {
 	deliver := func(s string) {
@@ -253,26 +372,9 @@ func (m *Manager) RequestTarget(selection, target platform.AtomID, requestor pla
 		callback(data)
 		return
 	}
-	if p := m.pendingGet[requestor]; p != nil {
-		if p.selection != selection || p.target != target {
-			m.mu.Unlock()
-			callback(nil)
-			return
-		}
-		p.callbacks = append(p.callbacks, deliver)
-		m.mu.Unlock()
-		return
-	}
-	m.nextGen++
-	gen := m.nextGen
-	m.pendingGet[requestor] = &pendingRequest{gen: gen, selection: selection, target: target, callbacks: []func(string){deliver}}
-	after := m.after
 	m.mu.Unlock()
 
-	m.convert(selection, target, requestor, ts)
-	if after != nil {
-		after(requestTimeout, func() { m.expire(requestor, gen) })
-	}
+	m.request(selection, target, requestor, ts, []func(string){deliver})
 }
 
 // maxPropWords bounds a single property read, in 32-bit units (4 MiB).
@@ -310,15 +412,15 @@ func (m *Manager) startIncr(requestor platform.WindowID, property, typ platform.
 func (m *Manager) startIncoming(requestor platform.WindowID, property platform.AtomID, p *pendingRequest) {
 	m.mu.Lock()
 	m.nextGen++
-	in := &incomingIncr{property: property, callbacks: p.callbacks, gen: m.nextGen}
-	m.incoming[requestor] = in
+	in := &incomingIncr{property: property, requestor: requestor, callbacks: p.callbacks, gen: m.nextGen}
+	m.incoming[property] = in
 	m.mu.Unlock()
-	m.armIncomingTimeout(requestor, in.gen)
+	m.armIncomingTimeout(property, in.gen)
 }
 
 // armIncomingTimeout fails an INCR transfer that stalls for requestTimeout;
 // each chunk re-arms it, as Tk resets retrPtr->idleTime.
-func (m *Manager) armIncomingTimeout(requestor platform.WindowID, gen uint64) {
+func (m *Manager) armIncomingTimeout(property platform.AtomID, gen uint64) {
 	m.mu.Lock()
 	after := m.after
 	m.mu.Unlock()
@@ -327,12 +429,12 @@ func (m *Manager) armIncomingTimeout(requestor platform.WindowID, gen uint64) {
 	}
 	after(requestTimeout, func() {
 		m.mu.Lock()
-		in := m.incoming[requestor]
+		in := m.incoming[property]
 		if in == nil || in.gen != gen {
 			m.mu.Unlock()
 			return
 		}
-		delete(m.incoming, requestor)
+		delete(m.incoming, property)
 		m.mu.Unlock()
 		for _, cb := range in.callbacks {
 			cb("")
@@ -349,8 +451,8 @@ func (m *Manager) HandlePropertyNotify(w platform.WindowID, property platform.At
 		return m.sendNextChunk(w, property)
 	}
 	m.mu.Lock()
-	in := m.incoming[w]
-	if in == nil || in.property != property {
+	in := m.incoming[property]
+	if in == nil || in.requestor != w {
 		m.mu.Unlock()
 		return false
 	}
@@ -368,10 +470,10 @@ func (m *Manager) HandlePropertyNotify(w platform.WindowID, property platform.At
 		in.gen = m.nextGen
 		gen := in.gen
 		m.mu.Unlock()
-		m.armIncomingTimeout(w, gen)
+		m.armIncomingTimeout(property, gen)
 		return true
 	}
-	delete(m.incoming, w)
+	delete(m.incoming, property)
 	m.mu.Unlock()
 	text := m.decode(in.buf, in.typ)
 	for _, cb := range in.callbacks {
@@ -443,8 +545,10 @@ func (m *Manager) SetTimer(after func(time.Duration, func())) {
 // callback is invoked synchronously. Otherwise an async XConvertSelection
 // request is sent; the caller must handle SelectionNotify and call
 // HandleSelectionNotify to deliver the result. A request made while
-// another from the same window is outstanding shares its answer. If the
-// owner does not answer within requestTimeout, callbacks receive "".
+// another from the same window for the same thing is outstanding shares
+// its answer; a request for a different target (an image, say) runs
+// beside it, each with its own property. If the owner does not answer
+// within requestTimeout, callbacks receive "".
 func (m *Manager) RequestWithCallback(requestor platform.WindowID, ts platform.Timestamp, callback func(string)) {
 	// A native clipboard holds what was last copied by any application,
 	// including our own Own calls.
@@ -458,66 +562,72 @@ func (m *Manager) RequestWithCallback(requestor platform.WindowID, ts platform.T
 		callback(content)
 		return
 	}
-	if p := m.pendingGet[requestor]; p != nil {
-		if p.selection != m.clipboard || p.target != m.utf8str {
-			// A request for something else is outstanding on this window.
-			m.mu.Unlock()
-			callback("")
-			return
-		}
-		p.callbacks = append(p.callbacks, callback)
-		m.mu.Unlock()
-		return
-	}
-	m.nextGen++
-	gen := m.nextGen
-	m.pendingGet[requestor] = &pendingRequest{gen: gen, selection: m.clipboard, target: m.utf8str, callbacks: []func(string){callback}}
-	after := m.after
 	m.mu.Unlock()
 
-	m.Request(m.clipboard, requestor, ts)
-	if after != nil {
-		after(requestTimeout, func() { m.expire(requestor, gen) })
-	}
+	m.request(m.clipboard, m.utf8str, requestor, ts, []func(string){callback})
 }
 
-// expire fails request gen of requestor if it is still unanswered; a
-// reply arriving afterwards finds nothing pending and is ignored.
-func (m *Manager) expire(requestor platform.WindowID, gen uint64) {
+// expire fails the request of the given property if it is still
+// unanswered; a reply arriving afterwards names a property nobody
+// waits for any more and is ignored.
+func (m *Manager) expire(property platform.AtomID, gen uint64) {
 	m.mu.Lock()
-	p := m.pendingGet[requestor]
+	p := m.pendingGet[property]
 	if p == nil || p.gen != gen {
 		m.mu.Unlock()
 		return
 	}
-	delete(m.pendingGet, requestor)
+	delete(m.pendingGet, property)
 	m.mu.Unlock()
 	for _, cb := range p.callbacks {
 		cb("")
 	}
 }
 
-// HandleSelectionNotify is called when a SelectionNotify event arrives for a
-// window that previously called RequestWithCallback. It reads the property,
-// fires the pending callback, and returns true if a callback was pending.
-func (m *Manager) HandleSelectionNotify(requestor platform.WindowID, property platform.AtomID) bool {
+// HandleSelectionNotify is called when a SelectionNotify event arrives for
+// a request this manager made. It reads the property, fires the pending
+// callback, and returns true if a callback was pending. A reply whose
+// property is not the one of a pending request belongs to a request that
+// has already expired (or to another client) and is ignored.
+func (m *Manager) HandleSelectionNotify(requestor platform.WindowID, selection, target, property platform.AtomID) bool {
 	m.mu.Lock()
-	p := m.pendingGet[requestor]
-	delete(m.pendingGet, requestor)
-	m.mu.Unlock()
+	p := m.pendingGet[property]
 	if p == nil {
-		return false
+		if property != 0 {
+			m.mu.Unlock()
+			return false
+		}
+		// The owner refused the conversion: it sends the notify
+		// without a property. It does not say which of our requests
+		// it refuses, so fail those of the requestor window for the
+		// same selection and target.
+		var failed []func(string)
+		for prop, req := range m.pendingGet {
+			if req.requestor == requestor && req.selection == selection && req.target == target {
+				failed = append(failed, req.callbacks...)
+				delete(m.pendingGet, prop)
+			}
+		}
+		m.mu.Unlock()
+		for _, cb := range failed {
+			cb("")
+		}
+		return len(failed) > 0
 	}
+	delete(m.pendingGet, property)
+	m.mu.Unlock()
+
 	var text string
 	if property != 0 {
-		data, typ, _ := m.server.GetWindowProperty(requestor, property, 0, maxPropWords, true)
+		data, typ, _ := m.server.GetWindowProperty(p.requestor, property, 0, maxPropWords, true)
 		if typ != 0 && typ == m.incr {
 			// The owner sends the text in chunks; reading (and so deleting)
 			// the INCR property asked for the first one.
-			m.startIncoming(requestor, property, p)
+			m.startIncoming(p.requestor, property, p)
 			return true
 		}
 		text = m.decode(data, typ)
+		m.releaseProperty(property)
 	}
 	for _, cb := range p.callbacks {
 		cb(text)

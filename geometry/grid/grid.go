@@ -475,26 +475,46 @@ func Forget(child window.Windower) {
 }
 
 // RowConfigure sets configuration for a row.
+//
+// The options given are merged into the row's current configuration, as in
+// Tk's [grid rowconfigure]: an option that is not given keeps its old value
+// and a call without options changes nothing.
 func RowConfigure(container window.Windower, row int, opts ...SlotOption) {
 	w := container.Window()
-	conf := SlotConfig{}
-	for _, opt := range opts {
-		opt(&conf)
+	if len(opts) == 0 {
+		return
 	}
 	g := gridderFor(w)
-	g.rowConf[row] = &conf
+	conf, ok := g.rowConf[row]
+	if !ok {
+		conf = &SlotConfig{}
+		g.rowConf[row] = conf
+	}
+	for _, opt := range opts {
+		opt(conf)
+	}
 	g.ScheduleArrange()
 }
 
 // ColumnConfigure sets configuration for a column.
+//
+// The options given are merged into the column's current configuration, as in
+// Tk's [grid columnconfigure]: an option that is not given keeps its old
+// value and a call without options changes nothing.
 func ColumnConfigure(container window.Windower, col int, opts ...SlotOption) {
 	w := container.Window()
-	conf := SlotConfig{}
-	for _, opt := range opts {
-		opt(&conf)
+	if len(opts) == 0 {
+		return
 	}
 	g := gridderFor(w)
-	g.colConf[col] = &conf
+	conf, ok := g.colConf[col]
+	if !ok {
+		conf = &SlotConfig{}
+		g.colConf[col] = conf
+	}
+	for _, opt := range opts {
+		opt(conf)
+	}
 	g.ScheduleArrange()
 }
 
@@ -1111,33 +1131,52 @@ func (g *gridder) Arrange() {
 }
 
 // applySticky positions a child within its cavity based on sticky flags.
+//
+// It ports tk/generic/tkGrid.c's AdjustForSticky: a child that is bigger
+// than its cavity is shrunk to the cavity, and only a child that is
+// stretched along an axis (E+W or N+S) grows beyond its request.
 func applySticky(sticky option.Sticky, cavX, cavY, cavW, cavH, childW, childH int) (x, y, w, h int) {
-	w = childW
-	h = childH
+	diffx := 0
+	diffy := 0
 
-	if sticky&StickE != 0 && sticky&StickW != 0 {
+	if cavW > childW {
+		diffx = cavW - childW
+		w = childW
+	} else {
 		w = cavW
 	}
-	if sticky&StickN != 0 && sticky&StickS != 0 {
+	if cavH > childH {
+		diffy = cavH - childH
+		h = childH
+	} else {
 		h = cavH
 	}
 
+	if sticky&StickE != 0 && sticky&StickW != 0 {
+		w += diffx
+	}
+	if sticky&StickN != 0 && sticky&StickS != 0 {
+		h += diffy
+	}
+
 	// Horizontal positioning.
-	if sticky&StickW != 0 {
-		x = cavX
-	} else if sticky&StickE != 0 {
-		x = cavX + cavW - w
-	} else {
-		x = cavX + (cavW-w)/2
+	x = cavX
+	if sticky&StickW == 0 {
+		if sticky&StickE != 0 {
+			x += diffx
+		} else {
+			x += diffx / 2
+		}
 	}
 
 	// Vertical positioning.
-	if sticky&StickN != 0 {
-		y = cavY
-	} else if sticky&StickS != 0 {
-		y = cavY + cavH - h
-	} else {
-		y = cavY + (cavH-h)/2
+	y = cavY
+	if sticky&StickN == 0 {
+		if sticky&StickS != 0 {
+			y += diffy
+		} else {
+			y += diffy / 2
+		}
 	}
 
 	return x, y, w, h

@@ -14,14 +14,15 @@ import (
 
 // NewPhotoFromSVGFile loads an SVG file as a Photo. Like Tk 9's svg
 // photo format it rasterizes with nanosvg (internal/nanosvg) at scale 1.
-// Documents nanosvg cannot size (no width/height) fall back to an external
-// converter on PATH: rsvg-convert, magick or convert.
+// Documents nanosvg cannot parse or size (no width/height) fall back to an
+// external converter on PATH: rsvg-convert, magick or convert.
 func NewPhotoFromSVGFile(name, path string) (*Photo, error) {
 	src, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("image: open svg %s: %w", path, err)
 	}
-	if svg, err := nanosvg.Parse(string(src)); err == nil {
+	svg, parseErr := nanosvg.Parse(string(src))
+	if parseErr == nil {
 		if w, h := nanosvg.Size(svg, 1); w > 0 && h > 0 {
 			px := nanosvg.Rasterize(svg, 1, w, h)
 			p := NewPhoto(name, toRGBA(&goimage.NRGBA{Pix: px, Stride: w * 4, Rect: goimage.Rect(0, 0, w, h)}))
@@ -30,8 +31,11 @@ func NewPhotoFromSVGFile(name, path string) (*Photo, error) {
 		}
 	}
 
-	data, err := rasterizeSVG(path)
+	data, err := svgRasterizer(path)
 	if err != nil {
+		if parseErr != nil {
+			return nil, fmt.Errorf("%w (nanosvg: %v)", err, parseErr)
+		}
 		return nil, err
 	}
 	photo, err := NewPhotoFromReader(name, bytes.NewReader(data))
@@ -40,6 +44,10 @@ func NewPhotoFromSVGFile(name, path string) (*Photo, error) {
 	}
 	return photo, nil
 }
+
+// svgRasterizer converts an SVG file into a PNG byte stream; it is a
+// variable so that the tests can replace the external converter.
+var svgRasterizer = rasterizeSVG
 
 // rasterizeSVG converts the SVG at path into a PNG byte stream using the
 // first available converter on PATH.

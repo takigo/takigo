@@ -40,7 +40,7 @@ UPDATE_BASELINE=0
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --retake)          RETAKE=1 ;;
-        --stability)       shift; STABILITY="$1" ;;
+        --stability)       shift; [[ $# -ge 1 ]] || { echo "--stability needs a value" >&2; exit 1; }; STABILITY="$1" ;;
         --update-baseline) UPDATE_BASELINE=1 ;;
         -*)                echo "Unknown option: $1" >&2; exit 1 ;;
         *)                 FILTER="$1" ;;
@@ -111,8 +111,13 @@ for go_name in "${DEMOS[@]}"; do
     ERR_LOG="$LOGS_DIR/${go_name}.compare.err"
     SCORE=9999 TREE=- GO_SIZE=- TCL_SIZE=- SD_GO=- SD_TCL=-
     # One retry: a window occasionally fails to appear in time under load.
+    # The captures of the failed attempt are removed first: demo_compare.sh
+    # skips a capture whose file exists, so the retry would compare the
+    # very image that failed.
+    rm -f "$SS_DIR/${go_name}_go.png" "$SS_DIR/${TCL_DEMO}_tcl.png"
     if RESULT=$(bash "$SCRIPT_DIR/demo_compare.sh" "$go_name" "$TCL_DEMO" 2>"$ERR_LOG") ||
-        RESULT=$(bash "$SCRIPT_DIR/demo_compare.sh" "$go_name" "$TCL_DEMO" 2>"$ERR_LOG"); then
+        { rm -f "$SS_DIR/${go_name}_go.png" "$SS_DIR/${TCL_DEMO}_tcl.png";
+          RESULT=$(bash "$SCRIPT_DIR/demo_compare.sh" "$go_name" "$TCL_DEMO" 2>"$ERR_LOG"); }; then
         rm -f "$ERR_LOG"
         SCORE=$(awk '/^Diff score:/ {print $3}' <<<"$RESULT")
         [[ -z "$SCORE" ]] && SCORE=9999

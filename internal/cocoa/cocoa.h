@@ -6,6 +6,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <stddef.h>
 
 // Opaque handle types matching platform layer expectations.
 typedef uintptr_t CocoaWindowID;
@@ -91,9 +92,9 @@ void CocoaDrawRectangle(CocoaDrawableID d, CocoaGCID gc,
 void CocoaDrawLine(CocoaDrawableID d, CocoaGCID gc,
                     int x1, int y1, int x2, int y2);
 void CocoaDrawLines(CocoaDrawableID d, CocoaGCID gc,
-                     const int16_t *points, int npoints, int mode);
+                     const int32_t *points, int npoints, int mode);
 void CocoaFillPolygon(CocoaDrawableID d, CocoaGCID gc,
-                       const int16_t *points, int npoints, int shape, int mode);
+                       const int32_t *points, int npoints, int shape, int mode);
 void CocoaFillArc(CocoaDrawableID d, CocoaGCID gc,
                    int x, int y, unsigned int w, unsigned int h,
                    int angle1, int angle2);
@@ -114,7 +115,9 @@ void CocoaPutImageRGBA(CocoaDrawableID d, CocoaGCID gc, int depth,
 CocoaPixmapID CocoaCreatePixmap(unsigned int width, unsigned int height,
                                  unsigned int depth);
 void CocoaFreePixmap(CocoaPixmapID pm);
-CocoaPixmapID CocoaCreateBitmapFromData(const unsigned char *bits,
+// nbits is the number of bytes in bits; the call fails when it is too
+// small for the image.
+CocoaPixmapID CocoaCreateBitmapFromData(const unsigned char *bits, size_t nbits,
                                          unsigned int width, unsigned int height);
 
 // ---- Cursor management ----

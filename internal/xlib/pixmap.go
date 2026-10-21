@@ -9,6 +9,7 @@ package xlib
 #include <X11/Xutil.h>
 
 #include "xerror.h"
+#include "ximage.h"
 
 // get_rgba_image reads an area with XGetImage into RGBA (alpha 255).
 // Images of pixmaps carry no colour masks, so visual's are used then.
@@ -50,8 +51,8 @@ static int get_rgba_image(Display *dpy, Drawable d, Visual *visual,
 	return 1;
 }
 
-// put_rgba_image converts Go RGBA data to X11 BGRA format, pre-composites
-// alpha against bgPixel, and puts the image onto a drawable.
+// put_rgba_image converts Go RGBA data to the visual's pixel format,
+// pre-composites alpha against bgPixel, and puts the image onto a drawable.
 static void put_rgba_image(Display *dpy, Drawable d, GC gc, Visual *visual,
 	int depth, unsigned char *rgba, int stride,
 	int imgW, int imgH,
@@ -60,56 +61,86 @@ static void put_rgba_image(Display *dpy, Drawable d, GC gc, Visual *visual,
 	int w, int h,
 	unsigned long bgPixel)
 {
+	// The visual's masks say how many bits each colour gets and where
+	// they sit in the pixel word.
+	unsigned long rm = visual->red_mask, gm = visual->green_mask, bm = visual->blue_mask;
+	if (!rm || !gm || !bm) return;
+	int rs = 0, gs = 0, bs = 0;
+	while (!((rm >> rs) & 1)) rs++;
+	while (!((gm >> gs) & 1)) gs++;
+	while (!((bm >> bs) & 1)) bs++;
+	unsigned long rmax = rm >> rs, gmax = gm >> gs, bmax = bm >> bs;
+
 	// Extract bg RGB components from pixel value.
 	unsigned char bgR = (bgPixel >> 16) & 0xFF;
 	unsigned char bgG = (bgPixel >> 8) & 0xFF;
 	unsigned char bgB = bgPixel & 0xFF;
 
-	// Allocate 32-bit BGRA buffer for XImage.
-	int rowBytes = w * 4;
-	unsigned char *buf = (unsigned char *)malloc(rowBytes * h);
+	// The pixel width follows the depth: 8 bits for the depths up to 8,
+	// 16 for a 5-6-5 visual, 32 for the 24/32-bit ones. A 32-bit image
+	// cannot be put on a 16-bit drawable, the server rejects it.
+	int bpp, msbFirst;
+	takigo_image_layout(dpy, visual, depth, w, &bpp, &msbFirst);
+	int bpl = takigo_scanline_bytes(bpp, w);
+
+	// The buffer is ours: XCreateImage allocates one when data is NULL,
+	// and replacing img->data with another one leaks that first.
+	unsigned char *buf = (unsigned char *)malloc((size_t)bpl * (size_t)h);
 	if (!buf) return;
 
 	for (int y = 0; y < h; y++) {
 		unsigned char *src = rgba + (srcY + y) * stride + srcX * 4;
-		unsigned char *dst = buf + y * rowBytes;
+		unsigned char *dst = buf + y * bpl;
 		for (int x = 0; x < w; x++) {
 			unsigned char r = src[0];
 			unsigned char g = src[1];
 			unsigned char b = src[2];
 			unsigned char a = src[3];
+			unsigned long cr, cg, cb;
 			if (a == 255) {
-				dst[0] = b;
-				dst[1] = g;
-				dst[2] = r;
-				dst[3] = 0;
+				cr = r; cg = g; cb = b;
 			} else if (a == 0) {
-				dst[0] = bgB;
-				dst[1] = bgG;
-				dst[2] = bgR;
-				dst[3] = 0;
+				cr = bgR; cg = bgG; cb = bgB;
 			} else {
 				// Go's image.RGBA is premultiplied: out = src + bg*(1-a).
 				int ob = b + bgB * (255 - a) / 255;
 				int og = g + bgG * (255 - a) / 255;
 				int or_ = r + bgR * (255 - a) / 255;
-				dst[0] = ob > 255 ? 255 : ob;
-				dst[1] = og > 255 ? 255 : og;
-				dst[2] = or_ > 255 ? 255 : or_;
-				dst[3] = 0;
+				cr = ob > 255 ? 255 : ob;
+				cg = og > 255 ? 255 : og;
+				cb = or_ > 255 ? 255 : or_;
+			}
+			unsigned long px = ((cr * rmax + 127) / 255) << rs
+				| ((cg * gmax + 127) / 255) << gs
+				| ((cb * bmax + 127) / 255) << bs;
+			if (bpp == 32) {
+				takigo_store32(dst, px, msbFirst);
+				dst += 4;
+			} else if (bpp == 16) {
+				takigo_store16(dst, px, msbFirst);
+				dst += 2;
+			} else {
+				*dst++ = (unsigned char)px;
 			}
 			src += 4;
-			dst += 4;
 		}
 	}
 
-	XImage *img = XCreateImage(dpy, visual, depth, ZPixmap, 0,
-		(char *)buf, w, h, 32, rowBytes);
-	if (img) {
-		XPutImage(dpy, d, gc, img, 0, 0, dstX, dstY, w, h);
-		img->data = NULL; // prevent XDestroyImage from freeing our buffer
+	XImage *img = XCreateImage(dpy, visual, depth, ZPixmap, 0, (char *)buf, w, h, bpp, bpl);
+	if (!img) { free(buf); return; }
+	if (img->bits_per_pixel != bpp || img->bytes_per_line != bpl) {
+		// Xlib chose another layout; its bytes_per_line does not match
+		// the buffer we allocated, so do not put anything.
+		img->data = NULL;
 		XDestroyImage(img);
+		free(buf);
+		return;
 	}
+	takigo_trap_errors(dpy);
+	XPutImage(dpy, d, gc, img, 0, 0, dstX, dstY, w, h);
+	takigo_untrap_errors(dpy);
+	img->data = NULL; // our buffer, freed below
+	XDestroyImage(img);
 	free(buf);
 }
 */
@@ -150,6 +181,8 @@ func (d *Display) PutImageRGBA(drawable Drawable, gc GC, visual *Visual, depth i
 	if len(rgbaData) == 0 || w <= 0 || h <= 0 {
 		return
 	}
+	trapMu.Lock()
+	defer trapMu.Unlock()
 	C.put_rgba_image(d.ptr, C.Drawable(drawable), C.GC(gc),
 		visual.ptr, C.int(depth),
 		(*C.uchar)(unsafe.Pointer(&rgbaData[0])), C.int(stride),

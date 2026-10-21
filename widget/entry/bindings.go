@@ -55,10 +55,12 @@ func (e *Entry) handleFocus(ev *event.Event) {
 	case event.FocusInType:
 		e.hasFocus = true
 		e.cursorOn = true
+		e.blink.Start()
 		e.tryFocusValidate("focusin")
 		e.Display()
 	case event.FocusOutType:
 		e.hasFocus = false
+		e.blink.Stop()
 		e.tryFocusValidate("focusout")
 		e.Display()
 	}
@@ -67,6 +69,12 @@ func (e *Entry) handleFocus(ev *event.Event) {
 // handleButtonPress handles mouse button press events.
 func (e *Entry) handleButtonPress(ev *event.Event) {
 	if ev.Button == 1 {
+		// A disabled entry does not take the focus and its selection
+		// cannot be changed, as Tk's EntryButton1 does
+		// (tk/library/entry.tcl:370).
+		if e.State == widget.StateDisabled {
+			return
+		}
 		// Request X11 input focus so key events come to this window.
 		widget.Focus(e.App, e.Win)
 		e.ClearSelection()
@@ -79,6 +87,9 @@ func (e *Entry) handleButtonPress(ev *event.Event) {
 // handleMotion handles mouse motion events (drag to select).
 func (e *Entry) handleMotion(ev *event.Event) {
 	if ev.State&platform.Button1Mask != 0 {
+		if e.State == widget.StateDisabled {
+			return
+		}
 		e.ExtendTo(e.closestGap(ev.X))
 		e.seeInsert()
 		e.Display()

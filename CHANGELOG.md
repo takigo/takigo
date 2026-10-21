@@ -5,6 +5,52 @@ version is 0, a minor release may break the API and says so here.
 
 ## Unreleased
 
+- **The classic widgets follow Tk more closely.** The insert cursor of the
+  entry, spinbox and text widget blinks (600 ms on, 300 ms off). A held
+  scrollbar arrow or spinbox button repeats (`-repeatdelay`,
+  `-repeatinterval`), and a spinbox drag out of the window scrolls and
+  extends the selection. The listbox repaints after `See` and fires its
+  selection callback for keyboard selections, a menu letter activates only
+  an underlined entry, and the entry and spinbox gained `-insertwidth`,
+  `-selectbackground`, `-selectforeground`, `-insertbackground`, `-anchor`,
+  `-justify` and the `-state`/`-readonly` states.
+- **Text peers** repaint on each other's edits, share one undo history, let
+  go of the document when destroyed and paint through the base's pixmap.
+- **Themed styles work like Tk's.** A user `-style` survives theme changes;
+  widget option beats style map beats style default; a child theme's style
+  falls back to the parent's, also for derived names such as `My.TButton`
+  and for styles registered later. Layouts fill one axis at a time.
+- **Bindings and layout follow Tk.** `<Key-A>` is "A", multi-event bindings
+  survive pointer visits elsewhere, and the later of two equally specific
+  bindings wins. Pack no longer starves the other axis, grid shrinks an
+  oversized child to its cell, and `rowconfigure`/`columnconfigure` merge
+  options.
+- **Windows and the App.** A toplevel without a `WM_DELETE_WINDOW` handler
+  is destroyed on close; a grab is released when its window is destroyed;
+  a focused window gets `FocusOut` on destroy; a user resize of one
+  dimension is recorded. Window hooks live on the display and can be
+  unregistered, and window warnings go to the App's logger.
+- **`App.Appearance()`** reports the App's own mode without a D-Bus round
+  trip (the desktop is asked at most every 30 s). The drag-and-drop manager
+  is made with the App; `OnDrop` and `StartDrag` are loop-only.
+- **The clipboard no longer loses a paste.** Each request has its own
+  property (reused once answered), late answers are not handed to newer
+  requests, and a refusal fails only its own window's requests.
+- **macOS:** AppKit calls from other goroutines run on the main thread
+  instead of waiting forever; calls from other threads are refused.
+  **X11:** images no longer leak and show on 16-bit displays. **Windows:**
+  1-bit bitmaps and stipples draw right, the GC is locked while drawn with,
+  and a window destroyed from another thread is really destroyed.
+- **`platform.Point` holds `int32` coordinates** instead of `int16`, so
+  far-away shapes no longer wrap. This breaks its API for the 0.x releases.
+- Smaller fixes: rectangle, oval and arc coordinates are copies; the
+  anti-aliased canvas keeps its layer between repaints; a malformed SVG is
+  an error; the file dialog's name list escapes quotes and backslashes (a
+  typed `"C:\dir\"` closes the quotes); message-box text is anchored north
+  west; the colour chooser's hex field moves the sliders. The option
+  reference covers the dialogs and the App, and the tutorial fragments are
+  compiled.
+
 ## v0.3.4 (2026-10-14)
 
 - **The file dialogs have Alt mnemonics and back/forward history.** As in

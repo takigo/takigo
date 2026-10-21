@@ -91,16 +91,18 @@ type TextWidget struct {
 	embeddedWindows []embeddedWin
 	ewSeq           int // sequence counter for embedded window mark names
 
-	// Offscreen pixmap.
-	pixmap           platform.PixmapID
-	pixmapW, pixmapH int
-	redrawPending    bool
-	yScrollPending   bool
+	// yScrollPending means the scrollbar still has to be told the new
+	// view; redrawYScroll reports it at idle time.
+	yScrollPending  bool
+	yScrollReported bool
 
 	// Stipple pixmap cache: name → depth-1 Pixmap.
 	stippleCache map[string]platform.PixmapID
 
 	layout layoutCache
+
+	// blink blinks the insert cursor while the widget has the focus.
+	blink *widget.CursorBlinker
 }
 
 // New creates a new TextWidget.
@@ -163,11 +165,15 @@ func New(parent widget.Caregiver, name string, opts ...TextOption) *TextWidget {
 		}
 	}
 	t.doc.putTag(selTag)
-	t.layout.init(t)
-	t.doc.Listeners = append(t.doc.Listeners, t.layout.apply)
-	t.doc.subscribeObjects(t.objectDeleted)
+	unsubDoc := t.shareDocument(t.doc)
+	unsubObjects := t.doc.subscribeObjects(t.objectDeleted)
+	w.OnDestroy(func() {
+		unsubDoc()
+		unsubObjects()
+	})
 
-	t.undoStack = NewUndoStack(100)
+	t.SetDisplayProc(t.display)
+	t.blink = widget.NewCursorBlinker(app, t.toggleCursor)
 
 	for _, opt := range opts {
 		opt(t)
@@ -203,7 +209,11 @@ func NewPeer(doc *Document, parent widget.Caregiver, name string, opts ...TextOp
 		cursorOn:    true,
 		prefWidth:   80,
 		prefHeight:  24,
-		undoEnabled: false, // peers share history via the primary
+		// The undo history belongs to the shared document, as in Tk, where
+		// the undo stack is part of the shared text: an undo in the
+		// primary undoes what a peer did, and an undo in a peer undoes
+		// the shared history.
+		undoEnabled: true,
 	}
 	widget.InitBase(&t.Base, w, app)
 	w.OnDestroy(t.Destroy)
@@ -231,9 +241,10 @@ func NewPeer(doc *Document, parent widget.Caregiver, name string, opts ...TextOp
 		t.insertColor = ins.Ref()
 	}
 
-	t.undoStack = NewUndoStack(0)
-	t.layout.init(t)
-	unsubLayout := doc.Subscribe(t.layout.apply)
+	unsubDoc := t.shareDocument(doc)
+	unsubObjects := t.doc.subscribeObjects(t.objectDeleted)
+	t.SetDisplayProc(t.display)
+	t.blink = widget.NewCursorBlinker(app, t.toggleCursor)
 
 	for _, opt := range opts {
 		opt(t)
@@ -249,20 +260,42 @@ func NewPeer(doc *Document, parent widget.Caregiver, name string, opts ...TextOp
 	w.SetCursor(cursor.XTerm)
 	bindText(t, app)
 
-	// Register as a document listener so edits from other peers trigger a
-	// redraw; the peer stops listening when destroyed.
-	unsubRedraw := doc.Subscribe(func(Change) {
-		t.notifyYScrollbar()
-		t.scheduleRedraw()
-	})
-	unsubObjects := doc.subscribeObjects(t.objectDeleted)
+	// The document no longer refers to the widget once it is gone.
 	w.OnDestroy(func() {
-		unsubLayout()
-		unsubRedraw()
+		unsubDoc()
 		unsubObjects()
 	})
 
 	return t
+}
+
+// shareDocument makes the widget a view of the document: it takes the
+// document's undo history, as Tk's peers share the undo stack of the
+// shared text, and subscribes to the document's changes. It returns a
+// function that unsubscribes the widget again, so a destroyed widget is
+// not kept alive by the document.
+func (t *TextWidget) shareDocument(doc *Document) (unsubscribe func()) {
+	t.layout.init(t)
+	t.undoStack = doc.UndoStack()
+	t.undoEnabled = true
+	return t.subscribeDocument()
+}
+
+// subscribeDocument registers the widget with the document: every change
+// invalidates the widget's layout cache and asks for a repaint, as Tk
+// redraws all the peers of a shared text. It returns a function that
+// unsubscribes the widget again, so a destroyed widget is not kept alive
+// by the document.
+func (t *TextWidget) subscribeDocument() (unsubscribe func()) {
+	unsubLayout := t.doc.Subscribe(t.layout.apply)
+	unsubRedraw := t.doc.Subscribe(func(Change) {
+		t.notifyYScrollbar()
+		t.scheduleRedraw()
+	})
+	return func() {
+		unsubLayout()
+		unsubRedraw()
+	}
 }
 
 // computeGeometry calculates the requested window size.
@@ -298,7 +331,10 @@ func (t *TextWidget) Display() {
 	t.scheduleRedraw()
 }
 
-// display draws the text widget.
+// display draws the text widget. It runs from the base redraw, which has
+// redirected the window's drawable to an off-screen pixmap, so the widget
+// paints into that pixmap and the base copies it to the window in one
+// request (Tk's Tk_GetPixmap in TkTextDisplayProc).
 func (t *TextWidget) display() {
 	if t.Destroyed() {
 		return
@@ -317,24 +353,8 @@ func (t *TextWidget) display() {
 		return
 	}
 
-	// Allocate or resize pixmap.
-	if t.pixmap == 0 || t.pixmapW != winW || t.pixmapH != winH {
-		if t.pixmap != 0 {
-			d.FreePixmap(t.pixmap)
-		}
-		t.pixmap = d.CreatePixmap(w.Drawable(), uint(winW), uint(winH), uint(w.Depth))
-		t.pixmapW = winW
-		t.pixmapH = winH
-	}
-	if t.pixmap == 0 {
-		return
-	}
-
-	dlines := t.renderToPixmap()
-
-	// Copy pixmap to window.
-	d.CopyArea(platform.PixmapDrawable(t.pixmap), w.Drawable(), gc,
-		0, 0, uint(winW), uint(winH), 0, 0)
+	drawable := w.Drawable()
+	dlines := t.renderTo(drawable)
 
 	if len(t.embeddedWindows) > 0 {
 		t.positionEmbeddedWindows(dlines)
@@ -343,7 +363,7 @@ func (t *TextWidget) display() {
 	// Draw border on top.
 	if t.Border != nil && t.BorderWidth > 0 {
 		hl := t.HighlightWidth
-		draw.Draw3DRectangle(d, w.Drawable(), gc, t.Border,
+		draw.Draw3DRectangle(d, drawable, gc, t.Border,
 			hl, hl, w.Width-2*hl, w.Height-2*hl, t.BorderWidth, t.Relief)
 	}
 	// The highlight ring sits outside the border (focus colour or
@@ -352,22 +372,29 @@ func (t *TextWidget) display() {
 
 }
 
-// scheduleRedraw schedules a redraw via the idle loop.
+// scheduleRedraw schedules a redraw via the idle loop. The base redraw
+// paints into an off-screen pixmap and copies it to the window, as Tk's
+// display procs do.
 func (t *TextWidget) scheduleRedraw() {
-	if t.redrawPending || t.Destroyed() || t.App == nil {
+	if t.Destroyed() || t.App == nil {
 		return
 	}
-	t.redrawPending = true
+	t.Base.EventuallyRedraw()
+}
+
+// reportYScroll tells the scrollbar the new view at idle time.
+func (t *TextWidget) reportYScroll() {
+	if t.yScrollReported || t.App == nil {
+		return
+	}
+	t.yScrollReported = true
 	t.App.DoWhenIdle(func() {
-		t.redrawPending = false
-		if t.Destroyed() {
+		t.yScrollReported = false
+		if t.Destroyed() || !t.yScrollPending {
 			return
 		}
-		if t.yScrollPending {
-			t.yScrollPending = false
-			t.YScrollCmd(t.yviewFractions())
-		}
-		t.display()
+		t.yScrollPending = false
+		t.YScrollCmd(t.yviewFractions())
 	})
 }
 
@@ -574,14 +601,11 @@ func (t *TextWidget) Destroy() {
 		return
 	}
 	t.MarkDestroyed()
+	t.blink.Stop()
 	if top := window.Toplevel(t.Win); top != nil && top.WmData != nil {
 		top.WmData.UnsetGrid(t.Win)
 	}
 	d := t.Win.Display.Server
-	if t.pixmap != 0 {
-		d.FreePixmap(t.pixmap)
-		t.pixmap = 0
-	}
 	for _, pm := range t.stippleCache {
 		if pm != 0 {
 			d.FreePixmap(pm)
@@ -912,6 +936,7 @@ func (t *TextWidget) notifyYScrollbar() {
 		return
 	}
 	t.yScrollPending = true
+	t.reportYScroll()
 	t.scheduleRedraw()
 }
 
@@ -971,3 +996,12 @@ func (t *TextWidget) estimateMaxLineWidth() int {
 // Suppress unused import warnings.
 var _ = (*color.Color)(nil)
 var _ = (*font.Registry)(nil)
+
+// toggleCursor blinks the insert cursor, as Tk's text widget does.
+func (t *TextWidget) toggleCursor() {
+	if t.readOnly {
+		return
+	}
+	t.cursorOn = !t.cursorOn
+	t.Display()
+}

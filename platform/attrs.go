@@ -19,7 +19,7 @@ type GCValues struct {
 
 // Point represents an x,y coordinate.
 type Point struct {
-	X, Y int16
+	X, Y int32
 }
 
 // SizeHints holds window sizing hints.

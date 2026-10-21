@@ -158,6 +158,9 @@ func SetLineAttributes(gc GC, lineWidth uint, lineStyle, capStyle, joinStyle int
 		C.int(lineStyle), C.int(capStyle), C.int(joinStyle))
 }
 func SetDashes(gc GC, dashOffset int, dashList []byte) {
+	if len(dashList) == 0 {
+		return
+	}
 	C.CocoaSetDashes(C.CocoaGCID(gc), C.int(dashOffset),
 		(*C.uchar)(unsafe.Pointer(&dashList[0])), C.int(len(dashList)))
 }
@@ -177,18 +180,24 @@ func DrawLine(d Drawable, gc GC, x1, y1, x2, y2 int) {
 		C.int(x1), C.int(y1), C.int(x2), C.int(y2))
 }
 
-// XPoint matches the platform.Point layout: two int16 fields.
+// XPoint matches the platform.Point layout: two int32 fields.
 type XPoint struct {
-	X, Y int16
+	X, Y int32
 }
 
 func DrawLines(d Drawable, gc GC, points []XPoint, mode int) {
+	if len(points) == 0 {
+		return
+	}
 	C.CocoaDrawLines(C.CocoaDrawableID(d), C.CocoaGCID(gc),
-		(*C.int16_t)(unsafe.Pointer(&points[0])), C.int(len(points)), C.int(mode))
+		(*C.int32_t)(unsafe.Pointer(&points[0])), C.int(len(points)), C.int(mode))
 }
 func FillPolygon(d Drawable, gc GC, points []XPoint, shape, mode int) {
+	if len(points) == 0 {
+		return
+	}
 	C.CocoaFillPolygon(C.CocoaDrawableID(d), C.CocoaGCID(gc),
-		(*C.int16_t)(unsafe.Pointer(&points[0])), C.int(len(points)),
+		(*C.int32_t)(unsafe.Pointer(&points[0])), C.int(len(points)),
 		C.int(shape), C.int(mode))
 }
 func FillArc(d Drawable, gc GC, x, y int, w, h uint, angle1, angle2 int) {
@@ -206,6 +215,9 @@ func CopyArea(src, dst Drawable, gc GC, srcX, srcY int, w, h uint, dstX, dstY in
 func PutImageRGBA(d Drawable, gc GC, depth int,
 	rgbaData []byte, stride int, imgW, imgH int,
 	srcX, srcY, dstX, dstY, w, h int, bgPixel uint64) {
+	if len(rgbaData) == 0 {
+		return
+	}
 	C.CocoaPutImageRGBA(C.CocoaDrawableID(d), C.CocoaGCID(gc), C.int(depth),
 		(*C.uchar)(unsafe.Pointer(&rgbaData[0])), C.int(stride),
 		C.int(imgW), C.int(imgH),
@@ -219,9 +231,22 @@ func CreatePixmap(width, height, depth uint) Pixmap {
 	return Pixmap(C.CocoaCreatePixmap(C.uint(width), C.uint(height), C.uint(depth)))
 }
 func FreePixmap(pm Pixmap) { C.CocoaFreePixmap(C.CocoaPixmapID(pm)) }
+
+// CreateBitmapFromData creates a depth-1 pixmap from XBM-format bit data.
+// The data is row-major with every row padded to a byte boundary; a
+// shorter buffer is refused instead of read past.
 func CreateBitmapFromData(bits []byte, width, height uint) Pixmap {
+	if len(bits) == 0 || uint64(len(bits)) < xbmBytesNeeded(width, height) {
+		return 0
+	}
 	return Pixmap(C.CocoaCreateBitmapFromData((*C.uchar)(unsafe.Pointer(&bits[0])),
-		C.uint(width), C.uint(height)))
+		C.size_t(len(bits)), C.uint(width), C.uint(height)))
+}
+
+// xbmBytesNeeded returns the number of bytes an XBM image of the given
+// size needs.
+func xbmBytesNeeded(width, height uint) uint64 {
+	return uint64((width+7)/8) * uint64(height)
 }
 
 // ---- Cursor ----

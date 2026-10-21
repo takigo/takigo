@@ -40,6 +40,10 @@ type Entry struct {
 	Justify     option.Justify
 	PrefWidth   int // preferred width in characters
 
+	// State is the interaction state (Tk's -state): StateNormal,
+	// StateDisabled or StateReadonly.
+	State widget.State
+
 	// Placeholder.
 	Placeholder   string
 	PlaceholderFg *color.ColorRef
@@ -53,6 +57,9 @@ type Entry struct {
 	// Blink.
 	cursorOn bool
 	hasFocus bool
+
+	// blink blinks the insert cursor while the widget has the focus.
+	blink *widget.CursorBlinker
 
 	// Scrollbar callback.
 	ScrollCmd func(first, last float64)
@@ -129,6 +136,80 @@ func ScrollCommand(fn func(first, last float64)) EntryOption {
 	return func(e *Entry) { e.ScrollCmd = fn }
 }
 
+// InsertWidth sets the width of the insertion cursor (Tk's -insertwidth).
+func InsertWidth[L screenunit.Length](w L) EntryOption {
+	return func(e *Entry) { e.InsertWidth = screenunit.ToPixels(w) }
+}
+
+// SelectBackground sets the background colour of the selected text
+// (Tk's -selectbackground).
+func SelectBackground[C color.Spec](name C) EntryOption {
+	return func(e *Entry) {
+		col, err := e.App.ColorCache().Resolve(name)
+		if err != nil {
+			e.OptionFailed(err)
+			return
+		}
+		e.SelBg = col.Ref()
+	}
+}
+
+// SelectForeground sets the colour of the selected text
+// (Tk's -selectforeground).
+func SelectForeground[C color.Spec](name C) EntryOption {
+	return func(e *Entry) {
+		col, err := e.App.ColorCache().Resolve(name)
+		if err != nil {
+			e.OptionFailed(err)
+			return
+		}
+		e.SelFg = col.Ref()
+	}
+}
+
+// InsertBackground sets the colour of the insertion cursor
+// (Tk's -insertbackground).
+func InsertBackground[C color.Spec](name C) EntryOption {
+	return func(e *Entry) {
+		col, err := e.App.ColorCache().Resolve(name)
+		if err != nil {
+			e.OptionFailed(err)
+			return
+		}
+		e.InsertBg = col.Ref()
+	}
+}
+
+// Anchor sets the anchor of the text within the entry.
+func Anchor(a option.Anchor) EntryOption {
+	return func(e *Entry) { e.Anchor = a }
+}
+
+// Justify sets the justification of the text (Tk's -justify).
+func Justify(j option.Justify) EntryOption {
+	return func(e *Entry) { e.Justify = j }
+}
+
+// State sets the interaction state (Tk's -state): widget.StateNormal,
+// widget.StateDisabled or widget.StateReadonly. A disabled entry cannot be
+// edited or selected, a readonly one can be selected and copied but not
+// edited.
+func State(s widget.State) EntryOption {
+	return func(e *Entry) { e.State = s }
+}
+
+// ReadOnly makes the entry read-only (Tk's -readonly): its text can be
+// selected and copied, but not edited.
+func ReadOnly(on bool) EntryOption {
+	return func(e *Entry) {
+		if on {
+			e.State = widget.StateReadonly
+		} else {
+			e.State = widget.StateNormal
+		}
+	}
+}
+
 // New creates a new Entry widget.
 func New(parent widget.Caregiver, name string, opts ...EntryOption) *Entry {
 	app := parent.AppContext()
@@ -139,8 +220,9 @@ func New(parent widget.Caregiver, name string, opts ...EntryOption) *Entry {
 		InsertWidth: 2,
 		PrefWidth:   20,
 		cursorOn:    true,
-		Anchor:      option.AnchorCenter,
+		Anchor:      option.AnchorW,
 		Justify:     option.JustifyLeft,
+		State:       widget.StateNormal,
 	}
 	e.Init()
 	widget.InitBase(&e.Base, w, app)
@@ -150,6 +232,7 @@ func New(parent widget.Caregiver, name string, opts ...EntryOption) *Entry {
 		Moved: func() { e.seeInsert(); e.Display() },
 	}
 	e.SetDisplayProc(e.display)
+	e.blink = widget.NewCursorBlinker(app, e.toggleCursor)
 	w.Class = "Entry"
 
 	// Entry-specific defaults.
@@ -206,7 +289,12 @@ func (e *Entry) SetText(s string) {
 }
 
 // Insert inserts s before character index (Tk: insert INDEX STRING).
+// It does nothing when the entry is not in the normal state, as Tk's
+// insert command does (tk/generic/tkEntry.c).
 func (e *Entry) Insert(index int, s string) {
+	if e.State != widget.StateNormal {
+		return
+	}
 	if !e.Buffer.Insert(index, []rune(s)) {
 		return
 	}
@@ -217,8 +305,12 @@ func (e *Entry) Insert(index int, s string) {
 }
 
 // Delete removes the characters from index first to last, exclusive
-// (Tk: delete FIRST LAST).
+// (Tk: delete FIRST LAST). It does nothing when the entry is not in the
+// normal state, as Tk's delete command does.
 func (e *Entry) Delete(first, last int) {
+	if e.State != widget.StateNormal {
+		return
+	}
 	if !e.Buffer.Delete(first, last-first) {
 		return
 	}
@@ -270,9 +362,10 @@ func (e *Entry) computeGeometry() {
 	availWidth := max(w.Width-2*e.inset, 1)
 
 	if totalWidth <= availWidth {
-		// Text fits — no scrolling needed.
+		// Text fits — no scrolling needed; the anchor and the
+		// justification place it (Tk's EntryWorldChanged).
 		e.LeftIndex = 0
-		e.layoutX = e.inset
+		e.layoutX = e.inset + e.textOffset(totalWidth, availWidth)
 	} else {
 		// Clamp leftIndex.
 		maxOff := textedit.RuneIndexAtPixel(e.Font, dt, totalWidth-availWidth)
@@ -285,6 +378,32 @@ func (e *Entry) computeGeometry() {
 		leftCharX := textedit.MeasureRunes(e.Font, dt[:e.LeftIndex])
 		e.layoutX = e.inset - leftCharX
 	}
+}
+
+// textOffset returns the horizontal offset of the text inside the entry's
+// text area, as the anchor and the justification ask for. Tk places the
+// text of an entry that fits with -justify left, right or centre
+// (tk/generic/tkEntry.c, EntryWorldChanged).
+func (e *Entry) textOffset(textWidth, availWidth int) int {
+	justify := e.Justify
+	if justify == option.JustifyLeft {
+		// The anchor decides when -justify is left (the default).
+		switch e.Anchor {
+		case option.AnchorE, option.AnchorNE, option.AnchorSE:
+			justify = option.JustifyRight
+		case option.AnchorN, option.AnchorS:
+			justify = option.JustifyCenter
+		case option.AnchorCenter, option.AnchorSW, option.AnchorW, option.AnchorNW:
+		}
+	}
+	switch justify {
+	case option.JustifyRight:
+		return max(availWidth-textWidth, 0)
+	case option.JustifyCenter:
+		return max((availWidth-textWidth)/2, 0)
+	case option.JustifyLeft:
+	}
+	return 0
 }
 
 // seeInsert scrolls to make the cursor visible.
@@ -388,7 +507,11 @@ func (e *Entry) VisibleRange() (float64, float64) {
 // tryEdit checks whether a proposed edit is valid.
 // prospective is the text that would result from the edit.
 // Returns true if the edit should be allowed (no validator set, or validator approves).
+// An entry that is disabled or read-only cannot be edited.
 func (e *Entry) tryEdit(prospective string) bool {
+	if e.State != widget.StateNormal {
+		return false
+	}
 	if e.ValidateCmd == nil {
 		return true
 	}
@@ -452,8 +575,11 @@ func (e *Entry) display() {
 				e.PlaceholderFg.Pixel, e.PlaceholderFg.Red, e.PlaceholderFg.Green, e.PlaceholderFg.Blue)
 		}
 	} else if isXft && len(dt) > 0 {
+		// A disabled entry does not show its selection, as Tk's
+		// DisplayEntry does (tk/generic/tkEntry.c).
+		showSelection := e.State != widget.StateDisabled
 		// Draw selection highlight.
-		if e.hasFocus && e.SelFirst >= 0 && e.SelLast > e.SelFirst && e.SelBg != nil {
+		if e.hasFocus && showSelection && e.SelFirst >= 0 && e.SelLast > e.SelFirst && e.SelBg != nil {
 			selStartX := textedit.MeasureRunes(e.Font, dt[:textedit.ClampIdx(e.SelFirst, len(dt))]) + e.layoutX
 			selEndX := textedit.MeasureRunes(e.Font, dt[:textedit.ClampIdx(e.SelLast, len(dt))]) + e.layoutX
 
@@ -475,7 +601,7 @@ func (e *Entry) display() {
 
 		// Draw text in segments: before selection, selection, after selection.
 		visibleStr := string(dt)
-		if e.hasFocus && e.SelFirst >= 0 && e.SelLast > e.SelFirst && e.SelFg != nil && e.Foreground != nil {
+		if e.hasFocus && showSelection && e.SelFirst >= 0 && e.SelLast > e.SelFirst && e.SelFg != nil && e.Foreground != nil {
 			// Before selection.
 			if e.SelFirst > 0 {
 				seg := string(dt[:e.SelFirst])
@@ -507,7 +633,9 @@ func (e *Entry) display() {
 	}
 
 	// Draw cursor (outside text block so it works for empty entries too).
-	if e.hasFocus && e.cursorOn && e.InsertBg != nil && e.Font != nil {
+	// A disabled or read-only entry has no cursor, as Tk's DisplayEntry
+	// and EntryBlinkProc do (tk/generic/tkEntry.c).
+	if e.hasFocus && e.cursorOn && e.State == widget.StateNormal && e.InsertBg != nil && e.Font != nil {
 		cursorX := textedit.MeasureRunes(e.Font, dt[:textedit.ClampIdx(e.InsertPos, len(dt))]) + e.layoutX
 		if cursorX >= e.inset && cursorX < w.Width-e.inset {
 			m := e.Font.Metrics()
@@ -542,5 +670,13 @@ func (e *Entry) Destroy() {
 		return
 	}
 	e.MarkDestroyed()
+	e.blink.Stop()
 	window.DestroyWindow(e.Win)
+}
+
+// toggleCursor blinks the insert cursor, as Tk's entry does with its
+// insertofftime.
+func (e *Entry) toggleCursor() {
+	e.cursorOn = !e.cursorOn
+	e.Display()
 }

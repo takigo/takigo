@@ -105,11 +105,10 @@ func (e *Engine) dispatch(ev *event.Event, runClass bool) bool {
 		}
 		bindings := e.table.Lookup(tag)
 
-		// Find best matching binding (most specific pattern wins); a
-		// completed multi-event sequence competes on the sum of its
-		// patterns' specificity, so the longer match wins (IsBetterMatch).
-		var bestBinding *binding
-		bestScore := -1
+		// The best matching single-event binding of this tag: the more
+		// specific pattern wins, and a binding defined later wins a tie
+		// (Tk's Compare, CompareModMasks and PatSeq.number).
+		var bestPhysical *binding
 		for i := range bindings {
 			b := &bindings[i]
 			n := len(b.seq.Patterns)
@@ -124,25 +123,39 @@ func (e *Engine) dispatch(ev *event.Event, runClass bool) bool {
 				e.promote(tag, b.key, b.seq, 1, ev.Window)
 				continue
 			}
-			if score := pat.specificity(); score > bestScore {
-				bestScore = score
-				bestBinding = b
+			if bestPhysical == nil || betterPattern(bestPhysical, b) {
+				bestPhysical = b
 			}
 		}
+
+		// A multi-event binding that just completed competes with the
+		// single-event binding (Tk's IsBetterMatch).
+		var bestCompleted *binding
 		for _, c := range completed {
 			if c.tag != tag {
 				continue
 			}
-			if b := findBinding(bindings, c.key); b != nil && c.score > bestScore {
-				bestScore = c.score
-				bestBinding = b
+			b := findBinding(bindings, c.key)
+			if b == nil {
+				continue
+			}
+			if bestCompleted == nil || betterSequence(bestCompleted, b) {
+				bestCompleted = b
 			}
 		}
 
-		// Also check virtual events: if the physical event matches a virtual
-		// definition, try to dispatch bindings tagged with that virtual name.
-		if bestBinding == nil && len(virtuals) > 0 {
-			bestBinding = matchVirtual(virtuals, bindings)
+		bestBinding := bestPhysical
+		if bestCompleted != nil && (bestPhysical == nil || betterSequence(bestPhysical, bestCompleted)) {
+			bestBinding = bestCompleted
+		}
+
+		// A virtual event competes with the physical match: its physical
+		// definition is compared with the physical binding, as Tk's
+		// MatchPatterns does for a virtual pattern.
+		if v := matchVirtual(virtuals, bindings); v != nil {
+			if bestBinding == nil || betterVirtual(bestBinding, v) {
+				bestBinding = v.binding
+			}
 		}
 
 		if bestBinding != nil {
@@ -167,9 +180,8 @@ type promEntry struct {
 
 // completedSeq is a multi-event binding whose last pattern just matched.
 type completedSeq struct {
-	tag   string
-	key   string
-	score int
+	tag string
+	key string
 }
 
 // promote records that seq (bound to tag) matched up to pattern next-1 on
@@ -187,6 +199,10 @@ func (e *Engine) promote(tag, key string, seq Sequence, next int, window platfor
 // Tk_BindEvent does with its promotion lists: a matching entry completes
 // or moves to its next pattern; a non-matching one stays unless the event
 // rules it out.
+//
+// A promotion waits for a window: an event for another window leaves it
+// pending, as Tk's MatchPatterns only looks at the entries of the window
+// the event was delivered to.
 func (e *Engine) advancePromoted(ev *event.Event, clickMods Modifier) []completedSeq {
 	if len(e.prom) == 0 {
 		return nil
@@ -195,12 +211,13 @@ func (e *Engine) advancePromoted(ev *event.Event, clickMods Modifier) []complete
 	kept := e.prom[:0:0]
 	for _, p := range e.prom {
 		if p.window != ev.Window {
+			kept = append(kept, p)
 			continue
 		}
 		pat := &p.seq.Patterns[p.next]
 		if pat.matches(ev, clickMods) {
 			if p.next == len(p.seq.Patterns)-1 {
-				completed = append(completed, completedSeq{tag: p.tag, key: p.key, score: p.seq.specificity()})
+				completed = append(completed, completedSeq{tag: p.tag, key: p.key})
 			} else {
 				p.next++
 				kept = append(kept, p)
@@ -269,7 +286,15 @@ type virtualDef struct {
 // the specificity of its best-matching physical pattern.
 type virtualMatch struct {
 	name  string
+	def   Pattern // the physical pattern that defines the virtual event
 	score int
+}
+
+// virtualBinding is the binding of a virtual event on a tag, with the
+// physical pattern that triggered it.
+type virtualBinding struct {
+	binding *binding
+	def     Pattern
 }
 
 // indexVirtuals rebuilds virtualByType after the definitions change.
@@ -290,7 +315,7 @@ func (e *Engine) indexVirtuals() {
 // than once per tag.
 func (e *Engine) virtualMatches(ev *event.Event, clickMods Modifier) []virtualMatch {
 	if ev.Type == event.VirtualType {
-		return []virtualMatch{{ev.Name, 0}}
+		return []virtualMatch{{name: ev.Name}}
 	}
 	var out []virtualMatch
 	for _, d := range e.virtualByType[ev.Type] {
@@ -299,10 +324,13 @@ func (e *Engine) virtualMatches(ev *event.Event, clickMods Modifier) []virtualMa
 		}
 		score := d.pat.specificity()
 		if n := len(out); n > 0 && out[n-1].name == d.name {
-			out[n-1].score = max(out[n-1].score, score)
-		} else {
-			out = append(out, virtualMatch{d.name, score})
+			if score > out[n-1].score {
+				out[n-1].score = score
+				out[n-1].def = d.pat
+			}
+			continue
 		}
+		out = append(out, virtualMatch{name: d.name, def: d.pat, score: score})
 	}
 	return out
 }
@@ -311,8 +339,8 @@ func (e *Engine) virtualMatches(ev *event.Event, clickMods Modifier) []virtualMa
 // several have bindings, the most specific physical pattern wins and ties
 // go to the earliest-defined virtual event, so the choice does not depend
 // on map iteration order.
-func matchVirtual(virtuals []virtualMatch, bindings []binding) *binding {
-	var best *binding
+func matchVirtual(virtuals []virtualMatch, bindings []binding) *virtualBinding {
+	var best *virtualBinding
 	bestScore := -1
 	for _, v := range virtuals {
 		if v.score <= bestScore {
@@ -321,12 +349,55 @@ func matchVirtual(virtuals []virtualMatch, bindings []binding) *binding {
 		for i := range bindings {
 			b := &bindings[i]
 			if len(b.seq.Patterns) == 1 && b.seq.Patterns[0].Virtual == v.name {
-				best, bestScore = b, v.score
+				best, bestScore = &virtualBinding{binding: b, def: v.def}, v.score
 				break
 			}
 		}
 	}
 	return best
+}
+
+// betterPattern reports whether candidate is a better match than incumbent
+// for two single-event bindings of a tag, mirroring tkBind.c's
+// MatchPatterns: the more specialized pattern wins, the pattern with more
+// modifiers wins a tie, and the binding defined last wins a full tie.
+func betterPattern(incumbent, candidate *binding) bool {
+	if cmp := compareSeq(incumbent.seq, candidate.seq); cmp != 0 {
+		return cmp > 0
+	}
+	if cmp := compareModMasks(incumbent.seq, candidate.seq); cmp != 0 {
+		return cmp > 0
+	}
+	return candidate.num > incumbent.num
+}
+
+// betterSequence reports whether candidate is a better match than incumbent
+// when one of them is a completed multi-event sequence, mirroring
+// tkBind.c's IsBetterMatch.
+func betterSequence(incumbent, candidate *binding) bool {
+	if d := candidate.seq.countSpecialized() - incumbent.seq.countSpecialized(); d != 0 {
+		return d > 0
+	}
+	if c, i := candidate.seq.weightedCount(), incumbent.seq.weightedCount(); c != i {
+		return c > i
+	}
+	return candidate.num > incumbent.num
+}
+
+// betterVirtual reports whether the virtual event v is a better match than
+// the physical binding b. tkBind.c compares the virtual event's physical
+// definition with the physical binding; the virtual event wins only when
+// its definition is strictly more specific, so a physical binding for the
+// very same event keeps the match.
+func betterVirtual(b *binding, v *virtualBinding) bool {
+	def := Sequence{Patterns: []Pattern{v.def}}
+	if cmp := compareSeq(b.seq, def); cmp != 0 {
+		return cmp > 0
+	}
+	if cmp := compareModMasks(b.seq, def); cmp != 0 {
+		return cmp > 0
+	}
+	return false
 }
 
 // updateClickState tracks button press timing for double/triple click.

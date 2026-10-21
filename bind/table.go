@@ -27,6 +27,7 @@ type binding struct {
 	seq     Sequence
 	key     string // seq.String(), computed once for matching on the hot path
 	handler HandlerFunc
+	num     int // definition order, as tkBind.c's PatSeq.number
 }
 
 // BindingTable stores tag-based bindings. A tag is a string that identifies
@@ -39,6 +40,7 @@ type binding struct {
 type BindingTable struct {
 	mu       sync.RWMutex
 	bindings map[string][]binding // tag → bindings list
+	nextNum  int                  // definition counter, as tkBind.c's lookupTables.number
 }
 
 // NewBindingTable creates an empty binding table.
@@ -51,18 +53,24 @@ func NewBindingTable() *BindingTable {
 // Add registers a binding for a tag with the given pattern sequence and
 // handler. Like Tk_CreateBinding, a binding for the same sequence on the
 // same tag is replaced; bindings for other sequences keep their order.
+//
+// A replaced binding keeps its definition number, as Tk's FindSequence
+// returns the pattern sequence it created earlier, so only a binding for a
+// new pattern counts as more recent.
 func (bt *BindingTable) Add(tag string, seq Sequence, handler HandlerFunc) {
 	bt.mu.Lock()
 	defer bt.mu.Unlock()
 	key := seq.String()
-	nb := binding{seq: seq, key: key, handler: handler}
 	list := bt.bindings[tag]
 	if i := slices.IndexFunc(list, func(b binding) bool { return b.key == key }); i >= 0 {
+		nb := binding{seq: seq, key: key, handler: handler, num: list[i].num}
 		list = slices.Clone(list)
 		list[i] = nb
 		bt.bindings[tag] = list
 		return
 	}
+	bt.nextNum++
+	nb := binding{seq: seq, key: key, handler: handler, num: bt.nextNum}
 	bt.bindings[tag] = append(slices.Clip(list), nb)
 }
 

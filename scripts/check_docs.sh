@@ -7,6 +7,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 files=(AGENTS.md CONTRIBUTING.md THREADING.md scripts/README.md)
+while IFS= read -r f; do files+=("$f"); done < <(find docs -name '*.md' | sort)
 while IFS= read -r f; do files+=("$f"); done < <(find . -mindepth 2 -maxdepth 3 -name AGENTS.md -not -path './tmp/*' -not -path './tk/*' -not -path './tcl/*' | sed 's|^\./||' | sort)
 while IFS= read -r f; do files+=("$f"); done < <(find .agents/skills -name '*.md' | sort)
 
@@ -52,7 +53,7 @@ for f in "${files[@]}"; do
 done
 
 demos=$(ls -d demos/*/main.go | wc -l)
-for f in AGENTS.md demos/AGENTS.md README.md; do
+for f in AGENTS.md demos/AGENTS.md README.md docs/*.md; do
     [[ -f $f ]] || continue
     while IFS= read -r n; do
         checked=$((checked + 1))

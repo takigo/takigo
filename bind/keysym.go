@@ -128,20 +128,22 @@ var keysymNames = map[string]platform.KeySym{
 	"question":     platform.KeySym(0x003f),
 }
 
-// lookupKeySym resolves a key name (case-insensitive) to a KeySym.
-// Returns 0 if not found.
+// lookupKeySym resolves a key name to a KeySym. Returns 0 if not found.
+//
+// A single character is its own keysym, as in Tk's TkStringToKeysym: "A" is
+// 0x41 and "a" is 0x61, so <Key-A> fires on Shift+a and not on a plain "a".
+// Longer names name a keysym and are matched without regard to case, so
+// "Left", "F1" and "Return" resolve like their lowercase spellings.
 func lookupKeySym(name string) platform.KeySym {
-	// Try exact lowercase match.
-	lower := toLower(name)
-	if ks, ok := keysymNames[lower]; ok {
-		return ks
-	}
-	// Single character: use its ASCII value as keysym.
 	if len(name) == 1 {
 		ch := name[0]
 		if ch >= 0x20 && ch <= 0x7e {
 			return platform.KeySym(ch)
 		}
+		return 0
+	}
+	if ks, ok := keysymNames[toLower(name)]; ok {
+		return ks
 	}
 	return 0
 }

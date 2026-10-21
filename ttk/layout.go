@@ -4,7 +4,8 @@ import "github.com/takigo/takigo/platform"
 
 // Position flags for layout elements. Ported from ttkLayout.c. As with
 // TTK_PACK_*, a node without a Pack flag is given the whole cavity and does
-// not consume it.
+// not consume it. TTK_EXPAND uses the whole cavity too and takes priority
+// over the pack side.
 const (
 	packSet    = 0x40
 	PackTop    = packSet
@@ -13,10 +14,10 @@ const (
 	PackRight  = packSet | 0x3
 	_packMask  = 0x3
 
-	Expand = 0x4  // expand to fill available space
+	Expand = 0x4  // use the entire cavity (TTK_EXPAND)
 	Border = 0x8  // draw after children (border elements)
-	FillXF = 0x10 // fill horizontally
-	FillYF = 0x20 // fill vertically
+	FillXF = 0x10 // fill horizontally (TTK_FILL_X)
+	FillYF = 0x20 // fill vertically (TTK_FILL_Y)
 	FillF  = FillXF | FillYF
 )
 
@@ -144,35 +145,24 @@ func placeNodes(n *LayoutNode, cavity Box, depth int) {
 		// Determine pack side.
 		side := Side(cur.Flags & _packMask)
 
-		// Requested size — expand if flagged.
-		reqW, reqH := nodeW, nodeH
-		if cur.Flags&Expand != 0 {
-			switch side {
-			case SideTop, SideBottom:
-				reqW = cavity.Width
-				reqH = max(reqH, cavity.Height)
-			case SideLeft, SideRight:
-				reqH = cavity.Height
-				reqW = max(reqW, cavity.Width)
-			}
-		}
-
-		// Carve parcel from cavity (Ttk_PositionBox).
+		// Carve parcel from cavity (Ttk_PositionBox): expand uses the whole
+		// cavity and takes priority over the pack side, leaving the cavity
+		// untouched; a packed element takes its parcel from the cavity; a
+		// plain one gets the cavity as it is.
 		parcel := cavity
-		if cur.Flags&packSet != 0 {
-			parcel = PackBox(&cavity, reqW, reqH, side)
+		if cur.Flags&Expand == 0 && cur.Flags&packSet != 0 {
+			parcel = PackBox(&cavity, nodeW, nodeH, side)
 		}
 
-		// Apply sticky.
+		// Apply sticky (Ttk_StickBox): the fill axes are independent, as
+		// TTK_FILL_X and TTK_FILL_Y are in Tk, so an element that fills
+		// horizontally does not fill vertically.
 		sticky := Sticky(0)
 		if cur.Flags&FillXF != 0 {
 			sticky |= FillX
 		}
 		if cur.Flags&FillYF != 0 {
 			sticky |= FillY
-		}
-		if sticky != 0 || cur.Flags&Expand != 0 {
-			sticky |= FillBoth
 		}
 		cur.Parcel = StickBox(parcel, nodeW, nodeH, sticky)
 

@@ -33,21 +33,22 @@ import (
 // App is the top-level application, managing the display connection,
 // event loop, and root window. It implements widget.AppContext.
 type App struct {
-	display    *window.Display
-	root       *window.Window
-	wmInfo     *wm.WmInfo
-	dispatcher *event.Dispatcher
-	parser     platform.EventParser
-	loop       *event.Loop
-	colorCache *color.Cache
-	fontReg    *font.Registry
-	imageReg   *image.Registry
-	bindEng    *bind.Engine
-	focusMgr   *focus.Manager
-	selMgr     *selection.Manager
-	grabMgr    *grab.Manager
-	logger     *slog.Logger
-	dnd        *xdnd.Manager
+	display        *window.Display
+	root           *window.Window
+	wmInfo         *wm.WmInfo
+	dispatcher     *event.Dispatcher
+	parser         platform.EventParser
+	loop           *event.Loop
+	colorCache     *color.Cache
+	fontReg        *font.Registry
+	imageReg       *image.Registry
+	bindEng        *bind.Engine
+	focusMgr       *focus.Manager
+	selMgr         *selection.Manager
+	grabMgr        *grab.Manager
+	logger         *slog.Logger
+	dnd            *xdnd.Manager
+	appearanceMode appearance.Mode
 }
 
 // NewApp creates a new takigo application. It opens the X11 display,
@@ -84,6 +85,7 @@ func NewApp(opts ...AppOption) (*App, error) {
 		server.Close()
 		return nil, fmt.Errorf("takigo: %w", err)
 	}
+	d.Logger = cfg.logger
 
 	root := window.CreateMainWindow(d, 0, 0, cfg.width, cfg.height)
 	widget.SetClassic(root, cfg.classic || os.Getenv("TAKIGO_CLASSIC") == "1")
@@ -96,9 +98,7 @@ func NewApp(opts ...AppOption) (*App, error) {
 	d.DoWhenIdle = loop.DoWhenIdle
 
 	colors := color.NewCache(d.Screen)
-	if cfg.followSystem {
-		cfg.appearance = appearance.System()
-	}
+	cfg.appearance = resolveAppearance(cfg)
 	if cfg.appearance == appearance.Dark {
 		widget.SetPalette(root, widget.DarkPalette)
 		if bg, err := colors.Get(widget.DarkPalette.Background); err == nil {
@@ -113,19 +113,23 @@ func NewApp(opts ...AppOption) (*App, error) {
 	selMgr.SetTimer(func(d time.Duration, fn func()) { loop.After(d, fn) })
 
 	app := &App{
-		display:    d,
-		root:       root,
-		dispatcher: dispatcher,
-		parser:     parser,
-		loop:       loop,
-		colorCache: colors,
-		fontReg:    fontReg,
-		imageReg:   image.NewRegistry(),
-		bindEng:    bindEng,
-		selMgr:     selMgr,
-		grabMgr:    grab.NewManager(server, dispatcher),
-		logger:     cfg.logger,
+		display:        d,
+		root:           root,
+		dispatcher:     dispatcher,
+		parser:         parser,
+		loop:           loop,
+		colorCache:     colors,
+		fontReg:        fontReg,
+		imageReg:       image.NewRegistry(),
+		bindEng:        bindEng,
+		selMgr:         selMgr,
+		grabMgr:        grab.NewManager(server, dispatcher),
+		logger:         cfg.logger,
+		appearanceMode: cfg.appearance,
 	}
+	// The drag-and-drop manager is made here, not on first use, so that
+	// OnDrop and StartDrag (loop-only) cannot race with the event loop.
+	app.dnd = xdnd.New(d, dispatcher, selMgr, func(d time.Duration, fn func()) { loop.After(d, fn) })
 
 	loop.SetEventFilter(app.filterEvent)
 	loop.SetRawEventHandler(app.handleRawEvent)
@@ -161,10 +165,12 @@ func (a *App) Root() *window.Window {
 	return a.root
 }
 
-// Appearance reports whether the desktop currently asks for a light or a
-// dark look; see package appearance.
+// Appearance reports whether the App is to be drawn light or dark: the
+// mode it was created with (UseAppearance), or the desktop's when it
+// follows the system (FollowSystemAppearance). The mode is read once,
+// when the App is created, so asking in an event handler is cheap.
 func (a *App) Appearance() appearance.Mode {
-	return appearance.System()
+	return a.appearanceMode
 }
 
 // Lookup returns the window with the given Tk path name (".frame.ok"), or
@@ -216,6 +222,9 @@ func (a *App) RunContext(ctx context.Context) error {
 // MainLoop maps the root window and runs the event loop.
 // It blocks until Quit is called.
 func (a *App) MainLoop() {
+	if err := checkEventLoopThread(); err != nil {
+		a.logger.Error(err.Error())
+	}
 	// Lay out before mapping, as Tk maps "." at idle time after geometry
 	// propagation, so the window appears at its final size.
 	a.loop.UpdateIdleTasks()
@@ -461,6 +470,15 @@ type appConfig struct {
 	followSystem bool
 }
 
+// resolveAppearance returns the appearance the App runs with: the mode
+// asked for, or the desktop's when the App follows the system.
+func resolveAppearance(cfg appConfig) appearance.Mode {
+	if cfg.followSystem {
+		return appearance.System()
+	}
+	return cfg.appearance
+}
+
 // UseAppearance gives the App a light or a dark look: the classic widgets
 // start with the matching default colours (widget.DarkPalette) and themed
 // widgets use the "dark" theme when it is registered (import
@@ -556,8 +574,10 @@ type (
 // applications and calls handler with each drop; a nil handler stops that.
 // With several registered windows under the pointer, the innermost gets
 // the drop. It works on X11 desktops (XDND).
+//
+// OnDrop is loop-only: call it from the event loop goroutine.
 func (a *App) OnDrop(w window.Windower, handler func(Drop)) {
-	a.dragAndDrop().OnDrop(w.Window(), handler)
+	a.dnd.OnDrop(w.Window(), handler)
 }
 
 // StartDrag starts dragging data out of w to wherever the user releases the
@@ -566,13 +586,8 @@ func (a *App) OnDrop(w window.Windower, handler func(Drop)) {
 // on the first Motion after a ButtonPress. done, which may be nil, is
 // called when the drag ends, with whether a target took the data. It works
 // on X11 desktops (XDND); elsewhere done is called with false at once.
+//
+// StartDrag is loop-only: call it from the event loop goroutine.
 func (a *App) StartDrag(w window.Windower, data DragData, done func(dropped bool)) {
-	a.dragAndDrop().StartDrag(w.Window(), data, done)
-}
-
-func (a *App) dragAndDrop() *xdnd.Manager {
-	if a.dnd == nil {
-		a.dnd = xdnd.New(a.display, a.dispatcher, a.selMgr, func(d time.Duration, fn func()) { a.loop.After(d, fn) })
-	}
-	return a.dnd
+	a.dnd.StartDrag(w.Window(), data, done)
 }

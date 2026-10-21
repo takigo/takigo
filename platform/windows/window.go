@@ -111,8 +111,52 @@ func (d *WindowsDisplay) CreateSimpleWindow(parent platform.WindowID, x, y int, 
 
 func (d *WindowsDisplay) DestroyWindow(w platform.WindowID) {
 	hwnd := toHWND(w)
-	w32.DestroyWindow(hwnd)
+	if hwnd == 0 {
+		return
+	}
+	// DestroyWindow works only on the thread that created the window; from
+	// another thread it fails, WM_DESTROY is never delivered and the
+	// window stays on screen. Post the destroy to the owning thread
+	// instead; its window procedure calls DestroyWindow there.
+	if tid, ok := w32.GetWindowThreadProcessId(hwnd); ok && tid != w32.GetCurrentThreadId() {
+		if d.markDestroyPosted(hwnd) {
+			if w32.PostMessage(hwnd, w32.WM_APP_DESTROY, 0, 0) {
+				return
+			}
+			d.forgetWindow(hwnd)
+			return
+		}
+	}
+	if !w32.DestroyWindow(hwnd) {
+		return
+	}
 	d.forgetWindow(hwnd)
+}
+
+// markDestroyPosted records that a destroy for hwnd waits for its own
+// thread, and reports whether the window is known.
+func (d *WindowsDisplay) markDestroyPosted(hwnd w32.HWND) bool {
+	d.windowMu.Lock()
+	defer d.windowMu.Unlock()
+	info, ok := d.windowData[hwnd]
+	if !ok {
+		return false
+	}
+	info.destroyPosted = true
+	return true
+}
+
+// takeDestroyPosted reports whether a posted destroy is waiting for the
+// window and clears the mark.
+func (d *WindowsDisplay) takeDestroyPosted(hwnd w32.HWND) bool {
+	d.windowMu.Lock()
+	defer d.windowMu.Unlock()
+	info, ok := d.windowData[hwnd]
+	if !ok || !info.destroyPosted {
+		return false
+	}
+	info.destroyPosted = false
+	return true
 }
 
 // forgetWindow drops the state kept for hwnd (WM_DESTROY also calls it

@@ -49,8 +49,11 @@ type layer struct {
 
 	plain bool    // the window holds only the background colour
 	under []uint8 // the window's pixels while plain, opaque RGBA
-	dirty bool    // under has changes the pixmap does not
-	bg    uint64
+	// underReady tells whether under holds the pixels of the current
+	// repaint; the buffer is reused between repaints.
+	underReady bool
+	dirty      bool // under has changes the pixmap does not
+	bg         uint64
 
 	run            []coverage // items waiting to be blended (not plain)
 	bx1, by1       int        // the box the run covers, in frame pixels
@@ -68,6 +71,37 @@ type coverage struct {
 
 func newLayer(x0, y0, w, h, rx, ry, rw, rh int) *layer {
 	return &layer{img: nanosvg.NewImage(w, h), x0: x0, y0: y0, w: w, h: h, rx: rx, ry: ry, rw: rw, rh: rh}
+}
+
+// reset prepares the layer for a repaint of the window rx,ry,rw x rh of
+// the frame of size w x h. The shapes, the rasterizer and the buffers of
+// the last repaint are kept.
+func (l *layer) reset(x0, y0, w, h, rx, ry, rw, rh int) {
+	l.x0, l.y0, l.w, l.h = x0, y0, w, h
+	l.rx, l.ry, l.rw, l.rh = rx, ry, rw, rh
+	l.img.Reset()
+	l.run = l.run[:0]
+	l.plain = true
+	l.underReady = false
+	l.dirty = false
+	l.readBack = false
+	l.readBackTested = false
+	l.bg = 0
+}
+
+// fillUnder (re)fills the copy of the repainted window with the
+// background colour, reusing the buffer of the last repaint.
+func (l *layer) fillUnder() {
+	n := l.rw * l.rh * 4
+	if cap(l.under) < n {
+		l.under = make([]uint8, n)
+	} else {
+		l.under = l.under[:n]
+	}
+	r, g, b := uint8(l.bg>>16), uint8(l.bg>>8), uint8(l.bg)
+	for i := 0; i < len(l.under); i += 4 {
+		l.under[i], l.under[i+1], l.under[i+2], l.under[i+3] = r, g, b, 255
+	}
 }
 
 // paint draws one item anti-aliased; ix1 .. iy2 is its bounding box in
@@ -101,12 +135,9 @@ func (l *layer) paint(d platform.DisplayServer, drawable platform.DrawableID, it
 	}
 	px := l.raster.Region(l.img, 1, l.w, l.h, wx, wy, ww, wh)
 	if l.plain {
-		if l.under == nil {
-			l.under = make([]uint8, l.rw*l.rh*4)
-			r, g, b := uint8(l.bg>>16), uint8(l.bg>>8), uint8(l.bg)
-			for i := 0; i < len(l.under); i += 4 {
-				l.under[i], l.under[i+1], l.under[i+2], l.under[i+3] = r, g, b, 255
-			}
+		if !l.underReady {
+			l.fillUnder()
+			l.underReady = true
 		}
 		nanosvg.Blend(l.under, l.rw, wx-l.rx, wy-l.ry, px, ww, wh)
 		l.dirty = true
@@ -144,7 +175,7 @@ func (l *layer) flush(d platform.DisplayServer, drawable platform.DrawableID, gc
 // invalidate records that the display server is about to draw into the
 // window: from then on blending needs the pixmap's own pixels.
 func (l *layer) invalidate() {
-	l.under = nil
+	l.underReady = false
 	l.plain = false
 }
 

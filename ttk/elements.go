@@ -119,9 +119,9 @@ func drawCorner(d platform.DisplayServer, drawable platform.DrawableID, gc platf
 	}
 	w--
 	h--
-	pts := []platform.Point{{X: int16(x), Y: int16(y + h)}, {X: int16(x), Y: int16(y)}, {X: int16(x + w), Y: int16(y)}}
+	pts := []platform.Point{{X: int32(x), Y: int32(y + h)}, {X: int32(x), Y: int32(y)}, {X: int32(x + w), Y: int32(y)}}
 	if bottomRight {
-		pts[1] = platform.Point{X: int16(x + w), Y: int16(y + h)}
+		pts[1] = platform.Point{X: int32(x + w), Y: int32(y + h)}
 		// Measured against Tk under X11: the bottom-right corner leaves both
 		// of its endpoints to the top-left corner's colour.
 		if h > 0 && w > 0 {
@@ -560,9 +560,9 @@ func arrowUpPoints(b Box) []platform.Point {
 		h = b.Height - 1
 	}
 	return []platform.Point{
-		{X: int16(cx), Y: int16(cy)},
-		{X: int16(cx - h), Y: int16(cy + h)},
-		{X: int16(cx + h), Y: int16(cy + h)},
+		{X: int32(cx), Y: int32(cy)},
+		{X: int32(cx - h), Y: int32(cy + h)},
+		{X: int32(cx + h), Y: int32(cy + h)},
 	}
 }
 
@@ -574,9 +574,9 @@ func arrowDownPoints(b Box) []platform.Point {
 		h = b.Height - 1
 	}
 	return []platform.Point{
-		{X: int16(cx), Y: int16(cy)},
-		{X: int16(cx - h), Y: int16(cy - h)},
-		{X: int16(cx + h), Y: int16(cy - h)},
+		{X: int32(cx), Y: int32(cy)},
+		{X: int32(cx - h), Y: int32(cy - h)},
+		{X: int32(cx + h), Y: int32(cy - h)},
 	}
 }
 

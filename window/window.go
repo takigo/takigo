@@ -254,14 +254,6 @@ func (w *Window) IsMapped() bool {
 	return w.Flags&FlagMapped != 0
 }
 
-// mappedHooks run when a window becomes mapped; geometry managers use them
-// to arrange (and so map) the window's content, as Tk's managers do on
-// MapNotify of a container.
-var mappedHooks []func(*Window)
-
-// AddMappedHook registers fn to run whenever MarkMapped maps a window.
-func AddMappedHook(fn func(*Window)) { mappedHooks = append(mappedHooks, fn) }
-
 // ResizeToplevel gives toplevel w the size for a content request of
 // reqW x reqH, as Tk_GeometryRequest does through the window manager
 // code: a size set with wm geometry is kept.
@@ -321,18 +313,8 @@ func MarkMapped(w *Window) {
 		return
 	}
 	w.Flags |= FlagMapped
-	for _, fn := range mappedHooks {
-		fn(w)
-	}
+	w.Display.runMapped(w)
 }
-
-var unmappedHooks, movedHooks []func(*Window)
-
-// AddUnmappedHook registers fn to run whenever MarkUnmapped unmaps a window.
-func AddUnmappedHook(fn func(*Window)) { unmappedHooks = append(unmappedHooks, fn) }
-
-// AddMovedHook registers fn to run whenever NotifyMoved reports a move.
-func AddMovedHook(fn func(*Window)) { movedHooks = append(movedHooks, fn) }
 
 // MarkUnmapped records that w has been unmapped (after UnmapWindow) and lets
 // geometry managers unmap content they keep inside w from elsewhere
@@ -342,18 +324,14 @@ func MarkUnmapped(w *Window) {
 		return
 	}
 	w.Flags &^= FlagMapped
-	for _, fn := range unmappedHooks {
-		fn(w)
-	}
+	w.Display.runUnmapped(w)
 }
 
 // NotifyMoved tells geometry managers that w changed position, so content
 // they maintain inside it from elsewhere follows (Tk_MaintainGeometry's
 // ConfigureNotify handling).
 func NotifyMoved(w *Window) {
-	for _, fn := range movedHooks {
-		fn(w)
-	}
+	w.Display.runMoved(w)
 }
 
 // ContentOffset returns the position of container relative to content's

@@ -284,9 +284,12 @@ func (f *XftFont) Metrics() font.Metrics {
 }
 
 // MeasureString returns the pixel width of a string, using font fallback.
+// The measurement caches are guarded by xlib.XftMu.
 func (f *XftFont) MeasureString(s string) int {
+	xlib.XftMu.Lock()
+	defer xlib.XftMu.Unlock()
 	if !utf8.ValidString(s) {
-		return f.measureUncached(s)
+		return f.measureLocked(s)
 	}
 	total := 0
 	for _, r := range s {
@@ -296,12 +299,13 @@ func (f *XftFont) MeasureString(s string) int {
 }
 
 // runeAdvance returns the advance width of r in the font that draws it.
+// The caller holds xlib.XftMu.
 func (f *XftFont) runeAdvance(r rune) int {
 	if r < 128 {
 		if w := f.asciiAdvance[r]; w != 0 {
 			return int(w) - 1
 		}
-		w := f.measureUncached(string(r))
+		w := f.measureLocked(string(r))
 		f.asciiAdvance[r] = int32(w) + 1
 		return w
 	}
@@ -311,18 +315,24 @@ func (f *XftFont) runeAdvance(r rune) int {
 	if f.advance == nil {
 		f.advance = make(map[rune]int)
 	}
-	w := f.measureUncached(string(r))
+	w := f.measureLocked(string(r))
 	f.advance[r] = w
 	return w
 }
 
 // measureUncached measures s with XftTextExtentsUtf8, run by run.
 func (f *XftFont) measureUncached(s string) int {
+	xlib.XftMu.Lock()
+	defer xlib.XftMu.Unlock()
+	return f.measureLocked(s)
+}
+
+// measureLocked measures s with XftTextExtentsUtf8, run by run.
+// The caller holds xlib.XftMu.
+func (f *XftFont) measureLocked(s string) int {
 	if len(s) == 0 {
 		return 0
 	}
-	xlib.XftMu.Lock()
-	defer xlib.XftMu.Unlock()
 	dpy := (*C.Display)(f.display.Ptr())
 	total := 0
 	for _, run := range f.runsFor(s) {

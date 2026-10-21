@@ -7,6 +7,7 @@ import (
 	"math"
 	"slices"
 	"strconv"
+	"time"
 
 	"github.com/takigo/takigo/color"
 	"github.com/takigo/takigo/cursor"
@@ -58,13 +59,28 @@ type Spinbox struct {
 	InsertBg *color.ColorRef
 
 	// Interaction state.
-	hasFocus      bool
-	cursorOn      bool
+	hasFocus bool
+	cursorOn bool
+
+	// blink blinks the insert cursor while the widget has the focus.
+	blink         *widget.CursorBlinker
 	pressedButton string // "up", "down", or ""
+
+	// Auto-repeat of the spinner buttons and the auto-scan of the text
+	// (tk/library/spinbox.tcl).
+	RepeatDelay    int // ms before the repeat starts
+	RepeatInterval int // ms between repeats
+	repeatCancel   func() bool
+	scanCancel     func() bool
+	lastX          int // last pointer position, for the auto-scan direction
 
 	// Validation.
 	Validate    string
 	ValidateCmd func(string) bool
+
+	// State is the interaction state (Tk's -state): StateNormal,
+	// StateDisabled or StateReadonly.
+	State widget.State
 
 	// Scrollbar callback.
 	ScrollCmd func(first, last float64)
@@ -86,6 +102,18 @@ func ValidateCmdOpt(fn func(string) bool) SpinboxOption {
 	return func(s *Spinbox) { s.ValidateCmd = fn }
 }
 
+// RepeatDelayOpt sets the delay in milliseconds before the spinner buttons
+// start to repeat while held (Tk's -repeatdelay).
+func RepeatDelayOpt(ms int) SpinboxOption {
+	return func(s *Spinbox) { s.RepeatDelay = ms }
+}
+
+// RepeatIntervalOpt sets the interval in milliseconds between the repeats
+// of a held spinner button (Tk's -repeatinterval).
+func RepeatIntervalOpt(ms int) SpinboxOption {
+	return func(s *Spinbox) { s.RepeatInterval = ms }
+}
+
 // ButtonBackground sets -buttonbackground.
 func ButtonBackground[C color.Spec](name C) SpinboxOption {
 	return func(s *Spinbox) {
@@ -102,6 +130,65 @@ func Background[C color.Spec](name C) SpinboxOption {
 	return func(s *Spinbox) { s.SetBackgroundColor(name) }
 }
 
+// SelectBackground sets the background colour of the selected text
+// (Tk's -selectbackground).
+func SelectBackground[C color.Spec](name C) SpinboxOption {
+	return func(s *Spinbox) {
+		col, err := s.App.ColorCache().Resolve(name)
+		if err != nil {
+			s.OptionFailed(err)
+			return
+		}
+		s.SelBg = col.Ref()
+	}
+}
+
+// SelectForeground sets the colour of the selected text
+// (Tk's -selectforeground).
+func SelectForeground[C color.Spec](name C) SpinboxOption {
+	return func(s *Spinbox) {
+		col, err := s.App.ColorCache().Resolve(name)
+		if err != nil {
+			s.OptionFailed(err)
+			return
+		}
+		s.SelFg = col.Ref()
+	}
+}
+
+// InsertBackground sets the colour of the insertion cursor
+// (Tk's -insertbackground).
+func InsertBackground[C color.Spec](name C) SpinboxOption {
+	return func(s *Spinbox) {
+		col, err := s.App.ColorCache().Resolve(name)
+		if err != nil {
+			s.OptionFailed(err)
+			return
+		}
+		s.InsertBg = col.Ref()
+	}
+}
+
+// State sets the interaction state (Tk's -state): widget.StateNormal,
+// widget.StateDisabled or widget.StateReadonly. A disabled spinbox does not
+// respond to the mouse and cannot be edited, a read-only one can be
+// selected and copied but not edited.
+func State(st widget.State) SpinboxOption {
+	return func(s *Spinbox) { s.State = st }
+}
+
+// ReadOnly makes the spinbox read-only (Tk's -readonly): its text can be
+// selected and copied, but not edited.
+func ReadOnly(on bool) SpinboxOption {
+	return func(s *Spinbox) {
+		if on {
+			s.State = widget.StateReadonly
+		} else {
+			s.State = widget.StateNormal
+		}
+	}
+}
+
 // New creates a new Spinbox widget.
 func New(parent widget.Caregiver, name string, opts ...SpinboxOption) *Spinbox {
 	app := parent.AppContext()
@@ -115,10 +202,15 @@ func New(parent widget.Caregiver, name string, opts ...SpinboxOption) *Spinbox {
 		To:          100,
 		Increment:   1,
 		buttonWidth: 16,
+		// DEF_SPINBOX_REPEAT_DELAY and DEF_SPINBOX_REPEAT_INTERVAL
+		// (tk/generic/tkEntry.c).
+		RepeatDelay:    400,
+		RepeatInterval: 100,
 	}
 	s.Init()
 	widget.InitBase(&s.Base, w, app)
 	s.SetDisplayProc(s.display)
+	s.blink = widget.NewCursorBlinker(app, s.toggleCursor)
 	w.Class = "Spinbox"
 	s.edit = entryedit.Editor{
 		Buf: &s.Buffer, App: app, Win: w,
@@ -313,7 +405,11 @@ func (s *Spinbox) fireCommand() {
 }
 
 // tryEdit checks whether a proposed edit is valid. Returns true to allow.
+// A spinbox that is disabled or read-only cannot be edited.
 func (s *Spinbox) tryEdit(prospective string) bool {
+	if s.State != widget.StateNormal {
+		return false
+	}
 	if s.ValidateCmd == nil {
 		return true
 	}
@@ -325,7 +421,11 @@ func (s *Spinbox) tryEdit(prospective string) bool {
 }
 
 // Insert inserts text before character index (Tk: insert INDEX STRING).
+// It does nothing when the spinbox is not in the normal state.
 func (s *Spinbox) Insert(index int, text string) {
+	if s.State != widget.StateNormal {
+		return
+	}
 	if !s.Buffer.Insert(index, []rune(text)) {
 		return
 	}
@@ -335,8 +435,12 @@ func (s *Spinbox) Insert(index int, text string) {
 }
 
 // Delete removes the characters from index first to last, exclusive
-// (Tk: delete FIRST LAST).
+// (Tk: delete FIRST LAST). It does nothing when the spinbox is not in the
+// normal state.
 func (s *Spinbox) Delete(first, last int) {
+	if s.State != widget.StateNormal {
+		return
+	}
 	if !s.Buffer.Delete(first, last-first) {
 		return
 	}
@@ -349,6 +453,121 @@ func (s *Spinbox) Delete(first, last int) {
 func (s *Spinbox) DeleteSelection() {
 	if s.HasSelection() {
 		s.Delete(s.SelFirst, s.SelLast)
+	}
+}
+
+// XView scrolls the spinbox text so that the character at index is the
+// leftmost visible one.
+func (s *Spinbox) XView(index int) {
+	if index < 0 {
+		index = 0
+	}
+	if index > len(s.Text) {
+		index = len(s.Text)
+	}
+	s.LeftIndex = index
+	s.computeGeometry()
+	s.Display()
+}
+
+// XViewScroll scrolls the text by count units (characters) or pages.
+func (s *Spinbox) XViewScroll(count int, pages bool) {
+	if pages {
+		availWidth := s.Win.Width - 2*s.inset - s.buttonWidth
+		charsPerPage := max(availWidth/s.avgWidth-2, 1)
+		count *= charsPerPage
+	}
+	s.XView(s.LeftIndex + count)
+}
+
+// XViewMoveTo scrolls to a fraction of the text.
+func (s *Spinbox) XViewMoveTo(fraction float64) {
+	index := int(fraction*float64(len(s.Text)) + 0.5)
+	s.XView(index)
+}
+
+// spin repeats the action of the pressed spinner button: ::tk::spinbox::Invoke
+// (tk/library/spinbox.tcl:301) re-invokes the element every -repeatinterval
+// ms once -repeatdelay ms have passed.
+func (s *Spinbox) spin() {
+	if s.State == widget.StateDisabled {
+		return
+	}
+	switch s.pressedButton {
+	case "up":
+		s.SpinUp()
+	case "down":
+		s.SpinDown()
+	default:
+		return
+	}
+	s.Display()
+}
+
+// startRepeat schedules the next repeat of the pressed spinner button.
+func (s *Spinbox) startRepeat() {
+	s.stopRepeat()
+	if s.App == nil || s.RepeatDelay <= 0 || s.pressedButton == "" {
+		return
+	}
+	s.repeatCancel = s.App.After(time.Duration(s.RepeatDelay)*time.Millisecond, func() {
+		s.repeatCancel = nil
+		s.repeatStep()
+	})
+}
+
+// repeatStep repeats the action and schedules the next repeat.
+func (s *Spinbox) repeatStep() {
+	s.repeatCancel = nil
+	if s.Destroyed() {
+		return
+	}
+	s.spin()
+	if s.RepeatInterval <= 0 {
+		return
+	}
+	s.repeatCancel = s.App.After(time.Duration(s.RepeatInterval)*time.Millisecond, func() {
+		s.repeatStep()
+	})
+}
+
+// stopRepeat cancels a pending repeat.
+func (s *Spinbox) stopRepeat() {
+	if s.repeatCancel != nil {
+		s.repeatCancel()
+		s.repeatCancel = nil
+	}
+}
+
+// startAutoScan scrolls the text while the pointer is held outside the
+// spinbox: ::tk::spinbox::AutoScan (tk/library/spinbox.tcl:565).
+func (s *Spinbox) startAutoScan(dir int) {
+	s.stopAutoScan()
+	if s.App == nil || dir == 0 {
+		return
+	}
+	s.autoScanStep(dir)
+}
+
+// autoScanStep scrolls the text two characters and schedules the next step.
+func (s *Spinbox) autoScanStep(dir int) {
+	s.scanCancel = nil
+	if s.Destroyed() {
+		return
+	}
+	s.XViewScroll(2*dir, false)
+	s.ExtendTo(s.closestGap(s.lastX))
+	s.Display()
+	s.scanCancel = s.App.After(50*time.Millisecond, func() {
+		s.autoScanStep(dir)
+	})
+}
+
+// stopAutoScan cancels a pending auto-scan.
+func (s *Spinbox) stopAutoScan() {
+	if s.scanCancel != nil {
+		s.scanCancel()
+		s.scanCancel = nil
 	}
 }
 
@@ -467,9 +686,12 @@ func (s *Spinbox) display() {
 
 	// Draw text.
 	xftFont, isXft := s.Font.(platform.DrawableFont)
+	// A disabled spinbox does not show its selection, as Tk's
+	// DisplayEntry does (tk/generic/tkEntry.c).
+	showSelection := s.State != widget.StateDisabled
 	if isXft && len(s.Text) > 0 {
 		// Selection highlight.
-		if s.hasFocus && s.SelFirst >= 0 && s.SelLast > s.SelFirst && s.SelBg != nil {
+		if s.hasFocus && showSelection && s.SelFirst >= 0 && s.SelLast > s.SelFirst && s.SelBg != nil {
 			selStartX := textedit.MeasureRunes(s.Font, s.Text[:textedit.ClampIdx(s.SelFirst, len(s.Text))]) + s.layoutX
 			selEndX := textedit.MeasureRunes(s.Font, s.Text[:textedit.ClampIdx(s.SelLast, len(s.Text))]) + s.layoutX
 			if selStartX < s.inset {
@@ -494,8 +716,9 @@ func (s *Spinbox) display() {
 		}
 	}
 
-	// Cursor.
-	if s.hasFocus && s.cursorOn && s.InsertBg != nil && s.Font != nil {
+	// Cursor. A disabled or read-only spinbox has no cursor, as Tk's
+	// DisplayEntry and EntryBlinkProc do (tk/generic/tkEntry.c).
+	if s.hasFocus && s.cursorOn && s.State == widget.StateNormal && s.InsertBg != nil && s.Font != nil {
 		cursorX := textedit.MeasureRunes(s.Font, s.Text[:textedit.ClampIdx(s.InsertPos, len(s.Text))]) + s.layoutX
 		rightEdge := w.Width - s.inset - s.buttonWidth
 		if cursorX >= s.inset && cursorX < rightEdge {
@@ -563,17 +786,17 @@ func (s *Spinbox) drawButtons(d platform.DisplayServer, gc platform.GCID) {
 	starty := in + height - pad - space
 	y0 := starty - 1 + off
 	d.FillPolygon(w.Drawable(), gc, []platform.Point{
-		{X: int16(startx + off), Y: int16(y0)},
-		{X: int16(startx + xw/2 + off), Y: int16(starty - th - 1 + off)},
-		{X: int16(startx + xw + off), Y: int16(y0)},
+		{X: int32(startx + off), Y: int32(y0)},
+		{X: int32(startx + xw/2 + off), Y: int32(starty - th - 1 + off)},
+		{X: int32(startx + xw + off), Y: int32(y0)},
 	}, 2, 0)
 	off = b2i(s.pressedButton == "down")
 	starty = in + height + pad + space
 	y0 = starty + off
 	d.FillPolygon(w.Drawable(), gc, []platform.Point{
-		{X: int16(startx + 1 + off), Y: int16(y0)},
-		{X: int16(startx + xw/2 + off), Y: int16(starty + th - 1 + off)},
-		{X: int16(startx - 1 + xw + off), Y: int16(y0)},
+		{X: int32(startx + 1 + off), Y: int32(y0)},
+		{X: int32(startx + xw/2 + off), Y: int32(starty + th - 1 + off)},
+		{X: int32(startx - 1 + xw + off), Y: int32(y0)},
 	}, 2, 0)
 }
 
@@ -587,6 +810,15 @@ func (s *Spinbox) Destroy() {
 	if s.Destroyed() {
 		return
 	}
+	s.stopRepeat()
+	s.stopAutoScan()
+	s.blink.Stop()
 	s.MarkDestroyed()
 	window.DestroyWindow(s.Win)
+}
+
+// toggleCursor blinks the insert cursor, as Tk's entry does.
+func (s *Spinbox) toggleCursor() {
+	s.cursorOn = !s.cursorOn
+	s.Display()
 }

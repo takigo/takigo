@@ -1,7 +1,6 @@
 package window
 
 import (
-	"log/slog"
 	"os"
 	"slices"
 	"strconv"
@@ -136,7 +135,7 @@ func destroyWindowDepth(w *Window, depth int) {
 		return
 	}
 	if depth > 1000 {
-		slog.Warn("window: destroy exceeds depth 1000; subtree leaked", "window", w.PathName)
+		w.Display.Log().Warn("window: destroy exceeds depth 1000; subtree leaked", "window", w.PathName)
 		return
 	}
 	w.Flags |= FlagAlreadyDead
@@ -262,7 +261,7 @@ func uniqueChildName(parent *Window, name string) string {
 	}
 	for i := 2; ; i++ {
 		if n := name + "#" + strconv.Itoa(i); !taken(n) {
-			slog.Warn("window name already exists in parent; renamed",
+			parent.Display.Log().Warn("window name already exists in parent; renamed",
 				"parent", parent.PathName, "name", name, "renamed", n)
 			return n
 		}

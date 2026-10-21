@@ -52,7 +52,7 @@ subsystems, what is shared and what is deliberately not.
   take, so the App and every widget can be a parent.
 - **`ttk` stays one package.** Its ~480 exports are what Tk's `ttk::`
   namespace has; splitting it into `ttk/<name>` would collide with the
-  classic packages (`button` and `ttk/button`), force the shared helpers
+  classic packages (`widget/button` and a ttk/button package), force the shared helpers
   into the public API and churn every demo. Its options are named alike
   instead: `<Widget><Option>`, a `<Widget>Style` on every widget, one
   `FieldState` for the entry-like widgets.

@@ -2,6 +2,7 @@ package dialog
 
 import (
 	"github.com/takigo/takigo/geometry/pack"
+	"github.com/takigo/takigo/option"
 	"github.com/takigo/takigo/widget"
 	"github.com/takigo/takigo/widget/label"
 )
@@ -89,7 +90,7 @@ func ShowMessage(parent widget.Caregiver, opts ...MessageOption) DialogResult {
 	}
 	msgLabel := label.New(bodyFrame, "msg",
 		label.Text(msgText),
-		label.Anchor(0), // AnchorNW
+		label.Anchor(option.AnchorNW),
 	)
 	pack.Pack(msgLabel, pack.SideOpt(pack.Left), pack.FillOpt(pack.FillBoth),
 		pack.Expand(true), pack.PadX(5), pack.PadY(10))

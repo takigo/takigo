@@ -3,13 +3,21 @@
 package windows
 
 import (
+	"sync"
+
 	w32 "github.com/takigo/takigo/internal/win32"
 	"github.com/takigo/takigo/platform"
 )
 
 // gcState emulates an X11 graphics context as a Go struct.
 // When drawing, GDI objects are created from this state temporarily.
+//
+// mu guards the state and the GDI objects made from it: a draw holds it
+// for the whole operation, so a pen or brush is not deleted while
+// another draw is about to select it.
 type gcState struct {
+	mu sync.Mutex
+
 	foreground uint64
 	background uint64
 	lineWidth  int
@@ -79,80 +87,82 @@ func (d *WindowsDisplay) CreateGC(drawable platform.DrawableID, valueMask uint64
 func (d *WindowsDisplay) FreeGC(gc platform.GCID) {
 	d.gcMu.Lock()
 	if g, ok := d.gcs[gc]; ok {
+		// The GC's lock is taken under the display's, the order every
+		// other path uses, so a draw in progress finishes before the
+		// GDI objects go away.
+		g.mu.Lock()
 		g.release()
+		g.mu.Unlock()
 	}
 	delete(d.gcs, gc)
 	d.gcMu.Unlock()
 }
 
 func (d *WindowsDisplay) SetForeground(gc platform.GCID, pixel uint64) {
-	d.gcMu.Lock()
-	if g, ok := d.gcs[gc]; ok {
-		g.foreground = pixel
-	}
-	d.gcMu.Unlock()
+	d.withGC(gc, func(g *gcState) { g.foreground = pixel })
 }
 
 func (d *WindowsDisplay) SetBackground(gc platform.GCID, pixel uint64) {
-	d.gcMu.Lock()
-	if g, ok := d.gcs[gc]; ok {
-		g.background = pixel
-	}
-	d.gcMu.Unlock()
+	d.withGC(gc, func(g *gcState) { g.background = pixel })
 }
 
 func (d *WindowsDisplay) SetLineAttributes(gc platform.GCID, lineWidth uint, lineStyle, capStyle, joinStyle int) {
-	d.gcMu.Lock()
-	if g, ok := d.gcs[gc]; ok {
+	d.withGC(gc, func(g *gcState) {
 		g.lineWidth = int(lineWidth)
 		g.lineStyle = lineStyle
 		g.capStyle = capStyle
 		g.joinStyle = joinStyle
-	}
-	d.gcMu.Unlock()
+	})
 }
 
 func (d *WindowsDisplay) SetArcMode(platform.GCID, int) {}
 
 func (d *WindowsDisplay) SetFillStyle(gc platform.GCID, fillStyle int) {
-	d.gcMu.Lock()
-	if g, ok := d.gcs[gc]; ok {
-		g.fillStyle = fillStyle
-	}
-	d.gcMu.Unlock()
+	d.withGC(gc, func(g *gcState) { g.fillStyle = fillStyle })
 }
 
 func (d *WindowsDisplay) SetTSOrigin(gc platform.GCID, x, y int) {
-	d.gcMu.Lock()
-	if g, ok := d.gcs[gc]; ok {
-		g.tsX, g.tsY = x, y
-	}
-	d.gcMu.Unlock()
+	d.withGC(gc, func(g *gcState) { g.tsX, g.tsY = x, y })
 }
 
 func (d *WindowsDisplay) SetStipple(gc platform.GCID, stipple platform.PixmapID) {
-	d.gcMu.Lock()
-	if g, ok := d.gcs[gc]; ok {
-		g.stipple = stipple
-	}
-	d.gcMu.Unlock()
+	d.withGC(gc, func(g *gcState) { g.stipple = stipple })
 }
 
 func (d *WindowsDisplay) SetDashes(gc platform.GCID, dashOffset int, dashList []byte) {
-	d.gcMu.Lock()
-	if g, ok := d.gcs[gc]; ok {
+	d.withGC(gc, func(g *gcState) {
 		g.dashOffset = dashOffset
 		g.dashList = make([]byte, len(dashList))
 		copy(g.dashList, dashList)
-	}
-	d.gcMu.Unlock()
+	})
 }
 
-// getGC returns a snapshot of the GC state.
-func (d *WindowsDisplay) getGC(gc platform.GCID) *gcState {
+// withGC runs fn with the GC locked.
+func (d *WindowsDisplay) withGC(gc platform.GCID, fn func(g *gcState)) {
 	d.gcMu.Lock()
 	defer d.gcMu.Unlock()
-	return d.gcs[gc]
+	if g, ok := d.gcs[gc]; ok {
+		g.mu.Lock()
+		defer g.mu.Unlock()
+		fn(g)
+	}
+}
+
+// lockGC locks the GC and returns it with the function that unlocks it.
+// The display's lock is held while the GC's own lock is taken, so a
+// concurrent FreeGC cannot release the GDI objects in between; it is
+// released again right away, so that only the draws sharing this GC wait
+// for each other.
+func (d *WindowsDisplay) lockGC(gc platform.GCID) (*gcState, func()) {
+	d.gcMu.Lock()
+	g, ok := d.gcs[gc]
+	if !ok {
+		d.gcMu.Unlock()
+		return nil, func() {}
+	}
+	g.mu.Lock()
+	d.gcMu.Unlock()
+	return g, g.mu.Unlock
 }
 
 // gcROP2 maps GX function constants to Win32 R2_* modes.
@@ -252,7 +262,8 @@ func (g *gcState) getBrush() w32.HBRUSH {
 	return g.brush
 }
 
-// release deletes the GC's cached GDI objects.
+// release deletes the GC's cached GDI objects. The caller holds the GC's
+// lock.
 func (g *gcState) release() {
 	if g.pen != 0 {
 		w32.DeleteObject(w32.HGDIOBJ(g.pen))

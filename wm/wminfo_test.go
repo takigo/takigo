@@ -269,9 +269,6 @@ func TestProtocols(t *testing.T) {
 		return info.HandleClientMessage(s.atoms["WM_PROTOCOLS"], [5]int64{int64(s.atoms[proto])})
 	}
 
-	if msg("WM_DELETE_WINDOW") {
-		t.Error("WM_DELETE_WINDOW handled with no handler")
-	}
 	if !msg("_NET_WM_PING") {
 		t.Error("_NET_WM_PING not handled")
 	}
@@ -303,6 +300,19 @@ func TestProtocols(t *testing.T) {
 	info.OffDeleteWindow()
 	if !msg("WM_DELETE_WINDOW") || !info.Win.IsDestroyed() || !s.destroyed {
 		t.Error("default WM_DELETE_WINDOW did not destroy the window")
+	}
+}
+
+// TestDefaultDeleteWindow: a toplevel without a user handler is destroyed
+// when the window manager asks it to close, as Tk does.
+func TestDefaultDeleteWindow(t *testing.T) {
+	info, s := newToplevel(t)
+	msg := [5]int64{int64(s.atoms["WM_DELETE_WINDOW"])}
+	if !info.HandleClientMessage(s.atoms["WM_PROTOCOLS"], msg) {
+		t.Fatal("WM_DELETE_WINDOW not handled")
+	}
+	if !info.Win.IsDestroyed() || !s.destroyed {
+		t.Error("WM_DELETE_WINDOW without a handler did not destroy the window")
 	}
 }
 

@@ -159,33 +159,29 @@ func bindMenu(m *Menu, app widget.AppContext) {
 			}
 
 		default:
-			// Letter navigation: match underlined character (or first char as fallback).
+			// Letter navigation: match the underlined character only and
+			// scan from the first entry, as ::tk::TraverseWithinMenu does
+			// (tk/library/menu.tcl:1028). An entry without an underline
+			// is never matched.
 			r := platform.KeySymToRune(ks)
 			if r <= 0 {
 				return
 			}
 			r = unicode.ToLower(r)
-			// Search from entry after the active one, wrapping around.
-			start := max(m.activeIndex+1, 0)
-			n := len(m.entries)
-			for i := range n {
-				idx := (start + i) % n
-				e := &m.entries[idx]
+			for i := range m.entries {
+				e := &m.entries[i]
 				if e.Type == Separator || e.State == widget.StateDisabled {
 					continue
 				}
-				runes := []rune(e.Label)
-				if len(runes) == 0 {
+				if e.Underline < 0 {
 					continue
 				}
-				var matchRune rune
-				if e.Underline >= 0 && e.Underline < len(runes) {
-					matchRune = unicode.ToLower(runes[e.Underline])
-				} else {
-					matchRune = unicode.ToLower(runes[0])
+				runes := []rune(e.Label)
+				if e.Underline >= len(runes) {
+					continue
 				}
-				if matchRune == r {
-					m.invoke(idx)
+				if unicode.ToLower(runes[e.Underline]) == r {
+					m.invoke(i)
 					return
 				}
 			}

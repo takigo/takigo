@@ -71,6 +71,19 @@ it is only a hint. Regenerate with `python3 scripts/options_doc.py > docs/option
 | `PostscriptOption` | `canvas.PSTitle` | `t string` | `-pstitle` |
 | `PostscriptOption` | `canvas.PSWriter` | `w io.Writer` | `-pswriter` |
 
+## dialog
+
+| Option type | Go option | Takes | Tk option |
+|---|---|---|---|
+| `ColorOption` | `dialog.ColorInitial` | `s string` | `-colorinitial` |
+| `DirOption` | `dialog.DirInitialDir` | `s string` | `-dirinitialdir` |
+| `FileOption` | `dialog.FileConfirmOverwrite` | `b bool` | `-fileconfirmoverwrite` |
+| `FileOption` | `dialog.FileDefaultExtension` | `s string` | `-filedefaultextension` |
+| `FileOption` | `dialog.FileInitialFile` | `s string` | `-fileinitialfile` |
+| `FileOption` | `dialog.FileTypes` | `types ...FileType` | `-filetypes` |
+| `FontOption` | `dialog.FontInitial` | `s string` | `-fontinitial` |
+| `MessageOption` | `dialog.MsgButtons` | `b ButtonSet` | `-msgbuttons` |
+
 ## geometry/grid
 
 | Option type | Go option | Takes | Tk option |
@@ -292,13 +305,21 @@ it is only a hint. Regenerate with `python3 scripts/options_doc.py > docs/option
 
 | Option type | Go option | Takes | Tk option |
 |---|---|---|---|
+| `EntryOption` | `entry.Anchor` | `a option.Anchor` | `-anchor` |
 | `EntryOption` | `entry.Background` | `name C` | `-background` |
 | `EntryOption` | `entry.BorderWidth` | `w L` | `-borderwidth` |
 | `EntryOption` | `entry.FontOpt` | `name F` | `-font` |
 | `EntryOption` | `entry.Foreground` | `name C` | `-foreground` |
+| `EntryOption` | `entry.InsertBackground` | `name C` | `-insertbackground` |
+| `EntryOption` | `entry.InsertWidth` | `w L` | `-insertwidth` |
+| `EntryOption` | `entry.Justify` | `j option.Justify` | `-justify` |
 | `EntryOption` | `entry.Placeholder` | `s string` | `-placeholder` |
 | `EntryOption` | `entry.PlaceholderForeground` | `name C` | `-placeholderforeground` |
+| `EntryOption` | `entry.ReadOnly` | `on bool` | `-readonly` |
+| `EntryOption` | `entry.SelectBackground` | `name C` | `-selectbackground` |
+| `EntryOption` | `entry.SelectForeground` | `name C` | `-selectforeground` |
 | `EntryOption` | `entry.Show` | `ch rune` | `-show` |
+| `EntryOption` | `entry.State` | `s widget.State` | `-state` |
 | `EntryOption` | `entry.Text` | `s string` | `-text` |
 | `EntryOption` | `entry.ValidateOpt` | `v string` | `-validate` |
 | `EntryOption` | `entry.Width` | `w int` | `-width` |
@@ -445,6 +466,8 @@ it is only a hint. Regenerate with `python3 scripts/options_doc.py > docs/option
 | Option type | Go option | Takes | Tk option |
 |---|---|---|---|
 | `ScrollbarOption` | `scrollbar.OrientOpt` | `o Orient` | `-orient` |
+| `ScrollbarOption` | `scrollbar.RepeatDelayOpt` | `ms int` | `-repeatdelay` |
+| `ScrollbarOption` | `scrollbar.RepeatIntervalOpt` | `ms int` | `-repeatinterval` |
 | `ScrollbarOption` | `scrollbar.WidthOpt` | `w L` | `-width` |
 
 ## widget/spinbox
@@ -453,6 +476,13 @@ it is only a hint. Regenerate with `python3 scripts/options_doc.py > docs/option
 |---|---|---|---|
 | `SpinboxOption` | `spinbox.Background` | `name C` | `-background` |
 | `SpinboxOption` | `spinbox.ButtonBackground` | `name C` | `-buttonbackground` |
+| `SpinboxOption` | `spinbox.InsertBackground` | `name C` | `-insertbackground` |
+| `SpinboxOption` | `spinbox.ReadOnly` | `on bool` | `-readonly` |
+| `SpinboxOption` | `spinbox.RepeatDelayOpt` | `ms int` | `-repeatdelay` |
+| `SpinboxOption` | `spinbox.RepeatIntervalOpt` | `ms int` | `-repeatinterval` |
+| `SpinboxOption` | `spinbox.SelectBackground` | `name C` | `-selectbackground` |
+| `SpinboxOption` | `spinbox.SelectForeground` | `name C` | `-selectforeground` |
+| `SpinboxOption` | `spinbox.State` | `st widget.State` | `-state` |
 
 ## widget/text
 
@@ -503,4 +533,18 @@ it is only a hint. Regenerate with `python3 scripts/options_doc.py > docs/option
 | `ToplevelOption` | `toplevel.Resizable` | `w, h bool` | `-resizable` |
 | `ToplevelOption` | `toplevel.Title` | `s string` | `-title` |
 | `ToplevelOption` | `toplevel.TransientFor` | `parent window.Windower` | `-transientfor` |
+
+## takigo
+
+| Option type | Go option | Takes | Tk option |
+|---|---|---|---|
+| `AppOption` | `takigo.Classic` | `` | `-classic` |
+| `AppOption` | `takigo.DisplayName` | `name string` | `-displayname` |
+| `AppOption` | `takigo.FollowSystemAppearance` | `` | `-followsystemappearance` |
+| `AppOption` | `takigo.Geometry` | `geom string` | `-geometry` |
+| `AppOption` | `takigo.IconName` | `name string` | `-iconname` |
+| `AppOption` | `takigo.Size` | `width, height int` | `-size` |
+| `AppOption` | `takigo.Title` | `title string` | `-title` |
+| `AppOption` | `takigo.UseAppearance` | `mode appearance.Mode` | `-useappearance` |
+| `AppOption` | `takigo.WithLogger` | `l *slog.Logger` | `-withlogger` |
 

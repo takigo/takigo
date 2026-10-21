@@ -318,7 +318,9 @@ func (m *Manager) HandleDestroyWindow(w *window.Window) {
 		if tl != nil && tl != w && !tl.IsDestroyed() {
 			m.SetFocus(tl)
 		} else {
-			m.focusWin = nil
+			// The focus window is gone, so it gets a FocusOut, as
+			// Tk does when the focused window is destroyed.
+			m.moveTo(nil)
 		}
 	}
 

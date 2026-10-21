@@ -202,14 +202,34 @@ func TestXExpansion(t *testing.T) {
 			want:      100, // (200 - 50 - 50) / 1
 		},
 		{
-			name: "top_side_ignored",
+			name: "top_side_takes_minimum_share",
 			entries: []*packEntry{
 				{window: &window.Window{ReqWidth: 50}, config: packConfig{side: Left, expand: true}},
 				{window: &window.Window{ReqWidth: 50}, config: packConfig{side: Top, expand: true}},
 			},
 			targetIdx: 0,
 			cavityW:   200,
-			want:      150, // only Left expander counts
+			want:      100, // (200 - 50 - 50) / 1: the Top child claims a share
+		},
+		{
+			name: "right_side_after_left_expander",
+			entries: []*packEntry{
+				{window: &window.Window{ReqWidth: 50}, config: packConfig{side: Left, expand: true}},
+				{window: &window.Window{ReqWidth: 30}, config: packConfig{side: Right}},
+			},
+			targetIdx: 0,
+			cavityW:   200,
+			want:      120, // (200 - 50 - 30) / 1
+		},
+		{
+			name: "top_side_before_target_ignored",
+			entries: []*packEntry{
+				{window: &window.Window{ReqWidth: 50}, config: packConfig{side: Top}},
+				{window: &window.Window{ReqWidth: 50}, config: packConfig{side: Left, expand: true}},
+			},
+			targetIdx: 1,
+			cavityW:   200,
+			want:      150, // only the children from the target on count
 		},
 	}
 
@@ -249,6 +269,16 @@ func TestYExpansion(t *testing.T) {
 			targetIdx: 0,
 			cavityH:   200,
 			want:      70, // (200 - 30 - 30) / 2
+		},
+		{
+			name: "left_side_takes_minimum_share",
+			entries: []*packEntry{
+				{window: &window.Window{ReqHeight: 30}, config: packConfig{side: Top, expand: true}},
+				{window: &window.Window{ReqHeight: 40}, config: packConfig{side: Left}},
+			},
+			targetIdx: 0,
+			cavityH:   200,
+			want:      130, // (200 - 30 - 40) / 1: the Left child claims a share
 		},
 	}
 

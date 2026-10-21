@@ -83,13 +83,16 @@ Ctrl+C at any time — the next run resumes from the first pending demo.
 | `demo_screenshot.sh <demo> go\|tcl <out.png> [tcl_name]` | Screenshot one side |
 | `demo_refine.sh <demo> [--retake]` | Compare + print image paths for manual Claude analysis |
 | `demo_batch.sh [--retake] [--stability N] [--update-baseline] [prefix]` | Score all demos headless (timers frozen, so animated demos are included); `--stability N` recaptures each side N times and flags self-diff > 0; `--update-baseline` writes `demos/parity.tsv` |
-| `demo_map.sh [demo]` | Print Go↔Tcl name mapping (or Tcl name for one demo) |
+| `demo_map.sh [demo]` | Print Go↔Tcl name mapping (or Tcl name for one demo); fails when the Tcl demos are missing, so a comparison never runs against nothing |
 | `demo_interact.sh <demo> [events...]` | Drive a Go demo with xdotool (`--key`, `--type`, `--click X,Y\|<name>`, `--wait`), capture before/after PNGs, `--diff` for odiff %, `--list-widgets` to discover names (needs `TAKIGO_DEBUG_NAME_WIDGETS=1`) |
 | `demo_gate.sh [--tolerance PCT] [--accept]` | Compare the latest `scores.tsv` with `demos/parity.tsv`; lists improved/regressed demos (pixel up by > PCT, default 0.1, or more tree diffs) and exits 1 on any regression. `--accept` then writes the scores into `demos/parity.tsv` |
 | `tk_dump_tree.tcl` | Sourced by `demo_wrapper.tcl` when `TAKIGO_DUMP_TREE=<file>`: writes the Tk widget tree as JSON (same schema as `internal/treedump`, which the Go side writes via the same env var) |
 | `go run ./internal/cmd/demodiff [-json] [-go-png F -tcl-png F] go.tree.json tcl.tree.json` | Structural diff of two tree dumps: TOPLEVEL/FONT/CLASS/MISSING/EXTRA/REQSIZE/SIZE/POS/RENDER, root causes first; run automatically by `demo_compare.sh` |
 | `_lib.sh` | Shared helpers (`tcl_demo_for`, `run_compare`, `odiff_score`, `maybe_xvfb`, `LLM_TOOL` launch configs); source it from new scripts |
 | `demo_wrapper.tcl <demo>` | Run a Tk 9.1 demo standalone (used by screenshot scripts) |
+| `check_tutorial.sh` | Compile every Go program and every Go fragment of `docs/tutorial.md`; fails when one no longer compiles (CI gate, `make check-tutorial`) |
+| `check_docs.sh` | Fail when a document names a path, a make goal or a demo count that no longer matches the tree (CI gate, `make check-docs`) |
+| `check_deps.sh` | Fail when a module crept into `go.mod`: the repository uses the standard library only (CI gate, `make check-deps`) |
 
 ### Release scripts
 

@@ -381,12 +381,12 @@ func (nb *Notebook) Display() {
 		}
 		cut := int(math.Round(2 * float64(screenunit.ScalingPct()) / 100))
 		pts := []platform.Point{
-			{X: int16(b.X), Y: int16(b.Y + b.Height - 1)},
-			{X: int16(b.X), Y: int16(b.Y + cut)},
-			{X: int16(b.X + cut), Y: int16(b.Y)},
-			{X: int16(b.X + b.Width - 1 - cut), Y: int16(b.Y)},
-			{X: int16(b.X + b.Width - 1), Y: int16(b.Y + cut)},
-			{X: int16(b.X + b.Width - 1), Y: int16(b.Y + b.Height)},
+			{X: int32(b.X), Y: int32(b.Y + b.Height - 1)},
+			{X: int32(b.X), Y: int32(b.Y + cut)},
+			{X: int32(b.X + cut), Y: int32(b.Y)},
+			{X: int32(b.X + b.Width - 1 - cut), Y: int32(b.Y)},
+			{X: int32(b.X + b.Width - 1), Y: int32(b.Y + cut)},
+			{X: int32(b.X + b.Width - 1), Y: int32(b.Y + b.Height)},
 		}
 		tb := draw.NewBorderFromPixel(tabBg)
 		d.SetForeground(gc, tabBg)

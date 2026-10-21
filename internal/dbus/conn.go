@@ -107,8 +107,13 @@ func SessionBus() (*Conn, error) {
 	return conn, nil
 }
 
-// Close closes the connection.
-func (c *Conn) Close() error { return c.c.Close() }
+// Close closes the connection. It waits for an in-flight Call to finish, so
+// the socket is not closed under it.
+func (c *Conn) Close() error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.c.Close()
+}
 
 // auth does the SASL EXTERNAL handshake: the bus checks the socket's
 // credentials against the uid we name.

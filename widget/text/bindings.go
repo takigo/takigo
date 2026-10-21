@@ -103,9 +103,11 @@ func (t *TextWidget) handleFocus(ev *event.Event) {
 	case event.FocusInType:
 		t.hasFocus = true
 		t.cursorOn = true
+		t.blink.Start()
 		t.Display()
 	case event.FocusOutType:
 		t.hasFocus = false
+		t.blink.Stop()
 		t.Display()
 	}
 }

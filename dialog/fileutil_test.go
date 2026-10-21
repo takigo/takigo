@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"testing"
 )
 
@@ -173,6 +174,23 @@ func TestNameListRoundTrip(t *testing.T) {
 	}
 }
 
+func TestNameListRoundTripSpecialNames(t *testing.T) {
+	names := []string{`a"b`, `a\b`, "my file.txt", `c"d e`, "plain", `trailing\`}
+	text := quoteNames(names)
+	got := parseNameList(text)
+	if len(got) != len(names) {
+		t.Fatalf("parseNameList(%q) = %v, want %v", text, got, names)
+	}
+	for i := range names {
+		if got[i] != names[i] {
+			t.Errorf("parseNameList(%q)[%d] = %q, want %q", text, i, got[i], names[i])
+		}
+	}
+	if want := `"a\"b"`; !strings.Contains(text, want) {
+		t.Errorf("quoteNames(%q) = %q, want it to contain %q", names, text, want)
+	}
+}
+
 func TestUnderlineAmpersand(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
@@ -262,5 +280,12 @@ func TestDirHistory(t *testing.T) {
 	h.visit("/d") // drops /c
 	if h.canForward() || !slices.Equal(h.dirs, []string{"/a", "/b", "/d"}) {
 		t.Errorf("visit after back: %v pos %d", h.dirs, h.pos)
+	}
+}
+
+func TestParseNameListTrailingBackslash(t *testing.T) {
+	got := parseNameList(`"C:\My Files\" b`)
+	if len(got) != 2 || got[0] != `C:\My Files\` || got[1] != "b" {
+		t.Errorf("got %q", got)
 	}
 }

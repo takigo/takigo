@@ -352,6 +352,7 @@ func (lb *Listbox) See(index int) {
 		lb.topIndex = index - visLines + 1
 	}
 	lb.notifyYScrollbar()
+	lb.Display()
 }
 
 // YView scrolls to the given index.

@@ -19,7 +19,14 @@ var (
 	procGlobalSize          = kernel32.NewProc("GlobalSize")
 	procMultiByteToWideChar = kernel32.NewProc("MultiByteToWideChar")
 	procWideCharToMultiByte = kernel32.NewProc("WideCharToMultiByte")
+	procGetCurrentThreadId  = kernel32.NewProc("GetCurrentThreadId")
 )
+
+// GetCurrentThreadId returns the id of the calling thread.
+func GetCurrentThreadId() uint32 {
+	r, _, _ := procGetCurrentThreadId.Call()
+	return uint32(r)
+}
 
 func GetModuleHandle(moduleName *uint16) HINSTANCE {
 	r, _, _ := procGetModuleHandleW.Call(uintptr(unsafe.Pointer(moduleName)))

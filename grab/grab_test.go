@@ -99,3 +99,16 @@ func TestCurrentAndIsGlobal(t *testing.T) {
 		t.Error("IsGlobal() should be false with no grab")
 	}
 }
+
+func TestGrabOnDestroyedWindow(t *testing.T) {
+	_, child1, child2, _ := makeTree()
+	m := &Manager{grabWin: child1}
+	child1.Flags |= window.FlagAlreadyDead
+
+	if m.Current() != nil {
+		t.Error("Current returned a destroyed grab window")
+	}
+	if m.ShouldRedirect(child2) {
+		t.Error("events are still redirected to a destroyed grab window")
+	}
+}

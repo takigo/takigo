@@ -137,6 +137,20 @@ func (e *encoder) value(t string, v any) error {
 		} else {
 			e.u32(0)
 		}
+	case 'n':
+		n, ok := v.(int16)
+		if !ok {
+			return mismatch(t, v)
+		}
+		e.align(2)
+		e.buf = binary.LittleEndian.AppendUint16(e.buf, uint16(n))
+	case 'q':
+		n, ok := v.(uint16)
+		if !ok {
+			return mismatch(t, v)
+		}
+		e.align(2)
+		e.buf = binary.LittleEndian.AppendUint16(e.buf, n)
 	case 'i':
 		n, ok := v.(int32)
 		if !ok {
@@ -149,6 +163,27 @@ func (e *encoder) value(t string, v any) error {
 			return mismatch(t, v)
 		}
 		e.u32(n)
+	case 'x':
+		n, ok := v.(int64)
+		if !ok {
+			return mismatch(t, v)
+		}
+		e.align(8)
+		e.buf = binary.LittleEndian.AppendUint64(e.buf, uint64(n))
+	case 't':
+		n, ok := v.(uint64)
+		if !ok {
+			return mismatch(t, v)
+		}
+		e.align(8)
+		e.buf = binary.LittleEndian.AppendUint64(e.buf, n)
+	case 'd':
+		f, ok := v.(float64)
+		if !ok {
+			return mismatch(t, v)
+		}
+		e.align(8)
+		e.buf = binary.LittleEndian.AppendUint64(e.buf, math.Float64bits(f))
 	case 's':
 		s, ok := v.(string)
 		if !ok {

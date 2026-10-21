@@ -40,6 +40,11 @@ type TtkWidget struct {
 	// before its style, so this is a child style layered over the real one.
 	widgetOpts *Style
 
+	// styleSet records that the user chose the style with the widget's
+	// -style option. Widgets that derive their style from -orient keep
+	// the user's style when it is set.
+	styleSet bool
+
 	// reconfigure re-runs the concrete widget's Configure with no options,
 	// which recomputes its size and redisplays it; set by widgets that
 	// have one.
@@ -392,21 +397,31 @@ func (w *TtkWidget) setStyle(style *Style) {
 
 // SetWidgetOption sets a widget-level element option such as "-padding",
 // "-wraplength", "-justify" or "-anchor"; it takes precedence over the
-// style, as Tk's widget options do. Call RequestSize afterwards.
+// style, as Tk's widget options do: the widget's own value wins over the
+// style's state map, which wins over the style's default. Call
+// RequestSize afterwards.
 func (w *TtkWidget) SetWidgetOption(name string, value any) {
 	if w.Context == nil || w.Context.Style == nil {
 		return
 	}
 	if w.widgetOpts == nil {
 		w.widgetOpts = &Style{
-			Name:     w.Context.Style.Name,
-			Parent:   w.Context.Style,
-			Defaults: map[string]any{},
-			Maps:     map[string]StateMap[any]{},
+			Name:        w.Context.Style.Name,
+			Parent:      w.Context.Style,
+			Defaults:    map[string]any{},
+			Maps:        map[string]StateMap[any]{},
+			widgetLevel: true,
 		}
 		w.Context.Style = w.widgetOpts
 	}
 	w.widgetOpts.Defaults[name] = value
+}
+
+// setStyleName sets the widget's style and remembers that the user chose
+// it, so that a widget deriving its style from -orient keeps it.
+func (w *TtkWidget) setStyleName(name string) {
+	w.StyleName = name
+	w.styleSet = true
 }
 
 // classForStyle derives the Tk widget class from a style name, e.g.

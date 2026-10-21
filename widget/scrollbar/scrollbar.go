@@ -3,6 +3,8 @@
 package scrollbar
 
 import (
+	"time"
+
 	"github.com/takigo/takigo/color"
 	"github.com/takigo/takigo/draw"
 	"github.com/takigo/takigo/event"
@@ -44,6 +46,11 @@ type Scrollbar struct {
 	pressRegion  region // what was pressed
 	dragOffset   int    // offset from thumb start during drag
 
+	// Auto-repeat of the arrow and trough actions (tk/library/scrlbar.tcl).
+	RepeatDelay    int // ms before the repeat starts
+	RepeatInterval int // ms between repeats
+	repeatCancel   func() bool
+
 	// Visual config.
 	TroughColor *color.ColorRef
 	Width       int // scrollbar width (perpendicular to orient)
@@ -82,6 +89,18 @@ func CommandOpt(fn func(widget.ScrollRequest)) ScrollbarOption {
 	return func(s *Scrollbar) { s.Command = fn }
 }
 
+// RepeatDelayOpt sets the delay in milliseconds before the auto-repeat of
+// a held arrow or trough starts (Tk's -repeatdelay).
+func RepeatDelayOpt(ms int) ScrollbarOption {
+	return func(s *Scrollbar) { s.RepeatDelay = ms }
+}
+
+// RepeatIntervalOpt sets the interval in milliseconds between the repeats
+// of a held arrow or trough (Tk's -repeatinterval).
+func RepeatIntervalOpt(ms int) ScrollbarOption {
+	return func(s *Scrollbar) { s.RepeatInterval = ms }
+}
+
 // New creates a new Scrollbar widget.
 func New(parent widget.Caregiver, name string, opts ...ScrollbarOption) *Scrollbar {
 	app := parent.AppContext()
@@ -91,6 +110,10 @@ func New(parent widget.Caregiver, name string, opts ...ScrollbarOption) *Scrollb
 		Last:      1,
 		Width:     11, // DEF_SCROLLBAR_WIDTH
 		ElementBW: 1,
+		// DEF_SCROLLBAR_REPEAT_DELAY and DEF_SCROLLBAR_REPEAT_INTERVAL
+		// (tk/unix/tkUnixDefault.h).
+		RepeatDelay:    300,
+		RepeatInterval: 100,
 	}
 
 	w := window.NewChildWindow(parent.Window(), name, 0, 0, 1, 1)
@@ -224,7 +247,7 @@ func (s *Scrollbar) display() {
 		}
 		return s.Border
 	}
-	pt := func(x, y int) platform.Point { return platform.Point{X: int16(x), Y: int16(y)} }
+	pt := func(x, y int) platform.Point { return platform.Point{X: int32(x), Y: int32(y)} }
 	al := s.arrowSize
 	var top, bottom []platform.Point
 	if s.Orient == Vertical {
@@ -277,11 +300,67 @@ func (s *Scrollbar) Configure(opts ...ScrollbarOption) error {
 	return widget.Configure(s, opts, s.computeGeometry)
 }
 
+// scrollAction performs the scroll action of a pressed region, as
+// ::tk::ScrollSelect does (tk/library/scrlbar.tcl:212).
+func (s *Scrollbar) scrollAction(rgn region) {
+	if s.Command == nil {
+		return
+	}
+	switch rgn {
+	case regionArrow1:
+		s.Command(widget.ScrollUnits(-1))
+	case regionArrow2:
+		s.Command(widget.ScrollUnits(1))
+	case regionTroughBefore:
+		s.Command(widget.ScrollPages(-1))
+	case regionTroughAfter:
+		s.Command(widget.ScrollPages(1))
+	case regionNone, regionThumb:
+	}
+}
+
+// startRepeat schedules the auto-repeat of the action for rgn: Tk repeats
+// it every -repeatinterval ms once -repeatdelay ms have passed
+// (::tk::ScrollSelect, tk/library/scrlbar.tcl:212).
+func (s *Scrollbar) startRepeat(rgn region) {
+	s.stopRepeat()
+	if s.App == nil || s.RepeatDelay <= 0 {
+		return
+	}
+	s.repeatCancel = s.App.After(time.Duration(s.RepeatDelay)*time.Millisecond, func() {
+		s.repeatStep(rgn)
+	})
+}
+
+// repeatStep performs the repeated action and schedules the next one.
+func (s *Scrollbar) repeatStep(rgn region) {
+	s.repeatCancel = nil
+	if s.Destroyed() {
+		return
+	}
+	s.scrollAction(rgn)
+	if s.RepeatInterval <= 0 {
+		return
+	}
+	s.repeatCancel = s.App.After(time.Duration(s.RepeatInterval)*time.Millisecond, func() {
+		s.repeatStep(rgn)
+	})
+}
+
+// stopRepeat cancels a pending repeat.
+func (s *Scrollbar) stopRepeat() {
+	if s.repeatCancel != nil {
+		s.repeatCancel()
+		s.repeatCancel = nil
+	}
+}
+
 // Destroy cleans up the scrollbar.
 func (s *Scrollbar) Destroy() {
 	if s.Destroyed() {
 		return
 	}
+	s.stopRepeat()
 	s.MarkDestroyed()
 	window.DestroyWindow(s.Win)
 }
@@ -326,22 +405,11 @@ func bindScrollbar(s *Scrollbar, app widget.AppContext) {
 		s.pressRegion = rgn
 
 		switch rgn {
-		case regionArrow1:
-			if s.Command != nil {
-				s.Command(widget.ScrollUnits(-1))
-			}
-		case regionArrow2:
-			if s.Command != nil {
-				s.Command(widget.ScrollUnits(1))
-			}
-		case regionTroughBefore:
-			if s.Command != nil {
-				s.Command(widget.ScrollPages(-1))
-			}
-		case regionTroughAfter:
-			if s.Command != nil {
-				s.Command(widget.ScrollPages(1))
-			}
+		case regionArrow1, regionArrow2, regionTroughBefore, regionTroughAfter:
+			// The action runs once now and repeats while the button is
+			// held, as ::tk::ScrollSelect does.
+			s.scrollAction(rgn)
+			s.startRepeat(rgn)
 		case regionThumb:
 			if s.Orient == Vertical {
 				s.dragOffset = ev.Y - s.thumbStart
@@ -354,6 +422,7 @@ func bindScrollbar(s *Scrollbar, app widget.AppContext) {
 
 	// Button release.
 	app.Dispatcher().Bind(w.PlatformID, event.ButtonReleaseMask, func(ev *event.Event) {
+		s.stopRepeat()
 		s.pressRegion = regionNone
 	})
 

@@ -7,6 +7,9 @@ package xlib
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 
+#include "xerror.h"
+#include "ximage.h"
+
 static int visual_class(Visual *v) {
 #if defined(__cplusplus) || defined(c_plusplus)
 	return v->c_class;
@@ -29,15 +32,36 @@ static int alloc_color(Display *dpy, Colormap cmap, unsigned short r, unsigned s
 // visuals whose pixel layout is not 32-bit 0xRRGGBB.
 static void put_pixels(Display *dpy, Drawable d, GC gc, Visual *visual, int depth,
 	unsigned long *pixels, int w, int h, int dstX, int dstY) {
-	XImage *img = XCreateImage(dpy, visual, depth, ZPixmap, 0, NULL, w, h, 32, 0);
-	if (!img) return;
-	img->data = (char *)malloc((size_t)img->bytes_per_line * h);
-	if (!img->data) { XDestroyImage(img); return; }
+	// The pixel width follows the depth: 8 bits for the depths up to 8,
+	// 16 for a 5-6-5 visual, 32 for 24/32-bit ones. A 32-bit image
+	// cannot be put on a 16-bit drawable, the server rejects it.
+	int bpp, msbFirst;
+	takigo_image_layout(dpy, visual, depth, w, &bpp, &msbFirst);
+	// The server pads every scanline to a multiple of 4 bytes.
+	int bpl = takigo_scanline_bytes(bpp, w);
+	// The buffer is ours: XCreateImage allocates one when data is NULL,
+	// and replacing img->data with another one leaks that first.
+	char *buf = (char *)malloc((size_t)bpl * (size_t)h);
+	if (!buf) return;
+	XImage *img = XCreateImage(dpy, visual, depth, ZPixmap, 0, buf, w, h, bpp, bpl);
+	if (!img) { free(buf); return; }
+	if (img->bits_per_pixel != bpp || img->bytes_per_line != bpl) {
+		// Xlib chose another layout; its bytes_per_line does not match
+		// the buffer we allocated, so do not put anything.
+		img->data = NULL;
+		XDestroyImage(img);
+		free(buf);
+		return;
+	}
 	for (int y = 0; y < h; y++)
 		for (int x = 0; x < w; x++)
 			XPutPixel(img, x, y, pixels[y * w + x]);
+	takigo_trap_errors(dpy);
 	XPutImage(dpy, d, gc, img, 0, 0, dstX, dstY, w, h);
-	XDestroyImage(img); // frees data
+	takigo_untrap_errors(dpy);
+	img->data = NULL; // our buffer, freed below
+	XDestroyImage(img);
+	free(buf);
 }
 */
 import "C"
@@ -81,6 +105,8 @@ func (d *Display) PutPixels(drawable Drawable, gc GC, visual *Visual, depth int,
 	for i := range cp {
 		cp[i] = C.ulong(pixels[i])
 	}
+	trapMu.Lock()
+	defer trapMu.Unlock()
 	C.put_pixels(d.ptr, C.Drawable(drawable), C.GC(gc), visual.ptr, C.int(depth),
 		(*C.ulong)(unsafe.Pointer(&cp[0])), C.int(w), C.int(h), C.int(dstX), C.int(dstY))
 }

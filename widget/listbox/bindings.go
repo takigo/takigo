@@ -136,6 +136,9 @@ func bindListbox(lb *Listbox, app widget.AppContext) {
 					lb.selected = map[int]bool{lb.activeIndex: true}
 				}
 				lb.Display()
+				// Tk fires <<ListboxSelect>> for the keyboard selection
+				// too (tk::ListboxBeginSelect, tk/library/listbox.tcl:202).
+				notifySelect(lb)
 			}
 		}
 	})
@@ -206,12 +209,19 @@ func setActive(lb *Listbox, idx int) {
 	lb.activeIndex = idx
 
 	// In browse/single mode, also select.
+	changed := false
 	if lb.selectMode == SelectBrowse || lb.selectMode == SelectSingle {
 		lb.selected = map[int]bool{idx: true}
+		changed = true
 	}
 
 	lb.See(idx)
 	lb.Display()
+	if changed {
+		// Tk fires <<ListboxSelect>> when the keyboard moves the selection
+		// (tk::ListboxUpDown, tk/library/listbox.tcl:383).
+		notifySelect(lb)
+	}
 }
 
 func notifySelect(lb *Listbox) {

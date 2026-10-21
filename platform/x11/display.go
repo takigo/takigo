@@ -23,15 +23,20 @@ var xpointPool = sync.Pool{
 }
 
 // toXPoints converts points into a pooled slice; return it with
-// xpointPool.Put when done.
+// xpointPool.Put when done. X11 coordinates are 16-bit, so they are
+// clamped to the protocol's range.
 func toXPoints(points []platform.Point) *[]xlib.XPoint {
 	p := xpointPool.Get().(*[]xlib.XPoint)
 	xp := (*p)[:0]
 	for _, pt := range points {
-		xp = append(xp, xlib.XPoint{X: pt.X, Y: pt.Y})
+		xp = append(xp, xlib.XPoint{X: clampCoord(pt.X), Y: clampCoord(pt.Y)})
 	}
 	*p = xp
 	return p
+}
+
+func clampCoord(v int32) int16 {
+	return int16(min(max(v, -32768), 32767))
 }
 
 // X11Display wraps the low-level X11 connection.

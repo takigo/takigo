@@ -147,7 +147,8 @@ const (
 // Additional GC value mask constants (from X11/X.h; values are 1<<N).
 const (
 	GCFillStyle = 1 << 8  // 256
-	GCStipple   = 1 << 10 // 1024
+	GCTile      = 1 << 10 // 1024
+	GCStipple   = 1 << 11 // 2048
 )
 
 // Fill style constants (from X11/X.h).

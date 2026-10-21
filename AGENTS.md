@@ -39,8 +39,10 @@ go test ./event/ -run '^$' -bench .
 go vet ./...
 go fix ./...                          # modernizers; CI runs `go fix -diff ./...`
 golangci-lint run ./...               # .golangci.yml (v2, goimports local-prefixes); CI gates changed lines only
-make check                            # vet, gofmt, go fix, Windows vet, check-docs
+make check                            # vet, gofmt, go fix, Windows vet, check-docs, check-tutorial, check-deps
 make apidiff                          # exported API changes since the last v* tag
+make demo-batch [RETAKE=1]           # compare every demo with its Tcl counterpart
+make demo-gate                        # fail when a demo got worse than its baseline
 make release VERSION=v0.2.0 [PUSH=1]  # changelog section -> commit + annotated tag
 ```
 
@@ -128,8 +130,8 @@ on different goroutines.
   which the demo comparison scripts set. Gate a new departure on it and
   keep axis-aligned geometry pixel-identical to Tk.
 - **Core changes shift demo screenshots.** After touching widgets, fonts,
-  geometry or drawing run `bash scripts/demo_batch.sh --retake` and
-  `bash scripts/demo_gate.sh` (`demos/AGENTS.md`).
+  geometry or drawing run `make demo-batch RETAKE=1` and
+  `make demo-gate` (`demos/AGENTS.md`).
 - **Don't edit `AGENTS.md` paths carelessly:** `scripts/check_docs.sh`
   fails when a guide names a path that is gone.
 

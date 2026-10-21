@@ -90,7 +90,7 @@ func Draw3DPolygon(d platform.DisplayServer, drawable platform.DrawableID, gc pl
 			d.SetForeground(gc, pixel)
 			xp := make([]platform.Point, 4)
 			for k, p := range poly {
-				xp[k] = platform.Point{X: int16(p.x), Y: int16(p.y)}
+				xp[k] = platform.Point{X: int32(p.x), Y: int32(p.y)}
 			}
 			d.FillPolygon(drawable, gc, xp, shapeConvex, coordModeOrigin)
 		}

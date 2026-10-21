@@ -91,6 +91,26 @@ func TestApplySticky(t *testing.T) {
 			childW: 50, childH: 50,
 			wantX: 0, wantY: 0, wantW: 50, wantH: 50,
 		},
+		{
+			name: "child_bigger_than_cell",
+			cavX: 10, cavY: 20, cavW: 30, cavH: 25,
+			childW: 50, childH: 40,
+			wantX: 10, wantY: 20, wantW: 30, wantH: 25,
+		},
+		{
+			name:   "child_bigger_than_cell_stretched",
+			sticky: NSEW,
+			cavX:   10, cavY: 20, cavW: 30, cavH: 25,
+			childW: 50, childH: 40,
+			wantX: 10, wantY: 20, wantW: 30, wantH: 25,
+		},
+		{
+			name:   "child_bigger_than_cell_west",
+			sticky: StickW,
+			cavX:   10, cavY: 20, cavW: 30, cavH: 25,
+			childW: 50, childH: 40,
+			wantX: 10, wantY: 20, wantW: 30, wantH: 25,
+		},
 	}
 
 	for _, tt := range tests {

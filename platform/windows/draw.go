@@ -113,10 +113,10 @@ func gdiPoints(points []platform.Point, mode int) (pts []w32.POINT, left, top, r
 	var cx, cy int32
 	for i, p := range points {
 		if mode == platform.CoordModePrevious {
-			cx += int32(p.X)
-			cy += int32(p.Y)
+			cx += p.X
+			cy += p.Y
 		} else {
-			cx, cy = int32(p.X), int32(p.Y)
+			cx, cy = p.X, p.Y
 		}
 		pts[i] = w32.POINT{X: cx, Y: cy}
 		if i == 0 {
@@ -129,10 +129,11 @@ func gdiPoints(points []platform.Point, mode int) (pts []w32.POINT, left, top, r
 }
 
 func (d *WindowsDisplay) FillRectangle(drawable platform.DrawableID, gc platform.GCID, x, y int, width, height uint) {
-	g := d.getGC(gc)
+	g, unlock := d.lockGC(gc)
 	if g == nil {
 		return
 	}
+	defer unlock()
 
 	rect := w32.RECT{
 		Left:   int32(x),
@@ -149,10 +150,11 @@ func (d *WindowsDisplay) FillRectangle(drawable platform.DrawableID, gc platform
 }
 
 func (d *WindowsDisplay) DrawRectangle(drawable platform.DrawableID, gc platform.GCID, x, y int, width, height uint) {
-	g := d.getGC(gc)
+	g, unlock := d.lockGC(gc)
 	if g == nil {
 		return
 	}
+	defer unlock()
 
 	left, top := int32(x), int32(y)
 	right, bottom := int32(x+int(width)+1), int32(y+int(height)+1)
@@ -174,10 +176,11 @@ func (d *WindowsDisplay) DrawRectangle(drawable platform.DrawableID, gc platform
 }
 
 func (d *WindowsDisplay) DrawLine(drawable platform.DrawableID, gc platform.GCID, x1, y1, x2, y2 int) {
-	g := d.getGC(gc)
+	g, unlock := d.lockGC(gc)
 	if g == nil {
 		return
 	}
+	defer unlock()
 
 	lw := max(int32(g.lineWidth), 1)
 	left, top := int32(min(x1, x2)), int32(min(y1, y2))
@@ -200,10 +203,11 @@ func (d *WindowsDisplay) DrawLines(drawable platform.DrawableID, gc platform.GCI
 		return
 	}
 
-	g := d.getGC(gc)
+	g, unlock := d.lockGC(gc)
 	if g == nil {
 		return
 	}
+	defer unlock()
 
 	pts, left, top, right, bottom := gdiPoints(points, mode)
 	lw := max(int32(g.lineWidth), 1)
@@ -224,10 +228,11 @@ func (d *WindowsDisplay) FillPolygon(drawable platform.DrawableID, gc platform.G
 		return
 	}
 
-	g := d.getGC(gc)
+	g, unlock := d.lockGC(gc)
 	if g == nil {
 		return
 	}
+	defer unlock()
 
 	pts, left, top, right, bottom := gdiPoints(points, mode)
 	d.render(drawable, g, left, top, right, bottom, func(hdc w32.HDC) {
@@ -246,10 +251,11 @@ func (d *WindowsDisplay) FillPolygon(drawable platform.DrawableID, gc platform.G
 }
 
 func (d *WindowsDisplay) FillArc(drawable platform.DrawableID, gc platform.GCID, x, y int, width, height uint, angle1, angle2 int) {
-	g := d.getGC(gc)
+	g, unlock := d.lockGC(gc)
 	if g == nil {
 		return
 	}
+	defer unlock()
 
 	left := int32(x)
 	top := int32(y)
@@ -280,10 +286,11 @@ func (d *WindowsDisplay) FillArc(drawable platform.DrawableID, gc platform.GCID,
 }
 
 func (d *WindowsDisplay) DrawArc(drawable platform.DrawableID, gc platform.GCID, x, y int, width, height uint, angle1, angle2 int) {
-	g := d.getGC(gc)
+	g, unlock := d.lockGC(gc)
 	if g == nil {
 		return
 	}
+	defer unlock()
 
 	left := int32(x)
 	top := int32(y)
@@ -374,7 +381,8 @@ func (d *WindowsDisplay) CopyArea(src, dst platform.DrawableID, gc platform.GCID
 	dstDC, dstCleanup := d.getDrawableDC(dst)
 	defer dstCleanup()
 
-	g := d.getGC(gc)
+	g, unlock := d.lockGC(gc)
+	defer unlock()
 	rop := uint32(w32.SRCCOPY)
 	if g != nil {
 		rop = gcBitBltROP(g.function)

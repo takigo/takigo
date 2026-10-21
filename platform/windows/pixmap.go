@@ -3,7 +3,7 @@
 package windows
 
 import (
-	mathbits "math/bits"
+	"encoding/binary"
 	"unsafe"
 
 	w32 "github.com/takigo/takigo/internal/win32"
@@ -80,6 +80,21 @@ func (d *WindowsDisplay) FreePixmap(pixmap platform.PixmapID) {
 
 func (d *WindowsDisplay) CreateBitmapFromData(drawable platform.DrawableID, bits []byte, width, height uint) platform.PixmapID {
 	// Create a 1-bit depth pixmap from XBM-format data.
+	const maxDim = 1 << 16
+	if width == 0 || height == 0 || width > maxDim || height > maxDim {
+		return 0
+	}
+	// An XBM row is byte-aligned, a 1-bpp DIB row is padded to 4 bytes.
+	xbmStride := (int(width) + 7) / 8
+	dibStride := ((int(width) + 31) / 32) * 4
+	if int64(xbmStride)*int64(height) > 1<<28 || int64(dibStride)*int64(height) > 1<<28 {
+		return 0
+	}
+	// The data must hold every row of the XBM.
+	if len(bits) < xbmStride*int(height) {
+		return 0
+	}
+
 	var srcDC w32.HDC
 	hwnd := toDrawableHWND(drawable)
 	srcDC = w32.GetDC(hwnd)
@@ -108,18 +123,14 @@ func (d *WindowsDisplay) CreateBitmapFromData(drawable platform.DrawableID, bits
 	if hbitmap == 0 {
 		// Fallback: create a compatible monochrome bitmap.
 		hbitmap = w32.CreateCompatibleBitmap(srcDC, int32(width), int32(height))
-	} else if bitsPtr != nil && len(bits) > 0 {
-		// XBM rows are byte-aligned with the leftmost pixel in the low
-		// bit; DIB rows are 32-bit aligned with it in the high bit.
-		xbmStride := (int(width) + 7) / 8
-		dibStride := ((int(width) + 31) / 32) * 4
-		dst := (*[1 << 30]byte)(bitsPtr)
+	} else if bitsPtr != nil {
+		// A 1-bpp DIB row is padded to a 4-byte boundary and holds the
+		// leftmost pixel in the high bit of its first byte; an XBM row is
+		// byte-aligned with the leftmost pixel in the low bit of its
+		// first byte.
+		dst := unsafe.Slice((*byte)(bitsPtr), dibStride*int(height))
 		for row := range int(height) {
-			srcOff := row * xbmStride
-			dstOff := row * dibStride
-			for col := 0; col < xbmStride && srcOff+col < len(bits); col++ {
-				dst[dstOff+col] = mathbits.Reverse8(bits[srcOff+col])
-			}
+			xbmRowToDIB(dst[row*dibStride:(row+1)*dibStride], bits, row*xbmStride, int(width))
 		}
 	}
 
@@ -150,6 +161,28 @@ func (d *WindowsDisplay) getPixmap(id platform.PixmapID) *pixmapInfo {
 	d.pixmapMu.Lock()
 	defer d.pixmapMu.Unlock()
 	return d.pixmaps[id]
+}
+
+// xbmRowToDIB writes one XBM row into a 1-bpp DIB row.
+//
+// The pixels are gathered into 32-bit words, the leftmost pixel of a word
+// in its high bit, and the words are written out most significant byte
+// first, so that the leftmost pixel of the row ends up in the high bit of
+// its first byte as a DIB wants it. The rest of the row stays zero.
+func xbmRowToDIB(dst []byte, bits []byte, srcOff, width int) {
+	for w := 0; w*32 < width; w++ {
+		var word uint32
+		for i := range 32 {
+			col := w*32 + i
+			if col >= width {
+				break
+			}
+			if bits[srcOff+col/8]>>(col%8)&1 != 0 {
+				word |= 1 << (31 - i)
+			}
+		}
+		binary.BigEndian.PutUint32(dst[w*4:], word)
+	}
 }
 
 // getDrawableDC returns an HDC for the given drawable and a cleanup function.

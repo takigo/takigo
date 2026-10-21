@@ -29,7 +29,7 @@ func FillPolygon(d platform.DisplayServer, drawable platform.DrawableID, gc plat
 	}
 	ppoints := make([]platform.Point, len(points))
 	for i, p := range points {
-		ppoints[i] = platform.Point{X: int16(p.X), Y: int16(p.Y)}
+		ppoints[i] = platform.Point{X: int32(p.X), Y: int32(p.Y)}
 	}
 	d.FillPolygon(drawable, gc, ppoints, platform.PolygonComplex, platform.CoordModeOrigin)
 }

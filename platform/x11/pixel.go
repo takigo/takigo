@@ -69,11 +69,14 @@ func (pf *pixelFormat) pixel(p uint64) uint64 {
 	}
 	px, ok := pf.dpy.AllocColor(pf.cmap, uint16(c[0]*257), uint16(c[1]*257), uint16(c[2]*257))
 	if !ok {
-		// The colormap is full: the nearer of black and white.
+		// The colormap is full: the nearer of black and white. The
+		// fallback is not cached, so the cache stays as large as the
+		// colormap, not as large as the number of colours ever used.
 		px = pf.dpy.BlackPixel(pf.dpy.DefaultScreen())
 		if c[0]*30+c[1]*59+c[2]*11 >= 128*100 {
 			px = pf.dpy.WhitePixel(pf.dpy.DefaultScreen())
 		}
+		return px
 	}
 	pf.cells[p] = px
 	return px

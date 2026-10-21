@@ -200,8 +200,10 @@ odiff_score() {
     local base="$1" cmp="$2" diff_out="${3:-}"
     local out rc
     [[ -n "$diff_out" ]] && rm -f "$diff_out"
-    out=$(odiff "$base" "$cmp" ${diff_out:+"$diff_out"} --parsable-stdout --aa 2>/dev/null)
-    rc=$?
+    local rc=0
+    # odiff exits 22 when the images differ, so the assignment must not
+    # abort the script under `set -e`: the status is read here.
+    out=$(odiff "$base" "$cmp" ${diff_out:+"$diff_out"} --parsable-stdout --aa 2>/dev/null) || rc=$?
     case "$rc" in
         0)  # odiff >= 4 writes no diff image for identical inputs.
             [[ -n "$diff_out" && ! -f "$diff_out" ]] && cp "$base" "$diff_out"

@@ -3,6 +3,8 @@
 package window
 
 import (
+	"log/slog"
+
 	"github.com/takigo/takigo/platform"
 )
 
@@ -36,6 +38,22 @@ type Display struct {
 	// destroyHooks run for every window destroyed on this display, before
 	// the window's own hooks; see OnWindowDestroy.
 	destroyHooks []func(*Window)
+
+	// hooks are this display's own map, unmap and move hooks; see
+	// OnMapped, OnUnmapped and OnMoved.
+	hooks displayHooks
+
+	// Logger reports the display's problems. It is nil until the App that
+	// owns the display sets it, and then slog.Default().
+	Logger *slog.Logger
+}
+
+// Log returns the display's logger, or the default one.
+func (d *Display) Log() *slog.Logger {
+	if d == nil || d.Logger == nil {
+		return slog.Default()
+	}
+	return d.Logger
 }
 
 // OnWindowDestroy registers fn to run for every window destroyed on this

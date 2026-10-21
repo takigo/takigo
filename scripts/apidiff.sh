@@ -22,6 +22,10 @@ if [[ ${1:-} == --incompatible ]]; then
 fi
 base=${1:-$(git describe --tags --abbrev=0 --match 'v[0-9]*' HEAD 2>/dev/null || true)}
 new=${2:-HEAD}
+# The version of the tool is pinned: x/exp is a frozen module and
+# @latest would make the CI job depend on whatever it is today.
+APIDIFF_VERSION="${APIDIFF_VERSION:-v0.0.0-20261014143641-f0251eb4aa3e}"
+
 if [[ -z $base ]]; then
     echo "apidiff: no v* tag to compare with"
     exit 0
@@ -30,7 +34,7 @@ fi
 work=$PWD/tmp/apidiff
 apidiff=$work/bin/apidiff
 mkdir -p "$work"
-[[ -x $apidiff ]] || GOBIN=$work/bin go install golang.org/x/exp/cmd/apidiff@latest
+[[ -x $apidiff ]] || GOBIN=$work/bin go install golang.org/x/exp/cmd/apidiff@"$APIDIFF_VERSION"
 
 cleanup() {
     git worktree remove --force "$work/old" 2>/dev/null || true

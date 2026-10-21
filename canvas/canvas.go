@@ -46,6 +46,10 @@ type Canvas struct {
 	pixmap           platform.PixmapID
 	pixmapW, pixmapH int
 
+	// smoothLayer is the anti-aliased drawing layer, kept between
+	// repaints so that its buffers are reused (see smooth.go).
+	smoothLayer *layer
+
 	// damage is the area to repaint at the next idle redraw, in canvas
 	// coordinates (Tk's redrawX1..redrawY2); damageAll repaints the whole
 	// window, border included.
@@ -360,8 +364,12 @@ func (c *Canvas) paint(x1, y1, x2, y2 int) {
 	// display server must draw comes up, and at the end (see smooth.go).
 	var smooth *layer
 	if c.antialias {
-		smooth = newLayer(pixOriginX, pixOriginY, pixW, pixH, x1-pixOriginX, y1-pixOriginY, x2-x1, y2-y1)
-		smooth.plain = true
+		if c.smoothLayer == nil || c.smoothLayer.w != pixW || c.smoothLayer.h != pixH {
+			c.smoothLayer = newLayer(pixOriginX, pixOriginY, pixW, pixH, 0, 0, 0, 0)
+		}
+		smooth = c.smoothLayer
+		smooth.reset(pixOriginX, pixOriginY, pixW, pixH,
+			x1-pixOriginX, y1-pixOriginY, x2-x1, y2-y1)
 		smooth.bg = bgPixel
 	}
 

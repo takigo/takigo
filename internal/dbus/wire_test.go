@@ -80,6 +80,66 @@ func TestRoundTrip(t *testing.T) {
 	}
 }
 
+func TestScalarRoundTrip(t *testing.T) {
+	tests := []struct {
+		name string
+		sig  string
+		val  any
+	}{
+		{"byte", "y", byte(0xfe)},
+		{"bool", "b", true},
+		{"int16", "n", int16(-1234)},
+		{"uint16", "q", uint16(54321)},
+		{"int32", "i", int32(-70000)},
+		{"uint32", "u", uint32(4000000000)},
+		{"int64", "x", int64(-1 << 40)},
+		{"uint64", "t", uint64(1 << 60)},
+		{"double", "d", 1.5},
+		{"string", "s", "hi"},
+		{"object path", "o", ObjectPath("/org/freedesktop/DBus")},
+		{"signature", "g", "as"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var e encoder
+			if err := e.values(tt.sig, []any{tt.val}); err != nil {
+				t.Fatal(err)
+			}
+			d := decoder{buf: e.buf, order: binary.LittleEndian}
+			got, err := d.values(tt.sig)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if d.pos != len(e.buf) {
+				t.Errorf("decoder stopped at %d of %d bytes", d.pos, len(e.buf))
+			}
+			if !reflect.DeepEqual(got, []any{tt.val}) {
+				t.Errorf("decoded %#v, want %#v", got[0], tt.val)
+			}
+		})
+	}
+}
+
+func TestEncodeRejectsWrongType(t *testing.T) {
+	for _, tt := range []struct {
+		sig string
+		val any
+	}{
+		{"n", int32(1)},
+		{"q", int16(1)},
+		{"x", int32(1)},
+		{"t", int64(1)},
+		{"d", int64(1)},
+		{"i", int64(1)},
+		{"u", int64(1)},
+	} {
+		var e encoder
+		if err := e.values(tt.sig, []any{tt.val}); !errors.Is(err, ErrBadMessage) {
+			t.Errorf("encoding %v as %q: %v, want ErrBadMessage", tt.val, tt.sig, err)
+		}
+	}
+}
+
 func TestMalformedInput(t *testing.T) {
 	var e encoder
 	if err := e.values("u", []any{"not a number"}); !errors.Is(err, ErrBadMessage) {

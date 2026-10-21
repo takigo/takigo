@@ -33,7 +33,8 @@ type Document struct {
 	layoutGen int
 
 	// Listeners are called (in registration order) after every Insert,
-	// Delete or layout-affecting tag change.
+	// Delete or layout-affecting tag change. Widgets use Subscribe, which
+	// returns a function that removes the listener again.
 	Listeners []func(Change)
 
 	// subs are the listeners added with Subscribe, called after Listeners.
@@ -50,6 +51,22 @@ type Document struct {
 	// removes one.
 	objects    map[string]bool
 	objectSubs []*func(name string)
+
+	// undo is the shared undo/redo history. As in Tk, where the undo stack
+	// belongs to the shared text (TkSharedText.undoStack), every peer of a
+	// document undoes the same history.
+	undo *UndoStack
+}
+
+// UndoStack returns the document's shared undo/redo history, creating it on
+// first use. As in Tk, the history belongs to the shared text, so an undo
+// in the primary also undoes what a peer did, and an undo in a peer undoes
+// the shared history.
+func (d *Document) UndoStack() *UndoStack {
+	if d.undo == nil {
+		d.undo = NewUndoStack(undoMaxDepth)
+	}
+	return d.undo
 }
 
 // addObject records the embedded window or image whose placeholder follows

@@ -66,7 +66,7 @@ func (a *App) handleRawEvent(raw *platform.RawEvent) {
 		a.selMgr.HandleSelectionClear(clr.Selection)
 	case platform.SelectionNotifyEvent:
 		ntf := a.parser.ParseSelectionNotifyEvent(raw)
-		a.selMgr.HandleSelectionNotify(ntf.Requestor, ntf.Property)
+		a.selMgr.HandleSelectionNotify(ntf.Requestor, ntf.Selection, ntf.Target, ntf.Property)
 	case platform.PropertyNotifyEvent:
 		prop := a.parser.ParsePropertyEvent(raw)
 		a.selMgr.HandlePropertyNotify(prop.EventWindow, prop.Atom, prop.Deleted)
@@ -99,10 +99,18 @@ func (a *App) forgetWindow(w *window.Window) {
 	if w.PlatformID == 0 {
 		return
 	}
+	// The focus is given up before the <Destroy> event, as Tk does
+	// (TkFocusDeadWindow runs before the DestroyNotify), so that a widget
+	// that draws a focus ring hears about the focus first, and while its
+	// handlers are still bound.
+	a.focusMgr.HandleDestroyWindow(w)
 	a.dispatcher.Dispatch(&event.Event{Type: event.DestroyType, Window: w.PlatformID})
 	a.dispatcher.Unbind(w.PlatformID)
 	a.bindEng.UnregisterWindow(w)
-	a.focusMgr.HandleDestroyWindow(w)
+	// A grab on a destroyed window would swallow every later event.
+	if a.grabMgr.Current() == w {
+		a.grabMgr.Release()
+	}
 }
 
 // routeClientMessage gives a client message to the drag-and-drop
@@ -113,7 +121,7 @@ func (a *App) routeClientMessage(ev *event.Event) {
 	if ev.Type != event.ClientMessageType {
 		return
 	}
-	if a.dnd != nil && a.dnd.Handle(ev) {
+	if a.dnd.Handle(ev) {
 		return
 	}
 	w := a.display.LookupWindow(ev.Window)

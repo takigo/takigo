@@ -40,7 +40,9 @@ func (r *RectOvalItem) BBox() (x1, y1, x2, y2 int) {
 }
 
 func (r *RectOvalItem) Coords() []float64 {
-	return r.coords[:]
+	out := make([]float64, len(r.coords))
+	copy(out, r.coords[:])
+	return out
 }
 
 func (r *RectOvalItem) SetCoords(coords []float64) error {

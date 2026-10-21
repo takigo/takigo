@@ -29,6 +29,14 @@ DEMO_ANIMATED="anilabel aniwave pendulum knightstour twind"
 DEMOS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/demos"
 TCL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/tk/library/demos"
 
+# The Tcl demos are the reference of the comparison. Without them the map
+# would be empty and every run would compare nothing without saying so.
+if [[ ! -d "$TCL_DIR" ]]; then
+    echo "demo_map: the Tcl demos are missing: $TCL_DIR" >&2
+    echo "demo_map: clone tcltk/tk into tk/ (see demos/AGENTS.md) to compare the demos" >&2
+    exit 1
+fi
+
 for go_dir in "$DEMOS_DIR"/*/; do
     go_name=$(basename "$go_dir")
     [[ -f "$go_dir/main.go" ]] || continue

@@ -199,6 +199,73 @@ func TestParseSingleCharQ(t *testing.T) {
 	}
 }
 
+// TestParseKeyDetailCase checks that the detail of a pattern keeps its
+// case. Tk resolves it with TkStringToKeysym, which gives a single
+// letter its ASCII code: "A" is 0x41 and "a" is 0x61, so <Key-A> fires
+// on Shift+a and <Key-a> on a plain "a". The modifier and event type
+// words stay case-insensitive.
+func TestParseKeyDetailCase(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		pattern string
+		typ     event.Type
+		key     platform.KeySym
+		mods    Modifier
+	}{
+		{"<Key-A>", event.KeyPressType, 0x41, 0},
+		{"<Key-a>", event.KeyPressType, 0x61, 0},
+		{"<Shift-Key-A>", event.KeyPressType, 0x41, ModShift},
+		{"<Control-Key-a>", event.KeyPressType, 0x61, ModControl},
+		{"<Key-F1>", event.KeyPressType, 0xffbe, 0},
+		{"<Key-Left>", event.KeyPressType, platform.XK_Left, 0},
+		{"<Key-Return>", event.KeyPressType, platform.XK_Return, 0},
+		{"<A>", event.KeyPressType, 0x41, 0},
+		{"A", event.KeyPressType, 0x41, 0},
+		{"<Control-A>", event.KeyPressType, 0x41, ModControl},
+		// The modifier and event type words are matched without regard
+		// to case, as Tk looks them up in its tables.
+		{"<KEY-A>", event.KeyPressType, 0x41, 0},
+		{"<control-KEY-A>", event.KeyPressType, 0x41, ModControl},
+		{"<SHIFT-key-A>", event.KeyPressType, 0x41, ModShift},
+		{"<Control-Shift-Key-A>", event.KeyPressType, 0x41, ModControl | ModShift},
+	}
+	for _, tt := range tests {
+		seq, err := Parse(tt.pattern)
+		if err != nil {
+			t.Errorf("Parse(%q): %v", tt.pattern, err)
+			continue
+		}
+		p := seq.Patterns[0]
+		if p.EventType != tt.typ || p.KeySym != tt.key || p.Modifiers != tt.mods {
+			t.Errorf("Parse(%q) = %+v, want type %v key %#x mods %#x",
+				tt.pattern, p, tt.typ, tt.key, tt.mods)
+		}
+	}
+}
+
+// TestUppercaseKeyMatchesOnlyItsOwnKey checks that <Key-A> and <Key-a>
+// are different bindings: the uppercase one needs Shift+a.
+func TestUppercaseKeyMatchesOnlyItsOwnKey(t *testing.T) {
+	t.Parallel()
+	upper := MustParse("<Key-A>").Patterns[0]
+	lower := MustParse("<Key-a>").Patterns[0]
+	shiftA := &event.Event{Type: event.KeyPressType, KeySym: platform.KeySym(0x41), State: platform.ShiftMask}
+	plainA := &event.Event{Type: event.KeyPressType, KeySym: platform.KeySym(0x61)}
+
+	if !upper.matches(shiftA, 0) {
+		t.Error("<Key-A> should match Shift+a")
+	}
+	if upper.matches(plainA, 0) {
+		t.Error("<Key-A> should not match a plain a")
+	}
+	if !lower.matches(plainA, 0) {
+		t.Error("<Key-a> should match a plain a")
+	}
+	if lower.matches(shiftA, 0) {
+		t.Error("<Key-a> should not match Shift+a")
+	}
+}
+
 func TestParseErrors(t *testing.T) {
 	t.Parallel()
 	errors := []string{

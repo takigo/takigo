@@ -63,7 +63,7 @@ type CocoaDisplay struct {
 func NewDisplayServer(displayName string) (platform.DisplayServer, font.FontOpener, error) {
 	// AppKit works on the main thread only, which is the main goroutine's
 	// (internal/cocoa locks it in init). From anywhere else, calls would
-	// touch AppKit off-thread or wait on a main queue nobody services.
+	// touch AppKit off-thread.
 	if !clib.IsMainThread() {
 		return nil, nil, errors.New("cocoa: NewApp must be called from the main goroutine")
 	}

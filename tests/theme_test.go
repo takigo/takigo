@@ -4,6 +4,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/takigo/takigo/appearance"
 	"github.com/takigo/takigo/geometry/pack"
 	"github.com/takigo/takigo/internal/testutil"
 	"github.com/takigo/takigo/ttk"
@@ -60,8 +61,8 @@ func TestUseSystemThemeAndDarkPalette(t *testing.T) {
 	if err != nil || name != "dark" || f.Theme.Name != "dark" {
 		t.Fatalf("UseSystemTheme = %q, %v; frame theme %q", name, err, f.Theme.Name)
 	}
-	if app.Appearance().String() != "dark" {
-		t.Errorf("App.Appearance() = %v", app.Appearance())
+	if appearance.System().String() != "dark" {
+		t.Errorf("appearance.System() = %v", appearance.System())
 	}
 	img := testutil.Grab(t, app, f.Win)
 	if c := img.NRGBAAt(30, 20); luma(c) > 80 {

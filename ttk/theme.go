@@ -21,36 +21,163 @@ type Style struct {
 	Parent   *Style
 	Defaults map[string]any
 	Maps     map[string]StateMap[any]
-	// fallback is the same-named style of the parent theme, consulted when
-	// the chain has no value. Tk keeps such values as element defaults; the
-	// port keeps them in the default theme's styles. ResolveStyle links it
-	// lazily while other Apps' loops may be in Lookup, hence the atomic.
-	fallback atomic.Pointer[Style]
+
+	// theme is the theme that owns the style; it is used to find the
+	// cross-theme fallback (the style of the same name in the parent
+	// theme).
+	theme *Theme
+
+	// parentTheme is set on a theme's root style ("."): the root style
+	// inherits the parent theme's root style. The parent theme may create
+	// its root style later, so the link is resolved on demand.
+	parentTheme *Theme
+	rootParent  atomic.Pointer[Style]
+
+	// widgetLevel marks the widget-level style (ttk/widget.go widgetOpts):
+	// its values are the widget's own options, which take precedence over
+	// the style's state maps, as Tk's InitializeElementRecord does.
+	widgetLevel bool
+
+	// fallback caches the parent theme's styles that stand in for this
+	// one. It is resolved lazily, and re-resolved when an ancestor theme
+	// gains a style, so a style registered after the child theme still
+	// becomes the fallback.
+	fallback atomic.Pointer[fallbackSet]
+}
+
+// fallbackSet is a cached list of fallback styles together with the
+// style counters of the themes they come from.
+type fallbackSet struct {
+	styles []*Style
+	gens   []uint64
 }
 
 // Lookup returns the value for optionName at the given state. Like
-// Ttk_QueryStyle it consults the state maps along the whole parent chain
+// Ttk_QueryStyle it consults the widget's own option first (only for the
+// widget-level style), then the state maps along the whole parent chain
 // (the first style that maps the option decides, as in Ttk_StyleMap), then
-// the defaults along the chain, then the fallback style.
+// the defaults along the chain, then the fallback styles of the parent
+// themes.
 // Stops after 20 levels to guard against accidental cycles.
 func (s *Style) Lookup(optionName string, state State) (any, bool) {
-	const maxDepth = 20
-	for style, fallbacks := s, 0; style != nil && fallbacks < maxDepth; style, fallbacks = style.fallback.Load(), fallbacks+1 {
-		for cur, depth := style, 0; cur != nil && depth < maxDepth; cur, depth = cur.Parent, depth+1 {
-			if m, ok := cur.Maps[optionName]; ok {
-				if v, found := m.Lookup(state); found {
-					return v, true
-				}
-				break
-			}
+	if s == nil {
+		return nil, false
+	}
+	// The widget's own option value wins over the style's state maps.
+	if s.widgetLevel {
+		if v, ok := s.Defaults[optionName]; ok {
+			return v, true
 		}
-		for cur, depth := style, 0; cur != nil && depth < maxDepth; cur, depth = cur.Parent, depth+1 {
-			if v, ok := cur.Defaults[optionName]; ok {
-				return v, true
-			}
+		return s.Parent.Lookup(optionName, state)
+	}
+	if v, ok := s.lookupChain(optionName, state); ok {
+		return v, true
+	}
+	for _, fb := range s.fallbackStyles() {
+		if v, ok := fb.lookupChain(optionName, state); ok {
+			return v, true
 		}
 	}
 	return nil, false
+}
+
+// lookupChain looks the option up in the style and its parent chain: the
+// state maps first, then the defaults.
+func (s *Style) lookupChain(optionName string, state State) (any, bool) {
+	const maxDepth = 20
+	for cur, depth := s, 0; cur != nil && depth < maxDepth; cur, depth = cur.parentStyle(), depth+1 {
+		if m, ok := cur.Maps[optionName]; ok {
+			if v, found := m.Lookup(state); found {
+				return v, true
+			}
+			break
+		}
+	}
+	for cur, depth := s, 0; cur != nil && depth < maxDepth; cur, depth = cur.parentStyle(), depth+1 {
+		if v, ok := cur.Defaults[optionName]; ok {
+			return v, true
+		}
+	}
+	return nil, false
+}
+
+// parentStyle returns the style this one inherits from: the explicit
+// Parent, or the parent theme's root style for a theme's root style.
+func (s *Style) parentStyle() *Style {
+	if s.Parent != nil {
+		return s.Parent
+	}
+	if s.parentTheme == nil {
+		return nil
+	}
+	if p := s.rootParent.Load(); p != nil {
+		return p
+	}
+	themesMu.RLock()
+	p := s.parentTheme.Styles["."]
+	themesMu.RUnlock()
+	if p != nil {
+		s.rootParent.Store(p)
+	}
+	return p
+}
+
+// fallbackStyles returns the styles of the ancestor themes that stand in
+// for this one: the same name first, then the shorter suffixes of the
+// name, as Tk's style naming does ("My.TButton" falls back to "TButton").
+// They are resolved on every lookup, so a style that the parent theme
+// registers after the child theme still becomes the fallback.
+func (s *Style) fallbackStyles() []*Style {
+	if s.theme == nil {
+		return nil
+	}
+	if s.theme.Parent == nil {
+		return nil
+	}
+	// The cached set is checked while walking the chain, so that a lookup
+	// that hits it allocates nothing.
+	if c := s.fallback.Load(); c != nil {
+		i := 0
+		fresh := true
+		for th := s.theme.Parent; th != nil; th = th.Parent {
+			if i >= len(c.gens) || th.stylesGen.Load() != c.gens[i] {
+				fresh = false
+				break
+			}
+			i++
+		}
+		if fresh && i == len(c.gens) {
+			return c.styles
+		}
+	}
+	ancestors := s.theme.ancestorThemes()
+	themesMu.RLock()
+	defer themesMu.RUnlock()
+	c := &fallbackSet{gens: make([]uint64, 0, len(ancestors))}
+	for _, th := range ancestors {
+		c.gens = append(c.gens, th.stylesGen.Load())
+		for _, name := range styleNameSuffixes(s.Name) {
+			if st, ok := th.Styles[name]; ok {
+				c.styles = append(c.styles, st)
+			}
+		}
+	}
+	s.fallback.Store(c)
+	return c.styles
+}
+
+// styleNameSuffixes returns the name and its shorter suffixes, the way
+// Tk's style naming splits "a.b.c" into "b.c" and "c".
+func styleNameSuffixes(name string) []string {
+	out := []string{name}
+	for range 8 {
+		_, after, ok := strings.Cut(out[len(out)-1], ".")
+		if !ok || after == "" {
+			break
+		}
+		out = append(out, after)
+	}
+	return out
 }
 
 // LookupAs is Lookup for a value of type T; it reports false when the
@@ -123,6 +250,10 @@ type Theme struct {
 	Elements map[string]ElementFactory
 	Styles   map[string]*Style
 	Layouts  map[string]*LayoutTemplate
+
+	// stylesGen counts the styles created in this theme; a style's cached
+	// fallback list is stale once an ancestor theme's counter changed.
+	stylesGen atomic.Uint64
 }
 
 // NewTheme creates a theme with the given name and optional parent.
@@ -174,14 +305,13 @@ func (t *Theme) getStyle(name string) *Style {
 		Name:     name,
 		Defaults: make(map[string]any),
 		Maps:     make(map[string]StateMap[any]),
+		theme:    t,
 	}
 	if name == "." {
-		// Root style: parent to parent theme's root for default inheritance.
-		if t.Parent != nil {
-			if parentRoot, ok := t.Parent.Styles["."]; ok {
-				s.Parent = parentRoot
-			}
-		}
+		// Root style: it inherits the parent theme's root style, which is
+		// resolved on demand because the parent theme may create its root
+		// style after this theme exists.
+		s.parentTheme = t.Parent
 	} else {
 		// Tk's style inheritance (ttkTheme.c Ttk_GetStyle): "a.b.c"
 		// inherits from "b.c", the name minus its leading component.
@@ -192,13 +322,23 @@ func (t *Theme) getStyle(name string) *Style {
 		}
 	}
 	t.Styles[name] = s
+	t.stylesGen.Add(1)
 	return s
+}
+
+// ancestorThemes returns the parent themes of this theme, nearest first.
+func (t *Theme) ancestorThemes() []*Theme {
+	var out []*Theme
+	for cur := t.Parent; cur != nil; cur = cur.Parent {
+		out = append(out, cur)
+	}
+	return out
 }
 
 // ResolveStyle returns the style for name in this theme, as Ttk_GetStyle
 // does, so its parent chain ends at this theme's root and the theme's
 // colours win. When a parent theme configures the same style, that style
-// becomes its fallback.
+// is the fallback, which the style resolves when it is looked up.
 func (t *Theme) ResolveStyle(name string) *Style {
 	themesMu.Lock()
 	defer themesMu.Unlock()
@@ -207,16 +347,7 @@ func (t *Theme) ResolveStyle(name string) *Style {
 
 // resolveStyle is ResolveStyle for callers holding themesMu.
 func (t *Theme) resolveStyle(name string) *Style {
-	s := t.getStyle(name)
-	if name != "." && s.fallback.Load() == nil {
-		for cur := t.Parent; cur != nil; cur = cur.Parent {
-			if _, ok := cur.Styles[name]; ok {
-				s.fallback.Store(cur.resolveStyle(name))
-				break
-			}
-		}
-	}
-	return s
+	return t.getStyle(name)
 }
 
 // RegisterLayout registers a layout template for a widget class.

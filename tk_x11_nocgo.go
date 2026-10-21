@@ -14,3 +14,7 @@ import (
 func platformInit(string) (platform.DisplayServer, platform.EventParser, font.FontOpener, error) {
 	return nil, nil, nil, errors.New("takigo: the X11 backend needs cgo (CGO_ENABLED=1)")
 }
+
+// checkEventLoopThread reports whether the event loop may run on the
+// calling goroutine. Only macOS restricts this.
+func checkEventLoopThread() error { return nil }

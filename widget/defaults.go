@@ -30,4 +30,5 @@ const (
 	StateNormal   State = iota
 	StateActive         // mouse is over the widget
 	StateDisabled       // widget is not interactive
+	StateReadonly       // widget shows its value but cannot be edited
 )

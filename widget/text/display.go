@@ -580,13 +580,12 @@ func (t *TextWidget) segmentsForRange(lineIdx, startChar, endChar int) []textSeg
 	return segments
 }
 
-// renderToPixmap draws the text widget content to the offscreen pixmap and
-// returns the display lines it laid out.
-func (t *TextWidget) renderToPixmap() []displayLine {
+// renderTo draws the text widget content to the given drawable and returns
+// the display lines it laid out.
+func (t *TextWidget) renderTo(drawable platform.DrawableID) []displayLine {
 	w := t.Win
 	d := w.Display.Server
 	gc := w.GC
-	pxDrawable := platform.PixmapDrawable(t.pixmap)
 
 	winW := w.Width
 	winH := w.Height
@@ -597,7 +596,7 @@ func (t *TextWidget) renderToPixmap() []displayLine {
 		bgPixel = t.Background.Pixel
 	}
 	d.SetForeground(gc, bgPixel)
-	d.FillRectangle(pxDrawable, gc, 0, 0, uint(winW), uint(winH))
+	d.FillRectangle(drawable, gc, 0, 0, uint(winW), uint(winH))
 
 	if t.Font == nil {
 		return nil
@@ -636,7 +635,7 @@ func (t *TextWidget) renderToPixmap() []displayLine {
 		xOffset := t.insetX + dl.leftMargin + justifyOffset - t.xOffset
 
 		// Draw selection highlight once per display line, before any text.
-		t.drawSelectionHighlight(d, gc, pxDrawable, dl, xOffset)
+		t.drawSelectionHighlight(d, gc, drawable, dl, xOffset)
 
 		for _, seg := range segments {
 			segX := xOffset + seg.x
@@ -648,17 +647,17 @@ func (t *TextWidget) renderToPixmap() []displayLine {
 				if seg.bgStipple != 0 {
 					d.SetStipple(gc, seg.bgStipple)
 					d.SetFillStyle(gc, platform.FillStippled)
-					d.FillRectangle(pxDrawable, gc, segX, t.insetY+dl.y, uint(seg.width), uint(dl.height))
+					d.FillRectangle(drawable, gc, segX, t.insetY+dl.y, uint(seg.width), uint(dl.height))
 					d.SetFillStyle(gc, platform.FillSolid)
 				} else {
-					d.FillRectangle(pxDrawable, gc, segX, t.insetY+dl.y, uint(seg.width), uint(dl.height))
+					d.FillRectangle(drawable, gc, segX, t.insetY+dl.y, uint(seg.width), uint(dl.height))
 				}
 			} else if seg.bgStipple != 0 {
 				// Stipple with no explicit background color: use black dots on normal bg.
 				d.SetForeground(gc, 0)
 				d.SetStipple(gc, seg.bgStipple)
 				d.SetFillStyle(gc, platform.FillStippled)
-				d.FillRectangle(pxDrawable, gc, segX, t.insetY+dl.y, uint(seg.width), uint(dl.height))
+				d.FillRectangle(drawable, gc, segX, t.insetY+dl.y, uint(seg.width), uint(dl.height))
 				d.SetFillStyle(gc, platform.FillSolid)
 			}
 
@@ -671,7 +670,7 @@ func (t *TextWidget) renderToPixmap() []displayLine {
 					bgPx = t.Background.Pixel
 				}
 				iw, ih := seg.img.Width(), seg.img.Height()
-				seg.img.Draw(d, pxDrawable, gc, w.Depth, 0, 0, iw, ih,
+				seg.img.Draw(d, drawable, gc, w.Depth, 0, 0, iw, ih,
 					segX, t.insetY+dl.y+(dl.height-ih)/2, bgPx)
 				continue
 			}
@@ -684,7 +683,7 @@ func (t *TextWidget) renderToPixmap() []displayLine {
 				}
 			}
 			if seg.fg != nil {
-				df.DrawString(pxDrawable, segX, segBaseY, seg.text,
+				df.DrawString(drawable, segX, segBaseY, seg.text,
 					seg.fg.Pixel, seg.fg.Red, seg.fg.Green, seg.fg.Blue)
 			}
 
@@ -699,11 +698,11 @@ func (t *TextWidget) renderToPixmap() []displayLine {
 				sm := sf.Metrics()
 				d.SetForeground(gc, seg.fg.Pixel)
 				if seg.underline {
-					d.FillRectangle(pxDrawable, gc, segX, segBaseY+pos, uint(seg.width), uint(h))
+					d.FillRectangle(drawable, gc, segX, segBaseY+pos, uint(seg.width), uint(h))
 				}
 				if seg.overstrike {
 					y := segBaseY - sm.Descent - sm.Ascent*3/10
-					d.FillRectangle(pxDrawable, gc, segX, y+pos, uint(seg.width), uint(h))
+					d.FillRectangle(drawable, gc, segX, y+pos, uint(seg.width), uint(h))
 				}
 			}
 
@@ -719,7 +718,7 @@ func (t *TextWidget) renderToPixmap() []displayLine {
 				}
 				bw := seg.reliefBW
 				segRowY := t.insetY + dl.y
-				draw.Draw3DRectangle(d, pxDrawable, gc, border,
+				draw.Draw3DRectangle(d, drawable, gc, border,
 					segX, segRowY, seg.width, dl.height, bw, seg.relief)
 			}
 		}
@@ -727,7 +726,7 @@ func (t *TextWidget) renderToPixmap() []displayLine {
 
 	// Draw cursor (not in read-only mode).
 	if t.hasFocus && t.cursorOn && !t.readOnly {
-		t.drawCursor(d, gc, pxDrawable, dlines)
+		t.drawCursor(d, gc, drawable, dlines)
 	}
 
 	return dlines

@@ -10,7 +10,7 @@ OUTDIR ?= tmp/bin
 
 .PHONY: help all build test test-race vet fmt fmt-check fix fix-check lint \
 	check ci build-windows vet-windows demos run-demo bench fuzz apidiff release \
-	clean distclean
+	demo-batch demo-gate check-tutorial check-deps clean distclean
 
 help: ## List the goals
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-14s %s\n", $$1, $$2}'
@@ -49,13 +49,19 @@ fix: ## Apply the go fix modernizers
 fix-check: ## Fail if go fix would change anything (CI gate)
 	$(GO) fix -diff $(GODIRS)
 
-check-docs: ## Fail if AGENTS.md, the skills or the scripts README name a path that is gone
+check-docs: ## Fail if AGENTS.md, the docs, the skills or the scripts README name a path that is gone
 	bash scripts/check_docs.sh
+
+check-tutorial: ## Fail if a program of the tutorial does not compile
+	bash scripts/check_tutorial.sh
+
+check-deps: ## Fail when a module crept into go.mod (the standard library only)
+	bash scripts/check_deps.sh
 
 lint: ## golangci-lint (CI only gates changed lines)
 	golangci-lint run --allow-parallel-runners $(GODIRS)
 
-check: vet fmt-check fix-check vet-windows check-docs ## The static checks CI gates on
+check: vet fmt-check fix-check vet-windows check-docs check-tutorial check-deps ## The static checks CI gates on
 
 ci: check test-race ## Roughly what CI runs on Linux
 
@@ -79,6 +85,12 @@ fuzz: ## Fuzz the binding parser: make fuzz FUZZTIME=30s
 
 apidiff: ## Exported API changes since the last tag: make apidiff [BASE=v0.2.0]
 	bash scripts/apidiff.sh $(BASE)
+
+demo-batch: ## Compare every demo with its Tcl counterpart: make demo-batch [RETAKE=1]
+	bash scripts/demo_batch.sh $(if $(RETAKE),--retake)
+
+demo-gate: ## Fail when a demo got worse than its baseline
+	bash scripts/demo_gate.sh
 
 release: ## Tag a release from CHANGELOG.md: make release VERSION=v0.2.0 [PUSH=1]
 	@[ -n "$(VERSION)" ] || { echo "usage: make release VERSION=vX.Y.Z [PUSH=1]"; exit 1; }

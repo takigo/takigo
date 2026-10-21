@@ -147,6 +147,10 @@ func Init(w *window.Window) *WmInfo {
 		atoms:        atoms,
 	}
 
+	// Tk's TkWmProtocolEventProc destroys the window when a
+	// WM_DELETE_WINDOW message arrives and no handler was registered.
+	info.OffDeleteWindow()
+
 	// Set default WM hints.
 	d.SetWMHints(w.PlatformID, &platform.WMHints{
 		Flags:        platform.InputHint | platform.StateHint,
@@ -303,6 +307,8 @@ func (info *WmInfo) ExpectSize(w, h int) {
 func (info *WmInfo) ConfigureNotify(width, height int) {
 	for i, p := range info.pending {
 		if p == [2]int{width, height} {
+			// The request is answered, and so are the earlier ones the
+			// window manager skipped.
 			info.pending = info.pending[i+1:]
 			return
 		}

@@ -37,6 +37,19 @@ setters are the same). The widgets port `tk/generic/ttk/ttk<Name>.c` and
   layout. Keep Tk's `Variant.Class` order for new names; a takigo-only
   name such as `TSeparator.Horizontal` needs an explicit `Parent` in each
   theme file.
+- **Style lookup order.** The widget's own option wins over the style's
+  state map, which wins over the style's default
+  (`InitializeElementRecord` in `ttkTheme.c`). The widget's options live
+  in a widget-level style (`widgetOpts` in `ttk/widget.go`) that is
+  consulted before the theme style's maps. A style of a child theme falls
+  back to the parent theme's style of the same name, and to its class
+  style (`My.TButton` → `TButton`); the fallback is resolved when the
+  style is looked up, so a style the parent theme registers later still
+  counts. The root style `.` inherits the parent theme's root style.
+- **`-style` beats the orientation.** Widgets that derive their style
+  from `-orient` (scale, scrollbar, separator, progressbar) use the
+  orientation's style only as the default; a style the user set with
+  `-style` wins and survives `UseTheme`.
 - **`ttk.Panedwindow` wraps the classic widget** until `ttkPanedwindow.c`
   is ported, which is why it has no `PanedwindowStyle` option and why
   `widget/panedwindow` carries `FlagSash`, `Weighted` and `GripSize`.

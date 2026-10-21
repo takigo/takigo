@@ -65,7 +65,7 @@ func ProgressbarLength[L screenunit.Length](l L) ProgressbarOption {
 
 // ProgressbarStyle sets -style.
 func ProgressbarStyle(name string) ProgressbarOption {
-	return func(p *Progressbar) { p.StyleName = name }
+	return func(p *Progressbar) { p.setStyleName(name) }
 }
 
 // NewProgressbar creates a themed progressbar widget.
@@ -113,7 +113,11 @@ func (p *Progressbar) requestSize() {
 
 // Configure sets options after creation.
 func (p *Progressbar) Configure(opts ...ProgressbarOption) error {
-	return configure(&p.TtkWidget, p, opts, func() { p.StyleName = p.orientStyle() }, p.requestSize)
+	return configure(&p.TtkWidget, p, opts, func() {
+		if !p.styleSet {
+			p.StyleName = p.orientStyle()
+		}
+	}, p.requestSize)
 }
 
 // pbTroughBorder is the default theme trough's sunken border width.

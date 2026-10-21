@@ -726,9 +726,9 @@ func init() {
 
 	// Horizontal.Sash and Vertical.Sash.
 	theme.RegisterLayout("Horizontal.Sash",
-		ttk.L("hsash", ttk.FillXF))
+		ttk.L("hsash", ttk.FillF))
 	theme.RegisterLayout("Vertical.Sash",
-		ttk.L("vsash", ttk.FillYF))
+		ttk.L("vsash", ttk.FillF))
 
 	// Treeview: highlight → border → padding → treearea
 	theme.RegisterLayout("Treeview",

@@ -29,6 +29,7 @@ func TestColorSchemeMode(t *testing.T) {
 }
 
 func TestGTKThemeFallback(t *testing.T) {
+	resetCache()
 	t.Setenv("TAKIGO_APPEARANCE", "")
 	t.Setenv("DBUS_SESSION_BUS_ADDRESS", "unix:path=/nonexistent/takigo-test-bus")
 	t.Setenv("XDG_RUNTIME_DIR", "")

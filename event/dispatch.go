@@ -28,10 +28,11 @@ type registration struct {
 
 // Dispatcher manages event handler registration and dispatch per window.
 //
-// The handler slices are copy-on-write: Bind and UnbindID publish a new
-// slice instead of modifying the old one, so Dispatch iterates a
-// consistent snapshot without copying it, and handlers keep the order
-// they were bound in.
+// The handler slices are copy-on-write: a removal (Unbind, UnbindID)
+// builds a new slice, so Dispatch iterates a consistent snapshot without
+// copying it, and handlers keep the order they were bound in. A binding
+// (Bind, BindGlobal) appends in place, which is safe because the slot
+// it writes is beyond the length of any snapshot in flight.
 type Dispatcher struct {
 	mu       sync.RWMutex
 	handlers map[platform.WindowID][]*registration
@@ -89,7 +90,7 @@ func (d *Dispatcher) Bind(w platform.WindowID, mask Mask, h Handler) BindingID {
 	defer d.mu.Unlock()
 	d.nextID++
 	reg := &registration{id: d.nextID, mask: mask, handler: h, window: w}
-	d.handlers[w] = appendCOW(d.handlers[w], reg)
+	d.handlers[w] = appendReg(d.handlers[w], reg)
 	d.byID[reg.id] = reg
 	return reg.id
 }
@@ -100,7 +101,7 @@ func (d *Dispatcher) BindGlobal(mask Mask, h Handler) BindingID {
 	defer d.mu.Unlock()
 	d.nextID++
 	reg := &registration{id: d.nextID, mask: mask, handler: h, global: true}
-	d.global = appendCOW(d.global, reg)
+	d.global = appendReg(d.global, reg)
 	d.byID[reg.id] = reg
 	return reg.id
 }
@@ -113,7 +114,7 @@ func (d *Dispatcher) BindGlobalFor(owner platform.WindowID, mask Mask, h Handler
 	defer d.mu.Unlock()
 	d.nextID++
 	reg := &registration{id: d.nextID, mask: mask, handler: h, window: owner, global: true}
-	d.global = appendCOW(d.global, reg)
+	d.global = appendReg(d.global, reg)
 	if owner != 0 {
 		d.owned[owner] = append(d.owned[owner], reg)
 	}
@@ -165,10 +166,11 @@ func (d *Dispatcher) UnbindID(id BindingID) bool {
 	return true
 }
 
-// appendCOW appends reg to regs. Writing past len(regs) is safe even if
-// an in-flight Dispatch holds regs: its snapshot's length excludes the
-// new slot, and removals always build a fresh backing array.
-func appendCOW(regs []*registration, reg *registration) []*registration {
+// appendReg appends reg to regs, in place. That is safe because the
+// slots below a slice's length are never rewritten: a removal builds a
+// new slice (removeCOW), and the slot an append writes is beyond the
+// length of any snapshot an in-flight Dispatch holds.
+func appendReg(regs []*registration, reg *registration) []*registration {
 	return append(regs, reg)
 }
 

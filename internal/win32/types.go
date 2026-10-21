@@ -261,6 +261,10 @@ const (
 	WM_MOUSELEAVE           = 0x02A3
 	WM_DPICHANGED           = 0x02E0
 	WM_USER                 = 0x0400
+
+	// WM_APP_DESTROY asks the thread that owns the window to destroy it:
+	// DestroyWindow only works on that thread.
+	WM_APP_DESTROY = 0x8001
 )
 
 // Class styles.

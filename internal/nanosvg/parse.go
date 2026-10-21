@@ -8,6 +8,9 @@ package nanosvg
 
 import (
 	"encoding/xml"
+	"errors"
+	"fmt"
+	"io"
 	"math"
 	"strconv"
 	"strings"
@@ -196,15 +199,22 @@ type pendingShape struct {
 }
 
 // Parse parses an SVG document in the subset Tk's built-in images use.
+// A malformed document is reported as an error; the image parsed so far
+// is returned with it, so that callers that ignore the error still have
+// something to work with.
 func Parse(src string) (*Image, error) {
 	p := &parser{img: &Image{}, gradients: map[string]*gradientData{}}
 	dec := xml.NewDecoder(strings.NewReader(src))
 	stack := []attrs{defaultAttrs()}
 	var curGrad *gradientData
+	root := false
 	for {
 		tok, err := dec.Token()
 		if err != nil {
-			break
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			return p.img, fmt.Errorf("nanosvg: parse svg: %w", err)
 		}
 		switch t := tok.(type) {
 		case xml.StartElement:
@@ -219,6 +229,7 @@ func Parse(src string) (*Image, error) {
 			}
 			switch t.Name.Local {
 			case "svg":
+				root = true
 				if v, ok := get("width"); ok {
 					p.img.Width = atof(strings.TrimSuffix(v, "px"))
 				}
@@ -305,8 +316,13 @@ func Parse(src string) (*Image, error) {
 			if t.Name.Local == "linearGradient" {
 				curGrad = nil
 			}
-			stack = stack[:len(stack)-1]
+			if len(stack) > 1 {
+				stack = stack[:len(stack)-1]
+			}
 		}
+	}
+	if !root {
+		return p.img, errors.New("nanosvg: parse svg: no <svg> element")
 	}
 	p.createGradients()
 	return p.img, nil

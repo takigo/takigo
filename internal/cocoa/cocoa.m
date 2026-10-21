@@ -9,6 +9,7 @@
 #include "idmap.h"
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 #include <pthread.h>
 
 // ============================================================================
@@ -77,15 +78,150 @@ static int eventQueueCount = 0;
 static pthread_mutex_t eventQueueMutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t eventQueueCond = PTHREAD_COND_INITIALIZER;
 
-// Execute a block on the main thread. If already on the main thread, run directly.
-// This avoids deadlocks since dispatch_async to the main queue requires
-// the main run loop to be serviced, which doesn't happen in Go's event loop.
-static inline void runOnMain(void (^block)(void)) {
+// Work that has to run on the main thread is queued here and run by
+// drainMainTasks, which the Go event loop reaches through CocoaPumpEvents.
+// The main dispatch queue cannot be used for it: Go owns the main thread,
+// so nothing ever drains that queue and a dispatch_sync to it blocks
+// forever.
+typedef struct CocoaMainTask {
+    void (^block)(void);
+    int done;      // set once the block has run
+    int claimed;   // the main thread has taken the task
+    int abandoned; // the caller gave up waiting
+    struct CocoaMainTask *next;
+} CocoaMainTask;
+
+static CocoaMainTask *mainTaskHead = NULL;
+static CocoaMainTask *mainTaskTail = NULL;
+static pthread_mutex_t mainTaskMutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t mainTaskCond = PTHREAD_COND_INITIALIZER;
+
+// How long a caller waits for the main thread to run its block.
+#define MAIN_TASK_TIMEOUT_MS 2000
+
+// Set when the main thread did not run a task in time: later calls fail
+// at once instead of waiting again.
+static int mainTaskStalled = 0;
+
+// Execute a block on the main thread. If already on the main thread, run
+// directly. Otherwise queue the block and wait for the main thread to run
+// it: the block reads the caller's frame, which stays alive while the
+// caller waits.
+static void runOnMain(void (^block)(void)) {
     if ([NSThread isMainThread]) {
         block();
-    } else {
-        dispatch_sync(dispatch_get_main_queue(), block);
+        return;
     }
+
+    pthread_mutex_lock(&mainTaskMutex);
+    if (mainTaskStalled) {
+        pthread_mutex_unlock(&mainTaskMutex);
+        NSLog(@"takigo: the main thread is not running tasks; the request is dropped");
+        return;
+    }
+    CocoaMainTask *task = (CocoaMainTask *)calloc(1, sizeof(CocoaMainTask));
+    if (!task) {
+        pthread_mutex_unlock(&mainTaskMutex);
+        NSLog(@"takigo: out of memory queueing a main-thread task");
+        return;
+    }
+    task->block = block;
+    if (mainTaskTail) {
+        mainTaskTail->next = task;
+    } else {
+        mainTaskHead = task;
+    }
+    mainTaskTail = task;
+    pthread_mutex_unlock(&mainTaskMutex);
+
+    struct timespec deadline;
+    clock_gettime(CLOCK_REALTIME, &deadline);
+    deadline.tv_sec += MAIN_TASK_TIMEOUT_MS / 1000;
+    deadline.tv_nsec += (MAIN_TASK_TIMEOUT_MS % 1000) * 1000000L;
+    if (deadline.tv_nsec >= 1000000000L) {
+        deadline.tv_sec += 1;
+        deadline.tv_nsec -= 1000000000L;
+    }
+
+    int finished = 0;
+    pthread_mutex_lock(&mainTaskMutex);
+    for (;;) {
+        if (task->done) {
+            finished = 1;
+            break;
+        }
+        int err = pthread_cond_timedwait(&mainTaskCond, &mainTaskMutex, &deadline);
+        if (err == ETIMEDOUT) {
+            if (task->claimed) {
+                // The main thread is running the block: wait for it to finish.
+                while (!task->done) {
+                    pthread_cond_wait(&mainTaskCond, &mainTaskMutex);
+                }
+                finished = 1;
+                break;
+            }
+            // The main thread never came: drop the task so that it is not
+            // run after the caller's frame is gone.
+            task->abandoned = 1;
+            mainTaskStalled = 1;
+            NSLog(@"takigo: the main thread did not run a queued task in time");
+            break;
+        }
+        if (err != 0) {
+            // The wait failed: do not spin on it.
+            task->abandoned = 1;
+            mainTaskStalled = 1;
+            NSLog(@"takigo: waiting for the main thread failed");
+            break;
+        }
+    }
+    pthread_mutex_unlock(&mainTaskMutex);
+
+    // The main thread frees a task it dropped; a task it ran is ours.
+    if (finished) free(task);
+}
+
+// Run the tasks queued by other threads. Called on the main thread.
+static void drainMainTasks(void) {
+    if (![NSThread isMainThread]) return;
+    for (;;) {
+        pthread_mutex_lock(&mainTaskMutex);
+        mainTaskStalled = 0;
+        CocoaMainTask *task = mainTaskHead;
+        if (!task) {
+            pthread_mutex_unlock(&mainTaskMutex);
+            return;
+        }
+        mainTaskHead = task->next;
+        if (!mainTaskHead) mainTaskTail = NULL;
+        if (task->abandoned) {
+            pthread_mutex_unlock(&mainTaskMutex);
+            free(task);
+            continue;
+        }
+        task->claimed = 1;
+        pthread_mutex_unlock(&mainTaskMutex);
+
+        task->block();
+
+        pthread_mutex_lock(&mainTaskMutex);
+        task->done = 1;
+        pthread_cond_broadcast(&mainTaskCond);
+        pthread_mutex_unlock(&mainTaskMutex);
+    }
+}
+
+// AppKit and CoreGraphics may be used from the main thread only: a call
+// from another thread corrupts their state. Such a call is refused, and
+// reported once, rather than executed.
+static inline bool requireMainThread(const char *fn) {
+    if ([NSThread isMainThread]) return true;
+    static bool reported = false;
+    if (!reported) {
+        reported = true;
+        NSLog(@"takigo: %s was called off the main thread; the call is refused", fn);
+    }
+    return false;
 }
 
 // growEventQueue doubles the ring, moving the queued events to its start.
@@ -825,6 +961,7 @@ static void applyGC(CGContextRef ctx, CocoaGCState *gc) {
 // ============================================================================
 
 void CocoaInit(void) {
+    if (!requireMainThread("CocoaInit")) return;
     @autoreleasepool {
         tkApp = (TKApplication *)[TKApplication sharedApplication];
         tkApp.delegate = tkApp;
@@ -866,6 +1003,9 @@ void CocoaInit(void) {
         // activateIgnoringOtherApps brings us to the foreground.
         [NSApp finishLaunching];
         [NSApp activateIgnoringOtherApps:YES];
+
+        // The Go event loop pumps NSEvents through CocoaPumpEvents.
+        CocoaStartEventPump();
     }
 }
 
@@ -1039,11 +1179,7 @@ CocoaWindowID CocoaCreateWindow(CocoaWindowID parent, int x, int y,
         }
     };
 
-    if ([NSThread isMainThread]) {
-        block();
-    } else {
-        dispatch_sync(dispatch_get_main_queue(), block);
-    }
+    runOnMain(block);
 
     return result;
 }
@@ -1422,6 +1558,7 @@ void CocoaSetDashes(CocoaGCID gcid, int dashOffset, const unsigned char *dashLis
 
 void CocoaFillRectangle(CocoaDrawableID d, CocoaGCID gcid,
                          int x, int y, unsigned int w, unsigned int h) {
+    if (!requireMainThread("CocoaFillRectangle")) return;
     CGContextRef ctx = getDrawableContext(d);
     CocoaGCState *gc = lookupGC(gcid);
     if (!ctx || !gc) return;
@@ -1437,6 +1574,7 @@ void CocoaFillRectangle(CocoaDrawableID d, CocoaGCID gcid,
 
 void CocoaDrawRectangle(CocoaDrawableID d, CocoaGCID gcid,
                          int x, int y, unsigned int w, unsigned int h) {
+    if (!requireMainThread("CocoaDrawRectangle")) return;
     CGContextRef ctx = getDrawableContext(d);
     CocoaGCState *gc = lookupGC(gcid);
     if (!ctx || !gc) return;
@@ -1452,6 +1590,7 @@ void CocoaDrawRectangle(CocoaDrawableID d, CocoaGCID gcid,
 
 void CocoaDrawLine(CocoaDrawableID d, CocoaGCID gcid,
                     int x1, int y1, int x2, int y2) {
+    if (!requireMainThread("CocoaDrawLine")) return;
     CGContextRef ctx = getDrawableContext(d);
     CocoaGCState *gc = lookupGC(gcid);
     if (!ctx || !gc) return;
@@ -1474,7 +1613,8 @@ void CocoaDrawLine(CocoaDrawableID d, CocoaGCID gcid,
 }
 
 void CocoaDrawLines(CocoaDrawableID d, CocoaGCID gcid,
-                     const int16_t *points, int npoints, int mode) {
+                     const int32_t *points, int npoints, int mode) {
+    if (!requireMainThread("CocoaDrawLines")) return;
     if (npoints < 2) return;
     CGContextRef ctx = getDrawableContext(d);
     CocoaGCState *gc = lookupGC(gcid);
@@ -1503,7 +1643,8 @@ void CocoaDrawLines(CocoaDrawableID d, CocoaGCID gcid,
 }
 
 void CocoaFillPolygon(CocoaDrawableID d, CocoaGCID gcid,
-                       const int16_t *points, int npoints, int shape, int mode) {
+                       const int32_t *points, int npoints, int shape, int mode) {
+    if (!requireMainThread("CocoaFillPolygon")) return;
     if (npoints < 3) return;
     CGContextRef ctx = getDrawableContext(d);
     CocoaGCState *gc = lookupGC(gcid);
@@ -1535,6 +1676,7 @@ void CocoaFillPolygon(CocoaDrawableID d, CocoaGCID gcid,
 void CocoaFillArc(CocoaDrawableID d, CocoaGCID gcid,
                    int x, int y, unsigned int w, unsigned int h,
                    int angle1, int angle2) {
+    if (!requireMainThread("CocoaFillArc")) return;
     CGContextRef ctx = getDrawableContext(d);
     CocoaGCState *gc = lookupGC(gcid);
     if (!ctx || !gc) return;
@@ -1568,6 +1710,7 @@ void CocoaFillArc(CocoaDrawableID d, CocoaGCID gcid,
 void CocoaDrawArc(CocoaDrawableID d, CocoaGCID gcid,
                    int x, int y, unsigned int w, unsigned int h,
                    int angle1, int angle2) {
+    if (!requireMainThread("CocoaDrawArc")) return;
     CGContextRef ctx = getDrawableContext(d);
     CocoaGCState *gc = lookupGC(gcid);
     if (!ctx || !gc) return;
@@ -1597,6 +1740,7 @@ void CocoaDrawArc(CocoaDrawableID d, CocoaGCID gcid,
 void CocoaCopyArea(CocoaDrawableID src, CocoaDrawableID dst, CocoaGCID gcid,
                     int srcX, int srcY, unsigned int w, unsigned int h,
                     int dstX, int dstY) {
+    if (!requireMainThread("CocoaCopyArea")) return;
     CGContextRef srcCtx = getDrawableContext(src);
     CGContextRef dstCtx = getDrawableContext(dst);
     if (!srcCtx || !dstCtx) return;
@@ -1635,6 +1779,7 @@ void CocoaPutImageRGBA(CocoaDrawableID d, CocoaGCID gcid, int depth,
                         int imgW, int imgH,
                         int srcX, int srcY, int dstX, int dstY,
                         int w, int h, uint64_t bgPixel) {
+    if (!requireMainThread("CocoaPutImageRGBA")) return;
     CGContextRef ctx = getDrawableContext(d);
     if (!ctx) return;
 
@@ -1677,6 +1822,7 @@ void CocoaPutImageRGBA(CocoaDrawableID d, CocoaGCID gcid, int depth,
 
 CocoaPixmapID CocoaCreatePixmap(unsigned int width, unsigned int height,
                                  unsigned int depth) {
+    if (!requireMainThread("CocoaCreatePixmap")) return 0;
     if (width == 0) width = 1;
     if (height == 0) height = 1;
 
@@ -1712,18 +1858,22 @@ void CocoaFreePixmap(CocoaPixmapID pmid) {
     free(pm);
 }
 
-CocoaPixmapID CocoaCreateBitmapFromData(const unsigned char *bits,
+CocoaPixmapID CocoaCreateBitmapFromData(const unsigned char *bits, size_t nbits,
                                          unsigned int width, unsigned int height) {
     // XBM format: each byte is LSB-first, rows padded to 8 bits
+    size_t bytesPerRow = ((size_t)width + 7) / 8;
+    // The bits are read row by row: a short buffer would read past it.
+    if (!bits || nbits < bytesPerRow * (size_t)height) return 0;
+    if (!requireMainThread("CocoaCreateBitmapFromData")) return 0;
+
     CocoaPixmapID pmid = CocoaCreatePixmap(width, height, 1);
     CocoaPixmap *pm = lookupPixmap(pmid);
     if (!pm || !pm->ctx) return pmid;
 
     // Convert XBM bits to the bitmap context
-    unsigned int bytesPerRow = (width + 7) / 8;
     for (unsigned int y = 0; y < height; y++) {
         for (unsigned int x = 0; x < width; x++) {
-            unsigned int byteIdx = y * bytesPerRow + x / 8;
+            size_t byteIdx = (size_t)y * bytesPerRow + x / 8;
             unsigned int bitIdx = x % 8;
             bool set = (bits[byteIdx] >> bitIdx) & 1;
             if (set) {
@@ -1763,6 +1913,7 @@ static NSCursor *cursorForShape(unsigned int shape) {
 }
 
 CocoaCursorID CocoaCreateCursor(unsigned int shape) {
+    if (!requireMainThread("CocoaCreateCursor")) return 0;
     NSCursor *cursor = cursorForShape(shape);
     [cursor retain];
     return (CocoaCursorID)(void *)cursor;
@@ -1865,33 +2016,17 @@ static volatile bool eventPumpRunning = false;
 // them through Cocoa's standard event dispatch (which triggers our
 // NSView/NSWindow callbacks that post to the internal event queue).
 void CocoaStartEventPump(void) {
+    // The Go event loop pumps NSEvents through CocoaPumpEvents, which
+    // runs on the main thread. A dispatch timer on the main queue would
+    // never fire: nothing drains that queue, Go owns the main thread.
     eventPumpRunning = true;
-
-    // Use a dispatch source / timer to continuously pump events.
-    // This runs on the main dispatch queue (main thread).
-    dispatch_source_t timer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER,
-                                                       0, 0, dispatch_get_main_queue());
-    // Fire every 1ms — fast enough for responsive UI
-    dispatch_source_set_timer(timer, DISPATCH_TIME_NOW, 1 * NSEC_PER_MSEC, 0);
-    dispatch_source_set_event_handler(timer, ^{
-        if (!eventPumpRunning) {
-            dispatch_source_cancel(timer);
-            return;
-        }
-        @autoreleasepool {
-            NSEvent *event;
-            while ((event = [NSApp nextEventMatchingMask:NSEventMaskAny
-                                              untilDate:nil
-                                                 inMode:NSDefaultRunLoopMode
-                                                dequeue:YES])) {
-                [NSApp sendEvent:event];
-            }
-        }
-    });
-    dispatch_resume(timer);
 }
 
 void CocoaPumpEvents(void) {
+    if (!requireMainThread("CocoaPumpEvents")) return;
+    // Run the work other threads queued for the main thread first.
+    drainMainTasks();
+    if (!eventPumpRunning) return;
     @autoreleasepool {
         // Process all pending NSEvents. This dispatches them through
         // Cocoa's normal event handling (NSApp sendEvent:), which triggers

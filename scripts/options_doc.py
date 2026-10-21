@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Write docs/options.md: every widget option constructor of the classic
-widgets, ttk and the canvas, with the Tk option it stands for.
+widgets, ttk, the canvas, the dialogs and the App, with the Tk option it
+stands for.
 
 The Tk name is derived from the Go name (the widget prefix of ttk options and
 the Opt suffix dropped, lowercased), so it is wrong where takigo picked
@@ -19,9 +20,18 @@ TTK_WIDGETS = ['Button', 'Checkbutton', 'Combobox', 'Entry', 'Frame', 'Label', '
 
 
 def packages():
-    files = glob.glob('widget/*/*.go') + glob.glob('ttk/*.go') + glob.glob('canvas/*.go') + glob.glob('geometry/*/*.go')
+    """The packages the table lists, as (prefix, header, directory) triples.
+
+    The prefix is the package name the options are used with, the header
+    the section title.
+    """
+    files = (glob.glob('widget/*/*.go') + glob.glob('ttk/*.go') + glob.glob('canvas/*.go')
+             + glob.glob('geometry/*/*.go') + glob.glob('dialog/*.go'))
     dirs = sorted({os.path.dirname(f) for f in files if not f.endswith('_test.go')})
-    return [d for d in dirs if '/internal' not in d]
+    out = [(os.path.basename(d), d, d) for d in dirs if '/internal' not in d]
+    # The App's own options live in the root package.
+    out.append(('takigo', 'takigo', '.'))
+    return out
 
 
 def tk_name(pkg, name):
@@ -51,9 +61,9 @@ def main():
     print('(`canvas.ArcStyleOpt` is Tk\'s `-style`, `BitmapBackground` its `-background`)')
     print('it is only a hint. Regenerate with `python3 scripts/options_doc.py > docs/options.md`.')
     print()
-    for pkg in packages():
+    for pkg, header, directory in packages():
         rows = []
-        for f in sorted(glob.glob(pkg + '/*.go')):
+        for f in sorted(glob.glob(directory + '/*.go')):
             if f.endswith('_test.go'):
                 continue
             for m in PAT.finditer(open(f).read()):
@@ -61,12 +71,12 @@ def main():
                 rows.append((typ, name, params.strip()))
         if not rows:
             continue
-        print('## ' + pkg)
+        print('## ' + header)
         print()
         print('| Option type | Go option | Takes | Tk option |')
         print('|---|---|---|---|')
         for typ, name, params in sorted(rows):
-            print('| `%s` | `%s.%s` | `%s` | `%s` |' % (typ, os.path.basename(pkg), name, params.replace('|', '\\|'), tk_name(pkg, name)))
+            print('| `%s` | `%s.%s` | `%s` | `%s` |' % (typ, pkg, name, params.replace('|', '\\|'), tk_name(pkg, name)))
         print()
 
 

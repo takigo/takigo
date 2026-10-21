@@ -55,7 +55,7 @@ while [[ $# -gt 0 ]]; do
             exit 0
             ;;
         --reset)
-            shift; demo="$1"
+            shift; [[ $# -ge 1 ]] || { echo "--reset needs a demo name" >&2; exit 1; }; demo="$1"
             if [[ -f "$PROGRESS_FILE" ]]; then
                 awk -F'\t' -v d="$demo" 'BEGIN{OFS="\t"} $1==d{$3="pending";$4="-";$5="-";$6="-"} {print}' \
                     "$PROGRESS_FILE" > "$PROGRESS_FILE.tmp" && mv "$PROGRESS_FILE.tmp" "$PROGRESS_FILE"
@@ -64,7 +64,7 @@ while [[ $# -gt 0 ]]; do
             exit 0
             ;;
         --skip)
-            shift; demo="$1"
+            shift; [[ $# -ge 1 ]] || { echo "--skip needs a demo name" >&2; exit 1; }; demo="$1"
             if [[ -f "$PROGRESS_FILE" ]]; then
                 awk -F'\t' -v d="$demo" 'BEGIN{OFS="\t"} $1==d{$3="skipped"} {print}' \
                     "$PROGRESS_FILE" > "$PROGRESS_FILE.tmp" && mv "$PROGRESS_FILE.tmp" "$PROGRESS_FILE"
@@ -72,9 +72,9 @@ while [[ $# -gt 0 ]]; do
             fi
             exit 0
             ;;
-        --only)     shift; ONLY_DEMO="$1" ;;
-        --filter)   shift; FILTER="$1" ;;
-        --iterations) shift; ITERATIONS="$1" ;;
+        --only)     shift; [[ $# -ge 1 ]] || { echo "--only needs a demo name" >&2; exit 1; }; ONLY_DEMO="$1" ;;
+        --filter)   shift; [[ $# -ge 1 ]] || { echo "--filter needs a value" >&2; exit 1; }; FILTER="$1" ;;
+        --iterations) shift; [[ $# -ge 1 ]] || { echo "--iterations needs a value" >&2; exit 1; }; ITERATIONS="$1" ;;
         --no-retake) RETAKE_FLAG="--no-retake" ;;
         *) echo "Unknown option: $1" >&2; exit 1 ;;
     esac
@@ -158,8 +158,10 @@ while IFS=$'\t' read -r go_demo tcl_demo status score_before score_after _date; 
     EXIT_CODE=$?
     set -e
 
-    SCORE_B=$(echo "$FIX_OUTPUT" | grep "^Score before:" | tail -1 | awk '{print $3}')
-    SCORE_A=$(echo "$FIX_OUTPUT" | grep "^Score after:"  | tail -1 | awk '{print $3}')
+    # The extraction must not abort the batch when the demo failed before
+    # it printed a score line: grep exits 1 when it finds nothing.
+    SCORE_B=$(echo "$FIX_OUTPUT" | grep "^Score before:" | tail -1 | awk '{print $3}' || true)
+    SCORE_A=$(echo "$FIX_OUTPUT" | grep "^Score after:"  | tail -1 | awk '{print $3}' || true)
     [[ -z "$SCORE_B" ]] && SCORE_B="-"
     [[ -z "$SCORE_A" ]] && SCORE_A="-"
 
