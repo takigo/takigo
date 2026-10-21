@@ -5,6 +5,8 @@ version is 0, a minor release may break the API and says so here.
 
 ## Unreleased
 
+## v0.4.0 (2026-10-22)
+
 - **The classic widgets follow Tk more closely.** The insert cursor of the
   entry, spinbox and text widget blinks (600 ms on, 300 ms off). A held
   scrollbar arrow or spinbox button repeats (`-repeatdelay`,
