@@ -14,7 +14,30 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  seen:
+    # A commit that already passed CI (pushed to devel, then master) is not
+    # tested again; the other jobs are skipped, which still counts as success.
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+    outputs:
+      passed: ${{ steps.check.outputs.passed }}
+    steps:
+      - id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          n=0
+          if [ "$GITHUB_EVENT_NAME" = push ]; then
+            n=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$GITHUB_SHA&status=success" \
+              --jq "[.workflow_runs[] | select(.id != $GITHUB_RUN_ID)] | length") || n=0
+          fi
+          echo "passed=$([ "$n" -gt 0 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          [ "$n" -gt 0 ] && echo "$GITHUB_SHA already passed CI; skipping the jobs" || true
+
   linux:
+    needs: seen
+    if: needs.seen.outputs.passed != 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -53,6 +76,8 @@ jobs:
           path: coverage.out
 
   lint:
+    needs: seen
+    if: needs.seen.outputs.passed != 'true'
     # Reports only on lines the change touches: existing code is not
     # lint-clean and is not to be mass-fixed.
     runs-on: ubuntu-latest
@@ -71,6 +96,8 @@ jobs:
           only-new-issues: true
 
   api:
+    needs: seen
+    if: needs.seen.outputs.passed != 'true'
     # Lists the exported API changes since the last v* tag. Informational:
     # under v0 a breaking change asks for a minor version bump, not a fix.
     runs-on: ubuntu-latest
@@ -89,6 +116,8 @@ jobs:
           { echo '```'; cat api.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
 
   fuzz:
+    needs: seen
+    if: needs.seen.outputs.passed != 'true'
     # Each fuzz target runs briefly on its seed corpus plus random inputs,
     # so a regression in a parser shows up before a long fuzzing run would.
     runs-on: ubuntu-latest
@@ -109,6 +138,8 @@ jobs:
           done
 
   vulncheck:
+    needs: seen
+    if: needs.seen.outputs.passed != 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -120,6 +151,8 @@ jobs:
       - run: go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 ./...
 
   no-cgo:
+    needs: seen
+    if: needs.seen.outputs.passed != 'true'
     # Widgets, ttk and the pure-logic packages must build, and their
     # display-free tests run, without cgo or X libraries; only the backends
     # (platform/*, font/{xft,gdi,coretext}, internal/*) need them.
@@ -140,6 +173,8 @@ jobs:
       - run: go test -short $(go list ./... | grep -v -E '/(platform/(x11|cocoa|windows)|font/(xft|gdi|coretext)|internal/(xlib|cocoa|win32)|tests)$')
 
   windows-vet:
+    needs: seen
+    if: needs.seen.outputs.passed != 'true'
     # The Windows backend is pure Go (syscall), so it can be checked from Linux.
     runs-on: ubuntu-latest
     env:
@@ -155,6 +190,8 @@ jobs:
       - run: go fix -diff ./...
 
   windows:
+    needs: seen
+    if: needs.seen.outputs.passed != 'true'
     # Display tests skip here (no DISPLAY); this runs the display-free ones
     # natively and proves the backend links.
     runs-on: windows-latest
@@ -167,6 +204,8 @@ jobs:
       - run: go test -short ./font/ ./bind/ ./event/ ./geometry/... ./screenunit/ ./color/ ./wm/ ./image/ ./bitmap/ ./window/ ./internal/nanosvg/ ./platform/windows/
 
   macos:
+    needs: seen
+    if: needs.seen.outputs.passed != 'true'
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
