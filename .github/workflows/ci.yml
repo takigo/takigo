@@ -2,6 +2,8 @@ name: CI
 
 on:
   push:
+    # Not tags: make release pushes a tag only after CI passed on its commit.
+    branches: ['**']
   pull_request:
 
 permissions:
