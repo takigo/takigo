@@ -5,6 +5,8 @@ version is 0, a minor release may break the API and says so here.
 
 ## Unreleased
 
+## v0.4.1 (2026-10-24)
+
 - **ttk menubutton: clicking it opens its menu.** The menu was posted from
   the ButtonPress handler without skipping that press, so the same click
   closed it again (the ttkmenu demo's "Select a theme" did nothing).
