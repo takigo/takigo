@@ -210,5 +210,5 @@ func (mb *Menubutton) postMenu() {
 		x, y = d.TranslateCoordinates(win.PlatformID, win.Display.RootWindow, win.Width, 0)
 	}
 
-	mb.Menu.Post(x, y)
+	mb.Menu.PostFromButton(x, y)
 }

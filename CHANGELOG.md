@@ -5,6 +5,10 @@ version is 0, a minor release may break the API and says so here.
 
 ## Unreleased
 
+- **ttk menubutton: clicking it opens its menu.** The menu was posted from
+  the ButtonPress handler without skipping that press, so the same click
+  closed it again (the ttkmenu demo's "Select a theme" did nothing).
+
 - **macOS: a menu stays open after a single click.** Menus and combobox
   popdowns no longer take the key window from the main window, so the
   focus change that unposted the menu right after it opened is gone.
