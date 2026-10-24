@@ -837,16 +837,21 @@ static void applyGC(CGContextRef ctx, CocoaGCState *gc) {
 
 @interface TKWindow : NSWindow
 @property (nonatomic) CocoaWindowID windowID;
+// Override-redirect windows (menus, popdowns) never take the key or main
+// status, as on X11 where the window manager ignores them: the focus
+// manager already routes key events to the Tk focus window, and a key
+// flip would make it unpost the menu the click just posted.
+@property (nonatomic) BOOL overrideRedirect;
 @end
 
 @implementation TKWindow
 
 - (BOOL)canBecomeKeyWindow {
-    return YES;
+    return !_overrideRedirect;
 }
 
 - (BOOL)canBecomeMainWindow {
-    return YES;
+    return !_overrideRedirect;
 }
 
 @end
@@ -1086,6 +1091,16 @@ double CocoaScreenBackingScale(void) {
 // Window management
 // ============================================================================
 
+// orderFrontToplevel shows a toplevel, keying it unless it is an
+// override-redirect popup.
+static void orderFrontToplevel(NSWindow *window) {
+    if ([window isKindOfClass:[TKWindow class]] && ((TKWindow *)window).overrideRedirect) {
+        [window orderFront:nil];
+    } else {
+        [window makeKeyAndOrderFront:nil];
+    }
+}
+
 CocoaWindowID CocoaCreateWindow(CocoaWindowID parent, int x, int y,
                                  unsigned int width, unsigned int height,
                                  unsigned int borderWidth, uint64_t bgPixel,
@@ -1149,6 +1164,11 @@ CocoaWindowID CocoaCreateWindow(CocoaWindowID parent, int x, int y,
                                 backing:NSBackingStoreBuffered
                                   defer:YES];
                 window.windowID = wid;
+                if (overrideRedirect) {
+                    window.overrideRedirect = YES;
+                    [window setLevel:NSPopUpMenuWindowLevel];
+                    [window setHidesOnDeactivate:NO];
+                }
                 [window setContentView:view];
                 [window setAcceptsMouseMovedEvents:YES];
                 // Match NSWindow background to content view so the Tk
@@ -1220,7 +1240,7 @@ void CocoaMapWindow(CocoaWindowID w) {
             view.isMapped = YES;
 
             if (view.isTopLevel) {
-                [[view window] makeKeyAndOrderFront:nil];
+                orderFrontToplevel([view window]);
             } else {
                 view.hidden = NO;
             }
@@ -1294,7 +1314,7 @@ void CocoaRaiseWindow(CocoaWindowID w) {
             TKContentView *view = lookupView(w);
             if (!view) return;
             if (view.isTopLevel) {
-                [[view window] makeKeyAndOrderFront:nil];
+                orderFrontToplevel([view window]);
             } else {
                 NSView *superview = [view superview];
                 if (superview) {

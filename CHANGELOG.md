@@ -5,6 +5,10 @@ version is 0, a minor release may break the API and says so here.
 
 ## Unreleased
 
+- **macOS: a menu stays open after a single click.** Menus and combobox
+  popdowns no longer take the key window from the main window, so the
+  focus change that unposted the menu right after it opened is gone.
+
 ## v0.4.0 (2026-10-22)
 
 - **The classic widgets follow Tk more closely.** The insert cursor of the
