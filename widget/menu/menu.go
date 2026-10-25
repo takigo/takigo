@@ -118,7 +118,7 @@ func New(parent widget.Caregiver, name string, opts ...MenuOption) *Menu {
 	w := window.NewTopLevelWindow(parent.Window(), name, window.TopLevelSpec{
 		Width:            1,
 		Height:           1,
-		BorderWidth:      1,
+		BorderWidth:      0,
 		OverrideRedirect: true,
 		EventMask: int64(
 			platform.KeyPressMask |

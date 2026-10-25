@@ -13,6 +13,11 @@ version is 0, a minor release may break the API and says so here.
   popdowns no longer take the key window from the main window, so the
   focus change that unposted the menu right after it opened is gone.
 
+- **X11: menu text is sharp under a compositor.** A posted menu no longer
+  has a 1-pixel X window border, which Tk menus never had: KWin resampled
+  the bordered override-redirect window and blurred its text. The raised
+  3D border is still drawn, so the menu is 2 pixels smaller, as in Tk.
+
 ## v0.4.0 (2026-10-22)
 
 - **The classic widgets follow Tk more closely.** The insert cursor of the
