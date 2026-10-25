@@ -5,6 +5,8 @@ version is 0, a minor release may break the API and says so here.
 
 ## Unreleased
 
+## v0.4.2 (2026-10-25)
+
 ## v0.4.1 (2026-10-24)
 
 - **ttk menubutton: clicking it opens its menu.** The menu was posted from
