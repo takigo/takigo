@@ -371,6 +371,7 @@ func (t *TextWidget) computeVisibleLines() []displayLine {
 		return nil
 	}
 
+	t.clampView()
 	var result []displayLine
 	y := 0
 
@@ -928,6 +929,7 @@ func (t *TextWidget) lineHeight() int {
 // computeDisplayLinesBefore returns the total number of display line slots from
 // the top of the document to (but not including) the given logical line and offset.
 func (t *TextWidget) computeDisplayLinesBefore(lineIdx, dlOffset int) int {
+	lineIdx = min(max(lineIdx, 1), max(t.doc.LineCount(), 1))
 	return t.layout.displayLinesBefore(lineIdx) + dlOffset
 }
 

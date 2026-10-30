@@ -288,13 +288,46 @@ func (t *TextWidget) shareDocument(doc *Document) (unsubscribe func()) {
 // by the document.
 func (t *TextWidget) subscribeDocument() (unsubscribe func()) {
 	unsubLayout := t.doc.Subscribe(t.layout.apply)
-	unsubRedraw := t.doc.Subscribe(func(Change) {
+	unsubRedraw := t.doc.Subscribe(func(ch Change) {
+		t.keepViewInDocument(ch)
 		t.notifyYScrollbar()
 		t.scheduleRedraw()
 	})
 	return func() {
 		unsubLayout()
 		unsubRedraw()
+	}
+}
+
+// keepViewInDocument keeps topLine/topCharOffset on existing text after a
+// change: lines removed above the view move topLine up with them, as Tk's
+// start-of-view index follows the text, and a view that lost its line falls
+// back to the line the removal joined it to. It runs inside the document's
+// change notification, before any idle callback can read the view.
+func (t *TextWidget) keepViewInDocument(ch Change) {
+	if n := -ch.Delta; n > 0 && t.topLine > ch.From {
+		if t.topLine > ch.From+n {
+			t.topLine -= n
+		} else {
+			t.topLine, t.topCharOffset = ch.From, 0
+		}
+	}
+	t.clampView()
+}
+
+// clampView pulls the view back inside the document: topLine into
+// [1, LineCount] (offset 0 when the line had to move) and topCharOffset
+// into the display lines of topLine.
+func (t *TextWidget) clampView() {
+	n := t.doc.LineCount()
+	if t.topLine > n {
+		t.topLine, t.topCharOffset = max(n, 1), 0
+	}
+	if t.topLine < 1 {
+		t.topLine, t.topCharOffset = 1, 0
+	}
+	if t.topCharOffset > 0 && n > 0 {
+		t.topCharOffset = min(t.topCharOffset, max(len(t.layout.line(t.topLine).dls)-1, 0))
 	}
 }
 
@@ -941,6 +974,7 @@ func (t *TextWidget) notifyYScrollbar() {
 }
 
 func (t *TextWidget) yviewFractions() (float64, float64) {
+	t.clampView()
 	total := t.layout.totalPixels()
 	if total == 0 {
 		return 0, 1

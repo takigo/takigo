@@ -5,6 +5,8 @@ version is 0, a minor release may break the API and says so here.
 
 ## Unreleased
 
+- **text: deleting text no longer panics a scrolled widget.** The view now follows the text when lines above it are removed and falls back inside the document when its line is gone (Delete, key bindings, undo, and edits made through a peer).
+
 ## v0.4.2 (2026-10-25)
 
 - **X11: menu text is sharp under a compositor.** A posted menu no longer
