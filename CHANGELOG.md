@@ -5,6 +5,8 @@ version is 0, a minor release may break the API and says so here.
 
 ## Unreleased
 
+## v0.4.4 (2026-11-02)
+
 - **macOS: Option works as Alt again.** Option+letter reached widgets
   as the composed character ("ƒ" for Option+F) with Option removed, so
   `<Alt-…>` bindings and menu mnemonics never matched: Option+F did not
