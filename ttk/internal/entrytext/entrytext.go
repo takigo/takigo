@@ -266,6 +266,9 @@ func (h *Helper) HandleKey(ev *event.Event) bool {
 		return false
 	}
 	h.InsertAt(h.InsertPos, []rune(s))
+	if ev.State&platform.Mod1Mask != 0 {
+		ev.Handled = true // the Option character is text, not a mnemonic
+	}
 	return true
 }
 

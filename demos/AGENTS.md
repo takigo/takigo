@@ -3,7 +3,7 @@
 Applies to `demos/`; the root `AGENTS.md` still applies. One Go demo per
 directory, `demos/<name>/main.go`, most a port of
 `tk/library/demos/<name>.tcl` (`bash scripts/demo_map.sh` prints the
-Go ↔ Tcl mapping; `msgwidget`, `square`, `ttkentry`, `widget_demo` have no
+Go ↔ Tcl mapping; `keydebug`, `msgwidget`, `square`, `ttkentry`, `widget_demo` have no
 same-named `.tcl`). `demos/widget_demo` is the launcher, the counterpart of
 `tk/library/demos/widget`; `demos/images/` holds assets only;
 `demos/square/square/` is the custom-widget example (`tkSquare.c`).

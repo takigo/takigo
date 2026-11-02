@@ -345,7 +345,7 @@ func bindMenubutton(mb *Menubutton, app widget.AppContext) {
 	if mb.Underline >= 0 && mb.Underline < len([]rune(mb.Text)) {
 		mnemonicRune := unicode.ToLower([]rune(mb.Text)[mb.Underline])
 		app.Dispatcher().BindGlobalFor(w.PlatformID, event.KeyPressMask, func(ev *event.Event) {
-			if ev.State&platform.Mod1Mask == 0 {
+			if ev.Handled || ev.State&platform.Mod1Mask == 0 {
 				return
 			}
 			if mb.Destroyed() || mb.State == widget.StateDisabled {

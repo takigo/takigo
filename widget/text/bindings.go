@@ -2,6 +2,7 @@ package text
 
 import (
 	"fmt"
+	"runtime"
 
 	"github.com/takigo/takigo/event"
 	"github.com/takigo/takigo/platform"
@@ -354,6 +355,11 @@ func (t *TextWidget) handleKeyPress(ev *event.Event) {
 		if t.readOnly {
 			return
 		}
+		// <Alt-Key> inserts nothing (text.tcl), so Alt+letter reaches the
+		// menubar mnemonics; Option on macOS composes text.
+		if ev.State&platform.Mod1Mask != 0 && runtime.GOOS != "darwin" {
+			return
+		}
 		// Insert printable characters.
 		insertStr := ev.Str
 		if insertStr == "" {
@@ -372,6 +378,9 @@ func (t *TextWidget) handleKeyPress(ev *event.Event) {
 			t.seeInsert()
 			t.notifyYScrollbar()
 			t.Display()
+			if ev.State&platform.Mod1Mask != 0 && runtime.GOOS == "darwin" {
+				ev.Handled = true // the Option character is text, not a mnemonic
+			}
 		}
 	}
 }

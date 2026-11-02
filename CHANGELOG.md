@@ -5,6 +5,14 @@ version is 0, a minor release may break the API and says so here.
 
 ## Unreleased
 
+- **macOS: Option works as Alt again.** Option+letter reached widgets
+  as the composed character ("ƒ" for Option+F) with Option removed, so
+  `<Alt-…>` bindings and menu mnemonics never matched: Option+F did not
+  open the widget demo's File menu. The key now arrives as the base keysym
+  with Mod1 and the composed character as its string, so entries and text
+  widgets still type "ƒ" (and the mnemonic then stays quiet). Bindings
+  also accept Tk's `Command`, `Option` and `M1` modifier names.
+
 ## v0.4.3 (2026-10-30)
 
 - **text: deleting text no longer panics a scrolled widget.** The view now follows the text when lines above it are removed and falls back inside the document when its line is gone (Delete, key bindings, undo, and edits made through a peer).

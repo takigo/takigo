@@ -399,6 +399,7 @@ var categories = []category{
 		{"busy", "Blocking input with a busy window"},
 		{"msgwidget", "Message widget with aspect-ratio wrapping"},
 		{"square", "A draggable square widget"},
+		{"keydebug", "Keyboard and menu key debugging"},
 	}},
 }
 
@@ -503,6 +504,7 @@ button to see the Go code that created the demonstration.
 @@demo windowicons	Window icons and badges
 @@demo msgwidget	Message widget with aspect-ratio wrapping
 @@demo square	A draggable square widget
+@@demo keydebug	Keyboard and menu key debugging
 `
 
 // addFormattedText populates a text widget from the formatted content string,

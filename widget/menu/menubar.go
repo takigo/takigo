@@ -1,6 +1,8 @@
 package menu
 
 import (
+	"unicode"
+
 	"github.com/takigo/takigo/color"
 	"github.com/takigo/takigo/draw"
 	"github.com/takigo/takigo/event"
@@ -256,12 +258,57 @@ func bindMenubar(mb *Menubar, app widget.AppContext) {
 			mb.Display()
 		}
 	})
+	// A posted menu is a separate popup window that does not follow its
+	// toplevel, so moving or resizing the toplevel (a title-bar drag on
+	// macOS never reaches the menu's grab) closes it, as Tk's menu.tcl
+	// does on <Configure>.
+	lastX, lastY, lastW, lastH := ev0(mb.top)
 	topID := disp.Bind(mb.top.PlatformID, event.StructureNotifyMask, func(ev *event.Event) {
-		if ev.Type == event.ConfigureType && mb.top.Width != w.Width {
+		if ev.Type != event.ConfigureType {
+			return
+		}
+		x, y, cw, ch := ev.ConfigX, ev.ConfigY, ev.ConfigWidth, ev.ConfigHeight
+		moved := x != lastX || y != lastY || cw != lastW || ch != lastH
+		lastX, lastY, lastW, lastH = x, y, cw, ch
+		if moved && mb.posted != nil && mb.posted.IsPosted() {
+			mb.postEntry(-1, false)
+		}
+		if mb.top.Width != w.Width {
 			mb.layout()
 		}
 	})
 	w.OnDestroy(func() { disp.UnbindID(topID) })
+	// Alt+letter posts the cascade whose underlined letter it is, and F10
+	// the first one (tk::TraverseToMenu, tk::FirstMenu in menu.tcl). Only
+	// keys pressed in this menubar's toplevel count.
+	disp.BindGlobalFor(w.PlatformID, event.KeyPressMask, func(ev *event.Event) {
+		if ev.Handled || ev.State&platform.ControlMask != 0 || mb.Destroyed() || !mb.inToplevel(ev) {
+			return
+		}
+		if ev.KeySym == xkF10 && ev.State&platform.Mod1Mask == 0 {
+			if len(mb.entries) > 0 {
+				ev.Handled = true
+				mb.postEntry(0, false)
+			}
+			return
+		}
+		if ev.State&platform.Mod1Mask == 0 {
+			return
+		}
+		r := unicode.ToLower(platform.KeySymToRune(ev.KeySym))
+		if r <= 0 {
+			return
+		}
+		for i, e := range mb.entries {
+			runes := []rune(e.label)
+			if e.sub != nil && e.underline >= 0 && e.underline < len(runes) &&
+				unicode.ToLower(runes[e.underline]) == r {
+				ev.Handled = true
+				mb.postEntry(i, false)
+				return
+			}
+		}
+	})
 	disp.Bind(w.PlatformID, event.ButtonPressMask, func(ev *event.Event) {
 		if ev.Button != 1 {
 			return
@@ -290,4 +337,27 @@ func bindMenubar(mb *Menubar, app widget.AppContext) {
 			mb.Display()
 		}
 	})
+}
+
+// inToplevel reports whether ev happened in the menubar's own toplevel
+// rather than in another one.
+func (mb *Menubar) inToplevel(ev *event.Event) bool {
+	for w := mb.top.Display.LookupWindow(ev.Window); w != nil; w = w.Parent {
+		if w == mb.top {
+			return true
+		}
+		if w.IsTopLevel() {
+			return false
+		}
+	}
+	return false
+}
+
+// xkF10 is the F10 keysym, which platform does not name.
+const xkF10 = platform.KeySym(0xffc7)
+
+// ev0 is the geometry a toplevel is known at before its first Configure
+// event, so that event is not taken for a move.
+func ev0(top *window.Window) (x, y, w, h int) {
+	return top.X, top.Y, top.Width, top.Height
 }

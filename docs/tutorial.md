@@ -3076,7 +3076,7 @@ Tips:
 
 ## 21. Where to go next
 
-- **The demos.** `demos/` holds 67 programs, most of them line-by-line ports of
+- **The demos.** `demos/` holds 69 programs, most of them line-by-line ports of
   Tk's own widget demos (`tk/library/demos/*.tcl`). They are the best
   reference for any widget's full API. `demos/widget_demo` is the launcher
   that runs them all:

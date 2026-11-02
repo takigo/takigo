@@ -6,6 +6,8 @@
 package entryedit
 
 import (
+	"runtime"
+
 	"github.com/takigo/takigo/event"
 	"github.com/takigo/takigo/internal/textedit"
 	"github.com/takigo/takigo/platform"
@@ -322,6 +324,11 @@ func (e *Editor) HandleKey(ev *event.Event) bool {
 		if ctrl {
 			return e.handleCtrlKey(ev)
 		}
+		// <Alt-Key> inserts nothing (entry.tcl), so Alt+letter reaches the
+		// menubar and dialog mnemonics; Option on macOS composes text.
+		if ev.State&platform.Mod1Mask != 0 && runtime.GOOS != "darwin" {
+			return false
+		}
 		// What %A would give: the composed string, or the keysym's
 		// character; modifiers and function keys have none.
 		s := ev.Str
@@ -334,6 +341,9 @@ func (e *Editor) HandleKey(ev *event.Event) bool {
 			return false
 		}
 		e.InsertText(s)
+		if ev.State&platform.Mod1Mask != 0 && runtime.GOOS == "darwin" {
+			ev.Handled = true // the Option character is text, not a mnemonic
+		}
 	}
 	return true
 }

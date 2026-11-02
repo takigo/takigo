@@ -109,6 +109,26 @@ func TestParseAltF4(t *testing.T) {
 	}
 }
 
+func TestParseMacModifierNames(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		pattern string
+		want    Modifier
+	}{
+		{"<Option-f>", ModAlt},
+		{"<M1-f>", ModAlt},
+		{"<Command-q>", commandModifier()},
+	} {
+		seq, err := Parse(tc.pattern)
+		if err != nil {
+			t.Fatalf("%s: %v", tc.pattern, err)
+		}
+		if got := seq.Patterns[0].Modifiers; got != tc.want {
+			t.Errorf("%s: modifiers = %v, want %v", tc.pattern, got, tc.want)
+		}
+	}
+}
+
 func TestParseDoubleButton(t *testing.T) {
 	t.Parallel()
 	seq, err := Parse("<Double-Button-1>")

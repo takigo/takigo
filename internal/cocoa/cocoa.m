@@ -661,10 +661,10 @@ static void applyGC(CGContextRef ctx, CocoaGCState *gc) {
 }
 
 // postText posts text committed by the input method (a composed dead key,
-// an IME conversion, an Option character) as one KeyPress per character
+// an IME conversion) as one KeyPress per character
 // with its Unicode keysym, as tkMacOSXKeyEvent.c turns insertText: into
 // KeyPress events. Option is dropped from the state: it composed the
-// character rather than modifying it.
+// character (a dead key) rather than modifying it.
 - (void)postText:(NSString *)text from:(NSEvent *)src {
     NSUInteger len = [text length];
     for (NSUInteger i = 0; i < len; ) {
@@ -756,10 +756,12 @@ static void applyGC(CGContextRef ctx, CocoaGCState *gc) {
         [self postVirtual:"TkAccentBackspace"];
         composed = YES;
     }
-    // A plain keystroke that produced its own character keeps the key's
-    // original event (keysym, keycode, modifiers); composed text does not.
-    if (src && !composed && !([src modifierFlags] & NSEventModifierFlagOption) &&
-        [text isEqualToString:[src characters]]) {
+    // A keystroke that produced its own character keeps the key's original
+    // event (keysym, keycode, modifiers); composed text does not. With
+    // Option that is the base keysym, Mod1 and the Option character as the
+    // string, as an X11 Alt key gives, so <Alt-f> bindings and menu
+    // mnemonics match while text widgets still insert the character.
+    if (src && !composed && [text isEqualToString:[src characters]]) {
         [self postKeyEvent:src type:COCOA_EVENT_KEY_PRESS];
         return;
     }

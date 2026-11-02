@@ -2,6 +2,7 @@ package bind
 
 import (
 	"fmt"
+	"runtime"
 	"slices"
 	"strconv"
 	"strings"
@@ -333,6 +334,19 @@ func parseInner(s string) (Pattern, error) {
 	return p, nil
 }
 
+// commandModifier is the modifier Tk's "Command" names: the Command key on
+// macOS, which the Cocoa backend reports as Mod2 (its Option key is Mod1,
+// Alt), Control on Windows and Meta elsewhere (tkBind.c modArray).
+func commandModifier() Modifier {
+	switch runtime.GOOS {
+	case "darwin":
+		return Mod2
+	case "windows":
+		return ModControl
+	}
+	return ModMeta
+}
+
 // parseModifier checks if a token is a modifier keyword. The keyword is
 // matched without regard to case, as Tk looks it up in its modifier table.
 func parseModifier(lower string) (Modifier, bool) {
@@ -341,8 +355,10 @@ func parseModifier(lower string) (Modifier, bool) {
 		return ModShift, true
 	case "control", "ctrl":
 		return ModControl, true
-	case "alt", "mod1":
+	case "alt", "mod1", "m1", "option":
 		return ModAlt, true
+	case "command":
+		return commandModifier(), true
 	case "meta", "mod4", "super":
 		return ModMeta, true
 	case "mod2", "m2":

@@ -33,7 +33,7 @@ subsystems, what is shared and what is deliberately not.
   channels. Several Apps may run at once, each on its own goroutine; their
   per-window state lives on the windows (`window.Window.Value`,
   `geometry.Table`), not in package maps.
-- **Rendering parity is measured.** The 68 demos are compared with Tk 9.1
+- **Rendering parity is measured.** The 69 demos are compared with Tk 9.1
   pixel by pixel and tree by tree (`scripts/demo_batch.sh`,
   `demos/parity.tsv`); every change to the widgets above kept all 62
   comparable demos at their baseline.
