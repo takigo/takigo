@@ -80,6 +80,8 @@ void CocoaSetBackground(CocoaGCID gc, uint64_t pixel);
 void CocoaSetLineAttributes(CocoaGCID gc, unsigned int lineWidth,
                              int lineStyle, int capStyle, int joinStyle);
 void CocoaSetFillStyle(CocoaGCID gc, int fillStyle);
+void CocoaSetStipple(CocoaGCID gc, CocoaPixmapID stipple);
+void CocoaSetTSOrigin(CocoaGCID gc, int x, int y);
 void CocoaSetDashes(CocoaGCID gc, int dashOffset, const unsigned char *dashList, int n);
 
 // ---- Drawing primitives ----

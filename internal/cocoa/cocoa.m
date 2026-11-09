@@ -268,6 +268,8 @@ typedef struct {
     int dashOffset;
     unsigned char dashList[32];
     int dashCount;
+    CocoaPixmapID stipple; // depth-1 pattern of FillStippled, 0 for none
+    int tsX, tsY;          // the stipple's origin (XSetTSOrigin)
 } CocoaGCState;
 
 static idmap gcRegistry;
@@ -384,6 +386,81 @@ static void applyGC(CGContextRef ctx, CocoaGCState *gc) {
     } else {
         CGContextSetLineDash(ctx, 0, NULL, 0);
     }
+}
+
+// ============================================================================
+// Helper: stippled fills (X11 FillStippled / FillOpaqueStippled)
+// ============================================================================
+
+enum { kFillStippled = 2, kFillOpaqueStippled = 3 };
+
+// stippleBit reports whether the stipple pixmap has its bit set at (x, y):
+// CocoaCreateBitmapFromData paints set bits opaque black over a zeroed
+// buffer, and the flipped CTM makes buffer row y user row y.
+static int stippleBit(CocoaPixmap *pm, int x, int y) {
+    uint32_t *row = (uint32_t *)((unsigned char *)pm->data + (size_t)y * pm->width * 4);
+    return row[x] != 0;
+}
+
+// clipToStipple restricts ctx to the set bits of gc's stipple, tiled from
+// the GC's TS origin, inside area: one clip rectangle per run of set bits.
+static void clipToStipple(CGContextRef ctx, CocoaGCState *gc, CGRect area) {
+    CocoaPixmap *pm = lookupPixmap(gc->stipple);
+    if (!pm || !pm->data || pm->width == 0 || pm->height == 0) {
+        return;
+    }
+    int x0 = (int)floor(CGRectGetMinX(area)), x1 = (int)ceil(CGRectGetMaxX(area));
+    int y0 = (int)floor(CGRectGetMinY(area)), y1 = (int)ceil(CGRectGetMaxY(area));
+    if (x1 <= x0 || y1 <= y0) {
+        CGContextClipToRect(ctx, CGRectZero);
+        return;
+    }
+    int w = (int)pm->width, h = (int)pm->height;
+    size_t cap = 64, n = 0;
+    CGRect *rects = (CGRect *)malloc(cap * sizeof(CGRect));
+    for (int y = y0; y < y1; y++) {
+        int sy = ((y - gc->tsY) % h + h) % h;
+        int start = -1;
+        for (int x = x0; x <= x1; x++) {
+            int set = x < x1 && stippleBit(pm, ((x - gc->tsX) % w + w) % w, sy);
+            if (set && start < 0) {
+                start = x;
+            } else if (!set && start >= 0) {
+                if (n == cap) {
+                    cap *= 2;
+                    rects = (CGRect *)realloc(rects, cap * sizeof(CGRect));
+                }
+                rects[n++] = CGRectMake(start, y, x - start, 1);
+                start = -1;
+            }
+        }
+    }
+    if (n == 0) {
+        CGContextClipToRect(ctx, CGRectZero);
+    } else {
+        CGContextClipToRects(ctx, rects, n);
+    }
+    free(rects);
+}
+
+// fillPathWithGC fills path as XFill* does with gc's fill style: an
+// opaque stipple first fills with the background, a stipple then draws
+// the foreground only where its bits are set.
+static void fillPathWithGC(CGContextRef ctx, CocoaGCState *gc, CGPathRef path) {
+    if (gc->stipple && gc->fillStyle == kFillOpaqueStippled) {
+        CGFloat r, g, b;
+        pixelToRGB(gc->background, &r, &g, &b);
+        CGContextSetRGBFillColor(ctx, r, g, b, 1.0);
+        CGContextAddPath(ctx, path);
+        CGContextFillPath(ctx);
+        pixelToRGB(gc->foreground, &r, &g, &b);
+        CGContextSetRGBFillColor(ctx, r, g, b, 1.0);
+    }
+    if (gc->stipple && (gc->fillStyle == kFillStippled || gc->fillStyle == kFillOpaqueStippled)) {
+        clipToStipple(ctx, gc, CGPathGetBoundingBox(path));
+    }
+    CGContextAddPath(ctx, path);
+    CGContextFillPath(ctx);
 }
 
 // ============================================================================
@@ -1566,6 +1643,19 @@ void CocoaSetFillStyle(CocoaGCID gcid, int fillStyle) {
     if (gc) gc->fillStyle = fillStyle;
 }
 
+void CocoaSetStipple(CocoaGCID gcid, CocoaPixmapID stipple) {
+    CocoaGCState *gc = lookupGC(gcid);
+    if (gc) gc->stipple = stipple;
+}
+
+void CocoaSetTSOrigin(CocoaGCID gcid, int x, int y) {
+    CocoaGCState *gc = lookupGC(gcid);
+    if (gc) {
+        gc->tsX = x;
+        gc->tsY = y;
+    }
+}
+
 void CocoaSetDashes(CocoaGCID gcid, int dashOffset, const unsigned char *dashList, int n) {
     CocoaGCState *gc = lookupGC(gcid);
     if (!gc) return;
@@ -1587,7 +1677,9 @@ void CocoaFillRectangle(CocoaDrawableID d, CocoaGCID gcid,
 
     CGContextSaveGState(ctx);
     applyGC(ctx, gc);
-    CGContextFillRect(ctx, CGRectMake(x, y, w, h));
+    CGPathRef path = CGPathCreateWithRect(CGRectMake(x, y, w, h), NULL);
+    fillPathWithGC(ctx, gc, path);
+    CGPathRelease(path);
     CGContextRestoreGState(ctx);
 
     TKContentView *view = lookupView(d);
@@ -1675,8 +1767,9 @@ void CocoaFillPolygon(CocoaDrawableID d, CocoaGCID gcid,
     CGContextSaveGState(ctx);
     applyGC(ctx, gc);
 
+    CGMutablePathRef path = CGPathCreateMutable();
     int cx = points[0], cy = points[1];
-    CGContextMoveToPoint(ctx, cx, cy);
+    CGPathMoveToPoint(path, NULL, cx, cy);
     for (int i = 1; i < npoints; i++) {
         if (mode == 1) {
             cx += points[i * 2];
@@ -1685,10 +1778,11 @@ void CocoaFillPolygon(CocoaDrawableID d, CocoaGCID gcid,
             cx = points[i * 2];
             cy = points[i * 2 + 1];
         }
-        CGContextAddLineToPoint(ctx, cx, cy);
+        CGPathAddLineToPoint(path, NULL, cx, cy);
     }
-    CGContextClosePath(ctx);
-    CGContextFillPath(ctx);
+    CGPathCloseSubpath(path);
+    fillPathWithGC(ctx, gc, path);
+    CGPathRelease(path);
     CGContextRestoreGState(ctx);
 
     TKContentView *view = lookupView(d);
@@ -1717,12 +1811,15 @@ void CocoaFillArc(CocoaDrawableID d, CocoaGCID gcid,
     CGFloat rx = w / 2.0;
     CGFloat ry = h / 2.0;
 
-    CGContextTranslateCTM(ctx, cx, cy);
-    CGContextScaleCTM(ctx, 1.0, ry / rx);
-    CGContextMoveToPoint(ctx, 0, 0);
-    CGContextAddArc(ctx, 0, 0, rx, startAngle, endAngle, clockwise);
-    CGContextClosePath(ctx);
-    CGContextFillPath(ctx);
+    // The ellipse's scale goes into the path, not the CTM, so a stipple
+    // clips in unscaled user space.
+    CGAffineTransform t = CGAffineTransformScale(CGAffineTransformMakeTranslation(cx, cy), 1.0, ry / rx);
+    CGMutablePathRef path = CGPathCreateMutable();
+    CGPathMoveToPoint(path, &t, 0, 0);
+    CGPathAddArc(path, &t, 0, 0, rx, startAngle, endAngle, clockwise);
+    CGPathCloseSubpath(path);
+    fillPathWithGC(ctx, gc, path);
+    CGPathRelease(path);
     CGContextRestoreGState(ctx);
 
     TKContentView *view = lookupView(d);

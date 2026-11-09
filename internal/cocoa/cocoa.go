@@ -153,6 +153,8 @@ func FreeGC(gc GC)                      { C.CocoaFreeGC(C.CocoaGCID(gc)) }
 func SetForeground(gc GC, pixel uint64) { C.CocoaSetForeground(C.CocoaGCID(gc), C.uint64_t(pixel)) }
 func SetBackground(gc GC, pixel uint64) { C.CocoaSetBackground(C.CocoaGCID(gc), C.uint64_t(pixel)) }
 func SetFillStyle(gc GC, fillStyle int) { C.CocoaSetFillStyle(C.CocoaGCID(gc), C.int(fillStyle)) }
+func SetStipple(gc GC, stipple Pixmap)  { C.CocoaSetStipple(C.CocoaGCID(gc), C.CocoaPixmapID(stipple)) }
+func SetTSOrigin(gc GC, x, y int)       { C.CocoaSetTSOrigin(C.CocoaGCID(gc), C.int(x), C.int(y)) }
 func SetLineAttributes(gc GC, lineWidth uint, lineStyle, capStyle, joinStyle int) {
 	C.CocoaSetLineAttributes(C.CocoaGCID(gc), C.uint(lineWidth),
 		C.int(lineStyle), C.int(capStyle), C.int(joinStyle))

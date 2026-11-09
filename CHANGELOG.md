@@ -5,6 +5,11 @@ version is 0, a minor release may break the API and says so here.
 
 ## Unreleased
 
+- **macOS: stippled fills.** `SetStipple` and `SetTSOrigin` were no-ops
+  on Cocoa, so stippled canvas items, text tag stipples and disabled
+  button images filled solid. Rectangles, polygons and arcs now draw
+  FillStippled and FillOpaqueStippled through the stipple bitmap, tiled
+  from the TS origin.
 - **ttk.Panedwindow is Tk's ttk::panedwindow (breaking).** It was the
   classic panedwindow with a flat sash; it is now a themed widget ported
   from `ttkPanedwindow.c`: `PanedwindowOrient` (Tk's default is vertical),
