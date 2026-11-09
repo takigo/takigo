@@ -1,6 +1,8 @@
 package platform
 
 import (
+	"errors"
+
 	"github.com/takigo/takigo/cursor"
 )
 
@@ -310,6 +312,26 @@ type InputMethodManager interface {
 	UnsetICFocus()
 }
 
+// ErrNoTray is returned by TrayNotify when the backend has no tray icon
+// of its own to show a notification on.
+var ErrNoTray = errors.New("platform: no native tray icon")
+
+// TrayManager puts an icon in the desktop's notification area through the
+// platform's own API (Windows' Shell_NotifyIconW). Clicks on the icon
+// arrive as ButtonPress events, with root coordinates, for the window
+// AddTrayIcon returns. X11 docks an ordinary window in the tray instead
+// and Cocoa has none: there AddTrayIcon returns 0.
+type TrayManager interface {
+	// AddTrayIcon adds an icon with a tooltip; 0 when unsupported.
+	AddTrayIcon(icon *IconImage, tooltip string) WindowID
+	// ModifyTrayIcon replaces the icon (when icon is not nil) and the tooltip.
+	ModifyTrayIcon(w WindowID, icon *IconImage, tooltip string)
+	// RemoveTrayIcon removes the icon.
+	RemoveTrayIcon(w WindowID)
+	// TrayNotify shows a notification balloon on the icon.
+	TrayNotify(w WindowID, title, message string) error
+}
+
 // DisplayCore provides core display connection methods.
 type DisplayCore interface {
 	// Close closes the display connection.
@@ -383,6 +405,7 @@ type DisplayServer interface {
 	CursorManager
 	PropertyManager
 	InputMethodManager
+	TrayManager
 }
 
 // displayServer is the concrete implementation of DisplayServer.
@@ -399,6 +422,7 @@ type displayServer struct {
 	CursorManager
 	PropertyManager
 	InputMethodManager
+	TrayManager
 }
 
 // NewDisplayServer creates a new DisplayServer from its capability implementations.
@@ -414,6 +438,7 @@ func NewDisplayServer(
 	cursor CursorManager,
 	prop PropertyManager,
 	im InputMethodManager,
+	tray TrayManager,
 ) DisplayServer {
 	ds := &displayServer{
 		DisplayCore:        core,
@@ -427,6 +452,7 @@ func NewDisplayServer(
 		CursorManager:      cursor,
 		PropertyManager:    prop,
 		InputMethodManager: im,
+		TrayManager:        tray,
 	}
 	// Keep the backend's optional PumpEvents (event.EventPumper) visible
 	// through the wrapper; the event loop finds it by type assertion.

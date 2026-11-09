@@ -1,17 +1,18 @@
-//go:build linux || freebsd || openbsd || netbsd
-
 // Demo: System tray and notification commands.
 // Ported from Tk's systray.tcl demo.
 package main
 
 import (
+	"encoding/base64"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/takigo/takigo"
 	"github.com/takigo/takigo/demos/demohelper"
 	"github.com/takigo/takigo/dialog"
 	"github.com/takigo/takigo/geometry/pack"
+	tkimage "github.com/takigo/takigo/image"
 	"github.com/takigo/takigo/option"
 	"github.com/takigo/takigo/screenunit"
 	"github.com/takigo/takigo/systray"
@@ -54,6 +55,8 @@ func main() {
 		app.Quit()
 	})
 
+	book := photo("book", bookData)
+
 	var tray *systray.TrayIcon
 
 	create := func() {
@@ -63,14 +66,16 @@ func main() {
 		}
 		var err error
 		tray, err = systray.New(app, app.Display(),
+			systray.TrayImage(book),
 			systray.TrayTooltip("Systray sample"),
-			systray.TrayClickHandler(func() {}),
+			systray.TrayClickHandler(func() { fmt.Println("foo") }),
 			systray.TrayRightClickHandler(func(x, y int) {
 				iconMenu.Post(x, y)
 			}),
 		)
 		if err != nil {
 			tray = nil
+			dialog.ShowMessage(app, dialog.MsgTitle("Systray"), dialog.MsgMessage(err.Error()))
 		}
 	}
 
@@ -89,7 +94,12 @@ func main() {
 				dialog.ShowMessage(app, dialog.MsgTitle("Systray"), dialog.MsgMessage("Please create systray icon first"))
 				return
 			}
-			tray.SetTooltip("Modified text")
+			tray.Configure(
+				systray.TrayImage(photo("page", pageData)),
+				systray.TrayTooltip("Modified text"),
+				systray.TrayClickHandler(func() { fmt.Println("this is a different output") }),
+				systray.TrayRightClickHandler(func(int, int) { fmt.Println("hello yall") }),
+			)
 		}),
 	)
 
@@ -116,7 +126,9 @@ func main() {
 				dialog.ShowMessage(app, dialog.MsgTitle("Systray"), dialog.MsgMessage("Please create systray icon first"))
 				return
 			}
-			dialog.ShowMessage(app, dialog.MsgTitle("Alert"), dialog.MsgMessage("This is an alert"))
+			if err := systray.Notify("Alert", "This is an alert"); err != nil {
+				dialog.ShowMessage(app, dialog.MsgTitle("Systray"), dialog.MsgMessage(err.Error()))
+			}
 		}),
 	)
 
@@ -127,4 +139,19 @@ func main() {
 	app.After(0, func() { create() })
 
 	app.Run()
+}
+
+// The book and page images of systray.tcl.
+const (
+	bookData = "R0lGODlhDwAPAKIAAP//////AP8AAMDAwICAgAAAAAAAAAAAACwAAAAADwAPAAADSQhA2u5ksPeKABKSCaya29d4WKgERFF0l1IMQCAKatvBJ0OTdzzXI1xMB3TBZAvATtB6NSLKleXi3OBoLqrVgc0yv+DVSEUuFxIAOw=="
+	pageData = "R0lGODlhCwAPAKIAAP//////AMDAwICAgAAA/wAAAAAAAAAAACwAAAAACwAPAAADMzi6CzAugiAgDGE68aB0RXgRJBFVX0SNpQlUWfahQOvSsgrX7eZJMlQMWBEYj8iQchlKAAA7"
+)
+
+func photo(name, data string) *tkimage.Photo {
+	p, err := tkimage.NewPhotoFromReader(name, base64.NewDecoder(base64.StdEncoding, strings.NewReader(data)))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "systray: %v\n", err)
+		os.Exit(1)
+	}
+	return p
 }

@@ -17,6 +17,7 @@ type WindowAttributes struct {
 	EventMask        int64
 	Colormap         Colormap
 	OverrideRedirect bool
+	ParentRelative   bool
 }
 
 // CreateWindow creates a new X11 window.
@@ -24,6 +25,9 @@ func (d *Display) CreateWindow(parent Window, x, y int, width, height, borderWid
 	depth int, class uint, visual *Visual, valueMask uint64, attrs *WindowAttributes) Window {
 
 	var xattrs C.XSetWindowAttributes
+	if valueMask&CWBackPixmap != 0 && attrs.ParentRelative {
+		xattrs.background_pixmap = C.ParentRelative
+	}
 	if valueMask&CWBackPixel != 0 {
 		xattrs.background_pixel = C.ulong(attrs.BackgroundPixel)
 	}

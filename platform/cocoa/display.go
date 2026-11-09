@@ -96,6 +96,7 @@ func NewDisplayServer(displayName string) (platform.DisplayServer, font.FontOpen
 		core, // CursorManager
 		core, // PropertyManager
 		core, // InputMethodManager
+		core, // TrayManager
 	)
 	return ds, core.FontOpener(core.DefaultScreen()), nil
 }
@@ -456,3 +457,16 @@ var _ platform.SelectionManager = (*CocoaDisplay)(nil)
 var _ platform.CursorManager = (*CocoaDisplay)(nil)
 var _ platform.PropertyManager = (*CocoaDisplay)(nil)
 var _ platform.InputMethodManager = (*CocoaDisplay)(nil)
+
+// --- TrayManager ---
+
+// No status item support yet: AddTrayIcon reports none.
+
+func (d *CocoaDisplay) AddTrayIcon(*platform.IconImage, string) platform.WindowID     { return 0 }
+func (d *CocoaDisplay) ModifyTrayIcon(platform.WindowID, *platform.IconImage, string) {}
+func (d *CocoaDisplay) RemoveTrayIcon(platform.WindowID)                              {}
+func (d *CocoaDisplay) TrayNotify(platform.WindowID, string, string) error {
+	return platform.ErrNoTray
+}
+
+var _ platform.TrayManager = (*CocoaDisplay)(nil)

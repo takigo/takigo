@@ -195,6 +195,9 @@ func (d *WindowsDisplay) wndProc(hwnd w32.HWND, msg uint32, wParam w32.WPARAM, l
 	now := uint64(time.Now().UnixMilli())
 
 	switch msg {
+	case w32.WM_APP_TRAY:
+		d.trayCallback(hwnd, lParam)
+		return 0
 	case w32.WM_PAINT:
 		var ps w32.PAINTSTRUCT
 		w32.BeginPaint(hwnd, &ps)

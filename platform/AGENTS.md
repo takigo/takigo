@@ -12,8 +12,11 @@ still applies.
   properties, GC value masks, `uint64` pixels) because Tk emulates Xlib on
   Windows and macOS the same way; a method a backend cannot provide is a
   no-op there and is listed in the backend's package doc
-  (`platform/cocoa/display.go`). Drag and drop and the system tray are
-  X11-only.
+  (`platform/cocoa/display.go`). Drag and drop is X11-only. The tray
+  icon is `TrayManager`: Windows implements it (`platform/windows/tray.go`,
+  clicks come back as ButtonPress events for the icon's hidden window);
+  X11 returns 0 so package `systray` docks a window itself, and Cocoa has
+  none yet.
 - **Backends.** Each `platform/<os>/` exposes
   `NewDisplayServer(name) (platform.DisplayServer, font.FontOpener, error)`,
   selected at compile time by the `platformInit` shim in `tk_<os>.go`. The

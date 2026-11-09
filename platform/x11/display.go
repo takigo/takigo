@@ -90,6 +90,7 @@ func NewDisplayServer(name string) (platform.DisplayServer, font.FontOpener, err
 		core, // CursorManager
 		core, // PropertyManager
 		core, // InputMethodManager
+		core, // TrayManager
 	)
 	return ds, core.FontOpener(core.dpy.DefaultScreen()), nil
 }
@@ -145,6 +146,7 @@ func (s *X11Display) CreateWindow(parent platform.WindowID, x, y int, width, hei
 		BitGravity:       attrs.BitGravity,
 		EventMask:        attrs.EventMask,
 		OverrideRedirect: attrs.OverrideRedirect,
+		ParentRelative:   attrs.ParentRelative,
 	}
 
 	screen := s.dpy.DefaultScreen()
@@ -619,3 +621,17 @@ var _ platform.SelectionManager = (*X11Display)(nil)
 var _ platform.CursorManager = (*X11Display)(nil)
 var _ platform.PropertyManager = (*X11Display)(nil)
 var _ platform.InputMethodManager = (*X11Display)(nil)
+
+// --- TrayManager ---
+
+// X11 docks an ordinary window in the tray (package systray), so it has no
+// native tray icon.
+
+func (s *X11Display) AddTrayIcon(*platform.IconImage, string) platform.WindowID     { return 0 }
+func (s *X11Display) ModifyTrayIcon(platform.WindowID, *platform.IconImage, string) {}
+func (s *X11Display) RemoveTrayIcon(platform.WindowID)                              {}
+func (s *X11Display) TrayNotify(platform.WindowID, string, string) error {
+	return platform.ErrNoTray
+}
+
+var _ platform.TrayManager = (*X11Display)(nil)

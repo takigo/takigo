@@ -7,6 +7,10 @@ type WindowAttrs struct {
 	BitGravity       int
 	EventMask        int64
 	OverrideRedirect bool
+	// ParentRelative, with CWBackPixmap, makes the window's background
+	// the parent's (X11's ParentRelative background pixmap); other
+	// backends ignore it.
+	ParentRelative bool
 }
 
 // GCValues describes the desired attributes for a graphics context.
@@ -71,6 +75,7 @@ const (
 
 // CW attribute mask constants.
 const (
+	CWBackPixmap       = 1 << 0
 	CWBackPixel        = 1 << 1
 	CWBorderPixel      = 1 << 3
 	CWBitGravity       = 1 << 4

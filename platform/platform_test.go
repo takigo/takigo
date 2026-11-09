@@ -222,8 +222,9 @@ func TestNewDisplayServer(t *testing.T) {
 	var cursor CursorManager
 	var prop PropertyManager
 	var im InputMethodManager
+	var tray TrayManager
 
-	ds := NewDisplayServer(core, wm, drawer, gc, pixmap, eventSrc, grab, sel, cursor, prop, im)
+	ds := NewDisplayServer(core, wm, drawer, gc, pixmap, eventSrc, grab, sel, cursor, prop, im, tray)
 	if ds == nil {
 		t.Error("NewDisplayServer should return non-nil DisplayServer")
 	}
@@ -257,7 +258,7 @@ func (c *pumpingCore) PumpEvents() bool { c.pumped++; return c.pumped > 1 }
 // composed server, so the wrapper must expose it.
 func TestNewDisplayServerExposesPumpEvents(t *testing.T) {
 	core := &pumpingCore{}
-	ds := NewDisplayServer(core, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+	ds := NewDisplayServer(core, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 	p, ok := ds.(interface{ PumpEvents() bool })
 	if !ok {
 		t.Fatal("composed DisplayServer hides the backend's PumpEvents")
@@ -270,7 +271,7 @@ func TestNewDisplayServerExposesPumpEvents(t *testing.T) {
 	}
 
 	var plain struct{ DisplayCore }
-	if _, ok := NewDisplayServer(plain, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil).(interface{ PumpEvents() bool }); ok {
+	if _, ok := NewDisplayServer(plain, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil).(interface{ PumpEvents() bool }); ok {
 		t.Error("PumpEvents exposed for a backend without one")
 	}
 }

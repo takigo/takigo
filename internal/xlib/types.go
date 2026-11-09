@@ -116,6 +116,7 @@ const (
 
 // Window attribute constants.
 const (
+	CWBackPixmap       = C.CWBackPixmap
 	CWBackPixel        = C.CWBackPixel
 	CWBorderPixel      = C.CWBorderPixel
 	CWBitGravity       = C.CWBitGravity

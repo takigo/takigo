@@ -5,6 +5,15 @@ version is 0, a minor release may break the API and says so here.
 
 ## Unreleased
 
+- **systray: Tk's tray icon on X11 and Windows.** `TrayImage` sets the
+  icon's image (X11 drew a placeholder circle), `Configure` changes
+  image, tooltip and handlers, and `Exists` and `TrayIcon.Notify` were
+  added. On X11 the icon takes the tray's background and shows its
+  tooltip in a balloon like `systray.tcl`; on Windows the icon is a
+  `Shell_NotifyIconW` icon and `Notify` shows a balloon on it, as Tk does
+  (`ErrNoTray` before an icon exists). The systray demo now builds
+  everywhere and matches Tk's. `platform.DisplayServer` gained
+  `TrayManager`.
 - **Disabled buttons and labels look like Tk's.** A disabled label,
   button, checkbutton or radiobutton stipples its image with gray50 in its
   background colour, and stipples the whole widget when it has no

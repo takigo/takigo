@@ -111,6 +111,8 @@ type windowInfo struct {
 	// thread and is waiting for the owning thread, so a message that
 	// arrives for a window that is gone (its handle recycled) is ignored.
 	destroyPosted bool
+	// tray is set on the hidden window of a tray icon (tray.go).
+	tray *trayIcon
 }
 
 // NewDisplayServer initializes the Windows display and returns a composed
@@ -219,6 +221,7 @@ func NewDisplayServer(displayName string) (platform.DisplayServer, font.FontOpen
 		d, // CursorManager
 		d, // PropertyManager
 		d, // InputMethodManager
+		d, // TrayManager
 	)
 	return ds, d.FontOpener(d.DefaultScreen()), nil
 }
