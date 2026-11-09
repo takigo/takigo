@@ -546,8 +546,8 @@ func (c *Canvas) Configure(opts ...CanvasOption) error {
 		c.yOrigin += inset - c.inset
 		c.inset = inset
 	}
-	// Tk relays out at idle, so CanvasSetOrigin still sees the old window
-	// size; our geometry managers resize synchronously, so confine first.
+	// Confine against the current window size, as CanvasSetOrigin does; the
+	// ConfigureNotify handler confines again once the new size arrives.
 	c.setOrigin(c.xOrigin, c.yOrigin)
 	if c.Background != nil {
 		c.Win.SetBackgroundPixel(c.Background.Pixel)

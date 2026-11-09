@@ -198,7 +198,7 @@ func (r *RectOvalItem) Delete(d platform.DisplayServer) {
 
 // Postscript emits a PostScript representation of the rectangle or oval.
 //
-// Mirrors tk/generic/tkCanvRectOval.c:RRectOvalToPostscript / ROvalToPostscript.
+// Mirrors tk/generic/tkRectOval.c:RRectOvalToPostscript / ROvalToPostscript.
 // Rectangle uses a closed 4-point path; oval uses a closed ellipse path
 // (PostScript ellipse via the prolog's Ellipse / ova macros, but to stay
 // portable we emit a circle approximation built from moveto/lineto — Tk's

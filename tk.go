@@ -145,7 +145,8 @@ func NewApp(opts ...AppOption) (*App, error) {
 		}
 	})
 
-	// Install bind engine as a global handler (fires after per-window handlers).
+	// Install the bind engine as the dispatcher chain: input events run the
+	// window's handlers at its class tag, other events run them first.
 	bindEng.Install(dispatcher)
 
 	// Set up global focus manager with Tab/Shift-Tab traversal,
