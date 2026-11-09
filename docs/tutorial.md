@@ -2435,9 +2435,25 @@ tv.OnDoubleClick = func(id string) { openItem(id) }
 Items are addressed by string IDs (generated unless you pass `ItemID`).
 Other operations: `Delete`, `Move`, `Children`, `Parent`, `Item(id)` (returns
 the `*ttk.TreeItem` with `Text`, `Values`, `Open`, …), `SetItemText`,
-`SetItemValues`, `SetItemOpen`, `SelectionSet/Add/Remove`, `See`, `SortChildren`,
-`SetSortIndicator`, `SetStripe`. Scroll it like any other widget
-(`TreeviewYScrollCommand`, `YViewMoveTo`, `YViewScroll`).
+`SetItemValues`, `SetItemOpen`, `CellValue`/`SetCellValue`, `Next`, `Prev`,
+`Index`, `Detach` (and `Move` to put an item back), `SelectionSet/Add/Remove/Toggle`,
+`See`, `SortChildren`, `SetSortIndicator`, `SetStripe`. `TreeviewDisplayColumns`
+picks and orders the data columns shown. Scroll it like any other widget
+(`TreeviewYScrollCommand`/`TreeviewXScrollCommand`, `YViewMoveTo`, `XViewScroll`, …).
+
+Tags give rows their own look and bindings, and `Identify*`/`BBox` find
+what is under the pointer:
+
+```go
+tv.TagConfigure("missing", ttk.TagForeground(0x999999))
+tv.Insert("", -1, ttk.ItemText("gone.txt"), ttk.ItemTags("missing"))
+tv.TagBind("missing", event.ButtonPressMask, func(ev *event.Event) {
+	log.Print("clicked ", tv.IdentifyItem(ev.Y), " in ", tv.IdentifyColumn(ev.X))
+})
+```
+
+Like Tk, the treeview also sends `<<TreeviewSelect>>`, `<<TreeviewOpen>>` and
+`<<TreeviewClose>>`, which `app.Bind().BindWindow` can catch.
 
 ### Styles
 

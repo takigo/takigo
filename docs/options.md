@@ -80,6 +80,7 @@ it is only a hint. Regenerate with `python3 scripts/options_doc.py > docs/option
 | `FileOption` | `dialog.FileConfirmOverwrite` | `b bool` | `-fileconfirmoverwrite` |
 | `FileOption` | `dialog.FileDefaultExtension` | `s string` | `-filedefaultextension` |
 | `FileOption` | `dialog.FileInitialFile` | `s string` | `-fileinitialfile` |
+| `FileOption` | `dialog.FileTypeVariable` | `v *widget.Variable[string]` | `-filetypevariable` |
 | `FileOption` | `dialog.FileTypes` | `types ...FileType` | `-filetypes` |
 | `FontOption` | `dialog.FontInitial` | `s string` | `-fontinitial` |
 | `MessageOption` | `dialog.MsgButtons` | `b ButtonSet` | `-msgbuttons` |
@@ -251,10 +252,16 @@ it is only a hint. Regenerate with `python3 scripts/options_doc.py > docs/option
 | `TabOption` | `ttk.TabState` | `s State` | `-tabstate` |
 | `TabOption` | `ttk.TabText` | `s string` | `-tabtext` |
 | `TabOption` | `ttk.TabUnderline` | `i int` | `-tabunderline` |
+| `TagOption` | `ttk.TagBackground` | `pixel uint64` | `-background` |
+| `TagOption` | `ttk.TagFont` | `f font.Font` | `-font` |
+| `TagOption` | `ttk.TagForeground` | `pixel uint64` | `-foreground` |
+| `TagOption` | `ttk.TagImage` | `img widget.WidgetImage` | `-image` |
+| `TagOption` | `ttk.TagStripedBackground` | `pixel uint64` | `-stripedbackground` |
 | `ToggleswitchOption` | `ttk.ToggleswitchStyle` | `name string` | `-style` |
 | `ToggleswitchOption` | `ttk.ToggleswitchText` | `s string` | `-text` |
 | `ToggleswitchOption` | `ttk.ToggleswitchVar` | `v *widget.Variable[bool]` | `-var` |
 | `TreeviewOption` | `ttk.TreeviewColumns` | `ids ...string` | `-columns` |
+| `TreeviewOption` | `ttk.TreeviewDisplayColumns` | `ids ...string` | `-displaycolumns` |
 | `TreeviewOption` | `ttk.TreeviewHeight` | `rows int` | `-height` |
 | `TreeviewOption` | `ttk.TreeviewSelectMode` | `mode TreeSelectMode` | `-selectmode` |
 | `TreeviewOption` | `ttk.TreeviewShow` | `parts ...string` | `-show` |

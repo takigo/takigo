@@ -1,10 +1,13 @@
+// Ports tk/generic/ttk/ttkTreeview.c and tk/library/ttk/treeview.tcl.
 package ttk
 
 import (
 	"fmt"
 	"slices"
 	"sort"
+	"strconv"
 
+	"github.com/takigo/takigo/event"
 	"github.com/takigo/takigo/font"
 	"github.com/takigo/takigo/option"
 	"github.com/takigo/takigo/platform"
@@ -22,6 +25,13 @@ const (
 	TreeSelectNone                           // no selection
 )
 
+// The virtual events a Treeview sends, like Tk's.
+const (
+	TreeviewSelectEvent = "TreeviewSelect" // the selection changed
+	TreeviewOpenEvent   = "TreeviewOpen"   // the user is opening the focus item
+	TreeviewCloseEvent  = "TreeviewClose"  // the user closed the focus item
+)
+
 // displayEntry pairs an item with its depth in the flattened display list.
 type displayEntry struct {
 	item  *TreeItem
@@ -31,7 +41,7 @@ type displayEntry struct {
 // TreeItem holds data for a single treeview item.
 type TreeItem struct {
 	ID       string
-	Parent   *TreeItem
+	Parent   *TreeItem // nil for a detached item
 	Children []*TreeItem
 	Text     string   // tree column (#0) text
 	Values   []string // data column values
@@ -40,7 +50,7 @@ type TreeItem struct {
 	Image    widget.WidgetImage // optional icon shown in tree column
 }
 
-// TreeColumn describes a data column.
+// TreeColumn describes a column: the tree column #0 or a data column.
 type TreeColumn struct {
 	ID             string
 	Width          int           // pixels (default 200)
@@ -51,6 +61,20 @@ type TreeColumn struct {
 	HeadingText    string
 	HeadingAnchor  option.Anchor // default Center
 	HeadingCommand func()
+
+	index int // position in -columns, -1 for #0
+}
+
+func newTreeColumn(id string, index int) *TreeColumn {
+	return &TreeColumn{
+		ID:            id,
+		Width:         200,
+		MinWidth:      20,
+		Anchor:        option.AnchorW,
+		Stretch:       true,
+		HeadingAnchor: option.AnchorCenter,
+		index:         index,
+	}
 }
 
 // sortIndicator tracks which column has a sort arrow.
@@ -64,19 +88,21 @@ type Treeview struct {
 	TtkWidget
 
 	// Columns.
-	columns            []*TreeColumn
-	showTree           bool // show tree column (#0)
-	slack              int  // tree area width minus the columns (ttkTreeview.c)
-	showHeadings       bool // show heading row
-	treeColumnWidth    int
-	treeHeadingText    string
-	treeHeadingAnchor  option.Anchor
-	treeHeadingCommand func()
+	column0        *TreeColumn   // the tree column #0
+	columns        []*TreeColumn // -columns
+	displayColumns []string      // -displaycolumns; nil is #all
+	showTree       bool          // show tree column (#0)
+	slack          int           // tree area width minus the columns (ttkTreeview.c)
+	showHeadings   bool          // show heading row
 
 	// Data.
 	root   *TreeItem            // hidden root (ID="")
 	items  map[string]*TreeItem // O(1) lookup
 	nextID int                  // auto-gen I001, I002...
+
+	// Tags, in creation order: the first created has the highest priority.
+	tags     map[string]*treeTag
+	tagOrder []string
 
 	// Flattened display list (rebuilt on structural changes).
 	displayList []displayEntry
@@ -88,7 +114,6 @@ type Treeview struct {
 	selection  map[string]bool
 	focus      string
 	selectMode TreeSelectMode
-	selAnchor  int // display-list index anchor for extended mode
 
 	// Scrolling.
 	topIndex   int
@@ -106,9 +131,8 @@ type Treeview struct {
 	indent        int // pixels per depth level (default 20)
 	hasFocus      bool
 
-	// Column resize drag.
-	resizeCol   int // column index being resized, -1 if none
-	resizeDragX int
+	// Button-1 press state (treeview.tcl State).
+	press treeviewPress
 
 	// Sort indicator.
 	sortInd *sortIndicator
@@ -135,15 +159,21 @@ func TreeviewColumns(ids ...string) TreeviewOption {
 	return func(tv *Treeview) {
 		tv.columns = make([]*TreeColumn, len(ids))
 		for i, id := range ids {
-			tv.columns[i] = &TreeColumn{
-				ID:            id,
-				Width:         200,
-				MinWidth:      20,
-				Anchor:        option.AnchorW,
-				Stretch:       true,
-				HeadingAnchor: option.AnchorCenter,
-			}
+			tv.columns[i] = newTreeColumn(id, i)
 		}
+		tv.displayColumns = nil
+	}
+}
+
+// TreeviewDisplayColumns sets -displaycolumns: the data columns shown, in
+// order, by ID or by index in -columns. No IDs, or "#all", shows them all.
+func TreeviewDisplayColumns(ids ...string) TreeviewOption {
+	return func(tv *Treeview) {
+		if len(ids) == 0 || (len(ids) == 1 && ids[0] == "#all") {
+			tv.displayColumns = nil
+			return
+		}
+		tv.displayColumns = slices.Clone(ids)
 	}
 }
 
@@ -198,19 +228,17 @@ func NewTreeview(parent widget.Caregiver, name string, opts ...TreeviewOption) *
 	window.MakeWindowExist(win)
 
 	tv := &Treeview{
-		showTree:          true,
-		showHeadings:      true,
-		treeColumnWidth:   200,
-		treeHeadingAnchor: option.AnchorCenter,
-		root:              &TreeItem{ID: ""},
-		items:             map[string]*TreeItem{"": nil}, // root mapped as ""
-		selection:         make(map[string]bool),
-		selectMode:        TreeSelectExtended,
-		selAnchor:         -1,
-		indent:            20,
-		heightRows:        10,
-		resizeCol:         -1,
+		column0:      newTreeColumn("#0", -1),
+		showTree:     true,
+		showHeadings: true,
+		root:         &TreeItem{ID: ""},
+		tags:         make(map[string]*treeTag),
+		selection:    make(map[string]bool),
+		selectMode:   TreeSelectExtended,
+		indent:       20,
+		heightRows:   10,
 	}
+	tv.items = map[string]*TreeItem{"": tv.root}
 
 	tv.Font, _ = app.FontRegistry().Get(font.TkDefaultFont)
 	if tv.Font != nil {
@@ -223,9 +251,6 @@ func NewTreeview(parent widget.Caregiver, name string, opts ...TreeviewOption) *
 		tv.rowHeight = 20
 		tv.headingHeight = 24
 	}
-
-	// Map root properly.
-	tv.items[""] = tv.root
 
 	InitTtkWidget(&tv.TtkWidget, win, app, "TTreeview")
 	tv.reconfigure = func() { _ = tv.Configure() }
@@ -273,17 +298,35 @@ func ItemID(id string) ItemOption {
 	return func(item *TreeItem) { item.ID = id }
 }
 
-// ItemTags sets item tags.
 // ItemImage sets an icon image displayed in the tree column before the text.
 func ItemImage(img widget.WidgetImage) ItemOption {
 	return func(item *TreeItem) { item.Image = img }
 }
 
+// ItemTags sets the item's tags.
 func ItemTags(tags ...string) ItemOption {
 	return func(item *TreeItem) { item.Tags = tags }
 }
 
 // --- Tree Operations ---
+
+// insertChild links item into parent at index (-1 or past the end appends).
+func insertChild(parent, item *TreeItem, index int) {
+	item.Parent = parent
+	if index < 0 || index >= len(parent.Children) {
+		parent.Children = append(parent.Children, item)
+		return
+	}
+	parent.Children = slices.Insert(parent.Children, index, item)
+}
+
+// detachItem unlinks item from its parent (DetachItem).
+func detachItem(item *TreeItem) {
+	if p := item.Parent; p != nil {
+		p.Children = slices.DeleteFunc(p.Children, func(c *TreeItem) bool { return c == item })
+	}
+	item.Parent = nil
+}
 
 // Insert adds a new item under parentID at the given index.
 // An index of -1 or end appends. Returns the item ID.
@@ -293,7 +336,7 @@ func (tv *Treeview) Insert(parentID string, index int, opts ...ItemOption) strin
 		parent = tv.root
 	}
 
-	item := &TreeItem{Parent: parent}
+	item := &TreeItem{}
 	for _, opt := range opts {
 		opt(item)
 	}
@@ -302,15 +345,11 @@ func (tv *Treeview) Insert(parentID string, index int, opts ...ItemOption) strin
 		tv.nextID++
 		item.ID = fmt.Sprintf("I%03d", tv.nextID)
 	}
-
-	if index < 0 || index >= len(parent.Children) {
-		parent.Children = append(parent.Children, item)
-	} else {
-		parent.Children = append(parent.Children, nil)
-		copy(parent.Children[index+1:], parent.Children[index:])
-		parent.Children[index] = item
+	for _, t := range item.Tags {
+		tv.tag(t)
 	}
 
+	insertChild(parent, item, index)
 	tv.items[item.ID] = item
 	tv.scheduleRedisplay()
 	return item.ID
@@ -318,24 +357,27 @@ func (tv *Treeview) Insert(parentID string, index int, opts ...ItemOption) strin
 
 // Delete removes items and all their descendants.
 func (tv *Treeview) Delete(ids ...string) {
+	selChange := false
 	for _, id := range ids {
 		item := tv.items[id]
 		if item == nil || id == "" {
 			continue
 		}
-		if item.Parent != nil {
-			item.Parent.Children = slices.DeleteFunc(item.Parent.Children, func(c *TreeItem) bool { return c == item })
-		}
-		tv.removeItem(item)
+		detachItem(item)
+		selChange = tv.removeItem(item) || selChange
+	}
+	if selChange {
+		tv.selectionChanged()
 	}
 	tv.scheduleRedisplay()
 }
 
-// removeItem forgets item and its descendants; the caller unlinks item
-// from its parent.
-func (tv *Treeview) removeItem(item *TreeItem) {
+// removeItem forgets item and its descendants and reports whether one of
+// them was selected; the caller unlinks item from its parent.
+func (tv *Treeview) removeItem(item *TreeItem) bool {
+	sel := tv.selection[item.ID]
 	for _, child := range item.Children {
-		tv.removeItem(child)
+		sel = tv.removeItem(child) || sel
 	}
 	item.Children = nil
 	delete(tv.items, item.ID)
@@ -343,9 +385,12 @@ func (tv *Treeview) removeItem(item *TreeItem) {
 	if tv.focus == item.ID {
 		tv.focus = ""
 	}
+	return sel
 }
 
-// Move moves an item to a new parent at the given index.
+// Move moves an item to a new parent at the given index; it also
+// reattaches a detached item. Moving an item under itself or one of its
+// descendants does nothing (AncestryCheck).
 func (tv *Treeview) Move(id, parentID string, index int) {
 	item := tv.items[id]
 	if item == nil || id == "" {
@@ -355,29 +400,53 @@ func (tv *Treeview) Move(id, parentID string, index int) {
 	if newParent == nil {
 		newParent = tv.root
 	}
-
-	// Remove from old parent.
-	if item.Parent != nil {
-		children := item.Parent.Children
-		for i, c := range children {
-			if c == item {
-				item.Parent.Children = slices.Delete(children, i, i+1)
-				break
-			}
+	for p := newParent; p != nil; p = p.Parent {
+		if p == item {
+			return
 		}
 	}
-
-	// Add to new parent.
-	item.Parent = newParent
-	if index < 0 || index >= len(newParent.Children) {
-		newParent.Children = append(newParent.Children, item)
-	} else {
-		newParent.Children = append(newParent.Children, nil)
-		copy(newParent.Children[index+1:], newParent.Children[index:])
-		newParent.Children[index] = item
-	}
-
+	detachItem(item)
+	insertChild(newParent, item, index)
 	tv.scheduleRedisplay()
+}
+
+// Detach unlinks items from the tree; they keep their descendants and can
+// be put back with Move.
+func (tv *Treeview) Detach(ids ...string) {
+	for _, id := range ids {
+		if item := tv.items[id]; item != nil && item != tv.root {
+			detachItem(item)
+		}
+	}
+	tv.scheduleRedisplay()
+}
+
+// IsDetached reports whether the item is detached; the root never is.
+func (tv *Treeview) IsDetached(id string) bool {
+	item := tv.items[id]
+	return item != nil && item != tv.root && item.Parent == nil
+}
+
+// Detached returns the detached items, sorted by ID.
+func (tv *Treeview) Detached() []string {
+	var ids []string
+	for id, item := range tv.items {
+		if item != tv.root && item.Parent == nil {
+			ids = append(ids, id)
+		}
+	}
+	slices.Sort(ids)
+	return ids
+}
+
+// detachedOrAncestor is IsItemOrAncestorDetached.
+func (tv *Treeview) detachedOrAncestor(item *TreeItem) bool {
+	for ; item != tv.root; item = item.Parent {
+		if item.Parent == nil {
+			return true
+		}
+	}
+	return false
 }
 
 // Item returns the item with the given ID.
@@ -407,6 +476,34 @@ func (tv *Treeview) Parent(id string) string {
 	return item.Parent.ID
 }
 
+// sibling returns the item delta places from id among its siblings.
+func (tv *Treeview) sibling(id string, delta int) string {
+	item := tv.items[id]
+	if item == nil || item.Parent == nil {
+		return ""
+	}
+	sibs := item.Parent.Children
+	if i := slices.Index(sibs, item) + delta; i >= 0 && i < len(sibs) {
+		return sibs[i].ID
+	}
+	return ""
+}
+
+// Next returns the ID of the item's next sibling, or "".
+func (tv *Treeview) Next(id string) string { return tv.sibling(id, 1) }
+
+// Prev returns the ID of the item's previous sibling, or "".
+func (tv *Treeview) Prev(id string) string { return tv.sibling(id, -1) }
+
+// Index returns the item's position among its siblings (0 when detached).
+func (tv *Treeview) Index(id string) int {
+	item := tv.items[id]
+	if item == nil || item.Parent == nil {
+		return 0
+	}
+	return slices.Index(item.Parent.Children, item)
+}
+
 // Exists returns whether an item ID exists.
 func (tv *Treeview) Exists(id string) bool {
 	_, ok := tv.items[id]
@@ -429,6 +526,46 @@ func (tv *Treeview) SetItemValues(id string, vals ...string) {
 	}
 }
 
+// CellValue returns the item's value in a data column ("set $item
+// $column"); the column is an ID, a "#n" display number or an index.
+func (tv *Treeview) CellValue(id, column string) string {
+	item, col := tv.items[id], tv.lookupColumn(column)
+	if item == nil || col == nil || col.index < 0 || col.index >= len(item.Values) {
+		return ""
+	}
+	return item.Values[col.index]
+}
+
+// SetCellValue sets the item's value in a data column ("set $item $column
+// $value"), padding the values with empty strings. Column #0 has no value:
+// use SetItemText.
+func (tv *Treeview) SetCellValue(id, column, value string) {
+	item, col := tv.items[id], tv.lookupColumn(column)
+	if item == nil || col == nil || col.index < 0 {
+		return
+	}
+	for len(item.Values) < len(tv.columns) {
+		item.Values = append(item.Values, "")
+	}
+	item.Values[col.index] = value
+	tv.Display()
+}
+
+// CellValues returns the item's values by column ID ("set $item").
+func (tv *Treeview) CellValues(id string) map[string]string {
+	item := tv.items[id]
+	if item == nil {
+		return nil
+	}
+	m := make(map[string]string)
+	for i, c := range tv.columns {
+		if i < len(item.Values) {
+			m[c.ID] = item.Values[i]
+		}
+	}
+	return m
+}
+
 // SetItemOpen sets whether an item is expanded.
 func (tv *Treeview) SetItemOpen(id string, open bool) {
 	item := tv.items[id]
@@ -447,54 +584,116 @@ func (tv *Treeview) SetItemOpen(id string, open bool) {
 	tv.scheduleRedisplay()
 }
 
+// --- Virtual events ---
+
+// sendVirtual queues <<name>> for the treeview like Tk_SendVirtualEvent.
+func (tv *Treeview) sendVirtual(name string) {
+	tv.App.DoWhenIdle(func() {
+		if !tv.Destroyed() {
+			tv.generate(name)
+		}
+	})
+}
+
+// generate dispatches <<name>> now, like "event generate".
+func (tv *Treeview) generate(name string) {
+	tv.App.Dispatcher().Dispatch(&event.Event{Type: event.VirtualType, Window: tv.Win.PlatformID, Name: name})
+}
+
 // --- Selection ---
 
-// Selection returns the IDs of selected items.
-func (tv *Treeview) Selection() []string {
-	tv.syncDisplayList()
-	var result []string
-	for _, e := range tv.displayList {
-		if tv.selection[e.item.ID] {
-			result = append(result, e.item.ID)
+// preorder calls fn for every attached item below the root, in order.
+func (tv *Treeview) preorder(fn func(*TreeItem)) {
+	var walk func(*TreeItem)
+	walk = func(p *TreeItem) {
+		for _, c := range p.Children {
+			fn(c)
+			walk(c)
 		}
 	}
+	walk(tv.root)
+}
+
+// Selection returns the IDs of selected items in tree order.
+func (tv *Treeview) Selection() []string {
+	var result []string
+	tv.preorder(func(item *TreeItem) {
+		if tv.selection[item.ID] {
+			result = append(result, item.ID)
+		}
+	})
 	return result
+}
+
+func (tv *Treeview) selectionChanged() {
+	if tv.OnSelect != nil {
+		tv.OnSelect()
+	}
+	tv.sendVirtual(TreeviewSelectEvent)
 }
 
 // SelectionSet sets the selection to the given IDs.
 func (tv *Treeview) SelectionSet(ids ...string) {
+	changed := len(tv.selection) > 0
 	tv.selection = make(map[string]bool)
 	for _, id := range ids {
 		if tv.items[id] != nil {
 			tv.selection[id] = true
+			changed = true
 		}
 	}
-	if tv.OnSelect != nil {
-		tv.OnSelect()
+	if changed {
+		tv.selectionChanged()
 	}
 	tv.Display()
 }
 
 // SelectionAdd adds IDs to the selection.
 func (tv *Treeview) SelectionAdd(ids ...string) {
+	changed := false
 	for _, id := range ids {
-		if tv.items[id] != nil {
+		if tv.items[id] != nil && !tv.selection[id] {
 			tv.selection[id] = true
+			changed = true
 		}
 	}
-	if tv.OnSelect != nil {
-		tv.OnSelect()
+	if changed {
+		tv.selectionChanged()
 	}
 	tv.Display()
 }
 
 // SelectionRemove removes IDs from the selection.
 func (tv *Treeview) SelectionRemove(ids ...string) {
+	changed := false
 	for _, id := range ids {
-		delete(tv.selection, id)
+		if tv.selection[id] {
+			delete(tv.selection, id)
+			changed = true
+		}
 	}
-	if tv.OnSelect != nil {
-		tv.OnSelect()
+	if changed {
+		tv.selectionChanged()
+	}
+	tv.Display()
+}
+
+// SelectionToggle toggles the selection state of each ID.
+func (tv *Treeview) SelectionToggle(ids ...string) {
+	changed := false
+	for _, id := range ids {
+		if tv.items[id] == nil {
+			continue
+		}
+		if tv.selection[id] {
+			delete(tv.selection, id)
+		} else {
+			tv.selection[id] = true
+		}
+		changed = true
+	}
+	if changed {
+		tv.selectionChanged()
 	}
 	tv.Display()
 }
@@ -528,26 +727,21 @@ func ColMinWidth[L screenunit.Length](w L) ColumnOption {
 // ColAnchor sets cell text alignment.
 func ColAnchor(a option.Anchor) ColumnOption { return func(c *TreeColumn) { c.Anchor = a } }
 
-// ColStretch sets whether the column stretches.
+// ColStretch sets whether column auto-resizes.
 func ColStretch(b bool) ColumnOption { return func(c *TreeColumn) { c.Stretch = b } }
 
 // ColSeparator sets whether a vertical separator line is drawn after this column.
 func ColSeparator(b bool) ColumnOption { return func(c *TreeColumn) { c.Separator = b } }
 
-// ColumnConfigure configures a data column by ID.
+// ColumnConfigure configures a column: "#0" is the tree column, "#n" the
+// n-th displayed data column, otherwise a column ID or index.
 func (tv *Treeview) ColumnConfigure(id string, opts ...ColumnOption) {
-	col := tv.findColumn(id)
-	if id == "#0" {
-		col = &TreeColumn{ID: "#0", Width: tv.treeColumnWidth, MinWidth: 20}
-	}
+	col := tv.lookupColumn(id)
 	if col == nil {
 		return
 	}
 	for _, opt := range opts {
 		opt(col)
-	}
-	if id == "#0" {
-		tv.treeColumnWidth = col.Width
 	}
 	if tv.Win.IsViewable() {
 		// Mapped: keep the request, re-fit the columns (ttkTreeview.c).
@@ -557,6 +751,87 @@ func (tv *Treeview) ColumnConfigure(id string, opts ...ColumnOption) {
 		tv.requestSize()
 	}
 	tv.Display()
+}
+
+// Column returns the column's settings (see ColumnConfigure for id), or
+// nil when there is no such column.
+func (tv *Treeview) Column(id string) *TreeColumn { return tv.lookupColumn(id) }
+
+// Columns returns the IDs of -columns.
+func (tv *Treeview) Columns() []string {
+	ids := make([]string, len(tv.columns))
+	for i, c := range tv.columns {
+		ids[i] = c.ID
+	}
+	return ids
+}
+
+// lookupColumn ports FindColumn: a column ID, "#n" for display column n
+// (#0 is the tree column) or a decimal index in -columns.
+func (tv *Treeview) lookupColumn(id string) *TreeColumn {
+	if id == "#0" {
+		return tv.column0
+	}
+	for _, col := range tv.columns {
+		if col.ID == id {
+			return col
+		}
+	}
+	if len(id) > 1 && id[0] == '#' {
+		n, err := strconv.Atoi(id[1:])
+		if dc := tv.dataDisplayColumns(); err == nil && n >= 1 && n <= len(dc) {
+			return dc[n-1]
+		}
+		return nil
+	}
+	if n, err := strconv.Atoi(id); err == nil && n >= 0 && n < len(tv.columns) {
+		return tv.columns[n]
+	}
+	return nil
+}
+
+// dataDisplayColumns returns the data columns -displaycolumns shows.
+func (tv *Treeview) dataDisplayColumns() []*TreeColumn {
+	if tv.displayColumns == nil {
+		return tv.columns
+	}
+	var cols []*TreeColumn
+	for _, id := range tv.displayColumns {
+		var col *TreeColumn
+		for _, c := range tv.columns {
+			if c.ID == id {
+				col = c
+				break
+			}
+		}
+		if col == nil {
+			if n, err := strconv.Atoi(id); err == nil && n >= 0 && n < len(tv.columns) {
+				col = tv.columns[n]
+			}
+		}
+		if col != nil {
+			cols = append(cols, col)
+		}
+	}
+	return cols
+}
+
+// shownColumns returns the columns drawn left to right: the tree column
+// when -show has tree, then the displayed data columns.
+func (tv *Treeview) shownColumns() []*TreeColumn {
+	dc := tv.dataDisplayColumns()
+	if !tv.showTree {
+		return dc
+	}
+	return append([]*TreeColumn{tv.column0}, dc...)
+}
+
+// displayNumber is the "#n" number of a shown column.
+func (tv *Treeview) displayNumber(col *TreeColumn) int {
+	if col == tv.column0 {
+		return 0
+	}
+	return slices.Index(tv.dataDisplayColumns(), col) + 1
 }
 
 // computeSize ports TreeviewSize: the displayed columns by -height rows plus
@@ -614,23 +889,10 @@ func HeadCommand(fn func()) HeadingOption {
 	return func(c *TreeColumn) { c.HeadingCommand = fn }
 }
 
-// HeadingConfigure configures a column heading by ID.
-// Use "#0" for the tree column heading.
+// HeadingConfigure configures a column heading; id is as for
+// ColumnConfigure ("#0" is the tree column heading).
 func (tv *Treeview) HeadingConfigure(id string, opts ...HeadingOption) {
-	if id == "#0" {
-		// Tree column heading.
-		col := &TreeColumn{ID: "#0", HeadingText: tv.treeHeadingText,
-			HeadingAnchor: tv.treeHeadingAnchor, HeadingCommand: tv.treeHeadingCommand}
-		for _, opt := range opts {
-			opt(col)
-		}
-		tv.treeHeadingText = col.HeadingText
-		tv.treeHeadingAnchor = col.HeadingAnchor
-		tv.treeHeadingCommand = col.HeadingCommand
-		tv.Display()
-		return
-	}
-	col := tv.findColumn(id)
+	col := tv.lookupColumn(id)
 	if col == nil {
 		return
 	}
@@ -660,20 +922,10 @@ func (tv *Treeview) SetStripe(enabled bool) {
 
 // SetColSeparator enables or disables the vertical separator line for a column.
 func (tv *Treeview) SetColSeparator(id string, enabled bool) {
-	col := tv.findColumn(id)
-	if col != nil {
+	if col := tv.lookupColumn(id); col != nil {
 		col.Separator = enabled
 	}
 	tv.Display()
-}
-
-func (tv *Treeview) findColumn(id string) *TreeColumn {
-	for _, col := range tv.columns {
-		if col.ID == id {
-			return col
-		}
-	}
-	return nil
 }
 
 // --- Scrolling ---
@@ -722,8 +974,23 @@ func (tv *Treeview) YVisibleRange() (float64, float64) {
 	return first, last
 }
 
-// See scrolls to make the given item visible.
+// See opens the item's ancestors and scrolls to make it visible; a
+// detached item (or one under a detached item) is left alone.
 func (tv *Treeview) See(id string) {
+	item := tv.items[id]
+	if item == nil || item == tv.root || tv.detachedOrAncestor(item) {
+		return
+	}
+	opened := false
+	for p := item.Parent; p != tv.root; p = p.Parent {
+		if !p.Open {
+			p.Open = true
+			opened = true
+		}
+	}
+	if opened {
+		tv.rebuildDisplayList()
+	}
 	idx := tv.displayIndex(id)
 	if idx < 0 {
 		return
@@ -890,25 +1157,6 @@ func (tv *Treeview) walkChildren(parent *TreeItem, depth int) {
 	}
 }
 
-// colRef is a display column for the slack logic: the tree column (#0) and
-// the data columns, all stretchable unless configured otherwise.
-type colRef struct {
-	width   *int
-	min     int
-	stretch bool
-}
-
-func (tv *Treeview) displayColumnRefs() []colRef {
-	var refs []colRef
-	if tv.showTree {
-		refs = append(refs, colRef{&tv.treeColumnWidth, 20, true})
-	}
-	for _, c := range tv.columns {
-		refs = append(refs, colRef{&c.Width, c.MinWidth, c.Stretch})
-	}
-	return refs
-}
-
 // headingFont is the Heading style's -font (TkHeadingFont in defaults.tcl).
 func (tv *Treeview) headingFont() font.Font {
 	if f, err := tv.App.FontRegistry().Get(font.TkHeadingFont); err == nil {
@@ -920,69 +1168,113 @@ func (tv *Treeview) headingFont() font.Font {
 func (tv *Treeview) treeAreaWidth() int { return tv.Win.Width - 2*treeviewFieldBorder }
 
 // stretchCol ports Stretch: move a column edge by n down to its minimum.
-func stretchCol(c colRef, n int) int {
-	if nw := *c.width + n; nw < c.min {
-		n = c.min - *c.width
-		*c.width = c.min
+func stretchCol(c *TreeColumn, n int) int {
+	if nw := c.Width + n; nw < c.MinWidth {
+		n = c.MinWidth - c.Width
+		c.Width = c.MinWidth
 	} else {
-		*c.width = nw
+		c.Width = nw
+	}
+	return n
+}
+
+// pickupSlack ports PickupSlack: a width change goes to the slack first;
+// columns change only once the slack crosses zero.
+func (tv *Treeview) pickupSlack(extra int) int {
+	ns := tv.slack + extra
+	if (ns < 0 && tv.slack >= 0) || (ns > 0 && tv.slack <= 0) {
+		tv.slack = 0
+		return ns
+	}
+	tv.slack = ns
+	return 0
+}
+
+// shove ports ShoveLeft (step -1) and ShoveRight (step 1): move n pixels
+// into the stretchable columns from cols[i] on; returns the leftover.
+func shove(cols []*TreeColumn, i, step, n int) int {
+	for ; n != 0 && i >= 0 && i < len(cols); i += step {
+		if cols[i].Stretch {
+			n -= stretchCol(cols[i], n)
+		}
+	}
+	return n
+}
+
+// distributeWidth ports DistributeWidth: n pixels spread evenly over the
+// stretchable columns, the remainder round-robin.
+func (tv *Treeview) distributeWidth(cols []*TreeColumn, n int) int {
+	m := 0
+	for _, c := range cols {
+		if c.Stretch {
+			m++
+		}
+	}
+	if m == 0 {
+		return n
+	}
+	w := tv.totalWidth()
+	d, r := n/m, n%m
+	if r < 0 {
+		r += m
+		d--
+	}
+	for _, c := range cols {
+		if c.Stretch {
+			w++
+			add := d
+			if w%m < r {
+				add++
+			}
+			n -= stretchCol(c, add)
+		}
 	}
 	return n
 }
 
 // resizeColumns ports ResizeColumns (ttkTreeview.c): take up the width
 // change in the slack first, spread what is left evenly over stretchable
-// columns (remainder round-robin), then shove the leftovers left.
+// columns, then shove the leftovers left.
 func (tv *Treeview) resizeColumns(newWidth int) {
-	cols := tv.displayColumnRefs()
+	cols := tv.shownColumns()
 	delta := newWidth - (tv.totalWidth() + tv.slack)
-	// PickupSlack.
-	extra := 0
-	if ns := tv.slack + delta; (ns < 0 && tv.slack >= 0) || (ns > 0 && tv.slack <= 0) {
-		tv.slack, extra = 0, ns
-	} else {
-		tv.slack = ns
-	}
-	// DistributeWidth.
-	m := 0
-	for _, c := range cols {
-		if c.stretch {
-			m++
-		}
-	}
-	if m > 0 {
-		w := tv.totalWidth()
-		d, r := extra/m, extra%m
-		if r < 0 {
-			r += m
-			d--
-		}
-		for _, c := range cols {
-			if c.stretch {
-				w++
-				add := d
-				if w%m < r {
-					add++
-				}
-				extra -= stretchCol(c, add)
-			}
-		}
-	}
-	// ShoveLeft from the last column, then DepositSlack.
-	for i := len(cols) - 1; extra != 0 && i >= 0; i-- {
-		if cols[i].stretch {
-			extra -= stretchCol(cols[i], extra)
-		}
-	}
-	tv.slack += extra
+	tv.slack += shove(cols, len(cols)-1, -1, tv.distributeWidth(cols, tv.pickupSlack(delta)))
 }
 
+// dragColumn ports DragColumn: move the right edge of cols[i] by delta,
+// taking the change from the columns to its left and right.
+func (tv *Treeview) dragColumn(i, delta int) {
+	cols := tv.shownColumns()
+	dl := delta - shove(cols, i-1, -1, delta-stretchCol(cols[i], delta))
+	tv.slack += shove(cols, i+1, 1, tv.pickupSlack(-dl))
+}
+
+// DragColumn moves the right edge of a shown column to x, in widget
+// coordinates ("drag"); Drop re-fits the columns afterwards.
+func (tv *Treeview) DragColumn(column string, x int) {
+	col := tv.lookupColumn(column)
+	left := treeviewFieldBorder - tv.xFirst
+	for i, c := range tv.shownColumns() {
+		right := left + c.Width
+		if c == col {
+			tv.dragColumn(i, x-right)
+			tv.Display()
+			return
+		}
+		left = right
+	}
+}
+
+// Drop ends a column drag ("drop").
+func (tv *Treeview) Drop() {
+	tv.resizeColumns(tv.totalWidth())
+	tv.Display()
+}
+
+// totalWidth is TreeWidth: the width of the shown columns.
 func (tv *Treeview) totalWidth() int {
 	w := 0
-	if tv.showTree {
-		w += tv.treeColumnWidth
-	}
-	for _, col := range tv.columns {
+	for _, col := range tv.shownColumns() {
 		w += col.Width
 	}
 	return w

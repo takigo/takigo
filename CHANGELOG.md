@@ -5,6 +5,20 @@ version is 0, a minor release may break the API and says so here.
 
 ## Unreleased
 
+- **ttk.Treeview: the rest of Tk's treeview.** Tags (`TagConfigure` with
+  `TagForeground`, `TagBackground`, `TagStripedBackground`, `TagFont`,
+  `TagImage`; `TagAdd`, `TagRemove`, `TagHas`, `TagNames`, `TagDelete`,
+  `TagBind`), `IdentifyRegion`/`Item`/`Column`/`Element`, `BBox`, `Next`,
+  `Prev`, `Index`, `Detach`/`Detached`/`IsDetached`, `CellValue`,
+  `SetCellValue`, `CellValues`, `SelectionToggle`, `DragColumn`/`Drop`,
+  `Column`, `Columns` and `TreeviewDisplayColumns`. The treeview sends
+  `<<TreeviewSelect>>`, `<<TreeviewOpen>>` and `<<TreeviewClose>>`. Its
+  bindings now follow `treeview.tcl`: Right opens the focus item (it no
+  longer jumps to the first child), Shift-click selects from the focus
+  item over the whole tree, a heading's command runs on release, the
+  indicator is hit where it is drawn and the column edge within Tk's
+  4-pixel halo. `Selection` lists items under closed parents too, and
+  `See` opens the item's ancestors.
 - **ttk.Treeview scrolls horizontally.** `XView`, `XViewScroll`,
   `XViewMoveTo` and `XVisibleRange` port Tk's `xview` (pixel units), so
   `widget.ScrollX(tv)` drives a horizontal scrollbar; `XScrollCmd` is now

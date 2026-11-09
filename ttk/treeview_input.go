@@ -1,116 +1,46 @@
+// Treeview bindings: tk/library/ttk/treeview.tcl.
 package ttk
 
 import (
+	"strconv"
+
 	"github.com/takigo/takigo/event"
 	"github.com/takigo/takigo/platform"
 	"github.com/takigo/takigo/widget"
 )
 
-// --- Hit Testing ---
-
-type hitRegion int
+// treePressMode is State(pressMode) in treeview.tcl.
+type treePressMode int
 
 const (
-	hitNothing hitRegion = iota
-	hitHeading
-	hitSeparator
-	hitIndicator
-	hitTree
-	hitCell
+	pressNone treePressMode = iota
+	pressResize
+	pressHeading
 )
 
-type hitResult struct {
-	region  hitRegion
-	itemID  string
-	colIdx  int // -1 for tree column
-	dispIdx int // display list index
+// treeviewPress is the per-widget press state of treeview.tcl.
+type treeviewPress struct {
+	mode    treePressMode
+	heading *TreeColumn // pressHeading: the pressed heading
+	pressed bool        // the pointer is still on it
 }
-
-func (tv *Treeview) hitTest(x, y int) hitResult {
-	x += tv.xFirst
-	// Heading area.
-	if tv.showHeadings && y < tv.headingHeight {
-		colX := 0
-		colIdx := -1
-		if tv.showTree {
-			if x >= tv.treeColumnWidth-3 && x <= tv.treeColumnWidth+1 {
-				return hitResult{region: hitSeparator, colIdx: -1}
-			}
-			if x < tv.treeColumnWidth {
-				return hitResult{region: hitHeading, colIdx: -1}
-			}
-			colX = tv.treeColumnWidth
-		}
-		for ci, col := range tv.columns {
-			colIdx = ci
-			nextX := colX + col.Width
-			if x >= nextX-3 && x <= nextX+1 {
-				return hitResult{region: hitSeparator, colIdx: colIdx}
-			}
-			if x >= colX && x < nextX {
-				return hitResult{region: hitHeading, colIdx: colIdx}
-			}
-			colX = nextX
-		}
-		return hitResult{region: hitHeading, colIdx: colIdx}
-	}
-
-	// Item area.
-	itemAreaY := tv.headerOffset()
-	if y < itemAreaY {
-		return hitResult{region: hitNothing}
-	}
-
-	row := (y - itemAreaY) / tv.rowHeight
-	dispIdx := tv.topIndex + row
-	if dispIdx >= len(tv.displayList) {
-		return hitResult{region: hitNothing}
-	}
-
-	entry := tv.displayList[dispIdx]
-	item := entry.item
-	depth := entry.depth
-
-	// Check tree column.
-	if tv.showTree && x < tv.treeColumnWidth {
-		indentX := depth * tv.indent
-		indicatorEnd := indentX + tv.indent
-		if x >= indentX && x < indicatorEnd && len(item.Children) > 0 {
-			return hitResult{region: hitIndicator, itemID: item.ID, colIdx: -1, dispIdx: dispIdx}
-		}
-		return hitResult{region: hitTree, itemID: item.ID, colIdx: -1, dispIdx: dispIdx}
-	}
-
-	// Check data columns.
-	colX := 0
-	if tv.showTree {
-		colX = tv.treeColumnWidth
-	}
-	for ci, col := range tv.columns {
-		if x >= colX && x < colX+col.Width {
-			return hitResult{region: hitCell, itemID: item.ID, colIdx: ci, dispIdx: dispIdx}
-		}
-		colX += col.Width
-	}
-
-	return hitResult{region: hitCell, itemID: item.ID, colIdx: -1, dispIdx: dispIdx}
-}
-
-// --- Event Bindings ---
 
 // bindTreeview registers all event handlers for the treeview widget.
 func bindTreeview(tv *Treeview, app widget.AppContext) {
 	win := tv.Win
+	d := app.Dispatcher()
 
-	// Configure (resize).
-	app.Dispatcher().Bind(win.PlatformID, event.StructureNotifyMask, tv.handleConfigure)
+	// Item tag bindings run before the class bindings, like Tk's event
+	// handler that runs before Tk_BindEvent.
+	d.Bind(win.PlatformID, event.KeyPressMask|event.KeyReleaseMask|event.ButtonPressMask|
+		event.ButtonReleaseMask|event.MotionMask|event.VirtualMask, tv.dispatchTagEvent)
 
-	// Focus.
-	app.Dispatcher().Bind(win.PlatformID, event.FocusChangeMask, tv.handleFocus)
+	d.Bind(win.PlatformID, event.StructureNotifyMask, tv.handleConfigure)
+	d.Bind(win.PlatformID, event.FocusChangeMask, tv.handleFocus)
 
-	// Button press.
+	// TtkScrollable <MouseWheel> and <Shift-MouseWheel> (utils.tcl).
 	var wheel event.WheelAccumulator
-	app.Dispatcher().Bind(win.PlatformID, event.MouseWheelMask, func(ev *event.Event) {
+	d.Bind(win.PlatformID, event.MouseWheelMask, func(ev *event.Event) {
 		if ev.Type != event.MouseWheelType {
 			return
 		}
@@ -118,27 +48,19 @@ func bindTreeview(tv *Treeview, app widget.AppContext) {
 		switch {
 		case n == 0:
 		case ev.State&platform.ShiftMask != 0:
-			// TtkScrollable <Shift-MouseWheel>: x units are pixels.
+			// x units are pixels.
 			tv.XViewScroll(n, false)
 		default:
 			tv.YView(tv.topIndex + n)
 		}
 	})
 
-	app.Dispatcher().Bind(win.PlatformID, event.ButtonPressMask, tv.handleButtonPress)
-
-	// Motion (column resize drag).
-	app.Dispatcher().Bind(win.PlatformID, event.MotionMask, tv.handleMotion)
-
-	// Button release.
-	app.Dispatcher().Bind(win.PlatformID, event.ButtonReleaseMask, tv.handleButtonRelease)
-
-	// Keyboard.
-	app.Dispatcher().Bind(win.PlatformID, event.KeyPressMask, tv.handleKeyPress)
-
-	// Enter/Leave for hover state.
-	app.Dispatcher().Bind(win.PlatformID, event.EnterMask, tv.handleEnter)
-	app.Dispatcher().Bind(win.PlatformID, event.LeaveMask, tv.handleLeave)
+	d.Bind(win.PlatformID, event.ButtonPressMask, tv.handleButtonPress)
+	d.Bind(win.PlatformID, event.MotionMask, tv.handleMotion)
+	d.Bind(win.PlatformID, event.ButtonReleaseMask, tv.handleButtonRelease)
+	d.Bind(win.PlatformID, event.KeyPressMask, tv.handleKeyPress)
+	d.Bind(win.PlatformID, event.EnterMask, tv.handleEnter)
+	d.Bind(win.PlatformID, event.LeaveMask, tv.handleLeave)
 }
 
 // handleConfigure handles ConfigureNotify (resize) events.
@@ -173,185 +95,236 @@ func (tv *Treeview) handleLeave(ev *event.Event) {
 	tv.ChangeState(0, StateHover|StateActive|StatePressed)
 }
 
-// handleButtonPress handles mouse button press events.
+// handleButtonPress ports Press, DoubleClick, <Shift-Button-1> (extend)
+// and <Control-Button-1> (<<ToggleSelection>>, toggle).
 func (tv *Treeview) handleButtonPress(ev *event.Event) {
-	// Take focus.
-	widget.Focus(tv.App, tv.Win)
-
-	if ev.Button == 1 {
-		hit := tv.hitTest(ev.X-treeviewFieldBorder, ev.Y-treeviewFieldBorder)
-		switch hit.region {
-		case hitSeparator:
-			// Start column resize.
-			tv.resizeCol = hit.colIdx
-			tv.resizeDragX = ev.X
-		case hitHeading:
-			// Heading click.
-			if hit.colIdx >= 0 && hit.colIdx < len(tv.columns) {
-				col := tv.columns[hit.colIdx]
-				if col.HeadingCommand != nil {
-					col.HeadingCommand()
-				}
-			}
-		case hitIndicator:
-			// Toggle open/close.
-			if item := tv.items[hit.itemID]; item != nil {
-				tv.SetItemOpen(hit.itemID, !item.Open)
-			}
-		case hitTree, hitCell:
-			// Select item; detect double-click to toggle open.
-			if hit.itemID != "" {
-				isDouble := hit.itemID == tv.lastClickItem &&
-					ev.Time-tv.lastClickTime < 500
-				tv.lastClickTime = ev.Time
-				tv.lastClickItem = hit.itemID
-				tv.handleSelect(hit.itemID, hit.dispIdx, ev.State)
-				tv.focus = hit.itemID
-				tv.Display()
-				if isDouble {
-					if item := tv.items[hit.itemID]; item != nil && len(item.Children) > 0 {
-						tv.SetItemOpen(hit.itemID, !item.Open)
-					}
-					if tv.OnDoubleClick != nil {
-						tv.OnDoubleClick(hit.itemID)
-					}
-				}
-			}
-		default:
-		}
-	}
-}
-
-// handleMotion handles mouse motion events (column resize drag).
-func (tv *Treeview) handleMotion(ev *event.Event) {
-	if tv.resizeCol < 0 {
+	if ev.Button != 1 {
 		return
 	}
-	delta := ev.X - tv.resizeDragX
-	if tv.resizeCol == -1 {
-		// Tree column resize.
-		newW := max(tv.treeColumnWidth+delta, 20)
-		tv.treeColumnWidth = newW
-	} else if tv.resizeCol < len(tv.columns) {
-		col := tv.columns[tv.resizeCol]
-		newW := max(col.Width+delta, col.MinWidth)
-		col.Width = newW
+	widget.Focus(tv.App, tv.Win)
+	x, y := ev.X, ev.Y
+	id := tv.IdentifyItem(y)
+
+	isDouble := id != "" && id == tv.lastClickItem && ev.Time-tv.lastClickTime < 500
+	tv.lastClickTime, tv.lastClickItem = ev.Time, id
+	if isDouble {
+		tv.lastClickItem = ""
+		tv.toggle(id)
+		if tv.OnDoubleClick != nil {
+			tv.OnDoubleClick(id)
+		}
+		return
 	}
-	tv.resizeDragX = ev.X
-	tv.Display()
+
+	switch {
+	case ev.State&platform.ShiftMask != 0:
+		if id != "" {
+			tv.selectOp(id, selectExtend)
+		}
+		return
+	case ev.State&platform.ControlMask != 0:
+		if id != "" {
+			tv.selectOp(id, selectToggle)
+		}
+		return
+	}
+
+	switch tv.IdentifyRegion(x, y) {
+	case RegionHeading:
+		col, _ := tv.columnAt(x)
+		tv.press = treeviewPress{mode: pressHeading, heading: col, pressed: true}
+	case RegionSeparator:
+		col, _ := tv.columnAt(x)
+		tv.press = treeviewPress{mode: pressResize, heading: col}
+	case RegionTree, RegionCell:
+		tv.selectOp(id, selectChoose)
+		if tv.IdentifyElement(x, y) == "Treeitem.indicator" {
+			tv.toggle(id)
+		}
+	default:
+	}
 }
 
-// handleButtonRelease handles mouse button release events.
+// handleMotion ports Drag: resize.drag and heading.drag.
+func (tv *Treeview) handleMotion(ev *event.Event) {
+	switch tv.press.mode {
+	case pressResize:
+		tv.DragColumn("#"+strconv.Itoa(tv.displayNumber(tv.press.heading)), ev.X)
+	case pressHeading:
+		col, _ := tv.columnAt(ev.X)
+		tv.press.pressed = tv.IdentifyRegion(ev.X, ev.Y) == RegionHeading && col == tv.press.heading
+	default:
+	}
+}
+
+// handleButtonRelease ports Release: a heading's command runs at idle
+// when the pointer is still on it.
 func (tv *Treeview) handleButtonRelease(ev *event.Event) {
-	if ev.Button == 1 {
-		tv.resizeCol = -1
+	if ev.Button != 1 {
+		return
+	}
+	p := tv.press
+	tv.press = treeviewPress{}
+	switch p.mode {
+	case pressResize:
+		tv.Drop()
+	case pressHeading:
+		if p.pressed && p.heading != nil && p.heading.HeadingCommand != nil {
+			tv.App.DoWhenIdle(p.heading.HeadingCommand)
+		}
+	default:
 	}
 }
 
-// handleKeyPress handles keyboard events.
+// handleKeyPress ports the key bindings: Keynav, <Prior>/<Next>,
+// <Return>/<space> (ToggleFocus).
 func (tv *Treeview) handleKeyPress(ev *event.Event) {
-	ks := ev.KeySym
-	switch ks {
-	case platform.XK_Up:
-		tv.moveFocus(-1)
-	case platform.XK_Down:
-		tv.moveFocus(1)
-	case platform.XK_Left:
-		// Collapse current or move to parent.
-		if item := tv.items[tv.focus]; item != nil {
-			if item.Open && len(item.Children) > 0 {
-				tv.SetItemOpen(tv.focus, false)
-			} else if item.Parent != nil && item.Parent.ID != "" {
-				tv.focus = item.Parent.ID
-				tv.SelectionSet(tv.focus)
-				tv.See(tv.focus)
-			}
-		}
-	case platform.XK_Right:
-		// Expand current or move to first child.
-		if item := tv.items[tv.focus]; item != nil {
-			if !item.Open && len(item.Children) > 0 {
-				tv.SetItemOpen(tv.focus, true)
-			} else if len(item.Children) > 0 {
-				tv.focus = item.Children[0].ID
-				tv.SelectionSet(tv.focus)
-				tv.See(tv.focus)
-			}
-		}
+	switch ev.KeySym {
+	case platform.XK_Up, platform.XK_Down, platform.XK_Left, platform.XK_Right:
+		tv.keynav(ev.KeySym)
+	case platform.XK_Prior:
+		tv.YViewScroll(-1, true)
+	case platform.XK_Next:
+		tv.YViewScroll(1, true)
 	case platform.XK_Return, platform.XK_space:
-		if item := tv.items[tv.focus]; item != nil && len(item.Children) > 0 {
-			tv.SetItemOpen(tv.focus, !item.Open)
+		if tv.focus != "" {
+			tv.toggle(tv.focus)
 		}
 	case platform.XK_Home:
-		if len(tv.displayList) > 0 {
-			tv.focus = tv.displayList[0].item.ID
-			tv.SelectionSet(tv.focus)
-			tv.See(tv.focus)
+		if tv.syncDisplayList(); len(tv.displayList) > 0 {
+			tv.selectOp(tv.displayList[0].item.ID, selectChoose)
 		}
 	case platform.XK_End:
-		if len(tv.displayList) > 0 {
-			tv.focus = tv.displayList[len(tv.displayList)-1].item.ID
-			tv.SelectionSet(tv.focus)
-			tv.See(tv.focus)
+		if tv.syncDisplayList(); len(tv.displayList) > 0 {
+			tv.selectOp(tv.displayList[len(tv.displayList)-1].item.ID, selectChoose)
 		}
 	}
 }
 
-func (tv *Treeview) handleSelect(id string, dispIdx int, state uint) {
-	switch tv.selectMode {
-	case TreeSelectNone:
+// keynav ports Keynav for -selecttype item.
+func (tv *Treeview) keynav(dir platform.KeySym) {
+	focus := tv.focus
+	if focus == "" {
 		return
-	case TreeSelectBrowse:
-		tv.selection = map[string]bool{id: true}
-		tv.selAnchor = dispIdx
-	case TreeSelectExtended:
-		shift := state&platform.ShiftMask != 0
-		ctrl := state&platform.ControlMask != 0
-		if shift && tv.selAnchor >= 0 {
-			tv.selection = make(map[string]bool)
-			lo, hi := tv.selAnchor, dispIdx
-			if lo > hi {
-				lo, hi = hi, lo
-			}
-			for i := lo; i <= hi; i++ {
-				if i < len(tv.displayList) {
-					tv.selection[tv.displayList[i].item.ID] = true
-				}
-			}
-		} else if ctrl {
-			if tv.selection[id] {
-				delete(tv.selection, id)
-			} else {
-				tv.selection[id] = true
-			}
-			tv.selAnchor = dispIdx
+	}
+	isOpen := func(id string) bool {
+		item := tv.items[id]
+		return item != nil && item.Open && len(item.Children) > 0
+	}
+	switch dir {
+	case platform.XK_Up:
+		if up := tv.Prev(focus); up == "" {
+			focus = tv.Parent(focus)
 		} else {
-			tv.selection = map[string]bool{id: true}
-			tv.selAnchor = dispIdx
+			for isOpen(up) {
+				c := tv.items[up].Children
+				up = c[len(c)-1].ID
+			}
+			focus = up
 		}
+	case platform.XK_Down:
+		if isOpen(focus) {
+			focus = tv.items[focus].Children[0].ID
+		} else {
+			up, down := focus, ""
+			for up != "" {
+				if down = tv.Next(up); down != "" {
+					break
+				}
+				up = tv.Parent(up)
+			}
+			focus = down
+		}
+	case platform.XK_Left:
+		if isOpen(focus) {
+			tv.closeItem(focus)
+		} else {
+			focus = tv.Parent(focus)
+		}
+	case platform.XK_Right:
+		tv.openItem(focus)
 	}
-	if tv.OnSelect != nil {
-		tv.OnSelect()
+	if focus != "" {
+		tv.selectOp(focus, selectChoose)
 	}
 }
 
-func (tv *Treeview) moveFocus(delta int) {
-	if len(tv.displayList) == 0 {
+// openItem ports OpenItem: focus the item, send <<TreeviewOpen>>, open it.
+func (tv *Treeview) openItem(id string) {
+	tv.SetFocus(id)
+	tv.generate(TreeviewOpenEvent)
+	tv.SetItemOpen(id, true)
+}
+
+// closeItem ports CloseItem: close the item, focus it, send <<TreeviewClose>>.
+func (tv *Treeview) closeItem(id string) {
+	tv.SetItemOpen(id, false)
+	tv.SetFocus(id)
+	tv.generate(TreeviewCloseEvent)
+}
+
+// toggle ports Toggle: open or close an item that has children.
+func (tv *Treeview) toggle(id string) {
+	item := tv.items[id]
+	if item == nil || len(item.Children) == 0 {
 		return
 	}
-	idx := tv.displayIndex(tv.focus)
-	if idx < 0 {
-		idx = 0
+	if item.Open {
+		tv.closeItem(id)
 	} else {
-		idx += delta
+		tv.openItem(id)
 	}
-	if idx < 0 {
-		idx = 0
+}
+
+type selectOperation int
+
+const (
+	selectChoose selectOperation = iota
+	selectExtend
+	selectToggle
+)
+
+// selectOp ports SelectOp and the select.<op>.<selectmode> procedures.
+func (tv *Treeview) selectOp(id string, op selectOperation) {
+	switch {
+	case tv.selectMode == TreeSelectNone:
+		tv.SetFocus(id)
+		tv.See(id)
+	case tv.selectMode == TreeSelectBrowse || op == selectChoose:
+		tv.browseTo(id)
+	case op == selectToggle:
+		tv.SelectionToggle(id)
+	default: // extend
+		if anchor := tv.focus; anchor != "" && tv.items[anchor] != nil {
+			tv.SelectionSet(tv.between(anchor, id)...)
+		} else {
+			tv.browseTo(id)
+		}
 	}
-	if idx >= len(tv.displayList) {
-		idx = len(tv.displayList) - 1
-	}
-	tv.focus = tv.displayList[idx].item.ID
-	tv.SelectionSet(tv.focus)
-	tv.See(tv.focus)
+}
+
+// browseTo ports BrowseTo: see, focus and select the item.
+func (tv *Treeview) browseTo(id string) {
+	tv.See(id)
+	tv.SetFocus(id)
+	tv.SelectionSet(id)
+}
+
+// between ports ttk::treeview::between: the items from a to b inclusive,
+// in preorder over the whole tree, closed items' descendants included.
+func (tv *Treeview) between(a, b string) []string {
+	var out []string
+	in := false
+	tv.preorder(func(item *TreeItem) {
+		switch {
+		case item.ID == a || item.ID == b:
+			out = append(out, item.ID)
+			if a != b {
+				in = !in
+			}
+		case in:
+			out = append(out, item.ID)
+		}
+	})
+	return out
 }

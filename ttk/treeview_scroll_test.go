@@ -36,3 +36,29 @@ func TestScrollTo(t *testing.T) {
 		}
 	}
 }
+
+func TestItemLookTagPriority(t *testing.T) {
+	px := func(v uint64) *uint64 { return &v }
+	tv := &Treeview{tags: map[string]*treeTag{}}
+	tv.tag("first").background = px(1)
+	tv.tag("second").background = px(2)
+	tv.tag("second").foreground = px(3)
+	tv.tag("stripes").stripedBackground = px(4)
+
+	// The tag created first wins, whatever the item's tag order.
+	look := tv.itemLook(&TreeItem{Tags: []string{"second", "first"}}, false)
+	if *look.background != 1 || *look.foreground != 3 {
+		t.Errorf("look = bg %d fg %d, want bg 1 fg 3", *look.background, *look.foreground)
+	}
+	// A striped background replaces the background on striped rows only.
+	item := &TreeItem{Tags: []string{"first", "stripes"}}
+	if got := *tv.itemLook(item, true).background; got != 4 {
+		t.Errorf("striped row background = %d, want 4", got)
+	}
+	if got := *tv.itemLook(item, false).background; got != 1 {
+		t.Errorf("plain row background = %d, want 1", got)
+	}
+	if look := tv.itemLook(&TreeItem{Tags: []string{"unknown"}}, false); look.background != nil {
+		t.Error("an unknown tag set a background")
+	}
+}

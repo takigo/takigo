@@ -16,7 +16,8 @@ import re
 PAT = re.compile(r'^func ([A-Z]\w*)(\[[^\]]*\])?\(([^)]*)\) (\w+Option) \{', re.M)
 TTK_WIDGETS = ['Button', 'Checkbutton', 'Combobox', 'Entry', 'Frame', 'Label', 'Labelframe',
                'Menubutton', 'Notebook', 'Panedwindow', 'Progressbar', 'Radiobutton', 'Scale',
-               'Scrollbar', 'Separator', 'Sizegrip', 'Spinbox', 'Toggleswitch', 'Treeview']
+               'Scrollbar', 'Separator', 'Sizegrip', 'Spinbox', 'Toggleswitch', 'Treeview',
+               'Tag']  # treeview "tag configure" options
 
 
 def packages():

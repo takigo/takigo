@@ -7,7 +7,6 @@ import (
 	"github.com/takigo/takigo/font"
 	"github.com/takigo/takigo/option"
 	"github.com/takigo/takigo/platform"
-	"github.com/takigo/takigo/screenunit"
 )
 
 // Display renders the treeview to its window via double-buffered pixmap.
@@ -77,45 +76,22 @@ func (tv *Treeview) Display() {
 		border := draw.NewBorderFromPixel(headBg)
 
 		colX := x0
-		if tv.showTree {
-			// Tree column heading.
+		for _, col := range tv.shownColumns() {
 			draw.Fill3DRectangle(d, pixDrawable, gc, border,
-				colX, 0, tv.treeColumnWidth, tv.headingHeight, 1, option.ReliefRaised)
-			treeSorted := tv.sortInd != nil && tv.sortInd.columnID == "#0"
-			if tv.treeHeadingText != "" {
-				textW := tv.treeColumnWidth - 2
-				if treeSorted {
+				colX, 0, col.Width, tv.headingHeight, 1, option.ReliefRaised)
+			sorted := tv.sortInd != nil && tv.sortInd.columnID == col.ID
+			if col.HeadingText != "" {
+				// Treeheading.border is 1px and the Heading style has no padding.
+				textW := col.Width - 2
+				if sorted {
 					textW -= 12
 				}
 				if textW > 0 {
 					tv.drawAlignedText(tv.headingFont(), pixDrawable, colX+1, 0, textW,
-						tv.headingHeight, tv.treeHeadingText, tv.treeHeadingAnchor, fg, fgR, fgG, fgB)
-				}
-			}
-			if treeSorted {
-				tv.drawSortIndicator(d, pixDrawable, gc, colX+tv.treeColumnWidth-14, tv.headingHeight/2, tv.sortInd.reverse, fg)
-			}
-			colX += tv.treeColumnWidth
-		}
-
-		for _, col := range tv.columns {
-			draw.Fill3DRectangle(d, pixDrawable, gc, border,
-				colX, 0, col.Width, tv.headingHeight, 1, option.ReliefRaised)
-			if col.HeadingText != "" {
-				// Treeheading.border is 1px and the Heading style has no padding.
-				textW := col.Width - 2
-				textX := colX + 1
-				// Reserve space for sort indicator.
-				if tv.sortInd != nil && tv.sortInd.columnID == col.ID {
-					textW -= 12
-				}
-				if textW > 0 {
-					tv.drawAlignedText(tv.headingFont(), pixDrawable, textX, 0, textW,
 						tv.headingHeight, col.HeadingText, col.HeadingAnchor, fg, fgR, fgG, fgB)
 				}
 			}
-			// Sort indicator.
-			if tv.sortInd != nil && tv.sortInd.columnID == col.ID {
+			if sorted {
 				tv.drawSortIndicator(d, pixDrawable, gc, colX+col.Width-14, tv.headingHeight/2, tv.sortInd.reverse, fg)
 			}
 			colX += col.Width
@@ -130,6 +106,7 @@ func (tv *Treeview) Display() {
 
 	// Stripe color: slightly darker than field background.
 	stripeBg := darkenFieldColor(fieldBg, 13)
+	dataCols := tv.dataDisplayColumns()
 
 	// --- Draw items ---
 	visRows := tv.visibleRows()
@@ -146,21 +123,40 @@ func (tv *Treeview) Display() {
 
 		isSelected := tv.selection[item.ID]
 		isFocused := tv.focus == item.ID
+		striped := tv.Stripe && idx%2 == 1
+		look := tv.itemLook(item, striped)
 
-		// Selection highlight or alternating stripe.
-		if isSelected {
-			d.SetForeground(gc, selBg)
-			d.FillRectangle(pixDrawable, gc, 0, rowY, uint(width), uint(tv.rowHeight))
-		} else if tv.Stripe && idx%2 == 1 {
-			d.SetForeground(gc, stripeBg)
+		// PrepareItem: the style's selected map beats the tags, the tags
+		// beat the (striped) field background.
+		rowBg := fieldBg
+		switch {
+		case isSelected:
+			rowBg = selBg
+		case look.background != nil:
+			rowBg = *look.background
+		case striped:
+			rowBg = stripeBg
+		}
+		if rowBg != fieldBg {
+			d.SetForeground(gc, rowBg)
 			d.FillRectangle(pixDrawable, gc, 0, rowY, uint(width), uint(tv.rowHeight))
 		}
 
 		textPixel := fg
 		textR, textG, textB := fgR, fgG, fgB
-		if isSelected {
+		switch {
+		case isSelected:
 			textPixel = selFg
 			textR, textG, textB = selFgR, selFgG, selFgB
+		case look.foreground != nil:
+			textPixel = *look.foreground
+			textR, textG, textB = colorToRGB16(textPixel)
+		}
+		itemFont, im := tv.Font, m
+		if look.font != nil {
+			if _, ok := look.font.(platform.DrawableFont); ok {
+				itemFont, im = look.font, look.font.Metrics()
+			}
 		}
 
 		colX := x0
@@ -170,18 +166,8 @@ func (tv *Treeview) Display() {
 		// -indicatormargins {1.5p 1.5p 3p 1.5p}) packed left even for leaves,
 		// then Treeitem.image packed left (anchor w), then Treeitem.text.
 		if tv.showTree {
-			rowBg := fieldBg
-			if isSelected {
-				rowBg = selBg
-			} else if tv.Stripe && idx%2 == 1 {
-				rowBg = stripeBg
-			}
 			parcelX := colX + depth*tv.indent
-			indSize := screenunit.Pt(9).Pixels()
-			if indSize%2 == 0 {
-				indSize--
-			}
-			ml, mt, mr, mb := screenunit.Pt(1.5).Pixels(), screenunit.Pt(1.5).Pixels(), screenunit.Pt(3).Pixels(), screenunit.Pt(1.5).Pixels()
+			indSize, ml, mt, mr, mb := indicatorMetrics()
 			if len(item.Children) > 0 {
 				// Unfilled node: its requested size, centred in the row.
 				boxY := rowY + (tv.rowHeight-(indSize+mt+mb))/2
@@ -190,34 +176,34 @@ func (tv *Treeview) Display() {
 			}
 			textStartX := parcelX + indSize + ml + mr
 
-			if item.Image != nil {
-				imgW := item.Image.Width()
-				imgH := item.Image.Height()
+			if img := tv.itemImage(item); img != nil {
+				imgW := img.Width()
+				imgH := img.Height()
 				imgY := rowY + (tv.rowHeight-imgH)/2
-				item.Image.Draw(d, pixDrawable, gc, tv.Win.Depth,
+				img.Draw(d, pixDrawable, gc, tv.Win.Depth,
 					0, 0, imgW, imgH, textStartX, imgY, rowBg)
 				textStartX += imgW
 			}
 
 			// Draw item text.
 			if item.Text != "" {
-				textY := rowY + (tv.rowHeight-m.Linespace())/2 + m.Ascent
-				maxW := tv.treeColumnWidth - (textStartX - colX) - 4
-				tv.drawClippedText(tv.Font, pixDrawable, textStartX, textY, maxW,
+				textY := rowY + (tv.rowHeight-im.Linespace())/2 + im.Ascent
+				maxW := tv.column0.Width - (textStartX - colX) - 4
+				tv.drawClippedText(itemFont, pixDrawable, textStartX, textY, maxW,
 					item.Text, textPixel, textR, textG, textB)
 			}
 
-			colX += tv.treeColumnWidth
+			colX += tv.column0.Width
 		}
 
 		// Data columns.
-		for ci, col := range tv.columns {
+		for _, col := range dataCols {
 			val := ""
-			if ci < len(item.Values) {
-				val = item.Values[ci]
+			if col.index < len(item.Values) {
+				val = item.Values[col.index]
 			}
 			if val != "" {
-				tv.drawAlignedText(tv.Font, pixDrawable, colX+4, rowY, col.Width-8,
+				tv.drawAlignedText(itemFont, pixDrawable, colX+cellPadding, rowY, col.Width-2*cellPadding,
 					tv.rowHeight, val, col.Anchor, textPixel, textR, textG, textB)
 			}
 			colX += col.Width
@@ -231,23 +217,13 @@ func (tv *Treeview) Display() {
 	}
 
 	// Draw column separator lines in item area (only for columns with Separator set).
-	hasSep := false
-	for _, col := range tv.columns {
-		if col.Separator {
-			hasSep = true
-			break
-		}
-	}
-	if itemAreaH > 0 && hasSep {
+	if itemAreaH > 0 {
 		sepColor := LookupColor(tv.Context.Style, "-bordercolor", tv.State, 0xa0a0a0)
-		d.SetForeground(gc, sepColor)
 		colX := x0
-		if tv.showTree {
-			colX += tv.treeColumnWidth
-		}
-		for _, col := range tv.columns {
+		for _, col := range tv.shownColumns() {
 			colX += col.Width
 			if col.Separator {
+				d.SetForeground(gc, sepColor)
 				d.DrawLine(pixDrawable, gc, colX-1, itemAreaY, colX-1, height)
 			}
 		}

@@ -300,6 +300,8 @@ var sortBySize = func() {}
 var loadChildrenLazily = func(id string) {}
 var openItem = func(id string) {}
 ### 79
+var tv *ttk.Treeview
+### 80
 var app *takigo.App
 var f *ttk.Frame
 PRE
