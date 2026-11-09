@@ -92,6 +92,9 @@ type Treeview struct {
 
 	// Scrolling.
 	topIndex   int
+	xFirst     int // pixel offset of the view (tree.xscroll.first)
+	xSent      [2]float64
+	xSentValid bool
 	YScrollCmd func(first, last float64)
 	XScrollCmd func(first, last float64)
 
@@ -758,6 +761,82 @@ func (tv *Treeview) notifyYScrollbar() {
 		first, last := tv.YVisibleRange()
 		tv.YScrollCmd(first, last)
 	}
+}
+
+// scrolled ports TtkScrolled's sanity checks: a view past the end slides
+// back so that it ends at the end.
+func scrolled(first, last, total int) (int, int, int) {
+	if total <= 0 {
+		return 0, 1, 1
+	}
+	if last > total {
+		first = max(first-(last-total), 0)
+		last = total
+	}
+	return first, last, total
+}
+
+// scrollTo ports TtkScrollTo's clamping of a new first position.
+func scrollTo(newFirst, first, last, total int) int {
+	if newFirst >= total {
+		newFirst = total - 1
+	}
+	if newFirst > first && last >= total {
+		newFirst = first
+	}
+	return max(newFirst, 0)
+}
+
+// xscrollInfo is the horizontal view in pixels as TreeviewDoLayout reports
+// it; it also pulls xFirst back when the view got wider than the columns.
+func (tv *Treeview) xscrollInfo() (first, last, total int) {
+	first, last, total = scrolled(tv.xFirst, tv.xFirst+max(tv.treeAreaWidth(), 0), tv.totalWidth())
+	tv.xFirst = first
+	return first, last, total
+}
+
+// XView scrolls so that pixel offset px of the columns is at the left edge.
+func (tv *Treeview) XView(px int) {
+	first, last, total := tv.xscrollInfo()
+	if nf := scrollTo(px, first, last, total); nf != first {
+		tv.xFirst = nf
+		tv.Display()
+	}
+}
+
+// XViewScroll scrolls by count pixels or pages (TtkScrollviewCommand).
+func (tv *Treeview) XViewScroll(count int, pages bool) {
+	first, last, _ := tv.xscrollInfo()
+	if pages {
+		count *= last - first
+	}
+	tv.XView(first + count)
+}
+
+// XViewMoveTo scrolls to a fraction of the total column width.
+func (tv *Treeview) XViewMoveTo(fraction float64) {
+	_, _, total := tv.xscrollInfo()
+	tv.XView(int(fraction*float64(total) + 0.5))
+}
+
+// XVisibleRange returns the visible fraction for the x scrollbar.
+func (tv *Treeview) XVisibleRange() (float64, float64) {
+	first, last, total := tv.xscrollInfo()
+	return float64(first) / float64(total), float64(last) / float64(total)
+}
+
+// notifyXScrollbar calls XScrollCmd when the view changed since the last
+// call, like the idle UpdateScrollbarBG.
+func (tv *Treeview) notifyXScrollbar() {
+	if tv.XScrollCmd == nil {
+		return
+	}
+	first, last := tv.XVisibleRange()
+	if tv.xSentValid && tv.xSent == [2]float64{first, last} {
+		return
+	}
+	tv.xSent, tv.xSentValid = [2]float64{first, last}, true
+	tv.XScrollCmd(first, last)
 }
 
 func (tv *Treeview) displayIndex(id string) int {

@@ -118,11 +118,13 @@ func main() {
 		yscroll.Set(first, last)
 	}
 
-	// Horizontal scrollbar (display only; X scrolling not yet implemented).
 	xscroll := ttk.NewScrollbar(tvFrame, "hsb",
 		ttk.ScrollbarOrient(ttk.Horizontal),
+		ttk.ScrollbarCommand(widget.ScrollX(tv)),
 	)
-	_ = xscroll
+	tv.XScrollCmd = func(first, last float64) {
+		xscroll.Set(first, last)
+	}
 
 	// Grid layout: treeview row 0 col 0, yscroll row 0 col 1, xscroll row 1 col 0.
 	grid.Grid(tv, grid.Row(0), grid.Column(0), grid.Sticky(grid.NSEW))

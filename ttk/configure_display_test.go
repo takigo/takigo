@@ -114,6 +114,54 @@ func TestTreeviewSelectionRightAfterInsert(t *testing.T) {
 	}
 }
 
+func TestTreeviewXScroll(t *testing.T) {
+	app := testutil.NewTestApp(t)
+	tv := ttk.NewTreeview(app, "tv", ttk.TreeviewColumns("a", "b"), ttk.TreeviewShow("headings"))
+	for _, id := range []string{"a", "b"} {
+		tv.ColumnConfigure(id, ttk.ColWidth(200), ttk.ColStretch(false))
+	}
+	tv.Insert("", -1, ttk.ItemValues("1", "2"))
+	var calls int
+	var gotFirst, gotLast float64
+	tv.XScrollCmd = func(first, last float64) { calls, gotFirst, gotLast = calls+1, first, last }
+	place.Place(tv, place.X(0), place.Y(0), place.Width(102), place.Height(100))
+
+	var initial, page, end, widened [2]float64
+	app.After(50*time.Millisecond, func() {
+		initial[0], initial[1] = tv.XVisibleRange()
+		tv.XViewScroll(1, true)
+		page[0], page[1] = tv.XVisibleRange()
+		tv.XViewMoveTo(1)
+		end[0], end[1] = tv.XVisibleRange()
+		place.Place(tv, place.X(0), place.Y(0), place.Width(302), place.Height(100))
+	})
+	// The resize redisplays at idle once the ConfigureNotify is in.
+	app.After(150*time.Millisecond, func() {
+		defer app.Quit()
+		widened[0], widened[1] = tv.XVisibleRange()
+	})
+	app.MainLoop()
+
+	if initial != [2]float64{0, 0.25} {
+		t.Errorf("initial view = %v, want [0 0.25]", initial)
+	}
+	if calls == 0 {
+		t.Error("XScrollCmd was never called")
+	}
+	if page != [2]float64{0.25, 0.5} {
+		t.Errorf("after a page = %v, want [0.25 0.5]", page)
+	}
+	if end != [2]float64{0.75, 1} {
+		t.Errorf("moveto 1 = %v, want [0.75 1]", end)
+	}
+	if widened != [2]float64{0.25, 1} {
+		t.Errorf("widened at the end = %v, want [0.25 1]", widened)
+	}
+	if gotFirst != widened[0] || gotLast != widened[1] {
+		t.Errorf("last XScrollCmd = (%v, %v), want %v", gotFirst, gotLast, widened)
+	}
+}
+
 func TestUnderlineOptions(t *testing.T) {
 	app := testutil.NewTestApp(t)
 	l := ttk.NewLabel(app, "l", ttk.LabelText("File name:"))

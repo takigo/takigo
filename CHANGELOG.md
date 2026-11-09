@@ -5,6 +5,13 @@ version is 0, a minor release may break the API and says so here.
 
 ## Unreleased
 
+- **ttk.Treeview scrolls horizontally.** `XView`, `XViewScroll`,
+  `XViewMoveTo` and `XVisibleRange` port Tk's `xview` (pixel units), so
+  `widget.ScrollX(tv)` drives a horizontal scrollbar; `XScrollCmd` is now
+  called when the view changes, and Shift+wheel scrolls sideways. Headings
+  and cells move with the view, clicks follow it, and a view left past the
+  end by a resize slides back. The `tree` demo's horizontal scrollbar
+  works.
 - **More agent guides, skills and examples.** New area guides for the
   canvas, the text widget, bindings, the geometry managers and the
   dialogs (`canvas/AGENTS.md`, `widget/text/AGENTS.md`, `bind/AGENTS.md`,

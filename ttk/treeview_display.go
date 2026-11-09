@@ -32,6 +32,9 @@ func (tv *Treeview) Display() {
 	}
 	// TreeviewDoLayout: fit the columns to the tree area.
 	tv.resizeColumns(width)
+	tv.notifyXScrollbar()
+	// Headings and cells scroll; row backgrounds span the unscrolled width.
+	x0 := -tv.xFirst
 
 	pixDrawable := tv.backBuffer(width, height)
 	if pixDrawable == 0 {
@@ -73,7 +76,7 @@ func (tv *Treeview) Display() {
 		headBg := LookupColor(tv.Context.Style, "-background", tv.State, 0xd9d9d9)
 		border := draw.NewBorderFromPixel(headBg)
 
-		colX := 0
+		colX := x0
 		if tv.showTree {
 			// Tree column heading.
 			draw.Fill3DRectangle(d, pixDrawable, gc, border,
@@ -160,7 +163,7 @@ func (tv *Treeview) Display() {
 			textR, textG, textB = selFgR, selFgG, selFgB
 		}
 
-		colX := 0
+		colX := x0
 
 		// Tree column: the Item layout (ttkTreeview.c) in a parcel indented
 		// by depth*indent: Treeitem.indicator (-indicatorsize 9p, odd, plus
@@ -238,7 +241,7 @@ func (tv *Treeview) Display() {
 	if itemAreaH > 0 && hasSep {
 		sepColor := LookupColor(tv.Context.Style, "-bordercolor", tv.State, 0xa0a0a0)
 		d.SetForeground(gc, sepColor)
-		colX := 0
+		colX := x0
 		if tv.showTree {
 			colX += tv.treeColumnWidth
 		}

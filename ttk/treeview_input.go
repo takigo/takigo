@@ -27,6 +27,7 @@ type hitResult struct {
 }
 
 func (tv *Treeview) hitTest(x, y int) hitResult {
+	x += tv.xFirst
 	// Heading area.
 	if tv.showHeadings && y < tv.headingHeight {
 		colX := 0
@@ -113,7 +114,13 @@ func bindTreeview(tv *Treeview, app widget.AppContext) {
 		if ev.Type != event.MouseWheelType {
 			return
 		}
-		if n := wheel.Units(ev.Delta, 3); n != 0 {
+		n := wheel.Units(ev.Delta, 3)
+		switch {
+		case n == 0:
+		case ev.State&platform.ShiftMask != 0:
+			// TtkScrollable <Shift-MouseWheel>: x units are pixels.
+			tv.XViewScroll(n, false)
+		default:
 			tv.YView(tv.topIndex + n)
 		}
 	})
