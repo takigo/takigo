@@ -190,6 +190,11 @@ func New(name string, p Palette) *ttk.Theme {
 				ttk.L("border", ttk.Expand|ttk.FillF|ttk.Border,
 					ttk.L("padding", ttk.Expand|ttk.FillF)))))
 
+	// Sash: ttk::style configure Sash -sashthickness 4.5p -gripsize 15p.
+	sash := theme.GetStyle("Sash")
+	sash.Defaults["-sashthickness"] = screenunit.Pt(4.5).Pixels()
+	sash.Defaults["-gripsize"] = screenunit.Pt(15).Pixels()
+
 	// TSizegrip style.
 	tsizegrip := theme.GetStyle("TSizegrip")
 	tsizegrip.Defaults["-background"] = p.Frame

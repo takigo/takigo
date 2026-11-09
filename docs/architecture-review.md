@@ -56,9 +56,6 @@ subsystems, what is shared and what is deliberately not.
   into the public API and churn every demo. Its options are named alike
   instead: `<Widget><Option>`, a `<Widget>Style` on every widget, one
   `FieldState` for the entry-like widgets.
-- **`ttk.Panedwindow` wraps the classic widget.** Tk has a separate
-  `ttkPanedwindow.c`; the wrapper serves until a themed one is ported. It
-  has no `PanedwindowStyle` option for that reason.
 - **Screen DPI is process-wide** (`screenunit`), set by the last `NewApp`.
   Two Apps on displays with different DPIs, or one App across monitors with
   different DPIs, get one scale. Tk has the same model per interpreter;
@@ -77,9 +74,6 @@ subsystems, what is shared and what is deliberately not.
 
 ## Open
 
-- **`ttk.Panedwindow`** pushes ttk-only flags into `widget/panedwindow`
-  (`FlagSash`, `Weighted`, `GripSize`). A port of `ttkPanedwindow.c` would
-  remove them.
 - **The ttk theme engine** (`theme.go`, `layout.go`, `element(s).go`,
   `state.go`, `box.go`, about 1,600 lines) could be its own package so that
   the theme packages stop importing the widgets; `UseTheme` re-themes live

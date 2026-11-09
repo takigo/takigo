@@ -5,6 +5,7 @@ import (
 	"github.com/takigo/takigo/font"
 	"github.com/takigo/takigo/option"
 	"github.com/takigo/takigo/platform"
+	"github.com/takigo/takigo/screenunit"
 	"github.com/takigo/takigo/widget"
 )
 
@@ -632,5 +633,54 @@ func (e *SeparatorElement) Draw(d platform.DisplayServer, drawable platform.Draw
 		d.DrawLine(drawable, gc, x, box.Y, x, box.Y+box.Height-1)
 		d.SetForeground(gc, border.LightPixel)
 		d.DrawLine(drawable, gc, x+1, box.Y, x+1, box.Y+box.Height-1)
+	}
+}
+
+// --- Panedwindow sash (ttkPanedwindow.c) ---
+
+// SashElement is the invisible sash: -sashthickness (3.75p) square.
+type SashElement struct{ ctx *DrawContext }
+
+// NewSashElementFactory makes the default theme's hsash and vsash.
+func NewSashElementFactory(ctx *DrawContext) Element { return &SashElement{ctx: ctx} }
+
+func (e *SashElement) Size(state State) (int, int, Padding) {
+	t := LookupInt(e.ctx.Style, "-sashthickness", state, screenunit.Pt(3.75).Pixels())
+	return t, t, Padding{}
+}
+
+func (e *SashElement) Draw(platform.DisplayServer, platform.DrawableID, platform.GCID, Box, State) {}
+
+// GripElement is the sash's grip: a -gripsize (15p) long bar in the dark
+// shade of -background, one pixel in from the sash's sides.
+type GripElement struct {
+	ctx    *DrawContext
+	orient Orient
+}
+
+// NewGripElementFactory makes hgrip (Horizontal) or vgrip (Vertical).
+func NewGripElementFactory(orient Orient) ElementFactory {
+	return func(ctx *DrawContext) Element { return &GripElement{ctx: ctx, orient: orient} }
+}
+
+func (e *GripElement) gripSize(state State) int {
+	return LookupInt(e.ctx.Style, "-gripsize", state, screenunit.Pt(15).Pixels())
+}
+
+func (e *GripElement) Size(state State) (int, int, Padding) {
+	if e.orient == Horizontal {
+		return e.gripSize(state), 0, Padding{}
+	}
+	return 0, e.gripSize(state), Padding{}
+}
+
+func (e *GripElement) Draw(d platform.DisplayServer, drawable platform.DrawableID, gc platform.GCID, b Box, state State) {
+	bg := LookupColor(e.ctx.Style, "-background", state, 0xd9d9d9)
+	d.SetForeground(gc, draw.NewBorderFromPixel(bg).DarkPixel)
+	size, pad := e.gripSize(state), 1
+	if e.orient == Horizontal {
+		d.FillRectangle(drawable, gc, b.X+(b.Width-size)/2, b.Y+pad, uint(size), uint(max(b.Height-2*pad, 0)))
+	} else {
+		d.FillRectangle(drawable, gc, b.X+pad, b.Y+(b.Height-size)/2, uint(max(b.Width-2*pad, 0)), uint(size))
 	}
 }

@@ -18,8 +18,8 @@ import (
 	_ "github.com/takigo/takigo/ttk/defaulttheme"
 	"github.com/takigo/takigo/widget"
 	"github.com/takigo/takigo/widget/frame"
-	"github.com/takigo/takigo/widget/panedwindow"
 	"github.com/takigo/takigo/widget/text"
+	"github.com/takigo/takigo/window"
 )
 
 func main() {
@@ -52,26 +52,26 @@ func main() {
 	inner := ttk.NewFrame(f, "f")
 	pack.Pack(inner, pack.FillOpt(pack.FillBoth), pack.Expand(true))
 	outer := ttk.NewPanedwindow(inner, "outer",
-		panedwindow.OrientOpt(panedwindow.Horizontal),
+		ttk.PanedwindowOrient(ttk.Horizontal),
 	)
 
 	// Left inner vertical panedwindow.
 	inLeft := ttk.NewPanedwindow(outer, "inLeft",
-		panedwindow.OrientOpt(panedwindow.Vertical),
+		ttk.PanedwindowOrient(ttk.Vertical),
 	)
-	outer.Add(inLeft.Window(), 0)
+	addPane(outer, inLeft)
 
 	// Right inner vertical panedwindow.
 	inRight := ttk.NewPanedwindow(outer, "inRight",
-		panedwindow.OrientOpt(panedwindow.Vertical),
+		ttk.PanedwindowOrient(ttk.Vertical),
 	)
-	outer.Add(inRight.Window(), 0)
+	addPane(outer, inRight)
 
 	// --- Left top pane: Button ---
 	topLF := ttk.NewLabelframe(inLeft, "top",
 		ttk.LabelframeText("Button"),
 	)
-	inLeft.Add(topLF.Window(), 0)
+	addPane(inLeft, topLF)
 
 	pressBtn := ttk.NewButton(topLF, "b",
 		ttk.ButtonText("Press Me"),
@@ -90,7 +90,7 @@ func main() {
 	botLF := ttk.NewLabelframe(inLeft, "bot",
 		ttk.LabelframeText("Clocks"),
 	)
-	inLeft.Add(botLF.Window(), 0)
+	addPane(inLeft, botLF)
 
 	// Timezone data matching Tcl's testzones list.
 	type zoneInfo struct {
@@ -158,7 +158,7 @@ func main() {
 	rightTopLF := ttk.NewLabelframe(inRight, "top",
 		ttk.LabelframeText("Progress"),
 	)
-	inRight.Add(rightTopLF.Window(), 0)
+	addPane(inRight, rightTopLF)
 
 	progress := ttk.NewProgressbar(rightTopLF, "progress",
 		ttk.ProgressbarMode(ttk.ProgressIndeterminate),
@@ -170,7 +170,7 @@ func main() {
 	rightBotLF := ttk.NewLabelframe(inRight, "bot",
 		ttk.LabelframeText("Text"),
 	)
-	inRight.Add(rightBotLF.Window(), 0)
+	addPane(inRight, rightBotLF)
 
 	// A TEntry-styled ttk::frame gives the classic text a themed border.
 	entryFrame := ttk.NewFrame(rightBotLF, "f", ttk.FrameStyle("TEntry"))
@@ -201,4 +201,13 @@ func main() {
 	_ = txt
 	_ = sb
 	app.Run()
+}
+
+// addPane adds a pane; it fails only for a window that is not the
+// panedwindow's child.
+func addPane(pw *ttk.Panedwindow, w window.Windower) {
+	if err := pw.Add(w); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
 }

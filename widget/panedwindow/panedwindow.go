@@ -28,10 +28,6 @@ func (m *pwGeomMgr) Name() string { return "panedwindow" }
 
 func (m *pwGeomMgr) RequestProc(content *window.Window) {
 	pw := m.pw
-	if pw.Weighted {
-		pw.ttkSchedule(true, false)
-		return
-	}
 	// PanedWindowReqProc: an unmapped panedwindow adopts the request as
 	// the pane size; once mapped, requests only re-arrange.
 	if pw.Win.IsMapped() {
@@ -112,7 +108,6 @@ type pane struct {
 	size    int // Tk paneWidth/paneHeight: requested or sash-set size, 0 = unset
 	disp    int // size after the last ArrangePanes (stretch applied)
 	stretch Stretch
-	weight  int  // ttk pane -weight (Weighted mode only)
 	userSet bool // size fixed by a sash move (Tk's -width/-height)
 }
 
@@ -150,22 +145,12 @@ type PanedWindow struct {
 	panes      []pane
 	SashWidth  int
 	HandleSize int
-	// FlatSash renders a thin flat sash instead of a 3D raised sash.
-	FlatSash bool
-	// Weighted selects ttk::panedwindow's layout (ttkPanedwindow.c
-	// PlaceSashes): panes grow by -weight and the last pane absorbs the
-	// rest, instead of the classic -stretch rules.
-	Weighted bool
-	GripSize int // grip length for FlatSash
 
 	// mapped mirrors Tk_IsMapped for ArrangePanes: set on the first
 	// MapNotify, which the event loop delivers after setup code has run.
 	mapped bool
 
 	arrangePending bool // an ArrangePanes is scheduled for idle time
-
-	// Weighted mode's ttkManager.c update state.
-	ttkPending, ttkResize, ttkRelayout bool
 
 	// ShowHandle is Tk's -showhandle (default off): draw a raised sash and
 	// handle instead of the default flat, invisible sash.
@@ -245,16 +230,6 @@ func (pw *PanedWindow) Add(child *window.Window, minSize int) {
 	pw.contentChanged()
 }
 
-// SetWeight sets the ttk -weight of the pane holding child (Weighted mode).
-func (pw *PanedWindow) SetWeight(child *window.Window, weight int) {
-	for i := range pw.panes {
-		if pw.panes[i].win == child {
-			pw.panes[i].weight = max(weight, 0)
-		}
-	}
-	pw.scheduleArrange()
-}
-
 // SetStretch sets the -stretch mode of the pane holding child.
 func (pw *PanedWindow) SetStretch(child *window.Window, s Stretch) {
 	for i := range pw.panes {
@@ -297,48 +272,8 @@ func (pw *PanedWindow) reqSize(w *window.Window) int {
 // contentChanged recomputes the requested size and re-arranges after panes
 // were added or removed.
 func (pw *PanedWindow) contentChanged() {
-	if pw.Weighted {
-		pw.ttkSchedule(true, true)
-		return
-	}
 	pw.propagateReqSize()
 	pw.scheduleArrange()
-}
-
-// ttkSchedule ports ttkManager.c ScheduleUpdate/ManagerIdleProc for
-// Weighted mode: a size recomputation and a relayout run at idle time,
-// and after a size request the relayout waits for a further idle round,
-// so requests from nested panes settle before any pane is placed.
-func (pw *PanedWindow) ttkSchedule(resize, relayout bool) {
-	pw.ttkResize = pw.ttkResize || resize
-	pw.ttkRelayout = pw.ttkRelayout || relayout
-	if pw.ttkPending {
-		return
-	}
-	d := pw.Win.Display
-	if d == nil || d.DoWhenIdle == nil {
-		pw.ttkIdle()
-		return
-	}
-	pw.ttkPending = true
-	d.DoWhenIdle(pw.ttkIdle)
-}
-
-func (pw *PanedWindow) ttkIdle() {
-	pw.ttkPending = false
-	if pw.Destroyed() {
-		return
-	}
-	if pw.ttkResize {
-		pw.ttkResize = false
-		pw.propagateReqSize()
-		pw.ttkSchedule(false, true)
-	}
-	if pw.ttkRelayout && !pw.ttkPending {
-		pw.ttkRelayout = false
-		pw.arrangePanes()
-		pw.Display()
-	}
 }
 
 // scheduleArrange arranges and redraws the panes at idle time, as
@@ -376,24 +311,14 @@ func (pw *PanedWindow) arrangePanes() {
 	mapped := pw.Win.IsMapped()
 	for i := range pw.panes {
 		p := &pw.panes[i]
-		// Classic sizes come from Add and PanedWindowReqProc (RequestProc);
-		// ttk's PaneRequest tracks requests until the pane is placed.
-		track := p.size == 0
-		if pw.Weighted {
-			track = !p.win.IsMapped()
-		}
-		if !p.userSet && track {
+		// Sizes come from Add and PanedWindowReqProc (RequestProc).
+		if !p.userSet && p.size == 0 {
 			if pw.Orient == Horizontal {
 				p.size = p.win.ReqWidth
 			} else {
 				p.size = p.win.ReqHeight
 			}
 		}
-	}
-	if pw.Weighted {
-		pw.placeSashes(pwSize)
-		pw.placePanes()
-		return
 	}
 	reserve := pwSize - (n-1)*pw.SashWidth
 	dynSize, dynMin := 0, 0
@@ -441,62 +366,6 @@ func (pw *PanedWindow) arrangePanes() {
 	}
 
 	pw.placePanes()
-}
-
-// placeSashes ports ttkPanedwindow.c PlaceSashes: every pane gets its
-// request size, the difference to the available space is shared by
-// -weight, and the last sash is pinned to the end (ShoveUp), so the last
-// pane absorbs what the weights leave over.
-func (pw *PanedWindow) placeSashes(available int) {
-	n := len(pw.panes)
-	sash := pw.SashWidth
-	reqSize, totalWeight := 0, 0
-	for _, p := range pw.panes {
-		reqSize += p.size
-		if p.size != 0 {
-			totalWeight += p.weight
-		}
-	}
-	difference := available - reqSize - sash*(n-1)
-	delta, remainder := 0, 0
-	if totalWeight != 0 {
-		delta, remainder = difference/totalWeight, difference%totalWeight
-		if remainder < 0 {
-			delta--
-			remainder += totalWeight
-		}
-	}
-	sashPos := make([]int, n)
-	pos := 0
-	for i, p := range pw.panes {
-		weight := 0
-		if p.size != 0 {
-			weight = p.weight
-		}
-		size := p.size + delta*weight
-		weight = min(weight, remainder)
-		remainder -= weight
-		size = max(size+weight, 0)
-		pos += size
-		sashPos[i] = pos
-		pos += sash
-	}
-	var shoveUp func(i, pos int) int
-	shoveUp = func(i, pos int) int {
-		if i == 0 {
-			pos = max(pos, 0)
-		} else if pos < sashPos[i-1]+sash {
-			pos = shoveUp(i-1, pos-sash) + sash
-		}
-		sashPos[i] = pos
-		return pos
-	}
-	shoveUp(n-1, available)
-	start := 0
-	for i := range pw.panes {
-		pw.panes[i].disp = max(sashPos[i]-start, 0)
-		start = sashPos[i] + sash
-	}
 }
 
 // placePanes positions each pane at its computed size (PlacePanes).
@@ -614,27 +483,7 @@ func (pw *PanedWindow) display() {
 	d.FillRectangle(w.Drawable(), gc, 0, 0, uint(w.Width), uint(w.Height))
 
 	// Draw sashes.
-	if pw.FlatSash {
-		// ttk::panedwindow Sash layout (ttkPanedwindow.c): an invisible
-		// sash with a GripSize-long grip in the border's dark colour.
-		if pw.Border != nil {
-			d.SetForeground(gc, pw.Border.DarkPixel)
-		}
-		offset := pw.BorderWidth
-		for i := 0; i < len(pw.panes)-1; i++ {
-			offset += pw.panes[i].disp
-			if pw.SashWidth > 2 {
-				if pw.Orient == Horizontal {
-					d.FillRectangle(w.Drawable(), gc, offset+1, (w.Height-pw.GripSize)/2,
-						uint(pw.SashWidth-2), uint(pw.GripSize))
-				} else {
-					d.FillRectangle(w.Drawable(), gc, (w.Width-pw.GripSize)/2, offset+1,
-						uint(pw.GripSize), uint(pw.SashWidth-2))
-				}
-			}
-			offset += pw.SashWidth
-		}
-	} else if pw.Border != nil && pw.ShowHandle {
+	if pw.Border != nil && pw.ShowHandle {
 		// Tk's defaults (-sashrelief flat, -showhandle 0) draw nothing
 		// over the background; this raised sash is the -showhandle look.
 		offset := pw.BorderWidth
@@ -696,13 +545,7 @@ func bindPanedWindow(pw *PanedWindow, app widget.AppContext) {
 		if ev.Type == event.ConfigureType {
 			w.Width = ev.ConfigWidth
 			w.Height = ev.ConfigHeight
-			if pw.Weighted {
-				// ttkManager.c ManagerEventHandler relayouts at once.
-				pw.arrangePanes()
-				pw.Display()
-			} else {
-				pw.scheduleArrange()
-			}
+			pw.scheduleArrange()
 		}
 	})
 

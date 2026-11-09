@@ -50,7 +50,10 @@ setters are the same). The widgets port `tk/generic/ttk/ttk<Name>.c` and
   from `-orient` (scale, scrollbar, separator, progressbar) use the
   orientation's style only as the default; a style the user set with
   `-style` wins and survives `UseTheme`.
-- **`ttk.Panedwindow` wraps the classic widget** until `ttkPanedwindow.c`
-  is ported, which is why it has no `PanedwindowStyle` option and why
-  `widget/panedwindow` carries `FlagSash`, `Weighted` and `GripSize`.
+- **Content managers.** `ttk.Notebook` and `ttk.Panedwindow` manage their
+  panes themselves (Tk's `Ttk_Manager`): each is the panes' geometry
+  manager, and the panedwindow schedules size and relayout at idle like
+  `ttkManager.c`. Its sashes are the theme's `.Vertical.Sash` /
+  `.Horizontal.Sash` sublayout of the widget's style; the default theme's
+  `hsash`/`vsash`/`hgrip`/`vgrip` elements live in `ttk/elements.go`.
 - Benchmarks for style lookup and layout build: `ttk/theme_bench_test.go`.

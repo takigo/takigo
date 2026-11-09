@@ -216,6 +216,11 @@ it is only a hint. Regenerate with `python3 scripts/options_doc.py > docs/option
 | `MenubuttonOption` | `ttk.MenubuttonStyle` | `name string` | `-style` |
 | `MenubuttonOption` | `ttk.MenubuttonText` | `s string` | `-text` |
 | `NotebookOption` | `ttk.NotebookStyle` | `name string` | `-style` |
+| `PaneOption` | `ttk.PaneWeight` | `w int` | `-paneweight` |
+| `PanedwindowOption` | `ttk.PanedwindowHeight` | `px int` | `-height` |
+| `PanedwindowOption` | `ttk.PanedwindowOrient` | `o Orient` | `-orient` |
+| `PanedwindowOption` | `ttk.PanedwindowStyle` | `name string` | `-style` |
+| `PanedwindowOption` | `ttk.PanedwindowWidth` | `px int` | `-width` |
 | `ProgressbarOption` | `ttk.ProgressbarLength` | `l L` | `-length` |
 | `ProgressbarOption` | `ttk.ProgressbarMaximum` | `v float64` | `-maximum` |
 | `ProgressbarOption` | `ttk.ProgressbarMode` | `m ProgressMode` | `-mode` |

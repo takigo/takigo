@@ -147,6 +147,15 @@ func init() {
 	// Layout templates.
 
 	// TFrame: border → padding
+	// ttkPanedwindow.c: the panedwindow and its sash sublayouts.
+	theme.RegisterElement("hsash", ttk.NewSashElementFactory)
+	theme.RegisterElement("vsash", ttk.NewSashElementFactory)
+	theme.RegisterElement("hgrip", ttk.NewGripElementFactory(ttk.Horizontal))
+	theme.RegisterElement("vgrip", ttk.NewGripElementFactory(ttk.Vertical))
+	theme.RegisterLayout("TPanedwindow", ttk.L("background", ttk.FillF))
+	theme.RegisterLayout("Horizontal.Sash", ttk.L("hsash", ttk.FillF, ttk.L("hgrip", ttk.FillF)))
+	theme.RegisterLayout("Vertical.Sash", ttk.L("vsash", ttk.FillF, ttk.L("vgrip", ttk.FillF)))
+
 	theme.RegisterLayout("TFrame",
 		ttk.L("background", ttk.Expand|ttk.FillF,
 			ttk.L("border", ttk.Expand|ttk.FillF|ttk.Border,

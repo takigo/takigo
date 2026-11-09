@@ -5,6 +5,14 @@ version is 0, a minor release may break the API and says so here.
 
 ## Unreleased
 
+- **ttk.Panedwindow is Tk's ttk::panedwindow (breaking).** It was the
+  classic panedwindow with a flat sash; it is now a themed widget ported
+  from `ttkPanedwindow.c`: `PanedwindowOrient` (Tk's default is vertical),
+  `PanedwindowWidth`/`Height`/`Style`, `Add(child, ttk.PaneWeight(n))`,
+  `Insert`, `Forget`, `Pane`, `Panes`, `SashPos`, `SetSashPos` and
+  `Identify`. Sashes come from the theme (clam's are 4.5p). The classic
+  `panedwindow.PanedWindow` lost the ttk-only `FlatSash`, `Weighted`,
+  `GripSize` and `SetWeight`.
 - **Printing: `dialog.Print` is Tk's `tk print`.** It shows Tk's print
   dialog for a canvas or text widget (printer list from `lpstat` and
   `lpoptions`, copies, paper, scale, orientation and colour for a canvas,

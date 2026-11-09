@@ -2383,7 +2383,7 @@ to be told: call `w.RefreshTheme()` and then `w.Display()` on each (the
 | `ttk.NewSizegrip` | `ttk::sizegrip` | bottom-right resize handle |
 | `ttk.NewMenubutton` | `ttk::menubutton` | `MenubuttonText`, `MenubuttonMenu` |
 | `ttk.NewNotebook` | `ttk::notebook` | `Add(pane.Window(), "Title")`, `Select`, `Selected`, `SetTabState` |
-| `ttk.NewPanedwindow` | `ttk::panedwindow` | same API as the classic panedwindow |
+| `ttk.NewPanedwindow` | `ttk::panedwindow` | `PanedwindowOrient`; `Add(pane, ttk.PaneWeight(1))`, `Insert`, `Forget`, `Pane`, `SashPos`/`SetSashPos`, `Identify` |
 | `ttk.NewTreeview` | `ttk::treeview` | trees and tables (below) |
 
 There's no themed listbox or text widget in Tk either; use the classic ones
