@@ -3,8 +3,10 @@
 [AGENTS.md](AGENTS.md) is the maintained guide to the repository: layout,
 build and test commands, the rules that apply everywhere, and an index of
 the per-area guides (`widget/AGENTS.md`, `ttk/AGENTS.md`,
-`platform/AGENTS.md`, `demos/AGENTS.md`). Coding agents load them by
-themselves; read the root and the guide of the area you change before a
+`platform/AGENTS.md`, `demos/AGENTS.md`, `canvas/AGENTS.md`,
+`widget/text/AGENTS.md`, `bind/AGENTS.md`, `geometry/AGENTS.md`,
+`dialog/AGENTS.md`) and the step-by-step skills in `.agents/skills/`.
+Coding agents load them by themselves; read the root and the guide of the area you change before a
 first change. `scripts/check_docs.sh` (part of `make check`) fails when one
 of them names a path that no longer exists.
 

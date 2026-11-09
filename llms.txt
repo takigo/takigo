@@ -1,0 +1,32 @@
+# takigo
+
+> takigo is a pure-Go port of the Tk 9.1 GUI toolkit (module `github.com/takigo/takigo`, Go 1.27, standard library only): classic and themed (ttk) widgets, the pack/grid/place geometry managers, canvas, text, bindings, dialogs and the window-manager interface, behind typed constructors and functional options. Backends: X11 (cgo, needs libx11-dev libxft-dev libfontconfig1-dev), macOS (cgo), Windows (pure Go). The API is pre-1.0 and changes between minor versions; check CHANGELOG.md.
+
+Rules for code that uses takigo:
+
+- Create one `takigo.NewApp(opts...)`, build widgets, place them, then call `app.Run()`, which blocks on the event loop.
+- Every widget is `pkg.New(parent, "name", pkg.Option(...)...)`, where the parent is the App or another widget. Change options later with `w.Configure(pkg.Option(...))`, never by assigning fields.
+- A widget is invisible until a geometry manager places it: `pack.Pack(w, ...)`, `grid.Grid(w, grid.Row(0), ...)` or `place.Place(w, ...)`.
+- Options follow Tk's names (`button.Text`, `label.Width`). When the bare name is taken, the option carries an `Opt` suffix (`label.FontOpt`). ttk options are prefixed with the widget (`ttk.ButtonText`). Colours take a name or `color.RGB(...)`. Distances take pixels or `screenunit.Pt(3)`, `Mm(2)`, …; strings like "3p" do not compile.
+- All UI calls run on the goroutine running `app.Run()`. From other goroutines use `app.RunOnMain`, `app.After` or `app.DoWhenIdle`. Modal dialogs block in a nested loop and are fine to call from a command.
+- A themed app imports a theme for its side effect: `_ "github.com/takigo/takigo/ttk/clamtheme"`.
+- The godoc `Example` functions in each package are the reference usage.
+
+## Docs
+
+- [README](https://github.com/takigo/takigo/blob/master/README.md): hello world and requirements
+- [Tutorial](https://github.com/takigo/takigo/blob/master/docs/tutorial.md): from an empty directory to a complete application. Covers every widget, geometry, events, menus, dialogs, text, canvas, images, goroutines and ttk.
+- [Option reference](https://github.com/takigo/takigo/blob/master/docs/options.md): every widget option and the Tk option it stands for
+- [Threading](https://github.com/takigo/takigo/blob/master/THREADING.md): which APIs are loop-only and which are goroutine-safe
+- [Changelog](https://github.com/takigo/takigo/blob/master/CHANGELOG.md): breaking changes and how to migrate
+- [API reference](https://pkg.go.dev/github.com/takigo/takigo): godoc with runnable examples
+
+## Examples
+
+- [Demos](https://github.com/takigo/takigo/tree/master/demos): 69 programs, most of them ports of Tk's widget demos; `demos/<name>/main.go`
+- [Root package examples](https://github.com/takigo/takigo/blob/master/example_test.go)
+
+## Optional
+
+- [AGENTS.md](https://github.com/takigo/takigo/blob/master/AGENTS.md): for changing takigo itself (layout, conventions, tests)
+- [Architecture review](https://github.com/takigo/takigo/blob/master/docs/architecture-review.md): design decisions and known debt

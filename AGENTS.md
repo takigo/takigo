@@ -23,6 +23,16 @@ the area you change.
   build tags, cgo gotchas.
 - `demos/AGENTS.md` — the demos and the screenshot parity pipeline against
   Tk (`scripts/README.md` has every script option).
+- `canvas/AGENTS.md` — canvas items, the display list, tags, PostScript.
+- `widget/text/AGENTS.md` — the text widget's document, indices, marks,
+  tags, undo and display.
+- `bind/AGENTS.md` — binding patterns, tag chains, virtual events.
+- `geometry/AGENTS.md` — pack/grid/place and their shared plumbing.
+- `dialog/AGENTS.md` — the standard dialogs, their modal loop and sizing.
+- Skills in `.agents/skills/` (also `.claude/skills/`, `.opencode/skills/`):
+  `tk-demo-compare`, `port-tk-option`, `release`, `windows-wine-check`.
+  They load when a task matches; the guides above stay rules, the skills
+  hold step-by-step procedures.
 - `THREADING.md` — loop-only vs goroutine-safe APIs; `docs/architecture-review.md`
   — the design decisions that stand and the open points (2026-10-08);
   `CONTRIBUTING.md` — the pre-change checklist and releases.
@@ -59,9 +69,15 @@ resets when its last client disconnects and tests that open an App right
 after destroying one fail with "cannot open display". Existing code is not
 lint-clean; don't mass-fix unrelated warnings.
 
-Versions exist only as git tags (`takigo.Version()` reads the build info).
-Releases stay at v0.x; a breaking change bumps the minor version. A
-user-visible change gets a `CHANGELOG.md` entry under `## Unreleased`.
+## Branches, commits, releases
+
+Work happens on `devel`; `master` gets it by merge and is the only branch
+`make release` runs on. Commit subjects are `<area>: <what changed>`
+(`text: keep the view inside the document when text is deleted`), the
+body says why. Don't commit, push or tag unless asked. Versions exist
+only as git tags (`takigo.Version()` reads the build info). Releases stay
+at v0.x; a breaking change bumps the minor version. A user-visible change
+gets a `CHANGELOG.md` entry under `## Unreleased`.
 
 ## Repository layout
 
@@ -81,9 +97,11 @@ internal/selection/  internal/xdnd/  selections + clipboard; XDND drag and drop
 cursor/ busy/ systray/ screenunit/ option/ appearance/ internal/dbus/ internal/nanosvg/
 internal/treedump/  internal/cmd/    widget-tree JSON dump; demotitle, demodiff tools
 internal/testutil/  internal/displaylock/   display-test helpers; cross-package display lock
+internal/stubs/                      fakes for display-free tests (counting GeomManager, no-op DisplayServer)
 demos/<name>/main.go  demos/demohelper/     one demo per directory; shared demo boilerplate
 scripts/                             screenshot/compare pipeline, release and check scripts
 docs/                                tutorial, option reference, architecture review
+.agents/skills/  llms.txt            agent skills (symlinked into .claude/, .opencode/); index for LLMs using the library
 tk/  tcl/  tmp/                      vendored Tk/Tcl (reference only); scratch output — all gitignored
 ```
 
@@ -168,11 +186,16 @@ on different goroutines.
 | Add a ttk widget option or theme | `ttk/AGENTS.md` |
 | Add a platform capability | `platform/AGENTS.md`; extend `platform/display.go`, implement in all three backends |
 | Fix a wrong-looking demo | the `tk-demo-compare` skill (`.agents/skills/`), `demos/AGENTS.md` |
-| Add a binding tag or pattern | `bind/table.go` (`BindingTable`) + `bind/pattern.go` (Tk pattern syntax) |
+| Port a Tk option end to end | the `port-tk-option` skill |
+| Add a canvas item or item option | `canvas/AGENTS.md` |
+| Add a binding tag or pattern | `bind/AGENTS.md`; `bind/table.go` (`BindingTable`) + `bind/pattern.go` |
+| Check a dialog by clicking through it | `dialog/AGENTS.md`, "Checking a dialog by hand" |
+| Check the Windows backend from Linux | the `windows-wine-check` skill |
 | Adjust default widget colour/font | `widget/palette.go`; read with `widget.PaletteFor(app)`, never a literal |
 | Adjust DPI / unit conversion | `screenunit/screenunit.go` (Tk's `tkCmds.c` ScalingCmd); `screenunit.SetScreenDPI` is called once in `NewApp` from the screen metrics + `Xft.dpi` |
 | Understand a Tk semantic | grep `tk/library/<file>.tcl` and `tk/generic/<file>.c` |
-| Cut a release | `make release` on master (`scripts/release.sh`); `RELEASE_DRY=1` shows the version it picks |
+| Cut a release | the `release` skill; `make release` on master, `RELEASE_DRY=1` shows the version it picks |
+| Add a godoc example | `<pkg>/example_test.go`; no `// Output:` when it needs a display |
 | Regenerate the option reference | `python3 scripts/options_doc.py > docs/options.md` |
 
 ## Environment variables
@@ -183,7 +206,5 @@ on different goroutines.
 | `TAKIGO_TEST_DISPLAY=real` | Display tests use your screen instead of a private Xvfb |
 | `TAKIGO_CLASSIC=1` | Tk-exact drawing (no anti-aliased canvas), like `takigo.Classic()` |
 | `TAKIGO_APPEARANCE` | `light` or `dark`: overrides the desktop's appearance for `appearance.System` |
-| `TAKIGO_FREEZE_TIMERS=1` | `event.Loop.After` drops positive-delay timers (screenshot scripts set it) |
 | `TAKIGO_DUMP_TREE=<file>` | Rewrite the widget tree as JSON every 250ms when it changes (`internal/treedump`) |
-| `TAKIGO_DEBUG_NAME_WIDGETS=1` | `XStoreName` every child window with its Go name, for `xdotool` |
-| `HEADLESS=1`, `PIN_FONTS`, `SKIP_IF_EXISTS`, `WISH`, `LLM_TOOL`, … | screenshot pipeline: `scripts/README.md` |
+| `TAKIGO_FREEZE_TIMERS`, `TAKIGO_DEBUG_NAME_WIDGETS`, `HEADLESS`, `PIN_FONTS`, `WISH`, `LLM_TOOL`, … | screenshot pipeline: `demos/AGENTS.md`, `scripts/README.md` |

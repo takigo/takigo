@@ -98,19 +98,27 @@ of a custom widget built on the same pieces (`widget.InitBase`,
   redraw into a pixmap (Tk's `REDRAW_PENDING` + `Tk_GetPixmap`). Draw
   through `w.Drawable()`, never `platform.WindowDrawable(w.PlatformID)`,
   so the redirection applies.
-- **Layout timing.** pack/grid relayout synchronously inside
-  `GeometryRequest`; Tk does it at idle. The App's event filter rewrites
-  child ConfigureNotify sizes to `Window.Width/Height` and
-  `window.IsViewable()` stands in for `Tk_IsMapped`. State computed
-  incrementally from sizes (a treeview's column remainder, a canvas
-  `-confine` origin) must do its work at idle or gate it on `IsViewable`,
-  never read `ev.ConfigWidth` for child windows. Anything that maps a
-  `Window` calls `window.MarkMapped`, or its children never map.
+- **Layout timing.** As in Tk, pack/grid/place lay out at idle
+  (`geometry.WhenIdle`); `geometry/AGENTS.md` has the details. Code that
+  reads a fresh tree's requested sizes before the loop runs calls
+  `ArrangeContainer` first. The App's event filter rewrites child
+  ConfigureNotify sizes to `Window.Width/Height` and `window.IsViewable()`
+  stands in for `Tk_IsMapped`. State computed incrementally from sizes (a
+  treeview's column remainder, a canvas `-confine` origin) does its work
+  at idle or gates it on `IsViewable`; never read `ev.ConfigWidth` for
+  child windows. Anything that maps a `Window` calls `window.MarkMapped`,
+  or its children never map.
 
 ## Shared internals
 
 - `widget/internal/tkbutton`: the button family (label, button,
   checkbutton, radiobutton), a port of `tkUnixButton.c` told apart by type.
+- **SVG elements.** Where Tk 9 draws an indicator or element from an SVG
+  template (`tkUnixButton.c`, `ttkElements.c`, `library/ttk/elements.tcl`),
+  copy the template verbatim and render it with `draw.SVGImage`
+  (`internal/nanosvg`, a pixel-exact port of Tk's rasterizer) plus
+  `draw.PutPhotoRGBA`; never redraw the shape by hand. The golden tests
+  are `internal/nanosvg/testdata/`.
 - `widget/internal/entryedit`: editing shared by the classic entry and
   spinbox (`tkEntry.c`); `internal/textedit` holds the text measuring and
   word helpers every entry-like widget uses.

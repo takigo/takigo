@@ -6,7 +6,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-files=(AGENTS.md CONTRIBUTING.md THREADING.md scripts/README.md)
+files=(AGENTS.md CONTRIBUTING.md THREADING.md scripts/README.md llms.txt)
 while IFS= read -r f; do files+=("$f"); done < <(find docs -name '*.md' | sort)
 while IFS= read -r f; do files+=("$f"); done < <(find . -mindepth 2 -maxdepth 3 -name AGENTS.md -not -path './tmp/*' -not -path './tk/*' -not -path './tcl/*' | sed 's|^\./||' | sort)
 while IFS= read -r f; do files+=("$f"); done < <(find .agents/skills -name '*.md' | sort)
@@ -52,8 +52,19 @@ for f in "${files[@]}"; do
     done < <(grep -oE '`make [a-z][a-z-]*(`| [A-Z[])' "$f" | sed -E 's/`make ([a-z-]+).*/\1/' | sort -u)
 done
 
+# The layout block of AGENTS.md names every top-level and internal/
+# directory, so a new package cannot go unmentioned.
+layout=$(sed -n '/^## Repository layout/,/^## /p' AGENTS.md)
+while IFS= read -r dir; do
+    checked=$((checked + 1))
+    name=${dir#./}
+    base=${name##*/}
+    grep -qE "(^|[ ,{/])$base([/,}]|$| )" <<<"$layout" ||
+        problem AGENTS.md "Repository layout does not mention $name/"
+done < <(git ls-files | awk -F/ 'NF > 1 && $1 !~ /^\./ { print $1 } NF > 2 && $1 == "internal" { print $1 "/" $2 }' | sort -u)
+
 demos=$(ls -d demos/*/main.go | wc -l)
-for f in AGENTS.md demos/AGENTS.md README.md docs/*.md; do
+for f in AGENTS.md demos/AGENTS.md README.md llms.txt docs/*.md; do
     [[ -f $f ]] || continue
     while IFS= read -r n; do
         checked=$((checked + 1))

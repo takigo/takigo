@@ -70,6 +70,7 @@ go run ./demos/button          # a single demo
 - [docs/options.md](docs/options.md): every widget option, with the Tk option it stands for.
 - [THREADING.md](THREADING.md): which types are safe to use from which goroutine.
 - [AGENTS.md](AGENTS.md): repository layout, conventions, build and test commands.
+- [llms.txt](llms.txt): a short index of the docs for LLMs writing code that uses takigo.
 - [docs/architecture-review.md](docs/architecture-review.md): known design debt.
 - [CHANGELOG.md](CHANGELOG.md): what changed since v0.1.0 and how to migrate.
 

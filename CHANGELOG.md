@@ -5,6 +5,16 @@ version is 0, a minor release may break the API and says so here.
 
 ## Unreleased
 
+- **More agent guides, skills and examples.** New area guides for the
+  canvas, the text widget, bindings, the geometry managers and the
+  dialogs (`canvas/AGENTS.md`, `widget/text/AGENTS.md`, `bind/AGENTS.md`,
+  `geometry/AGENTS.md`, `dialog/AGENTS.md`); skills for porting a Tk
+  option, cutting a release and checking the Windows backend under wine;
+  an `llms.txt` index for models writing code with takigo; godoc examples
+  for the packages that had none. `scripts/check_docs.sh` now also fails
+  when the repository layout in `AGENTS.md` misses a directory.
+  `widget/AGENTS.md` no longer claims that layout runs synchronously.
+
 ## v0.4.4 (2026-11-02)
 
 - **macOS: Option works as Alt again.** Option+letter reached widgets
