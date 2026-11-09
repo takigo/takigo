@@ -2,9 +2,14 @@ package button_test
 
 import (
 	"errors"
+	goimage "image"
+	gocolor "image/color"
+	"image/draw"
 	"testing"
 
 	"github.com/takigo/takigo/color"
+	"github.com/takigo/takigo/geometry/pack"
+	"github.com/takigo/takigo/image"
 	"github.com/takigo/takigo/internal/testutil"
 	"github.com/takigo/takigo/option"
 	"github.com/takigo/takigo/screenunit"
@@ -87,5 +92,39 @@ func TestDisabledButtonDoesNotInvoke(t *testing.T) {
 	b.Invoke()
 	if calls != 0 {
 		t.Errorf("a disabled button ran its command %d times", calls)
+	}
+}
+
+// TestDisabledImageIsStippled checks TkpDisplayButton's stippleGC: a
+// disabled button's image gets a gray50 stipple in the background colour.
+func TestDisabledImageIsStippled(t *testing.T) {
+	app := testutil.NewTestApp(t)
+	red := goimage.NewRGBA(goimage.Rect(0, 0, 16, 16))
+	draw.Draw(red, red.Bounds(), &goimage.Uniform{gocolor.RGBA{255, 0, 0, 255}}, goimage.Point{}, draw.Src)
+	img := image.NewPhoto("red", red)
+
+	on := button.New(app, "on", button.ImageOpt(img), button.Background("white"))
+	off := button.New(app, "off", button.ImageOpt(img), button.Background("white"),
+		button.State(widget.StateDisabled))
+	pack.Pack(on)
+	pack.Pack(off)
+	shot := testutil.Grab(t, app, app.Root())
+	count := func(b *button.Button) int {
+		n := 0
+		for y := b.Win.Y; y < b.Win.Y+b.Win.Height; y++ {
+			for x := b.Win.X; x < b.Win.X+b.Win.Width; x++ {
+				if c := shot.NRGBAAt(x, y); c.R > 200 && c.G < 60 && c.B < 60 {
+					n++
+				}
+			}
+		}
+		return n
+	}
+	normal, disabled := count(on), count(off)
+	if normal != 256 {
+		t.Fatalf("normal button shows %d red pixels, want the whole 16x16 image", normal)
+	}
+	if disabled < 100 || disabled > 156 {
+		t.Errorf("disabled button shows %d of 256 image pixels, want about half (gray50)", disabled)
 	}
 }

@@ -124,6 +124,11 @@ func Width(n int) RadiobuttonOption {
 	return func(r *Radiobutton) { r.WidthChars = n }
 }
 
+// State sets -state (normal, active or disabled).
+func State(st widget.State) RadiobuttonOption {
+	return func(r *Radiobutton) { r.State = st }
+}
+
 // New creates a new Radiobutton widget.
 func New(parent widget.Caregiver, name string, opts ...RadiobuttonOption) *Radiobutton {
 	app := parent.AppContext()

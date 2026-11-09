@@ -9,12 +9,14 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"github.com/takigo/takigo/bitmap"
 	"github.com/takigo/takigo/color"
 	"github.com/takigo/takigo/draw"
 	"github.com/takigo/takigo/font"
 	"github.com/takigo/takigo/option"
 	"github.com/takigo/takigo/platform"
 	"github.com/takigo/takigo/widget"
+	"github.com/takigo/takigo/window"
 )
 
 // Type tells the four widgets apart (TYPE_LABEL ... TYPE_RADIO_BUTTON).
@@ -83,6 +85,7 @@ type Shared struct {
 	indicatorSpace, indicatorDiameter int
 	lines                             []string
 	linesKey                          layoutKey
+	gray50                            platform.PixmapID // stippleGC's -stipple, made on first use
 }
 
 // layoutKey is what the line breaks of the text depend on.
@@ -332,7 +335,9 @@ func Display(b *widget.Base, s *Shared, sel Selection) {
 	if haveImage {
 		imgW, imgH = s.Img.Width(), s.Img.Height()
 	}
+	var imgX0, imgY0 int // where the image went, for the disabled stipple
 	drawImage := func(x, y int) {
+		imgX0, imgY0 = x, y
 		// Keep the coordinates inside the window (Tk bug 979239).
 		width, height := min(imgW, w.Width), min(imgH, w.Height)
 		x = max(min(x, w.Width-width), 0)
@@ -418,6 +423,26 @@ func Display(b *widget.Base, s *Shared, sel Selection) {
 			state, s.State == widget.StateDisabled)
 	}
 
+	// A disabled button without a -disabledforeground, or its image, is
+	// stippled with gray50 in the background colour (stippleGC).
+	if s.State == widget.StateDisabled && (s.DisabledFg == nil || haveImage) {
+		if pm := s.gray50Pixmap(w); pm != 0 {
+			stip := bgOf(b)
+			if sel.Selected && !s.IndicatorOn && s.SelectColor != nil && s.typ >= TypeCheck {
+				stip = s.SelectColor.Pixel
+			}
+			d.SetForeground(gc, stip)
+			d.SetStipple(gc, pm)
+			d.SetFillStyle(gc, platform.FillStippled)
+			if s.DisabledFg == nil {
+				d.FillRectangle(drawable, gc, 0, 0, uint(w.Width), uint(w.Height))
+			} else {
+				d.FillRectangle(drawable, gc, imgX0, imgY0, uint(imgW), uint(imgH))
+			}
+			d.SetFillStyle(gc, platform.FillSolid)
+		}
+	}
+
 	// The border and the rings last, over any overflowing content. The
 	// default ring is drawn in the highlight border's colour.
 	if relief != option.ReliefFlat {
@@ -458,6 +483,31 @@ func Display(b *widget.Base, s *Shared, sel Selection) {
 		focusPad = 5
 	}
 	b.DrawHighlightBorder(s.hasFocus, focusPad)
+}
+
+// gray50Pixmap returns Tk's gray50 bitmap as a stipple for w's display.
+func (s *Shared) gray50Pixmap(w *window.Window) platform.PixmapID {
+	if s.gray50 == 0 {
+		bw, bh, bits, ok := bitmap.Data("gray50")
+		if !ok {
+			return 0
+		}
+		d := w.Display.Server
+		s.gray50 = d.CreateBitmapFromData(platform.WindowDrawable(w.PlatformID), bits, uint(bw), uint(bh))
+		w.OnDestroy(func() {
+			d.FreePixmap(s.gray50)
+			s.gray50 = 0
+		})
+	}
+	return s.gray50
+}
+
+// bgOf is the normal background pixel (normalBorder's colour).
+func bgOf(b *widget.Base) uint64 {
+	if b.Background != nil {
+		return b.Background.Pixel
+	}
+	return 0
 }
 
 // shift ports ShiftByOffset: a push button's content moves down and right

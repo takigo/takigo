@@ -5,6 +5,12 @@ version is 0, a minor release may break the API and says so here.
 
 ## Unreleased
 
+- **Disabled buttons and labels look like Tk's.** A disabled label,
+  button, checkbutton or radiobutton stipples its image with gray50 in its
+  background colour, and stipples the whole widget when it has no
+  `-disabledforeground` (`TkpDisplayButton`). `button.State`,
+  `radiobutton.State` and `label.State` set `-state`, which only the
+  checkbutton had.
 - **ttk.Treeview: the rest of Tk's treeview.** Tags (`TagConfigure` with
   `TagForeground`, `TagBackground`, `TagStripedBackground`, `TagFont`,
   `TagImage`; `TagAdd`, `TagRemove`, `TagHas`, `TagNames`, `TagDelete`,

@@ -283,6 +283,7 @@ it is only a hint. Regenerate with `python3 scripts/options_doc.py > docs/option
 | `ButtonOption` | `button.PadX` | `p L` | `-padx` |
 | `ButtonOption` | `button.PadY` | `p L` | `-pady` |
 | `ButtonOption` | `button.ReliefOpt` | `r option.Relief` | `-relief` |
+| `ButtonOption` | `button.State` | `st widget.State` | `-state` |
 | `ButtonOption` | `button.Text` | `s string` | `-text` |
 | `ButtonOption` | `button.Width` | `n int` | `-width` |
 
@@ -359,6 +360,7 @@ it is only a hint. Regenerate with `python3 scripts/options_doc.py > docs/option
 | `LabelOption` | `label.PadX` | `p L` | `-padx` |
 | `LabelOption` | `label.PadY` | `p L` | `-pady` |
 | `LabelOption` | `label.Relief` | `r option.Relief` | `-relief` |
+| `LabelOption` | `label.State` | `st widget.State` | `-state` |
 | `LabelOption` | `label.Text` | `s string` | `-text` |
 | `LabelOption` | `label.TextVariable` | `v *widget.Variable[string]` | `-textvariable` |
 | `LabelOption` | `label.Width` | `w int` | `-width` |
@@ -451,6 +453,7 @@ it is only a hint. Regenerate with `python3 scripts/options_doc.py > docs/option
 | `RadiobuttonOption` | `radiobutton.IndicatorOnOpt` | `on bool` | `-indicatoron` |
 | `RadiobuttonOption` | `radiobutton.PadX` | `p L` | `-padx` |
 | `RadiobuttonOption` | `radiobutton.PadY` | `p L` | `-pady` |
+| `RadiobuttonOption` | `radiobutton.State` | `st widget.State` | `-state` |
 | `RadiobuttonOption` | `radiobutton.Text` | `s string` | `-text` |
 | `RadiobuttonOption` | `radiobutton.TristateValueOpt` | `v string` | `-tristatevalue` |
 | `RadiobuttonOption` | `radiobutton.Value` | `v string` | `-value` |

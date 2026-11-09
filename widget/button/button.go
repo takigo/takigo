@@ -113,6 +113,13 @@ func Width(n int) ButtonOption {
 	return func(b *Button) { b.WidthChars = n }
 }
 
+// State sets -state (normal, active or disabled). A disabled button
+// ignores the pointer and draws in -disabledforeground, its image
+// stippled.
+func State(st widget.State) ButtonOption {
+	return func(b *Button) { b.State = st }
+}
+
 // New creates a new Button widget as a child of parent.
 func New(parent widget.Caregiver, name string, opts ...ButtonOption) *Button {
 	app := parent.AppContext()

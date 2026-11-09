@@ -149,6 +149,12 @@ func WrapLength[L screenunit.Length](w L) LabelOption {
 	return func(l *Label) { l.WrapLen = screenunit.ToPixels(w) }
 }
 
+// State sets -state: a disabled label draws in -disabledforeground, its
+// image stippled.
+func State(st widget.State) LabelOption {
+	return func(l *Label) { l.Disabled = st == widget.StateDisabled }
+}
+
 // New creates a new Label widget as a child of parent.
 func New(parent widget.Caregiver, name string, opts ...LabelOption) *Label {
 	app := parent.AppContext()

@@ -80,8 +80,6 @@ subsystems, what is shared and what is deliberately not.
 - **`ttk.Panedwindow`** pushes ttk-only flags into `widget/panedwindow`
   (`FlagSash`, `Weighted`, `GripSize`). A port of `ttkPanedwindow.c` would
   remove them.
-- **Disabled images are not stippled.** Tk stipples a disabled widget's
-  image (`TkpDisplayButton`); the button family draws it as is.
 - **The ttk theme engine** (`theme.go`, `layout.go`, `element(s).go`,
   `state.go`, `box.go`, about 1,600 lines) could be its own package so that
   the theme packages stop importing the widgets; `UseTheme` re-themes live
