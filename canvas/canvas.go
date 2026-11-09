@@ -200,6 +200,12 @@ func ScrollRegion(x1, y1, x2, y2 int) CanvasOption {
 	}
 }
 
+// GetScrollRegion returns -scrollregion; ok is false when it is unset.
+func (c *Canvas) GetScrollRegion() (x1, y1, x2, y2 int, ok bool) {
+	r := c.scrollRegion
+	return r[0], r[1], r[2], r[3], c.hasScrollRegion
+}
+
 // New creates a new Canvas widget.
 func New(parent widget.Caregiver, name string, opts ...CanvasOption) *Canvas {
 	app := parent.AppContext()

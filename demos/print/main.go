@@ -12,15 +12,15 @@ import (
 	"os"
 	"strings"
 
-	tkimage "github.com/takigo/takigo/image"
-	"github.com/takigo/takigo/screenunit"
-
 	"github.com/takigo/takigo"
 	"github.com/takigo/takigo/canvas"
 	"github.com/takigo/takigo/demos/demohelper"
 	"github.com/takigo/takigo/dialog"
 	"github.com/takigo/takigo/geometry/pack"
+	tkimage "github.com/takigo/takigo/image"
 	"github.com/takigo/takigo/option"
+	"github.com/takigo/takigo/screenunit"
+	"github.com/takigo/takigo/widget"
 	"github.com/takigo/takigo/widget/button"
 	"github.com/takigo/takigo/widget/frame"
 	"github.com/takigo/takigo/widget/label"
@@ -88,40 +88,14 @@ func main() {
 
 	printCanvasBtn := button.New(btnFrame, "c",
 		button.Text("Print Canvas"),
-		button.Command(func() {
-			path := "/tmp/takigo-canvas.ps"
-			_, err := c.Postscript(canvas.PSFile(path))
-			if err != nil {
-				dialog.ShowMessage(app,
-					dialog.MsgTitle("Print"),
-					dialog.MsgMessage("Failed: "+err.Error()),
-					dialog.MsgType(dialog.MsgError),
-				)
-				return
-			}
-			dialog.ShowMessage(app,
-				dialog.MsgTitle("Print"),
-				dialog.MsgMessage("Saved to "+path),
-				dialog.MsgType(dialog.MsgInfo),
-			)
-		}),
+		button.Command(func() { printWidget(app, c) }),
 	)
 	pack.Pack(printCanvasBtn, pack.SideOpt(pack.Left), pack.Anchor(option.AnchorW),
 		pack.PadX(screenunit.Pt(3)))
 
 	printTextBtn := button.New(btnFrame, "t",
 		button.Text("Print Text"),
-		button.Command(func() {
-			// Text-widget printing is out of scope for the first port;
-			// tk's full print.tcl driver layer builds on top of canvas
-			// postscript + a platform print spooler. For now we just show
-			// a "not yet" notice.
-			dialog.ShowMessage(app,
-				dialog.MsgTitle("Print"),
-				dialog.MsgMessage("Text-widget printing is not yet implemented in takigo."),
-				dialog.MsgType(dialog.MsgInfo),
-			)
-		}),
+		button.Command(func() { printWidget(app, tw) }),
 	)
 	pack.Pack(printTextBtn, pack.SideOpt(pack.Right), pack.Anchor(option.AnchorE),
 		pack.PadX(screenunit.Pt(3)))
@@ -137,3 +111,11 @@ func toRGBA(img goimage.Image) *goimage.RGBA {
 }
 
 const logoData = "R0lGODlhMABLAPUAAP//////zP//mf//AP/MzP/Mmf/MAP+Zmf+ZZv+ZAMz//8zM/8zMzMyZzMyZmcyZZsyZAMxmZsxmM8xmAMwzM8wzAJnMzJmZzJmZmZlmmZlmZplmM5kzZpkzM5kzAGaZzGZmzGZmmWYzZmYzMzNmzDNmmTMzmTMzZgAzmQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACH+BSAtZGwtACH5BAEKAAIALAAAAAAwAEsAAAb+QIFwSCwahY9HRMI8Op/JJVNSqVqv2OvjyRU8slbIJGwYg60S5ZR6jRi/4ITBOhkYIOd8dltEnAdmFQMJeoVXCEd/VnKGjRVOZ3NVgHlsjpBxVRCEYBIEAAARl4lgZmVgEQAKFx8Mo0ZnpqgAFyi2JqKGmGebWRIAILbCIo27cYFWASTCtievRXqSVwQfzLYeeYESxlnSVRIW1igjWHJmjBXbpKXeFQTizlh1eJNVHbYf0LGc39XW2PIoVZE0whasWPSqFBBHrkKEA3QG0DFTEMXBUsjCWesg4oMFAGwgtKsiwqA+jGiCiRPGAM6pLCVLGKHQ6EGJlc0IuDxzAgX+CCOW9DjAaUsEyAoT+GHpeSRoHgxEUWgAUEUpFhMWgTbKEPUBAU15TBZxekYD0RMEqCDLIpYIWTAcmGEd9rWQBxQyjeQqdK/ZTWEO3mK5l+9No75SrcHhm9WwnlzNoA5zdM+JHz0HCPQdUauZowoFnSw+c2CBvw6dUXT4LMKE6EIHUqMexgCiIREknOwl7Q+FhNQoLuzOc6Kw3kIIVOLqjYKBYCwinmgo9CBEswfMAziK7mRDoQhcUZxwoBKFibq3n3jXI0GyCPLC0DrS8GR1oaEoRBRYVhT99/qG4DcCA/yNU4Ajbjhhnx4P2DJggR3YZog6RyyYxwM9PSgMBaP+sQdgIRL0JAKBwnTooRMAFWLdiPyJ8JwvTnyQoh5midCASh149ZkTIFAmHnzOZOBfIU6U4Mhd4zF34DNEoDAhARGY50BvJkioyxFOGkKAShGkFsJwejiR5Xf8aZAaBp89coQJjuDXAQOApekEm45ANaAtIbyYxREf0OlICCK841uaahZBQjyfjXCACYjuaASjhFagRKSFNtloHg+hYWIxRohnBQWCSSAhBVZ+hkgRnlbxwJIVgIqGlaU6wkeTxHxjm6gVLImrFbHWVEQ1taZjWxJX7KqqnqgUEUxDwtqajrOaRkqhEDcxWwECbEjxTYe9gojqOJQ6JO231ob72bSqAjh4RgfsjiDCCfDCK8K8I9TL7r33nvGtCO7CO1dUAONk3LcBFxzwwEMwZ/DC4iAsRIE+CWNCbzeV8FfEtoDwVwnlacxMkcKQYIE/F5TQ2QcedUZCagyc3NsFGrXVZMipWVBCzKv4Q0JvCviDsjAwf4ylxBeX0KcwGs81ccgqGS3MBxc3RjDDVAvdBRcfeFy1MFd3bcQHJEQdlddkP5E1Cf9yXfbaV2d9RBAAOw=="
+
+// printWidget is "tk print $w"; Tk reports a failure as a background error.
+func printWidget(app *takigo.App, w widget.Widget) {
+	if err := dialog.Print(app, w); err != nil {
+		dialog.ShowMessage(app, dialog.MsgTitle("Print"), dialog.MsgMessage(err.Error()),
+			dialog.MsgType(dialog.MsgError))
+	}
+}

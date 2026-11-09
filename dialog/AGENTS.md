@@ -5,7 +5,9 @@ dialogs port the Tcl megawidgets of `tk/library`: `dialog.tcl`
 (`dialog/tkdialog.go`), `msgbox.tcl` (`dialog/messagebox.go`), `clrpick.tcl`
 (`dialog/colorchooser.go`), `fontchooser.tcl` (`dialog/fontchooser.go`),
 `tkfbox.tcl` and `choosedir.tcl` (`dialog/filedialog.go`,
-`dialog/choosedir.go`), plus the helpers of `tk.tcl` (`::tk::FindAltKeyTarget`,
+`dialog/choosedir.go`), the X11 part of `print.tcl` (`dialog/print.go`:
+the CUPS commands and the Print dialog; tests stand in for `lpstat`,
+`lpoptions` and `lpr` on `PATH`, never print for real), plus the helpers of `tk.tcl` (`::tk::FindAltKeyTarget`,
 `::tk::UnderlineAmpersand`, `AmpWidget`) in `dialog/dialog.go`.
 
 - **Modal loop.** `Dialog.Run` takes a local grab and blocks in

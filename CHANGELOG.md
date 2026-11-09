@@ -5,6 +5,14 @@ version is 0, a minor release may break the API and says so here.
 
 ## Unreleased
 
+- **Printing: `dialog.Print` is Tk's `tk print`.** It shows Tk's print
+  dialog for a canvas or text widget (printer list from `lpstat` and
+  `lpoptions`, copies, paper, scale, orientation and colour for a canvas,
+  pages per sheet, text scale and pretty print for text) and sends the
+  canvas's PostScript or the wrapped text to CUPS with `lpr`, like
+  `print.tcl` on X11. Windows and macOS printing is not ported yet
+  (`ErrPrintUnsupported`). The print demo's buttons now print.
+  `canvas.Canvas.GetScrollRegion` was added.
 - **systray: Tk's tray icon on X11 and Windows.** `TrayImage` sets the
   icon's image (X11 drew a placeholder circle), `Configure` changes
   image, tooltip and handlers, and `Exists` and `TrayIcon.Notify` were
