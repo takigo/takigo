@@ -113,6 +113,9 @@ type windowInfo struct {
 	destroyPosted bool
 	// tray is set on the hidden window of a tray icon (tray.go).
 	tray *trayIcon
+	// askedW and askedH are the client size of a toplevel resize in
+	// progress; the WM_SIZE it sends synchronously reports them.
+	askedW, askedH int
 }
 
 // NewDisplayServer initializes the Windows display and returns a composed

@@ -226,6 +226,13 @@ func (d *WindowsDisplay) wndProc(hwnd w32.HWND, msg uint32, wParam w32.WPARAM, l
 		if w <= 0 || h <= 0 {
 			return 0
 		}
+		// The system keeps a toplevel above its minimum tracking size, so
+		// it reports a larger client area than the application asked for;
+		// the wm layer would take that for the user's resize and keep it.
+		// Report the requested size, as an X server does.
+		if info := d.getWindowInfo(hwnd); info != nil && info.askedW > 0 {
+			w, h = info.askedW, info.askedH
+		}
 		raw := &WinRawEvent{
 			Window: wid,
 			Width:  w,

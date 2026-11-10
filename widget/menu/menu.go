@@ -78,7 +78,9 @@ type Menu struct {
 	posted                bool
 	grabbed               bool
 	motionSincePost       bool           // true once pointer moves after Post(); gates first ButtonRelease
-	suppressFocusOut      bool           // set briefly when we ourselves call SetInputFocus for a cascade
+	motionSeen            bool           // a motion event arrived since Post(); motionX/Y is its position
+	motionX, motionY      int
+	suppressFocusOut      bool          // set briefly when we ourselves call SetInputFocus for a cascade
 	skipGlobalButtonPress bool           // skip the first BindGlobal ButtonPress (the click that opened us)
 	onUnpost              func()         // run once when the menu is next unposted (menubar deactivation)
 	prevFocus             *window.Window // focus to restore on unpost
@@ -349,7 +351,7 @@ func (m *Menu) Post(x, y int) {
 
 	m.screenX = x
 	m.screenY = y
-	m.motionSincePost = false
+	m.motionSincePost, m.motionSeen = false, false
 	d.MoveResizeWindow(w.PlatformID, x, y, uint(w.Width), uint(w.Height))
 	d.MapRaised(w.PlatformID)
 	m.posted = true

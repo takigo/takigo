@@ -188,6 +188,15 @@ func (d *WindowsDisplay) MapWindow(w platform.WindowID) {
 
 func (d *WindowsDisplay) MapRaised(w platform.WindowID) {
 	hwnd := toHWND(w)
+	// An override-redirect popup never takes the window manager's focus on
+	// X; activating it here would deactivate the toplevel, whose FocusOut
+	// unposts the menu being posted.
+	if info := d.getWindowInfo(hwnd); info != nil && info.isOverride {
+		w32.ShowWindow(hwnd, w32.SW_SHOWNOACTIVATE)
+		w32.SetWindowPos(hwnd, w32.HWND_TOP, 0, 0, 0, 0,
+			w32.SWP_NOMOVE|w32.SWP_NOSIZE|w32.SWP_NOACTIVATE|w32.SWP_SHOWWINDOW)
+		return
+	}
 	w32.ShowWindow(hwnd, w32.SW_SHOW)
 	w32.SetWindowPos(hwnd, w32.HWND_TOP, 0, 0, 0, 0,
 		w32.SWP_NOMOVE|w32.SWP_NOSIZE|w32.SWP_SHOWWINDOW)
@@ -227,8 +236,19 @@ func (d *WindowsDisplay) ResizeWindow(w platform.WindowID, width, height uint) {
 		outerH = rect.Bottom - rect.Top
 	}
 
+	defer d.askSize(info, width, height)()
 	w32.SetWindowPos(hwnd, 0, 0, 0, outerW, outerH,
 		w32.SWP_NOMOVE|w32.SWP_NOZORDER|w32.SWP_NOACTIVATE)
+}
+
+// askSize marks a toplevel resize to width x height as in progress until the
+// returned func runs; see windowInfo.askedW.
+func (d *WindowsDisplay) askSize(info *windowInfo, width, height uint) func() {
+	if info == nil || !info.isTopLevel {
+		return func() {}
+	}
+	info.askedW, info.askedH = int(width), int(height)
+	return func() { info.askedW, info.askedH = 0, 0 }
 }
 
 func (d *WindowsDisplay) MoveResizeWindow(w platform.WindowID, x, y int, width, height uint) {
@@ -246,6 +266,7 @@ func (d *WindowsDisplay) MoveResizeWindow(w platform.WindowID, x, y int, width, 
 		outerH = rect.Bottom - rect.Top
 	}
 
+	defer d.askSize(info, width, height)()
 	w32.MoveWindow(hwnd, int32(x), int32(y), outerW, outerH, true)
 }
 
@@ -267,6 +288,10 @@ func (d *WindowsDisplay) ChildAt(platform.WindowID, int, int) platform.WindowID 
 
 func (d *WindowsDisplay) TranslateCoordinates(src, dst platform.WindowID, srcX, srcY int) (int, int) {
 	pt := w32.POINT{X: int32(srcX), Y: int32(srcY)}
-	w32.MapWindowPoints(toHWND(src), toHWND(dst), &pt, 1)
+	dstHWND := toHWND(dst)
+	if dstHWND == d.rootHWND {
+		dstHWND = 0 // the root stands for the screen
+	}
+	w32.MapWindowPoints(toHWND(src), dstHWND, &pt, 1)
 	return int(pt.X), int(pt.Y)
 }

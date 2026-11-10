@@ -71,6 +71,18 @@ version is 0, a minor release may break the API and says so here.
   for the packages that had none. `scripts/check_docs.sh` now also fails
   when the repository layout in `AGENTS.md` misses a directory.
   `widget/AGENTS.md` no longer claims that layout runs synchronously.
+- **Windows: windows no longer open at the minimum size.** Resizing a
+  toplevel below the system's minimum tracking size made Windows report a
+  larger client area than requested, which was taken for a user resize and
+  pinned the window small (the menu demo opened as a bare menubar). The
+  backend now reports the requested size, as X does.
+- **Windows: menus open.** Mapping a popup activated it, and the
+  toplevel's resulting focus loss unposted the menu at once; popups now map
+  without activation. Menus were also posted at the wrong place because
+  coordinates translated to the root window were not screen coordinates.
+  A menu opened by a click no longer closes when the release arrives:
+  Windows reports a motion at the unchanged position when the popup takes
+  the pointer, which counted as the pointer having moved.
 
 ## v0.4.4 (2026-11-02)
 

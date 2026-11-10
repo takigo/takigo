@@ -31,7 +31,13 @@ func bindMenu(m *Menu, app widget.AppContext) {
 	// Motion → activate entry under pointer; also marks that pointer has moved
 	// since the menu was posted (so the first ButtonRelease is not spuriously ignored).
 	app.Dispatcher().Bind(w.PlatformID, event.MotionMask, func(ev *event.Event) {
-		m.motionSincePost = true
+		// Windows sends a motion event at the unchanged position when the
+		// popup takes the capture; only a changed position is motion.
+		if !m.motionSeen {
+			m.motionSeen, m.motionX, m.motionY = true, ev.RootX, ev.RootY
+		} else if ev.RootX != m.motionX || ev.RootY != m.motionY {
+			m.motionSincePost = true
+		}
 		idx := m.entryAt(ev.X, ev.Y)
 		m.activate(idx)
 	})
