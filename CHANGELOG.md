@@ -5,6 +5,8 @@ version is 0, a minor release may break the API and says so here.
 
 ## Unreleased
 
+## v0.4.5 (2026-11-10)
+
 - **macOS: stippled fills.** `SetStipple` and `SetTSOrigin` were no-ops
   on Cocoa, so stippled canvas items, text tag stipples and disabled
   button images filled solid. Rectangles, polygons and arcs now draw
