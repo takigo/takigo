@@ -54,3 +54,34 @@ func TestLprArgs(t *testing.T) {
 		t.Errorf("pretty print overrode the zoom's cpi: %q", got)
 	}
 }
+
+func TestAutoScroll(t *testing.T) {
+	var log []string
+	var thumb [2]float64
+	a := &autoScroll{
+		show: func() { log = append(log, "show") },
+		hide: func() { log = append(log, "hide") },
+		set:  func(f, l float64) { thumb = [2]float64{f, l}; log = append(log, "set") },
+	}
+	steps := []struct {
+		first, last float64
+		want        []string
+	}{
+		{0, 1, nil},                       // full, already hidden
+		{0, 0.5, []string{"show", "set"}}, // becomes partial
+		{0.25, 0.75, []string{"set"}},     // still partial: the thumb follows
+		{0.5, 1, []string{"set"}},
+		{0, 1, []string{"hide"}}, // full again
+		{0, 1, nil},
+	}
+	for i, s := range steps {
+		log = nil
+		a.update(s.first, s.last)
+		if !slices.Equal(log, s.want) {
+			t.Errorf("step %d update(%v, %v) did %q, want %q", i, s.first, s.last, log, s.want)
+		}
+		if slices.Contains(s.want, "set") && thumb != [2]float64{s.first, s.last} {
+			t.Errorf("step %d thumb = %v, want [%v %v]", i, thumb, s.first, s.last)
+		}
+	}
+}

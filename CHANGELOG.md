@@ -25,6 +25,8 @@ version is 0, a minor release may break the API and says so here.
   the mouse moved; a press on the menu now arms its release, as
   `tk::MenuButtonDown` does. The release of the posting press is still
   ignored.
+- **Print dialog: the printer list's scrollbar thumb follows the view**
+  (it was only set when the scrollbar appeared).
 
 ## v0.4.5 (2026-11-10)
 

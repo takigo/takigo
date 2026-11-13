@@ -243,21 +243,6 @@ func Print(parent widget.Caregiver, w widget.Widget) error {
 		ttk.TreeviewShow("headings"), ttk.TreeviewSelectMode(ttk.TreeSelectBrowse))
 	sy := ttk.NewScrollbar(pf, "sy", ttk.ScrollbarCommand(widget.ScrollY(tv)))
 	sx := ttk.NewScrollbar(pf, "sx", ttk.ScrollbarOrient(ttk.Horizontal), ttk.ScrollbarCommand(widget.ScrollX(tv)))
-	// _scroll: a scrollbar is gridded only while the view is partial.
-	autoscroll := func(sb *ttk.Scrollbar, opts ...grid.GridOption) func(float64, float64) {
-		shown := false
-		return func(first, last float64) {
-			if full := first == 0 && last == 1; full == !shown {
-				return
-			} else if full {
-				grid.Forget(sb)
-			} else {
-				_ = grid.Grid(sb, opts...)
-			}
-			shown = !shown
-			sb.Set(first, last)
-		}
-	}
 	tv.YScrollCmd = autoscroll(sy, grid.Row(1), grid.Column(1), grid.Sticky(grid.NS))
 	tv.XScrollCmd = autoscroll(sx, grid.Row(2), grid.Column(0), grid.Sticky(grid.EW))
 	tv.HeadingConfigure("printer", ttk.HeadText("Printer"))
@@ -403,6 +388,40 @@ func runPrint(appName string, w widget.Widget, o *printOptions) error {
 		data = []byte(strings.Join(wrapLines(w.Get("1.0", "end"), wl), "\n"))
 	}
 	return cupsPrint(lprArgs(o.printer, title, o, isText(w)), data)
+}
+
+// autoScroll ports _scroll: a scrollbar is gridded only while the view is
+// partial, and its thumb follows every partial view. grid.Grid always
+// schedules a layout, and the treeview reports its view on every redraw,
+// so only a change between full and partial grids or removes it.
+type autoScroll struct {
+	shown      bool
+	show, hide func()
+	set        func(first, last float64)
+}
+
+func (a *autoScroll) update(first, last float64) {
+	if first == 0 && last == 1 {
+		if a.shown {
+			a.shown = false
+			a.hide()
+		}
+		return
+	}
+	if !a.shown {
+		a.shown = true
+		a.show()
+	}
+	a.set(first, last)
+}
+
+func autoscroll(sb *ttk.Scrollbar, opts ...grid.GridOption) func(float64, float64) {
+	a := &autoScroll{
+		show: func() { _ = grid.Grid(sb, opts...) },
+		hide: func() { grid.Forget(sb) },
+		set:  sb.Set,
+	}
+	return a.update
 }
 
 func isText(w widget.Widget) bool {
