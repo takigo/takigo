@@ -17,6 +17,9 @@ version is 0, a minor release may break the API and says so here.
   `SetItemValues`, `SetCellValue`, the selection, focus, tag, column,
   heading and view calls each drew the whole widget synchronously; a batch
   of them is now one redraw, as for `Insert` and `Delete`.
+- **Listbox: `SelectionSet`, `SelectionClear` and `ItemConfigure` redraw**,
+  and `SelectionClear` clamps its range to the items like Tk's
+  `ListboxSelect` (`SelectionClear(0, math.MaxInt)` hung the event loop).
 
 ## v0.4.5 (2026-11-10)
 

@@ -295,21 +295,39 @@ func (lb *Listbox) Selection() []int {
 
 // SelectionSet selects items in the range [first, last].
 func (lb *Listbox) SelectionSet(first, last int) {
-	if first < 0 {
-		first = 0
-	}
-	if last >= len(lb.items) {
-		last = len(lb.items) - 1
-	}
-	for i := first; i <= last; i++ {
-		lb.selected[i] = true
-	}
+	lb.selectRange(first, last, true)
 }
 
 // SelectionClear clears selection in range [first, last].
 func (lb *Listbox) SelectionClear(first, last int) {
+	lb.selectRange(first, last, false)
+}
+
+// selectRange ports ListboxSelect: the bounds may come in either order and
+// are clamped to the items, and the listbox is redrawn only when the
+// selection changed. It does not generate <<ListboxSelect>>.
+func (lb *Listbox) selectRange(first, last int, sel bool) {
+	if last < first {
+		first, last = last, first
+	}
+	if last < 0 || first >= len(lb.items) {
+		return
+	}
+	first = max(first, 0)
+	last = min(last, len(lb.items)-1)
+	changed := false
 	for i := first; i <= last; i++ {
-		delete(lb.selected, i)
+		if lb.selected[i] != sel {
+			changed = true
+			if sel {
+				lb.selected[i] = true
+			} else {
+				delete(lb.selected, i)
+			}
+		}
+	}
+	if changed {
+		lb.Display()
 	}
 }
 
@@ -326,6 +344,7 @@ func (lb *Listbox) ItemConfigure(idx int, fg, bg string) {
 	} else if col, err := lb.App.ColorCache().Get(bg); err == nil {
 		lb.itemBg[idx] = col.Ref()
 	}
+	lb.Display()
 }
 
 // SetJustify changes the text justification and redraws.

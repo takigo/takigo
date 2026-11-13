@@ -1,6 +1,7 @@
 package listbox
 
 import (
+	"math"
 	"testing"
 
 	"github.com/takigo/takigo/event"
@@ -51,5 +52,44 @@ func TestKeyboardSelectionNotifies(t *testing.T) {
 	})
 	if notified != 1 {
 		t.Errorf("the space key notified %d times, want 1", notified)
+	}
+}
+
+// TestSelectionRedraws checks that SelectionSet and SelectionClear schedule
+// a redraw only when the selection changes, and do not notify, as
+// ListboxSelect does.
+func TestSelectionRedraws(t *testing.T) {
+	app := testutil.NewTestApp(t)
+	lb := New(app, "lb", Items("a", "b", "c"))
+	notified := 0
+	lb.SelectCmd = func() { notified++ }
+	app.UpdateIdleTasks()
+
+	calls := 0
+	lb.SetDisplayProc(func() { calls++ })
+	redraws := func(f func()) int {
+		calls = 0
+		f()
+		app.UpdateIdleTasks()
+		return calls
+	}
+
+	if n := redraws(func() { lb.SelectionSet(1, 1) }); n != 1 {
+		t.Errorf("SelectionSet(1, 1) redrew %d times, want 1", n)
+	}
+	if n := redraws(func() { lb.SelectionSet(1, 1) }); n != 0 {
+		t.Errorf("SelectionSet of a selected item redrew %d times, want 0", n)
+	}
+	if n := redraws(func() { lb.SelectionClear(0, 0) }); n != 0 {
+		t.Errorf("SelectionClear of an unselected item redrew %d times, want 0", n)
+	}
+	if n := redraws(func() { lb.SelectionClear(0, math.MaxInt) }); n != 1 {
+		t.Errorf("SelectionClear(0, MaxInt) redrew %d times, want 1", n)
+	}
+	if n := redraws(func() { lb.ItemConfigure(0, "red", "") }); n != 1 {
+		t.Errorf("ItemConfigure redrew %d times, want 1", n)
+	}
+	if notified != 0 {
+		t.Errorf("programmatic selection notified %d times, want 0", notified)
 	}
 }
