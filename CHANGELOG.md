@@ -5,6 +5,8 @@ version is 0, a minor release may break the API and says so here.
 
 ## Unreleased
 
+## v0.4.6 (2026-11-13)
+
 - **X11: an X protocol error no longer aborts the process.** The reader
   goroutine blocked in `XNextEvent` while the loop goroutine made round
   trips; an X error read during one made libX11 fail its
