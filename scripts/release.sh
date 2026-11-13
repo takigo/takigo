@@ -6,7 +6,8 @@
 #
 # Without a version, the next one follows from the latest v* tag reachable
 # from HEAD: the minor goes up when scripts/apidiff.sh reports breaking API
-# changes since that tag, the patch otherwise. RELEASE_DRY=1 prints the
+# changes since that tag, the patch otherwise. When apidiff.sh fails the
+# script aborts instead of guessing. RELEASE_DRY=1 prints the
 # version that would be released and stops.
 #
 # Checks that master is clean and up to date with origin, that the tag is
@@ -61,7 +62,13 @@ if [[ -z $ver ]]; then
     else
         [[ $base =~ $semver ]] || die "cannot parse tag $base"
         maj=${BASH_REMATCH[1]} min=${BASH_REMATCH[2]} pat=${BASH_REMATCH[3]}
-        if bash scripts/apidiff.sh --incompatible "$base" | grep -q '^- '; then
+        # Run apidiff on its own: as the condition of an `if` its failure would
+        # read as "no breaking changes" and tag a patch release over a break.
+        api=$(bash scripts/apidiff.sh --incompatible "$base") ||
+            die "scripts/apidiff.sh failed; cannot tell whether the API broke since $base (pass the version to override)"
+        [[ $api == "API changes $base -> "* ]] ||
+            die "unexpected output from scripts/apidiff.sh; cannot tell whether the API broke since $base"
+        if grep -q '^- ' <<<"$api"; then
             ver=v$maj.$((min + 1)).0
             echo "release: $ver (breaking API changes since $base)"
         else

@@ -27,6 +27,9 @@ version is 0, a minor release may break the API and says so here.
   ignored.
 - **Print dialog: the printer list's scrollbar thumb follows the view**
   (it was only set when the scrollbar appeared).
+- **Release script: a failing `scripts/apidiff.sh` aborts the release**
+  instead of reading as "no breaking API changes"; `apidiff.sh` exits
+  non-zero when exporting or comparing fails.
 
 ## v0.4.5 (2026-11-10)
 
