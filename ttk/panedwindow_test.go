@@ -6,11 +6,13 @@ import (
 	"time"
 
 	"github.com/takigo/takigo/event"
+	"github.com/takigo/takigo/geometry/pack"
 	"github.com/takigo/takigo/geometry/place"
 	"github.com/takigo/takigo/internal/testutil"
 	"github.com/takigo/takigo/screenunit"
 	"github.com/takigo/takigo/ttk"
 	_ "github.com/takigo/takigo/ttk/clamtheme"
+	"github.com/takigo/takigo/widget/toplevel"
 )
 
 func TestPanedwindowLayout(t *testing.T) {
@@ -80,6 +82,66 @@ func TestPanedwindowLayout(t *testing.T) {
 	}
 	if !slices.Equal(panes, []string{"a", "b"}) {
 		t.Errorf("panes after Forget = %v", panes)
+	}
+}
+
+// TestPanedwindowMapsPanesWithContainer follows ttkManager.c's
+// ManagerEventHandler: panes placed while the panedwindow was unmapped are
+// mapped with it, and unmapped with it.
+func TestPanedwindowMapsPanesWithContainer(t *testing.T) {
+	app := testutil.NewTestApp(t)
+	top := toplevel.New(app, "top")
+	pw := ttk.NewPanedwindow(top, "pw", ttk.PanedwindowOrient(ttk.Horizontal))
+	a := ttk.NewFrame(pw, "a", ttk.FrameWidth(50), ttk.FrameHeight(40))
+	b := ttk.NewFrame(pw, "b", ttk.FrameWidth(50), ttk.FrameHeight(40))
+	c := ttk.NewFrame(pw, "c", ttk.FrameWidth(50), ttk.FrameHeight(40))
+	_ = pw.Add(a)
+	_ = pw.Add(b)
+	if err := pack.Pack(pw); err != nil {
+		t.Fatal(err)
+	}
+	mapped := func(fs ...*ttk.Frame) []bool {
+		out := make([]bool, len(fs))
+		for i, f := range fs {
+			out[i] = f.Win.IsMapped()
+		}
+		return out
+	}
+	var shown, forgotten, whileUnmapped, repacked []bool
+	var pwShown bool
+	app.After(300*time.Millisecond, func() {
+		top.Show()
+		app.After(100*time.Millisecond, func() {
+			pwShown = pw.Win.IsMapped()
+			shown = mapped(a, b)
+			pack.Forget(pw)
+			forgotten = mapped(a, b)
+			// Panes added and forgotten while the container is unmapped.
+			_ = pw.Add(c)
+			pw.Forget(b)
+			app.After(100*time.Millisecond, func() {
+				whileUnmapped = mapped(a, b, c)
+				_ = pack.Pack(pw)
+				app.After(100*time.Millisecond, func() {
+					defer app.Quit()
+					repacked = mapped(a, b, c)
+				})
+			})
+		})
+	})
+	app.MainLoop()
+
+	if !pwShown || !slices.Equal(shown, []bool{true, true}) {
+		t.Errorf("after Show: panedwindow mapped %v, panes a, b mapped %v; want all mapped", pwShown, shown)
+	}
+	if !slices.Equal(forgotten, []bool{false, false}) {
+		t.Errorf("after pack forget: panes a, b mapped %v, want unmapped", forgotten)
+	}
+	if !slices.Equal(whileUnmapped, []bool{false, false, false}) {
+		t.Errorf("while unmapped: panes a, b, c mapped %v, want none", whileUnmapped)
+	}
+	if !slices.Equal(repacked, []bool{true, false, true}) {
+		t.Errorf("after re-pack: panes a, b (forgotten), c mapped %v, want [true false true]", repacked)
 	}
 }
 

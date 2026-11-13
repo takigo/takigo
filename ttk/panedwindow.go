@@ -14,12 +14,14 @@ import (
 )
 
 // paneRecord is ttkPanedwindow.c's Pane: the request size, the position
-// of the following sash and the -weight.
+// of the following sash and the -weight; placed is ttkManager.c's
+// CONTENT_MAPPED, set by Ttk_PlaceContent and cleared by Ttk_UnmapContent.
 type paneRecord struct {
 	win     *window.Window
 	reqSize int
 	sashPos int
 	weight  int
+	placed  bool
 }
 
 // Panedwindow is a themed panedwindow (ttk::panedwindow): its panes are
@@ -53,7 +55,7 @@ type PanedwindowOption func(*Panedwindow)
 // can only be set when the widget is created.
 func PanedwindowOrient(o Orient) PanedwindowOption {
 	return func(pw *Panedwindow) {
-		if pw.Win.Value(paneCreatedKey) == nil {
+		if pw.Win.Value(panedKey) == nil {
 			pw.Orient = o
 		}
 	}
@@ -73,8 +75,24 @@ func PanedwindowStyle(name string) PanedwindowOption {
 	}
 }
 
-// paneCreatedKey marks a panedwindow whose -orient became read-only.
-var paneCreatedKey = new(window.ValueKey)
+// panedKey holds the Panedwindow of its window once it is created (and
+// -orient became read-only).
+var panedKey = new(window.ValueKey)
+
+// ttkManager.c's ManagerEventHandler: the panes follow the map state of
+// their panedwindow.
+func init() {
+	window.AddMappedHook(func(w *window.Window) {
+		if pw, ok := w.Value(panedKey).(*Panedwindow); ok && !pw.Destroyed() {
+			pw.mapPanes()
+		}
+	})
+	window.AddUnmappedHook(func(w *window.Window) {
+		if pw, ok := w.Value(panedKey).(*Panedwindow); ok && !pw.Destroyed() {
+			pw.unmapPanes()
+		}
+	})
+}
 
 // PaneOption sets a pane option.
 type PaneOption func(*paneRecord)
@@ -96,7 +114,7 @@ func NewPanedwindow(parent widget.Caregiver, name string, opts ...PanedwindowOpt
 	for _, opt := range opts {
 		opt(pw)
 	}
-	win.SetValue(paneCreatedKey, true)
+	win.SetValue(panedKey, pw)
 	pw.RefreshTheme()
 	pw.requestSize()
 	bindPanedwindow(pw, app)
@@ -215,10 +233,7 @@ func (pw *Panedwindow) Forget(child window.Windower) {
 	}
 	pw.panes = slices.Delete(pw.panes, i, i+1)
 	w.GeomManager = nil
-	if w.IsMapped() {
-		w.Display.Server.UnmapWindow(w.PlatformID)
-		window.MarkUnmapped(w)
-	}
+	unmapPane(w)
 	pw.schedule(true, true)
 }
 
@@ -414,18 +429,43 @@ func (pw *Panedwindow) placePanes() {
 	pos := 0
 	for _, p := range pw.panes {
 		size := p.sashPos - pos
+		p.placed = size > 0
 		switch {
-		case size <= 0:
-			if p.win.IsMapped() {
-				p.win.Display.Server.UnmapWindow(p.win.PlatformID)
-				window.MarkUnmapped(p.win)
-			}
+		case !p.placed:
+			unmapPane(p.win)
 		case pw.Orient == Horizontal:
 			geometry.PlaceContent(pw.Win, p.win, pos, 0, size, height)
 		default:
 			geometry.PlaceContent(pw.Win, p.win, 0, pos, width, size)
 		}
 		pos = p.sashPos + pw.sashThickness
+	}
+}
+
+// mapPanes is ManagerEventHandler's MapNotify case: the panes placed while
+// the panedwindow was unmapped are mapped now.
+func (pw *Panedwindow) mapPanes() {
+	for _, p := range pw.panes {
+		if w := p.win; p.placed && !w.IsMapped() && w.PlatformID != 0 {
+			window.SyncBackground(w)
+			w.Display.Server.MapWindow(w.PlatformID)
+			window.MarkMapped(w)
+		}
+	}
+}
+
+// unmapPanes is ManagerEventHandler's UnmapNotify case; the panes stay
+// placed, so mapPanes maps them again.
+func (pw *Panedwindow) unmapPanes() {
+	for _, p := range pw.panes {
+		unmapPane(p.win)
+	}
+}
+
+func unmapPane(w *window.Window) {
+	if w.IsMapped() && w.PlatformID != 0 {
+		w.Display.Server.UnmapWindow(w.PlatformID)
+		window.MarkUnmapped(w)
 	}
 }
 

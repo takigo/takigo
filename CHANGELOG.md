@@ -5,6 +5,11 @@ version is 0, a minor release may break the API and says so here.
 
 ## Unreleased
 
+- **ttk.Panedwindow: panes follow the panedwindow's map state.** Panes
+  placed while the panedwindow was unmapped (in a toplevel shown later, or
+  while pack-forgotten) were never mapped; they are now mapped and unmapped
+  with it, like `ttkManager.c`'s MapNotify and UnmapNotify cases.
+
 ## v0.4.5 (2026-11-10)
 
 - **macOS: stippled fills.** `SetStipple` and `SetTSOrigin` were no-ops
