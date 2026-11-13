@@ -28,15 +28,14 @@ func bindMenu(m *Menu, app widget.AppContext) {
 		m.Display()
 	})
 
-	// Motion → activate entry under pointer; also marks that pointer has moved
-	// since the menu was posted (so the first ButtonRelease is not spuriously ignored).
+	// Motion → activate entry under pointer; a drag also arms the release.
 	app.Dispatcher().Bind(w.PlatformID, event.MotionMask, func(ev *event.Event) {
 		// Windows sends a motion event at the unchanged position when the
 		// popup takes the capture; only a changed position is motion.
 		if !m.motionSeen {
 			m.motionSeen, m.motionX, m.motionY = true, ev.RootX, ev.RootY
 		} else if ev.RootX != m.motionX || ev.RootY != m.motionY {
-			m.motionSincePost = true
+			m.releaseArmed = true
 		}
 		idx := m.entryAt(ev.X, ev.Y)
 		m.activate(idx)
@@ -74,15 +73,14 @@ func bindMenu(m *Menu, app widget.AppContext) {
 		m.unpostChain()
 	})
 
-	// Button release → invoke.
-	// Ignore the very first release after posting (the button-up from the
-	// click that opened the menu) unless the pointer has moved since then.
+	// Button release → invoke (tk::MenuInvoke). The release of the press
+	// that posted the menu (click-to-open) is ignored: a release counts once
+	// the pointer has dragged or a press landed on the menu.
 	app.Dispatcher().Bind(w.PlatformID, event.ButtonReleaseMask, func(ev *event.Event) {
 		if ev.Button != 1 {
 			return
 		}
-		if !m.motionSincePost {
-			// First release with no motion: stay open (click-to-open mode).
+		if !m.releaseArmed {
 			return
 		}
 		idx := m.entryAt(ev.X, ev.Y)
@@ -100,11 +98,15 @@ func bindMenu(m *Menu, app widget.AppContext) {
 	// Button press outside menu → unpost.
 	// With owner_events=true, clicks outside all client windows are still routed
 	// here (grab window). Use RootX/RootY to confirm the click is truly outside.
+	// A press on the menu (tk::MenuButtonDown) starts a press/release pair
+	// of its own, whose release invokes the entry even without motion.
 	app.Dispatcher().Bind(w.PlatformID, event.ButtonPressMask, func(ev *event.Event) {
 		if ev.RootX < m.screenX || ev.RootX >= m.screenX+w.Width ||
 			ev.RootY < m.screenY || ev.RootY >= m.screenY+w.Height {
 			m.unpostChain()
+			return
 		}
+		m.releaseArmed = true
 	})
 
 	// BindGlobal: close menu when user clicks any other widget inside our app.

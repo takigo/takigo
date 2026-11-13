@@ -77,7 +77,7 @@ type Menu struct {
 	// State.
 	posted                bool
 	grabbed               bool
-	motionSincePost       bool // true once pointer moves after Post(); gates first ButtonRelease
+	releaseArmed          bool // a drag or a press on the menu since Post(): a ButtonRelease invokes
 	motionSeen            bool // a motion event arrived since Post(); motionX/Y is its position
 	motionX, motionY      int
 	suppressFocusOut      bool           // set briefly when we ourselves call SetInputFocus for a cascade
@@ -351,7 +351,7 @@ func (m *Menu) Post(x, y int) {
 
 	m.screenX = x
 	m.screenY = y
-	m.motionSincePost, m.motionSeen = false, false
+	m.releaseArmed, m.motionSeen = false, false
 	d.MoveResizeWindow(w.PlatformID, x, y, uint(w.Width), uint(w.Height))
 	d.MapRaised(w.PlatformID)
 	m.posted = true

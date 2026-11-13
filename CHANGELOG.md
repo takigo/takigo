@@ -20,6 +20,11 @@ version is 0, a minor release may break the API and says so here.
 - **Listbox: `SelectionSet`, `SelectionClear` and `ItemConfigure` redraw**,
   and `SelectionClear` clamps its range to the items like Tk's
   `ListboxSelect` (`SelectionClear(0, math.MaxInt)` hung the event loop).
+- **Menu: a click on an entry works without moving the pointer.** After a
+  menu was posted under a stationary pointer every click was ignored until
+  the mouse moved; a press on the menu now arms its release, as
+  `tk::MenuButtonDown` does. The release of the posting press is still
+  ignored.
 
 ## v0.4.5 (2026-11-10)
 
