@@ -154,8 +154,18 @@ import (
 // displays of different Apps.
 var trapMu sync.Mutex
 
-// CreatePixmap creates a pixmap of the given dimensions and depth.
+// maxPixmapSize is the largest pixmap side an X server accepts (the
+// protocol field is 16 bits wide and the servers stop at 15).
+const maxPixmapSize = 32767
+
+// CreatePixmap creates a pixmap of the given dimensions and depth. It
+// returns 0, without a request, for a size the server would refuse:
+// XCreatePixmap returns an ID either way and the error comes later, with
+// one more for every request that draws on it.
 func (d *Display) CreatePixmap(drawable Drawable, width, height, depth uint) Pixmap {
+	if width == 0 || height == 0 || width > maxPixmapSize || height > maxPixmapSize {
+		return 0
+	}
 	return Pixmap(C.XCreatePixmap(d.ptr, C.Drawable(drawable),
 		C.uint(width), C.uint(height), C.uint(depth)))
 }

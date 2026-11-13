@@ -5,6 +5,10 @@ version is 0, a minor release may break the API and says so here.
 
 ## Unreleased
 
+- **X11: no pixmap is requested at a size the protocol cannot carry.** A
+  window wider or taller than 32767 pixels (a treeview column dragged to
+  a huge width) made every redraw a BadValue and a run of BadDrawable
+  errors; such a window is now drawn without a back buffer, or not at all.
 - **ttk.Panedwindow: panes follow the panedwindow's map state.** Panes
   placed while the panedwindow was unmapped (in a toplevel shown later, or
   while pack-forgotten) were never mapped; they are now mapped and unmapped

@@ -68,3 +68,35 @@ func TestPutImageRGBARoundTrip(t *testing.T) {
 		}
 	}
 }
+
+// TestCreatePixmapRefusesBadSize: a size outside the protocol's range must
+// not reach the server, where it is a BadValue followed by a BadDrawable
+// for every request on the pixmap.
+func TestCreatePixmapRefusesBadSize(t *testing.T) {
+	displaylock.Require(t)
+
+	dpy, err := OpenDisplay("")
+	if err != nil {
+		t.Fatalf("OpenDisplay failed: %v", err)
+	}
+	defer dpy.Close()
+
+	root := Drawable(dpy.DefaultRootWindow())
+	depth := uint(dpy.DefaultDepth(dpy.DefaultScreen()))
+	before := ErrorCount()
+	for _, size := range [][2]uint{{0, 10}, {10, 0}, {maxPixmapSize + 1, 10}, {10, 1 << 16}, {1<<31 + 539, 242}} {
+		if pm := dpy.CreatePixmap(root, size[0], size[1], depth); pm != 0 {
+			t.Errorf("CreatePixmap(%d, %d) = %#x, want 0", size[0], size[1], pm)
+		}
+	}
+	pm := dpy.CreatePixmap(root, 10, 10, depth)
+	if pm == 0 {
+		t.Error("CreatePixmap(10, 10) = 0")
+	} else {
+		dpy.FreePixmap(pm)
+	}
+	dpy.Sync(false)
+	if n := ErrorCount() - before; n != 0 {
+		t.Errorf("%d X errors, want 0", n)
+	}
+}
