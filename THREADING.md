@@ -27,13 +27,13 @@ takigo uses a **single-threaded event loop** (running on the main goroutine) wit
 ┌──────────────┐          ┌─────────────┐            ┌──────────────┐
 │ Reader       │          │ Other       │            │ time.AfterFunc│
 │ Goroutine    │          │ Goroutines  │            │ (stdlib)      │
-│ (X11:        │          │ (app code)  │            │              │
-│  NextEvent)  │          │             │            │              │
+│ (X11: waits  │          │ (app code)  │            │              │
+│  on the fd)  │          │             │            │              │
 └──────────────┘          └─────────────┘            └──────────────┘
 ```
 
 - **Event loop goroutine**: Owns all UI state (windows, widgets, geometry, focus, selection, bindings). All handlers, idle callbacks, and timer callbacks execute here.
-- **Reader goroutine**: Exactly one per `Loop`, started by the first `Run`/`RunNested` and shared by nested loops so events stay in order. Blocks on `NextEvent()` (X11) or the C ring buffer (macOS), posts raw events to `eventCh`.
+- **Reader goroutine**: Exactly one per `Loop`, started by the first `Run`/`RunNested` and shared by nested loops so events stay in order. On macOS and Windows it blocks on the backend's event queue and posts raw events to `eventCh`. On X11 (`event.EventWaiter`) it makes no Xlib call: it waits in `poll` for the connection to become readable and tells the loop, which takes the events itself with `Pending`/`NextEvent`.
 - **Application goroutines**: Can safely call the posting APIs (`DoWhenIdle`, `After`, `RunOnMain`, `Quit`) to schedule work on the event loop. These never block — they append to mutex-guarded queues and wake the loop — so they are also safe from handlers on the loop goroutine and before `Run`.
 
 ---
@@ -163,7 +163,7 @@ for the process, AppKit one `NSApp`. Apps one after another are fine.
 
 ## Platform Backend Considerations
 
-- **X11**: `xlib.OpenDisplay` calls `XInitThreads` before the first connection, because the reader goroutine calls `NextEvent()` while the event loop draws and flushes. That makes Xlib calls memory-safe from any goroutine; it does not make the display server a goroutine-safe API (see the loop-only table).
+- **X11**: `xlib.OpenDisplay` calls `XInitThreads` before the first connection. That makes Xlib calls memory-safe from any goroutine; it does not make the display server a goroutine-safe API (see the loop-only table). Only the loop goroutine reads the connection: a thread blocked in `XNextEvent` makes libX11 abort (`poll_for_event`'s assertion on `event_waiter`) when another thread reads an X error during a round trip, so never block in Xlib waiting for events on a second goroutine.
 - **macOS/Cocoa**: All AppKit calls **must** run on the main thread. `NewApp` must be called from the main goroutine (it fails elsewhere) and the event loop runs there; `EventPumper.PumpEvents()` is called from the event loop. Background goroutines must use `RunOnMain`.
 - **Windows**: Window messages are processed on the thread that created the window. `NewApp` locks its goroutine to that thread; call `Run` from the same goroutine.
 

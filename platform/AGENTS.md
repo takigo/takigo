@@ -40,7 +40,11 @@ still applies.
   not type-checked by the Linux modernizer gate, so keep them modern by
   hand.
 - **Threading.** The loop goroutine owns all UI state; the reader goroutine
-  only posts raw events to a channel (`event/loop.go`, `THREADING.md`).
+  only posts raw events to a channel, and on X11 not even that: it waits
+  for the connection to become readable (`WaitForEvents`,
+  `event.EventWaiter`) and the loop reads the events itself, because a
+  second thread blocked in `XNextEvent` makes libX11 abort on an X error
+  (`event/loop.go`, `THREADING.md`).
   Several Apps may run at once on different goroutines, so per-window state
   lives on the windows (`window.Window.Value`), never in package maps.
 - **cgo gotchas (X11).** `xlib.GC` is a C pointer: test it with

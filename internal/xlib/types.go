@@ -10,7 +10,10 @@ package xlib
 #include <X11/Xatom.h>
 */
 import "C"
-import "unsafe"
+import (
+	"os"
+	"unsafe"
+)
 
 // Type aliases for X11 types.
 type (
@@ -32,6 +35,10 @@ type Display struct {
 	ptr *C.Display
 	xim C.XIM // input method (may be nil)
 	xic C.XIC // default input context (may be nil)
+
+	// WaitReadable polls the connection and the wake pipe.
+	fd, wakeFd   C.int
+	wakeR, wakeW *os.File
 }
 
 // Ptr returns the underlying C Display pointer for use in other cgo calls.

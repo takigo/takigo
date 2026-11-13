@@ -162,15 +162,18 @@ type PixmapManager interface {
 
 // EventSource provides raw event access.
 type EventSource interface {
-	// NextEvent blocks until the next event and returns it.
+	// NextEvent blocks until the next event and returns it. The event
+	// loop calls it on a reader goroutine, except for a backend that has
+	// WaitForEvents (event.EventWaiter): there it runs on the loop
+	// goroutine, and only when Pending reports an event.
 	NextEvent() *RawEvent
 
 	// FilterEvent returns true if the event was consumed by input method.
 	FilterEvent(ev *RawEvent) bool
 
-	// WakeEventReader makes a NextEvent call blocked in another goroutine
-	// return soon, so the reader can stop before the display is closed.
-	// It returns false if the backend cannot do that.
+	// WakeEventReader makes a NextEvent (or WaitForEvents) call blocked
+	// in another goroutine return soon, so the reader can stop before the
+	// display is closed. It returns false if the backend cannot do that.
 	WakeEventReader() bool
 }
 
@@ -454,13 +457,27 @@ func NewDisplayServer(
 		InputMethodManager: im,
 		TrayManager:        tray,
 	}
-	// Keep the backend's optional PumpEvents (event.EventPumper) visible
-	// through the wrapper; the event loop finds it by type assertion.
+	// Keep the backend's optional PumpEvents (event.EventPumper) or
+	// WaitForEvents (event.EventWaiter) visible through the wrapper; the
+	// event loop finds them by type assertion.
 	if p, ok := core.(interface{ PumpEvents() bool }); ok {
 		return &pumpingDisplayServer{displayServer: ds, pump: p.PumpEvents}
 	}
+	if w, ok := core.(interface{ WaitForEvents() bool }); ok {
+		return &waitingDisplayServer{displayServer: ds, wait: w.WaitForEvents}
+	}
 	return ds
 }
+
+// waitingDisplayServer is a displayServer whose events the loop goroutine
+// reads itself (X11): event.EventWaiter.
+type waitingDisplayServer struct {
+	*displayServer
+	wait func() bool
+}
+
+// WaitForEvents forwards to the backend's WaitForEvents.
+func (s *waitingDisplayServer) WaitForEvents() bool { return s.wait() }
 
 // pumpingDisplayServer is a displayServer whose backend must be pumped
 // from the main thread (Cocoa, Win32).

@@ -9,6 +9,7 @@ package xlib
 */
 import "C"
 import (
+	"os"
 	"sync"
 	"unsafe"
 )
@@ -19,9 +20,9 @@ func ErrorCount() uint64 {
 	return uint64(C.takigo_x_error_count())
 }
 
-// initOnce runs XInitThreads before the first Xlib call: the event loop
-// reads events on its own goroutine while the loop goroutine draws, and
-// libX11 older than 1.8 is not thread-safe unless XInitThreads is called.
+// initOnce runs XInitThreads before the first Xlib call: several Apps may
+// use Xlib from different goroutines, and libX11 older than 1.8 is not
+// thread-safe unless XInitThreads is called.
 var initOnce sync.Once
 
 // XftMu serializes libXft across the process. Xft keeps process-wide state
@@ -45,7 +46,15 @@ func OpenDisplay(name string) (*Display, error) {
 	if dpy == nil {
 		return nil, ErrNoDisplay
 	}
-	return &Display{ptr: dpy}, nil
+	r, w, err := os.Pipe()
+	if err != nil {
+		C.XCloseDisplay(dpy)
+		return nil, err
+	}
+	return &Display{
+		ptr: dpy, fd: C.XConnectionNumber(dpy),
+		wakeFd: C.int(r.Fd()), wakeR: r, wakeW: w,
+	}, nil
 }
 
 // Close closes the display connection, freeing XIM/XIC resources first.
@@ -65,6 +74,8 @@ func (d *Display) Close() {
 		}
 		C.XCloseDisplay(d.ptr)
 		d.ptr = nil
+		d.wakeR.Close()
+		d.wakeW.Close()
 	}
 }
 

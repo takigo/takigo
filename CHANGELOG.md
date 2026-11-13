@@ -5,6 +5,12 @@ version is 0, a minor release may break the API and says so here.
 
 ## Unreleased
 
+- **X11: an X protocol error no longer aborts the process.** The reader
+  goroutine blocked in `XNextEvent` while the loop goroutine made round
+  trips; an X error read during one made libX11 fail its
+  `poll_for_event` assertion (SIGABRT). The loop goroutine now reads the
+  events itself and the reader only waits for the connection to become
+  readable (`event.EventWaiter`).
 - **X11: no pixmap is requested at a size the protocol cannot carry.** A
   window wider or taller than 32767 pixels (a treeview column dragged to
   a huge width) made every redraw a BadValue and a run of BadDrawable

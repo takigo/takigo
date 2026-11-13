@@ -44,9 +44,6 @@ type X11Display struct {
 	dpy   *xlib.Display
 	atoms *platform.Atoms
 
-	wakeMu  sync.Mutex
-	wakeWin platform.WindowID // hidden window that WakeEventReader sends to
-
 	// atomCache maps names to interned atoms so repeat lookups skip the
 	// cgo call (and, past Xlib's small cache, a round trip).
 	atomMu    sync.Mutex
@@ -354,19 +351,14 @@ func (s *X11Display) NextEvent() *platform.RawEvent {
 	}
 }
 
-// WakeEventReader sends this connection a ClientMessage through a hidden
-// InputOnly window (XSendEvent with no event mask delivers to the window's
-// creator), which returns a blocked XNextEvent.
+// WaitForEvents implements event.EventWaiter: the loop goroutine reads the
+// events itself (Pending, NextEvent) and its reader goroutine only waits
+// for the connection to become readable.
+func (s *X11Display) WaitForEvents() bool { return s.dpy.WaitReadable() }
+
+// WakeEventReader ends WaitForEvents, now and for later calls.
 func (s *X11Display) WakeEventReader() bool {
-	s.wakeMu.Lock()
-	if s.wakeWin == 0 {
-		s.wakeWin = s.CreateWindow(s.DefaultRootWindow(), -1, -1, 1, 1, 0,
-			0, platform.InputOnly, 0, &platform.WindowAttrs{})
-	}
-	w := s.wakeWin
-	s.wakeMu.Unlock()
-	s.SendClientMessage(w, w, s.InternAtom("_TAKIGO_WAKE", false), 0, 0, 0, 0, 0)
-	s.Flush()
+	s.dpy.StopWaiting()
 	return true
 }
 

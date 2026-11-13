@@ -138,7 +138,7 @@ on different goroutines.
   event loop: `app.DoWhenIdle`, `app.After`, `app.RunOnMain` from other
   goroutines; `app.RunNestedLoop(doneCh)` for modal dialogs. The loop
   goroutine owns `rawHandler`/`idleQueue`; other goroutines only post to
-  channels (`event/loop.go:25-33`, `THREADING.md`).
+  channels (`event/loop.go:37-47`, `THREADING.md`).
 - **Never import the top-level `takigo` package** from `widget/` or any
   widget package (import cycle); use `widget.AppContext`. Never
   `log.Printf` from library code: errors go to the App's `slog` logger.

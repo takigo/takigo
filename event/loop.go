@@ -22,13 +22,27 @@ type EventPumper interface {
 	PumpEvents() (quit bool)
 }
 
+// EventWaiter is an optional interface for display servers whose connection
+// only the loop goroutine may read (X11: a second thread blocked in
+// XNextEvent makes libX11 abort when the first reads an X error during a
+// round trip). The loop then takes the events itself, with the server's
+// Pending and NextEvent, and its reader goroutine only waits.
+type EventWaiter interface {
+	// WaitForEvents blocks until the server may have events to read and
+	// returns true, or until WakeEventReader was called and returns false.
+	// It makes no display call and runs on the reader goroutine.
+	WaitForEvents() bool
+}
+
 // Loop is the main event loop, integrating platform events with idle callbacks,
 // timers, and cross-goroutine dispatching.
 //
 // The loop runs on a single goroutine (the main goroutine). All handlers,
 // idle callbacks, and timer callbacks execute on this goroutine. The only
-// other goroutines are the single readEvents goroutine, which posts raw
-// events to eventCh, and timer goroutines, which only enqueue callbacks.
+// other goroutines are the single reader goroutine (readEvents, which posts
+// raw events to eventCh, or waitEvents for an EventWaiter, which only
+// reports that the connection is readable) and timer goroutines, which
+// only enqueue callbacks.
 // Fields like rawHandler and idleQueue are not synchronized and must only
 // be accessed from the loop goroutine or before calling Run().
 type Loop struct {
@@ -43,6 +57,14 @@ type Loop struct {
 	// order the platform delivered them in.
 	eventCh    chan *platform.RawEvent
 	readerOnce sync.Once
+
+	// With an EventWaiter the reader goroutine waits once for each token
+	// on rearm and answers on ready (both cap 1); armed, loop-only, is
+	// true from the token until its answer.
+	waiter     EventWaiter
+	ready      chan struct{}
+	rearm      chan struct{}
+	armed      bool
 	readerDone chan struct{} // closed when readEvents returns
 
 	done     chan struct{}
@@ -87,6 +109,11 @@ func NewLoop(server platform.DisplayServer, parser platform.EventParser, dispatc
 	if p, ok := server.(EventPumper); ok {
 		l.pumper = p
 	}
+	if w, ok := server.(EventWaiter); ok {
+		l.waiter = w
+		l.ready = make(chan struct{}, 1)
+		l.rearm = make(chan struct{}, 1)
+	}
 	return l
 }
 
@@ -100,7 +127,13 @@ func (l *Loop) Run() {
 // called. Pump mode is enabled when the display server implements
 // EventPumper (macOS/Cocoa, Windows).
 func (l *Loop) run(extraDone, ctxDone <-chan struct{}) {
-	l.readerOnce.Do(func() { go l.readEvents() })
+	l.readerOnce.Do(func() {
+		if l.waiter != nil {
+			go l.waitEvents()
+		} else {
+			go l.readEvents()
+		}
+	})
 
 	// Adaptive pump interval: 10ms when idle, down to 1ms while events
 	// are flowing, so pump mode does not spin at a fixed high rate.
@@ -126,7 +159,7 @@ func (l *Loop) run(extraDone, ctxDone <-chan struct{}) {
 	deferred := 0
 
 	for {
-		if len(l.eventCh) == 0 || deferred >= maxIdleDefer {
+		if !l.eventWaiting() || deferred >= maxIdleDefer {
 			l.processIdleQueue()
 			deferred = 0
 		} else {
@@ -135,6 +168,34 @@ func (l *Loop) run(extraDone, ctxDone <-chan struct{}) {
 		if len(l.mainQueue) > 0 {
 			// Left behind by the callback that started this nested loop.
 			l.runMainQueue()
+		}
+
+		if l.waiter != nil {
+			// The check comes last before blocking: a round trip made
+			// by a callback above may have read events off the
+			// connection, which then is not readable any more.
+			if l.server.Pending() > 0 {
+				select {
+				case <-l.done:
+					return
+				case <-extraDone:
+					return
+				case <-ctxDone:
+					return
+				default:
+				}
+				l.handleRaw(l.server.NextEvent())
+				select {
+				case <-l.wake:
+					l.runMainQueue()
+				default:
+				}
+				continue
+			}
+			if !l.armed {
+				l.armed = true
+				l.rearm <- struct{}{}
+			}
 		}
 
 		select {
@@ -146,6 +207,9 @@ func (l *Loop) run(extraDone, ctxDone <-chan struct{}) {
 
 		case <-ctxDone:
 			return
+
+		case <-l.ready:
+			l.armed = false
 
 		case raw := <-l.eventCh:
 			l.handleRaw(raw)
@@ -389,6 +453,35 @@ func runQueue(q *[]func()) bool {
 		*q = nil
 	}
 	return n > 0
+}
+
+// eventWaiting reports whether a platform event is waiting to be handled.
+func (l *Loop) eventWaiting() bool {
+	if l.waiter != nil {
+		return l.server.Pending() > 0
+	}
+	return len(l.eventCh) > 0
+}
+
+// waitEvents is the reader goroutine of an EventWaiter: for each token on
+// rearm it waits until the connection is readable and says so on ready.
+func (l *Loop) waitEvents() {
+	defer close(l.readerDone)
+	for {
+		select {
+		case <-l.done:
+			return
+		case <-l.rearm:
+		}
+		if !l.waiter.WaitForEvents() {
+			return
+		}
+		select {
+		case l.ready <- struct{}{}:
+		case <-l.done:
+			return
+		}
+	}
 }
 
 // readEvents runs in its own goroutine for the lifetime of the loop,
