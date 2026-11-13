@@ -9,6 +9,14 @@ version is 0, a minor release may break the API and says so here.
   placed while the panedwindow was unmapped (in a toplevel shown later, or
   while pack-forgotten) were never mapped; they are now mapped and unmapped
   with it, like `ttkManager.c`'s MapNotify and UnmapNotify cases.
+- **ttk.Treeview: `Insert` refuses an ID that exists.** It overwrote the
+  item and left a row no call could delete; it now inserts nothing, logs
+  "Item … already exists" and returns "". Generated IDs skip the IDs in
+  use and are Tk's `I%03X`.
+- **ttk.Treeview: mutators redraw at idle.** `SetItemText`,
+  `SetItemValues`, `SetCellValue`, the selection, focus, tag, column,
+  heading and view calls each drew the whole widget synchronously; a batch
+  of them is now one redraw, as for `Insert` and `Delete`.
 
 ## v0.4.5 (2026-11-10)
 

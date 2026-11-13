@@ -70,7 +70,7 @@ func (tv *Treeview) TagConfigure(name string, opts ...TagOption) {
 	for _, opt := range opts {
 		opt(t)
 	}
-	tv.Display()
+	tv.scheduleRedisplay()
 }
 
 // TagBind runs handler for the events in mask that reach an item with the
@@ -102,7 +102,7 @@ func (tv *Treeview) TagDelete(names ...string) {
 			item.Tags = slices.DeleteFunc(item.Tags, func(n string) bool { return n == name })
 		}
 	}
-	tv.Display()
+	tv.scheduleRedisplay()
 }
 
 // TagNames returns the tags that exist, in creation order.
@@ -116,7 +116,7 @@ func (tv *Treeview) TagAdd(name string, ids ...string) {
 			item.Tags = append(item.Tags, name)
 		}
 	}
-	tv.Display()
+	tv.scheduleRedisplay()
 }
 
 // TagRemove removes the tag from the items, or from every item when no
@@ -135,7 +135,7 @@ func (tv *Treeview) TagRemove(name string, ids ...string) {
 			drop(item)
 		}
 	}
-	tv.Display()
+	tv.scheduleRedisplay()
 }
 
 // TagHas returns the items with the tag, in tree order.

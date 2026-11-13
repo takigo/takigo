@@ -98,7 +98,7 @@ type Treeview struct {
 	// Data.
 	root   *TreeItem            // hidden root (ID="")
 	items  map[string]*TreeItem // O(1) lookup
-	nextID int                  // auto-gen I001, I002...
+	nextID int                  // serial of the last generated ID (I001, I002... in hex)
 
 	// Tags, in creation order: the first created has the highest priority.
 	tags     map[string]*treeTag
@@ -329,7 +329,10 @@ func detachItem(item *TreeItem) {
 }
 
 // Insert adds a new item under parentID at the given index.
-// An index of -1 or end appends. Returns the item ID.
+// An index of -1 or end appends. Returns the item ID. Like Tk's "Item %s
+// already exists" error, an explicit ItemID that is already in use inserts
+// nothing: Insert logs a warning to the App's logger and returns "". Generated
+// IDs ("I001", "I002"... in hex) skip the IDs in use.
 func (tv *Treeview) Insert(parentID string, index int, opts ...ItemOption) string {
 	parent := tv.items[parentID]
 	if parent == nil {
@@ -341,9 +344,20 @@ func (tv *Treeview) Insert(parentID string, index int, opts ...ItemOption) strin
 		opt(item)
 	}
 
-	if item.ID == "" {
-		tv.nextID++
-		item.ID = fmt.Sprintf("I%03d", tv.nextID)
+	if item.ID != "" {
+		if tv.items[item.ID] != nil {
+			tv.App.Logger().Warn("treeview insert refused", "widget", tv.Win.PathName,
+				"err", fmt.Sprintf("Item %s already exists", item.ID))
+			return ""
+		}
+	} else {
+		for {
+			tv.nextID++
+			item.ID = fmt.Sprintf("I%03X", tv.nextID)
+			if tv.items[item.ID] == nil {
+				break
+			}
+		}
 	}
 	for _, t := range item.Tags {
 		tv.tag(t)
@@ -514,7 +528,7 @@ func (tv *Treeview) Exists(id string) bool {
 func (tv *Treeview) SetItemText(id, text string) {
 	if item := tv.items[id]; item != nil {
 		item.Text = text
-		tv.Display()
+		tv.scheduleRedisplay()
 	}
 }
 
@@ -522,7 +536,7 @@ func (tv *Treeview) SetItemText(id, text string) {
 func (tv *Treeview) SetItemValues(id string, vals ...string) {
 	if item := tv.items[id]; item != nil {
 		item.Values = vals
-		tv.Display()
+		tv.scheduleRedisplay()
 	}
 }
 
@@ -548,7 +562,7 @@ func (tv *Treeview) SetCellValue(id, column, value string) {
 		item.Values = append(item.Values, "")
 	}
 	item.Values[col.index] = value
-	tv.Display()
+	tv.scheduleRedisplay()
 }
 
 // CellValues returns the item's values by column ID ("set $item").
@@ -645,7 +659,7 @@ func (tv *Treeview) SelectionSet(ids ...string) {
 	if changed {
 		tv.selectionChanged()
 	}
-	tv.Display()
+	tv.scheduleRedisplay()
 }
 
 // SelectionAdd adds IDs to the selection.
@@ -660,7 +674,7 @@ func (tv *Treeview) SelectionAdd(ids ...string) {
 	if changed {
 		tv.selectionChanged()
 	}
-	tv.Display()
+	tv.scheduleRedisplay()
 }
 
 // SelectionRemove removes IDs from the selection.
@@ -675,7 +689,7 @@ func (tv *Treeview) SelectionRemove(ids ...string) {
 	if changed {
 		tv.selectionChanged()
 	}
-	tv.Display()
+	tv.scheduleRedisplay()
 }
 
 // SelectionToggle toggles the selection state of each ID.
@@ -695,7 +709,7 @@ func (tv *Treeview) SelectionToggle(ids ...string) {
 	if changed {
 		tv.selectionChanged()
 	}
-	tv.Display()
+	tv.scheduleRedisplay()
 }
 
 // Focus returns the focused item ID.
@@ -706,7 +720,7 @@ func (tv *Treeview) Focus() string {
 // SetFocus sets the focused item.
 func (tv *Treeview) SetFocus(id string) {
 	tv.focus = id
-	tv.Display()
+	tv.scheduleRedisplay()
 }
 
 // --- Column Configuration ---
@@ -750,7 +764,7 @@ func (tv *Treeview) ColumnConfigure(id string, opts ...ColumnOption) {
 	} else {
 		tv.requestSize()
 	}
-	tv.Display()
+	tv.scheduleRedisplay()
 }
 
 // Column returns the column's settings (see ColumnConfigure for id), or
@@ -899,25 +913,25 @@ func (tv *Treeview) HeadingConfigure(id string, opts ...HeadingOption) {
 	for _, opt := range opts {
 		opt(col)
 	}
-	tv.Display()
+	tv.scheduleRedisplay()
 }
 
 // SetSortIndicator shows a sort arrow on the given column.
 func (tv *Treeview) SetSortIndicator(columnID string, reverse bool) {
 	tv.sortInd = &sortIndicator{columnID: columnID, reverse: reverse}
-	tv.Display()
+	tv.scheduleRedisplay()
 }
 
 // ClearSortIndicator removes the sort indicator.
 func (tv *Treeview) ClearSortIndicator() {
 	tv.sortInd = nil
-	tv.Display()
+	tv.scheduleRedisplay()
 }
 
 // SetStripe enables or disables alternating row stripe shading.
 func (tv *Treeview) SetStripe(enabled bool) {
 	tv.Stripe = enabled
-	tv.Display()
+	tv.scheduleRedisplay()
 }
 
 // SetColSeparator enables or disables the vertical separator line for a column.
@@ -925,7 +939,7 @@ func (tv *Treeview) SetColSeparator(id string, enabled bool) {
 	if col := tv.lookupColumn(id); col != nil {
 		col.Separator = enabled
 	}
-	tv.Display()
+	tv.scheduleRedisplay()
 }
 
 // --- Scrolling ---
@@ -941,7 +955,7 @@ func (tv *Treeview) YView(index int) {
 	}
 	tv.topIndex = index
 	tv.notifyYScrollbar()
-	tv.Display()
+	tv.scheduleRedisplay()
 }
 
 // YViewScroll scrolls by count units or pages.
@@ -1002,7 +1016,7 @@ func (tv *Treeview) See(id string) {
 		tv.topIndex = idx - vis + 1
 	}
 	tv.notifyYScrollbar()
-	tv.Display()
+	tv.scheduleRedisplay()
 }
 
 func (tv *Treeview) visibleRows() int {
@@ -1067,7 +1081,7 @@ func (tv *Treeview) XView(px int) {
 	first, last, total := tv.xscrollInfo()
 	if nf := scrollTo(px, first, last, total); nf != first {
 		tv.xFirst = nf
-		tv.Display()
+		tv.scheduleRedisplay()
 	}
 }
 
@@ -1258,7 +1272,7 @@ func (tv *Treeview) DragColumn(column string, x int) {
 		right := left + c.Width
 		if c == col {
 			tv.dragColumn(i, x-right)
-			tv.Display()
+			tv.scheduleRedisplay()
 			return
 		}
 		left = right
@@ -1268,7 +1282,7 @@ func (tv *Treeview) DragColumn(column string, x int) {
 // Drop ends a column drag ("drop").
 func (tv *Treeview) Drop() {
 	tv.resizeColumns(tv.totalWidth())
-	tv.Display()
+	tv.scheduleRedisplay()
 }
 
 // totalWidth is TreeWidth: the width of the shown columns.

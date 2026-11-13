@@ -78,10 +78,10 @@ func (tv *Treeview) handleFocus(ev *event.Event) {
 	switch ev.Type {
 	case event.FocusInType:
 		tv.hasFocus = true
-		tv.Display()
+		tv.scheduleRedisplay()
 	case event.FocusOutType:
 		tv.hasFocus = false
-		tv.Display()
+		tv.scheduleRedisplay()
 	}
 }
 
