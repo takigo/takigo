@@ -775,7 +775,7 @@ func (m *Menu) displaySingleColumn(d platform.DisplayServer, gc platform.GCID, d
 				uint(w.Width-2*m.BorderWidth), uint(m.entryHeight))
 		}
 
-		textX := m.BorderWidth + 20
+		textX := m.BorderWidth + indicatorMargin
 		if e.HideMargin {
 			textX = m.BorderWidth + 2
 		}
@@ -818,12 +818,9 @@ func (m *Menu) displaySingleColumn(d platform.DisplayServer, gc platform.GCID, d
 
 		if fgCol != nil {
 			if !e.HideMargin {
-				if e.Type == Checkbutton && e.Checked {
-					df.DrawString(w.Drawable(), m.BorderWidth+4, textY, "\u2713",
-						fgCol.Pixel, fgCol.Red, fgCol.Green, fgCol.Blue)
-				} else if e.Type == Radiobutton && e.Checked {
-					df.DrawString(w.Drawable(), m.BorderWidth+4, textY, "\u25cf",
-						fgCol.Pixel, fgCol.Red, fgCol.Green, fgCol.Blue)
+				if (e.Type == Checkbutton || e.Type == Radiobutton) && e.Checked {
+					drawIndicator(d, w.Drawable(), gc, fgCol.Pixel, fm,
+						m.BorderWidth+indicatorMargin/2-2, yPos+m.entryHeight/2, e.Type == Radiobutton)
 				}
 			}
 
@@ -850,9 +847,16 @@ func (m *Menu) displaySingleColumn(d platform.DisplayServer, gc platform.GCID, d
 			}
 
 			if e.Type == Cascade {
-				arrowX := w.Width - m.BorderWidth - 14
-				df.DrawString(w.Drawable(), arrowX, textY, "\u25b6",
-					fgCol.Pixel, fgCol.Red, fgCol.Green, fgCol.Blue)
+				bgPx := w.BackgroundPixel
+				if isActive && m.ActiveBg != nil {
+					bgPx = m.ActiveBg.Pixel
+				} else if e.Bg != nil {
+					bgPx = e.Bg.Pixel
+				} else if m.Background != nil {
+					bgPx = m.Background.Pixel
+				}
+				drawCascadeArrow(d, w.Drawable(), gc, bgPx, fm, w.Width-m.BorderWidth-2,
+					yPos, m.entryHeight, m.postedCascade != nil && m.postedCascade == e.SubMenu)
 			}
 		}
 

@@ -5,6 +5,10 @@ version is 0, a minor release may break the API and says so here.
 
 ## Unreleased
 
+- **menu: Tk's cascade arrow and check marks.** A cascade entry shows
+  Tk's small raised 3D triangle instead of a font's ▶ glyph, and check
+  and radio marks are drawn shapes that keep clear of the label.
+
 ## v0.4.6 (2026-11-13)
 
 - **X11: an X protocol error no longer aborts the process.** The reader

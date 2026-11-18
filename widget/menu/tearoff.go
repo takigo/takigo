@@ -285,12 +285,9 @@ func (tw *TearoffWindow) display() {
 		}
 
 		if fgCol != nil {
-			if e.Type == Checkbutton && e.Checked {
-				df.DrawString(w.Drawable(), tw.borderWidth+4, textY, "\u2713",
-					fgCol.Pixel, fgCol.Red, fgCol.Green, fgCol.Blue)
-			} else if e.Type == Radiobutton && e.Checked {
-				df.DrawString(w.Drawable(), tw.borderWidth+4, textY, "\u25cf",
-					fgCol.Pixel, fgCol.Red, fgCol.Green, fgCol.Blue)
+			if (e.Type == Checkbutton || e.Type == Radiobutton) && e.Checked {
+				drawIndicator(d, w.Drawable(), gc, fgCol.Pixel, fm,
+					tw.borderWidth+indicatorMargin/2-2, yPos+tw.entryHeight/2, e.Type == Radiobutton)
 			}
 			if e.Label != "" {
 				df.DrawString(w.Drawable(), textX, textY, e.Label,
@@ -315,9 +312,14 @@ func (tw *TearoffWindow) display() {
 					fgCol.Pixel, fgCol.Red, fgCol.Green, fgCol.Blue)
 			}
 			if e.Type == Cascade {
-				arrowX := w.Width - tw.borderWidth - 14
-				df.DrawString(w.Drawable(), arrowX, textY, "\u25b6",
-					fgCol.Pixel, fgCol.Red, fgCol.Green, fgCol.Blue)
+				bgPx := w.BackgroundPixel
+				if isActive && tw.activeBg != nil {
+					bgPx = tw.activeBg.Pixel
+				} else if tw.bg != nil {
+					bgPx = tw.bg.Pixel
+				}
+				drawCascadeArrow(d, w.Drawable(), gc, bgPx, fm, w.Width-tw.borderWidth-2,
+					yPos, tw.entryHeight, false)
 			}
 		}
 		yPos += tw.entryHeight
