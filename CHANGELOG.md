@@ -5,6 +5,8 @@ version is 0, a minor release may break the API and says so here.
 
 ## Unreleased
 
+## v0.4.9 (2026-11-25)
+
 - **text: `Dump`, per-tag selection colours, `-tabstyle`, double clicks.**
   `Dump` ports `dump` (text, marks, tag toggles, images and windows in
   order); `TagSelectBackground`/`TagSelectForeground` colour a tag's text
