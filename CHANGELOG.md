@@ -5,6 +5,8 @@ version is 0, a minor release may break the API and says so here.
 
 ## Unreleased
 
+## v0.4.8 (2026-11-24)
+
 - **dialog: new SVG icon set.** The file dialog's folder, file, drive
   and new-folder icons and its back/forward/up/home toolbar glyphs are
   anti-aliased SVG drawings, scaled with the screen like Tk's own
