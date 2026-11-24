@@ -5,6 +5,7 @@ import (
 	"sort"
 
 	"github.com/takigo/takigo/color"
+	"github.com/takigo/takigo/cursor"
 	"github.com/takigo/takigo/font"
 	"github.com/takigo/takigo/option"
 	"github.com/takigo/takigo/screenunit"
@@ -49,6 +50,59 @@ type Tag struct {
 	BgStipple string
 	// FgStipple is the name of a stipple pattern for the foreground (e.g. "gray50").
 	FgStipple string
+	// Elide hides the text (-elide); ElideSet tells whether it was configured.
+	Elide    bool
+	ElideSet bool
+	// Wrap is the wrap mode of the lines that start with this tag (-wrap).
+	Wrap    WrapMode
+	WrapSet bool
+	// Tabs are the tab stops of the lines that start with this tag (-tabs).
+	Tabs []TabStop
+	// UnderlineFg and OverstrikeFg colour the lines -underline and
+	// -overstrike draw (-underlinefg, -overstrikefg); nil uses the foreground.
+	UnderlineFg  *color.Color
+	OverstrikeFg *color.Color
+	// LMarginColor and RMarginColor fill the left and right margins of the
+	// lines that start with this tag (-lmargincolor, -rmargincolor).
+	LMarginColor *color.Color
+	RMarginColor *color.Color
+	// SelectBackground and SelectForeground colour the tag's text while it
+	// is selected (-selectbackground, -selectforeground).
+	SelectBackground *color.Color
+	SelectForeground *color.Color
+	// TabStyle is how the tabs of the lines that start with this tag find
+	// their stop (-tabstyle), when TabStyleSet.
+	TabStyle    TabStyle
+	TabStyleSet bool
+
+	// The options below are takigo extensions that Tk's text tags lack.
+
+	// Cursor is the mouse cursor over text with this tag (CursorSet).
+	Cursor    cursor.Shape
+	CursorSet bool
+	// BlockBackground fills a box behind consecutive lines with this tag,
+	// as a CSS block's background: from the tag's LMargin1 to its RMargin,
+	// around the lines' spacing inside the box.
+	BlockBackground *color.Color
+	// BlockBorder is the box's border width on each side (left, top, right,
+	// bottom), drawn in BlockBorderColor (the foreground when nil).
+	BlockBorder      [4]int
+	BlockBorderColor *color.Color
+	// BlockPadding is the space between the box's border and the text on
+	// each side (left, top, right, bottom).
+	BlockPadding [4]int
+	// BlockRadius rounds the box's corners; a Classic App draws them square.
+	BlockRadius int
+	// Marker is drawn in the margin before the first line of each range of
+	// the tag that starts a line, right-aligned against LMargin1: a list
+	// bullet or number that is not part of the text.
+	Marker string
+	// Rule draws a horizontal line of this thickness across the lines with
+	// this tag, between the margins, in RuleColor (the foreground when nil).
+	Rule      int
+	RuleColor *color.Color
+	// Clear starts the lines with this tag below floating images.
+	Clear Clear
 
 	ranges     []TagRange
 	registered bool
@@ -205,6 +259,187 @@ func TagFgStipple(name string) TagOption {
 	}
 }
 
+// resolveColor sets *dst from name, or clears it for "".
+func resolveColor[C color.Spec](cache *color.Cache, name C, dst **color.Color) {
+	if color.IsEmpty(name) {
+		*dst = nil
+		return
+	}
+	if col, err := cache.Resolve(name); err == nil {
+		*dst = col
+	}
+}
+
+// TagElide hides (true) or shows the tag's text (-elide). A logical line
+// whose characters and newline are all elided takes no space; eliding only
+// a newline does not join its line with the next, unlike Tk.
+func TagElide(on bool) TagOption {
+	return func(cache *color.Cache, reg *font.Registry, tag *Tag) {
+		tag.Elide, tag.ElideSet = on, true
+	}
+}
+
+// TagWrap sets the wrap mode of the logical lines that start with this tag
+// (-wrap).
+func TagWrap(mode WrapMode) TagOption {
+	return func(cache *color.Cache, reg *font.Registry, tag *Tag) {
+		tag.Wrap, tag.WrapSet = mode, true
+	}
+}
+
+// TagTabs sets the tab stops of the logical lines that start with this tag
+// (-tabs). No stops restores the widget's.
+func TagTabs(stops ...TabStop) TagOption {
+	return func(cache *color.Cache, reg *font.Registry, tag *Tag) {
+		tag.Tabs = slices.Clone(stops)
+	}
+}
+
+// TagUnderlineFg sets the colour of the underline (-underlinefg).
+func TagUnderlineFg[C color.Spec](name C) TagOption {
+	return func(cache *color.Cache, reg *font.Registry, tag *Tag) {
+		resolveColor(cache, name, &tag.UnderlineFg)
+	}
+}
+
+// TagOverstrikeFg sets the colour of the overstrike line (-overstrikefg).
+func TagOverstrikeFg[C color.Spec](name C) TagOption {
+	return func(cache *color.Cache, reg *font.Registry, tag *Tag) {
+		resolveColor(cache, name, &tag.OverstrikeFg)
+	}
+}
+
+// TagLMarginColor fills the left margin of the tag's lines (-lmargincolor).
+func TagLMarginColor[C color.Spec](name C) TagOption {
+	return func(cache *color.Cache, reg *font.Registry, tag *Tag) {
+		resolveColor(cache, name, &tag.LMarginColor)
+	}
+}
+
+// TagRMarginColor fills the right margin of the tag's lines (-rmargincolor).
+func TagRMarginColor[C color.Spec](name C) TagOption {
+	return func(cache *color.Cache, reg *font.Registry, tag *Tag) {
+		resolveColor(cache, name, &tag.RMarginColor)
+	}
+}
+
+// TagSelectBackground sets the background of the tag's text while it is
+// selected (-selectbackground). Pass "" to clear.
+func TagSelectBackground[C color.Spec](name C) TagOption {
+	return func(cache *color.Cache, reg *font.Registry, tag *Tag) {
+		resolveColor(cache, name, &tag.SelectBackground)
+	}
+}
+
+// TagSelectForeground sets the foreground of the tag's text while it is
+// selected (-selectforeground). Pass "" to clear.
+func TagSelectForeground[C color.Spec](name C) TagOption {
+	return func(cache *color.Cache, reg *font.Registry, tag *Tag) {
+		resolveColor(cache, name, &tag.SelectForeground)
+	}
+}
+
+// TagTabStyle sets how the tabs of the lines that start with this tag find
+// their stop (-tabstyle).
+func TagTabStyle(style TabStyle) TagOption {
+	return func(cache *color.Cache, reg *font.Registry, tag *Tag) {
+		tag.TabStyle, tag.TabStyleSet = style, true
+	}
+}
+
+// TagCursor sets the mouse cursor shown over the tag's text, such as
+// cursor.Hand2 for a link. Tk's tags have no -cursor.
+func TagCursor(shape cursor.Shape) TagOption {
+	return func(cache *color.Cache, reg *font.Registry, tag *Tag) {
+		tag.Cursor, tag.CursorSet = shape, true
+	}
+}
+
+// TagBlockBackground fills a box behind the consecutive lines that carry
+// the tag, like a CSS block background. Pass "" to clear. Not in Tk.
+func TagBlockBackground[C color.Spec](name C) TagOption {
+	return func(cache *color.Cache, reg *font.Registry, tag *Tag) {
+		resolveColor(cache, name, &tag.BlockBackground)
+	}
+}
+
+// TagBlockBorder draws a border of the given width and colour on every side
+// of the tag's block box. Not in Tk.
+func TagBlockBorder[L screenunit.Length, C color.Spec](width L, c C) TagOption {
+	return func(cache *color.Cache, reg *font.Registry, tag *Tag) {
+		w := max(screenunit.ToPixels(width), 0)
+		tag.BlockBorder = [4]int{w, w, w, w}
+		resolveColor(cache, c, &tag.BlockBorderColor)
+	}
+}
+
+// TagBlockBorderSides sets the block border's width on each side, such as
+// a left bar for a quotation. Not in Tk.
+func TagBlockBorderSides[L screenunit.Length](left, top, right, bottom L) TagOption {
+	return func(cache *color.Cache, reg *font.Registry, tag *Tag) {
+		tag.BlockBorder = [4]int{
+			max(screenunit.ToPixels(left), 0), max(screenunit.ToPixels(top), 0),
+			max(screenunit.ToPixels(right), 0), max(screenunit.ToPixels(bottom), 0),
+		}
+	}
+}
+
+// TagBlockBorderColor sets the block border's colour. Not in Tk.
+func TagBlockBorderColor[C color.Spec](c C) TagOption {
+	return func(cache *color.Cache, reg *font.Registry, tag *Tag) {
+		resolveColor(cache, c, &tag.BlockBorderColor)
+	}
+}
+
+// TagBlockPadding sets the space between the block border and the text on
+// every side. Not in Tk.
+func TagBlockPadding[L screenunit.Length](pad L) TagOption {
+	return TagBlockPaddingSides(pad, pad, pad, pad)
+}
+
+// TagBlockPaddingSides sets the block padding on each side. Not in Tk.
+func TagBlockPaddingSides[L screenunit.Length](left, top, right, bottom L) TagOption {
+	return func(cache *color.Cache, reg *font.Registry, tag *Tag) {
+		tag.BlockPadding = [4]int{
+			max(screenunit.ToPixels(left), 0), max(screenunit.ToPixels(top), 0),
+			max(screenunit.ToPixels(right), 0), max(screenunit.ToPixels(bottom), 0),
+		}
+	}
+}
+
+// TagBlockRadius rounds the corners of the block box (square in a Classic
+// App). Not in Tk.
+func TagBlockRadius[L screenunit.Length](r L) TagOption {
+	return func(cache *color.Cache, reg *font.Registry, tag *Tag) {
+		tag.BlockRadius = max(screenunit.ToPixels(r), 0)
+	}
+}
+
+// TagMarker draws marker (a bullet such as "•" or a number such as "3.")
+// in the left margin of the first line of every range of the tag that
+// starts a line. Give each list item its own tag: ranges of one tag that
+// touch merge into one item. Not in Tk.
+func TagMarker(marker string) TagOption {
+	return func(cache *color.Cache, reg *font.Registry, tag *Tag) {
+		tag.Marker = marker
+	}
+}
+
+// TagRule draws a horizontal line of the given thickness and colour across
+// the tag's lines, between the margins, like HTML's <hr>. A thickness of 0
+// removes it; an empty colour uses the foreground. Not in Tk.
+func TagRule[L screenunit.Length, C color.Spec](thickness L, c C) TagOption {
+	return func(cache *color.Cache, reg *font.Registry, tag *Tag) {
+		tag.Rule = max(screenunit.ToPixels(thickness), 0)
+		resolveColor(cache, c, &tag.RuleColor)
+	}
+}
+
+// hasBlock reports whether the tag draws a block box or moves text for one.
+func (tg *Tag) hasBlock() bool {
+	return tg.BlockBackground != nil || tg.BlockBorder != [4]int{} || tg.BlockPadding != [4]int{}
+}
+
 // selPriority keeps the selection above every other tag; Tk raises "sel"
 // to the top with a "tag raise" at widget creation.
 const selPriority = 1 << 30
@@ -339,5 +574,8 @@ func (tg *Tag) adjustDelete(start, end Index) {
 func (tg *Tag) affectsLayout() bool {
 	return tg.Font != nil || tg.OffsetSet || tg.JustifySet ||
 		tg.LMargin1 != 0 || tg.LMargin2 != 0 || tg.RMargin != 0 ||
-		tg.Spacing1 != 0 || tg.Spacing2 != 0 || tg.Spacing3 != 0
+		tg.Spacing1 != 0 || tg.Spacing2 != 0 || tg.Spacing3 != 0 ||
+		tg.ElideSet || tg.WrapSet || len(tg.Tabs) > 0 || tg.TabStyleSet ||
+		tg.LMarginColor != nil || tg.RMarginColor != nil ||
+		tg.hasBlock() || tg.Marker != "" || tg.Rule > 0 || tg.Clear != ClearNone
 }

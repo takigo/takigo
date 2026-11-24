@@ -5,6 +5,74 @@ version is 0, a minor release may break the API and says so here.
 
 ## Unreleased
 
+- **text: `Dump`, per-tag selection colours, `-tabstyle`, double clicks.**
+  `Dump` ports `dump` (text, marks, tag toggles, images and windows in
+  order); `TagSelectBackground`/`TagSelectForeground` colour a tag's text
+  while selected; `TabStyleOpt` and `TagTabStyle` choose tabular or
+  word-processor tabs; `TagBind` takes `<Double-Button-N>` and
+  `<Triple-Button-N>`, picked over `<Button-N>` as in Tk.
+- **richtext: `colspan`, `rowspan` and images in table cells.** A
+  rowspan cell's lines flow down the rows it spans.
+
+- **richtext: table cells wrap.** Columns are sized as in CSS's automatic
+  table layout (between their longest word and their unwrapped content,
+  sharing the width available) and each cell is word-wrapped to its
+  column; `<br>` and blocks inside a cell break its lines.
+- **richtext: documents reflow.** A rendered document is rendered again
+  when the widget's width changes, so tables and fitted images follow
+  the window; `Reflow(false)` turns it off.
+- **text: `Window().OnConfigure` callbacks run on resize.** The text
+  widget never called its window's configure hooks.
+
+- **text: floating images.** `ImageFloatOpt(FloatLeft|FloatRight)` takes
+  an embedded image out of its line and puts it against a margin, with
+  the lines beside it narrowed until its bottom, across logical lines;
+  `TagClear` starts lines below the floats. richtext maps CSS `float` and
+  `clear` to them.
+- **text: nested block boxes are all drawn.** A line in several boxes
+  drew only the innermost.
+
+- **richtext: HTML in a text widget.** The new `widget/text/richtext`
+  package renders a subset of HTML styled with a subset of CSS into a
+  text widget: headings, paragraphs, inline styles, lists, quotations,
+  code blocks, rules, links (with `#anchor` scrolling and `OnLink`),
+  images (scaled to their CSS size and to the width available) and
+  tables laid out on tab stops. `demos/richtext` shows it.
+- **text: Tk's missing tag commands and options.** `TagDelete`,
+  `TagRaise`, `TagLower`, `TagNames`, `TagNamesAt`, `TagRanges`,
+  `TagNextRange` and `TagPrevRange`; tag options `TagElide`, `TagWrap`,
+  `TagTabs`, `TagUnderlineFg`, `TagOverstrikeFg`, `TagLMarginColor` and
+  `TagRMarginColor`; the widget's `Tabs` (with `ParseTabs` for Tk's
+  `-tabs` strings, left, right, center and numeric stops) and `Cursor`.
+  `TagBind` also fires `<Motion>`, `<Button-N>` and `<ButtonRelease-N>`
+  for every button, with the `current` mark at the character under the
+  pointer.
+- **text: `Search` and `SearchAll`** port `search` (forwards and
+  backwards, exact or regexp, `-nocase`, a stop index, wrapping).
+- **text: `ImageCreate` takes options** (`ImageAlignOpt`, `ImagePadX`,
+  `ImagePadY`, `ImageName`); `ImageConfigure`, `ImageAt` and
+  `ImageNames` port `image configure` and `image names`. Images align
+  top, center, bottom or on the baseline as in Tk.
+- **text: block boxes, list markers, rules and tag cursors.** New tag
+  options beyond Tk: `TagBlockBackground`, `TagBlockBorder`,
+  `TagBlockPadding` and `TagBlockRadius` draw a box behind consecutive
+  lines; `TagMarker` draws a bullet or number in the margin; `TagRule`
+  draws a horizontal line; `TagCursor` sets the mouse cursor over a
+  tag. A Classic App draws the box corners square.
+- **text: lines with tag fonts wrap at the right place.** Wrapping
+  measured every character in the widget's font, so text in a larger
+  tag font ran past the right edge.
+- **font: `Resolve(font.Attributes)` keeps pixel sizes and multi-word
+  families.** It went through a descriptor string that turned a negative
+  (pixel) size into 10 points and kept only the first word of a family
+  such as "DejaVu Sans"; `Attributes.Descriptor` now writes those
+  correctly too.
+
+- **text: scrolls to the end of tall lines.** The highest a text can be
+  scrolled is measured in pixels up from its end, as Tk's MeasureUp does,
+  not in lines of the default font's height; a text whose last lines hold
+  images, larger fonts or spacing showed less than its end.
+
 ## v0.4.8 (2026-11-24)
 
 - **dialog: new SVG icon set.** The file dialog's folder, file, drive

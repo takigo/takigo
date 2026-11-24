@@ -7,7 +7,6 @@ import (
 
 	"github.com/takigo/takigo/color"
 	"github.com/takigo/takigo/font"
-	"github.com/takigo/takigo/widget"
 )
 
 // Line holds one logical line of text as a rune slice.
@@ -43,7 +42,7 @@ type Document struct {
 	// images are the embedded images, by the name of the mark just before
 	// each one's placeholder character. They live in the document, so every
 	// peer shows them, as in Tk.
-	images   map[string]widget.WidgetImage
+	images   map[string]*embImage
 	imageSeq int
 
 	// objects are the marks of embedded windows and images, each just
@@ -128,30 +127,33 @@ func (d *Document) isPlaceholder(pos Index) bool {
 
 // eachImage calls fn for every embedded image still in the text (its
 // placeholder not deleted), with its position.
-func (d *Document) eachImage(fn func(pos Index, img widget.WidgetImage)) {
-	for name, img := range d.images {
-		if m := d.MarkPos(name); m != nil && d.isPlaceholder(*m) {
-			fn(*m, img)
+func (d *Document) eachImage(fn func(pos Index, ei *embImage)) {
+	for mark, ei := range d.images {
+		if m := d.MarkPos(mark); m != nil && d.isPlaceholder(*m) {
+			fn(*m, ei)
 		}
 	}
 }
 
 // imageAt returns the embedded image at pos, or nil.
-func (d *Document) imageAt(pos Index) widget.WidgetImage {
-	for name, img := range d.images {
-		if m := d.MarkPos(name); m != nil && *m == pos && d.isPlaceholder(pos) {
-			return img
+func (d *Document) imageAt(pos Index) *embImage {
+	if !d.isPlaceholder(pos) {
+		return nil
+	}
+	for mark, ei := range d.images {
+		if m := d.Marks[mark]; m != nil && m.Pos == pos {
+			return ei
 		}
 	}
 	return nil
 }
 
-// imageIndex returns the position of the embedded image named name, as
-// the image's Name method reports it (Tk's "image name" index).
+// imageIndex returns the position of the embedded image named name (Tk's
+// "image name" index): its -name, else the image's own name.
 func (d *Document) imageIndex(name string) (Index, bool) {
 	var found *Index
-	d.eachImage(func(pos Index, img widget.WidgetImage) {
-		if n, ok := img.(interface{ Name() string }); ok && n.Name() == name {
+	d.eachImage(func(pos Index, ei *embImage) {
+		if ei.instanceName() == name {
 			if found == nil || Compare(pos, *found) < 0 {
 				found = &pos
 			}
@@ -429,6 +431,130 @@ func (d *Document) TagConfigure(tagName string, cache *color.Cache, reg *font.Re
 		opt(cache, reg, tag)
 	}
 	d.layoutGen++
+}
+
+// TagDelete removes the tags and all their ranges (tag delete). "sel" is
+// cleared but stays, as Tk recreates it.
+func (d *Document) TagDelete(names ...string) {
+	for _, name := range names {
+		tg, ok := d.Tags[name]
+		if !ok {
+			continue
+		}
+		layout := tg.affectsLayout() && len(tg.ranges) > 0
+		from, to := 0, 0
+		if layout {
+			from, to = tg.ranges[0].Start.Line, tg.ranges[len(tg.ranges)-1].End.Line
+		}
+		if name == "sel" {
+			tg.ranges = nil
+		} else {
+			delete(d.Tags, name)
+			tg.registered = false
+			d.tagsByPriority = slices.DeleteFunc(d.tagsByPriority, func(t *Tag) bool { return t == tg })
+		}
+		d.layoutGen++
+		if layout {
+			d.notifyListeners(Change{From: from, To: to})
+		}
+	}
+}
+
+// TagRaise gives the tag a priority just above above, or above every other
+// tag when above is "" (tag raise).
+func (d *Document) TagRaise(name, above string) {
+	d.reorderTag(name, above, true)
+}
+
+// TagLower gives the tag a priority just below below, or below every other
+// tag when below is "" (tag lower).
+func (d *Document) TagLower(name, below string) {
+	d.reorderTag(name, below, false)
+}
+
+func (d *Document) reorderTag(name, other string, raise bool) {
+	tg := d.tag(name)
+	var ref *Tag
+	if other != "" {
+		ref = d.Tags[other]
+		if ref == nil || ref == tg {
+			return
+		}
+		ref = d.tag(other)
+	}
+	order := slices.DeleteFunc(slices.Clone(d.tagsByPriority), func(t *Tag) bool { return t == tg })
+	switch {
+	case ref == nil && raise:
+		order = append(order, tg)
+	case ref == nil:
+		order = slices.Insert(order, 0, tg)
+	default:
+		i := slices.Index(order, ref)
+		if raise {
+			i++
+		}
+		order = slices.Insert(order, i, tg)
+	}
+	// Tags below "sel" number from 0 and those above it from selPriority,
+	// so a new tag (nextPriority) still goes below the selection.
+	below := true
+	for i, t := range order {
+		switch {
+		case t.Name == "sel":
+			below = false
+			t.Priority = selPriority
+			d.nextPriority = i
+		case below:
+			t.Priority = i
+		default:
+			t.Priority = selPriority + i
+		}
+	}
+	if below {
+		d.nextPriority = len(order)
+	}
+	d.tagsByPriority = order
+	d.layoutGen++
+	d.notifyListeners(Change{From: 1, To: len(d.Lines)})
+}
+
+// TagNames returns the names of all tags, lowest priority first.
+func (d *Document) TagNames() []string {
+	names := make([]string, len(d.tagsByPriority))
+	for i, tg := range d.tagsByPriority {
+		names[i] = tg.Name
+	}
+	return names
+}
+
+// TagNextRange returns the first range of the tag that starts at or after
+// start and before end (tag nextrange). A range covering start but
+// beginning before it is not returned.
+func (d *Document) TagNextRange(name string, start, end Index) (TagRange, bool) {
+	tg, ok := d.Tags[name]
+	if !ok {
+		return TagRange{}, false
+	}
+	i := tg.firstStarting(start, false)
+	if i < len(tg.ranges) && Compare(tg.ranges[i].Start, end) < 0 {
+		return tg.ranges[i], true
+	}
+	return TagRange{}, false
+}
+
+// TagPrevRange returns the last range of the tag that starts before start
+// and at or after end (tag prevrange): a range covering start is returned
+// with its own start.
+func (d *Document) TagPrevRange(name string, start, end Index) (TagRange, bool) {
+	tg, ok := d.Tags[name]
+	if !ok {
+		return TagRange{}, false
+	}
+	i := tg.firstStarting(start, false) - 1
+	if i >= 0 && Compare(tg.ranges[i].Start, end) >= 0 {
+		return tg.ranges[i], true
+	}
+	return TagRange{}, false
 }
 
 // TagRangesFor returns the ranges of a tag, sorted and disjoint. The

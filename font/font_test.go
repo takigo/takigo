@@ -1,6 +1,7 @@
 package font
 
 import (
+	"cmp"
 	"strings"
 	"testing"
 )
@@ -161,6 +162,7 @@ func TestAttributesDescriptor(t *testing.T) {
 		{Attributes{Family: "Times", Size: 14}, "Times 14"},
 		{Attributes{Family: "", Size: 0}, "sans-serif 10"},
 		{Attributes{Family: "Courier", Size: 10, Weight: WeightBold, Slant: SlantOblique}, "Courier Bold Oblique 10"},
+		{Attributes{Family: "DejaVu Sans", Size: -20}, "{DejaVu Sans} -20"},
 	}
 
 	for _, tt := range tests {
@@ -168,6 +170,10 @@ func TestAttributesDescriptor(t *testing.T) {
 			got := tt.attrs.Descriptor()
 			if got != tt.want {
 				t.Errorf("Descriptor() = %q, want %q", got, tt.want)
+			}
+			back, err := ParseDescriptor(got)
+			if err != nil || back.Family != cmp.Or(tt.attrs.Family, "sans-serif") || back.Size != cmp.Or(tt.attrs.Size, 10) {
+				t.Errorf("ParseDescriptor(%q) = %+v, %v: not the attributes back", got, back, err)
 			}
 		})
 	}

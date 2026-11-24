@@ -503,25 +503,52 @@ it is only a hint. Regenerate with `python3 scripts/options_doc.py > docs/option
 
 | Option type | Go option | Takes | Tk option |
 |---|---|---|---|
+| `ImageOption` | `text.ImageAlignOpt` | `a ImageAlign` | `-imagealign` |
+| `ImageOption` | `text.ImageName` | `name string` | `-imagename` |
+| `ImageOption` | `text.ImagePadX` | `n L` | `-imagepadx` |
+| `ImageOption` | `text.ImagePadY` | `n L` | `-imagepady` |
+| `ImageOption` | `text.ImageSource` | `img widget.WidgetImage` | `-imagesource` |
+| `SearchOption` | `text.SearchBackwards` | `` | `-searchbackwards` |
+| `SearchOption` | `text.SearchNoCase` | `` | `-searchnocase` |
+| `SearchOption` | `text.SearchRegexp` | `` | `-searchregexp` |
+| `SearchOption` | `text.SearchStop` | `index I` | `-searchstop` |
 | `TagOption` | `text.TagBackground` | `name C` | `-tagbackground` |
 | `TagOption` | `text.TagBgStipple` | `name string` | `-tagbgstipple` |
+| `TagOption` | `text.TagBlockBackground` | `name C` | `-tagblockbackground` |
+| `TagOption` | `text.TagBlockBorder` | `width L, c C` | `-tagblockborder` |
+| `TagOption` | `text.TagBlockBorderColor` | `c C` | `-tagblockbordercolor` |
+| `TagOption` | `text.TagBlockBorderSides` | `left, top, right, bottom L` | `-tagblockbordersides` |
+| `TagOption` | `text.TagBlockPadding` | `pad L` | `-tagblockpadding` |
+| `TagOption` | `text.TagBlockPaddingSides` | `left, top, right, bottom L` | `-tagblockpaddingsides` |
+| `TagOption` | `text.TagBlockRadius` | `r L` | `-tagblockradius` |
 | `TagOption` | `text.TagBorderWidth` | `n L` | `-tagborderwidth` |
+| `TagOption` | `text.TagCursor` | `shape cursor.Shape` | `-tagcursor` |
+| `TagOption` | `text.TagElide` | `on bool` | `-tagelide` |
 | `TagOption` | `text.TagFgStipple` | `name string` | `-tagfgstipple` |
 | `TagOption` | `text.TagFont` | `name F` | `-tagfont` |
 | `TagOption` | `text.TagForeground` | `name C` | `-tagforeground` |
 | `TagOption` | `text.TagJustify` | `j option.Justify` | `-tagjustify` |
 | `TagOption` | `text.TagLMargin1` | `pixels L` | `-taglmargin1` |
 | `TagOption` | `text.TagLMargin2` | `pixels L` | `-taglmargin2` |
+| `TagOption` | `text.TagLMarginColor` | `name C` | `-taglmargincolor` |
+| `TagOption` | `text.TagMarker` | `marker string` | `-tagmarker` |
 | `TagOption` | `text.TagOffset` | `pixels L` | `-tagoffset` |
 | `TagOption` | `text.TagOverstrike` | `on bool` | `-tagoverstrike` |
+| `TagOption` | `text.TagOverstrikeFg` | `name C` | `-tagoverstrikefg` |
 | `TagOption` | `text.TagRMargin` | `pixels L` | `-tagrmargin` |
+| `TagOption` | `text.TagRMarginColor` | `name C` | `-tagrmargincolor` |
 | `TagOption` | `text.TagRelief` | `r option.Relief` | `-tagrelief` |
+| `TagOption` | `text.TagRule` | `thickness L, c C` | `-tagrule` |
 | `TagOption` | `text.TagSpacing1` | `pixels L` | `-tagspacing1` |
 | `TagOption` | `text.TagSpacing2` | `pixels L` | `-tagspacing2` |
 | `TagOption` | `text.TagSpacing3` | `pixels L` | `-tagspacing3` |
+| `TagOption` | `text.TagTabs` | `stops ...TabStop` | `-tagtabs` |
 | `TagOption` | `text.TagUnderline` | `on bool` | `-tagunderline` |
+| `TagOption` | `text.TagUnderlineFg` | `name C` | `-tagunderlinefg` |
+| `TagOption` | `text.TagWrap` | `mode WrapMode` | `-tagwrap` |
 | `TextOption` | `text.Background` | `name C` | `-background` |
 | `TextOption` | `text.BorderWidthOpt` | `w L` | `-borderwidth` |
+| `TextOption` | `text.Cursor` | `shape cursor.Shape` | `-cursor` |
 | `TextOption` | `text.FontOpt` | `name F` | `-font` |
 | `TextOption` | `text.Foreground` | `name C` | `-foreground` |
 | `TextOption` | `text.Height` | `h int` | `-height` |
@@ -532,6 +559,7 @@ it is only a hint. Regenerate with `python3 scripts/options_doc.py > docs/option
 | `TextOption` | `text.ReadOnly` | `on bool` | `-readonly` |
 | `TextOption` | `text.SetGridOpt` | `on bool` | `-setgrid` |
 | `TextOption` | `text.TabWidth` | `w int` | `-tabwidth` |
+| `TextOption` | `text.Tabs` | `stops ...TabStop` | `-tabs` |
 | `TextOption` | `text.UndoOpt` | `enabled bool` | `-undo` |
 | `TextOption` | `text.Width` | `w int` | `-width` |
 | `TextOption` | `text.WrapModeOpt` | `mode WrapMode` | `-wrapmode` |

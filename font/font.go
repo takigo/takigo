@@ -35,7 +35,8 @@ type Attributes struct {
 	Overstrike bool
 }
 
-// Descriptor returns a font descriptor string like "Helvetica Neue Bold 13".
+// Descriptor returns a font descriptor string like "{Helvetica Neue} Bold 13";
+// a negative (pixel) size stays negative.
 func (a Attributes) Descriptor() string {
 	family := a.Family
 	if family == "" {
@@ -54,8 +55,11 @@ func (a Attributes) Descriptor() string {
 	default:
 	}
 	size := a.Size
-	if size <= 0 {
+	if size == 0 {
 		size = 10
+	}
+	if strings.ContainsAny(family, " \t") {
+		family = "{" + family + "}"
 	}
 	return fmt.Sprintf("%s%s%s %.0f", family, w, s, size)
 }

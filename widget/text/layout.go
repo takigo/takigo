@@ -31,6 +31,11 @@ type lineLayout struct {
 	hs     []int         // display line heights including spacing
 	pixels int
 	width  int
+
+	// The floats beside the line at its top and bottom, and those whose
+	// images are in it (floats.go); only when the document has floats.
+	carryIn, carryOut []floatCarry
+	floats            []placedFloat
 }
 
 // layoutKey holds the widget state every line's layout depends on; a change
@@ -40,7 +45,9 @@ type layoutKey struct {
 	font       font.Font
 	wrapMode   WrapMode
 	tagGen     int
+	tabsGen    int
 	embedded   uint64
+	floats     bool // an image floats, so lines depend on the lines above
 }
 
 // Change describes an edit to a Document: lines From..To changed and Delta
@@ -63,8 +70,10 @@ func (c *layoutCache) currentKey() layoutKey {
 	}
 	// Order-independent: the images are kept in a map.
 	var imgs uint64
-	for _, img := range t.doc.images {
-		imgs += uint64(img.Width())<<20 ^ uint64(img.Height())
+	floats := false
+	for _, ei := range t.doc.images {
+		imgs += uint64(ei.width())<<20 ^ uint64(ei.height())<<4 ^ uint64(ei.align) ^ uint64(ei.float)<<2
+		floats = floats || ei.float != FloatNone
 	}
 	h = h*1000003 ^ imgs
 	return layoutKey{
@@ -72,7 +81,9 @@ func (c *layoutCache) currentKey() layoutKey {
 		font:       t.Font,
 		wrapMode:   t.wrapMode,
 		tagGen:     t.doc.layoutGen,
+		tabsGen:    t.tabsGen,
 		embedded:   h,
+		floats:     floats,
 	}
 }
 
@@ -126,7 +137,9 @@ func (c *layoutCache) apply(ch Change) {
 	case ch.Delta < 0:
 		c.lines = slices.Delete(c.lines, ch.From, ch.From-ch.Delta)
 	}
-	c.invalidate(ch.From, ch.To)
+	// The lines either side too: whether they open or close a block box,
+	// and the floats beside them, depend on the changed lines.
+	c.invalidate(ch.From-1, ch.To+1+max(ch.Delta, 0))
 	if ch.Delta != 0 {
 		c.sumsValid = false
 		c.dirtyHi = len(c.lines) - 1
@@ -140,7 +153,34 @@ func (c *layoutCache) validate(i int) {
 	oldPx, oldDl := ll.pixels, len(ll.dls)
 	l := i + 1
 	props := t.resolveLineProps(l)
-	dls := t.setMetrics(l, t.wrapLine(l, c.key.availWidth, props.lm1, props.lm2, props.rm))
+	mode := t.wrapMode
+	if props.wrapSet {
+		mode = props.wrap
+	}
+	var fs *floatState
+	if c.key.floats {
+		fs = &floatState{availWidth: c.key.availWidth}
+		if i > 0 {
+			fs.active = slices.Clone(c.lines[i-1].carryOut)
+		}
+		if props.clear != ClearNone {
+			props.sp1 += fs.clearance(props.sp1, props.clear)
+		}
+	}
+	var dls []displayLine
+	if fs != nil {
+		dls = t.setMetrics(l, t.wrapLineFloats(l, c.key.availWidth, props, mode, fs))
+	} else {
+		dls = t.setMetrics(l, t.wrapLineMode(l, c.key.availWidth, props.lm1, props.lm2, props.rm, mode))
+	}
+	if t.lineElided(l) {
+		props.sp1, props.sp2, props.sp3 = 0, 0, 0
+		props.blocks, props.block = nil, nil
+		props.marker, props.rule = "", nil
+		for k := range dls {
+			dls[k].height, dls[k].ascent = 0, 0
+		}
+	}
 	hs := make([]int, len(dls))
 	pixels := 0
 	for k, dl := range dls {
@@ -154,6 +194,7 @@ func (c *layoutCache) validate(i int) {
 		hs[k] = h
 		pixels += h
 	}
+	oldCarry := ll.carryOut
 	*ll = lineLayout{
 		valid:  true,
 		props:  props,
@@ -161,6 +202,15 @@ func (c *layoutCache) validate(i int) {
 		hs:     hs,
 		pixels: pixels,
 		width:  t.measureRange(l, 0, len(t.doc.Lines[i].Text)),
+	}
+	if fs != nil {
+		if i > 0 {
+			ll.carryIn = c.lines[i-1].carryOut
+		}
+		ll.carryOut, ll.floats = fs.carryOut(pixels), fs.placed
+		if !slices.Equal(oldCarry, ll.carryOut) {
+			c.invalidate(l+1, l+1) // the next line is beside other floats now
+		}
 	}
 	if c.sumsValid {
 		c.px.add(i, pixels-oldPx)
@@ -171,8 +221,11 @@ func (c *layoutCache) validate(i int) {
 // line returns the layout of logical line l (1-based).
 func (c *layoutCache) line(l int) *lineLayout {
 	c.check()
+	if c.key.floats {
+		c.settle(l - 1)
+	}
 	ll := &c.lines[l-1]
-	if !ll.valid {
+	if !ll.valid || c.key.floats && l > 1 && !slices.Equal(ll.carryIn, c.lines[l-2].carryOut) {
 		c.validate(l - 1)
 	}
 	// Lines inserted or removed above shift the numbering of cached lines.
@@ -182,6 +235,17 @@ func (c *layoutCache) line(l int) *lineLayout {
 		}
 	}
 	return ll
+}
+
+// settle validates the stale lines before line i (0-based) in order, as a
+// line's floats come from the line above it.
+func (c *layoutCache) settle(i int) {
+	for c.dirtyLo <= c.dirtyHi && c.dirtyLo < i {
+		if !c.lines[c.dirtyLo].valid {
+			c.validate(c.dirtyLo)
+		}
+		c.dirtyLo++
+	}
 }
 
 // ensureAll validates every stale line and rebuilds the prefix sums.

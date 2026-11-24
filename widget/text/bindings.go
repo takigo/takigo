@@ -43,6 +43,7 @@ func bindText(t *TextWidget, app widget.AppContext) {
 	})
 
 	app.Dispatcher().Bind(w.PlatformID, event.ButtonPressMask, t.handleButtonPress)
+	app.Dispatcher().Bind(w.PlatformID, event.ButtonReleaseMask, t.handleButtonRelease)
 
 	// Mouse: drag to select.
 	app.Dispatcher().Bind(w.PlatformID, event.MotionMask, t.handleMotion)
@@ -95,6 +96,7 @@ func (t *TextWidget) handleConfigure(ev *event.Event) {
 		t.inset = t.BorderWidth + t.HighlightWidth
 		t.notifyYScrollbar()
 		t.Display()
+		t.Win.NotifyConfigure()
 	}
 }
 
@@ -115,15 +117,20 @@ func (t *TextWidget) handleFocus(ev *event.Event) {
 
 // handleButtonPress handles mouse button press events.
 func (t *TextWidget) handleButtonPress(ev *event.Event) {
+	if ev.Type != event.ButtonPressType {
+		return
+	}
+	count := t.clicks.count(ev)
+	if len(t.tagBindings) > 0 && ev.Button >= 1 && ev.Button <= 9 {
+		// Tag bindings run before the class bindings change the selection,
+		// with "current" on the character under the pointer.
+		idx := t.indexFromPixel(ev.X, ev.Y)
+		t.doc.MarkSet("current", idx)
+		t.fireTagClick(idx, int(ev.Button), count)
+	}
 	if ev.Button == 1 {
 		widget.Focus(t.App, t.Win)
 		idx := t.indexFromPixel(ev.X, ev.Y)
-		// Fire tag Button-1 bindings before modifying selection.
-		if len(t.tagBindings) > 0 {
-			for tag := range t.tagsAtIndex(idx) {
-				t.fireTagHandlers(tag, "<Button-1>")
-			}
-		}
 		t.clearSelection()
 		t.doc.MarkSet("insert", idx)
 		t.selAnchor = idx
@@ -132,11 +139,30 @@ func (t *TextWidget) handleButtonPress(ev *event.Event) {
 	}
 }
 
+// handleButtonRelease fires the tags' <ButtonRelease-N> bindings.
+func (t *TextWidget) handleButtonRelease(ev *event.Event) {
+	if ev.Type != event.ButtonReleaseType || len(t.tagBindings) == 0 || ev.Button < 1 || ev.Button > 9 {
+		return
+	}
+	idx := t.indexFromPixel(ev.X, ev.Y)
+	t.doc.MarkSet("current", idx)
+	t.fireTagEvent(idx, fmt.Sprintf("<ButtonRelease-%d>", ev.Button))
+}
+
 // handleMotion handles mouse motion events (drag to select, tag hover).
 func (t *TextWidget) handleMotion(ev *event.Event) {
-	if len(t.tagBindings) > 0 {
+	if ev.Type != event.MotionType {
+		return
+	}
+	if len(t.tagBindings) > 0 || t.hasTagCursors() {
+		// TkTextPickCurrent: "current" follows the pointer while no
+		// button is down.
 		idx := t.indexFromPixel(ev.X, ev.Y)
+		if ev.State&platform.Button1Mask == 0 {
+			t.doc.MarkSet("current", idx)
+		}
 		t.updateTagHover(t.tagsAtIndex(idx))
+		t.fireTagEvent(idx, "<Motion>")
 	}
 	if ev.State&platform.Button1Mask != 0 {
 		idx := t.indexFromPixel(ev.X, ev.Y)
@@ -152,7 +178,7 @@ func (t *TextWidget) handleMotion(ev *event.Event) {
 
 // handleLeave handles Leave events (clear tag hover).
 func (t *TextWidget) handleLeave(ev *event.Event) {
-	if len(t.tagBindings) > 0 {
+	if len(t.tagBindings) > 0 || t.tagCursorSet {
 		t.updateTagHover(make(map[string]bool))
 	}
 }
@@ -520,4 +546,27 @@ func handleCtrlKey(t *TextWidget, ev *event.Event) {
 	case platform.XK_y: // Ctrl+Y: redo
 		t.Edit("redo")
 	}
+}
+
+// clickCounter counts repeated presses of one button nearby, as the
+// binding engine's updateClickState does (tkBind.c's MatchEventNearby).
+type clickCounter struct {
+	time         platform.Timestamp
+	btn          uint
+	rootX, rootY int
+	n            int
+}
+
+// count records a press and returns how many presses it makes in a row.
+func (c *clickCounter) count(ev *event.Event) int {
+	const doubleClickMs, nearbyPixels = 500, 5
+	near := func(a, b int) bool { return a-b <= nearbyPixels && b-a <= nearbyPixels }
+	if c.n > 0 && c.btn == ev.Button && uint64(ev.Time)-uint64(c.time) <= doubleClickMs &&
+		near(ev.RootX, c.rootX) && near(ev.RootY, c.rootY) {
+		c.n++
+	} else {
+		c.n = 1
+	}
+	c.time, c.btn, c.rootX, c.rootY = ev.Time, ev.Button, ev.RootX, ev.RootY
+	return c.n
 }

@@ -56,7 +56,7 @@ func checkLayoutMatches(t *testing.T, step int, tw *TextWidget) {
 	}
 	for l := 1; l <= tw.doc.LineCount(); l++ {
 		g, w := got.line(l), want.line(l)
-		if !reflect.DeepEqual(g.dls, w.dls) || !reflect.DeepEqual(g.hs, w.hs) || g.width != w.width || g.props != w.props {
+		if !reflect.DeepEqual(g.dls, w.dls) || !reflect.DeepEqual(g.hs, w.hs) || g.width != w.width || !reflect.DeepEqual(g.props, w.props) {
 			t.Fatalf("step %d line %d: cached %+v %v %d, fresh %+v %v %d", step, l, g.dls, g.hs, g.width, w.dls, w.hs, w.width)
 		}
 		if got.pixelsBefore(l) != want.pixelsBefore(l) || got.displayLinesBefore(l) != want.displayLinesBefore(l) {
@@ -75,8 +75,19 @@ func checkLayoutMatches(t *testing.T, step int, tw *TextWidget) {
 	}
 }
 
-func TestLayoutCacheMatchesRecompute(t *testing.T) {
-	rng := rand.New(rand.NewPCG(1, 2))
+func TestLayoutCacheMatchesRecompute(t *testing.T) { layoutCacheRandomEdits(t, false, 1) }
+
+// With floating images every line's layout depends on the lines above.
+func TestLayoutCacheMatchesRecomputeFloats(t *testing.T) {
+	for seed := range uint64(floatSeeds) {
+		layoutCacheRandomEdits(t, true, seed+1)
+	}
+}
+
+const floatSeeds = 6
+
+func layoutCacheRandomEdits(t *testing.T, floats bool, seed uint64) {
+	rng := rand.New(rand.NewPCG(seed, 2))
 	tw := newBenchWidget(benchDoc(40, 50), 200, 100)
 	doc := tw.doc
 	doc.TagConfigure("margin", nil, nil, TagLMargin1(20), TagLMargin2(10), TagSpacing1(3), TagSpacing3(2))
@@ -88,6 +99,10 @@ func TestLayoutCacheMatchesRecompute(t *testing.T) {
 		return Index{l, rng.IntN(len(doc.Lines[l-1].Text) + 1)}
 	}
 	for step := range 400 {
+		if floats && rng.IntN(6) == 0 {
+			tw.ImageCreate(randIdx(), testImage{"f", 20 + rng.IntN(60), 10 + rng.IntN(60)},
+				ImageFloatOpt(ImageFloat(1+rng.IntN(2))))
+		}
 		switch rng.IntN(10) {
 		case 0, 1, 2:
 			doc.Insert(randIdx(), words[rng.IntN(len(words))])
@@ -152,5 +167,24 @@ func TestScrollMathOnCache(t *testing.T) {
 	tw.clampScrollPosition()
 	if tw.computeDisplayLinesBefore(tw.topLine, tw.topCharOffset) != total-(100/13) {
 		t.Fatalf("clamp: top display line %d, want %d", tw.computeDisplayLinesBefore(tw.topLine, tw.topCharOffset), total-100/13)
+	}
+}
+
+// TestClampScrollTallLastLines checks that the view scrolls to the end of
+// a text whose last lines are taller than the default: the highest top is
+// measured in pixels, not in lines of the default height.
+func TestClampScrollTallLastLines(t *testing.T) {
+	doc := benchDoc(30, 10)
+	doc.TagConfigure("tall", nil, nil, TagSpacing1(60))
+	doc.TagAdd("tall", Index{Line: 27, Char: 0}, Index{Line: 30, Char: 3})
+	tw := newBenchWidget(doc, 400, 100)
+	tw.YViewMoveTo(1)
+	if _, last := tw.yviewFractions(); last != 1 {
+		t.Fatalf("scrolled to the end, the view shows up to %v of the text, want 1", last)
+	}
+	// The top is the highest that still shows the last line.
+	top := tw.displayLineTop(tw.topLine, tw.topCharOffset)
+	if total := tw.layout.totalPixels(); top+100 < total {
+		t.Fatalf("top %d with a view of 100 does not reach the end %d", top, total)
 	}
 }

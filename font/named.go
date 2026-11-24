@@ -127,9 +127,32 @@ func (r *Registry) Resolve[S Spec](s S) (Font, error) {
 	case string:
 		return r.Get(v)
 	case Attributes:
-		return r.Get(v.Descriptor())
+		return r.open(v)
 	}
 	return nil, ErrNotFound
+}
+
+// open returns the font for attributes, defaulting the family and size as
+// Descriptor does, without going through a descriptor string, which would
+// lose a multi-word family's other words.
+func (r *Registry) open(a Attributes) (Font, error) {
+	if a.Family == "" {
+		a.Family = "sans-serif"
+	}
+	if a.Size == 0 {
+		a.Size = 10
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if f, ok := r.opened[a]; ok {
+		return f, nil
+	}
+	f, err := r.opener.OpenFont(a)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %q: %w", ErrNotFound, a.Descriptor(), err)
+	}
+	r.opened[a] = f
+	return f, nil
 }
 
 // maxCachedNames bounds the name → font shortcut index of a Registry.

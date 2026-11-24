@@ -412,6 +412,7 @@ var categories = []category{
 		{"msgwidget", "Message widget with aspect-ratio wrapping"},
 		{"square", "A draggable square widget"},
 		{"keydebug", "Keyboard and menu key debugging"},
+		{"richtext", "An HTML page in a text widget"},
 	}},
 }
 
@@ -517,6 +518,7 @@ button to see the Go code that created the demonstration.
 @@demo msgwidget	Message widget with aspect-ratio wrapping
 @@demo square	A draggable square widget
 @@demo keydebug	Keyboard and menu key debugging
+@@demo richtext	An HTML page in a text widget
 `
 
 // addFormattedText populates a text widget from the formatted content string,

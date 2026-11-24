@@ -47,6 +47,9 @@ type TextWidget struct {
 	// Display config.
 	wrapMode    WrapMode
 	tabWidth    int // characters, default 8
+	tabs        []TabStop
+	tabStyle    TabStyle
+	tabsGen     int // counts Tabs and TabStyleOpt changes, for the layout cache key
 	insertWidth int // cursor width in pixels
 	cursorOn    bool
 	hasFocus    bool
@@ -84,6 +87,12 @@ type TextWidget struct {
 	// Tag event bindings: tagName → eventName → handlers.
 	tagBindings map[string]map[string][]func()
 	hoverTags   map[string]bool
+	clicks      clickCounter
+	// tagCursor is the cursor a tag under the pointer set (tagCursorSet).
+	tagCursor    cursor.Shape
+	tagCursorSet bool
+	// mouseCursor is the widget's -cursor, shown where no tag sets one.
+	mouseCursor cursor.Shape
 
 	// Embedded images drawn inline with text.
 
@@ -121,6 +130,7 @@ func New(parent widget.Caregiver, name string, opts ...TextOption) *TextWidget {
 		prefWidth:   80,
 		prefHeight:  24,
 		undoEnabled: true,
+		mouseCursor: cursor.XTerm,
 	}
 	widget.InitBase(&t.Base, w, app)
 	w.OnDestroy(t.Destroy)
@@ -186,7 +196,7 @@ func New(parent widget.Caregiver, name string, opts ...TextOption) *TextWidget {
 	}
 
 	w.Flags |= window.FlagFocusable
-	w.SetCursor(cursor.XTerm) // XC_xterm — I-beam cursor for text
+	w.SetCursor(t.mouseCursor) // XC_xterm — I-beam cursor for text
 	bindText(t, app)
 
 	return t
@@ -214,6 +224,7 @@ func NewPeer(doc *Document, parent widget.Caregiver, name string, opts ...TextOp
 		// primary undoes what a peer did, and an undo in a peer undoes
 		// the shared history.
 		undoEnabled: true,
+		mouseCursor: cursor.XTerm,
 	}
 	widget.InitBase(&t.Base, w, app)
 	w.OnDestroy(t.Destroy)
@@ -257,7 +268,7 @@ func NewPeer(doc *Document, parent widget.Caregiver, name string, opts ...TextOp
 	}
 
 	w.Flags |= window.FlagFocusable
-	w.SetCursor(cursor.XTerm)
+	w.SetCursor(t.mouseCursor)
 	bindText(t, app)
 
 	// The document no longer refers to the widget once it is gone.
@@ -690,40 +701,13 @@ func (t *TextWidget) WindowCreatePad[I IndexSpec, X, Y screenunit.Length](indexS
 	return nil
 }
 
-// ImageCreate embeds an image at the given text index. As in Tk it takes
-// one index position: text flows around it, it moves with edits before it,
-// and deleting its position removes it. Every peer shows it.
-func (t *TextWidget) ImageCreate[I IndexSpec](indexStr I, img widget.WidgetImage) error {
-	idx, ok := indexOf(t, indexStr)
-	if !ok {
-		return ErrBadIndex
-	}
-	if img == nil {
-		return nil
-	}
-	d := t.doc
-	d.Insert(idx, string(runeEmbeddedWindow))
-	// A mark just before the placeholder, with right gravity so that text
-	// inserted at the image's position moves it along.
-	d.imageSeq++
-	name := fmt.Sprintf("_ei%d", d.imageSeq)
-	d.MarkSet(name, idx)
-	d.addObject(name)
-	if d.images == nil {
-		d.images = map[string]widget.WidgetImage{}
-	}
-	d.images[name] = img
-	t.Display()
-	return nil
-}
-
 // lineHeightFor returns the display line height for the given logical line,
 // taking into account any embedded images and windows on that line.
 func (t *TextWidget) lineHeightFor(lineIdx int) int {
 	h := t.lineHeight()
-	t.doc.eachImage(func(pos Index, img widget.WidgetImage) {
-		if pos.Line == lineIdx {
-			h = max(h, img.Height())
+	t.doc.eachImage(func(pos Index, ei *embImage) {
+		if pos.Line == lineIdx && ei.float == FloatNone {
+			h = max(h, ei.height())
 		}
 	})
 	for _, ew := range t.embeddedWindows {
@@ -933,21 +917,43 @@ func (t *TextWidget) scrollDownToShow(idx Index) {
 
 // clampScrollPosition ensures the view doesn't scroll past the end of content.
 // The last line of content should not scroll above the bottom of the viewport.
+// As MeasureUp in tkTextDisp.c, the highest top is found in pixels, up from
+// the end: display lines differ in height (images, fonts, spacing), so a
+// count of lines of the default height would stop short of the end.
 func (t *TextWidget) clampScrollPosition() {
-	totalDL := t.totalDisplayLines()
-	visLines := max((t.Win.Height-2*t.insetY)/t.lineHeight(), 1)
-	if totalDL <= visLines {
+	total := t.layout.totalPixels()
+	view := max(t.Win.Height-2*t.insetY, 1)
+	if total <= view {
 		// All content fits — reset to top.
 		t.topLine = 1
 		t.topCharOffset = 0
 		return
 	}
-	// Maximum top display line: totalDL - visLines.
-	maxTopDL := totalDL - visLines
-	topDL := t.computeDisplayLinesBefore(t.topLine, t.topCharOffset)
-	if topDL > maxTopDL {
-		t.topLine, t.topCharOffset = t.layout.lineAtDisplayLine(maxTopDL)
+	// The highest top is the first display line that starts at or below
+	// total-view, so that the last line is shown whole; a last line taller
+	// than the view is its own top.
+	maxLine, maxOff := t.layout.lineAtPixel(total - view)
+	if t.displayLineTop(maxLine, maxOff) < total-view {
+		if hs := t.displayLinePixels(maxLine); maxOff+1 < len(hs) {
+			maxOff++
+		} else if maxLine < t.doc.LineCount() {
+			maxLine, maxOff = maxLine+1, 0
+		}
 	}
+	if t.displayLineTop(t.topLine, t.topCharOffset) > t.displayLineTop(maxLine, maxOff) {
+		t.topLine, t.topCharOffset = maxLine, maxOff
+	}
+}
+
+// displayLineTop is the document pixel at which display line off of a
+// logical line starts.
+func (t *TextWidget) displayLineTop(line, off int) int {
+	y := t.layout.pixelsBefore(line)
+	hs := t.displayLinePixels(line)
+	for _, h := range hs[:min(off, len(hs))] {
+		y += h
+	}
+	return y
 }
 
 // scrollByDisplayLines scrolls by n display lines (positive = down, negative = up).

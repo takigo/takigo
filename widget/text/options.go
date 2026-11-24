@@ -1,6 +1,7 @@
 package text
 
 import (
+	"github.com/takigo/takigo/cursor"
 	"github.com/takigo/takigo/font"
 	"github.com/takigo/takigo/screenunit"
 
@@ -105,4 +106,15 @@ func PadXOpt[L screenunit.Length](n L) TextOption {
 // PadYOpt sets vertical padding between the border and the text content.
 func PadYOpt[L screenunit.Length](n L) TextOption {
 	return func(t *TextWidget) { t.PadY = screenunit.ToPixels(n) }
+}
+
+// Cursor sets the mouse cursor over the widget (-cursor; the I-beam by
+// default). A tag's TagCursor overrides it over the tag's text.
+func Cursor(shape cursor.Shape) TextOption {
+	return func(t *TextWidget) {
+		t.mouseCursor = shape
+		if !t.tagCursorSet {
+			t.Win.SetCursor(shape)
+		}
+	}
 }

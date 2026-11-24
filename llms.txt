@@ -10,6 +10,7 @@ Rules for code that uses takigo:
 - Options follow Tk's names (`button.Text`, `label.Width`). When the bare name is taken, the option carries an `Opt` suffix (`label.FontOpt`). ttk options are prefixed with the widget (`ttk.ButtonText`). Colours take a name or `color.RGB(...)`. Distances take pixels or `screenunit.Pt(3)`, `Mm(2)`, …; strings like "3p" do not compile.
 - All UI calls run on the goroutine running `app.Run()`. From other goroutines use `app.RunOnMain`, `app.After` or `app.DoWhenIdle`. Modal dialogs block in a nested loop and are fine to call from a command.
 - A themed app imports a theme for its side effect: `_ "github.com/takigo/takigo/ttk/clamtheme"`.
+- To show HTML (help pages, release notes), use `richtext.Render(tw, html, opts...)` from `widget/text/richtext` on a `text.New` widget; it supports a subset of HTML and CSS and loads only local or data: images.
 - The godoc `Example` functions in each package are the reference usage.
 
 ## Docs
@@ -23,7 +24,7 @@ Rules for code that uses takigo:
 
 ## Examples
 
-- [Demos](https://github.com/takigo/takigo/tree/master/demos): 69 programs, most of them ports of Tk's widget demos; `demos/<name>/main.go`
+- [Demos](https://github.com/takigo/takigo/tree/master/demos): 70 programs, most of them ports of Tk's widget demos; `demos/<name>/main.go`
 - [Root package examples](https://github.com/takigo/takigo/blob/master/example_test.go)
 
 ## Optional

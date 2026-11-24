@@ -188,6 +188,7 @@ on different goroutines.
 | Fix a wrong-looking demo | the `tk-demo-compare` skill (`.agents/skills/`), `demos/AGENTS.md` |
 | Port a Tk option end to end | the `port-tk-option` skill |
 | Add a canvas item or item option | `canvas/AGENTS.md` |
+| Show HTML in a text widget, add an element or CSS property | `widget/text/richtext/` (`build.go`, `style.go`), `widget/text/AGENTS.md` |
 | Add a binding tag or pattern | `bind/AGENTS.md`; `bind/table.go` (`BindingTable`) + `bind/pattern.go` |
 | Check a dialog by clicking through it | `dialog/AGENTS.md`, "Checking a dialog by hand" |
 | Check the Windows backend from Linux | the `windows-wine-check` skill |

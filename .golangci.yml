@@ -63,6 +63,10 @@ linters:
         linters: [errcheck, dogsled]
       - path: ^(demos|cmd)/
         linters: [dogsled]
+      # HTML element names and CSS keywords are the vocabulary of the
+      # parser and the cascade, not magic strings.
+      - path: ^widget/text/richtext/
+        linters: [goconst]
       # Layout and configuration calls return an error for the caller who
       # wants it; like fmt.Println, most callers have nothing to do with it.
       - linters: [errcheck]

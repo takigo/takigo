@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/takigo/takigo/platform"
-	"github.com/takigo/takigo/widget"
 	"github.com/takigo/takigo/window"
 )
 
@@ -81,7 +80,7 @@ func TestEmbeddedImageTracksEdits(t *testing.T) {
 
 func countImages(d *Document) int {
 	n := 0
-	d.eachImage(func(Index, widget.WidgetImage) { n++ })
+	d.eachImage(func(Index, *embImage) { n++ })
 	return n
 }
 

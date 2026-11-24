@@ -1,6 +1,7 @@
 package text
 
 import (
+	"cmp"
 	"slices"
 
 	"github.com/takigo/takigo/color"
@@ -8,20 +9,26 @@ import (
 	"github.com/takigo/takigo/font"
 	"github.com/takigo/takigo/option"
 	"github.com/takigo/takigo/platform"
-	"github.com/takigo/takigo/widget"
 )
 
 // tabAdvance ports SizeOfTab for the default tabs (no -tabs, tabular
 // style): the index'th tab of a display line (from 0) ends at stop
 // (index+1) × tabWidth average characters, where x is the width laid out
 // so far; a tab is never narrower than a space.
-func (t *TextWidget) tabAdvance(index, x int) int {
+//
+// With word-processor tabs (AdjustForTab's NextTabStop) the tab goes to
+// the first stop past x instead.
+func (t *TextWidget) tabAdvance(index, x int, style TabStyle) int {
 	chars := t.tabWidth
 	if chars <= 0 {
 		chars = 8
 	}
 	stop := max(t.Font.MeasureString("0")*chars, 1)
-	return max(stop*(index+1)-x, t.Font.MeasureString(" "))
+	desired := stop * (index + 1)
+	if style == TabWordProcessor {
+		desired = (x/stop + 1) * stop
+	}
+	return max(desired-x, t.Font.MeasureString(" "))
 }
 
 // displayLine represents one visual line (possibly a fragment of a logical line).
@@ -41,22 +48,26 @@ type displayLine struct {
 
 // textSegment is a run of text with uniform style.
 type textSegment struct {
-	text       string
-	runes      int // characters covered (a tab or window draws no text)
-	x          int
-	width      int
-	fg         *color.Color
-	bg         *color.Color
-	bgStipple  platform.PixmapID // depth-1 stipple bitmap for background (0 = none)
-	fgStipple  platform.PixmapID // depth-1 stipple bitmap for foreground (0 = none)
-	font       font.Font
-	underline  bool
-	overstrike bool
-	offset     int // vertical pixel offset (positive = up/superscript, negative = down/subscript)
-	relief     option.Relief
-	reliefBW   int // border-width for 3D relief drawing
-	reliefSet  bool
-	img        widget.WidgetImage // an embedded image, drawn instead of text
+	text         string
+	runes        int // characters covered (a tab, window or elided text draws no text)
+	x            int
+	width        int
+	fg           *color.Color
+	bg           *color.Color
+	bgStipple    platform.PixmapID // depth-1 stipple bitmap for background (0 = none)
+	fgStipple    platform.PixmapID // depth-1 stipple bitmap for foreground (0 = none)
+	font         font.Font
+	underline    bool
+	overstrike   bool
+	underlineFg  *color.Color
+	overstrikeFg *color.Color
+	offset       int // vertical pixel offset (positive = up/superscript, negative = down/subscript)
+	relief       option.Relief
+	reliefBW     int // border-width for 3D relief drawing
+	reliefSet    bool
+	img          *embImage // an embedded image, drawn instead of text
+	isTab        bool
+	elided       bool
 }
 
 // lineProps holds resolved per-logical-line properties from tags.
@@ -64,12 +75,73 @@ type lineProps struct {
 	lm1, lm2, rm  int
 	sp1, sp2, sp3 int
 	justify       option.Justify
+	wrap          WrapMode
+	wrapSet       bool
+	tabs          []TabStop
+	tabStyle      TabStyle
+
+	lmColor, rmColor *color.Color
+
+	// blocks are the block boxes the line is in, outermost first; block
+	// is the innermost. sp1 and sp3 include the insets of the boxes the
+	// line opens and closes.
+	blocks []lineBlock
+	block  *Tag
+
+	marker string
+	rule   *Tag
+	clear  Clear
+}
+
+// lineBlock is one block box of a line. start and end tell whether the
+// line opens or closes it; top and bottom are how far its edges are from
+// the top of the line's spacing above and the bottom of its spacing below
+// on those lines.
+type lineBlock struct {
+	tag         *Tag
+	start, end  bool
+	top, bottom int
+}
+
+// resolveBlocks orders a line's block boxes outermost first (by left and
+// then right margin, then the lower priority outside) and works out the
+// text margins and the spacing their borders and padding add.
+func (t *TextWidget) resolveBlocks(lineIdx int, p *lineProps) {
+	slices.SortStableFunc(p.blocks, func(a, b lineBlock) int {
+		return cmp.Or(cmp.Compare(a.tag.LMargin1, b.tag.LMargin1), cmp.Compare(a.tag.RMargin, b.tag.RMargin),
+			cmp.Compare(a.tag.Priority, b.tag.Priority))
+	})
+	top, bottom := p.sp1, p.sp3
+	for i := range p.blocks {
+		lb := &p.blocks[i]
+		b := lb.tag
+		p.lm1 = max(p.lm1, b.LMargin1+b.BlockBorder[0]+b.BlockPadding[0])
+		p.lm2 = max(p.lm2, b.LMargin1+b.BlockBorder[0]+b.BlockPadding[0])
+		p.rm = max(p.rm, b.RMargin+b.BlockBorder[2]+b.BlockPadding[2])
+		// A box runs over consecutive lines that start with the tag while
+		// it covers the newlines between them.
+		lb.start = lineIdx == 1 || !b.covers(Index{Line: lineIdx - 1}) ||
+			!b.covers(Index{Line: lineIdx - 1, Char: len(t.doc.Lines[lineIdx-2].Text)})
+		lb.end = lineIdx == t.doc.LineCount() || !b.covers(Index{Line: lineIdx + 1}) ||
+			!b.covers(Index{Line: lineIdx, Char: len(t.doc.Lines[lineIdx-1].Text)})
+		if lb.start {
+			lb.top = top
+			top += b.BlockBorder[1] + b.BlockPadding[1]
+		}
+		if lb.end {
+			lb.bottom = bottom
+			bottom += b.BlockBorder[3] + b.BlockPadding[3]
+		}
+	}
+	p.sp1, p.sp3 = top, bottom
+	p.block = p.blocks[len(p.blocks)-1].tag
 }
 
 // resolveLineProps resolves tag properties for the first character of a logical line.
 func (t *TextWidget) resolveLineProps(lineIdx int) lineProps {
-	tags := t.doc.TagsAt(Index{Line: lineIdx, Char: 0})
-	var p lineProps
+	start := Index{Line: lineIdx, Char: 0}
+	tags := t.doc.TagsAt(start)
+	p := lineProps{tabStyle: t.tabStyle}
 	for _, tag := range tags {
 		if tag.LMargin1 > 0 {
 			p.lm1 = tag.LMargin1
@@ -92,8 +164,88 @@ func (t *TextWidget) resolveLineProps(lineIdx int) lineProps {
 		if tag.JustifySet {
 			p.justify = tag.Justify
 		}
+		if tag.WrapSet {
+			p.wrap, p.wrapSet = tag.Wrap, true
+		}
+		if len(tag.Tabs) > 0 {
+			p.tabs = tag.Tabs
+		}
+		if tag.TabStyleSet {
+			p.tabStyle = tag.TabStyle
+		}
+		if tag.LMarginColor != nil {
+			p.lmColor = tag.LMarginColor
+		}
+		if tag.RMarginColor != nil {
+			p.rmColor = tag.RMarginColor
+		}
+		if tag.hasBlock() {
+			p.blocks = append(p.blocks, lineBlock{tag: tag})
+		}
+		if tag.Rule > 0 {
+			p.rule = tag
+		}
+		if tag.Clear != ClearNone {
+			p.clear = tag.Clear
+		}
+		if tag.Marker != "" {
+			if i, ok := tag.rangeAt(start); ok && tag.ranges[i].Start == start {
+				p.marker = tag.Marker
+			}
+		}
+	}
+	if len(p.blocks) > 0 {
+		t.resolveBlocks(lineIdx, &p)
 	}
 	return p
+}
+
+// needsSegments reports whether measuring part of a line has to go through
+// its styled segments: a tag changes the font, hides text or sets tab
+// stops on it, or the widget has tab stops and the line a tab.
+func (t *TextWidget) needsSegments(lineIdx int) bool {
+	if len(t.tabs) > 0 && slices.Contains(t.doc.Lines[lineIdx-1].Text, '\t') {
+		return true
+	}
+	for _, tg := range t.doc.tagsByPriority {
+		if (tg.Font != nil || tg.ElideSet || len(tg.Tabs) > 0 || tg.TabStyleSet) && len(tg.rangesOnLine(lineIdx)) > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+// elideAt reports whether the character at idx is elided.
+func (t *TextWidget) elideAt(idx Index) bool {
+	elide := false
+	for _, tag := range t.doc.TagsAt(idx) {
+		if tag.ElideSet {
+			elide = tag.Elide
+		}
+	}
+	return elide
+}
+
+// lineElided reports whether all of a logical line, its newline included,
+// is elided, so that it takes no space.
+func (t *TextWidget) lineElided(lineIdx int) bool {
+	hasElide := false
+	for _, tg := range t.doc.tagsByPriority {
+		if tg.ElideSet && tg.Elide {
+			hasElide = true
+			break
+		}
+	}
+	n := len(t.doc.Lines[lineIdx-1].Text)
+	if !hasElide || !t.elideAt(Index{Line: lineIdx, Char: n}) {
+		return false
+	}
+	for _, seg := range t.segmentsForRange(lineIdx, 0, n) {
+		if !seg.elided {
+			return false
+		}
+	}
+	return true
 }
 
 // measureRange measures the pixel width of text from startChar to endChar
@@ -102,6 +254,13 @@ func (t *TextWidget) resolveLineProps(lineIdx int) lineProps {
 func (t *TextWidget) measureRange(lineIdx, startChar, endChar int) int {
 	if startChar >= endChar || t.Font == nil {
 		return 0
+	}
+	if t.needsSegments(lineIdx) {
+		width := 0
+		for _, seg := range t.segmentsForRange(lineIdx, startChar, endChar) {
+			width += seg.width
+		}
+		return width
 	}
 	line := t.doc.Lines[lineIdx-1]
 	text := line.Text[startChar:endChar]
@@ -118,14 +277,14 @@ func (t *TextWidget) measureRange(lineIdx, startChar, endChar int) int {
 		}
 		wins[m.Pos.Char] = ew.win.ReqWidth + 2*ew.padX
 	}
-	t.doc.eachImage(func(pos Index, img widget.WidgetImage) {
+	t.doc.eachImage(func(pos Index, ei *embImage) {
 		if pos.Line != lineIdx || pos.Char < startChar || pos.Char >= endChar {
 			return
 		}
 		if wins == nil {
 			wins = map[int]int{}
 		}
-		wins[pos.Char] = img.Width()
+		wins[pos.Char] = ei.flowWidth()
 	})
 	if wins == nil && !slices.Contains(text, '\t') {
 		return t.Font.MeasureString(string(text))
@@ -148,7 +307,7 @@ func (t *TextWidget) measureRange(lineIdx, startChar, endChar int) int {
 		} else if line.Text[i] == '\t' {
 			flush(i)
 			tabIdx++
-			width += t.tabAdvance(tabIdx, width)
+			width += t.tabAdvance(tabIdx, width, t.tabStyle)
 			run = i + 1
 		}
 	}
@@ -160,6 +319,11 @@ func (t *TextWidget) measureRange(lineIdx, startChar, endChar int) int {
 // lineIdx is 1-based. availWidth is the pixel width available (before margins).
 // lm1 is the left margin for the first fragment, lm2 for continuations, rm is the right margin.
 func (t *TextWidget) wrapLine(lineIdx, availWidth, lm1, lm2, rm int) []displayLine {
+	return t.wrapLineMode(lineIdx, availWidth, lm1, lm2, rm, t.wrapMode)
+}
+
+// wrapLineMode is wrapLine with the wrap mode of the line (a tag's -wrap).
+func (t *TextWidget) wrapLineMode(lineIdx, availWidth, lm1, lm2, rm int, mode WrapMode) []displayLine {
 	if lineIdx < 1 || lineIdx > t.doc.LineCount() {
 		return nil
 	}
@@ -188,7 +352,7 @@ func (t *TextWidget) wrapLine(lineIdx, availWidth, lm1, lm2, rm int) []displayLi
 		effectiveWidth2 = 1
 	}
 
-	if t.wrapMode == WrapNone || availWidth <= 0 {
+	if mode == WrapNone || availWidth <= 0 {
 		return []displayLine{{
 			logicalLine: lineIdx,
 			startChar:   0,
@@ -200,87 +364,21 @@ func (t *TextWidget) wrapLine(lineIdx, availWidth, lm1, lm2, rm int) []displayLi
 	}
 
 	var result []displayLine
-	start := 0
-
-	for start < lineLen {
-		isFirst := (start == 0)
-		ew := effectiveWidth2
-		lm := lm2
-		if isFirst {
-			ew = effectiveWidth1
-			lm = lm1
+	for start := 0; start < lineLen; {
+		ew, lm := effectiveWidth2, lm2
+		if start == 0 {
+			ew, lm = effectiveWidth1, lm1
 		}
-
-		end := lineLen
-
-		// Find the last character end that fits: gallop from start for
-		// one that does not, then bisect, so a display line costs
-		// O(log n) measurements of about its own length rather than
-		// measuring the whole remainder of the logical line.
-		lo, hi := start, -1 // [start, lo) fits; [start, hi) does not
-		for step := 1; ; step *= 2 {
-			probe := min(start+step, end)
-			if t.measureRange(lineIdx, start, probe) > ew {
-				hi = probe
-				break
-			}
-			lo = probe
-			if probe == end {
-				break
-			}
-		}
-		if hi < 0 {
-			result = append(result, displayLine{
-				logicalLine: lineIdx,
-				startChar:   start,
-				endChar:     end,
-				height:      h,
-				leftMargin:  lm,
-				rightMargin: rm,
-			})
-			break
-		}
-		for hi-lo > 1 {
-			mid := (lo + hi) / 2
-			if t.measureRange(lineIdx, start, mid) <= ew {
-				lo = mid
-			} else {
-				hi = mid
-			}
-		}
-		breakAt := lo
-		if breakAt <= start {
-			breakAt = start + 1
-		}
-
-		if t.wrapMode == WrapWord {
-			isSpace := func(i int) bool { return line.Text[i] == ' ' || line.Text[i] == '\t' }
-			if breakAt < end && isSpace(breakAt) {
-				// TkTextCharLayoutProc: whitespace after the last word
-				// that fits may run past the right edge.
-				for breakAt < end && isSpace(breakAt) {
-					breakAt++
-				}
-			} else {
-				wb := breakAt
-				for wb > start && !isSpace(wb-1) {
-					wb--
-				}
-				if wb > start {
-					breakAt = wb
-				}
-			}
-		}
-
+		end := t.nextBreak(lineIdx, start, ew, mode)
 		result = append(result, displayLine{
 			logicalLine: lineIdx,
 			startChar:   start,
-			endChar:     breakAt,
+			endChar:     end,
 			height:      h,
 			leftMargin:  lm,
 			rightMargin: rm,
 		})
-		start = breakAt
+		start = end
 	}
 
 	if len(result) == 0 {
@@ -294,6 +392,61 @@ func (t *TextWidget) wrapLine(lineIdx, availWidth, lm1, lm2, rm int) []displayLi
 		})
 	}
 	return result
+}
+
+// nextBreak returns where the display line that starts at start ends when
+// it has ew pixels: the end of the logical line if the rest fits.
+func (t *TextWidget) nextBreak(lineIdx, start, ew int, mode WrapMode) int {
+	line := t.doc.Lines[lineIdx-1]
+	end := len(line.Text)
+
+	// Find the last character end that fits: gallop from start for one
+	// that does not, then bisect, so a display line costs O(log n)
+	// measurements of about its own length rather than measuring the
+	// whole remainder of the logical line.
+	lo, hi := start, -1 // [start, lo) fits; [start, hi) does not
+	for step := 1; ; step *= 2 {
+		probe := min(start+step, end)
+		if t.measureRange(lineIdx, start, probe) > ew {
+			hi = probe
+			break
+		}
+		lo = probe
+		if probe == end {
+			break
+		}
+	}
+	if hi < 0 {
+		return end
+	}
+	for hi-lo > 1 {
+		mid := (lo + hi) / 2
+		if t.measureRange(lineIdx, start, mid) <= ew {
+			lo = mid
+		} else {
+			hi = mid
+		}
+	}
+	breakAt := max(lo, start+1)
+	if mode == WrapWord {
+		isSpace := func(i int) bool { return line.Text[i] == ' ' || line.Text[i] == '\t' }
+		if breakAt < end && isSpace(breakAt) {
+			// TkTextCharLayoutProc: whitespace after the last word that
+			// fits may run past the right edge.
+			for breakAt < end && isSpace(breakAt) {
+				breakAt++
+			}
+		} else {
+			wb := breakAt
+			for wb > start && !isSpace(wb-1) {
+				wb--
+			}
+			if wb > start {
+				breakAt = wb
+			}
+		}
+	}
+	return breakAt
 }
 
 // lineMetrics ports how TkTextCharLayoutProc/LayoutDLine size a display
@@ -310,6 +463,9 @@ func (t *TextWidget) lineMetrics(lineIdx, start, end int, last bool) (ascent, de
 		descent = max(descent, m.Descent-offset)
 	}
 	for _, seg := range t.segmentsForRange(lineIdx, start, end) {
+		if seg.elided {
+			continue
+		}
 		f := seg.font
 		if f == nil {
 			f = t.Font
@@ -344,9 +500,17 @@ func (t *TextWidget) setMetrics(lineIdx int, dls []displayLine) []displayLine {
 	for i := range dls {
 		a, d := t.lineMetrics(lineIdx, dls[i].startChar, dls[i].endChar, i == len(dls)-1)
 		minH := 0
-		t.doc.eachImage(func(pos Index, img widget.WidgetImage) {
-			if pos.Line == lineIdx && in(i, pos.Char) {
-				minH = max(minH, img.Height())
+		t.doc.eachImage(func(pos Index, ei *embImage) {
+			if pos.Line != lineIdx || !in(i, pos.Char) || ei.float != FloatNone || t.elideAt(pos) {
+				return
+			}
+			// EmbImageLayoutProc: a baseline image rises from the baseline,
+			// the others only need the line to be tall enough.
+			if ei.align == AlignBaseline {
+				a = max(a, ei.img.Height()+ei.padY)
+				d = max(d, ei.padY)
+			} else {
+				minH = max(minH, ei.height())
 			}
 		})
 		for _, ew := range t.embeddedWindows {
@@ -478,105 +642,122 @@ func (t *TextWidget) segmentsForRange(lineIdx, startChar, endChar int) []textSeg
 	breaks = breaks[:n]
 
 	// Build segments between breakpoints.
+	stops, origin := t.tabStopsFor(lineIdx, startChar)
+	tabStyle := TabStyle(-1) // resolved at the first tab
 	var segments []textSegment
 	x, tabIdx := 0, -1
 	for i := 0; i < len(breaks)-1; i++ {
 		segStart := breaks[i]
 		segEnd := breaks[i+1]
-		segText := string(text[segStart:segEnd])
-		segWidth := t.Font.MeasureString(segText)
-		isTab := segEnd-segStart == 1 && text[segStart] == '\t'
-		if isTab {
-			// CharLayoutProc hands tabs to SizeOfTab: the chunk draws
-			// nothing and reaches the next tab stop.
-			tabIdx++
-			segWidth = t.tabAdvance(tabIdx, x)
-			segText = ""
-		}
-
-		// Handle embedded window and image placeholders: use their width,
-		// empty text.
-		var segImg widget.WidgetImage
-		if segEnd-segStart == 1 && text[segStart] == runeEmbeddedWindow {
-			if ew := t.embeddedWinAt(lineIdx, startChar+segStart); ew != nil {
-				// EmbWinLayoutProc: the chunk is the window plus -padx each side.
-				segWidth = ew.win.ReqWidth + 2*ew.padX
-				segText = ""
-			} else if img := t.doc.imageAt(Index{Line: lineIdx, Char: startChar + segStart}); img != nil {
-				// EmbImageLayoutProc: the chunk is the image.
-				segWidth, segText, segImg = img.Width(), "", img
-			}
+		seg := textSegment{
+			runes:    segEnd - segStart,
+			x:        x,
+			fg:       t.Foreground,
+			font:     t.Font,
+			relief:   option.ReliefFlat,
+			reliefBW: 1,
 		}
 
 		// Resolve attributes at this position.
-		fg := t.Foreground
-		var bg *color.Color
-		var bgStipple, fgStipple platform.PixmapID
-		f := t.Font
-		underline := false
-		overstrike := false
-		offset := 0
-		relief := option.ReliefFlat
-		reliefBW := 1
-		reliefSet := false
-
-		tags := t.doc.TagsAt(Index{Line: lineIdx, Char: startChar + segStart})
-		for _, tag := range tags {
+		elide, selected := false, false
+		var selBg, selFg *color.Color
+		for _, tag := range t.doc.TagsAt(Index{Line: lineIdx, Char: startChar + segStart}) {
+			if tag.Name == "sel" {
+				selected = true
+			} else {
+				selBg = cmp.Or(tag.SelectBackground, selBg)
+				selFg = cmp.Or(tag.SelectForeground, selFg)
+			}
 			if tag.Foreground != nil {
-				fg = tag.Foreground
+				seg.fg = tag.Foreground
 			}
 			if tag.Background != nil {
-				bg = tag.Background
+				seg.bg = tag.Background
 			}
 			if tag.BgStipple != "" {
-				bgStipple = t.stipplePixmap(tag.BgStipple)
+				seg.bgStipple = t.stipplePixmap(tag.BgStipple)
 			}
 			if tag.FgStipple != "" {
-				fgStipple = t.stipplePixmap(tag.FgStipple)
+				seg.fgStipple = t.stipplePixmap(tag.FgStipple)
 			}
 			if tag.Font != nil {
-				f = tag.Font
-				if !isTab && segText != "" {
-					segWidth = f.MeasureString(segText)
-				}
+				seg.font = tag.Font
 			}
 			if tag.Underline {
-				underline = true
+				seg.underline = true
 			}
 			if tag.Overstrike {
-				overstrike = true
+				seg.overstrike = true
+			}
+			if tag.UnderlineFg != nil {
+				seg.underlineFg = tag.UnderlineFg
+			}
+			if tag.OverstrikeFg != nil {
+				seg.overstrikeFg = tag.OverstrikeFg
 			}
 			if tag.OffsetSet {
-				offset = tag.Offset
+				seg.offset = tag.Offset
 			}
 			if tag.ReliefSet {
-				relief = tag.Relief
-				reliefSet = true
+				seg.relief = tag.Relief
+				seg.reliefSet = true
 				if tag.BorderWidth > 0 {
-					reliefBW = tag.BorderWidth
+					seg.reliefBW = tag.BorderWidth
 				}
 			}
+			if tag.ElideSet {
+				elide = tag.Elide
+			}
+		}
+		// -selectbackground and -selectforeground of the text's own tags
+		// override the selection's colours.
+		if selected && selBg != nil {
+			seg.bg = selBg
+		}
+		if selected && selFg != nil {
+			seg.fg = selFg
+		}
+		if elide {
+			seg.elided = true
+			segments = append(segments, seg)
+			continue
 		}
 
-		segments = append(segments, textSegment{
-			text:       segText,
-			runes:      segEnd - segStart,
-			x:          x,
-			width:      segWidth,
-			fg:         fg,
-			bg:         bg,
-			bgStipple:  bgStipple,
-			fgStipple:  fgStipple,
-			font:       f,
-			underline:  underline,
-			overstrike: overstrike,
-			offset:     offset,
-			relief:     relief,
-			reliefBW:   reliefBW,
-			reliefSet:  reliefSet,
-			img:        segImg,
-		})
-		x += segWidth
+		single := segEnd-segStart == 1
+		switch {
+		case single && text[segStart] == '\t':
+			// CharLayoutProc hands tabs to SizeOfTab: the chunk draws
+			// nothing and reaches the next tab stop. Custom stops are
+			// placed by alignTabs once the whole range is known.
+			seg.isTab = true
+			if tabStyle < 0 {
+				tabStyle = t.tabStyleFor(lineIdx)
+			}
+			if stops == nil {
+				tabIdx++
+				seg.width = t.tabAdvance(tabIdx, x, tabStyle)
+			}
+		case single && text[segStart] == runeEmbeddedWindow && t.embeddedWinAt(lineIdx, startChar+segStart) != nil:
+			// EmbWinLayoutProc: the chunk is the window plus -padx each side.
+			ew := t.embeddedWinAt(lineIdx, startChar+segStart)
+			seg.width = ew.win.ReqWidth + 2*ew.padX
+		case single && text[segStart] == runeEmbeddedWindow && t.doc.imageAt(Index{Line: lineIdx, Char: startChar + segStart}) != nil:
+			// EmbImageLayoutProc: the chunk is the image plus -padx.
+			seg.img = t.doc.imageAt(Index{Line: lineIdx, Char: startChar + segStart})
+			seg.width = seg.img.flowWidth()
+		default:
+			seg.text = string(text[segStart:segEnd])
+			seg.width = seg.font.MeasureString(seg.text)
+		}
+
+		segments = append(segments, seg)
+		x += seg.width
+	}
+	if stops != nil {
+		if tabStyle < 0 {
+			tabStyle = t.tabStyleFor(lineIdx)
+		}
+		t.alignTabs(segments, stops, origin, tabStyle)
 	}
 	return segments
 }
@@ -609,14 +790,20 @@ func (t *TextWidget) renderTo(drawable platform.DrawableID) []displayLine {
 	}
 
 	dlines := t.computeVisibleLines()
+	t.drawBlocks(d, gc, drawable, dlines)
+	t.drawFloats(d, gc, drawable, dlines)
 
 	// DisplayDLine draws each line into a window-wide pixmap whose top is
 	// the line's top, so stipples start their pattern there.
 	defer d.SetTSOrigin(gc, 0, 0)
 	for _, dl := range dlines {
+		if dl.height == 0 {
+			continue // an elided line
+		}
 		baseY := t.insetY + dl.y + dl.ascent
 		segments := t.segmentsForRange(dl.logicalLine, dl.startChar, dl.endChar)
 		d.SetTSOrigin(gc, 0, t.insetY+dl.y-dl.spacingAbove)
+		props := &t.layout.line(dl.logicalLine).props
 
 		// Compute total segment width for justification.
 		totalW := 0
@@ -635,10 +822,15 @@ func (t *TextWidget) renderTo(drawable platform.DrawableID) []displayLine {
 
 		xOffset := t.insetX + dl.leftMargin + justifyOffset - t.xOffset
 
+		t.drawLineDecorations(d, gc, drawable, dl, props)
+
 		// Draw selection highlight once per display line, before any text.
 		t.drawSelectionHighlight(d, gc, drawable, dl, xOffset)
 
 		for _, seg := range segments {
+			if seg.elided || seg.width <= 0 {
+				continue
+			}
 			segX := xOffset + seg.x
 			segBaseY := baseY - seg.offset
 
@@ -662,17 +854,30 @@ func (t *TextWidget) renderTo(drawable platform.DrawableID) []displayLine {
 				d.SetFillStyle(gc, platform.FillSolid)
 			}
 
-			// EmbImageDisplayProc, -align center: centred in the line.
-			if seg.img != nil {
+			// EmbImageBboxProc places the image by its -align.
+			if ei := seg.img; ei != nil {
 				bgPx := uint64(0xFFFFFF)
-				if seg.bg != nil {
+				switch {
+				case seg.bg != nil:
 					bgPx = seg.bg.Pixel
-				} else if t.Background != nil {
+				case props.block != nil && props.block.BlockBackground != nil:
+					bgPx = props.block.BlockBackground.Pixel
+				case t.Background != nil:
 					bgPx = t.Background.Pixel
 				}
-				iw, ih := seg.img.Width(), seg.img.Height()
-				seg.img.Draw(d, drawable, gc, w.Depth, 0, 0, iw, ih,
-					segX, t.insetY+dl.y+(dl.height-ih)/2, bgPx)
+				iw, ih := ei.img.Width(), ei.img.Height()
+				top := t.insetY + dl.y
+				iy := top + (dl.height-ih)/2
+				switch ei.align {
+				case AlignTop:
+					iy = top + ei.padY
+				case AlignBottom:
+					iy = top + dl.height - ih - ei.padY
+				case AlignBaseline:
+					iy = top + dl.ascent - ih
+				default:
+				}
+				ei.img.Draw(d, drawable, gc, w.Depth, 0, 0, iw, ih, segX+ei.padX, iy, bgPx)
 				continue
 			}
 
@@ -683,7 +888,7 @@ func (t *TextWidget) renderTo(drawable platform.DrawableID) []displayLine {
 					df = sf
 				}
 			}
-			if seg.fg != nil {
+			if seg.fg != nil && seg.text != "" {
 				df.DrawString(drawable, segX, segBaseY, seg.text,
 					seg.fg.Pixel, seg.fg.Red, seg.fg.Green, seg.fg.Blue)
 			}
@@ -697,11 +902,12 @@ func (t *TextWidget) renderTo(drawable platform.DrawableID) []displayLine {
 				}
 				pos, h := font.Underline(sf)
 				sm := sf.Metrics()
-				d.SetForeground(gc, seg.fg.Pixel)
 				if seg.underline {
+					d.SetForeground(gc, cmp.Or(seg.underlineFg, seg.fg).Pixel)
 					d.FillRectangle(drawable, gc, segX, segBaseY+pos, uint(seg.width), uint(h))
 				}
 				if seg.overstrike {
+					d.SetForeground(gc, cmp.Or(seg.overstrikeFg, seg.fg).Pixel)
 					y := segBaseY - sm.Descent - sm.Ascent*3/10
 					d.FillRectangle(drawable, gc, segX, y+pos, uint(seg.width), uint(h))
 				}
