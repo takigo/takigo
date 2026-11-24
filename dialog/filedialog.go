@@ -191,7 +191,7 @@ func newFileBrowser(parent widget.Caregiver, mode browserMode, cfg fileConfig) *
 		app:        parent.AppContext(),
 		mode:       mode,
 		cfg:        cfg,
-		icons:      newFileIcons(),
+		icons:      newFileIcons(parent.AppContext()),
 		showHidden: widget.NewVariable(false),
 		sortCol:    "#0",
 		filter:     []string{"*"},

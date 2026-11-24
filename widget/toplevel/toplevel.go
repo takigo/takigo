@@ -156,12 +156,15 @@ func (t *Toplevel) Configure(opts ...ToplevelOption) error {
 	return widget.Configure(t, opts, nil)
 }
 
-// Show maps the toplevel window.
+// Show maps the toplevel window and raises it. A withdrawn one is shown
+// again; one iconified before it was ever shown appears minimized.
 func (t *Toplevel) Show() {
-	if t.Win.PlatformID != platform.WindowID(0) {
-		t.Win.Display.Server.MapRaised(t.Win.PlatformID)
-		window.MarkMapped(t.Win)
+	if t.WmInfo.Withdrawn && t.Win.PlatformID != 0 {
+		t.WmInfo.Deiconify()
+		t.Win.Display.Server.RaiseWindow(t.Win.PlatformID)
+		return
 	}
+	t.WmInfo.Map(true)
 }
 
 // Hide unmaps the toplevel window.

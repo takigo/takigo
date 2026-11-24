@@ -3,9 +3,10 @@
 package main
 
 import (
-	"encoding/binary"
 	"fmt"
 	"image"
+	"image/color"
+	"image/png"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -15,12 +16,10 @@ import (
 	"github.com/takigo/takigo/dialog"
 	"github.com/takigo/takigo/geometry/pack"
 	tkimage "github.com/takigo/takigo/image"
-	"github.com/takigo/takigo/platform"
 	"github.com/takigo/takigo/screenunit"
 	"github.com/takigo/takigo/widget"
 	"github.com/takigo/takigo/widget/button"
 	"github.com/takigo/takigo/widget/frame"
-	"github.com/takigo/takigo/window"
 )
 
 func main() {
@@ -38,11 +37,10 @@ func main() {
 	btns := demohelper.AddSeeDismiss(f)
 	pack.Pack(btns, pack.SideOpt(pack.Bottom), pack.FillOpt(pack.FillX))
 
-	root := app.Window()
-
-	// Load the globe icon (windowicons.tcl's embedded PNG) for both the button image and _NET_WM_ICON.
+	// Load the globe icon (windowicons.tcl's embedded PNG) for both the
+	// button image and the window icon.
 	iconPhoto := loadIconPhoto()
-	setWindowIcon(root)
+	setWindowIcon(app)
 
 	// Badge buttons (badge is not supported on X11, show info dialog).
 	badgeMsg := func() {
@@ -57,7 +55,7 @@ func main() {
 	var iconBtnOpts []button.ButtonOption
 	iconBtnOpts = append(iconBtnOpts,
 		button.Text("Set Window Icon to Globe"),
-		button.Command(func() { setWindowIcon(root) }),
+		button.Command(func() { setWindowIcon(app) }),
 	)
 	if iconPhoto != nil {
 		iconBtnOpts = append(iconBtnOpts,
@@ -105,60 +103,39 @@ func loadIconPhoto() *tkimage.Photo {
 	return photo
 }
 
-// setWindowIcon sets the globe icon via _NET_WM_ICON.
-// Falls back to a procedurally generated icon if the PNG cannot be loaded.
-func setWindowIcon(win *window.Window) {
-	imgPath := filepath.Join(demoImagesDir(), "windowicons_globe.png")
-	photo, err := tkimage.NewPhotoFromFile("globe", imgPath)
+// setWindowIcon is "wm iconphoto . icon": the globe, decoded straight to
+// non-premultiplied pixels, or a drawn "T" if the PNG cannot be read.
+func setWindowIcon(app *takigo.App) {
+	icon, err := decodeGlobe()
 	if err != nil {
-		setFallbackIcon(win)
-		return
+		icon = fallbackIcon()
 	}
-	rgba := photo.RGBA()
-	setIconFromRGBA(win, rgba)
+	app.WmInfo().SetIconPhoto(icon)
 }
 
-// setIconFromRGBA encodes an RGBA image as _NET_WM_ICON ARGB data.
-func setIconFromRGBA(win *window.Window, rgba *image.RGBA) {
-	w := rgba.Bounds().Dx()
-	h := rgba.Bounds().Dy()
-	data := make([]byte, (2+w*h)*4)
-	binary.NativeEndian.PutUint32(data[0:4], uint32(w))
-	binary.NativeEndian.PutUint32(data[4:8], uint32(h))
-	for y := range h {
-		for x := range w {
-			offset := (2 + y*w + x) * 4
-			r, g, b, a := rgba.At(x+rgba.Bounds().Min.X, y+rgba.Bounds().Min.Y).RGBA()
-			// Convert 16-bit -> 8-bit and pack as ARGB.
-			binary.NativeEndian.PutUint32(data[offset:offset+4],
-				a>>8<<24|r>>8<<16|g>>8<<8|b>>8)
-		}
+func decodeGlobe() (image.Image, error) {
+	f, err := os.Open(filepath.Join(demoImagesDir(), "windowicons_globe.png"))
+	if err != nil {
+		return nil, err
 	}
-	d := win.Display.Server
-	netWmIcon := d.InternAtom("_NET_WM_ICON", false)
-	d.ChangeProperty(win.PlatformID, netWmIcon, d.Atoms().Cardinal, 32, platform.PropModeReplace, data, 2+w*h)
+	defer f.Close()
+	return png.Decode(f)
 }
 
-// setFallbackIcon generates a procedural 16x16 blue "T" icon.
-func setFallbackIcon(win *window.Window) {
-	d := win.Display.Server
+// fallbackIcon is a 16x16 white "T" on blue.
+func fallbackIcon() image.Image {
 	const size = 16
-	data := make([]byte, (2+size*size)*4)
-	binary.NativeEndian.PutUint32(data[0:4], size)
-	binary.NativeEndian.PutUint32(data[4:8], size)
+	img := image.NewNRGBA(image.Rect(0, 0, size, size))
 	for y := range size {
 		for x := range size {
-			offset := (2 + y*size + x) * 4
-			a, r, g, b := uint8(0xFF), uint8(0x4a), uint8(0x69), uint8(0x84)
+			c := color.NRGBA{0x4a, 0x69, 0x84, 0xff}
 			topBar := y >= 3 && y <= 4 && x >= 3 && x <= 12
 			stem := y >= 4 && y <= 12 && x >= 7 && x <= 8
 			if topBar || stem {
-				r, g, b = 0xFF, 0xFF, 0xFF
+				c = color.NRGBA{0xff, 0xff, 0xff, 0xff}
 			}
-			binary.NativeEndian.PutUint32(data[offset:offset+4],
-				uint32(a)<<24|uint32(r)<<16|uint32(g)<<8|uint32(b))
+			img.SetNRGBA(x, y, c)
 		}
 	}
-	netWmIcon := d.InternAtom("_NET_WM_ICON", false)
-	d.ChangeProperty(win.PlatformID, netWmIcon, d.Atoms().Cardinal, 32, platform.PropModeReplace, data, 2+size*size)
+	return img
 }

@@ -1,33 +1,40 @@
 package dialog
 
 import (
-	goimage "image"
-	"image/color"
+	"fmt"
+	"strings"
+
+	"github.com/takigo/takigo/screenunit"
+	"github.com/takigo/takigo/ttk"
+	"github.com/takigo/takigo/widget"
 
 	tkimage "github.com/takigo/takigo/image"
 )
 
-// fileIcons are the 16x16 pictograms of the file dialog, drawn in code so
-// the package ships no image assets (Tk embeds its folder/file/updir GIFs
-// in tkfbox.tcl the same way).
+// fileIcons are the 16px pictograms of the file dialog: SVG rasterized at
+// the screen's scaling, as tkfbox.tcl does with its folder, file and updir
+// images. The toolbar arrows and the home glyph are line art in the
+// theme's foreground (tkfbox's UpdateUpdirImageData tints its updir image
+// the same way), so they follow a dark theme.
 type fileIcons struct {
 	folder, file, up, home, newFolder, drive *tkimage.Photo
-	// back and forward, then their greyed disabled variants.
+	// back and forward, then their variants in the disabled foreground.
 	back, forward, backOff, forwardOff *tkimage.Photo
 }
 
-func newFileIcons() *fileIcons {
+func newFileIcons(app widget.AppContext) *fileIcons {
+	fg, off := glyphColors(app)
 	return &fileIcons{
-		folder:     tkimage.NewPhoto("", drawIcon(paintFolder)),
-		file:       tkimage.NewPhoto("", drawIcon(paintFile)),
-		up:         tkimage.NewPhoto("", drawIcon(paintUp)),
-		back:       tkimage.NewPhoto("", drawIcon(paintBack(inkDark))),
-		forward:    tkimage.NewPhoto("", drawIcon(paintForward(inkDark))),
-		backOff:    tkimage.NewPhoto("", drawIcon(paintBack(inkOff))),
-		forwardOff: tkimage.NewPhoto("", drawIcon(paintForward(inkOff))),
-		home:       tkimage.NewPhoto("", drawIcon(paintHome)),
-		newFolder:  tkimage.NewPhoto("", drawIcon(paintNewFolder)),
-		drive:      tkimage.NewPhoto("", drawIcon(paintDrive)),
+		folder:     svgIcon(svgFolder, ""),
+		file:       svgIcon(svgFile, ""),
+		up:         svgIcon(svgUp, fg),
+		back:       svgIcon(svgBack, fg),
+		forward:    svgIcon(svgForward, fg),
+		backOff:    svgIcon(svgBack, off),
+		forwardOff: svgIcon(svgForward, off),
+		home:       svgIcon(svgHome, fg),
+		newFolder:  svgIcon(svgNewFolder, ""),
+		drive:      svgIcon(svgDrive, ""),
 	}
 }
 
@@ -37,120 +44,66 @@ func (ic *fileIcons) destroy() {
 	}
 }
 
-const iconSize = 16
-
-type raster struct{ img *goimage.RGBA }
-
-func drawIcon(paint func(r raster)) *goimage.RGBA {
-	r := raster{goimage.NewRGBA(goimage.Rect(0, 0, iconSize, iconSize))}
-	paint(r)
-	return r.img
+// glyphColors returns the normal and disabled foreground of the root ttk
+// style as "#rrggbb".
+func glyphColors(app widget.AppContext) (fg, off string) {
+	st := ttk.ThemeFor(app).ResolveStyle(".")
+	hex := func(p uint64) string { return fmt.Sprintf("#%06x", p&0xffffff) }
+	return hex(ttk.LookupColor(st, "-foreground", 0, 0x000000)),
+		hex(ttk.LookupColor(st, "-foreground", ttk.StateDisabled, 0xa3a3a3))
 }
 
-func (r raster) rect(x0, y0, x1, y1 int, c color.RGBA) {
-	for y := y0; y < y1; y++ {
-		for x := x0; x < x1; x++ {
-			r.img.SetRGBA(x, y, c)
-		}
+// svgIcon rasterizes src with "currentColor" replaced by ink, at Tk's
+// ::tk::svgFmt scale (ScalingPct / 100).
+func svgIcon(src, ink string) *tkimage.Photo {
+	if ink != "" {
+		src = strings.ReplaceAll(src, "currentColor", ink)
 	}
+	p, err := tkimage.NewPhotoFromSVG("", src, float64(screenunit.ScalingPct())/100)
+	if err != nil {
+		panic("dialog: built-in icon: " + err.Error())
+	}
+	return p
 }
 
-// poly fills a convex polygon given its vertices clockwise on screen
-// (y grows downwards, so the edge cross product is positive inside).
-func (r raster) poly(c color.RGBA, pts ...[2]float64) {
-	n := len(pts)
-	for y := range iconSize {
-		for x := range iconSize {
-			px, py := float64(x)+0.5, float64(y)+0.5
-			inside := true
-			for i := range n {
-				ax, ay := pts[i][0], pts[i][1]
-				bx, by := pts[(i+1)%n][0], pts[(i+1)%n][1]
-				if (bx-ax)*(py-ay)-(by-ay)*(px-ax) < 0 {
-					inside = false
-					break
-				}
-			}
-			if inside {
-				r.img.SetRGBA(x, y, c)
-			}
-		}
-	}
+const svg16 = `<svg width="16" height="16" version="1.1" xmlns="http://www.w3.org/2000/svg">`
+
+// glyph wraps line art drawn with a 1.5px round-capped currentColor stroke.
+func glyph(paths string) string {
+	return svg16 + `<g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">` +
+		paths + `</g></svg>`
 }
 
 var (
-	folderDark  = color.RGBA{0xc8, 0x8a, 0x1e, 0xff}
-	folderLight = color.RGBA{0xf5, 0xc0, 0x4e, 0xff}
-	folderTab   = color.RGBA{0xe0, 0xa4, 0x33, 0xff}
-	paperEdge   = color.RGBA{0x8a, 0x8a, 0x8a, 0xff}
-	paperFill   = color.RGBA{0xfc, 0xfc, 0xfc, 0xff}
-	paperLine   = color.RGBA{0xb8, 0xb8, 0xb8, 0xff}
-	inkDark     = color.RGBA{0x3c, 0x3c, 0x3c, 0xff}
-	inkOff      = color.RGBA{0xa8, 0xa8, 0xa8, 0xff}
-	accentGreen = color.RGBA{0x2e, 0x9e, 0x44, 0xff}
-	driveGrey   = color.RGBA{0x9a, 0x9a, 0x9a, 0xff}
-	driveLight  = color.RGBA{0xd8, 0xd8, 0xd8, 0xff}
-	homeRoof    = color.RGBA{0xb0, 0x3a, 0x2e, 0xff}
-	homeWall    = color.RGBA{0xf0, 0xe6, 0xc8, 0xff}
+	svgBack    = glyph(`<path d="m13 8h-9.5m4-4.5-4.5 4.5 4.5 4.5"/>`)
+	svgForward = glyph(`<path d="m3 8h9.5m-4-4.5 4.5 4.5-4.5 4.5"/>`)
+	svgUp      = glyph(`<path d="m8 13v-9.5m-4.5 4 4.5-4.5 4.5 4.5"/>`)
+	svgHome    = glyph(`<path d="m1.75 7.75 6.25-5.5 6.25 5.5"/><path d="m3.75 6.5v7.25h3v-3.5h2.5v3.5h3v-7.25"/>`)
 )
 
-func paintFolder(r raster) {
-	r.rect(1, 3, 7, 5, folderTab)
-	r.rect(1, 5, 15, 14, folderDark)
-	r.rect(2, 7, 14, 13, folderLight)
-}
+// folderShape is a folder with its tab behind a lighter front panel.
+const folderShape = `<linearGradient id="front" x1="0" y1="6" x2="0" y2="14" gradientUnits="userSpaceOnUse">` +
+	`<stop offset="0" stop-color="#ffd772"/><stop offset="1" stop-color="#f3b13b"/></linearGradient>` +
+	`<path d="m1 3.5c0-0.83 0.67-1.5 1.5-1.5h3.38c0.4 0 0.78 0.16 1.06 0.44l1.12 1.12c0.28 0.28 0.66 0.44 1.06 0.44h4.38c0.83 0 1.5 0.67 1.5 1.5v7c0 0.83-0.67 1.5-1.5 1.5h-11c-0.83 0-1.5-0.67-1.5-1.5z" fill="#d68f22"/>` +
+	`<rect x="1" y="5.5" width="14" height="8.5" rx="1.5" fill="url(#front)"/>` +
+	`<path d="m2.5 6.4h11" stroke="#fff3cf" stroke-width="0.8" stroke-linecap="round"/>`
 
-func paintNewFolder(r raster) {
-	paintFolder(r)
-	r.rect(7, 8, 9, 13, accentGreen)
-	r.rect(5, 10, 11, 12, accentGreen)
-	r.rect(7, 9, 9, 12, paperFill)
-	r.rect(6, 10, 10, 11, paperFill)
-	r.rect(7, 8, 9, 13, accentGreen)
-	r.rect(5, 10, 11, 12, accentGreen)
-}
+var (
+	svgFolder = svg16 + folderShape + `</svg>`
 
-func paintFile(r raster) {
-	r.rect(3, 1, 10, 15, paperEdge)
-	r.rect(9, 5, 13, 15, paperEdge)
-	r.rect(4, 2, 9, 14, paperFill)
-	r.rect(9, 6, 12, 14, paperFill)
-	r.poly(paperEdge, [2]float64{9, 1}, [2]float64{13, 5}, [2]float64{9, 5})
-	r.poly(paperFill, [2]float64{9, 2}, [2]float64{12, 5}, [2]float64{9, 5})
-	for _, y := range []int{7, 9, 11} {
-		r.rect(5, y, 11, y+1, paperLine)
-	}
-}
+	svgNewFolder = svg16 + folderShape +
+		`<circle cx="12" cy="11.5" r="3.75" fill="#2f9e44" stroke="#ffffff"/>` +
+		`<path d="m12 9.75v3.5m-1.75-1.75h3.5" stroke="#ffffff" stroke-width="1.25" stroke-linecap="round"/></svg>`
 
-func paintUp(r raster) {
-	r.poly(inkDark, [2]float64{8, 1}, [2]float64{15, 8}, [2]float64{1, 8})
-	r.rect(6, 8, 10, 15, inkDark)
-}
+	svgFile = svg16 +
+		`<path d="m3.5 1.5h6l3 3v10h-9z" fill="#fdfdfd" stroke="#8a94a1" stroke-linejoin="round"/>` +
+		`<path d="m9.5 1.5v3h3z" fill="#e2e6eb" stroke="#8a94a1" stroke-linejoin="round"/>` +
+		`<path d="m5.5 7.5h5m-5 2h5m-5 2h3" stroke="#b4bcc6"/></svg>`
 
-func paintBack(ink color.RGBA) func(raster) {
-	return func(r raster) {
-		r.poly(ink, [2]float64{1, 8}, [2]float64{8, 1}, [2]float64{8, 15})
-		r.rect(8, 6, 15, 10, ink)
-	}
-}
-
-func paintForward(ink color.RGBA) func(raster) {
-	return func(r raster) {
-		r.poly(ink, [2]float64{15, 8}, [2]float64{8, 15}, [2]float64{8, 1})
-		r.rect(1, 6, 8, 10, ink)
-	}
-}
-
-func paintHome(r raster) {
-	r.poly(homeRoof, [2]float64{8, 1}, [2]float64{15.5, 8}, [2]float64{0.5, 8})
-	r.rect(3, 8, 13, 15, homeWall)
-	r.rect(3, 8, 13, 9, homeRoof)
-	r.rect(7, 10, 10, 15, inkDark)
-}
-
-func paintDrive(r raster) {
-	r.rect(1, 3, 15, 13, driveGrey)
-	r.rect(2, 4, 14, 8, driveLight)
-	r.rect(2, 9, 14, 12, driveLight)
-	r.rect(12, 10, 13, 11, accentGreen)
-}
+	svgDrive = svg16 +
+		`<linearGradient id="body" x1="0" y1="4" x2="0" y2="12" gradientUnits="userSpaceOnUse">` +
+		`<stop offset="0" stop-color="#eef1f4"/><stop offset="1" stop-color="#c2c9d1"/></linearGradient>` +
+		`<rect x="1.5" y="4.5" width="13" height="7" rx="1.5" fill="url(#body)" stroke="#7a8592"/>` +
+		`<path d="m3.5 9.5h6" stroke="#7a8592" stroke-linecap="round"/>` +
+		`<circle cx="12" cy="9.5" r="1" fill="#30c552"/></svg>`
+)

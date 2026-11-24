@@ -45,6 +45,9 @@ type WmHooks interface {
 	// ConfigureNotify handles the toplevel's reported size before the
 	// window takes it, recording a user resize as its geometry.
 	ConfigureNotify(w, h int)
+	// MapNotify records that the toplevel was mapped or unmapped, by the
+	// window manager too (the user minimized or restored it).
+	MapNotify(mapped bool)
 	// SetGrid makes the toplevel resize in steps of widthInc x heightInc
 	// pixels on behalf of gridWin, whose request is reqWidth x reqHeight
 	// grid units (Tk_SetGrid); UnsetGrid cancels it.

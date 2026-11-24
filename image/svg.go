@@ -2,6 +2,7 @@ package image
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	goimage "image"
 	"os"
@@ -21,14 +22,9 @@ func NewPhotoFromSVGFile(name, path string) (*Photo, error) {
 	if err != nil {
 		return nil, fmt.Errorf("image: open svg %s: %w", path, err)
 	}
-	svg, parseErr := nanosvg.Parse(string(src))
+	p, parseErr := NewPhotoFromSVG(name, string(src), 1)
 	if parseErr == nil {
-		if w, h := nanosvg.Size(svg, 1); w > 0 && h > 0 {
-			px := nanosvg.Rasterize(svg, 1, w, h)
-			p := NewPhoto(name, toRGBA(&goimage.NRGBA{Pix: px, Stride: w * 4, Rect: goimage.Rect(0, 0, w, h)}))
-			p.straight = px
-			return p, nil
-		}
+		return p, nil
 	}
 
 	data, err := svgRasterizer(path)
@@ -43,6 +39,24 @@ func NewPhotoFromSVGFile(name, path string) (*Photo, error) {
 		return nil, fmt.Errorf("image: decode svg raster %s: %w", path, err)
 	}
 	return photo, nil
+}
+
+// NewPhotoFromSVG rasterizes SVG source with nanosvg, like Tk 9's
+// "image create photo -format {svg -scale scale} -data src". The document
+// must give its width and height; the photo is that size times scale.
+func NewPhotoFromSVG(name, src string, scale float64) (*Photo, error) {
+	svg, err := nanosvg.Parse(src)
+	if err != nil {
+		return nil, fmt.Errorf("image: parse svg: %w", err)
+	}
+	w, h := nanosvg.Size(svg, float32(scale))
+	if w <= 0 || h <= 0 {
+		return nil, errors.New("image: svg has no width and height")
+	}
+	px := nanosvg.Rasterize(svg, float32(scale), w, h)
+	p := NewPhoto(name, toRGBA(&goimage.NRGBA{Pix: px, Stride: w * 4, Rect: goimage.Rect(0, 0, w, h)}))
+	p.straight = px
+	return p, nil
 }
 
 // svgRasterizer converts an SVG file into a PNG byte stream; it is a

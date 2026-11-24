@@ -116,6 +116,9 @@ type windowInfo struct {
 	// askedW and askedH are the client size of a toplevel resize in
 	// progress; the WM_SIZE it sends synchronously reports them.
 	askedW, askedH int
+	// minimized is set while a toplevel is minimized: its WM_SIZE
+	// SIZE_MINIMIZED was reported as an UnmapNotify.
+	minimized bool
 }
 
 // NewDisplayServer initializes the Windows display and returns a composed

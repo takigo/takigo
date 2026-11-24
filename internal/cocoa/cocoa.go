@@ -388,6 +388,16 @@ func SetTransientFor(w, parent Window) {
 	C.CocoaSetTransientFor(C.CocoaWindowID(w), C.CocoaWindowID(parent))
 }
 
+// SetApplicationIcon sets the Dock icon from straight-alpha RGBA pixels;
+// nil restores the bundle's icon.
+func SetApplicationIcon(rgba []byte, width, height int) {
+	if len(rgba) < width*height*4 || width <= 0 || height <= 0 {
+		C.CocoaSetApplicationIcon(nil, 0, 0)
+		return
+	}
+	C.CocoaSetApplicationIcon((*C.uchar)(unsafe.Pointer(&rgba[0])), C.int(width), C.int(height))
+}
+
 func SetIconName(w Window, name string) {
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))

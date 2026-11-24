@@ -229,9 +229,9 @@ func (a *App) MainLoop() {
 	// Lay out before mapping, as Tk maps "." at idle time after geometry
 	// propagation, so the window appears at its final size.
 	a.loop.UpdateIdleTasks()
-	window.SyncBackground(a.root)
-	a.display.Server.MapWindow(a.root.PlatformID)
-	window.MarkMapped(a.root)
+	// Map "." in the state it was given: wm withdraw or iconify before
+	// the loop starts keeps it hidden or minimized.
+	a.wmInfo.Map(false)
 	a.display.Server.Flush()
 	if path := os.Getenv("TAKIGO_DUMP_TREE"); path != "" {
 		a.startTreeDump(path)

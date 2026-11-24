@@ -171,6 +171,7 @@ func (d *WindowsDisplay) forgetWindow(hwnd w32.HWND) {
 	propsMu.Lock()
 	delete(propsDB, fromHWND(hwnd))
 	propsMu.Unlock()
+	releaseWindowIcons(hwnd)
 }
 
 func (d *WindowsDisplay) MapWindow(w platform.WindowID) {
@@ -178,6 +179,8 @@ func (d *WindowsDisplay) MapWindow(w platform.WindowID) {
 	info := d.getWindowInfo(hwnd)
 	if info != nil && info.isOverride {
 		w32.ShowWindow(hwnd, w32.SW_SHOWNOACTIVATE)
+	} else if info != nil && info.isTopLevel && startsIconic(w) {
+		w32.ShowWindow(hwnd, w32.SW_SHOWMINNOACTIVE)
 	} else if info != nil && info.isTopLevel {
 		w32.ShowWindow(hwnd, w32.SW_SHOWNORMAL)
 	} else {
@@ -197,9 +200,22 @@ func (d *WindowsDisplay) MapRaised(w platform.WindowID) {
 			w32.SWP_NOMOVE|w32.SWP_NOSIZE|w32.SWP_NOACTIVATE|w32.SWP_SHOWWINDOW)
 		return
 	}
+	if startsIconic(w) {
+		w32.ShowWindow(hwnd, w32.SW_SHOWMINNOACTIVE)
+		return
+	}
 	w32.ShowWindow(hwnd, w32.SW_SHOW)
 	w32.SetWindowPos(hwnd, w32.HWND_TOP, 0, 0, 0, 0,
 		w32.SWP_NOMOVE|w32.SWP_NOSIZE|w32.SWP_SHOWWINDOW)
+}
+
+// startsIconic reports whether the window's WM_HINTS ask for it to be
+// shown minimized, as Tk's "wm iconify" before the first map does.
+func startsIconic(w platform.WindowID) bool {
+	p := getProps(w)
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return p.wmHints != nil && p.wmHints.InitialState == platform.IconicState
 }
 
 func (d *WindowsDisplay) UnmapWindow(w platform.WindowID) {

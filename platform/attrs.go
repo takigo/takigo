@@ -45,6 +45,10 @@ type WMHints struct {
 	Flags        int64
 	Input        bool
 	InitialState int
+	IconPixmap   PixmapID // depth-1 icon bitmap (IconPixmapHint)
+	IconWindow   WindowID // window shown as the icon (IconWindowHint)
+	IconX, IconY int      // icon position (IconPositionHint)
+	IconMask     PixmapID // depth-1 mask of IconPixmap (IconMaskHint)
 }
 
 // Event mask constants (matching X11 values).
@@ -169,8 +173,12 @@ const (
 
 // WM hints flags.
 const (
-	InputHint = 1 << 0
-	StateHint = 1 << 1
+	InputHint        = 1 << 0
+	StateHint        = 1 << 1
+	IconPixmapHint   = 1 << 2
+	IconWindowHint   = 1 << 3
+	IconPositionHint = 1 << 4
+	IconMaskHint     = 1 << 5
 )
 
 // Gravity constants.

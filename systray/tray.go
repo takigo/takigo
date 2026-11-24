@@ -40,6 +40,10 @@ type TrayIcon struct {
 
 	balloon       *balloon // X11 tooltip window
 	width, height int      // the docked window's size
+	trayAtom      platform.AtomID
+	manager       platform.WindowID // the X11 tray manager holding the icon
+
+	imageSet bool // the last Configure gave TrayImage
 }
 
 // TrayOption configures a TrayIcon.
@@ -47,7 +51,11 @@ type TrayOption func(*TrayIcon)
 
 // TrayImage sets the icon's image (-image). Windows needs an image with
 // pixels, such as an *image.Photo.
-func TrayImage(img widget.WidgetImage) TrayOption { return func(t *TrayIcon) { t.image = img } }
+// Configure with TrayImage shows the image again even when it is the same
+// photo, so changed pixels show.
+func TrayImage(img widget.WidgetImage) TrayOption {
+	return func(t *TrayIcon) { t.image, t.imageSet = img, true }
+}
 
 // TrayTooltip sets the tooltip text shown over the icon (-text).
 func TrayTooltip(s string) TrayOption { return func(t *TrayIcon) { t.tooltip = s } }
@@ -102,7 +110,7 @@ func (t *TrayIcon) press(ev *event.Event) {
 
 // Configure changes the icon's options ("tk systray configure").
 func (t *TrayIcon) Configure(opts ...TrayOption) {
-	oldImage := t.image
+	t.imageSet = false
 	for _, opt := range opts {
 		opt(t)
 	}
@@ -111,11 +119,14 @@ func (t *TrayIcon) Configure(opts ...TrayOption) {
 	}
 	if t.native {
 		var icon *platform.IconImage
-		if t.image != oldImage {
+		if t.imageSet {
 			icon = iconImage(t.image)
 		}
 		t.display.Server.ModifyTrayIcon(t.win, icon, t.tooltip)
 		return
+	}
+	if t.imageSet {
+		t.resize()
 	}
 	t.draw()
 }

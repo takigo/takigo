@@ -1,6 +1,7 @@
 package systray
 
 import (
+	"encoding/binary"
 	"fmt"
 	"time"
 
@@ -14,13 +15,20 @@ const (
 	trayIconSize          = 24
 )
 
+// xembedMapped is XEMBED_MAPPED in _XEMBED_INFO: the embedder shows the
+// window.
+const xembedMapped = 1 << 0
+
 // dock creates the icon window and asks the X11 tray manager to dock it
 // (DockToManager). Like tktray without an ARGB visual, the window takes
-// its parent's background so the image blends with the tray.
+// its parent's background so the image blends with the tray. The icon
+// follows the tray across restarts: a new manager announces itself with
+// a MANAGER message on the root window and gets the dock request again
+// (IconGenericHandler).
 func (t *TrayIcon) dock() error {
 	d := t.display.Server
-	trayAtom := d.InternAtom(fmt.Sprintf("_NET_SYSTEM_TRAY_S%d", t.display.Screen), false)
-	manager := d.GetSelectionOwner(trayAtom)
+	t.trayAtom = d.InternAtom(fmt.Sprintf("_NET_SYSTEM_TRAY_S%d", t.display.Screen), false)
+	manager := d.GetSelectionOwner(t.trayAtom)
 	if manager == 0 {
 		return fmt.Errorf("systray: no system tray manager found")
 	}
@@ -38,15 +46,34 @@ func (t *TrayIcon) dock() error {
 				platform.ExposureMask | platform.StructureNotifyMask |
 				platform.EnterWindowMask | platform.LeaveWindowMask),
 		})
+	// XembedSetState: the manager maps the icon only when XEMBED_MAPPED
+	// says so.
+	xembedInfo := d.InternAtom("_XEMBED_INFO", false)
+	info := make([]byte, 8)
+	binary.NativeEndian.PutUint32(info[4:], xembedMapped)
+	d.ChangeProperty(t.win, xembedInfo, xembedInfo, 32, platform.PropModeReplace, info, 2)
 
-	// SYSTEM_TRAY_REQUEST_DOCK goes to the manager itself, with the icon
-	// in data.l[2].
-	opcodeAtom := d.InternAtom("_NET_SYSTEM_TRAY_OPCODE", false)
-	d.SendClientMessage(manager, manager, opcodeAtom, int64(platform.CurrentTime),
-		systemTrayRequestDock, int64(t.win), 0, 0)
-	d.Flush()
-
+	// A MANAGER message reaches the clients that listen for structure
+	// changes on the root window.
+	d.SelectInput(t.display.RootWindow, platform.StructureNotifyMask)
+	managerAtom := d.InternAtom("MANAGER", false)
 	disp := t.app.Dispatcher()
+	disp.BindGlobalFor(t.win, event.ClientMessageMask|event.StructureNotifyMask, func(ev *event.Event) {
+		switch {
+		case ev.Type == event.ClientMessageType && ev.Window == t.display.RootWindow &&
+			ev.MessageType == managerAtom && platform.AtomID(ev.MessageData[1]) == t.trayAtom:
+			t.requestDock(platform.WindowID(ev.MessageData[2]))
+		case ev.Type == event.DestroyType && ev.Window == t.manager && t.manager != 0:
+			// The tray is gone and the server handed the icon back to
+			// the root window: keep it off the screen until a new tray
+			// takes it (tktray withdraws it on the reparent to root).
+			t.manager = 0
+			d.UnmapWindow(t.win)
+			d.Flush()
+		}
+	})
+	t.requestDock(manager)
+
 	disp.Bind(t.win, event.ExposureMask, func(ev *event.Event) {
 		if ev.ExposeCount == 0 {
 			t.draw()
@@ -75,6 +102,34 @@ func (t *TrayIcon) dock() error {
 	})
 	t.width, t.height = int(size), int(size)
 	return nil
+}
+
+// requestDock sends SYSTEM_TRAY_REQUEST_DOCK to manager, with the icon in
+// data.l[2], and watches the manager so the icon leaves with it.
+func (t *TrayIcon) requestDock(manager platform.WindowID) {
+	if manager == 0 || t.win == 0 {
+		return
+	}
+	d := t.display.Server
+	t.manager = manager
+	d.SelectInput(manager, platform.StructureNotifyMask)
+	opcodeAtom := d.InternAtom("_NET_SYSTEM_TRAY_OPCODE", false)
+	d.SendClientMessage(manager, manager, opcodeAtom, int64(platform.CurrentTime),
+		systemTrayRequestDock, int64(t.win), 0, 0)
+	d.Flush()
+}
+
+// resize asks for the image's size after the image changed (tktray's
+// TrayIconForceImageChange); the tray manager has the last word.
+func (t *TrayIcon) resize() {
+	if t.image == nil || t.win == 0 || t.native {
+		return
+	}
+	w, h := max(t.image.Width(), 1), max(t.image.Height(), 1)
+	if w == t.width && h == t.height {
+		return
+	}
+	t.display.Server.ResizeWindow(t.win, uint(w), uint(h))
 }
 
 // draw ports DisplayIcon's non-ARGB path: clear to the parent's background

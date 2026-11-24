@@ -5,6 +5,46 @@ version is 0, a minor release may break the API and says so here.
 
 ## Unreleased
 
+- **dialog: new SVG icon set.** The file dialog's folder, file, drive
+  and new-folder icons and its back/forward/up/home toolbar glyphs are
+  anti-aliased SVG drawings, scaled with the screen like Tk's own
+  images. The glyphs use the ttk theme's foreground. The message box
+  shows a drawn error, warning, information or question icon instead
+  of a Unicode character; a Classic App shows Tk's `::tk::icons` images.
+- **wm: `wm iconphoto -default`.** `WmInfo.SetIconPhotoDefault` sets the
+  icon and gives it to every toplevel created afterwards.
+- **wm: `iconbitmap`, `iconmask`, `iconposition`, `iconwindow`.** New
+  `WmInfo` setters and getters write WM_HINTS (X11; Windows and macOS
+  ignore these hints). WM_HINTS is now kept whole, so a state change no
+  longer wipes the icon hints. An icon window reports the new `StateIcon`.
+- **wm: `Iconify` and `Withdraw` before the first map work.** An App
+  withdrawn before `MainLoop` stays hidden, and an iconified one starts
+  minimized, as in Tk. `Toplevel.Show` respects the same states, and the
+  new `WmInfo.Map` maps a toplevel in the state it was given.
+- **wm: `State()` follows the window manager.** Minimizing or restoring a
+  window from its title bar or the taskbar (X11 Map/Unmap, Windows
+  `WM_SIZE`, macOS miniaturize) now changes the reported state.
+- **macOS: `SetIconPhoto` sets the Dock icon**
+  (`[NSApp setApplicationIconImage:]`), as Tk does.
+- **Windows: window icons are freed with their window.** Before, each
+  closed window that had an icon photo leaked two `HICON`s.
+- **systray: the icon survives a tray restart.** On X11 the docked window
+  sets `_XEMBED_INFO` (`XEMBED_MAPPED`). When the tray manager exits, the
+  icon leaves the screen, and it docks again when a new manager sends
+  `MANAGER`. On Windows the icon is added back when Explorer restarts
+  (`TaskbarCreated`).
+- **systray: `Configure(TrayImage(p))` with the same photo** shows its
+  current pixels, and on X11 asks for the new size.
+- **demos:** `windowicons` sets its icon through `SetIconPhoto`, so it
+  also works on Windows and no longer darkens the globe's edges.
+  `widget_demo` shows Tk's icon window on X11.
+- **image: `NewPhotoFromSVG`** rasterizes SVG source at a scale, like
+  `image create photo -format {svg -scale s} -data …`.
+- **SVG: arcs and quadratic curves.** The built-in rasterizer now reads
+  the `A`, `Q`, `T` and `S` path commands as Tk's nanosvg does. Before,
+  it dropped them, so shapes such as Tk's question icon or
+  `demos/images/Tcl.svg` came out distorted.
+
 ## v0.4.7 (2026-11-18)
 
 - **menu: Tk's cascade arrow and check marks.** A cascade entry shows

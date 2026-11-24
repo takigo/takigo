@@ -28,6 +28,12 @@ func (a *App) filterEvent(ev *event.Event) {
 			// (ConfigureEvent in tkUnixWm.c).
 			w.WmData.ConfigureNotify(ev.ConfigWidth, ev.ConfigHeight)
 		}
+	case event.MapType, event.UnmapType:
+		// The window manager maps and unmaps a toplevel when the user
+		// restores or minimizes it; "wm state" follows.
+		if w := a.display.LookupWindow(ev.Window); w != nil && w.IsTopLevel() && w.WmData != nil {
+			w.WmData.MapNotify(ev.Type == event.MapType)
+		}
 	case event.FocusInType, event.FocusOutType:
 		// Tk's focus model: the manager turns toplevel focus changes into
 		// FocusIn/FocusOut on its focus windows and drops the rest

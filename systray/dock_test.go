@@ -3,6 +3,7 @@
 package systray_test
 
 import (
+	"encoding/binary"
 	goimage "image"
 	gocolor "image/color"
 	"image/draw"
@@ -100,5 +101,79 @@ func TestDockDrawsImage(t *testing.T) {
 	icon.Configure(systray.TrayTooltip("changed"))
 	if !icon.Exists() {
 		t.Error("Configure destroyed the icon")
+	}
+
+	xembed := d.InternAtom("_XEMBED_INFO", false)
+	info, _, format := d.GetWindowProperty(docked, xembed, 0, 2, false)
+	if format != 32 || len(info) != 8 || binary.NativeEndian.Uint32(info[4:]) != 1 {
+		t.Errorf("_XEMBED_INFO = %x (format %d), want version 0, XEMBED_MAPPED", info, format)
+	}
+}
+
+// TestDockFollowsManager plays a tray manager that exits and a new one
+// that announces itself: the icon leaves the screen with the first and
+// asks the second to dock it.
+func TestDockFollowsManager(t *testing.T) {
+	app := testutil.NewTestApp(t)
+	disp := app.Display()
+	d := disp.Server
+
+	trayAtom := d.InternAtom("_NET_SYSTEM_TRAY_S"+string(rune('0'+disp.Screen)), false)
+	opcode := d.InternAtom("_NET_SYSTEM_TRAY_OPCODE", false)
+	newManager := func(docked *platform.WindowID) platform.WindowID {
+		m := d.CreateWindow(disp.RootWindow, 0, 0, 1, 1, 0, platform.CopyFromParent, platform.InputOutput,
+			platform.CWEventMask, &platform.WindowAttrs{EventMask: 0})
+		d.SetSelectionOwner(trayAtom, m, platform.CurrentTime)
+		app.Dispatcher().Bind(m, event.ClientMessageMask, func(ev *event.Event) {
+			if ev.Type == event.ClientMessageType && ev.MessageType == opcode && ev.MessageData[1] == 0 {
+				*docked = platform.WindowID(ev.MessageData[2])
+			}
+		})
+		return m
+	}
+	var first, second platform.WindowID
+	m1 := newManager(&first)
+
+	icon, err := systray.New(app, disp, systray.TrayTooltip("tip"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer icon.Destroy()
+
+	var onScreen, gone bool
+	app.After(100*time.Millisecond, func() {
+		d.MoveResizeWindow(first, 40, 40, 24, 24)
+		d.MapWindow(first)
+		d.Sync(false)
+	})
+	app.After(200*time.Millisecond, func() {
+		onScreen = d.ChildAt(disp.RootWindow, 50, 50) == first
+		d.DestroyWindow(m1)
+		d.Sync(false)
+	})
+	var m2 platform.WindowID
+	app.After(400*time.Millisecond, func() {
+		d.Sync(false)
+		gone = d.ChildAt(disp.RootWindow, 50, 50) != first
+		m2 = newManager(&second)
+		// What a starting tray broadcasts on the root window (ICCCM 2.8).
+		app.Dispatcher().Dispatch(&event.Event{Type: event.ClientMessageType, Window: disp.RootWindow,
+			MessageType: d.InternAtom("MANAGER", false),
+			MessageData: [5]int64{0, int64(trayAtom), int64(m2), 0, 0}})
+	})
+	app.After(600*time.Millisecond, app.Quit)
+	app.MainLoop()
+	if m2 != 0 {
+		d.DestroyWindow(m2)
+	}
+
+	if first == 0 || !onScreen {
+		t.Fatalf("the first manager did not get the icon (docked %v, shown %v)", first, onScreen)
+	}
+	if !gone {
+		t.Error("the icon stayed on the screen after its tray manager exited")
+	}
+	if second != first {
+		t.Errorf("the new manager got dock request for %v, want the icon %v", second, first)
 	}
 }

@@ -87,7 +87,7 @@ func newToplevel(t *testing.T) (*WmInfo, *fakeServer) {
 func TestStateString(t *testing.T) {
 	for s, want := range map[State]string{
 		StateNormal: "normal", StateIconic: "iconic", StateWithdrawn: "withdrawn",
-		StateZoomed: "zoomed", State(99): "normal",
+		StateZoomed: "zoomed", StateIcon: "icon", State(99): "normal",
 	} {
 		if got := s.String(); got != want {
 			t.Errorf("State(%d).String() = %q, want %q", s, got, want)
@@ -215,6 +215,7 @@ func TestSizeHints(t *testing.T) {
 
 func TestTransientAndStates(t *testing.T) {
 	info, s := newToplevel(t)
+	info.Map(false)
 	parent := &window.Window{PlatformID: 3}
 	info.SetTransientFor(parent)
 	if s.transient != 3 || info.TransientFor != parent {

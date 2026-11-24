@@ -127,3 +127,23 @@ func TestNewPhotoFromSVGFileConverter(t *testing.T) {
 		t.Errorf("size = %dx%d, want 4x3", photo.Width(), photo.Height())
 	}
 }
+
+func TestNewPhotoFromSVGScale(t *testing.T) {
+	const src = `<svg width="16" height="8" xmlns="http://www.w3.org/2000/svg"><rect width="8" height="8" fill="#ff0000"/></svg>`
+	p, err := NewPhotoFromSVG("", src, 1.5)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if p.Width() != 24 || p.Height() != 12 {
+		t.Fatalf("size = %dx%d, want 24x12", p.Width(), p.Height())
+	}
+	if c := p.rgba.RGBAAt(2, 2); c.R != 0xff || c.A != 0xff {
+		t.Errorf("pixel (2,2) = %v, want opaque red", c)
+	}
+	if c := p.rgba.RGBAAt(20, 2); c.A != 0 {
+		t.Errorf("pixel (20,2) = %v, want transparent", c)
+	}
+	if _, err := NewPhotoFromSVG("", `<svg xmlns="http://www.w3.org/2000/svg"/>`, 1); err == nil {
+		t.Error("an svg without a size gave no error")
+	}
+}

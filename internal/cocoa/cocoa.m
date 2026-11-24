@@ -991,6 +991,24 @@ static void fillPathWithGC(CGContextRef ctx, CocoaGCState *gc, CGPathRef path) {
     // Handled by TKContentView setFrameSize
 }
 
+// Minimizing to the Dock unmaps the toplevel and restoring maps it, as an
+// X window manager does with an iconified window, so "wm state" follows.
+- (void)windowDidMiniaturize:(NSNotification *)notification {
+    CocoaRawEvent ev = {0};
+    ev.type = COCOA_EVENT_UNMAP;
+    ev.window = _windowID;
+    ev.time = (uint64_t)([NSProcessInfo processInfo].systemUptime * 1000);
+    postEvent(&ev);
+}
+
+- (void)windowDidDeminiaturize:(NSNotification *)notification {
+    CocoaRawEvent ev = {0};
+    ev.type = COCOA_EVENT_MAP;
+    ev.window = _windowID;
+    ev.time = (uint64_t)([NSProcessInfo processInfo].systemUptime * 1000);
+    postEvent(&ev);
+}
+
 - (void)windowDidMove:(NSNotification *)notification {
     TKWindow *window = (TKWindow *)[notification object];
     TKContentView *view = lookupView(_windowID);
@@ -2465,6 +2483,34 @@ void CocoaIconifyWindow(CocoaWindowID w) {
 
 void CocoaWithdrawWindow(CocoaWindowID w) {
     CocoaUnmapWindow(w);
+}
+
+// CocoaSetApplicationIcon sets the Dock icon from straight-alpha RGBA, as
+// tkMacOSXWm.c's WmIconphotoCmd does with [NSApp setApplicationIconImage:].
+// With no pixels the bundle's own icon comes back.
+void CocoaSetApplicationIcon(const unsigned char *rgba, int width, int height) {
+    NSImage *image = nil;
+    if (rgba && width > 0 && height > 0) {
+        NSBitmapImageRep *rep = [[NSBitmapImageRep alloc]
+            initWithBitmapDataPlanes:NULL
+                          pixelsWide:width
+                          pixelsHigh:height
+                       bitsPerSample:8
+                     samplesPerPixel:4
+                            hasAlpha:YES
+                            isPlanar:NO
+                      colorSpaceName:NSDeviceRGBColorSpace
+                        bitmapFormat:NSBitmapFormatAlphaNonpremultiplied
+                         bytesPerRow:width * 4
+                        bitsPerPixel:32];
+        if (!rep) return;
+        memcpy([rep bitmapData], rgba, (size_t)width * height * 4);
+        image = [[NSImage alloc] initWithSize:NSMakeSize(width, height)];
+        [image addRepresentation:rep];
+    }
+    runOnMain(^{
+        [NSApp setApplicationIconImage:image];
+    });
 }
 
 void CocoaSetIconName(CocoaWindowID w, const char *name) {

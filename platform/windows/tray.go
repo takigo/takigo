@@ -16,8 +16,13 @@ import (
 
 // trayIcon is the Shell_NotifyIconW state of one icon.
 type trayIcon struct {
-	hicon w32.HICON
+	hicon   w32.HICON
+	tooltip string
 }
+
+// taskbarCreatedMsg is broadcast to every top-level window when Explorer
+// starts again; the tray icons it had are gone.
+var taskbarCreatedMsg = w32.RegisterWindowMessage("TaskbarCreated")
 
 // trayData fills the fields every Shell_NotifyIconW call needs.
 func trayData(hwnd w32.HWND) w32.NOTIFYICONDATAW {
@@ -31,7 +36,7 @@ func (d *WindowsDisplay) AddTrayIcon(icon *platform.IconImage, tooltip string) p
 	if hwnd == 0 {
 		return 0
 	}
-	t := &trayIcon{}
+	t := &trayIcon{tooltip: tooltip}
 	nid := trayData(hwnd)
 	nid.UFlags = w32.NIF_MESSAGE | w32.NIF_TIP
 	nid.UCallbackMessage = w32.WM_APP_TRAY
@@ -73,6 +78,7 @@ func (d *WindowsDisplay) ModifyTrayIcon(w platform.WindowID, icon *platform.Icon
 	nid := trayData(hwnd)
 	nid.UFlags = w32.NIF_TIP
 	w32.CopyUTF16(nid.SzTip[:], tooltip)
+	t.tooltip = tooltip
 	old := w32.HICON(0)
 	if icon != nil {
 		old, t.hicon = t.hicon, createIcon(icon)
@@ -83,6 +89,24 @@ func (d *WindowsDisplay) ModifyTrayIcon(w platform.WindowID, icon *platform.Icon
 	if old != 0 {
 		w32.DestroyIcon(old)
 	}
+}
+
+// readdTrayIcon adds the icon of a tray window again (NIM_ADD) after
+// Explorer restarted. Other windows ignore it.
+func (d *WindowsDisplay) readdTrayIcon(hwnd w32.HWND) {
+	_, t := d.trayOf(fromHWND(hwnd))
+	if t == nil {
+		return
+	}
+	nid := trayData(hwnd)
+	nid.UFlags = w32.NIF_MESSAGE | w32.NIF_TIP
+	nid.UCallbackMessage = w32.WM_APP_TRAY
+	if t.hicon != 0 {
+		nid.HIcon = t.hicon
+		nid.UFlags |= w32.NIF_ICON
+	}
+	w32.CopyUTF16(nid.SzTip[:], t.tooltip)
+	w32.Shell_NotifyIcon(w32.NIM_ADD, &nid)
 }
 
 // RemoveTrayIcon deletes the icon and its window.

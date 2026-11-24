@@ -190,9 +190,39 @@ func (d *WindowsDisplay) FilterEvent(ev *platform.RawEvent) bool {
 
 // --- WndProc: converts Windows messages to platform events ---
 
+// trackMinimized reports a toplevel's minimizing as an UnmapNotify and its
+// restoring as a MapNotify, as an X window manager unmaps an iconified
+// window, so "wm state" follows the user. It returns true for the
+// minimizing WM_SIZE, which carries no size to report.
+func (d *WindowsDisplay) trackMinimized(hwnd w32.HWND, minimized bool, now uint64) bool {
+	d.windowMu.Lock()
+	info := d.windowData[hwnd]
+	changed := info != nil && info.isTopLevel && info.minimized != minimized
+	if changed {
+		info.minimized = minimized
+	}
+	d.windowMu.Unlock()
+	if changed {
+		typ := platform.MapNotifyEvent
+		if minimized {
+			typ = platform.UnmapNotifyEvent
+		}
+		wid := fromHWND(hwnd)
+		d.postEvent(&platform.RawEvent{Data: &WinRawEvent{Window: wid, Time: now}, EventType: typ, EventWindow: wid})
+	}
+	return minimized
+}
+
 func (d *WindowsDisplay) wndProc(hwnd w32.HWND, msg uint32, wParam w32.WPARAM, lParam w32.LPARAM) w32.LRESULT {
 	wid := fromHWND(hwnd)
 	now := uint64(time.Now().UnixMilli())
+
+	if msg == taskbarCreatedMsg && msg != 0 {
+		// Explorer restarted and lost the notification area: put the
+		// icon back (tkWinSysTray.c's TaskbarCreated handling).
+		d.readdTrayIcon(hwnd)
+		return 0
+	}
 
 	switch msg {
 	case w32.WM_APP_TRAY:
@@ -219,6 +249,9 @@ func (d *WindowsDisplay) wndProc(hwnd w32.HWND, msg uint32, wParam w32.WPARAM, l
 		return 0
 
 	case w32.WM_SIZE:
+		if d.trackMinimized(hwnd, wParam == w32.SIZE_MINIMIZED, now) {
+			return 0
+		}
 		w := int(w32.LOWORD(uintptr(lParam)))
 		h := int(w32.HIWORD(uintptr(lParam)))
 		// Ignore zero-dimension events (minimized windows, intermediate states).

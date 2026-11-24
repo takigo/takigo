@@ -107,6 +107,10 @@ type WMHints struct {
 	Flags        int64
 	Input        bool
 	InitialState int
+	IconPixmap   Pixmap
+	IconWindow   Window
+	IconX, IconY int
+	IconMask     Pixmap
 }
 
 // WMHints flag constants.
@@ -125,6 +129,10 @@ func (d *Display) SetWMHints(w Window, hints *WMHints) {
 		h.input = C.False
 	}
 	h.initial_state = C.int(hints.InitialState)
+	h.icon_pixmap = C.Pixmap(hints.IconPixmap)
+	h.icon_window = C.Window(hints.IconWindow)
+	h.icon_x, h.icon_y = C.int(hints.IconX), C.int(hints.IconY)
+	h.icon_mask = C.Pixmap(hints.IconMask)
 	C.XSetWMHints(d.ptr, C.Window(w), &h)
 }
 

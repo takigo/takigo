@@ -1,8 +1,9 @@
 // Package nanosvg ports the parts of nanosvg.h / nanosvgrast.h (vendored in
 // tk/generic) that Tk 9 uses to render its built-in SVG images: check and
-// radio indicators, sliders, toggle switches. Only the SVG subset those images
-// use is parsed (path with M/L/H/V/Z, rect with rx/ry, circle, ellipse,
-// linearGradient in user space, solid fills and strokes). Arithmetic is kept
+// radio indicators, sliders, toggle switches, dialog icons. Only the SVG
+// subset those images use is parsed (path with every command, rect with
+// rx/ry, circle, ellipse, linearGradient in user space, solid fills and
+// strokes). Arithmetic is kept
 // in float32 so that the rasterized pixels match Tk's exactly.
 package nanosvg
 
@@ -506,48 +507,49 @@ func (p *parser) ellipse(cx, cy, rx, ry float32, a attrs) {
 	p.addShape(a)
 }
 
-// pathItems splits path data like nsvg__getNextPathItem: numbers and single
-// command letters.
-func pathItems(d string) []string {
-	var items []string
-	i := 0
-	for i < len(d) {
-		c := d[i]
-		if c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == ',' {
-			i++
-			continue
-		}
-		if c == '-' || c == '+' || c == '.' || (c >= '0' && c <= '9') {
-			j := i
-			if d[j] == '-' || d[j] == '+' {
-				j++
-			}
-			for j < len(d) && d[j] >= '0' && d[j] <= '9' {
-				j++
-			}
-			if j < len(d) && d[j] == '.' {
-				j++
-				for j < len(d) && d[j] >= '0' && d[j] <= '9' {
-					j++
-				}
-			}
-			if j < len(d) && (d[j] == 'e' || d[j] == 'E') && j+1 < len(d) && d[j+1] != 'm' && d[j+1] != 'x' {
-				j++
-				if j < len(d) && (d[j] == '-' || d[j] == '+') {
-					j++
-				}
-				for j < len(d) && d[j] >= '0' && d[j] <= '9' {
-					j++
-				}
-			}
-			items = append(items, d[i:j])
-			i = j
-			continue
-		}
-		items = append(items, d[i:i+1])
+// nextPathItem ports nsvg__getNextPathItem: it returns the number or single
+// command letter at d[i:] and the index after it, or "" at the end. With
+// arcFlag (the large-arc and sweep arguments of A) a lone 0 or 1 is one
+// item, so compact flags such as "a2 2 0 011 1" parse.
+func nextPathItem(d string, i int, arcFlag bool) (string, int) {
+	for i < len(d) && (d[i] == ' ' || d[i] == '\t' || d[i] == '\n' || d[i] == '\r' || d[i] == '\f' || d[i] == '\v' || d[i] == ',') {
 		i++
 	}
-	return items
+	if i >= len(d) {
+		return "", i
+	}
+	if arcFlag {
+		if d[i] == '0' || d[i] == '1' {
+			return d[i : i+1], i + 1
+		}
+	}
+	c := d[i]
+	if c != '-' && c != '+' && c != '.' && (c < '0' || c > '9') {
+		return d[i : i+1], i + 1
+	}
+	j := i
+	if d[j] == '-' || d[j] == '+' {
+		j++
+	}
+	for j < len(d) && d[j] >= '0' && d[j] <= '9' {
+		j++
+	}
+	if j < len(d) && d[j] == '.' {
+		j++
+		for j < len(d) && d[j] >= '0' && d[j] <= '9' {
+			j++
+		}
+	}
+	if j < len(d) && (d[j] == 'e' || d[j] == 'E') && j+1 < len(d) && d[j+1] != 'm' && d[j+1] != 'x' {
+		j++
+		if j < len(d) && (d[j] == '-' || d[j] == '+') {
+			j++
+		}
+		for j < len(d) && d[j] >= '0' && d[j] <= '9' {
+			j++
+		}
+	}
+	return d[i:j], j
 }
 
 func argsPer(cmd byte) int {
@@ -568,15 +570,21 @@ func argsPer(cmd byte) int {
 	return -1
 }
 
-// parsePath ports nsvg__parsePath for the M/L/H/V/C/Z commands.
+// parsePath ports nsvg__parsePath. (cpx2, cpy2) is the last control point,
+// which the S and T shorthands reflect.
 func (p *parser) parsePath(d string, a attrs) {
 	var cmd byte
 	var args [10]float32
 	nargs, rargs := 0, 0
-	var cpx, cpy float32
+	var cpx, cpy, cpx2, cpy2 float32
 	initPoint, closed := false, false
 	p.pts = p.pts[:0]
-	for _, item := range pathItems(d) {
+	for i := 0; ; {
+		var item string
+		item, i = nextPathItem(d, i, (cmd == 'A' || cmd == 'a') && (nargs == 3 || nargs == 4))
+		if item == "" {
+			break
+		}
 		c := item[0]
 		isCoord := c == '-' || c == '+' || c == '.' || (c >= '0' && c <= '9')
 		if cmd != 0 && isCoord {
@@ -586,14 +594,13 @@ func (p *parser) parsePath(d string, a attrs) {
 			}
 			if nargs >= rargs {
 				rel := cmd >= 'a'
+				var ox, oy float32 // origin of relative coordinates
+				if rel {
+					ox, oy = cpx, cpy
+				}
 				switch cmd {
 				case 'm', 'M':
-					if rel {
-						cpx += args[0]
-						cpy += args[1]
-					} else {
-						cpx, cpy = args[0], args[1]
-					}
+					cpx, cpy = ox+args[0], oy+args[1]
 					p.moveTo(cpx, cpy)
 					if rel {
 						cmd = 'l'
@@ -601,39 +608,46 @@ func (p *parser) parsePath(d string, a attrs) {
 						cmd = 'L'
 					}
 					rargs = argsPer(cmd)
+					cpx2, cpy2 = cpx, cpy
 					initPoint = true
 				case 'l', 'L':
-					if rel {
-						cpx += args[0]
-						cpy += args[1]
-					} else {
-						cpx, cpy = args[0], args[1]
-					}
+					cpx, cpy = ox+args[0], oy+args[1]
 					p.lineTo(cpx, cpy)
+					cpx2, cpy2 = cpx, cpy
 				case 'h', 'H':
-					if rel {
-						cpx += args[0]
-					} else {
-						cpx = args[0]
-					}
+					cpx = ox + args[0]
 					p.lineTo(cpx, cpy)
+					cpx2, cpy2 = cpx, cpy
 				case 'v', 'V':
-					if rel {
-						cpy += args[0]
-					} else {
-						cpy = args[0]
-					}
+					cpy = oy + args[0]
 					p.lineTo(cpx, cpy)
+					cpx2, cpy2 = cpx, cpy
 				case 'c', 'C':
-					x1, y1, x2, y2, x, y := args[0], args[1], args[2], args[3], args[4], args[5]
-					if rel {
-						x1, y1, x2, y2, x, y = x1+cpx, y1+cpy, x2+cpx, y2+cpy, x+cpx, y+cpy
-					}
+					x1, y1, x2, y2 := ox+args[0], oy+args[1], ox+args[2], oy+args[3]
+					x, y := ox+args[4], oy+args[5]
 					p.cubicBezTo(x1, y1, x2, y2, x, y)
+					cpx2, cpy2, cpx, cpy = x2, y2, x, y
+				case 's', 'S':
+					x2, y2, x, y := ox+args[0], oy+args[1], ox+args[2], oy+args[3]
+					p.cubicBezTo(2*cpx-cpx2, 2*cpy-cpy2, x2, y2, x, y)
+					cpx2, cpy2, cpx, cpy = x2, y2, x, y
+				case 'q', 'Q':
+					qx, qy, x, y := ox+args[0], oy+args[1], ox+args[2], oy+args[3]
+					p.quadBezTo(cpx, cpy, qx, qy, x, y)
+					cpx2, cpy2, cpx, cpy = qx, qy, x, y
+				case 't', 'T':
+					qx, qy, x, y := 2*cpx-cpx2, 2*cpy-cpy2, ox+args[0], oy+args[1]
+					p.quadBezTo(cpx, cpy, qx, qy, x, y)
+					cpx2, cpy2, cpx, cpy = qx, qy, x, y
+				case 'a', 'A':
+					x, y := ox+args[5], oy+args[6]
+					p.arcTo(cpx, cpy, args[0], args[1], args[2], args[3], args[4], x, y)
 					cpx, cpy = x, y
+					cpx2, cpy2 = cpx, cpy
 				default:
 					if nargs >= 2 {
 						cpx, cpy = args[nargs-2], args[nargs-1]
+						cpx2, cpy2 = cpx, cpy
 					}
 				}
 				nargs = 0
@@ -655,6 +669,7 @@ func (p *parser) parsePath(d string, a attrs) {
 			closed = true
 			if len(p.pts) > 0 {
 				cpx, cpy = p.pts[0], p.pts[1]
+				cpx2, cpy2 = cpx, cpy
 				p.addPath(closed)
 			}
 			p.pts = p.pts[:0]
@@ -671,6 +686,105 @@ func (p *parser) parsePath(d string, a attrs) {
 		p.addPath(closed)
 	}
 	p.addShape(a)
+}
+
+// quadBezTo adds the quadratic curve from (x1, y1) through control point
+// (cx, cy) to (x2, y2) as the cubic nsvg__pathQuadBezTo converts it to.
+func (p *parser) quadBezTo(x1, y1, cx, cy, x2, y2 float32) {
+	p.cubicBezTo(x1+2.0/3.0*(cx-x1), y1+2.0/3.0*(cy-y1),
+		x2+2.0/3.0*(cx-x2), y2+2.0/3.0*(cy-y2), x2, y2)
+}
+
+func vecang(ux, uy, vx, vy float32) float32 {
+	r := (ux*vx + uy*vy) / (sqrtf(ux*ux+uy*uy) * sqrtf(vx*vx+vy*vy))
+	r = clampf(r, -1, 1)
+	s := float32(1)
+	if ux*vy < uy*vx {
+		s = -1
+	}
+	return s * float32(math.Acos(float64(r)))
+}
+
+// arcTo ports nsvg__pathArcTo: the elliptical arc from (x1, y1) to (x2, y2)
+// as cubic segments of at most 90 degrees.
+func (p *parser) arcTo(x1, y1, rx, ry, rotDeg, large, sweep, x2, y2 float32) {
+	const pi = float32(math.Pi)
+	rx, ry = float32(math.Abs(float64(rx))), float32(math.Abs(float64(ry)))
+	rotx := rotDeg / 180 * pi
+	fa := math.Abs(float64(large)) > 1e-6
+	fs := math.Abs(float64(sweep)) > 1e-6
+
+	dx, dy := x1-x2, y1-y2
+	d := sqrtf(dx*dx + dy*dy)
+	if d < 1e-6 || rx < 1e-6 || ry < 1e-6 {
+		p.lineTo(x2, y2)
+		return
+	}
+	sinrx, cosrx := sinf(rotx), cosf(rotx)
+
+	x1p := cosrx*dx/2 + sinrx*dy/2
+	y1p := -sinrx*dx/2 + cosrx*dy/2
+	d = x1p*x1p/(rx*rx) + y1p*y1p/(ry*ry)
+	if d > 1 {
+		d = sqrtf(d)
+		rx *= d
+		ry *= d
+	}
+	var s float32
+	sa := rx*rx*ry*ry - rx*rx*y1p*y1p - ry*ry*x1p*x1p
+	sb := rx*rx*y1p*y1p + ry*ry*x1p*x1p
+	if sa < 0 {
+		sa = 0
+	}
+	if sb > 0 {
+		s = sqrtf(sa / sb)
+	}
+	if fa == fs {
+		s = -s
+	}
+	cxp := s * rx * y1p / ry
+	cyp := s * -ry * x1p / rx
+
+	cx := (x1+x2)/2 + cosrx*cxp - sinrx*cyp
+	cy := (y1+y2)/2 + sinrx*cxp + cosrx*cyp
+
+	ux, uy := (x1p-cxp)/rx, (y1p-cyp)/ry
+	vx, vy := (-x1p-cxp)/rx, (-y1p-cyp)/ry
+	a1 := vecang(1, 0, ux, uy)
+	da := vecang(ux, uy, vx, vy)
+	if !fs && da > 0 {
+		da -= 2 * pi
+	} else if fs && da < 0 {
+		da += 2 * pi
+	}
+
+	t := [6]float32{cosrx, sinrx, -sinrx, cosrx, cx, cy}
+	ndivs := int(float32(math.Abs(float64(da)))/(pi*0.5) + 1)
+	hda := (da / float32(ndivs)) / 2
+	if hda < 1e-3 && hda > -1e-3 {
+		hda *= 0.5
+	} else {
+		hda = (1 - cosf(hda)) / sinf(hda)
+	}
+	kappa := float32(math.Abs(float64(4.0 / 3.0 * hda)))
+	if da < 0 {
+		kappa = -kappa
+	}
+
+	var px, py, ptanx, ptany float32
+	for i := 0; i <= ndivs; i++ {
+		ang := a1 + da*(float32(i)/float32(ndivs))
+		dx, dy := cosf(ang), sinf(ang)
+		x := dx*rx*t[0] + dy*ry*t[2] + t[4]
+		y := dx*rx*t[1] + dy*ry*t[3] + t[5]
+		vx, vy := -dy*rx*kappa, dx*ry*kappa
+		tanx := vx*t[0] + vy*t[2]
+		tany := vx*t[1] + vy*t[3]
+		if i > 0 {
+			p.cubicBezTo(px+ptanx, py+ptany, x-tanx, y-tany, x, y)
+		}
+		px, py, ptanx, ptany = x, y, tanx, tany
+	}
 }
 
 // identity is the identity affine transform [a b c d e f], mapping

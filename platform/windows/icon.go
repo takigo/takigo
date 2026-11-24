@@ -51,6 +51,22 @@ func (d *WindowsDisplay) SetWindowIcons(w platform.WindowID, icons []platform.Ic
 	}
 }
 
+// releaseWindowIcons destroys the icons made for a window that is gone.
+func releaseWindowIcons(hwnd w32.HWND) {
+	windowIconsMu.Lock()
+	icons, ok := windowIcons[hwnd]
+	delete(windowIcons, hwnd)
+	windowIconsMu.Unlock()
+	if !ok {
+		return
+	}
+	for _, h := range icons {
+		if h != 0 {
+			w32.DestroyIcon(h)
+		}
+	}
+}
+
 // closestIcon returns the valid icon whose width is nearest to size,
 // preferring the larger of two equally near.
 func closestIcon(icons []platform.IconImage, size int) *platform.IconImage {

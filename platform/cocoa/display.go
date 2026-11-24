@@ -35,6 +35,7 @@ package cocoa
 
 import (
 	"errors"
+	"sync"
 
 	"github.com/takigo/takigo/cursor"
 	"github.com/takigo/takigo/font"
@@ -56,6 +57,9 @@ type CocoaDisplay struct {
 	rootWindow platform.WindowID
 	clipOwner  platform.WindowID
 	atoms      *platform.Atoms
+
+	iconicMu sync.Mutex
+	iconic   map[platform.WindowID]bool // toplevels whose WM_HINTS start them iconic
 }
 
 // NewDisplayServer initializes Cocoa and returns a composed DisplayServer
@@ -73,6 +77,7 @@ func NewDisplayServer(displayName string) (platform.DisplayServer, font.FontOpen
 
 	core := &CocoaDisplay{
 		rootWindow: fromWin(rootWin),
+		iconic:     map[platform.WindowID]bool{},
 		atoms: &platform.Atoms{
 			WMName:        platform.AtomID(clib.InternAtom("WM_NAME", false)),
 			String:        platform.AtomID(clib.InternAtom("STRING", false)),
@@ -147,12 +152,23 @@ func (d *CocoaDisplay) CreateSimpleWindow(parent platform.WindowID, x, y int, wi
 	return fromWin(w)
 }
 
-func (d *CocoaDisplay) DestroyWindow(w platform.WindowID) { clib.DestroyWindow(toWin(w)) }
-func (d *CocoaDisplay) MapWindow(w platform.WindowID)     { clib.MapWindow(toWin(w)) }
-func (d *CocoaDisplay) MapRaised(w platform.WindowID)     { clib.MapRaised(toWin(w)) }
-func (d *CocoaDisplay) UnmapWindow(w platform.WindowID)   { clib.UnmapWindow(toWin(w)) }
-func (d *CocoaDisplay) RaiseWindow(w platform.WindowID)   { clib.RaiseWindow(toWin(w)) }
-func (d *CocoaDisplay) LowerWindow(w platform.WindowID)   { clib.LowerWindow(toWin(w)) }
+func (d *CocoaDisplay) DestroyWindow(w platform.WindowID) {
+	d.iconicMu.Lock()
+	delete(d.iconic, w)
+	d.iconicMu.Unlock()
+	clib.DestroyWindow(toWin(w))
+}
+func (d *CocoaDisplay) MapWindow(w platform.WindowID) {
+	clib.MapWindow(toWin(w))
+	d.startIconic(w)
+}
+func (d *CocoaDisplay) MapRaised(w platform.WindowID) {
+	clib.MapRaised(toWin(w))
+	d.startIconic(w)
+}
+func (d *CocoaDisplay) UnmapWindow(w platform.WindowID) { clib.UnmapWindow(toWin(w)) }
+func (d *CocoaDisplay) RaiseWindow(w platform.WindowID) { clib.RaiseWindow(toWin(w)) }
+func (d *CocoaDisplay) LowerWindow(w platform.WindowID) { clib.LowerWindow(toWin(w)) }
 
 func (d *CocoaDisplay) MoveWindow(w platform.WindowID, x, y int) {
 	clib.MoveWindow(toWin(w), x, y)
@@ -351,9 +367,24 @@ func (d *CocoaDisplay) DefineCursor(w platform.WindowID, cursor platform.CursorI
 	clib.DefineCursor(toWin(w), toCursor(cursor))
 }
 
-// SetWindowIcons is not implemented on macOS, where a window has no icon
-// of its own: the application's icon comes from its bundle.
-func (d *CocoaDisplay) SetWindowIcons(platform.WindowID, []platform.IconImage) {}
+// SetWindowIcons sets the application's Dock icon from the largest
+// picture: a window on macOS has no icon of its own, so Tk's "wm
+// iconphoto" changes the application icon (tkMacOSXWm.c).
+func (d *CocoaDisplay) SetWindowIcons(_ platform.WindowID, icons []platform.IconImage) {
+	var best *platform.IconImage
+	for i := range icons {
+		ic := &icons[i]
+		if ic.Width > 0 && ic.Height > 0 && len(ic.Pix) >= 4*ic.Width*ic.Height &&
+			(best == nil || ic.Width*ic.Height > best.Width*best.Height) {
+			best = ic
+		}
+	}
+	if best == nil {
+		clib.SetApplicationIcon(nil, 0, 0)
+		return
+	}
+	clib.SetApplicationIcon(best.Pix, best.Width, best.Height)
+}
 
 func (d *CocoaDisplay) SetCursorShape(w platform.WindowID, shape cursor.Shape) {
 	clib.SetCursorShape(toWin(w), uint(shape))
@@ -378,6 +409,24 @@ func (d *CocoaDisplay) SetWMNormalHints(w platform.WindowID, hints *platform.Siz
 }
 func (d *CocoaDisplay) SetWMHints(w platform.WindowID, hints *platform.WMHints) {
 	clib.SetWMHints(toWin(w), hints.Input, hints.InitialState)
+	d.iconicMu.Lock()
+	if hints.InitialState == platform.IconicState {
+		d.iconic[w] = true
+	} else {
+		delete(d.iconic, w)
+	}
+	d.iconicMu.Unlock()
+}
+
+// startIconic miniaturizes a toplevel that was asked to start iconic
+// (WM_HINTS initial_state), as an X window manager would.
+func (d *CocoaDisplay) startIconic(w platform.WindowID) {
+	d.iconicMu.Lock()
+	iconic := d.iconic[w]
+	d.iconicMu.Unlock()
+	if iconic {
+		clib.IconifyWindow(toWin(w))
+	}
 }
 func (d *CocoaDisplay) SetClassHint(w platform.WindowID, name, class string) {
 	clib.SetClassHint(toWin(w), name, class)

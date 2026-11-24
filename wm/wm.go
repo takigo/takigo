@@ -1,6 +1,7 @@
 // Package wm provides window manager interaction for toplevel windows.
 // It ports the essential subset of tk/unix/tkUnixWm.c: title, geometry,
-// size constraints, resizable, transient, iconify, state, and protocols.
+// size constraints, resizable, transient, iconify, state, icons and
+// protocols.
 package wm
 
 import (
@@ -11,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/takigo/takigo/bitmap"
 	"github.com/takigo/takigo/platform"
 	"github.com/takigo/takigo/window"
 )
@@ -23,6 +25,7 @@ const (
 	StateIconic          // minimized
 	StateWithdrawn       // not visible, not in taskbar
 	StateZoomed          // maximized (EWMH)
+	StateIcon            // the icon window of another toplevel
 )
 
 // String returns the state name.
@@ -36,6 +39,8 @@ func (s State) String() string {
 		return "withdrawn"
 	case StateZoomed:
 		return "zoomed"
+	case StateIcon:
+		return "icon"
 	default:
 		return "normal"
 	}
@@ -66,9 +71,18 @@ type WmInfo struct {
 	ResizableW          bool
 	ResizableH          bool
 
-	// State.
+	// State. CurrentState is the state last asked for; State reports
+	// the one the window is in.
 	CurrentState State
 	Withdrawn    bool
+	mapped       bool // shown, as last requested or reported by Map/Unmap events
+	everMapped   bool // false until the first map (Tk's WM_NEVER_MAPPED)
+
+	// hints is the whole WM_HINTS property, so that setting one field
+	// keeps the others (Tk's wmPtr->hints).
+	hints                platform.WMHints
+	iconBitmap, iconMask string
+	iconWindow, iconFor  *window.Window
 
 	// Transient.
 	TransientFor *window.Window
@@ -86,7 +100,7 @@ type WmInfo struct {
 	atoms *wmAtoms
 }
 
-// wmAtoms caches interned atoms.
+// wmAtoms caches interned atoms and the display's default icon.
 type wmAtoms struct {
 	NetWMName            platform.AtomID
 	NetWMIconName        platform.AtomID
@@ -100,6 +114,10 @@ type wmAtoms struct {
 	WMDeleteWindow       platform.AtomID
 	WMProtocols          platform.AtomID
 	WMTransientFor       platform.AtomID
+
+	// defaultIcons is the "wm iconphoto -default" picture every toplevel
+	// created later starts with (Tk's per-display default icon).
+	defaultIcons []platform.IconImage
 }
 
 // getAtoms returns the WM atoms of disp, interning them on first use.
@@ -145,18 +163,22 @@ func Init(w *window.Window) *WmInfo {
 		CurrentState: StateNormal,
 		Protocols:    make(map[platform.AtomID]func()),
 		atoms:        atoms,
+		hints: platform.WMHints{
+			Flags:        platform.InputHint | platform.StateHint,
+			Input:        true,
+			InitialState: platform.NormalState,
+		},
 	}
 
 	// Tk's TkWmProtocolEventProc destroys the window when a
 	// WM_DELETE_WINDOW message arrives and no handler was registered.
 	info.OffDeleteWindow()
 
-	// Set default WM hints.
-	d.SetWMHints(w.PlatformID, &platform.WMHints{
-		Flags:        platform.InputHint | platform.StateHint,
-		Input:        true,
-		InitialState: platform.NormalState,
-	})
+	info.updateHints()
+	if len(atoms.defaultIcons) > 0 && w.PlatformID != 0 {
+		d.SetWindowIcons(w.PlatformID, atoms.defaultIcons)
+	}
+	w.OnDestroy(info.forget)
 
 	// Set WM_CLASS.
 	d.SetClassHint(w.PlatformID, w.Name, info.Class)
@@ -201,9 +223,28 @@ func (info *WmInfo) SetIconName(name string) {
 
 // SetIconPhoto sets the window's icon from one or more sizes of the same
 // picture, like Tk's "wm iconphoto"; the window system picks the size it
-// needs. With no images the icon is removed. macOS ignores it: a window
-// there has no icon of its own.
+// needs. With no images the icon is removed. On macOS it sets the
+// application's Dock icon, as Tk does.
 func (info *WmInfo) SetIconPhoto(imgs ...image.Image) {
+	if info.Win.PlatformID == 0 {
+		return
+	}
+	info.Win.Display.Server.SetWindowIcons(info.Win.PlatformID, iconImages(imgs))
+}
+
+// SetIconPhotoDefault is "wm iconphoto -default": it sets the window's
+// icon and makes it the icon of every toplevel created afterwards on the
+// same display. With no images later toplevels start without one.
+func (info *WmInfo) SetIconPhotoDefault(imgs ...image.Image) {
+	icons := iconImages(imgs)
+	info.atoms.defaultIcons = icons
+	if info.Win.PlatformID != 0 {
+		info.Win.Display.Server.SetWindowIcons(info.Win.PlatformID, icons)
+	}
+}
+
+// iconImages converts icon pictures to straight-alpha RGBA.
+func iconImages(imgs []image.Image) []platform.IconImage {
 	icons := make([]platform.IconImage, 0, len(imgs))
 	for _, img := range imgs {
 		if img == nil {
@@ -214,7 +255,150 @@ func (info *WmInfo) SetIconPhoto(imgs ...image.Image) {
 		draw.Draw(n, n.Rect, img, b.Min, draw.Src)
 		icons = append(icons, platform.IconImage{Width: b.Dx(), Height: b.Dy(), Pix: n.Pix})
 	}
-	info.Win.Display.Server.SetWindowIcons(info.Win.PlatformID, icons)
+	return icons
+}
+
+// SetIconBitmap is "wm iconbitmap": a Tk bitmap (a built-in name or
+// "@file.xbm") the window manager shows as the icon, through WM_HINTS.
+// An empty name removes it. Only X11 window managers read it; Windows
+// and macOS take "wm iconphoto" instead.
+func (info *WmInfo) SetIconBitmap(name string) error {
+	pix, err := info.bitmapPixmap(name, info.hints.IconPixmap)
+	if err != nil {
+		return err
+	}
+	info.iconBitmap, info.hints.IconPixmap = name, pix
+	info.setHintFlag(platform.IconPixmapHint, name != "")
+	return nil
+}
+
+// IconBitmap returns the name given to SetIconBitmap.
+func (info *WmInfo) IconBitmap() string { return info.iconBitmap }
+
+// SetIconMask is "wm iconmask": the bitmap whose set bits are the part of
+// the icon bitmap that is shown. An empty name removes it.
+func (info *WmInfo) SetIconMask(name string) error {
+	pix, err := info.bitmapPixmap(name, info.hints.IconMask)
+	if err != nil {
+		return err
+	}
+	info.iconMask, info.hints.IconMask = name, pix
+	info.setHintFlag(platform.IconMaskHint, name != "")
+	return nil
+}
+
+// IconMask returns the name given to SetIconMask.
+func (info *WmInfo) IconMask() string { return info.iconMask }
+
+// bitmapPixmap makes a depth-1 pixmap of the named bitmap and frees old,
+// which it replaces. An empty name gives no pixmap.
+func (info *WmInfo) bitmapPixmap(name string, old platform.PixmapID) (platform.PixmapID, error) {
+	var pix platform.PixmapID
+	if name != "" {
+		w, h, bits, ok := bitmap.Data(name)
+		if !ok {
+			return 0, fmt.Errorf("bitmap %q not defined", name)
+		}
+		if info.Win.PlatformID != 0 {
+			pix = info.Win.Display.Server.CreateBitmapFromData(
+				platform.WindowDrawable(info.Win.PlatformID), bits, uint(w), uint(h))
+		}
+	}
+	if old != 0 {
+		info.Win.Display.Server.FreePixmap(old)
+	}
+	return pix, nil
+}
+
+// SetIconPosition is "wm iconposition": where the window manager should
+// put the icon. ok false removes the hint.
+func (info *WmInfo) SetIconPosition(x, y int, ok bool) {
+	info.hints.IconX, info.hints.IconY = x, y
+	info.setHintFlag(platform.IconPositionHint, ok)
+}
+
+// IconPosition returns the icon position hint and whether one is set.
+func (info *WmInfo) IconPosition() (x, y int, ok bool) {
+	return info.hints.IconX, info.hints.IconY, info.hints.Flags&platform.IconPositionHint != 0
+}
+
+// SetIconWindow is "wm iconwindow": the toplevel icon is withdrawn and
+// shown by the window manager as this window's icon. nil removes it, and
+// the former icon window stays withdrawn.
+func (info *WmInfo) SetIconWindow(icon *window.Window) error {
+	var iconInfo *WmInfo
+	if icon != nil {
+		var ok bool
+		if iconInfo, ok = icon.WmData.(*WmInfo); !ok {
+			return fmt.Errorf("can't use %s as icon window: not at top level", icon.PathName)
+		}
+		if iconInfo.iconFor != nil && iconInfo.iconFor != info.Win {
+			return fmt.Errorf("%s is already an icon for %s", icon.PathName, iconInfo.iconFor.PathName)
+		}
+	}
+	if info.iconWindow != nil {
+		if old, ok := info.iconWindow.WmData.(*WmInfo); ok {
+			old.iconFor = nil
+			old.Withdrawn = true
+			old.CurrentState = StateWithdrawn
+			old.hints.InitialState = platform.WithdrawnState
+		}
+	}
+	info.iconWindow = icon
+	info.hints.IconWindow = 0
+	if iconInfo != nil {
+		iconInfo.iconFor = info.Win
+		if iconInfo.everMapped && !iconInfo.Withdrawn && icon.PlatformID != 0 {
+			icon.Display.Server.WithdrawWindow(icon.PlatformID, icon.Display.Screen)
+			window.MarkUnmapped(icon)
+		}
+		iconInfo.mapped = false
+		info.hints.IconWindow = icon.PlatformID
+	}
+	info.setHintFlag(platform.IconWindowHint, iconInfo != nil)
+	return nil
+}
+
+// IconWindow returns the window given to SetIconWindow.
+func (info *WmInfo) IconWindow() *window.Window { return info.iconWindow }
+
+func (info *WmInfo) setHintFlag(flag int64, on bool) {
+	if on {
+		info.hints.Flags |= flag
+	} else {
+		info.hints.Flags &^= flag
+	}
+	info.updateHints()
+}
+
+// updateHints sends WM_HINTS (UpdateHints).
+func (info *WmInfo) updateHints() {
+	if info.Win.PlatformID == 0 {
+		return
+	}
+	h := info.hints
+	info.Win.Display.Server.SetWMHints(info.Win.PlatformID, &h)
+}
+
+// forget frees what the window holds when it is destroyed.
+func (info *WmInfo) forget() {
+	_ = info.SetIconBitmap("")
+	_ = info.SetIconMask("")
+	if info.iconFor != nil {
+		if owner, ok := info.iconFor.WmData.(*WmInfo); ok && owner.iconWindow == info.Win {
+			owner.iconWindow = nil
+			owner.hints.IconWindow = 0
+			owner.hints.Flags &^= platform.IconWindowHint
+			if !owner.Win.IsDestroyed() {
+				owner.updateHints()
+			}
+		}
+	}
+	if info.iconWindow != nil {
+		if icon, ok := info.iconWindow.WmData.(*WmInfo); ok {
+			icon.iconFor = nil
+		}
+	}
 }
 
 // Geometry returns the current geometry as "WxH+X+Y".
@@ -458,7 +642,9 @@ func (info *WmInfo) SetTransientFor(parent *window.Window) {
 	}
 }
 
-// Iconify minimizes the window.
+// Iconify minimizes the window (TkpWmSetState with IconicState). A
+// window not mapped yet starts iconic when it is, a withdrawn one is
+// mapped iconic.
 func (info *WmInfo) Iconify() {
 	if info.TransientFor != nil {
 		return // transient windows cannot be independently iconified
@@ -468,7 +654,18 @@ func (info *WmInfo) Iconify() {
 		return
 	}
 	info.CurrentState = StateIconic
-	w.Display.Server.IconifyWindow(w.PlatformID, w.Display.Screen)
+	info.hints.InitialState = platform.IconicState
+	switch {
+	case !info.everMapped:
+		info.updateHints()
+	case info.Withdrawn:
+		info.Withdrawn = false
+		info.updateHints()
+		info.mapWindow(false)
+	default:
+		info.mapped = false
+		w.Display.Server.IconifyWindow(w.PlatformID, w.Display.Screen)
+	}
 }
 
 // Deiconify restores the window from iconic/withdrawn state.
@@ -479,17 +676,13 @@ func (info *WmInfo) Deiconify() {
 	}
 	info.CurrentState = StateNormal
 	info.Withdrawn = false
-	w.Display.Server.SetWMHints(w.PlatformID, &platform.WMHints{
-		Flags:        platform.InputHint | platform.StateHint,
-		Input:        true,
-		InitialState: platform.NormalState,
-	})
-	window.SyncBackground(w)
-	w.Display.Server.MapWindow(w.PlatformID)
-	window.MarkMapped(w)
+	info.hints.InitialState = platform.NormalState
+	info.updateHints()
+	info.mapWindow(false)
 }
 
-// Withdraw hides the window completely (not in taskbar).
+// Withdraw hides the window completely (not in taskbar). A window not
+// mapped yet stays unmapped: Map leaves it alone.
 func (info *WmInfo) Withdraw() {
 	w := info.Win
 	if w.PlatformID == platform.WindowID(0) {
@@ -497,12 +690,71 @@ func (info *WmInfo) Withdraw() {
 	}
 	info.CurrentState = StateWithdrawn
 	info.Withdrawn = true
-	w.Display.Server.WithdrawWindow(w.PlatformID, w.Display.Screen)
+	info.hints.InitialState = platform.WithdrawnState
+	info.mapped = false
+	if info.everMapped {
+		w.Display.Server.WithdrawWindow(w.PlatformID, w.Display.Screen)
+	}
 }
 
-// State returns the current WM state.
+// Map shows the toplevel in the state it was given (TkWmMapWindow): not at
+// all when withdrawn, minimized when Iconify came first. raise raises it
+// above its siblings too.
+func (info *WmInfo) Map(raise bool) {
+	if info.Win.PlatformID == 0 || info.Withdrawn || info.iconFor != nil {
+		return
+	}
+	info.mapWindow(raise)
+}
+
+func (info *WmInfo) mapWindow(raise bool) {
+	w := info.Win
+	info.everMapped = true
+	info.mapped = info.hints.InitialState != platform.IconicState
+	window.SyncBackground(w)
+	if raise {
+		w.Display.Server.MapRaised(w.PlatformID)
+	} else {
+		w.Display.Server.MapWindow(w.PlatformID)
+	}
+	window.MarkMapped(w)
+}
+
+// MapNotify records that the toplevel was mapped or unmapped, also by
+// the window manager when the user minimized or restored it
+// (WrapperEventProc). A MapNotify still queued when the window was
+// withdrawn is stale: only the application maps a withdrawn window.
+func (info *WmInfo) MapNotify(mapped bool) {
+	if !mapped {
+		info.mapped = false
+		window.MarkUnmapped(info.Win)
+		return
+	}
+	if info.Withdrawn || info.iconFor != nil {
+		return
+	}
+	info.mapped, info.everMapped = true, true
+	info.hints.InitialState = platform.NormalState
+	if info.CurrentState != StateZoomed {
+		info.CurrentState = StateNormal
+	}
+	window.MarkMapped(info.Win)
+}
+
+// State returns the window's state as "wm state" reports it.
 func (info *WmInfo) State() State {
-	return info.CurrentState
+	switch {
+	case info.iconFor != nil:
+		return StateIcon
+	case info.Withdrawn:
+		return StateWithdrawn
+	case info.mapped || (!info.everMapped && info.hints.InitialState == platform.NormalState):
+		if info.CurrentState == StateZoomed {
+			return StateZoomed
+		}
+		return StateNormal
+	}
+	return StateIconic
 }
 
 // OnDeleteWindow registers a callback for the WM_DELETE_WINDOW protocol.

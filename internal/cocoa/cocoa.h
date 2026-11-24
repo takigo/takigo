@@ -255,5 +255,6 @@ void CocoaSetTransientFor(CocoaWindowID w, CocoaWindowID parent);
 void CocoaIconifyWindow(CocoaWindowID w);
 void CocoaWithdrawWindow(CocoaWindowID w);
 void CocoaSetIconName(CocoaWindowID w, const char *name);
+void CocoaSetApplicationIcon(const unsigned char *rgba, int width, int height);
 
 #endif // TAKIGO_COCOA_H

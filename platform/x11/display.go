@@ -528,6 +528,11 @@ func (s *X11Display) SetWMHints(w platform.WindowID, hints *platform.WMHints) {
 		Flags:        hints.Flags,
 		Input:        hints.Input,
 		InitialState: hints.InitialState,
+		IconPixmap:   xlib.Pixmap(hints.IconPixmap),
+		IconWindow:   xlib.Window(hints.IconWindow),
+		IconX:        hints.IconX,
+		IconY:        hints.IconY,
+		IconMask:     xlib.Pixmap(hints.IconMask),
 	})
 }
 

@@ -6,7 +6,6 @@ import (
 	"github.com/takigo/takigo/cursor"
 )
 
-// WindowManager manages window creation, destruction, and manipulation.
 // IconImage is one size of a window icon: non-premultiplied RGBA pixels,
 // four bytes each, row by row.
 type IconImage struct {
@@ -14,10 +13,12 @@ type IconImage struct {
 	Pix           []byte
 }
 
+// WindowManager manages window creation, destruction, and manipulation.
 type WindowManager interface {
 	// SetWindowIcons sets a toplevel's icon from one or more sizes of the
 	// same picture (Tk's "wm iconphoto"); the window system picks among
-	// them. An empty list removes the icon.
+	// them. An empty list removes the icon. On macOS it sets the
+	// application's Dock icon.
 	SetWindowIcons(w WindowID, icons []IconImage)
 
 	// CreateWindow creates a new window.

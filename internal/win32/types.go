@@ -289,6 +289,13 @@ const (
 	SW_RESTORE         = 9
 )
 
+// WM_SIZE wParam values.
+const (
+	SIZE_RESTORED  = 0
+	SIZE_MINIMIZED = 1
+	SIZE_MAXIMIZED = 2
+)
+
 // SetWindowPos flags.
 const (
 	SWP_NOSIZE       = 0x0001

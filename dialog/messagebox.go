@@ -75,13 +75,10 @@ func ShowMessage(parent widget.Caregiver, opts ...MessageOption) DialogResult {
 	// Layout: icon on left, message+detail on right.
 	bodyFrame := d.Content
 
-	// Icon label (unicode).
-	iconText := msgIcon(cfg.msgType)
-	iconLabel := label.New(bodyFrame, "icon",
-		label.Text(iconText),
-		label.FontOpt("TkDefaultFont"),
-	)
-	pack.Pack(iconLabel, pack.SideOpt(pack.Left), pack.PadX(10), pack.PadY(10))
+	icon := msgIcon(d.App, cfg.msgType)
+	d.Toplevel.Window().OnDestroy(icon.Destroy)
+	iconLabel := label.New(bodyFrame, "icon", label.ImageOpt(icon))
+	pack.Pack(iconLabel, pack.SideOpt(pack.Left), pack.Anchor(option.AnchorN), pack.PadX(10), pack.PadY(10))
 
 	// Message text.
 	msgText := cfg.message
@@ -99,21 +96,6 @@ func ShowMessage(parent widget.Caregiver, opts ...MessageOption) DialogResult {
 	addButtons(d, msgButtons(cfg.buttons))
 
 	return d.Run()
-}
-
-func msgIcon(t MessageType) string {
-	switch t {
-	case MsgInfo:
-		return "\u2139" // ℹ
-	case MsgWarning:
-		return "\u26A0" // ⚠
-	case MsgError:
-		return "\u2716" // ✖
-	case MsgQuestion:
-		return "?"
-	default:
-		return "\u2139"
-	}
 }
 
 func msgButtons(bs ButtonSet) []dialogButton {

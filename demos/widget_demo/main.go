@@ -17,6 +17,7 @@ import (
 	"github.com/takigo/takigo/event"
 	tkfont "github.com/takigo/takigo/font"
 	"github.com/takigo/takigo/geometry/pack"
+	tkimage "github.com/takigo/takigo/image"
 	"github.com/takigo/takigo/option"
 	"github.com/takigo/takigo/platform"
 	"github.com/takigo/takigo/screenunit"
@@ -29,6 +30,7 @@ import (
 	"github.com/takigo/takigo/widget/menu"
 	"github.com/takigo/takigo/widget/menubutton"
 	"github.com/takigo/takigo/widget/text"
+	"github.com/takigo/takigo/widget/toplevel"
 )
 
 func main() {
@@ -43,13 +45,23 @@ func main() {
 	bgColor, _ := app.ColorCache().Get("#d9d9d9")
 	root.SetBackgroundPixel(bgColor.Pixel)
 
-	// TODO: wm iconwindow . [toplevel ._iconWindow]
-	// TODO: wm iconname . "tkWidgetDemo"
-
 	// Find demo base directory.
 	// set tk_demoDirectory [file join [pwd] [file dirname [info script]]]
 	_, thisFile, _, _ := runtime.Caller(0)
 	demoBase := filepath.Dir(filepath.Dir(thisFile))
+
+	// On X11 the window manager shows a coloured icon through an icon
+	// window: wm iconwindow . [toplevel ._iconWindow]
+	if runtime.GOOS != "windows" && runtime.GOOS != "darwin" {
+		if logo, err := tkimage.NewPhotoFromFile("TclPowered", filepath.Join(demoBase, "images", "logo64.gif")); err == nil {
+			iconWin := toplevel.New(app, "_iconWindow")
+			pack.Pack(label.New(iconWin, "i", label.ImageOpt(logo)))
+			if err := app.WmInfo().SetIconWindow(iconWin.Window()); err != nil {
+				fmt.Fprintln(os.Stderr, err)
+			}
+		}
+		app.WmInfo().SetIconName("tkWidgetDemo")
+	}
 
 	// ── Fonts ──
 	// In Tk, named fonts (mainFont, fixedFont, boldFont, titleFont, statusFont,
