@@ -979,6 +979,11 @@ func (t *TextWidget) notifyYScrollbar() {
 	t.scheduleRedraw()
 }
 
+// YViewFractions returns the fractions of the total pixel height above the
+// view and at its bottom (yview with no arguments); YViewMoveTo(first)
+// shows the same place again.
+func (t *TextWidget) YViewFractions() (first, last float64) { return t.yviewFractions() }
+
 func (t *TextWidget) yviewFractions() (float64, float64) {
 	t.clampView()
 	total := t.layout.totalPixels()

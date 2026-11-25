@@ -1031,16 +1031,22 @@ func (t *TextWidget) indexFromPixel(x, y int) Index {
 		return Index{1, 0}
 	}
 
+	// TkTextPixelIndex: a point above the text area means the start of the
+	// first display line, one below the last line the end of that line.
+	if y < t.insetY+dlines[0].y {
+		y, x = t.insetY+dlines[0].y, t.insetX
+	}
 	var dl *displayLine
 	for i := range dlines {
 		dlY := t.insetY + dlines[i].y
-		if y >= dlY && y < dlY+dlines[i].height {
+		if y < dlY+dlines[i].height {
 			dl = &dlines[i]
 			break
 		}
 	}
 	if dl == nil {
 		dl = &dlines[len(dlines)-1]
+		x = t.Win.Width - t.insetX - 1
 	}
 
 	if t.Font == nil {

@@ -5,6 +5,15 @@ version is 0, a minor release may break the API and says so here.
 
 ## Unreleased
 
+- **text: `@x,y` above or below the text follows Tk.** A point above the
+  first display line (as `@0,0` is, inside the padding) now means the
+  start of that line instead of the last visible line, and one below the
+  last line means the end of it. `YViewFractions` returns the view's
+  first and last fractions (`yview` with no arguments).
+- **richtext: a reflow keeps the view.** Rendering again after a width
+  change scrolls back to the same fraction of the page instead of about
+  a screen further down.
+
 ## v0.4.9 (2026-11-25)
 
 - **text: `Dump`, per-tag selection colours, `-tabstyle`, double clicks.**

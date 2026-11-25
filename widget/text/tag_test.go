@@ -472,6 +472,26 @@ func TestTabPastItsStopIsASpace(t *testing.T) {
 	}
 }
 
+func TestIndexFromPixelOutsideTheLines(t *testing.T) {
+	tw := newBenchWidget(docWithText(strings.Repeat("abcdef\n", 20)+"klm"), 400, 100)
+	tw.insetX, tw.insetY = 3, 3
+	tw.YView(2)
+	// @0,0 lies in the padding above the first display line.
+	if got := tw.indexFromPixel(0, 0); got != (Index{2, 0}) {
+		t.Errorf("@0,0 = %v, want 2.0", got)
+	}
+	if got := tw.indexFromPixel(30, 1); got != (Index{2, 0}) {
+		t.Errorf("@30,1 = %v, want 2.0", got)
+	}
+	tw.YView(21)
+	if top := tw.topLine; top == 2 {
+		t.Fatal("YView(21) did not scroll")
+	}
+	if got := tw.indexFromPixel(0, 99); got != (Index{21, 3}) {
+		t.Errorf("below the last line = %v, want 21.3", got)
+	}
+}
+
 func TestClickOnTabPicksNearerSide(t *testing.T) {
 	tw := newBenchWidget(docWithText("ab\tc"), 400, 100)
 	tw.tabWidth = 8
