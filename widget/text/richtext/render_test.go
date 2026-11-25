@@ -158,3 +158,25 @@ func TestRenderReflowsOnResize(t *testing.T) {
 		t.Errorf("Reflow(false) still reflowed: %d lines, then %d", before, after)
 	}
 }
+
+func TestReflowKeepsTheView(t *testing.T) {
+	app := testutil.NewTestApp(t)
+	tw := text.New(app, "t", text.Width(30), text.Height(10))
+	resize := func(w int) {
+		tw.Window().Width = w
+		tw.Window().NotifyConfigure()
+		app.UpdateIdleTasks()
+	}
+	resize(250)
+	html := strings.Repeat(`<p>`+strings.Repeat("word ", 30)+`</p>`, 40)
+	if err := richtext.Render(tw, html); err != nil {
+		t.Fatal(err)
+	}
+	tw.YViewMoveTo(0.5)
+	before, _ := tw.YViewFractions()
+	resize(400)
+	after, _ := tw.YViewFractions()
+	if before < 0.3 || abs(int(100*(after-before))) > 5 {
+		t.Errorf("first fraction %.3f before the reflow, %.3f after", before, after)
+	}
+}

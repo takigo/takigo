@@ -139,10 +139,7 @@ func watchWidth(tw *text.TextWidget, html string, opts []Option, width int) {
 				if tw.Destroyed() || !st.active || textWidth(tw) == st.width {
 					return
 				}
-				frac := 0.0
-				if top, err := tw.Index("@0,0"); err == nil {
-					frac = float64(top.Line-1) / float64(max(tw.Doc().LineCount(), 1))
-				}
+				frac, _ := tw.YViewFractions()
 				_ = Render(tw, st.html, st.opts...)
 				tw.YViewMoveTo(frac)
 			})
