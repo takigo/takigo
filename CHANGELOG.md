@@ -5,6 +5,8 @@ version is 0, a minor release may break the API and says so here.
 
 ## Unreleased
 
+## v0.4.10 (2026-11-25)
+
 - **text: `@x,y` above or below the text follows Tk.** A point above the
   first display line (as `@0,0` is, inside the padding) now means the
   start of that line instead of the last visible line, and one below the
