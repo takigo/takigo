@@ -5,6 +5,8 @@ version is 0, a minor release may break the API and says so here.
 
 ## Unreleased
 
+## v0.4.11 (2026-11-26)
+
 - **text: the mouse wheel scrolls by a steady distance, as in Tk 9.** The
   view keeps a pixel offset into its top display line (Tk's
   `topPixelOffset`), so a line can be partly above the view. A wheel
