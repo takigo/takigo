@@ -10,7 +10,9 @@ a name or `font.Attributes`.
 
 The Tk column is derived from the Go name, so where takigo chose another name
 (`canvas.ArcStyleOpt` is Tk's `-style`, `BitmapBackground` its `-background`)
-it is only a hint. Regenerate with `python3 scripts/options_doc.py > docs/options.md`.
+it is only a hint. An option whose doc comment says "Not in Tk." has no Tk
+counterpart and shows "none (takigo)". Regenerate with
+`python3 scripts/options_doc.py > docs/options.md`.
 
 ## canvas
 
@@ -504,6 +506,7 @@ it is only a hint. Regenerate with `python3 scripts/options_doc.py > docs/option
 | Option type | Go option | Takes | Tk option |
 |---|---|---|---|
 | `ImageOption` | `text.ImageAlignOpt` | `a ImageAlign` | `-imagealign` |
+| `ImageOption` | `text.ImageFloatOpt` | `f ImageFloat` | none (takigo) |
 | `ImageOption` | `text.ImageName` | `name string` | `-imagename` |
 | `ImageOption` | `text.ImagePadX` | `n L` | `-imagepadx` |
 | `ImageOption` | `text.ImagePadY` | `n L` | `-imagepady` |
@@ -514,14 +517,15 @@ it is only a hint. Regenerate with `python3 scripts/options_doc.py > docs/option
 | `SearchOption` | `text.SearchStop` | `index I` | `-searchstop` |
 | `TagOption` | `text.TagBackground` | `name C` | `-tagbackground` |
 | `TagOption` | `text.TagBgStipple` | `name string` | `-tagbgstipple` |
-| `TagOption` | `text.TagBlockBackground` | `name C` | `-tagblockbackground` |
-| `TagOption` | `text.TagBlockBorder` | `width L, c C` | `-tagblockborder` |
-| `TagOption` | `text.TagBlockBorderColor` | `c C` | `-tagblockbordercolor` |
-| `TagOption` | `text.TagBlockBorderSides` | `left, top, right, bottom L` | `-tagblockbordersides` |
-| `TagOption` | `text.TagBlockPadding` | `pad L` | `-tagblockpadding` |
-| `TagOption` | `text.TagBlockPaddingSides` | `left, top, right, bottom L` | `-tagblockpaddingsides` |
-| `TagOption` | `text.TagBlockRadius` | `r L` | `-tagblockradius` |
+| `TagOption` | `text.TagBlockBackground` | `name C` | none (takigo) |
+| `TagOption` | `text.TagBlockBorder` | `width L, c C` | none (takigo) |
+| `TagOption` | `text.TagBlockBorderColor` | `c C` | none (takigo) |
+| `TagOption` | `text.TagBlockBorderSides` | `left, top, right, bottom L` | none (takigo) |
+| `TagOption` | `text.TagBlockPadding` | `pad L` | none (takigo) |
+| `TagOption` | `text.TagBlockPaddingSides` | `left, top, right, bottom L` | none (takigo) |
+| `TagOption` | `text.TagBlockRadius` | `r L` | none (takigo) |
 | `TagOption` | `text.TagBorderWidth` | `n L` | `-tagborderwidth` |
+| `TagOption` | `text.TagClear` | `c Clear` | none (takigo) |
 | `TagOption` | `text.TagCursor` | `shape cursor.Shape` | `-tagcursor` |
 | `TagOption` | `text.TagElide` | `on bool` | `-tagelide` |
 | `TagOption` | `text.TagFgStipple` | `name string` | `-tagfgstipple` |
@@ -531,17 +535,20 @@ it is only a hint. Regenerate with `python3 scripts/options_doc.py > docs/option
 | `TagOption` | `text.TagLMargin1` | `pixels L` | `-taglmargin1` |
 | `TagOption` | `text.TagLMargin2` | `pixels L` | `-taglmargin2` |
 | `TagOption` | `text.TagLMarginColor` | `name C` | `-taglmargincolor` |
-| `TagOption` | `text.TagMarker` | `marker string` | `-tagmarker` |
+| `TagOption` | `text.TagMarker` | `marker string` | none (takigo) |
 | `TagOption` | `text.TagOffset` | `pixels L` | `-tagoffset` |
 | `TagOption` | `text.TagOverstrike` | `on bool` | `-tagoverstrike` |
 | `TagOption` | `text.TagOverstrikeFg` | `name C` | `-tagoverstrikefg` |
 | `TagOption` | `text.TagRMargin` | `pixels L` | `-tagrmargin` |
 | `TagOption` | `text.TagRMarginColor` | `name C` | `-tagrmargincolor` |
 | `TagOption` | `text.TagRelief` | `r option.Relief` | `-tagrelief` |
-| `TagOption` | `text.TagRule` | `thickness L, c C` | `-tagrule` |
+| `TagOption` | `text.TagRule` | `thickness L, c C` | none (takigo) |
+| `TagOption` | `text.TagSelectBackground` | `name C` | `-tagselectbackground` |
+| `TagOption` | `text.TagSelectForeground` | `name C` | `-tagselectforeground` |
 | `TagOption` | `text.TagSpacing1` | `pixels L` | `-tagspacing1` |
 | `TagOption` | `text.TagSpacing2` | `pixels L` | `-tagspacing2` |
 | `TagOption` | `text.TagSpacing3` | `pixels L` | `-tagspacing3` |
+| `TagOption` | `text.TagTabStyle` | `style TabStyle` | `-tagtabstyle` |
 | `TagOption` | `text.TagTabs` | `stops ...TabStop` | `-tagtabs` |
 | `TagOption` | `text.TagUnderline` | `on bool` | `-tagunderline` |
 | `TagOption` | `text.TagUnderlineFg` | `name C` | `-tagunderlinefg` |
@@ -558,9 +565,11 @@ it is only a hint. Regenerate with `python3 scripts/options_doc.py > docs/option
 | `TextOption` | `text.PadYOpt` | `n L` | `-pady` |
 | `TextOption` | `text.ReadOnly` | `on bool` | `-readonly` |
 | `TextOption` | `text.SetGridOpt` | `on bool` | `-setgrid` |
+| `TextOption` | `text.TabStyleOpt` | `style TabStyle` | `-tabstyle` |
 | `TextOption` | `text.TabWidth` | `w int` | `-tabwidth` |
 | `TextOption` | `text.Tabs` | `stops ...TabStop` | `-tabs` |
 | `TextOption` | `text.UndoOpt` | `enabled bool` | `-undo` |
+| `TextOption` | `text.WheelStep` | `step L` | none (takigo) |
 | `TextOption` | `text.Width` | `w int` | `-width` |
 | `TextOption` | `text.WrapModeOpt` | `mode WrapMode` | `-wrapmode` |
 

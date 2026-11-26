@@ -10,6 +10,7 @@ still apply. Read the Tk file a part ports before changing it:
 | `index.go`, `indexexpr.go` | `tkTextIndex.c` (`GetIndex`, `ForwBack`, `StartEnd`) |
 | `tag.go`, `tags.go` | `tkTextTag.c` |
 | `display.go`, `layout.go` | `tkTextDisp.c` (`LayoutDLine`, `DisplayDLine`, `GetYView`) |
+| `bbox.go` | `TkTextIndexBbox`, `TkTextDLineInfo` (`tkTextDisp.c`) |
 | `tabs.go` | `TkTextGetTabs`, `AdjustForTab`, `SizeOfTab` (`tkTextDisp.c`) |
 | `image.go` | `tkTextImage.c` (image create/configure/names, `-align`) |
 | `search.go` | `TextSearchCmd` (`tkText.c`) |
@@ -140,14 +141,24 @@ still apply. Read the Tk file a part ports before changing it:
 
 ## The view
 
-`topLine` (1-based) and `topCharOffset` (display line within it) are the
-view. `keepViewInDocument` runs inside the change notification: lines
-removed above the view move `topLine` up, a view whose line went away
-falls back to the line the removal joined it to, and `clampView` pulls it
-into the document. `clampScrollPosition` keeps the last page full.
-Scroll and yview code (`yviewFractions`, `computeVisibleLines`,
+`topLine` (1-based), `topCharOffset` (display line within it) and
+`topPixelOffset` (pixels of that display line above the view, Tk's
+`topPixelOffset`) are the view; `viewTop()` is its first document pixel
+and `setViewTop` moves it to a pixel. `computeVisibleLines` starts the
+first line at `y = -topPixelOffset`, so drawing, `indexFromPixel`, `BBox`
+and `DLineInfo` all shift together; `renderTo` clears the `-pady` strips
+afterwards because the display server has no clip. Pixel scrolling
+(`YViewMoveTo`, `YViewScrollPixels`, pages, the wheel) keeps an offset;
+scrolling by units, `YView(line)` and `See` of a line above the view
+reset it, as Tk's `YScrollByLines` and `TkTextSetYView` do.
+`keepViewInDocument` runs inside the change notification: lines removed
+above the view move `topLine` up, a view whose line went away falls back
+to the line the removal joined it to, and `clampView` pulls it into the
+document. `clampScrollPosition` keeps the last page full to the pixel:
+the highest top is `total - view`, part way into its line. Scroll and
+yview code (`yviewFractions`, `computeVisibleLines`,
 `computeDisplayLinesBefore`) must tolerate a stale `topLine`; code that
-moves the view sets both fields.
+moves the view sets all three fields.
 
 ## Tests
 

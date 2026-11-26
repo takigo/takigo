@@ -165,8 +165,8 @@ func TestScrollMathOnCache(t *testing.T) {
 	}
 	tw.YViewMoveTo(2)
 	tw.clampScrollPosition()
-	if tw.computeDisplayLinesBefore(tw.topLine, tw.topCharOffset) != total-(100/13) {
-		t.Fatalf("clamp: top display line %d, want %d", tw.computeDisplayLinesBefore(tw.topLine, tw.topCharOffset), total-100/13)
+	if got, want := tw.viewTop(), tw.layout.totalPixels()-100; got != want {
+		t.Fatalf("clamp: view top %d, want %d (the last pixel at the bottom)", got, want)
 	}
 }
 
@@ -182,9 +182,10 @@ func TestClampScrollTallLastLines(t *testing.T) {
 	if _, last := tw.yviewFractions(); last != 1 {
 		t.Fatalf("scrolled to the end, the view shows up to %v of the text, want 1", last)
 	}
-	// The top is the highest that still shows the last line.
-	top := tw.displayLineTop(tw.topLine, tw.topCharOffset)
-	if total := tw.layout.totalPixels(); top+100 < total {
-		t.Fatalf("top %d with a view of 100 does not reach the end %d", top, total)
+	// The top is the highest that still shows the last line: the view
+	// ends on the text's last pixel, the top line partly above it.
+	top := tw.viewTop()
+	if total := tw.layout.totalPixels(); top+100 != total {
+		t.Fatalf("top %d with a view of 100 does not end at the end %d", top, total)
 	}
 }

@@ -409,32 +409,23 @@ func TestSelLastIsEndOfLastRange(t *testing.T) {
 	}
 }
 
-// refScrollDownToShow is scrollDownToShow without the layout-cache jump.
-func refScrollDownToShow(t *TextWidget, idx Index) {
-	for range 100000 {
-		dlines := t.computeVisibleLines()
-		if len(dlines) == 0 {
-			return
-		}
-		last := dlines[len(dlines)-1]
-		if idx.Line < last.logicalLine || (idx.Line == last.logicalLine && idx.Char <= last.endChar) {
-			return
-		}
-		t.scrollByDisplayLines(1)
-	}
-}
-
-func TestScrollDownToShowMatchesStepping(t *testing.T) {
+// TestSeeBelowPutsLineAtBottom checks that seeing an index below the view
+// brings its display line's bottom to the bottom of the view, as
+// TkTextSetYView's MeasureUp does, the top line partly hidden if need be.
+func TestSeeBelowPutsLineAtBottom(t *testing.T) {
 	text := benchText(300, 150)
 	for _, h := range []int{100, 133, 260} {
 		for _, target := range []Index{{40, 0}, {41, 100}, {150, 5}, {299, 140}, {300, 0}} {
-			fast := newBenchWidget(docWithText(text), 400, h)
-			slow := newBenchWidget(docWithText(text), 400, h)
-			fast.scrollDownToShow(target)
-			refScrollDownToShow(slow, target)
-			if fast.topLine != slow.topLine || fast.topCharOffset != slow.topCharOffset {
-				t.Errorf("height %d, see %v: top = %d/%d, stepping gives %d/%d", h, target,
-					fast.topLine, fast.topCharOffset, slow.topLine, slow.topCharOffset)
+			tw := newBenchWidget(docWithText(text), 400, h)
+			tw.seeIndex(target)
+			ll := tw.layout.line(target.Line)
+			k := 0
+			for k < len(ll.dls)-1 && target.Char >= ll.dls[k].endChar {
+				k++
+			}
+			bottom := tw.displayLineTop(target.Line, k) + ll.hs[k]
+			if got := tw.viewTop() + h; got != bottom {
+				t.Errorf("height %d, see %v: view bottom %d, line bottom %d", h, target, got, bottom)
 			}
 		}
 	}

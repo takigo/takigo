@@ -5,12 +5,14 @@ package text
 
 import (
 	"fmt"
+	"math"
 	"slices"
 	"strings"
 
 	"github.com/takigo/takigo/color"
 	"github.com/takigo/takigo/cursor"
 	"github.com/takigo/takigo/draw"
+	"github.com/takigo/takigo/event"
 	"github.com/takigo/takigo/font"
 	"github.com/takigo/takigo/option"
 	"github.com/takigo/takigo/platform"
@@ -42,7 +44,13 @@ type TextWidget struct {
 	// Scroll state.
 	topLine       int // 1-based, first visible logical line
 	topCharOffset int // display-line offset within topLine (for wrapping)
-	xOffset       int // horizontal pixel offset (WrapNone)
+	// topPixelOffset is how many pixels of the top display line are above
+	// the view (tkTextDisp.c's topPixelOffset); the view's first pixel is
+	// viewTop().
+	topPixelOffset int
+	wheelStep      int // pixels a wheel notch scrolls; 0 is Tk's 30 scaled
+	wheel          event.WheelAccumulator
+	xOffset        int // horizontal pixel offset (WrapNone)
 
 	// Display config.
 	wrapMode    WrapMode
@@ -320,25 +328,34 @@ func (t *TextWidget) keepViewInDocument(ch Change) {
 		if t.topLine > ch.From+n {
 			t.topLine -= n
 		} else {
-			t.topLine, t.topCharOffset = ch.From, 0
+			t.topLine, t.topCharOffset, t.topPixelOffset = ch.From, 0, 0
 		}
 	}
 	t.clampView()
 }
 
 // clampView pulls the view back inside the document: topLine into
-// [1, LineCount] (offset 0 when the line had to move) and topCharOffset
-// into the display lines of topLine.
+// [1, LineCount] (offsets 0 when the line had to move), topCharOffset
+// into the display lines of topLine and topPixelOffset into that display
+// line.
 func (t *TextWidget) clampView() {
 	n := t.doc.LineCount()
 	if t.topLine > n {
-		t.topLine, t.topCharOffset = max(n, 1), 0
+		t.topLine, t.topCharOffset, t.topPixelOffset = max(n, 1), 0, 0
 	}
 	if t.topLine < 1 {
-		t.topLine, t.topCharOffset = 1, 0
+		t.topLine, t.topCharOffset, t.topPixelOffset = 1, 0, 0
 	}
-	if t.topCharOffset > 0 && n > 0 {
-		t.topCharOffset = min(t.topCharOffset, max(len(t.layout.line(t.topLine).dls)-1, 0))
+	if (t.topCharOffset > 0 || t.topPixelOffset > 0) && n > 0 {
+		hs := t.displayLinePixels(t.topLine)
+		if c := min(t.topCharOffset, max(len(hs)-1, 0)); c != t.topCharOffset {
+			t.topCharOffset, t.topPixelOffset = c, 0
+		}
+		h := 0
+		if t.topCharOffset < len(hs) {
+			h = hs[t.topCharOffset]
+		}
+		t.topPixelOffset = min(t.topPixelOffset, max(h-1, 0))
 	}
 }
 
@@ -569,39 +586,70 @@ func (t *TextWidget) YView(line int) {
 	if line > t.doc.LineCount() {
 		line = t.doc.LineCount()
 	}
-	t.topLine = line
-	t.topCharOffset = 0
+	t.topLine, t.topCharOffset, t.topPixelOffset = line, 0, 0
 	t.clampScrollPosition()
 	t.notifyYScrollbar()
 	t.Display()
 }
 
 // YViewMoveTo scrolls to a fraction of the total pixel height (yview
-// moveto), topping the display line that holds that pixel; the Go text has
-// no partial-line topPixelOffset.
+// moveto): that pixel becomes the first one shown, part way into its
+// display line.
 func (t *TextWidget) YViewMoveTo(fraction float64) {
 	total := t.layout.totalPixels()
 	if total <= 0 {
 		return
 	}
-	target := max(0, int(fraction*float64(total)+0.5))
-	t.topLine, t.topCharOffset = t.layout.lineAtPixel(target)
+	fraction = min(max(fraction, 0), 1)
+	t.setViewTop(min(int(0.5+fraction*float64(total)), total-1))
 	t.clampScrollPosition()
 	t.notifyYScrollbar()
 	t.Display()
 }
 
-// YViewScroll scrolls by count units or pages.
+// YViewScroll scrolls by count units (display lines) or pages (yview
+// scroll N units|pages). A page is the view's height less two lines, or
+// 3/4 of it when a line is over a quarter of the view, in pixels as
+// TextYviewCmd does.
 func (t *TextWidget) YViewScroll(count int, pages bool) {
 	if pages {
-		visLines := max((t.Win.Height-2*t.insetY)/t.lineHeight(), 1)
-		count *= visLines
+		height := t.Win.Height - 2*t.insetY
+		lh := t.lineHeight()
+		px := height - 2*lh
+		if lh*4 >= height {
+			if px = 3 * height / 4; px < lh {
+				px = min(lh, height)
+			}
+		}
+		t.YViewScrollPixels(px * count)
+		return
 	}
-
 	t.scrollByDisplayLines(count)
 	t.clampScrollPosition()
 	t.notifyYScrollbar()
 	t.Display()
+}
+
+// YViewScrollPixels scrolls by n pixels (yview scroll N pixels); positive
+// shows text further down. The top display line may be left partly above
+// the view, as YScrollByPixels does.
+func (t *TextWidget) YViewScrollPixels(n int) {
+	if n == 0 {
+		return
+	}
+	t.setViewTop(t.viewTop() + n)
+	t.clampScrollPosition()
+	t.notifyYScrollbar()
+	t.Display()
+}
+
+// wheelPixels is how far one notch of the wheel scrolls: WheelStep, or
+// tk::ScaleNum of 120 over text.tcl's factor of 4 (30 pixels at 96 DPI).
+func (t *TextWidget) wheelPixels() int {
+	if t.wheelStep > 0 {
+		return t.wheelStep
+	}
+	return max(int(math.Round(30*screenunit.ScalingFactor())), 1)
 }
 
 // XView scrolls to a horizontal pixel offset.
@@ -851,67 +899,33 @@ func (t *TextWidget) seeInsert() {
 func (t *TextWidget) seeIndex(idx Index) {
 	idx = Clamp(idx, t.doc)
 
-	// Check if index is above the visible area.
-	if idx.Line < t.topLine || (idx.Line == t.topLine && t.topCharOffset > 0) {
-		t.topLine = idx.Line
-		t.topCharOffset = 0
+	if idx.Line < 1 || idx.Line > t.doc.LineCount() {
 		return
 	}
-
-	// Check if index is below the visible area.
-	dlines := t.computeVisibleLines()
-	if len(dlines) == 0 {
-		t.topLine = idx.Line
-		t.topCharOffset = 0
-		return
+	ll := t.layout.line(idx.Line)
+	k := 0
+	for k < len(ll.dls)-1 && idx.Char >= ll.dls[k].endChar {
+		k++
 	}
-
-	lastDL := dlines[len(dlines)-1]
-	lastIdx := Index{Line: lastDL.logicalLine, Char: lastDL.endChar}
-	if Compare(idx, lastIdx) > 0 || (idx.Line == lastDL.logicalLine && idx.Char > lastDL.endChar) {
-		// Need to scroll down.
-		t.scrollDownToShow(idx)
+	top := t.displayLineTop(idx.Line, k)
+	h := 0
+	if k < len(ll.hs) {
+		h = ll.hs[k]
 	}
-}
-
-// scrollDownToShow scrolls down until idx is visible.
-func (t *TextWidget) scrollDownToShow(idx Index) {
-	availHeight := t.Win.Height - 2*t.insetY
-	if availHeight <= 0 {
-		return
-	}
-
-	// Jump close to the answer with the layout cache: the top that puts
-	// idx's display line at the bottom of the view. The loop below then
-	// settles it by at most a line or two instead of stepping from the
-	// current top one display line at a time.
-	if idx.Line >= 1 && idx.Line <= t.doc.LineCount() {
-		ll := t.layout.line(idx.Line)
-		bottom := t.layout.pixelsBefore(idx.Line)
-		for k, h := range ll.hs {
-			bottom += h
-			if k < len(ll.dls) && idx.Char <= ll.dls[k].endChar {
-				break
-			}
+	view := t.Win.Height - 2*t.insetY
+	switch vt := t.viewTop(); {
+	case top < vt:
+		// Above the view, or the top line partly above it
+		// (TkTextSetYView sets newTopPixelOffset to 0).
+		t.topLine, t.topCharOffset, t.topPixelOffset = idx.Line, k, 0
+	case view > 0 && top+h > vt+view:
+		// Below the view or hanging off its bottom: the line's bottom goes
+		// to the bottom of the view, its top when it is taller than the view.
+		if h > view {
+			t.topLine, t.topCharOffset, t.topPixelOffset = idx.Line, k, 0
+		} else {
+			t.setViewTop(top + h - view)
 		}
-		l, off := t.layout.lineAtPixel(max(bottom-availHeight, 0))
-		if t.computeDisplayLinesBefore(l, off) > t.computeDisplayLinesBefore(t.topLine, t.topCharOffset) {
-			t.topLine, t.topCharOffset = l, off
-		}
-	}
-
-	// Scroll down one display line at a time.
-	for range 1000 { // safety limit
-		dlines := t.computeVisibleLines()
-		if len(dlines) == 0 {
-			break
-		}
-		lastDL := dlines[len(dlines)-1]
-		if idx.Line < lastDL.logicalLine ||
-			(idx.Line == lastDL.logicalLine && idx.Char <= lastDL.endChar) {
-			break
-		}
-		t.scrollByDisplayLines(1)
 	}
 }
 
@@ -925,24 +939,34 @@ func (t *TextWidget) clampScrollPosition() {
 	view := max(t.Win.Height-2*t.insetY, 1)
 	if total <= view {
 		// All content fits — reset to top.
-		t.topLine = 1
-		t.topCharOffset = 0
+		t.topLine, t.topCharOffset, t.topPixelOffset = 1, 0, 0
 		return
 	}
-	// The highest top is the first display line that starts at or below
-	// total-view, so that the last line is shown whole; a last line taller
-	// than the view is its own top.
-	maxLine, maxOff := t.layout.lineAtPixel(total - view)
-	if t.displayLineTop(maxLine, maxOff) < total-view {
-		if hs := t.displayLinePixels(maxLine); maxOff+1 < len(hs) {
-			maxOff++
-		} else if maxLine < t.doc.LineCount() {
-			maxLine, maxOff = maxLine+1, 0
-		}
+	// The space left below the end is filled by showing more of the top
+	// line and the lines above it (UpdateDisplayInfo), so the highest top
+	// is the pixel total-view, part way into its display line.
+	if t.viewTop() > total-view {
+		t.setViewTop(total - view)
 	}
-	if t.displayLineTop(t.topLine, t.topCharOffset) > t.displayLineTop(maxLine, maxOff) {
-		t.topLine, t.topCharOffset = maxLine, maxOff
+}
+
+// viewTop is the document pixel shown at the top of the text area.
+func (t *TextWidget) viewTop() int {
+	t.clampView()
+	return t.displayLineTop(t.topLine, t.topCharOffset) + t.topPixelOffset
+}
+
+// setViewTop makes document pixel y the first one shown: the display line
+// holding it becomes the top, with the pixels above y hidden.
+func (t *TextWidget) setViewTop(y int) {
+	total := t.layout.totalPixels()
+	if total <= 0 || y <= 0 {
+		t.topLine, t.topCharOffset, t.topPixelOffset = 1, 0, 0
+		return
 	}
+	y = min(y, total-1)
+	t.topLine, t.topCharOffset = t.layout.lineAtPixel(y)
+	t.topPixelOffset = max(y-t.displayLineTop(t.topLine, t.topCharOffset), 0)
 }
 
 // displayLineTop is the document pixel at which display line off of a
@@ -965,6 +989,7 @@ func (t *TextWidget) scrollByDisplayLines(n int) {
 	cur := t.computeDisplayLinesBefore(t.topLine, t.topCharOffset)
 	target := min(max(cur+n, 0), total-1)
 	t.topLine, t.topCharOffset = t.layout.lineAtDisplayLine(target)
+	t.topPixelOffset = 0
 }
 
 // notifyYScrollbar ports GetYView (tkTextDisp.c): the fractions are pixel
@@ -996,6 +1021,7 @@ func (t *TextWidget) yviewFractions() (float64, float64) {
 		above += h
 	}
 	count := above
+	above += t.topPixelOffset
 	maxY := t.Win.Height - 2*t.insetY
 	for _, dl := range t.computeVisibleLines() {
 		count += dl.spacingAbove + dl.height + dl.spacingBelow

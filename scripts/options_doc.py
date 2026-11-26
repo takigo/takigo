@@ -47,6 +47,15 @@ def tk_name(pkg, name):
     return '-' + tk.lower()
 
 
+def doc_comment(src, pos):
+    """The // comment lines just above the declaration at pos."""
+    lines = src[:pos].rstrip('\n').split('\n')
+    out = []
+    while lines and lines[-1].startswith('//'):
+        out.append(lines.pop())
+    return ' '.join(reversed(out))
+
+
 def main():
     print('# Option reference')
     print()
@@ -60,24 +69,31 @@ def main():
     print()
     print('The Tk column is derived from the Go name, so where takigo chose another name')
     print('(`canvas.ArcStyleOpt` is Tk\'s `-style`, `BitmapBackground` its `-background`)')
-    print('it is only a hint. Regenerate with `python3 scripts/options_doc.py > docs/options.md`.')
+    print('it is only a hint. An option whose doc comment says "Not in Tk." has no Tk')
+    print('counterpart and shows "none (takigo)". Regenerate with')
+    print('`python3 scripts/options_doc.py > docs/options.md`.')
     print()
     for pkg, header, directory in packages():
         rows = []
         for f in sorted(glob.glob(directory + '/*.go')):
             if f.endswith('_test.go'):
                 continue
-            for m in PAT.finditer(open(f).read()):
+            src = open(f).read()
+            for m in PAT.finditer(src):
                 name, _, params, typ = m.groups()
-                rows.append((typ, name, params.strip()))
+                tk = tk_name(pkg, name)
+                if 'Not in Tk.' in doc_comment(src, m.start()):
+                    tk = 'none (takigo)'
+                rows.append((typ, name, params.strip(), tk))
         if not rows:
             continue
         print('## ' + header)
         print()
         print('| Option type | Go option | Takes | Tk option |')
         print('|---|---|---|---|')
-        for typ, name, params in sorted(rows):
-            print('| `%s` | `%s.%s` | `%s` | `%s` |' % (typ, pkg, name, params.replace('|', '\\|'), tk_name(pkg, name)))
+        for typ, name, params, tk in sorted(rows):
+            tk = tk if tk.startswith('none') else '`%s`' % tk
+            print('| `%s` | `%s.%s` | `%s` | %s |' % (typ, pkg, name, params.replace('|', '\\|'), tk))
         print()
 
 

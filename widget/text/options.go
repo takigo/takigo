@@ -98,6 +98,12 @@ func SetGridOpt(on bool) TextOption {
 	return func(t *TextWidget) { t.setGrid = on }
 }
 
+// WheelStep sets how far one notch of the mouse wheel scrolls; 0 (the
+// default) is Tk's 30 pixels at 96 DPI, scaled with the screen. Not in Tk.
+func WheelStep[L screenunit.Length](step L) TextOption {
+	return func(t *TextWidget) { t.wheelStep = max(screenunit.ToPixels(step), 0) }
+}
+
 // PadXOpt sets horizontal padding between the border and the text content.
 func PadXOpt[L screenunit.Length](n L) TextOption {
 	return func(t *TextWidget) { t.PadX = screenunit.ToPixels(n) }

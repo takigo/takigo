@@ -537,7 +537,7 @@ func (t *TextWidget) computeVisibleLines() []displayLine {
 
 	t.clampView()
 	var result []displayLine
-	y := 0
+	y := -t.topPixelOffset
 
 	for lineIdx := t.topLine; lineIdx <= t.doc.LineCount() && y < availHeight; lineIdx++ {
 		ll := t.layout.line(lineIdx)
@@ -936,6 +936,15 @@ func (t *TextWidget) renderTo(drawable platform.DrawableID) []displayLine {
 		t.drawCursor(d, gc, drawable, dlines)
 	}
 
+	// DisplayDLine copies only the part of a line inside the text area:
+	// clear what a line partly above the view (topPixelOffset) or below its
+	// bottom drew over the -pady strips.
+	if pad := t.insetY - t.inset; pad > 0 && winW > 2*t.inset {
+		d.SetForeground(gc, bgPixel)
+		d.FillRectangle(drawable, gc, t.inset, t.inset, uint(winW-2*t.inset), uint(pad))
+		d.FillRectangle(drawable, gc, t.inset, winH-t.insetY, uint(winW-2*t.inset), uint(pad))
+	}
+
 	return dlines
 }
 
@@ -1032,9 +1041,10 @@ func (t *TextWidget) indexFromPixel(x, y int) Index {
 	}
 
 	// TkTextPixelIndex: a point above the text area means the start of the
-	// first display line, one below the last line the end of that line.
-	if y < t.insetY+dlines[0].y {
-		y, x = t.insetY+dlines[0].y, t.insetX
+	// first display line, one below the last line the end of that line. A
+	// top line partly above the view (dl.y < 0) starts at the area's top.
+	if top := t.insetY + max(dlines[0].y, 0); y < top {
+		y, x = top, t.insetX
 	}
 	var dl *displayLine
 	for i := range dlines {

@@ -5,6 +5,20 @@ version is 0, a minor release may break the API and says so here.
 
 ## Unreleased
 
+- **text: the mouse wheel scrolls by a steady distance, as in Tk 9.** The
+  view keeps a pixel offset into its top display line (Tk's
+  `topPixelOffset`), so a line can be partly above the view. A wheel
+  notch scrolls 30 pixels at 96 DPI, scaled with the screen, as
+  text.tcl's `MouseWheel` binding does, instead of 3 display lines; a
+  page with a tall image or block no longer jumps a picture at a time.
+  `WheelStep` (not in Tk) sets the distance. `YViewScrollPixels` is
+  `yview scroll N pixels`, and `yview scroll N pages` now scrolls by
+  pixels as Tk's does. `YViewMoveTo` shows exactly the pixel it is
+  given. At the end of the text the last pixel sits at the bottom of the
+  view rather than the top line starting whole. `See` puts a line below
+  the view at its bottom, and scrolls when the line is only partly
+  shown. `BBox` and `DLineInfo` port `bbox` and `dlineinfo`.
+
 ## v0.4.10 (2026-11-25)
 
 - **text: `@x,y` above or below the text follows Tk.** A point above the

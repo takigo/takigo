@@ -23,24 +23,7 @@ func bindText(t *TextWidget, app widget.AppContext) {
 	app.Dispatcher().Bind(w.PlatformID, event.FocusChangeMask, t.handleFocus)
 
 	// Mouse: click to position cursor.
-	var wheel event.WheelAccumulator
-	app.Dispatcher().Bind(w.PlatformID, event.MouseWheelMask, func(ev *event.Event) {
-		if ev.Type != event.MouseWheelType {
-			return
-		}
-		n := wheel.Units(ev.Delta, 3)
-		if n == 0 {
-			return
-		}
-		if ev.State&platform.ShiftMask != 0 {
-			t.XViewScroll(n, false)
-			return
-		}
-		t.scrollByDisplayLines(n)
-		t.clampScrollPosition()
-		t.notifyYScrollbar()
-		t.Display()
-	})
+	app.Dispatcher().Bind(w.PlatformID, event.MouseWheelMask, t.handleWheel)
 
 	app.Dispatcher().Bind(w.PlatformID, event.ButtonPressMask, t.handleButtonPress)
 	app.Dispatcher().Bind(w.PlatformID, event.ButtonReleaseMask, t.handleButtonRelease)
@@ -54,6 +37,24 @@ func bindText(t *TextWidget, app widget.AppContext) {
 	// Keyboard.
 	app.Dispatcher().Bind(w.PlatformID, event.KeyPressMask, t.handleKeyPress)
 	app.Dispatcher().Bind(w.PlatformID, event.VirtualMask, t.handleVirtual)
+}
+
+// handleWheel scrolls by pixels, both ways, as text.tcl's MouseWheel
+// bindings do (tk::MouseWheel ... pixels), so a tall image or block goes
+// by at the same speed as text.
+func (t *TextWidget) handleWheel(ev *event.Event) {
+	if ev.Type != event.MouseWheelType {
+		return
+	}
+	n := t.wheel.Units(ev.Delta, t.wheelPixels())
+	if n == 0 {
+		return
+	}
+	if ev.State&platform.ShiftMask != 0 {
+		t.XView(t.xOffset + n)
+		return
+	}
+	t.YViewScrollPixels(n)
 }
 
 // handleVirtual handles the input method's virtual events like the Text
