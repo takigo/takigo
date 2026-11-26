@@ -5,6 +5,8 @@ version is 0, a minor release may break the API and says so here.
 
 ## Unreleased
 
+## v0.4.12 (2026-11-26)
+
 - **spinbox, ttk spinbox: the arrow buttons show the normal pointer.** The
   text cursor (I-beam) now shows only over the text, as in Tk. The
   classic spinbox picks the cursor for each element as the pointer moves,
