@@ -65,6 +65,9 @@ type Spinbox struct {
 	// blink blinks the insert cursor while the widget has the focus.
 	blink         *widget.CursorBlinker
 	pressedButton string // "up", "down", or ""
+	// curElement is the element under the pointer that the window's
+	// cursor was last chosen for (sbPtr->curElement in tkEntry.c).
+	curElement string
 
 	// Auto-repeat of the spinner buttons and the auto-scan of the text
 	// (tk/library/spinbox.tcl).
@@ -658,6 +661,39 @@ func (s *Spinbox) hitButton(x, y int) string {
 		return "down"
 	}
 	return ""
+}
+
+// element returns "entry", "up", "down" or "" for the point, as
+// GetSpinboxElement (tk/generic/tkEntry.c) does: the buttons take the
+// right border too.
+func (s *Spinbox) element(x, y int) string {
+	w, h := s.Win.Width, s.Win.Height
+	switch {
+	case x < 0 || y < 0 || x > w || y > h:
+		return ""
+	case x > w-s.inset-s.buttonWidth:
+		if y > h/2 {
+			return "down"
+		}
+		return "up"
+	}
+	return "entry"
+}
+
+// updateCursor shows the text cursor over the entry and the parent's
+// cursor over the buttons, as EntryEventProc does on MotionNotify
+// (-buttoncursor defaults to none).
+func (s *Spinbox) updateCursor(x, y int) {
+	elem := s.element(x, y)
+	if elem == s.curElement {
+		return
+	}
+	s.curElement = elem
+	if elem == "entry" {
+		s.Win.SetCursor(cursor.XTerm)
+	} else {
+		s.Win.ResetCursor()
+	}
 }
 
 // Display schedules a redraw at idle time; see widget.Base.EventuallyRedraw.

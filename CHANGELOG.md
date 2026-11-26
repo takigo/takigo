@@ -5,6 +5,12 @@ version is 0, a minor release may break the API and says so here.
 
 ## Unreleased
 
+- **spinbox, ttk spinbox: the arrow buttons show the normal pointer.** The
+  text cursor (I-beam) now shows only over the text, as in Tk. The
+  classic spinbox picks the cursor for each element as the pointer moves,
+  as `EntryEventProc` does. The ttk spinbox shows the text cursor only
+  over an editable textarea, as `ttk::spinbox::Motion` does.
+
 ## v0.4.11 (2026-11-26)
 
 - **text: the mouse wheel scrolls by a steady distance, as in Tk 9.** The

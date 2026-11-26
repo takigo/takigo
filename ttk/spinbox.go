@@ -50,6 +50,7 @@ type Spinbox struct {
 
 	// Interaction state.
 	pressedButton string // "up", "down", or ""
+	textCursor    bool   // the window shows the text cursor
 	hasFocus      bool
 	cursorOn      bool
 
@@ -155,6 +156,7 @@ func NewSpinbox(parent widget.Caregiver, name string, opts ...SpinboxOption) *Sp
 
 	win.Flags |= window.FlagFocusable
 	win.SetCursor(cursor.XTerm)
+	s.textCursor = true
 	bindSpinbox(s, app)
 
 	return s
@@ -357,6 +359,31 @@ func (s *Spinbox) hitButton(x, y int) string {
 	return ""
 }
 
+// inTextarea reports whether the point is in the textarea parcel: inside
+// the field border and -padding, left of the arrows.
+func (s *Spinbox) inTextarea(x, y int) bool {
+	fp := s.fieldPad()
+	p := LookupPadding(s.Context.Style, "-padding", s.State, Padding{})
+	up, _ := s.arrowBoxes()
+	return x >= fp+p.Left && x < up.X-p.Right && y >= fp+p.Top && y < s.Win.Height-fp-p.Bottom
+}
+
+// updateCursor shows the text cursor over an editable textarea and the
+// parent's cursor elsewhere, as ttk::spinbox::Motion does
+// (tk/library/ttk/spinbox.tcl).
+func (s *Spinbox) updateCursor(x, y int) {
+	text := s.State&(StateDisabled|StateReadonly) == 0 && s.inTextarea(x, y)
+	if text == s.textCursor {
+		return
+	}
+	s.textCursor = text
+	if text {
+		s.Win.SetCursor(cursor.XTerm)
+	} else {
+		s.Win.ResetCursor()
+	}
+}
+
 func (s *Spinbox) closestGap(x int) int { return s.edit.ClosestGap(x) }
 
 // Display draws the themed spinbox.
@@ -514,6 +541,7 @@ func bindSpinbox(s *Spinbox, app widget.AppContext) {
 
 	// Motion — drag select in text area.
 	app.Dispatcher().Bind(win.PlatformID, event.MotionMask, func(ev *event.Event) {
+		s.updateCursor(ev.X, ev.Y)
 		if ev.State&platform.Button1Mask != 0 {
 			if s.hitButton(ev.X, ev.Y) != "" {
 				return

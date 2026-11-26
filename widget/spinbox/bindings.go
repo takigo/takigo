@@ -130,6 +130,7 @@ func (s *Spinbox) handleButtonRelease(ev *event.Event) {
 // handleMotion handles mouse motion events (drag to select).
 func (s *Spinbox) handleMotion(ev *event.Event) {
 	s.lastX = ev.X
+	s.updateCursor(ev.X, ev.Y)
 	if ev.State&platform.Button1Mask != 0 {
 		// The spinner buttons stop repeating when the pointer wanders
 		// off them, as ::tk::spinbox::Motion does (tk/library/spinbox.tcl).
